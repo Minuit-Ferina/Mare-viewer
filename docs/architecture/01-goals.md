@@ -1,10 +1,10 @@
 # Goals
 
 Main base:
-- Firestorm Viewer
-
-Comparison base:
 - Kokua Viewer
+
+Upstream context:
+- Firestorm Viewer
 
 Long-term goals:
 - healthy architecture redesign
