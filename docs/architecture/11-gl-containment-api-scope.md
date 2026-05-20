@@ -127,7 +127,52 @@ Reason: the branch now contains a coherent phase 1 package:
 
 ## Next Small Tasks
 
-- Run or document a build-only check for `llglcontainment.cpp`.
-- If the build check passes, prepare a concise branch summary for review.
+- Prepare a concise branch summary for review.
 - Keep any future source behavior change out of this branch unless explicitly
   requested.
+
+## Build-Only Check
+
+Date: 2026-05-21 CEST
+
+Configured build tree:
+
+```text
+/private/tmp/Mare-viewer-phase1-gl-containment-make2
+```
+
+Direct containment object check:
+
+```sh
+cmake --build /private/tmp/Mare-viewer-phase1-gl-containment-make2 \
+  --target llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o
+```
+
+Result: passed.
+
+Interpretation: `llglcontainment.cpp` compiles in the configured local Darwin
+arm64 build tree.
+
+Broader target attempt:
+
+```sh
+cmake --build /private/tmp/Mare-viewer-phase1-gl-containment-make2 \
+  --target llrender -- -j8
+```
+
+Result: failed before compiling `llrender` because the staging target attempted
+to recreate:
+
+```text
+/private/tmp/Mare-viewer-phase1-gl-containment-make2/sharedlibs/Resources
+```
+
+Observed error:
+
+```text
+failed to create symbolic link ... because existing path cannot be removed:
+Operation not permitted
+```
+
+This is a local build-tree staging issue, not a `llglcontainment.*` compile
+failure.

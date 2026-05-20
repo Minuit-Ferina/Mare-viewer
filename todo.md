@@ -57,10 +57,11 @@ task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/11-gl-containment-api-scope.md`.
 - [x] Identify the smallest useful API surface for `llglcontainment.*`.
 - [x] Keep `llglcontainment.*` behavior-free until a precise containment task exists.
+- [x] Run and document a build-only check for `llglcontainment.cpp`.
+- [x] Add a compile check record for containment files.
 
 ## Immediate Next Steps
 
-- [ ] Run or document a build-only check for `llglcontainment.cpp`.
 - [ ] Prepare a concise branch summary for review.
 
 ## Phase 1 Inventory
@@ -69,7 +70,6 @@ No open items in this section right now.
 
 ## OpenGL Containment
 
-- [ ] Add a build-only test target or compile check for containment files if the repo has a suitable pattern.
 - [ ] Avoid wrapping existing OpenGL mechanically until callsites are classified by intent.
 
 ## Renderer Risk Zones
