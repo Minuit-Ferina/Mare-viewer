@@ -32,6 +32,10 @@ task, and do not start a direct Vulkan port.
 - [x] Group direct `gl*` callsites by intent: state, buffer, texture, shader, framebuffer, draw, debug, platform.
 - [x] Identify all direct `gl*` calls outside `indra/llrender/`.
 - [x] Mark which direct `gl*` calls are required platform glue versus renderer logic.
+- [x] Add `docs/architecture/05-render-target-lifecycle.md`.
+- [x] Map `LLRenderTarget` ownership in `pipeline.cpp`.
+- [x] Map `LLRenderTarget` low-level behavior in `llrendertarget.cpp`.
+- [x] Define `indra/llrender/` as the current legacy OpenGL boundary in docs.
 
 ## Immediate Next Steps
 
@@ -43,9 +47,6 @@ task, and do not start a direct Vulkan port.
 
 ## Phase 1 Inventory
 
-- [ ] Add `docs/architecture/05-render-target-lifecycle.md`.
-- [ ] Map `LLRenderTarget` ownership in `pipeline.cpp`.
-- [ ] Map `LLRenderTarget` low-level behavior in `llrendertarget.cpp`.
 - [ ] Add `docs/architecture/06-shader-map.md`.
 - [ ] Map shader manager files: `llglslshader.*`, `llshadermgr.*`, `llviewershadermgr.*`.
 - [ ] Map shader families under `indra/newview/app_settings/shaders/`.
@@ -59,7 +60,6 @@ task, and do not start a direct Vulkan port.
 
 ## OpenGL Containment
 
-- [ ] Define `indra/llrender/` as the current legacy OpenGL boundary in docs.
 - [ ] Add a review checklist for new rendering work.
 - [ ] Require justification for any new direct `gl*` call outside `indra/llrender/`.
 - [ ] Identify the smallest useful API surface for `llglcontainment.*`.
