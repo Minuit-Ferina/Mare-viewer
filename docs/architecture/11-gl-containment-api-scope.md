@@ -153,7 +153,19 @@ Result: passed.
 Interpretation: `llglcontainment.cpp` compiles in the configured local Darwin
 arm64 build tree.
 
-Broader target attempt:
+Target-level check without dependency staging:
+
+```sh
+cmake --build /private/tmp/Mare-viewer-phase1-gl-containment-make2 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Interpretation: the `llrender` target itself is buildable when Makefile
+third-party staging dependencies are skipped.
+
+Broader target attempt with dependencies:
 
 ```sh
 cmake --build /private/tmp/Mare-viewer-phase1-gl-containment-make2 \
@@ -174,5 +186,8 @@ failed to create symbolic link ... because existing path cannot be removed:
 Operation not permitted
 ```
 
-This is a local build-tree staging issue, not a `llglcontainment.*` compile
-failure.
+This still reproduces after closing the running viewer. The generated Makefile
+contains a staging command that attempts to create a symlink at the same
+`sharedlibs/Resources` path that already exists as a directory containing copied
+dylibs. This is a local build-tree staging issue, not a `llglcontainment.*` or
+`llrender` compile failure.

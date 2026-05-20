@@ -59,10 +59,11 @@ task, and do not start a direct Vulkan port.
 - [x] Keep `llglcontainment.*` behavior-free until a precise containment task exists.
 - [x] Run and document a build-only check for `llglcontainment.cpp`.
 - [x] Add a compile check record for containment files.
+- [x] Prepare a concise branch summary for review.
 
 ## Immediate Next Steps
 
-- [ ] Prepare a concise branch summary for review.
+- [ ] Review and merge `phase1-gl-containment`, or explicitly start a new follow-up branch.
 
 ## Phase 1 Inventory
 
@@ -87,6 +88,7 @@ No open items in this section right now.
 - [ ] Verify `libopenal.dylib`, `libalut.dylib`, `libllwebrtc.dylib`, and `libndofdev.dylib` are copied into app bundles.
 - [ ] Document the existing manifest `--arch=x86_64` mismatch as local build-system debt.
 - [ ] Verify whether the manifest arch mismatch affects local dev runtime before proposing a CMake fix.
+- [ ] Investigate the local Makefile `stage_third_party_libs` symlink issue for `sharedlibs/Resources`.
 - [ ] Keep FSR2 disabled on Darwin unless a compatible non-compute fallback is explicitly designed.
 - [ ] Run a full local `mare-viewer` Release arm64 build after each source-side containment step on this machine.
 - [ ] Keep universal macOS build investigation separate from this machine's local arm64 dev shortcut.
