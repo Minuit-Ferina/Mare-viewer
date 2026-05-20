@@ -3,9 +3,9 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 1 is measurement, mapping, classification, and containment.
-Do not move source files, do not change runtime behavior without an explicit
-task, and do not start a direct Vulkan port.
+Current rule: phase 2 is narrow tooling, contracts, and smallest containment
+preparation. Do not move source files, do not change runtime behavior without
+an explicit task, and do not start a direct Vulkan port.
 
 ## Done
 
@@ -60,14 +60,31 @@ task, and do not start a direct Vulkan port.
 - [x] Run and document a build-only check for `llglcontainment.cpp`.
 - [x] Add a compile check record for containment files.
 - [x] Prepare a concise branch summary for review.
+- [x] Create branch `phase2` from `phase1-gl-containment`.
+- [x] Add `docs/architecture/13-phase2-plan.md`.
+- [x] Update project instructions for phase 2 guardrails.
 
 ## Immediate Next Steps
 
-- [ ] Review and merge `phase1-gl-containment`, or explicitly start a new follow-up branch.
+- [ ] Refine the source inventory generator so raw `gl*` references and likely
+      `gl*(...)` call expressions are separate generated columns.
+- [ ] Regenerate `docs/architecture/generated/source_inventory.csv` after the
+      inventory generator is refined.
+- [ ] Commit the phase 2 tooling changes as a standalone patch.
 
 ## Phase 1 Inventory
 
 No open items in this section right now.
+
+## Phase 2 Scope
+
+- [ ] Keep `phase1-gl-containment` reviewable as the phase 1 evidence branch.
+- [ ] Keep `phase2` stacked on top of `phase1-gl-containment`.
+- [ ] Do not merge these branches into local `main` unless that is explicitly
+      chosen as the distribution strategy.
+- [ ] Prefer docs and tooling changes before source behavior changes.
+- [ ] Require an exact callsite family, ownership notes, ordering notes, and
+      verification plan before adding behavior to `llglcontainment.*`.
 
 ## OpenGL Containment
 
@@ -80,7 +97,7 @@ No open items in this section right now.
 - [ ] Do not edit draw pools until their pass order and state assumptions are mapped.
 - [ ] Do not edit shader managers until shader family ownership is mapped.
 - [ ] Do not edit UI rendering paths until UI/render boundary candidates are listed.
-- [ ] Do not move files in `indra/newview/`, `indra/llrender/`, `indra/llwindow/`, or `indra/llui/` during phase 1.
+- [ ] Do not move files in `indra/newview/`, `indra/llrender/`, `indra/llwindow/`, or `indra/llui/` during phase 2.
 
 ## Build And Platform
 
