@@ -39,6 +39,10 @@ task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/06-shader-map.md`.
 - [x] Map shader manager files: `llglslshader.*`, `llshadermgr.*`, `llviewershadermgr.*`.
 - [x] Map shader families under `indra/newview/app_settings/shaders/`.
+- [x] Add `docs/architecture/07-ui-render-boundaries.md`.
+- [x] List preview widgets that render scene, model, texture, or material content.
+- [x] List map and minimap widgets using render helpers.
+- [x] List core `llui` files that touch rendering primitives.
 
 ## Immediate Next Steps
 
@@ -50,10 +54,6 @@ task, and do not start a direct Vulkan port.
 
 ## Phase 1 Inventory
 
-- [ ] Add `docs/architecture/07-ui-render-boundaries.md`.
-- [ ] List preview widgets that render scene, model, texture, or material content.
-- [ ] List map and minimap widgets using render helpers.
-- [ ] List core `llui` files that touch rendering primitives.
 - [ ] Add `docs/architecture/08-platform-opengl.md`.
 - [ ] Document Darwin OpenGL limits and FSR2 exclusion rationale.
 - [ ] Document Windows, SDL, Mesa/headless OpenGL entry points.
