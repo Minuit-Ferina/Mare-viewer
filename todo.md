@@ -69,13 +69,14 @@ an explicit task, and do not start a direct Vulkan port.
       inventory generator was refined.
 - [x] Update OpenGL debt and callsite reports for the refined inventory schema.
 - [x] Add `docs/architecture/14-viewport-containment-candidate.md`.
+- [x] Add `docs/architecture/15-llrendertarget-viewport-contract.md`.
 
 ## Immediate Next Steps
 
-- [ ] Write the `LLRenderTarget` viewport behavior contract before changing
-      source code.
 - [ ] Decide whether the chosen family belongs in `llglcontainment.*` or in an
       existing local owner.
+- [ ] If source cleanup is requested, keep the first viewport patch inside
+      `indra/llrender/llrendertarget.cpp` and preserve behavior.
 
 ## Phase 1 Inventory
 
