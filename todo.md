@@ -46,6 +46,8 @@ task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/08-platform-opengl.md`.
 - [x] Document Darwin OpenGL limits and FSR2 exclusion rationale.
 - [x] Document Windows, SDL, Mesa/headless OpenGL entry points.
+- [x] Add a review checklist for new rendering work.
+- [x] Require justification for any new direct `gl*` call outside `indra/llrender/`.
 
 ## Immediate Next Steps
 
@@ -61,8 +63,6 @@ No open items in this section right now.
 
 ## OpenGL Containment
 
-- [ ] Add a review checklist for new rendering work.
-- [ ] Require justification for any new direct `gl*` call outside `indra/llrender/`.
 - [ ] Identify the smallest useful API surface for `llglcontainment.*`.
 - [ ] Keep `llglcontainment.*` behavior-free until a precise containment task exists.
 - [ ] Add a build-only test target or compile check for containment files if the repo has a suitable pattern.
