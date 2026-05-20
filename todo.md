@@ -70,13 +70,18 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Update OpenGL debt and callsite reports for the refined inventory schema.
 - [x] Add `docs/architecture/14-viewport-containment-candidate.md`.
 - [x] Add `docs/architecture/15-llrendertarget-viewport-contract.md`.
+- [x] Extract internal `LLRenderTarget` viewport helpers without changing the
+      public API.
+- [x] Verify the viewport helper extraction with `llrender/fast`.
+- [x] Reproduce that the full Makefile `mare-viewer` target is still blocked by
+      the local `stage_third_party_libs` `sharedlibs/Resources` issue.
 
 ## Immediate Next Steps
 
-- [ ] Decide whether the chosen family belongs in `llglcontainment.*` or in an
-      existing local owner.
-- [ ] If source cleanup is requested, keep the first viewport patch inside
-      `indra/llrender/llrendertarget.cpp` and preserve behavior.
+- [ ] Decide whether to recreate or repair the local Makefile build tree before
+      the next source-side containment step.
+- [ ] If continuing viewport work, keep the next patch inside the documented
+      `LLRenderTarget` owner unless a new contract says otherwise.
 
 ## Phase 1 Inventory
 

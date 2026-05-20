@@ -164,3 +164,68 @@ If behavior changes or non-`llrender` files are touched:
 The next source-side step should not add a new abstraction layer. It should
 either leave behavior unchanged or make the existing `LLRenderTarget` viewport
 intent easier to review locally.
+
+## Source Cleanup Applied
+
+The first source cleanup keeps the behavior local to
+`indra/llrender/llrendertarget.cpp`.
+
+Implementation shape:
+
+- added internal helper `set_render_target_viewport(...)`
+- added internal helper `restore_default_framebuffer_viewport()`
+- kept both helpers in the `.cpp` file only
+- changed `bindTarget()` to call the render target viewport helper
+- changed `flush()` to call the default framebuffer restore helper
+- did not change public headers
+- did not add an `LLGLContainment` viewport wrapper
+- did not touch `pipeline.cpp`, viewer window, camera, probe, or UI paths
+
+Behavior intent:
+
+- preserve existing viewport behavior
+- make the two existing viewport intents reviewable by name
+- keep `gGLViewport` ownership outside `LLRenderTarget`
+
+## Source Cleanup Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+cmake --build /private/tmp/Mare-viewer-phase1-gl-containment-make2 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llrendertarget.cpp.o`
+- relinked `libllrender.a`
+
+Full local Makefile target attempt:
+
+```sh
+cmake --build /private/tmp/Mare-viewer-phase1-gl-containment-make2 \
+  --target mare-viewer -- -j8
+```
+
+Result: failed before completing the viewer target because the existing
+`stage_third_party_libs` step again attempted to recreate:
+
+```text
+/private/tmp/Mare-viewer-phase1-gl-containment-make2/sharedlibs/Resources
+```
+
+Observed error:
+
+```text
+failed to create symbolic link ... because existing path cannot be removed:
+Operation not permitted
+```
+
+Interpretation: the source cleanup compiled in `llrender`. The full Makefile
+viewer target remains blocked by the known local build-tree staging issue, not
+by a compile failure in `llrendertarget.cpp`.

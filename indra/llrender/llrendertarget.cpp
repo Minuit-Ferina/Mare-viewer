@@ -59,6 +59,23 @@ extern S32 gGLViewport[4];
 U32 LLRenderTarget::sCurResX = 0;
 U32 LLRenderTarget::sCurResY = 0;
 
+namespace
+{
+void set_render_target_viewport(U32 width, U32 height)
+{
+    glViewport(0, 0, width, height);
+    LLRenderTarget::sCurResX = width;
+    LLRenderTarget::sCurResY = height;
+}
+
+void restore_default_framebuffer_viewport()
+{
+    glViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+    LLRenderTarget::sCurResX = gGLViewport[2];
+    LLRenderTarget::sCurResY = gGLViewport[3];
+}
+}
+
 LLRenderTarget::LLRenderTarget() :
     mResX(0),
     mResY(0),
@@ -439,9 +456,7 @@ void LLRenderTarget::bindTarget()
     }
     check_framebuffer_status();
 
-    glViewport(0, 0, mResX, mResY);
-    sCurResX = mResX;
-    sCurResY = mResY;
+    set_render_target_viewport(mResX, mResY);
 
     mPreviousRT = sBoundTarget;
     sBoundTarget = this;
@@ -522,9 +537,7 @@ void LLRenderTarget::flush()
         sBoundTarget = nullptr;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         sCurFBO = 0;
-        glViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
-        sCurResX = gGLViewport[2];
-        sCurResY = gGLViewport[3];
+        restore_default_framebuffer_viewport();
         glReadBuffer(GL_BACK);
         glDrawBuffer(GL_BACK);
     }
