@@ -53,10 +53,15 @@ task, and do not start a direct Vulkan port.
 - [x] Capture one loaded-area FPS value with the same preset.
 - [x] Document the exact graphics preset and viewer settings used for FPS measurements.
 - [x] Update `docs/architecture/00-baseline.md` with runtime and FPS results.
+- [x] Decide to prepare `phase1-gl-containment` for review/merge before source behavior changes.
+- [x] Add `docs/architecture/11-gl-containment-api-scope.md`.
+- [x] Identify the smallest useful API surface for `llglcontainment.*`.
+- [x] Keep `llglcontainment.*` behavior-free until a precise containment task exists.
 
 ## Immediate Next Steps
 
-- [ ] Decide whether to merge `phase1-gl-containment` or keep stacking small phase 1 branches.
+- [ ] Run or document a build-only check for `llglcontainment.cpp`.
+- [ ] Prepare a concise branch summary for review.
 
 ## Phase 1 Inventory
 
@@ -64,8 +69,6 @@ No open items in this section right now.
 
 ## OpenGL Containment
 
-- [ ] Identify the smallest useful API surface for `llglcontainment.*`.
-- [ ] Keep `llglcontainment.*` behavior-free until a precise containment task exists.
 - [ ] Add a build-only test target or compile check for containment files if the repo has a suitable pattern.
 - [ ] Avoid wrapping existing OpenGL mechanically until callsites are classified by intent.
 
