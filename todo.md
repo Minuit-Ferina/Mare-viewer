@@ -48,6 +48,7 @@ task, and do not start a direct Vulkan port.
 - [x] Document Windows, SDL, Mesa/headless OpenGL entry points.
 - [x] Add a review checklist for new rendering work.
 - [x] Require justification for any new direct `gl*` call outside `indra/llrender/`.
+- [x] Add `docs/architecture/10-runtime-fps-baseline-protocol.md`.
 
 ## Immediate Next Steps
 
