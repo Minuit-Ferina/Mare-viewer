@@ -19,6 +19,7 @@ set(llrender_SOURCE_FILES
     llfontvertexbuffer.cpp
     llfontregistry.cpp
     llgl.cpp
+    llglcontainment.cpp
     llglslshader.cpp
     llgltexture.cpp
     llimagegl.cpp
@@ -48,6 +49,7 @@ set(llrender_HEADER_FILES
     llfontbitmapcache.h
     llfontregistry.h
     llgl.h
+    llglcontainment.h
     llglheaders.h
     llglslshader.h
     llglstates.h
@@ -105,4 +107,3 @@ target_link_libraries(llrender
         OpenGL::GL
         OpenGL::GLU
         )
-
