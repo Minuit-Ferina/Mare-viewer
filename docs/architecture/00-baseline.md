@@ -68,8 +68,9 @@ env revision=61972 \
 - Compiles: yes
 - Bundle copy step: yes
 - Binary architecture: arm64, non-fat Mach-O
-- Launches: not fully measured after the OpenAL manifest fix
-- Login possible: not measured
+- Launches: yes, smoke-tested after the OpenAL manifest fix
+- Login screen: reached
+- Authenticated login: not measured
 - Empty area FPS: not measured
 - Loaded area FPS: not measured
 
@@ -87,6 +88,26 @@ Verified bundle libraries:
 - The manifest command still receives `--arch=x86_64` from the existing CMake `ARCH` variable even when the Xcode build is constrained to `ARCHS=arm64`. The produced executable was verified as arm64.
 - Full runtime behavior, login, and FPS are still unmeasured and should be captured in a viewer session before using this baseline for performance comparison.
 
+## Runtime Smoke Test
+
+Date: 2026-05-20 23:24 CEST
+
+- Launched app: yes
+- Process stayed alive after launch: yes
+- `SLPlugin` and Dullahan helper processes started: yes
+- OpenAL initialized: yes, `LLAudioEngine_OpenAL::init() OpenAL successfully initialized`
+- Startup state reached: `STATE_LOGIN_SHOW --> STATE_LOGIN_WAIT`
+- Login screen initialized: yes, `login_show : Initializing Login Screen`
+- Authenticated login: not measured
+- FPS baseline: not measured
+
+Observed non-blocking warnings:
+
+- Shader cache metadata save warning under `~/Library/Caches/Kokua/shader_cache`.
+- Missing user grid configuration on first run.
+- Expired certificates rejected from the bundled CA file.
+- Channel `Mare Viewer` treated as `Test` because it does not follow the expected naming convention.
+
 ## Source Inventory Snapshot
 
 - Inventory CSV: `docs/architecture/generated/source_inventory.csv`
@@ -101,7 +122,6 @@ Verified bundle libraries:
 
 ## Next Small Steps
 
-- Launch the regenerated app bundle from Finder or Terminal and record whether it reaches the login screen.
 - Capture one empty-area and one loaded-area FPS value with the same graphics preset.
 - Keep this machine's local dev builds arm64-only for speed, and keep universal/release architecture decisions separate.
 - Use `docs/architecture/local-darwin-arm64-build.md` for the current local build command.

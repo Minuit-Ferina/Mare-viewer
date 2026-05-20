@@ -25,12 +25,12 @@ task, and do not start a direct Vulkan port.
 - [x] Decide that arm64-only macOS builds are a local dev shortcut for this machine only.
 - [x] Keep release, packaging, and distribution architecture decisions separate from local dev builds.
 - [x] Add a documented local arm64-only Darwin build command for this machine.
+- [x] Launch the generated macOS app and record that it reaches the login screen.
+- [x] Record a simple runtime smoke test: launch, login screen, audio dylibs present, no immediate dyld abort.
 
 ## Immediate Next Steps
 
 - [ ] Decide whether to merge `phase1-gl-containment` or keep stacking small phase 1 branches.
-- [ ] Launch the generated macOS app and record whether it reaches the login screen.
-- [ ] Record a simple runtime smoke test: launch, login screen, audio dylibs present, no immediate dyld abort.
 - [ ] Capture one empty-area FPS value with a fixed graphics preset.
 - [ ] Capture one loaded-area FPS value with the same preset.
 - [ ] Document the exact graphics preset and viewer settings used for FPS measurements.
