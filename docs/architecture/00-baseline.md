@@ -72,7 +72,7 @@ env revision=61972 \
 - Login screen: reached
 - Authenticated login: yes
 - Empty area FPS: average 140, min 90, max 200
-- Loaded area FPS: average 44, min 30, max 50
+- Loaded area FPS: average 50, min 30, max 55
 
 Verified bundle libraries:
 
@@ -143,9 +143,9 @@ Loaded-area scene:
 - Location: `https://maps.secondlife.com/secondlife/Idunn/169/22/98`
 - Camera: third-person, looking toward the reception, default zoom
 - FPS samples: individual samples not retained
-- Average FPS: 44
+- Average FPS: 50
 - Minimum FPS: 30
-- Maximum FPS: 50
+- Maximum FPS: 55
 - Notes: none recorded
 
 ## Source Inventory Snapshot
