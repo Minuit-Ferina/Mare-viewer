@@ -27,6 +27,11 @@ task, and do not start a direct Vulkan port.
 - [x] Add a documented local arm64-only Darwin build command for this machine.
 - [x] Launch the generated macOS app and record that it reaches the login screen.
 - [x] Record a simple runtime smoke test: launch, login screen, audio dylibs present, no immediate dyld abort.
+- [x] Regenerate `docs/architecture/generated/source_inventory.csv` after the containment module lands.
+- [x] Add `docs/architecture/04-gl-callsite-inventory.md`.
+- [x] Group direct `gl*` callsites by intent: state, buffer, texture, shader, framebuffer, draw, debug, platform.
+- [x] Identify all direct `gl*` calls outside `indra/llrender/`.
+- [x] Mark which direct `gl*` calls are required platform glue versus renderer logic.
 
 ## Immediate Next Steps
 
@@ -38,11 +43,6 @@ task, and do not start a direct Vulkan port.
 
 ## Phase 1 Inventory
 
-- [ ] Regenerate `docs/architecture/generated/source_inventory.csv` after the containment module lands.
-- [ ] Add `docs/architecture/04-gl-callsite-inventory.md`.
-- [ ] Group direct `gl*` callsites by intent: state, buffer, texture, shader, framebuffer, draw, debug, platform.
-- [ ] Identify all direct `gl*` calls outside `indra/llrender/`.
-- [ ] Mark which direct `gl*` calls are required platform glue versus renderer logic.
 - [ ] Add `docs/architecture/05-render-target-lifecycle.md`.
 - [ ] Map `LLRenderTarget` ownership in `pipeline.cpp`.
 - [ ] Map `LLRenderTarget` low-level behavior in `llrendertarget.cpp`.

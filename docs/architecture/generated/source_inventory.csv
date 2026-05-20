@@ -3019,12 +3019,14 @@ indra/llcommon/llcleanup.cpp,core,33,4,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llheteromap.cpp,core,33,2,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llerrorlegacy.h,core,33,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/tests/llpipeline_stub.cpp,render.pipeline,33,0,0,0,0,0,3,0,0,0,0,0
+indra/llrender/llglcontainment.h,render.legacy_low_level,32,0,0,0,1,0,0,0,0,0,0,0
 indra/llinventory/llinventorydefines.cpp,unknown,32,2,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llstatenums.h,core,32,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/shadowF.glsl,viewer.misc,32,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/objects/nonindexedTextureV.glsl,assets.texture,32,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/objects/simpleF.glsl,viewer.misc,32,0,0,0,0,0,0,0,0,0,0,0
 scripts/templates/template-h.h,unknown,32,0,0,0,0,0,0,0,0,0,0,0
+indra/llrender/llglcontainment.cpp,render.legacy_low_level,31,1,0,0,1,0,0,0,0,0,0,0
 indra/llrender/llglcommonfunc.h,render.legacy_low_level,31,0,0,0,1,0,0,0,0,0,0,0
 indra/llcommon/llbitpack.cpp,core,31,2,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llprofiler.cpp,core,31,2,0,0,0,0,0,0,0,0,0,0

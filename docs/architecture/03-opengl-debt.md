@@ -9,14 +9,16 @@ edited early.
 
 ## Summary
 
-- Total files analyzed: 3083
+- Total files analyzed: 3085
 - Files with direct `gl*` calls: 79
 - Share of analyzed files with direct `gl*` calls: about 2.6%
 
 Interpretation: direct OpenGL calls are concentrated in a small number of
 files, but those files include the central rendering pipeline, low-level GL
 wrappers, texture upload code, shader management, draw pools, UI-adjacent
-preview surfaces, and platform window code.
+preview surfaces, and platform window code. The regenerated inventory also
+includes the new `llglcontainment.*` marker files; they add no direct OpenGL
+calls.
 
 ## Top 50 Files By Direct `gl*` Calls
 
@@ -207,4 +209,3 @@ replacement.
 - Add a shader-family map for `llviewershadermgr.cpp` and
   `app_settings/shaders`.
 - Add a platform OpenGL note for Darwin, Windows, SDL, and Mesa/headless files.
-
