@@ -52,6 +52,8 @@ Do not start with:
 
 ## First Recommended Task
 
+Status: completed in phase 2.
+
 Improve `tools/architecture/source_inventory.py` so generated inventory can
 separate:
 

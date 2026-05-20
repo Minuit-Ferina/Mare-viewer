@@ -27,8 +27,7 @@ SKIP_DIRS = {
     "tmp",
 }
 
-PATTERNS = {
-    "gl_calls": re.compile(r"\bgl[A-Z][A-Za-z0-9_]*\b"),
+REFERENCE_PATTERNS = {
     "gGL": re.compile(r"\bgGL\b"),
     "LLGL": re.compile(r"\bLLGL[A-Za-z0-9_]*\b"),
     "LLRender": re.compile(r"\bLLRender\b"),
@@ -38,6 +37,17 @@ PATTERNS = {
     "LLImageGL": re.compile(r"\bLLImageGL\b"),
     "LLViewerTexture": re.compile(r"\bLLViewerTexture\b"),
     "LLViewerWindow": re.compile(r"\bLLViewerWindow\b"),
+}
+
+GL_RAW_REF_RE = re.compile(r"\bgl[A-Z][A-Za-z0-9_]*\b")
+GL_CALL_EXPR_RE = re.compile(r"\b(gl[A-Z][A-Za-z0-9_]*)\s*\(")
+KNOWN_GL_FALSE_POSITIVE_NAMES = {
+    "glPointToScreen",
+    "glReady",
+    "glRectToScreen",
+    "glTF",
+    "glQuery",
+    "glView",
 }
 
 INCLUDE_RE = re.compile(r'^\s*#\s*include\s+[<"]([^>"]+)[>"]', re.MULTILINE)
@@ -100,10 +110,27 @@ def main() -> None:
         lines = text.count("\n") + 1
         includes = INCLUDE_RE.findall(text)
 
+        gl_raw_names = GL_RAW_REF_RE.findall(text)
+        gl_call_names = GL_CALL_EXPR_RE.findall(text)
+
         counts = {
-            name: len(pattern.findall(text))
-            for name, pattern in PATTERNS.items()
+            "gl_calls": sum(
+                1
+                for name in gl_call_names
+                if name not in KNOWN_GL_FALSE_POSITIVE_NAMES
+            ),
+            "gl_raw_refs": len(gl_raw_names),
+            "gl_call_exprs": len(gl_call_names),
+            "gl_known_false_refs": sum(
+                1
+                for name in gl_raw_names
+                if name in KNOWN_GL_FALSE_POSITIVE_NAMES
+            ),
         }
+        counts.update({
+            name: len(pattern.findall(text))
+            for name, pattern in REFERENCE_PATTERNS.items()
+        })
 
         category = guess_category(rel, counts)
 
@@ -115,19 +142,39 @@ def main() -> None:
             **counts,
         })
 
-    rows.sort(key=lambda r: (r["gl_calls"], r["lines"]), reverse=True)
+    rows.sort(
+        key=lambda r: (
+            r["gl_calls"],
+            r["gl_raw_refs"],
+            r["gGL"],
+            r["LLGL"],
+            r["LLPipeline"],
+            r["LLRenderTarget"],
+            r["LLViewerTexture"],
+            r["LLImageGL"],
+            r["lines"],
+        ),
+        reverse=True,
+    )
 
     csv_path = out_dir / "source_inventory.csv"
     with csv_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()) if rows else ["path"])
+        writer = csv.DictWriter(
+            f,
+            fieldnames=list(rows[0].keys()) if rows else ["path"],
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rows)
 
     md_path = out_dir / "source_inventory_top.md"
     with md_path.open("w", encoding="utf-8") as f:
-        f.write("# Source inventory — top OpenGL-related files\n\n")
-        f.write("| file | category | lines | gl_calls | gGL | LLGL | LLPipeline | LLRenderTarget |\n")
-        f.write("|---|---:|---:|---:|---:|---:|---:|---:|\n")
+        f.write("# Source inventory - top OpenGL-related files\n\n")
+        f.write(
+            "| file | category | lines | gl_calls | gl_raw_refs | "
+            "gl_known_false_refs | gGL | LLGL | LLPipeline | LLRenderTarget |\n"
+        )
+        f.write("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
 
         for row in rows[:100]:
             f.write(
@@ -135,6 +182,8 @@ def main() -> None:
                 f"| {row['category_guess']} "
                 f"| {row['lines']} "
                 f"| {row['gl_calls']} "
+                f"| {row['gl_raw_refs']} "
+                f"| {row['gl_known_false_refs']} "
                 f"| {row['gGL']} "
                 f"| {row['LLGL']} "
                 f"| {row['LLPipeline']} "

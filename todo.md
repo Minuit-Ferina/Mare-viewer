@@ -63,14 +63,19 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Create branch `phase2` from `phase1-gl-containment`.
 - [x] Add `docs/architecture/13-phase2-plan.md`.
 - [x] Update project instructions for phase 2 guardrails.
+- [x] Refine the source inventory generator so raw `gl*` references and likely
+      `gl*(...)` call expressions are separate generated columns.
+- [x] Regenerate `docs/architecture/generated/source_inventory.csv` after the
+      inventory generator was refined.
+- [x] Update OpenGL debt and callsite reports for the refined inventory schema.
 
 ## Immediate Next Steps
 
-- [ ] Refine the source inventory generator so raw `gl*` references and likely
-      `gl*(...)` call expressions are separate generated columns.
-- [ ] Regenerate `docs/architecture/generated/source_inventory.csv` after the
-      inventory generator is refined.
-- [ ] Commit the phase 2 tooling changes as a standalone patch.
+- [ ] Pick one narrow OpenGL callsite family for the next containment analysis.
+- [ ] Document that family's owner, ordering, cleanup requirements, and
+      verification plan before adding source behavior.
+- [ ] Decide whether the chosen family belongs in `llglcontainment.*` or in an
+      existing local owner.
 
 ## Phase 1 Inventory
 

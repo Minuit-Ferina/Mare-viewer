@@ -1,19 +1,22 @@
 # OpenGL Callsite Inventory
 
 Source: `docs/architecture/generated/source_inventory.csv`, regenerated after
-`indra/llrender/llglcontainment.*` landed.
+`indra/llrender/llglcontainment.*` landed and after the phase 2 inventory
+schema split raw `gl*` references from likely calls.
 
-This is a phase 1 analysis artifact only. It does not propose edits to the
-listed source files.
+This is an architecture analysis artifact only. It does not propose edits to
+the listed source files.
 
 ## Method
 
-The generated CSV counts raw `gl*` references with this regex:
-`\bgl[A-Z][A-Za-z0-9_]*\b`.
+The generated CSV now reports separate OpenGL-related columns:
 
-For this document, a second heuristic pass was used to separate likely direct
-call expressions from comments, declarations, URLs, and names:
-`\b(gl[A-Z][A-Za-z0-9_]*)\s*\(`.
+- `gl_raw_refs`: raw references matching `\bgl[A-Z][A-Za-z0-9_]*\b`
+- `gl_call_exprs`: call-expression references matching
+  `\b(gl[A-Z][A-Za-z0-9_]*)\s*\(`
+- `gl_known_false_refs`: known false-positive names
+- `gl_calls`: likely direct OpenGL call expressions after known false-positive
+  names are excluded
 
 Known false-positive patterns in the raw inventory:
 
@@ -32,10 +35,13 @@ target, not as proof that a file should be changed.
 - Total files analyzed: 3085
 - Files with raw `gl*` references: 79
 - Raw `gl*` references: 3900
-- Files with likely `gl*(...)` call expressions: 69
-- Likely `gl*(...)` call expressions: 945
+- Files with likely direct `gl*(...)` calls: 66
+- Likely direct `gl*(...)` calls: 936
+- Files with raw call expressions before false-positive filtering: 69
+- Raw call expressions before false-positive filtering: 945
+- Known false-positive raw `gl*` references: 26
 - Files with raw `gl*` references outside `indra/llrender/`: 63
-- Files with likely `gl*(...)` call expressions outside `indra/llrender/`: 53
+- Files with likely direct `gl*(...)` calls outside `indra/llrender/`: 50
 
 Interpretation: `indra/llrender/` remains the current low-level OpenGL boundary,
 but substantial direct GL usage still exists in frame orchestration, draw pools,
@@ -53,7 +59,7 @@ glue.
 | buffers and geometry | `glBindBuffer`, `glBufferData`, `glBufferSubData`, `glVertexAttribPointer`, `glVertexPointer`, `glDrawElements` | Crosses GLTF resources, spatial debug rendering, and legacy draw paths. |
 | queries and debug timing | `glBeginQuery`, `glEndQuery`, `glGetQueryObjectuiv`, `glGetQueryObjectui64v`, `glObjectLabel` | Useful for measurement, but should be isolated from render pass ownership decisions. |
 | platform and context glue | `glXGetProcAddressARB`, `glGetString`, `glFinish`, `glSwapBuffers` | Likely belongs under platform windowing notes, not renderer refactor work. |
-| raw-inventory false positives | `glTF`, `glReady`, `glPointToScreen`, `glRectToScreen`, `glView`, comment-only `glQuery` | Keep these in the inventory until the generator is refined. |
+| raw-inventory false positives | `glTF`, `glReady`, `glPointToScreen`, `glRectToScreen`, `glView`, comment-only `glQuery` | Keep these visible in `gl_raw_refs` and `gl_known_false_refs`, but exclude them from `gl_calls`. |
 
 ## Top Likely Call Expressions
 
@@ -121,8 +127,6 @@ Priority means analysis priority only:
 | `indra/newview/llglsandbox.cpp` | 5 | 5 | debug drawing state | P2 | `glLineWidth` |
 | `indra/newview/llselectmgr.cpp` | 5 | 6 | selection drawing state | P2 | `glAlphaFunc`, `glPolygonMode`, `glLineWidth` |
 | `indra/newview/llvieweroctree.cpp` | 5 | 7 | octree query/debug handling | P2 | `glGenQueries`, `glGetQueryObjectuiv`, `glBeginQuery`, `glEndQuery` |
-| `indra/llui/llui.cpp` | 4 | 4 | UI coordinate helpers, false-positive candidate | P2 | `glPointToScreen`, `glRectToScreen` |
-| `indra/llwindow/llwindowwin32.cpp` | 4 | 4 | platform/context glue plus clear call | P1 | `glReady`, `glClearColor`, `glClear` |
 | `indra/newview/llappviewer.cpp` | 4 | 4 | startup/capability and cleanup touchpoint | P2 | `glGetString`, `glDeleteTextures` |
 | `indra/llappearance/lltexlayer.cpp` | 3 | 5 | appearance texture readback | P2 | `glGetTexImage`, `glGetError`, `glReadPixels` |
 | `indra/newview/lldynamictexture.cpp` | 3 | 3 | dynamic texture render target state | P2 | `glViewport`, `glClear` |
@@ -133,7 +137,7 @@ Priority means analysis priority only:
 | `indra/newview/llhudeffectpointat.cpp` | 3 | 3 | HUD fixed-function matrix state | P2 | `glMatrixMode`, `glPushMatrix`, `glPopMatrix` |
 | `indra/newview/llsnapshotlivepreview.cpp` | 3 | 3 | UI/snapshot preview rendering boundary | P2 | `glGetFloatv`, `glLineWidth` |
 | `indra/newview/llterrainpaintmap.cpp` | 3 | 3 | terrain paint texture lifecycle | P2 | `glClearColor`, `glViewport`, `glGenerateMipmap` |
-| `indra/llui/llui.h` | 2 | 2 | UI coordinate helpers, false-positive candidate | P2 | `glPointToScreen`, `glRectToScreen` |
+| `indra/llwindow/llwindowwin32.cpp` | 2 | 4 | platform/context glue plus clear call; raw `glReady` false positive | P1 | `glClearColor`, `glClear` |
 | `indra/newview/RRInterface.cpp` | 2 | 2 | viewer draw state touchpoint | P2 | `glCullFace` |
 | `indra/newview/lldrawpoolbump.cpp` | 2 | 2 | draw pool state and mip lifecycle | P2 | `glPolygonOffset`, `glGenerateMipmap` |
 | `indra/newview/lldrawpooltree.cpp` | 2 | 2 | draw pool state | P2 | `glPolygonOffset` |
@@ -147,24 +151,26 @@ Priority means analysis priority only:
 | `indra/newview/lldrawpool.cpp` | 1 | 1 | draw pool color state | P2 | `glColor4ubv` |
 | `indra/newview/lldrawpoolsimple.cpp` | 1 | 1 | draw pool state | P2 | `glPolygonOffset` |
 | `indra/newview/lldrawpoolwlsky.cpp` | 1 | 1 | sky draw target clear | P2 | `glClear` |
-| `indra/newview/llfilepicker.cpp` | 1 | 2 | false-positive candidate | P2 | `glTF` |
 | `indra/newview/llfloaterimagepreview.cpp` | 1 | 1 | UI/image preview rendering boundary | P2 | `glClear` |
 | `indra/newview/llnetmap.cpp` | 1 | 1 | UI/map rendering boundary | P2 | `glMatrixMode` |
 | `indra/newview/llviewercamera.cpp` | 1 | 1 | camera/viewport touchpoint | P2 | `glViewport` |
 | `indra/newview/llviewerparceloverlay.cpp` | 1 | 1 | parcel overlay debug drawing | P2 | `glLineWidth` |
 | `indra/newview/rlveffects.cpp` | 1 | 1 | RLV effect viewport touchpoint | P2 | `glViewport` |
 
-## Raw-Only Matches To Filter Later
+## Raw-Only Matches To Keep Visible
 
-These files appear in the raw CSV inventory outside `indra/llrender/`, but the
-second pass did not find direct `gl*(...)` call expressions. They should remain
-visible because some are declarations of GL function pointers, while others are
-clearly comments or GLTF references.
+These files appear in the raw CSV inventory outside `indra/llrender/`, but
+`gl_calls` is zero after likely-call and known-false-positive filtering. They
+should remain visible because some are declarations of GL function pointers,
+while others are comments, GLTF references, or non-OpenGL helper names.
 
 | file | raw refs | likely reason |
 |---|---:|---|
+| `indra/llui/llui.cpp` | 4 | coordinate helpers: `glPointToScreen`, `glRectToScreen`. |
 | `indra/newview/llviewerjointmesh.cpp` | 3 | `extern` declarations for ARB function pointers. |
+| `indra/newview/llfilepicker.cpp` | 2 | `glTF` in comments or file type names. |
 | `indra/llprimitive/llgltfmaterial.cpp` | 2 | `glTF` in comments/URLs. |
+| `indra/llui/llui.h` | 2 | coordinate helper declarations: `glPointToScreen`, `glRectToScreen`. |
 | `indra/newview/app_settings/shaders/class1/deferred/pbrterrainF.glsl` | 2 | `glTF` in comments/URLs. |
 | `indra/newview/llviewershadermgr.h` | 2 | `glTF` in comments/URLs. |
 | `indra/newview/app_settings/shaders/class1/deferred/textureUtilV.glsl` | 2 | `glTF` in comments/URLs. |
@@ -183,17 +189,15 @@ clearly comments or GLTF references.
   orchestration, render targets, draw pools, and UI preview boundaries.
 - Treat platform files under `indra/llwindow/` as platform/context glue until
   `docs/architecture/08-platform-opengl.md` exists.
-- Improve the inventory generator before using raw `gl_calls` as a strict gate;
-  it should eventually report raw references, likely call expressions, and known
-  false positives separately.
+- Use generated `gl_calls` for likely direct-call review, but keep
+  `gl_raw_refs` visible so comments, declarations, and helper-name false
+  positives do not disappear.
 
 ## Next Small Tasks
 
-- Add `docs/architecture/05-render-target-lifecycle.md` for `pipeline.cpp` and
-  `llrendertarget.cpp`.
-- Add `docs/architecture/07-ui-render-boundaries.md` for preview, map, HUD, and
-  core `llui` rendering touchpoints.
-- Add `docs/architecture/08-platform-opengl.md` for Darwin, Windows, SDL, and
-  Mesa/headless context glue.
-- Update `tools/architecture/source_inventory.py` only if a later task asks for
-  a more precise inventory generator.
+- Use the generated `gl_calls` column as the initial review gate for future
+  containment tasks.
+- Keep raw-only files visible in reports until each false-positive family is
+  understood.
+- Pick one small callsite family before adding behavior to
+  `llglcontainment.*`.
