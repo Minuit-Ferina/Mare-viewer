@@ -24,6 +24,7 @@ task, and do not start a direct Vulkan port.
 - [x] Verify `llglcontainment.cpp` compiles and `libllrender.a` archives.
 - [x] Decide that arm64-only macOS builds are a local dev shortcut for this machine only.
 - [x] Keep release, packaging, and distribution architecture decisions separate from local dev builds.
+- [x] Add a documented local arm64-only Darwin build command for this machine.
 
 ## Immediate Next Steps
 
@@ -34,7 +35,6 @@ task, and do not start a direct Vulkan port.
 - [ ] Capture one loaded-area FPS value with the same preset.
 - [ ] Document the exact graphics preset and viewer settings used for FPS measurements.
 - [ ] Update `docs/architecture/00-baseline.md` with runtime and FPS results.
-- [ ] Add a documented local arm64-only Darwin build command for this machine.
 
 ## Phase 1 Inventory
 

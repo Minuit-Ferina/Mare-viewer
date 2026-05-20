@@ -27,7 +27,7 @@ Date: 2026-05-20 18:30:31 CEST
 - Build type: `Release`
 - Autobuild config: `ReleaseOS`
 - Target: `mare-viewer`
-- Architecture built for dev baseline: `arm64` only
+- Architecture built for local dev baseline on this machine: `arm64` only
 - Packaging: `PACKAGE=FALSE`; no DMG, signing, or notarization in this baseline
 - Tests: `LL_TESTS=OFF`
 - Audio backend: `OPENAL=TRUE`
@@ -103,4 +103,5 @@ Verified bundle libraries:
 
 - Launch the regenerated app bundle from Finder or Terminal and record whether it reaches the login screen.
 - Capture one empty-area and one loaded-area FPS value with the same graphics preset.
-- Decide whether the macOS dev baseline should keep using arm64-only builds or whether CMake should gain an explicit single-architecture Darwin configure option.
+- Keep this machine's local dev builds arm64-only for speed, and keep universal/release architecture decisions separate.
+- Use `docs/architecture/local-darwin-arm64-build.md` for the current local build command.
