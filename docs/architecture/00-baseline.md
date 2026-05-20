@@ -70,9 +70,9 @@ env revision=61972 \
 - Binary architecture: arm64, non-fat Mach-O
 - Launches: yes, smoke-tested after the OpenAL manifest fix
 - Login screen: reached
-- Authenticated login: not measured
-- Empty area FPS: not measured
-- Loaded area FPS: not measured
+- Authenticated login: yes
+- Empty area FPS: average 140, min 90, max 200
+- Loaded area FPS: average 44, min 30, max 50
 
 Verified bundle libraries:
 
@@ -86,7 +86,7 @@ Verified bundle libraries:
 - Universal macOS build failed before the patch because `marefsr2upscaler.cpp` referenced OpenGL compute / GL 4.x entry points that macOS OpenGL does not expose.
 - The first arm64 app bundle aborted at launch because `viewer_manifest.py` received `--openal=TRUE` but only copied OpenAL dylibs for the exact value `ON`. The build patch now treats `ON`, `TRUE`, `YES`, and `1` as enabled.
 - The manifest command still receives `--arch=x86_64` from the existing CMake `ARCH` variable even when the Xcode build is constrained to `ARCHS=arm64`. The produced executable was verified as arm64.
-- Full runtime behavior, login, and FPS are still unmeasured and should be captured in a viewer session before using this baseline for performance comparison.
+- The first FPS baseline was captured manually with fixed viewer settings. Individual FPS samples were not retained, so future comparisons should capture the full sample list.
 
 ## Runtime Smoke Test
 
@@ -108,6 +108,46 @@ Observed non-blocking warnings:
 - Expired certificates rejected from the bundled CA file.
 - Channel `Mare Viewer` treated as `Test` because it does not follow the expected naming convention.
 
+## Runtime FPS Baseline
+
+Date: 2026-05-21 CEST
+
+Measurement protocol:
+
+- Protocol document: `docs/architecture/10-runtime-fps-baseline-protocol.md`
+- Window mode and size: windowed, 1470 x 891
+- Graphics preset: protocol settings
+- `RenderQualityPerformance=3`
+- `DebugQualityPerformance=3`
+- `RenderVSyncEnable=FALSE`
+- `FramePerSecondLimit=0`
+- `RenderUpscalerEnabled=FALSE`
+- `AutoTuneFPS=FALSE`
+- `AutoTuneLock=FALSE`
+- `RenderResolutionDivisor=1`
+- `RenderResolutionPreset=0`
+- `ShowFPSStats=TRUE`
+
+Empty-area scene:
+
+- Location: `https://maps.secondlife.com/secondlife/Sandbox%20Goguen/127/128/27`
+- Camera: third-person, looking toward empty area, default zoom
+- FPS samples: individual samples not retained
+- Average FPS: 140
+- Minimum FPS: 90
+- Maximum FPS: 200
+- Notes: none recorded
+
+Loaded-area scene:
+
+- Location: `https://maps.secondlife.com/secondlife/Idunn/169/22/98`
+- Camera: third-person, looking toward the reception, default zoom
+- FPS samples: individual samples not retained
+- Average FPS: 44
+- Minimum FPS: 30
+- Maximum FPS: 50
+- Notes: none recorded
+
 ## Source Inventory Snapshot
 
 - Inventory CSV: `docs/architecture/generated/source_inventory.csv`
@@ -122,6 +162,6 @@ Observed non-blocking warnings:
 
 ## Next Small Steps
 
-- Capture one empty-area and one loaded-area FPS value with the same graphics preset.
+- Decide whether to merge `phase1-gl-containment` or keep stacking small phase 1 branches.
 - Keep this machine's local dev builds arm64-only for speed, and keep universal/release architecture decisions separate.
 - Use `docs/architecture/local-darwin-arm64-build.md` for the current local build command.

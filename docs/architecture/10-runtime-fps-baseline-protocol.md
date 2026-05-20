@@ -1,7 +1,8 @@
 # Runtime FPS Baseline Protocol
 
-This document defines how to capture the first runtime FPS baseline. It does not
-contain measured FPS values yet.
+This document defines how to capture the first runtime FPS baseline. The first
+baseline values were recorded in `docs/architecture/00-baseline.md` on
+2026-05-21.
 
 Reason: FPS cannot be measured correctly from the login screen. The viewer must
 be logged in, placed in fixed locations, allowed to settle, and measured with a
@@ -9,11 +10,11 @@ fixed graphics configuration.
 
 ## Current Measurement Status
 
-- App launch: already smoke-tested to the login screen.
-- Authenticated login: not measured.
-- Empty-area FPS: not measured.
-- Loaded-area FPS: not measured.
-- Fixed graphics preset: defined below for the first baseline run.
+- App launch: smoke-tested to the login screen.
+- Authenticated login: measured.
+- Empty-area FPS: measured in `docs/architecture/00-baseline.md`.
+- Loaded-area FPS: measured in `docs/architecture/00-baseline.md`.
+- Fixed graphics preset: defined below.
 
 ## Local App To Use
 
@@ -123,12 +124,12 @@ Use this template for each scene:
 
 ## Baseline Update Target
 
-After both scenes are measured, update:
+After new scenes are measured, update:
 
 - `docs/architecture/00-baseline.md`
 - `todo.md`
 
-Only then mark these TODO items complete:
+Only mark related TODO items complete after the measurements are recorded:
 
 - capture one empty-area FPS value with a fixed graphics preset
 - capture one loaded-area FPS value with the same preset

@@ -49,14 +49,14 @@ task, and do not start a direct Vulkan port.
 - [x] Add a review checklist for new rendering work.
 - [x] Require justification for any new direct `gl*` call outside `indra/llrender/`.
 - [x] Add `docs/architecture/10-runtime-fps-baseline-protocol.md`.
+- [x] Capture one empty-area FPS value with a fixed graphics preset.
+- [x] Capture one loaded-area FPS value with the same preset.
+- [x] Document the exact graphics preset and viewer settings used for FPS measurements.
+- [x] Update `docs/architecture/00-baseline.md` with runtime and FPS results.
 
 ## Immediate Next Steps
 
 - [ ] Decide whether to merge `phase1-gl-containment` or keep stacking small phase 1 branches.
-- [ ] Capture one empty-area FPS value with a fixed graphics preset.
-- [ ] Capture one loaded-area FPS value with the same preset.
-- [ ] Document the exact graphics preset and viewer settings used for FPS measurements.
-- [ ] Update `docs/architecture/00-baseline.md` with runtime and FPS results.
 
 ## Phase 1 Inventory
 
