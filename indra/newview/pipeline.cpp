@@ -878,7 +878,7 @@ bool LLPipeline::allocateScreenBufferInternal(U32 resX, U32 resY)
     {
         static LLCachedControl<bool> upscalerEnabled(gSavedSettings, "RenderUpscalerEnabled", false);
         static LLCachedControl<U32>  upscalerMode   (gSavedSettings, "RenderUpscalerMode",    0u);
-        if (upscalerEnabled && (U32)upscalerMode == 3 && RenderResolutionPreset > 0)
+        if (upscalerEnabled && MARE_ENABLE_FSR2 && (U32)upscalerMode == 3 && RenderResolutionPreset > 0)
         {
             static const F32 presetScales[] = { 1.0f, 0.77f, 0.67f, 0.59f, 0.50f };
             U32 preset = llmin(RenderResolutionPreset, 4u);
@@ -952,8 +952,8 @@ bool LLPipeline::allocateScreenBufferInternal(U32 resX, U32 resY)
         {
             static LLCachedControl<bool> upscalerEnabled(gSavedSettings, "RenderUpscalerEnabled", false);
             static LLCachedControl<U32>  upscalerMode   (gSavedSettings, "RenderUpscalerMode",    0u);
-            U32 postX = (upscalerEnabled && (U32)upscalerMode == 3) ? displayX : resX;
-            U32 postY = (upscalerEnabled && (U32)upscalerMode == 3) ? displayY : resY;
+            U32 postX = (upscalerEnabled && MARE_ENABLE_FSR2 && (U32)upscalerMode == 3) ? displayX : resX;
+            U32 postY = (upscalerEnabled && MARE_ENABLE_FSR2 && (U32)upscalerMode == 3) ? displayY : resY;
             mPostPingMap.allocate(postX, postY, GL_RGBA);
             mPostPongMap.allocate(postX, postY, GL_RGBA);
         }
@@ -986,7 +986,7 @@ bool LLPipeline::allocateScreenBufferInternal(U32 resX, U32 resY)
 
                 // Phase 3 Step 3: FSR 2 display-resolution output target.
                 // Allocated only for mode 3; released for all other modes.
-                if ((U32)upscalerMode == 3)
+                if (MARE_ENABLE_FSR2 && (U32)upscalerMode == 3)
                 {
                     if (!mDisplayScreen.allocate(displayX, displayY, GL_RGBA16F)) return false;
                 }

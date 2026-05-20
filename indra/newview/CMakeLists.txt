@@ -51,6 +51,12 @@ include(VulkanGltf)
 include(ZLIBNG)
 include(LLPrimitive)
 
+option(MARE_ENABLE_FSR2 "Build the MARE FSR2 OpenGL compute upscaler." ON)
+if (DARWIN AND MARE_ENABLE_FSR2)
+  message(STATUS "Disabling MARE FSR2 on Darwin: macOS OpenGL does not expose the required compute API.")
+  set(MARE_ENABLE_FSR2 OFF)
+endif ()
+
 if (HAVOK)
    # When using HAVOK_TPV, the library is precompiled, so no need for this
 
@@ -787,7 +793,6 @@ set(viewer_SOURCE_FILES
     llxmlrpctransaction.cpp
     maretaaupscaler.cpp
     marenisupscaler.cpp
-    marefsr2upscaler.cpp
     noise.cpp
     qtoolalign.cpp
     piemenu.cpp
@@ -806,6 +811,10 @@ set(viewer_SOURCE_FILES
     kokuafloaterstreaminfo.cpp
     rlveffects.cpp
     )
+
+if (MARE_ENABLE_FSR2)
+  list(APPEND viewer_SOURCE_FILES marefsr2upscaler.cpp)
+endif ()
 
 set(VIEWER_BINARY_NAME "mare-viewer" CACHE STRING
     "The name of the viewer executable to create.")
@@ -1887,6 +1896,13 @@ add_executable(${VIEWER_BINARY_NAME}
     MACOSX_BUNDLE
     ${viewer_SOURCE_FILES}
     )
+
+if (MARE_ENABLE_FSR2)
+  target_compile_definitions(${VIEWER_BINARY_NAME} PRIVATE MARE_ENABLE_FSR2=1)
+else ()
+  target_compile_definitions(${VIEWER_BINARY_NAME} PRIVATE MARE_ENABLE_FSR2=0)
+endif ()
+
 # add package files
 file(GLOB EVENT_HOST_SCRIPT_GLOB_LIST
      ${CMAKE_CURRENT_SOURCE_DIR}/../viewer_components/*.py)
@@ -2672,4 +2688,3 @@ if (LL_TESTS)
 endif (LL_TESTS)
 
 check_message_template(${VIEWER_BINARY_NAME})
-

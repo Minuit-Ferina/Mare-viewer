@@ -31,7 +31,9 @@
 
 // Viewer includes
 #include "pipeline.h"           // gPipeline — for mRT screen dimensions (FSR 2 jitter)
+#if MARE_ENABLE_FSR2
 #include "marefsr2upscaler.h"   // MAREFSR2Upscaler::computeJitter (Phase 3 Step 3)
+#endif
 #include "llagent.h"
 #include "llagentcamera.h"
 #include "llmatrix4a.h"
@@ -150,6 +152,7 @@ void LLViewerCamera::beginFrame()
         F32 display_h = (F32)llmax(1, gViewerWindow->getWorldViewHeightRaw());
 
         static LLCachedControl<U32> upscalerMode(gSavedSettings, "RenderUpscalerMode", 0u);
+#if MARE_ENABLE_FSR2
         if ((U32)upscalerMode == 3)
         {
             // MARE: Phase 3 Step 3 — FSR 2 uses its own Halton sequence scaled
@@ -181,7 +184,9 @@ void LLViewerCamera::beginFrame()
             mJitterX *= 2.0f;
             mJitterY *= 2.0f;
         }
-        else if ((U32)upscalerMode != 1)
+        else
+#endif
+        if ((U32)upscalerMode != 1)
         {
             // Modes 0 (TAA) and 2 (TAA+NIS) need jitter for sub-pixel temporal accumulation.
             // Scale factor 1.0 (not 2.0) → ±0.25 px per frame instead of ±0.5 px.
@@ -986,4 +991,3 @@ bool LLViewerCamera::isDefaultFOVChanged()
     }
     return false;
 }
-

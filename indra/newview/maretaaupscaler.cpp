@@ -7,7 +7,9 @@
 #include "llviewerprecompiledheaders.h"
 #include "maretaaupscaler.h"
 #include "marenisupscaler.h"    // MARENISUpscaler, MARETAANISUpscaler
+#if MARE_ENABLE_FSR2
 #include "marefsr2upscaler.h"   // MAREFSR2Upscaler — Phase 3 Step 3
+#endif
 
 #include "pipeline.h"           // gPipeline.mScreenTriangleVB
 #include "llviewershadermgr.h"  // gDeferredTAAProgram, gDeferredTAACopyProgram
@@ -19,7 +21,7 @@
 
 // ── IUpscaler factory ─────────────────────────────────────────────────────────
 // Defined here so that only maretaaupscaler.cpp (and its includes) need linking.
-// RenderUpscalerMode: 0 = TAA, 1 = NIS, 2 = TAA+NIS, 3 = FSR 2.
+// RenderUpscalerMode: 0 = TAA, 1 = NIS, 2 = TAA+NIS, 3 = FSR 2 when enabled.
 
 std::unique_ptr<IUpscaler> IUpscaler::create()
 {
@@ -28,7 +30,9 @@ std::unique_ptr<IUpscaler> IUpscaler::create()
     {
         case 1:  return std::make_unique<MARENISUpscaler>();
         case 2:  return std::make_unique<MARETAANISUpscaler>();
+#if MARE_ENABLE_FSR2
         case 3:  return std::make_unique<MAREFSR2Upscaler>();  // FSR 2 compute pipeline
+#endif
         default: return std::make_unique<MARETAAUpscaler>();   // 0 = TAA only
     }
 }

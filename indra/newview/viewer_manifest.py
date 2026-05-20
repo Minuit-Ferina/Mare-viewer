@@ -54,6 +54,9 @@ from indra.util.llmanifest import LLManifest, main, path_ancestors, CHANNEL_VEND
 import llsd
 
 class ViewerManifest(LLManifest):
+    def manifest_bool(self, name):
+        return str(self.args.get(name, '')).upper() in ('1', 'ON', 'TRUE', 'YES')
+
     def is_packaging_viewer(self):
         # Some commands, files will only be included
         # if we are packaging the viewer on windows.
@@ -532,17 +535,17 @@ class WindowsManifest(ViewerManifest):
                 self.path(libfile)
 
             # Get fmodstudio dll if needed
-            if self.args['fmodstudio'] == 'ON':
+            if self.manifest_bool('fmodstudio'):
                 if(self.args['buildtype'].lower() == 'debug'):
                     # self.path("fmodL.dll")
                     self.path("fmod.dll")
                 else:
                     self.path("fmod.dll")
 
-            if self.args['discord'] == 'ON':
+            if self.manifest_bool('discord'):
                 self.path("discord_partner_sdk.dll")
 
-            if self.args['openal'] == 'ON':
+            if self.manifest_bool('openal'):
                 # Get openal dll
                 self.path("OpenAL32.dll")
                 self.path("alut.dll")
@@ -575,7 +578,7 @@ class WindowsManifest(ViewerManifest):
                 self.path("BugSplat64.dll")
                 self.path("BugSplatRc64.dll")
 
-            if self.args['tracy'] == 'ON':
+            if self.manifest_bool('tracy'):
                 with self.prefix(src=os.path.join(pkgdir, 'bin')):
                     self.path("tracy-profiler.exe")
 
@@ -896,7 +899,7 @@ class DarwinManifest(ViewerManifest):
                     self.path2basename(relpkgdir, "HockeySDK.framework")
 
                 # OpenAL dylibs
-                if self.args['openal'] == 'ON':
+                if self.manifest_bool('openal'):
                     for libfile in (
                                 "libopenal.dylib",
                                 "libalut.dylib",
@@ -1063,7 +1066,7 @@ class DarwinManifest(ViewerManifest):
                     self.path2basename(relpkgdir, libfile)
 
                 # Fmod studio dylibs (vary based on configuration)
-                if self.args['fmodstudio'] == 'ON':
+                if self.manifest_bool('fmodstudio'):
                     if self.args['buildtype'].lower() == 'debug':
                         for libfile in (
                                     "libfmodL.dylib",
@@ -1076,7 +1079,7 @@ class DarwinManifest(ViewerManifest):
                             dylibs += path_optional(os.path.join(relpkgdir, libfile), libfile)
 
                 # Discord social SDK
-                if self.args['discord'] == 'ON':
+                if self.manifest_bool('discord'):
                     for libfile in (
                                 "libdiscord_partner_sdk.dylib",
                                 ):
@@ -1539,7 +1542,7 @@ class Linux_x86_64_Manifest(LinuxManifest):
         #    self.end_prefix("lib")
 
         with self.prefix(src=relpkgdir, dst="lib"):
-            if self.args['fmodstudio'] == 'ON':
+            if self.manifest_bool('fmodstudio'):
                   if self.args['configuration'].lower() == 'debug':
                       self.path("libfmodstudio*.so")
                       self.path("libfmodstudio.so")
