@@ -36,6 +36,9 @@ task, and do not start a direct Vulkan port.
 - [x] Map `LLRenderTarget` ownership in `pipeline.cpp`.
 - [x] Map `LLRenderTarget` low-level behavior in `llrendertarget.cpp`.
 - [x] Define `indra/llrender/` as the current legacy OpenGL boundary in docs.
+- [x] Add `docs/architecture/06-shader-map.md`.
+- [x] Map shader manager files: `llglslshader.*`, `llshadermgr.*`, `llviewershadermgr.*`.
+- [x] Map shader families under `indra/newview/app_settings/shaders/`.
 
 ## Immediate Next Steps
 
@@ -47,9 +50,6 @@ task, and do not start a direct Vulkan port.
 
 ## Phase 1 Inventory
 
-- [ ] Add `docs/architecture/06-shader-map.md`.
-- [ ] Map shader manager files: `llglslshader.*`, `llshadermgr.*`, `llviewershadermgr.*`.
-- [ ] Map shader families under `indra/newview/app_settings/shaders/`.
 - [ ] Add `docs/architecture/07-ui-render-boundaries.md`.
 - [ ] List preview widgets that render scene, model, texture, or material content.
 - [ ] List map and minimap widgets using render helpers.
