@@ -43,6 +43,9 @@ task, and do not start a direct Vulkan port.
 - [x] List preview widgets that render scene, model, texture, or material content.
 - [x] List map and minimap widgets using render helpers.
 - [x] List core `llui` files that touch rendering primitives.
+- [x] Add `docs/architecture/08-platform-opengl.md`.
+- [x] Document Darwin OpenGL limits and FSR2 exclusion rationale.
+- [x] Document Windows, SDL, Mesa/headless OpenGL entry points.
 
 ## Immediate Next Steps
 
@@ -54,9 +57,7 @@ task, and do not start a direct Vulkan port.
 
 ## Phase 1 Inventory
 
-- [ ] Add `docs/architecture/08-platform-opengl.md`.
-- [ ] Document Darwin OpenGL limits and FSR2 exclusion rationale.
-- [ ] Document Windows, SDL, Mesa/headless OpenGL entry points.
+No open items in this section right now.
 
 ## OpenGL Containment
 
