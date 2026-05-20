@@ -68,12 +68,12 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate `docs/architecture/generated/source_inventory.csv` after the
       inventory generator was refined.
 - [x] Update OpenGL debt and callsite reports for the refined inventory schema.
+- [x] Add `docs/architecture/14-viewport-containment-candidate.md`.
 
 ## Immediate Next Steps
 
-- [ ] Pick one narrow OpenGL callsite family for the next containment analysis.
-- [ ] Document that family's owner, ordering, cleanup requirements, and
-      verification plan before adding source behavior.
+- [ ] Write the `LLRenderTarget` viewport behavior contract before changing
+      source code.
 - [ ] Decide whether the chosen family belongs in `llglcontainment.*` or in an
       existing local owner.
 
