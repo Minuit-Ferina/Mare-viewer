@@ -357,11 +357,15 @@ without an explicit task, and do not start a direct Vulkan port.
       because only direct call-through wrappers moved.
 - [x] Add
       `docs/architecture/71-llimagegl-wrapper-pure-completion-summary.md`.
+- [x] Review the remaining contract-first `LLImageGL` upload, mipmap, and
+      scale-down families before source changes.
+- [x] Add
+      `docs/architecture/72-llimagegl-compressed-upload-automip-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Review the remaining contract-first `LLImageGL` upload, mipmap, and
-      scale-down families before source changes.
+- [ ] Route only `LLImageGL::setImage(...)` compressed upload and automatic
+      mipmap raw calls through `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
