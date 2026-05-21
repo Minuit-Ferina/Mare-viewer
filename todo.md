@@ -152,10 +152,13 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/27-llimagegl-texture-name-lifetime-contract.md`.
 - [x] Document `LLImageGL` texture name generation, delayed deletion, and
       thread handoff before source cleanup.
+- [x] Add `docs/architecture/28-llimagegl-pixel-store-contract.md`.
+- [x] Document `LLImageGL` pixel store ownership before source cleanup.
 
 ## Immediate Next Steps
 
-- [ ] Add an `LLImageGL` pixel store contract before source cleanup.
+- [ ] Extract local `LLImageGL` pixel store helpers without changing the public
+      API.
 - [ ] Use the local Xcode arm64 Release path as an incremental integration
       checkpoint before important source-side milestones.
 
