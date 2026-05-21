@@ -344,11 +344,12 @@ without an explicit task, and do not start a direct Vulkan port.
       because only local wrapper helper bodies moved behind containment.
 - [x] Add `docs/architecture/67-llimagegl-phase3-completion-summary.md`.
 - [x] Add `docs/architecture/68-phase3-completion-summary.md`.
+- [x] Add `docs/architecture/69-llimagegl-remaining-call-classification.md`.
 
 ## Immediate Next Steps
 
-- [ ] Review the phase 3 branch as a stack on top of `phase2` before choosing
-      higher-risk upload, mipmap, parameter, shader, or pipeline work.
+- [ ] Add a task note for `LLImageGL` texture object name containment before
+      editing source.
 
 ## Phase 1 Inventory
 
