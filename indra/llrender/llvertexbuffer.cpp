@@ -267,6 +267,11 @@ static void delete_vertex_buffer_names(GLsizei count, const GLuint* buffers)
     glDeleteBuffers(count, buffers);
 }
 
+static void bind_vertex_buffer_target(GLenum target, GLuint buffer)
+{
+    glBindBuffer(target, buffer);
+}
+
 // batch calls to glGenBuffers
 static GLuint gen_buffer()
 {
@@ -461,7 +466,7 @@ public:
 
             mMisses++;
             name = gen_buffer();
-            glBindBuffer(type, name);
+            bind_vertex_buffer_target(type, name);
             glBufferData(type, size, nullptr, GL_DYNAMIC_DRAW);
             if (type == GL_ELEMENT_ARRAY_BUFFER)
             {
@@ -972,8 +977,8 @@ void LLVertexBuffer::initClass(LLWindow* window)
 void LLVertexBuffer::unbind()
 {
     STOP_GLERROR;
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    bind_vertex_buffer_target(GL_ARRAY_BUFFER, 0);
+    bind_vertex_buffer_target(GL_ELEMENT_ARRAY_BUFFER, 0);
     STOP_GLERROR;
     sGLRenderBuffer = 0;
     sGLRenderIndices = 0;
@@ -1437,13 +1442,13 @@ void LLVertexBuffer::_unmapBuffer()
                 delete_buffers(1, &mGLBuffer);
             }
             mGLBuffer = gen_buffer();
-            glBindBuffer(GL_ARRAY_BUFFER, mGLBuffer);
+            bind_vertex_buffer_target(GL_ARRAY_BUFFER, mGLBuffer);
             sGLRenderBuffer = mGLBuffer;
             glBufferData(GL_ARRAY_BUFFER, mSize, mMappedData, GL_STATIC_DRAW);
         }
         else if (mGLBuffer != sGLRenderBuffer)
         {
-            glBindBuffer(GL_ARRAY_BUFFER, mGLBuffer);
+            bind_vertex_buffer_target(GL_ARRAY_BUFFER, mGLBuffer);
             sGLRenderBuffer = mGLBuffer;
         }
         STOP_GLERROR;
@@ -1456,14 +1461,14 @@ void LLVertexBuffer::_unmapBuffer()
             }
 
             mGLIndices = gen_buffer();
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mGLIndices);
+            bind_vertex_buffer_target(GL_ELEMENT_ARRAY_BUFFER, mGLIndices);
             sGLRenderIndices = mGLIndices;
 
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, mIndicesSize, mMappedIndexData, GL_STATIC_DRAW);
         }
         else if (mGLIndices != sGLRenderIndices)
         {
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mGLIndices);
+            bind_vertex_buffer_target(GL_ELEMENT_ARRAY_BUFFER, mGLIndices);
             sGLRenderIndices = mGLIndices;
         }
         STOP_GLERROR;
@@ -1476,7 +1481,7 @@ void LLVertexBuffer::_unmapBuffer()
 
             if (sGLRenderBuffer != mGLBuffer)
             {
-                glBindBuffer(GL_ARRAY_BUFFER, mGLBuffer);
+                bind_vertex_buffer_target(GL_ARRAY_BUFFER, mGLBuffer);
                 sGLRenderBuffer = mGLBuffer;
             }
 
@@ -1510,7 +1515,7 @@ void LLVertexBuffer::_unmapBuffer()
 
             if (mGLIndices != sGLRenderIndices)
             {
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mGLIndices);
+                bind_vertex_buffer_target(GL_ELEMENT_ARRAY_BUFFER, mGLIndices);
                 sGLRenderIndices = mGLIndices;
             }
             U32 start = 0;
@@ -1681,7 +1686,7 @@ void LLVertexBuffer::setBuffer()
 
     if (sGLRenderBuffer != mGLBuffer)
     {
-        glBindBuffer(GL_ARRAY_BUFFER, mGLBuffer);
+        bind_vertex_buffer_target(GL_ARRAY_BUFFER, mGLBuffer);
         sGLRenderBuffer = mGLBuffer;
 
         setupVertexBuffer();
@@ -1694,7 +1699,7 @@ void LLVertexBuffer::setBuffer()
 
     if (mGLIndices != sGLRenderIndices)
     {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mGLIndices);
+        bind_vertex_buffer_target(GL_ELEMENT_ARRAY_BUFFER, mGLIndices);
         sGLRenderIndices = mGLIndices;
     }
 
@@ -1915,5 +1920,4 @@ void LLVertexBuffer::setIndexData(const U32* data, U32 offset, U32 count)
     }
     flush_vbo(GL_ELEMENT_ARRAY_BUFFER, offset * sizeof(U32), (offset + count) * sizeof(U32) - 1, (U8*)data, mMappedIndexData);
 }
-
 

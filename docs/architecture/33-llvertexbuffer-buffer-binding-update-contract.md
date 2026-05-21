@@ -297,17 +297,17 @@ Reason:
 ## Candidate Source Cleanup
 
 Small naming-only cleanup is applied for GL buffer name generation/deletion and
-stays local to:
+buffer target binding. It stays local to:
 
 - `indra/llrender/llvertexbuffer.cpp`
 
 Local helper groups:
 
 - GL buffer name generation/deletion helpers
+- buffer target binding helper
 
 Not yet applied:
 
-- array/index buffer bind helpers that update static trackers
 - buffer storage allocation helper
 - buffer sub-data upload helper
 - attribute array enable/disable helper
@@ -328,15 +328,19 @@ Constraints:
 Applied in phase 2:
 
 - added local helpers for `glGenBuffers(...)` and `glDeleteBuffers(...)`
+- added a local helper for `glBindBuffer(...)`
 - replaced buffer name generation callsites in `gen_buffer()`
 - replaced the delayed deletion callsite in `delete_buffers(...)`
+- replaced buffer binding callsites in allocation, unbind, unmap/flush, and
+  draw setup paths
 - kept the AMD one-buffer-at-a-time workaround unchanged
 - kept delayed deletion timing unchanged
+- kept `sGLRenderBuffer` and `sGLRenderIndices` update placement unchanged
 - kept public headers unchanged
 - did not move behavior into `llglcontainment.*`
 
 This does not change ownership: `LLVertexBuffer` still owns buffer name pooling
-and delayed deletion.
+delayed deletion, and binding state tracking.
 
 ## Verification
 
