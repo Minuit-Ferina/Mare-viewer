@@ -338,11 +338,15 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLImageGL` local
       wrapper source packet.
+- [x] Run a local Xcode arm64 Release build for the phase 3 `LLImageGL` local
+      wrapper containment packet.
+- [x] Defer runtime smoke for the `LLImageGL` local wrapper containment packet
+      because only local wrapper helper bodies moved behind containment.
 
 ## Immediate Next Steps
 
-- [ ] Run a local incremental Xcode arm64 Release integration build for the
-      phase 3 `LLImageGL` local wrapper containment packet.
+- [ ] Add a full `LLImageGL` phase 3 containment completion summary before
+      considering upload, mipmap, or parameter containment.
 
 ## Phase 1 Inventory
 

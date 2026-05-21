@@ -1094,6 +1094,69 @@ Non-fatal local Xcode warnings observed:
 
 Runtime smoke is deferred for now for this wrapper-only packet family.
 
+## Phase 3 LLImageGL Local Wrapper Integration Check
+
+Observed on 2026-05-21:
+
+- Branch: `phase3`.
+- Commit: `2200245e5b llrender: contain llimagegl local wrapper calls`.
+- Worktree: `/private/tmp/Mare-viewer-phase2-xcode-worktree`.
+- Build tree:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv`.
+- Xcode project:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj`.
+- Output app:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/newview/Release/Mare Viewer.app`.
+
+The temporary Xcode worktree was moved from the remaining vertex buffer
+containment checkpoint to commit `2200245e5b`, preserving `DerivedData` and the
+existing build tree.
+
+Incremental build command:
+
+```sh
+HOME=/private/tmp/Mare-viewer-phase2-xcode-worktree/home \
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-xcode-worktree/clang-module-cache \
+xcodebuild -quiet \
+  -project /private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj \
+  -scheme mare-viewer \
+  -configuration Release \
+  -destination platform=macOS,arch=arm64 \
+  -derivedDataPath /private/tmp/Mare-viewer-phase2-xcode-worktree/DerivedData \
+  build
+```
+
+Observed result:
+
+- `xcodebuild -quiet` exited with code 0
+
+No `clean` build was run.
+
+The build was much longer and quieter than expected. Because `-quiet` was set,
+Xcode did not show which targets or object files rebuilt. Avoid `-quiet` for
+future long Xcode checks when progress visibility matters.
+
+The built viewer executable was verified as arm64:
+
+```text
+Non-fat file: .../Mare Viewer.app/Contents/MacOS/Mare Viewer is architecture: arm64
+```
+
+The app bundle contained these runtime dylibs under `Contents/Frameworks`:
+
+- `libopenal.dylib`
+- `libalut.dylib`
+- `libllwebrtc.dylib`
+- `libndofdev.dylib`
+
+Non-fatal local Xcode warnings observed:
+
+- CoreSimulator services were unavailable during the macOS build.
+- Xcode could not query `DARWIN_USER_CACHE_DIR` and used an alternate cache
+  directory.
+
+Runtime smoke is deferred for now for this wrapper-only packet family.
+
 ## Makefile Build Tree Check
 
 This is a separate validation path from the local arm64 Xcode shortcut above.

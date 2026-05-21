@@ -200,3 +200,29 @@ Observed work:
 - rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
 - rebuilt `llrender/CMakeFiles/llrender.dir/llimagegl.cpp.o`
 - relinked `libllrender.a`
+
+## Integration Build Check
+
+The phase 3 `LLImageGL` local wrapper containment packet was also verified
+with the local Xcode arm64 Release build.
+
+Result:
+
+- `xcodebuild -quiet` exited with code 0
+- executable verified as arm64
+- `libopenal.dylib`, `libalut.dylib`, `libllwebrtc.dylib`, and
+  `libndofdev.dylib` present in the app bundle
+
+Note:
+
+- this Xcode build was much longer and quieter than expected, likely because
+  more than the touched `llrender` objects rebuilt
+- avoid using `-quiet` for future long Xcode checks when progress visibility
+  matters
+
+Detailed command and output notes are recorded in:
+
+- `docs/architecture/local-darwin-arm64-build.md`
+
+Runtime smoke is deferred for now by project decision on this wrapper-only
+packet family.
