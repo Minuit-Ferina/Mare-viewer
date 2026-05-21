@@ -355,11 +355,13 @@ without an explicit task, and do not start a direct Vulkan port.
       `LLImageGL` source packet.
 - [x] Defer Xcode and runtime smoke for the wrapper-pure `LLImageGL` packet
       because only direct call-through wrappers moved.
+- [x] Add
+      `docs/architecture/71-llimagegl-wrapper-pure-completion-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a completion summary for the wrapper-pure `LLImageGL` containment
-      packet before considering contract-first upload and scale-down families.
+- [ ] Review the remaining contract-first `LLImageGL` upload, mipmap, and
+      scale-down families before source changes.
 
 ## Phase 1 Inventory
 
