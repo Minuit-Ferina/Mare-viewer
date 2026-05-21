@@ -155,7 +155,7 @@ void restore_default_framebuffer_buffer_routing()
 
 void generate_bound_render_target_mipmaps()
 {
-    glGenerateMipmap(GL_TEXTURE_2D);
+    LLGLContainment::generateTextureMipmap(GL_TEXTURE_2D);
 }
 
 void clear_render_target_buffers(U32 mask)

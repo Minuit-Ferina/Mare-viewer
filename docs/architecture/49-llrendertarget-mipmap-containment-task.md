@@ -118,3 +118,43 @@ Because this is another behavior-bearing `llglcontainment.*` packet, also run:
 
 Runtime scene smoke is useful but not required for this packet unless a source
 diff changes more than the one local helper body.
+
+## Source Patch Applied
+
+Applied in phase 3:
+
+- added `LLGLContainment::generateTextureMipmap(...)`
+- delegated `generate_bound_render_target_mipmaps()` to the new containment
+  helper
+- kept `GL_TEXTURE_2D` selection in `LLRenderTarget`
+- kept `mGenerateMipMaps` policy in `LLRenderTarget::flush()`
+- kept attachment 0 binding and filter setup in `LLRenderTarget::flush()`
+- kept render target stack restore behavior unchanged
+- did not touch `pipeline.cpp`, draw pools, UI rendering, shader managers, or
+  texture upload code
+
+Generated inventory was regenerated after the source patch so
+`docs/architecture/generated/source_inventory.csv` and
+`docs/architecture/generated/source_inventory_top.md` reflect the new call
+location.
+
+## Source Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-llrender-make3/clang-module-cache \
+/opt/homebrew/bin/cmake \
+  --build /private/tmp/Mare-viewer-phase2-llrender-make3 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llrendertarget.cpp.o`
+- rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
+- relinked `libllrender.a`

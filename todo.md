@@ -256,11 +256,16 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/47-phase3-fbo-lifetime-summary.md`.
 - [x] Add `docs/architecture/48-phase3-rendertarget-remaining-review.md`.
 - [x] Add `docs/architecture/49-llrendertarget-mipmap-containment-task.md`.
+- [x] Route `LLRenderTarget` raw mipmap generation through
+      `llglcontainment.*` without moving owner state.
+- [x] Verify the phase 3 mipmap containment packet with `llrender/fast`.
+- [x] Regenerate the generated source inventory after the mipmap source
+      packet.
 
 ## Immediate Next Steps
 
-- [ ] Route `LLRenderTarget` raw mipmap generation through
-      `llglcontainment.*` without moving owner state.
+- [ ] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 mipmap containment packet.
 
 ## Phase 1 Inventory
 
