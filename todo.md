@@ -274,10 +274,12 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       phase 3 clear/scissor containment packet.
+- [x] Add `docs/architecture/53-phase3-clear-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a concise summary for the phase 3 clear/scissor containment packet.
+- [ ] Run a loaded-scene smoke test with the Xcode-built app after the phase 3
+      clear/scissor packet before touching viewport.
 
 ## Phase 1 Inventory
 
