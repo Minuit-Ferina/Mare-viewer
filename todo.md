@@ -217,11 +217,12 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       first phase 3 FBO containment packet.
 - [x] Add `docs/architecture/38-phase3-fbo-containment-summary.md`.
+- [x] Add `docs/architecture/39-phase3-fbo-containment-review.md`.
 
 ## Immediate Next Steps
 
-- [ ] Review the first phase 3 FBO containment packet before moving another
-      OpenGL family into `llglcontainment.*`.
+- [ ] Add a task-specific containment note for `LLRenderTarget` FBO texture
+      attachment behavior before source edits.
 - [ ] Optionally launch the Xcode-built app for a runtime smoke test.
 
 ## Phase 1 Inventory
