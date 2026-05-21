@@ -561,6 +561,17 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Decide whether the remaining Windows debug callback calls in
       `LLRender::init(...)` should be left direct or handled separately.
 - [x] Add `docs/architecture/108-llrender-windows-debug-callback-decision.md`.
+- [x] Classify `LLGLSLShader` direct OpenGL calls into source packet families
+      before editing shader source.
+- [ ] Add a focused task for `LLGLSLShader` profiling query containment before
+      source edits.
+- [ ] Route only `LLGLSLShader` profiling query raw calls through
+      `llglcontainment.*`.
+- [ ] Verify the `LLGLSLShader` profiling query containment packet with
+      `llrender/fast`.
+- [ ] Regenerate the generated source inventory after the `LLGLSLShader`
+      profiling query source packet.
+- [ ] Add a summary for the `LLGLSLShader` profiling query containment packet.
 
 ## Phase 1 Inventory
 
