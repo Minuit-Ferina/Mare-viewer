@@ -64,7 +64,7 @@ Runtime smoke:
 - completed for final `LLRenderTarget` viewport packet
 - intentionally deferred for later wrapper-only `LLVertexBuffer` and `LLImageGL`
   packets by project decision
-- still required for the completed `LLImageGL::scaleDown(...)` packet after
+- completed by user report for the `LLImageGL::scaleDown(...)` packet after
   the successful Xcode integration build
 
 ## Current Inventory Notes
@@ -85,8 +85,7 @@ Risk level: medium.
 
 Reasons:
 
-- runtime smoke is still pending for the completed `LLImageGL::scaleDown(...)`
-  packet
+- runtime coverage is still smoke-level, not a broad graphics regression suite
 - shader managers still contain a large direct OpenGL surface
 - `llglcontainment.*` is still a containment layer, not a renderer abstraction
 
@@ -97,8 +96,8 @@ Treat phase 3 as complete for the current wrapper-relocation objective.
 Recommended next step:
 
 - review the phase 3 branch as a stack on top of `phase2`
-- run the pending login, texture-heavy scene load, and resize smoke test for
-  the Xcode-built app
+- decide whether the next phase should move to another owner, such as shader
+  management, render orchestration, or draw-pool boundaries
 
 Do not start broader renderer containment in `pipeline.cpp`, draw pools, UI, or
 shader managers without a new phase and a stronger verification plan.

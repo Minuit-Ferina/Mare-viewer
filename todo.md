@@ -425,11 +425,13 @@ without an explicit task, and do not start a direct Vulkan port.
       `scaleDown(...)` packet.
 - [x] Verify the Xcode-built app bundle still contains the expected runtime
       dylibs after the `scaleDown(...)` packet.
+- [x] Run login, scene load, and resize smoke with the Xcode-built app after
+      the `LLImageGL::scaleDown(...)` containment packet.
 
 ## Immediate Next Steps
 
-- [ ] Run login, texture-heavy scene load, and resize smoke with the Xcode-built
-      app after the `LLImageGL::scaleDown(...)` containment packet.
+- [ ] Decide the next phase 3 owner after `LLImageGL` active direct OpenGL
+      containment is complete.
 
 ## Phase 1 Inventory
 

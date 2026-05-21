@@ -76,18 +76,17 @@ Non-fatal Xcode warnings remained consistent with previous local builds:
 
 ## Runtime Smoke
 
-Runtime smoke is still required before treating the `scaleDown(...)` packet as
-fully complete.
+Runtime smoke result: passed by user report.
 
-Required runtime checks:
+Reported checks:
 
 - launch the Xcode-built app
 - reach login screen
-- load a texture-heavy scene
-- resize the viewer window
-- check for texture corruption after scene load and resize
+- load scene
+- resize viewer window
+- no visible texture corruption or runtime issue reported
 
-Suggested app path:
+App path:
 
 ```text
 /private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/newview/Release/Mare Viewer.app
