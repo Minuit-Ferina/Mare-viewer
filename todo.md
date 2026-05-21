@@ -443,11 +443,12 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the `LLCubeMapArray` containment packet with `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLCubeMapArray`
       source packet.
+- [x] Add `docs/architecture/83-cubemap-containment-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a completion summary for `LLCubeMap` and `LLCubeMapArray`
-      containment.
+- [ ] Add a focused task for `LLRender2DUtils` line width containment before
+      source changes.
 
 ## Phase 1 Inventory
 
