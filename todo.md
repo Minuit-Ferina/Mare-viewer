@@ -239,12 +239,13 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       phase 3 buffer routing containment packet.
+- [x] Add `docs/architecture/44-phase3-buffer-routing-summary.md`.
 
 ## Immediate Next Steps
 
 - [ ] Optionally run a loaded-scene smoke test with the Xcode-built app.
-- [ ] Summarize and review the phase 3 buffer routing containment packet before
-      moving another OpenGL family into `llglcontainment.*`.
+- [ ] Review all phase 3 `LLRenderTarget` packets together before choosing
+      another OpenGL family.
 
 ## Phase 1 Inventory
 
