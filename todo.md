@@ -199,11 +199,12 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract local `LLVertexBuffer` draw call helper names without changing
       the public API.
 - [x] Verify the draw call helper extraction with `llrender/fast`.
+- [x] Run a local incremental Xcode arm64 Release integration build for the
+      completed `LLVertexBuffer` phase 2 packet.
 
 ## Immediate Next Steps
 
-- [ ] Run a local incremental Xcode arm64 Release integration build for the
-      completed `LLVertexBuffer` phase 2 packet.
+- [ ] Add `docs/architecture/34-llvertexbuffer-phase2-review-summary.md`.
 
 ## Phase 1 Inventory
 
