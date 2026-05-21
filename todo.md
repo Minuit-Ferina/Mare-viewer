@@ -147,11 +147,12 @@ an explicit task, and do not start a direct Vulkan port.
       completed `LLRenderTarget` phase 2 packet.
 - [x] Add `docs/architecture/25-llrendertarget-phase2-review-summary.md`.
 - [x] Prepare a concise `LLRenderTarget` phase 2 packet summary for review.
+- [x] Add `docs/architecture/26-llimagegl-texture-lifecycle-map.md`.
+- [x] Map `LLImageGL` texture lifecycle call families before source cleanup.
 
 ## Immediate Next Steps
 
-- [ ] Pick the next phase 2 owner to document before source cleanup:
-      `LLImageGL`, `LLVertexBuffer`, or `LLGLSLShader`.
+- [ ] Add an `LLImageGL` texture name lifetime contract before source cleanup.
 - [ ] Use the local Xcode arm64 Release path as an incremental integration
       checkpoint before important source-side milestones.
 
