@@ -457,8 +457,10 @@ without an explicit task, and do not start a direct Vulkan port.
 
 ## Immediate Next Steps
 
-- [ ] Add a focused task for `LLGLStates` material containment before source
+- [x] Add a focused task for `LLGLStates` material containment before source
       changes.
+- [ ] Route only active `LLGLStates` fixed-function material raw calls through
+      `llglcontainment.*` without moving owner state.
 
 ## Phase 1 Inventory
 
