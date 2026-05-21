@@ -44,6 +44,7 @@ void deleteFramebuffers(S32 count, const LLGLuint* framebuffers);
 void generateTextureMipmap(LLGLenum texture_target);
 void clearBuffers(U32 mask);
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);
+LLGLenum getError();
 }
 
 #endif // LL_LLGLCONTAINMENT_H

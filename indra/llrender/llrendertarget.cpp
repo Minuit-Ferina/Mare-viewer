@@ -170,7 +170,7 @@ void set_render_target_scissor(U32 width, U32 height)
 
 bool render_target_texture_allocation_failed()
 {
-    return glGetError() != GL_NO_ERROR;
+    return LLGLContainment::getError() != GL_NO_ERROR;
 }
 }
 

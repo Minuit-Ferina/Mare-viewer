@@ -281,11 +281,17 @@ without an explicit task, and do not start a direct Vulkan port.
       available.
 - [x] Add
       `docs/architecture/55-llrendertarget-allocation-error-containment-task.md`.
+- [x] Route `LLRenderTarget` raw texture allocation error read through
+      `llglcontainment.*` without moving owner state.
+- [x] Verify the phase 3 allocation error containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the allocation error
+      source packet.
 
 ## Immediate Next Steps
 
-- [ ] Route `LLRenderTarget` raw texture allocation error read through
-      `llglcontainment.*` without moving owner state.
+- [ ] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 allocation error containment packet.
 
 ## Phase 1 Inventory
 

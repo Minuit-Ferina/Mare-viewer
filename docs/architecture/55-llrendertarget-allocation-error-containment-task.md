@@ -119,3 +119,42 @@ Because this is another behavior-bearing `llglcontainment.*` packet, also run:
 
 Runtime loaded-scene smoke is not required for this packet. Viewport remains
 deferred until a loaded-scene and resize smoke test is available.
+
+## Source Patch Applied
+
+Applied in phase 3:
+
+- added `LLGLContainment::getError()`
+- delegated `render_target_texture_allocation_failed()` to the new
+  containment helper
+- kept `!= GL_NO_ERROR` policy in `LLRenderTarget`
+- kept `clear_glerror()` and `stop_glerror()` placement unchanged
+- kept color/depth allocation warning text and false return behavior unchanged
+- did not touch `pipeline.cpp`, draw pools, UI rendering, shader managers, or
+  texture upload code
+
+Generated inventory was regenerated after the source patch so
+`docs/architecture/generated/source_inventory.csv` and
+`docs/architecture/generated/source_inventory_top.md` reflect the new call
+location.
+
+## Source Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-llrender-make3/clang-module-cache \
+/opt/homebrew/bin/cmake \
+  --build /private/tmp/Mare-viewer-phase2-llrender-make3 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llrendertarget.cpp.o`
+- rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
+- relinked `libllrender.a`

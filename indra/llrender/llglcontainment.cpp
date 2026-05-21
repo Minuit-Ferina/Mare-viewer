@@ -90,4 +90,9 @@ void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height)
 {
     glScissor(x, y, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
 }
+
+LLGLenum getError()
+{
+    return glGetError();
+}
 }
