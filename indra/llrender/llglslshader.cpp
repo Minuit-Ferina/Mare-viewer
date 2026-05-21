@@ -28,6 +28,7 @@
 
 #include "llglslshader.h"
 
+#include "llglcontainment.h"
 #include "llshadermgr.h"
 #include "llfile.h"
 #include "llrender.h"
@@ -251,17 +252,17 @@ void LLGLSLShader::placeProfileQuery(bool for_runtime)
     {
         if (mTimerQuery == 0)
         {
-            glGenQueries(1, &mSamplesQuery);
-            glGenQueries(1, &mTimerQuery);
-            glGenQueries(1, &mPrimitivesQuery);
+            LLGLContainment::generateQueries(1, &mSamplesQuery);
+            LLGLContainment::generateQueries(1, &mTimerQuery);
+            LLGLContainment::generateQueries(1, &mPrimitivesQuery);
         }
 
-        glBeginQuery(GL_TIME_ELAPSED, mTimerQuery);
+        LLGLContainment::beginQuery(GL_TIME_ELAPSED, mTimerQuery);
 
         if (!for_runtime)
         {
-            glBeginQuery(GL_SAMPLES_PASSED, mSamplesQuery);
-            glBeginQuery(GL_PRIMITIVES_GENERATED, mPrimitivesQuery);
+            LLGLContainment::beginQuery(GL_SAMPLES_PASSED, mSamplesQuery);
+            LLGLContainment::beginQuery(GL_PRIMITIVES_GENERATED, mPrimitivesQuery);
         }
     }
 }
@@ -272,19 +273,19 @@ bool LLGLSLShader::readProfileQuery(bool for_runtime, bool force_read)
     {
         if (!mProfilePending)
         {
-            glEndQuery(GL_TIME_ELAPSED);
+            LLGLContainment::endQuery(GL_TIME_ELAPSED);
             if (!for_runtime)
             {
-                glEndQuery(GL_SAMPLES_PASSED);
-                glEndQuery(GL_PRIMITIVES_GENERATED);
+                LLGLContainment::endQuery(GL_SAMPLES_PASSED);
+                LLGLContainment::endQuery(GL_PRIMITIVES_GENERATED);
             }
             mProfilePending = for_runtime;
         }
 
         if (mProfilePending && for_runtime && !force_read)
         {
-            GLuint64 result = 0;
-            glGetQueryObjectui64v(mTimerQuery, GL_QUERY_RESULT_AVAILABLE, &result);
+            U64 result = 0;
+            LLGLContainment::getQueryObjectUnsignedInteger64(mTimerQuery, GL_QUERY_RESULT_AVAILABLE, &result);
 
             if (result != GL_TRUE)
             {
@@ -292,18 +293,18 @@ bool LLGLSLShader::readProfileQuery(bool for_runtime, bool force_read)
             }
         }
 
-        GLuint64 time_elapsed = 0;
-        glGetQueryObjectui64v(mTimerQuery, GL_QUERY_RESULT, &time_elapsed);
+        U64 time_elapsed = 0;
+        LLGLContainment::getQueryObjectUnsignedInteger64(mTimerQuery, GL_QUERY_RESULT, &time_elapsed);
         mTimeElapsed += time_elapsed;
         mProfilePending = false;
 
         if (!for_runtime)
         {
-            GLuint64 samples_passed = 0;
-            glGetQueryObjectui64v(mSamplesQuery, GL_QUERY_RESULT, &samples_passed);
+            U64 samples_passed = 0;
+            LLGLContainment::getQueryObjectUnsignedInteger64(mSamplesQuery, GL_QUERY_RESULT, &samples_passed);
 
-            GLuint64 primitives_generated = 0;
-            glGetQueryObjectui64v(mPrimitivesQuery, GL_QUERY_RESULT, &primitives_generated);
+            U64 primitives_generated = 0;
+            LLGLContainment::getQueryObjectUnsignedInteger64(mPrimitivesQuery, GL_QUERY_RESULT, &primitives_generated);
             sTotalTimeElapsed += time_elapsed;
 
             sTotalSamplesDrawn += samples_passed;
@@ -388,13 +389,13 @@ void LLGLSLShader::unloadInternal()
 
     if (mTimerQuery)
     {
-        glDeleteQueries(1, &mTimerQuery);
+        LLGLContainment::deleteQueries(1, &mTimerQuery);
         mTimerQuery = 0;
     }
 
     if (mSamplesQuery)
     {
-        glDeleteQueries(1, &mSamplesQuery);
+        LLGLContainment::deleteQueries(1, &mSamplesQuery);
         mSamplesQuery = 0;
     }
 

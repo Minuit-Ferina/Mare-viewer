@@ -565,11 +565,11 @@ without an explicit task, and do not start a direct Vulkan port.
       before editing shader source.
 - [x] Add a focused task for `LLGLSLShader` profiling query containment before
       source edits.
-- [ ] Route only `LLGLSLShader` profiling query raw calls through
+- [x] Route only `LLGLSLShader` profiling query raw calls through
       `llglcontainment.*`.
-- [ ] Verify the `LLGLSLShader` profiling query containment packet with
+- [x] Verify the `LLGLSLShader` profiling query containment packet with
       `llrender/fast`.
-- [ ] Regenerate the generated source inventory after the `LLGLSLShader`
+- [x] Regenerate the generated source inventory after the `LLGLSLShader`
       profiling query source packet.
 - [ ] Add a summary for the `LLGLSLShader` profiling query containment packet.
 

@@ -50,6 +50,11 @@ void deleteBufferObjects(S32 count, const LLGLuint* buffers);
 void bindBufferObject(LLGLenum target, LLGLuint buffer);
 void allocateBufferObjectStorage(LLGLenum target, U64 size, const void* data, LLGLenum usage);
 void updateBufferObjectSubData(LLGLenum target, U32 offset, U32 size, const void* data);
+void generateQueries(S32 count, LLGLuint* queries);
+void deleteQueries(S32 count, const LLGLuint* queries);
+void beginQuery(LLGLenum target, LLGLuint query);
+void endQuery(LLGLenum target);
+void getQueryObjectUnsignedInteger64(LLGLuint query, LLGLenum parameter, U64* value);
 void enableVertexAttributeArray(LLGLuint location);
 void disableVertexAttributeArray(LLGLuint location);
 void setVertexAttributePointer(

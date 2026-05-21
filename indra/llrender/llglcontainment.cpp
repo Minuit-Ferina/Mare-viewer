@@ -121,6 +121,33 @@ void updateBufferObjectSubData(LLGLenum target, U32 offset, U32 size, const void
     glBufferSubData(target, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), data);
 }
 
+void generateQueries(S32 count, LLGLuint* queries)
+{
+    glGenQueries(static_cast<GLsizei>(count), queries);
+}
+
+void deleteQueries(S32 count, const LLGLuint* queries)
+{
+    glDeleteQueries(static_cast<GLsizei>(count), queries);
+}
+
+void beginQuery(LLGLenum target, LLGLuint query)
+{
+    glBeginQuery(target, query);
+}
+
+void endQuery(LLGLenum target)
+{
+    glEndQuery(target);
+}
+
+void getQueryObjectUnsignedInteger64(LLGLuint query, LLGLenum parameter, U64* value)
+{
+    GLuint64 result = 0;
+    glGetQueryObjectui64v(query, parameter, &result);
+    *value = static_cast<U64>(result);
+}
+
 void enableVertexAttributeArray(LLGLuint location)
 {
     glEnableVertexAttribArray(location);

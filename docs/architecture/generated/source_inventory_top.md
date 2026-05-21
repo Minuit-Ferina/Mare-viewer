@@ -4,9 +4,9 @@
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | `indra/newview/pipeline.cpp` | render.pipeline | 12046 | 81 | 83 | 0 | 340 | 158 | 564 | 60 |
 | `indra/newview/marefsr2upscaler.cpp` | render.opengl_touching | 379 | 81 | 81 | 0 | 3 | 3 | 0 | 4 |
-| `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2091 | 80 | 80 | 0 | 11 | 116 | 0 | 2 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 553 | 69 | 69 | 0 | 0 | 127 | 0 | 0 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 580 | 74 | 74 | 0 | 0 | 134 | 0 | 0 |
+| `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2092 | 65 | 65 | 0 | 11 | 131 | 0 | 2 |
 | `indra/newview/lldrawpoolterrain.cpp` | render.pipeline | 1123 | 61 | 62 | 1 | 189 | 26 | 1 | 0 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 36 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llshadermgr.cpp` | render.legacy_low_level | 1563 | 32 | 39 | 0 | 0 | 4 | 0 | 0 |
