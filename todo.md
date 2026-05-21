@@ -386,11 +386,15 @@ without an explicit task, and do not start a direct Vulkan port.
       because allocation order and memory accounting did not change.
 - [x] Add
       `docs/architecture/75-llimagegl-manual-image-allocation-summary.md`.
+- [x] Add a focused `LLImageGL::scaleDown(...)` containment contract before
+      any source changes.
+- [x] Add
+      `docs/architecture/76-llimagegl-scaledown-containment-contract.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a focused `LLImageGL::scaleDown(...)` containment contract before
-      any source changes.
+- [ ] Decide whether to stop phase 3 for review or start a separate
+      `scaleDown(...)` packet with Xcode/runtime validation.
 
 ## Phase 1 Inventory
 
