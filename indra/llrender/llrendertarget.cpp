@@ -33,7 +33,18 @@
 LLRenderTarget* LLRenderTarget::sBoundTarget = NULL;
 U32 LLRenderTarget::sBytesAllocated = 0;
 
-void check_framebuffer_status()
+bool LLRenderTarget::sUseFBO = false;
+U32 LLRenderTarget::sCurFBO = 0;
+
+
+extern S32 gGLViewport[4];
+
+U32 LLRenderTarget::sCurResX = 0;
+U32 LLRenderTarget::sCurResY = 0;
+
+namespace
+{
+void check_current_draw_framebuffer_status()
 {
     if (gDebugGL)
     {
@@ -50,17 +61,6 @@ void check_framebuffer_status()
     }
 }
 
-bool LLRenderTarget::sUseFBO = false;
-U32 LLRenderTarget::sCurFBO = 0;
-
-
-extern S32 gGLViewport[4];
-
-U32 LLRenderTarget::sCurResX = 0;
-U32 LLRenderTarget::sCurResY = 0;
-
-namespace
-{
 void set_render_target_viewport(U32 width, U32 height)
 {
     glViewport(0, 0, width, height);
@@ -283,7 +283,7 @@ void LLRenderTarget::setColorAttachment(LLImageGL* img, LLGLuint use_name)
     set_framebuffer_texture_attachment(GL_COLOR_ATTACHMENT0, mUsage, use_name);
     stop_glerror();
 
-    check_framebuffer_status();
+    check_current_draw_framebuffer_status();
 
     restore_tracked_fbo_binding();
 }
@@ -376,7 +376,7 @@ bool LLRenderTarget::addColorAttachment(U32 color_fmt)
         bind_attachment_fbo(mFBO);
         set_framebuffer_texture_attachment(static_cast<GLenum>(GL_COLOR_ATTACHMENT0 + offset), mUsage, tex);
 
-        check_framebuffer_status();
+        check_current_draw_framebuffer_status();
 
         restore_tracked_fbo_binding();
     }
@@ -442,7 +442,7 @@ void LLRenderTarget::shareDepthBuffer(LLRenderTarget& target)
 
         set_framebuffer_texture_attachment(GL_DEPTH_ATTACHMENT, mUsage, mDepth);
 
-        check_framebuffer_status();
+        check_current_draw_framebuffer_status();
 
         restore_tracked_fbo_binding();
 
@@ -523,7 +523,7 @@ void LLRenderTarget::bindTarget()
     bind_render_target_fbo(mFBO);
 
     set_render_target_buffer_routing(static_cast<U32>(mTex.size()));
-    check_framebuffer_status();
+    check_current_draw_framebuffer_status();
 
     set_render_target_viewport(mResX, mResY);
 
@@ -543,7 +543,7 @@ void LLRenderTarget::clear(U32 mask_in)
     }
     if (mFBO)
     {
-        check_framebuffer_status();
+        check_current_draw_framebuffer_status();
         stop_glerror();
         clear_render_target_buffers(mask & mask_in);
         stop_glerror();

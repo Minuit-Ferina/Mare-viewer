@@ -129,6 +129,11 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract internal `LLRenderTarget` clear/scissor helpers without changing
       the public API.
 - [x] Verify the clear/scissor helper extraction with `llrender/fast`.
+- [x] Add `docs/architecture/22-llrendertarget-framebuffer-status-contract.md`.
+- [x] Document `LLRenderTarget` framebuffer status intent.
+- [x] Rename the internal `LLRenderTarget` framebuffer status helper without
+      changing the public API.
+- [x] Verify the framebuffer status helper rename with `llrender/fast`.
 
 ## Immediate Next Steps
 
