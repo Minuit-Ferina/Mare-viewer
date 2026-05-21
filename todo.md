@@ -145,10 +145,13 @@ an explicit task, and do not start a direct Vulkan port.
       `llglcontainment.*` reserved for a later cross-owner contract.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       completed `LLRenderTarget` phase 2 packet.
+- [x] Add `docs/architecture/25-llrendertarget-phase2-review-summary.md`.
+- [x] Prepare a concise `LLRenderTarget` phase 2 packet summary for review.
 
 ## Immediate Next Steps
 
-- [ ] Prepare a concise `LLRenderTarget` phase 2 packet summary for review.
+- [ ] Pick the next phase 2 owner to document before source cleanup:
+      `LLImageGL`, `LLVertexBuffer`, or `LLGLSLShader`.
 - [ ] Use the local Xcode arm64 Release path as an incremental integration
       checkpoint before important source-side milestones.
 
