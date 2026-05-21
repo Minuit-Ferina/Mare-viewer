@@ -388,6 +388,72 @@ The existing manifest architecture mismatch remains present:
 viewer_manifest.py --actions=copy --arch=x86_64 ...
 ```
 
+## Phase 3 FBO Containment Integration Check
+
+Observed on 2026-05-21:
+
+- Branch: `phase3`.
+- Commit: `bffb117844 llrender: contain render target fbo calls`.
+- Worktree: `/private/tmp/Mare-viewer-phase2-xcode-worktree`.
+- Build tree:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv`.
+- Xcode project:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj`.
+- Output app:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/newview/Release/Mare Viewer.app`.
+
+The temporary Xcode worktree was moved from the phase 2 `LLVertexBuffer`
+checkpoint to commit `bffb117844`, preserving `DerivedData` and the existing
+build tree.
+
+Incremental build command:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/Users/vitoldkapshitzer/.cache/clang/ModuleCache \
+xcodebuild \
+  -project /private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj \
+  -scheme mare-viewer \
+  -configuration Release \
+  -destination platform=macOS,arch=arm64 \
+  -derivedDataPath /private/tmp/Mare-viewer-phase2-xcode-worktree/DerivedData \
+  build
+```
+
+Observed result:
+
+```text
+** BUILD SUCCEEDED **
+```
+
+Observed work:
+
+- rebuilt `llrender` object `llglcontainment.cpp.o`
+- rebuilt `llrender` object `llrendertarget.cpp.o`
+- relinked `libllrender.a`
+- relinked `Mare Viewer.app/Contents/MacOS/Mare Viewer`
+- ran the existing manifest copy step
+
+No `clean` build was run.
+
+The built viewer executable was verified as arm64:
+
+```text
+Non-fat file: .../Mare Viewer.app/Contents/MacOS/Mare Viewer is architecture: arm64
+```
+
+The app bundle contained these runtime dylibs under `Contents/Frameworks`:
+
+- `libopenal.dylib`
+- `libalut.dylib`
+- `libllwebrtc.dylib`
+- `libndofdev.dylib`
+
+The existing manifest architecture mismatch remains present:
+
+```text
+viewer_manifest.py --actions=copy --arch=x86_64 ...
+```
+
 ## Makefile Build Tree Check
 
 This is a separate validation path from the local arm64 Xcode shortcut above.

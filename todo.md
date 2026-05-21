@@ -214,11 +214,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the first phase 3 FBO containment packet with `llrender/fast`.
 - [x] Regenerate the generated source inventory after the first phase 3 source
       packet.
+- [x] Run a local incremental Xcode arm64 Release integration build for the
+      first phase 3 FBO containment packet.
 
 ## Immediate Next Steps
 
-- [ ] Run a local incremental Xcode arm64 Release integration build for the
-      first phase 3 FBO containment packet.
+- [ ] Stop and summarize the first phase 3 containment packet before moving
+      another OpenGL family into `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
