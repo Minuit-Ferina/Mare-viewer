@@ -100,12 +100,17 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract internal `LLRenderTarget` FBO binding helpers without changing
       the public API.
 - [x] Verify the FBO helper extraction with `llrender/fast`.
+- [x] Verify the phase 2 generated Xcode arm64 Release path after the FBO
+      helper extraction.
+- [x] Record that normal local validation should use targeted or incremental
+      builds, not `clean`, unless a clean checkpoint is explicitly needed.
 
 ## Immediate Next Steps
 
-- [ ] Before any runtime-relevant source change, run the local Xcode arm64
-      Release build path documented in
-      `docs/architecture/local-darwin-arm64-build.md`.
+- [ ] For the next small `llrender` containment edit, use a targeted build such
+      as `llrender/fast` first.
+- [ ] Use the local Xcode arm64 Release path as an incremental integration
+      checkpoint before important source-side milestones.
 
 ## Phase 1 Inventory
 
@@ -144,7 +149,10 @@ No open items in this section right now.
 - [ ] Treat a Makefile-built app launch test as optional non-reference
       packaging validation unless the Makefile path becomes a required workflow.
 - [ ] Keep FSR2 disabled on Darwin unless a compatible non-compute fallback is explicitly designed.
-- [ ] Run a full local `mare-viewer` Release arm64 build after each source-side containment step on this machine.
+- [ ] Do not run a clean full viewer build after each small source-side
+      containment step; reserve clean builds for explicit checkpoints.
+- [ ] Run a local incremental `mare-viewer` Release arm64 build before
+      important source-side milestones on this machine.
 - [ ] Keep universal macOS build investigation separate from this machine's local arm64 dev shortcut.
 - [ ] Delay signing, notarization, and DMG packaging until runtime smoke tests pass.
 

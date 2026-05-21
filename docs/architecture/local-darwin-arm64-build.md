@@ -38,8 +38,8 @@ prebuilt dependencies before generating the Xcode project.
 
 ## Build Command
 
-Use this command for a clean local arm64 Release build from the existing
-generated Xcode project:
+Use this command only for a rare clean checkpoint from the existing generated
+Xcode project:
 
 ```sh
 HOME=/private/tmp/Mare-viewer-v1.2.3.1-worktree/home \
@@ -58,6 +58,25 @@ Expected result:
 ```text
 ** BUILD SUCCEEDED **
 ```
+
+For normal local development, do not use `clean`. Reuse the generated Xcode
+project and existing DerivedData so each validation can stay incremental:
+
+```sh
+HOME=/private/tmp/Mare-viewer-v1.2.3.1-worktree/home \
+revision=0 \
+xcodebuild \
+  -project /private/tmp/Mare-viewer-v1.2.3.1-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj \
+  -scheme mare-viewer \
+  -configuration Release \
+  -destination platform=macOS,arch=arm64 \
+  -derivedDataPath /private/tmp/Mare-viewer-v1.2.3.1-worktree/DerivedData \
+  build
+```
+
+For narrow `llrender` implementation checks, prefer a targeted build such as
+`llrender/fast` first. Use the Xcode viewer build as an integration checkpoint,
+not as the default check after every small file edit.
 
 ## Quick Verification
 
@@ -95,6 +114,71 @@ ls -l \
   fix.
 - FSR2 is disabled on Darwin because macOS OpenGL does not expose the required
   compute API.
+
+## Phase 2 Xcode Build Check
+
+Observed on 2026-05-21:
+
+- Branch: `phase2`.
+- Commit: `801eb31041 llrender: name render target fbo intents`.
+- Worktree: `/private/tmp/Mare-viewer-phase2-xcode-worktree`.
+- Build tree:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv`.
+- Xcode project:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj`.
+- Output app:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/newview/Release/Mare Viewer.app`.
+
+Configure was run through `autobuild configure`, reusing the local temporary
+package cache and venv from `/private/tmp/Mare-viewer-v1.2.3.1-worktree`.
+
+The first clean Xcode attempt failed because `/private/tmp` ran out of disk
+space while compiling `llfloaterinspect.cpp`. After freeing local temporary
+build artifacts, the build was resumed incrementally without `clean`.
+
+The resumed build initially hit a sandbox-only Clang module cache permission
+error. The successful retry used the same Clang module cache path as the
+existing precompiled header:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/Users/vitoldkapshitzer/.cache/clang/ModuleCache \
+xcodebuild \
+  -project /private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj \
+  -scheme mare-viewer \
+  -configuration Release \
+  -destination platform=macOS,arch=arm64 \
+  -derivedDataPath /private/tmp/Mare-viewer-phase2-xcode-worktree/DerivedData \
+  build
+```
+
+Observed result:
+
+```text
+** BUILD SUCCEEDED **
+```
+
+The final `xcodebuild -quiet` invocation exited with code 0. The built viewer
+executable was verified as arm64:
+
+```text
+Non-fat file: .../Mare Viewer.app/Contents/MacOS/Mare Viewer is architecture: arm64
+```
+
+The app bundle also contained these runtime dylibs under `Contents/Frameworks`:
+
+- `libopenal.dylib`
+- `libalut.dylib`
+- `libllwebrtc.dylib`
+- `libndofdev.dylib`
+
+Non-fatal warnings observed during the build:
+
+- CEF and WebRTC prebuilt objects were built for macOS 12.0 while the project
+  links with deployment target macOS 11.0.
+- `llaudioengine.cpp` still has an existing misleading-indentation warning.
+- Some static library objects have no symbols.
+- Xcode run script phases are configured to run every build because dependency
+  analysis is disabled for those script phases.
 
 ## Manifest Architecture Mismatch
 
