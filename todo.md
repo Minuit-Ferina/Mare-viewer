@@ -347,11 +347,19 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/69-llimagegl-remaining-call-classification.md`.
 - [x] Add
       `docs/architecture/70-llimagegl-wrapper-pure-containment-task.md`.
+- [x] Route the remaining wrapper-pure `LLImageGL` call families through
+      `llglcontainment.*` without moving owner state.
+- [x] Verify the wrapper-pure `LLImageGL` containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the wrapper-pure
+      `LLImageGL` source packet.
+- [x] Defer Xcode and runtime smoke for the wrapper-pure `LLImageGL` packet
+      because only direct call-through wrappers moved.
 
 ## Immediate Next Steps
 
-- [ ] Route the remaining wrapper-pure `LLImageGL` call families through
-      `llglcontainment.*` without moving owner state.
+- [ ] Add a completion summary for the wrapper-pure `LLImageGL` containment
+      packet before considering contract-first upload and scale-down families.
 
 ## Phase 1 Inventory
 

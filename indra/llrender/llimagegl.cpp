@@ -188,12 +188,12 @@ void LLImageGL::checkTexSize(bool forced) const
         {
             //check viewport
             GLint vp[4] ;
-            glGetIntegerv(GL_VIEWPORT, vp) ;
+            LLGLContainment::getInteger(GL_VIEWPORT, vp) ;
             llcallstacks << "viewport: " << vp[0] << " : " << vp[1] << " : " << vp[2] << " : " << vp[3] << llcallstacksendl ;
         }
 
         GLint texname;
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &texname);
+        LLGLContainment::getInteger(GL_TEXTURE_BINDING_2D, &texname);
         bool error = false;
         if (texname != mTexName)
         {
@@ -211,8 +211,8 @@ void LLImageGL::checkTexSize(bool forced) const
         }
         stop_glerror() ;
         LLGLint x = 0, y = 0 ;
-        glGetTexLevelParameteriv(mTarget, 0, GL_TEXTURE_WIDTH, (GLint*)&x);
-        glGetTexLevelParameteriv(mTarget, 0, GL_TEXTURE_HEIGHT, (GLint*)&y) ;
+        LLGLContainment::getTextureLevelParameterInteger(mTarget, 0, GL_TEXTURE_WIDTH, &x);
+        LLGLContainment::getTextureLevelParameterInteger(mTarget, 0, GL_TEXTURE_HEIGHT, &y) ;
         stop_glerror() ;
         llcallstacks << "w: " << x << " h: " << y << llcallstacksendl ;
 
@@ -1198,7 +1198,16 @@ void sub_image_lines(U32 target, S32 miplevel, S32 x_offset, S32 y_offset, S32 w
         {
             // If this keeps crashing, pass down data_size, looks like it is using
             // imageraw->getData(); for data, but goes way over allocated size limit
-            glTexSubImage2D(target, miplevel, x_offset, y_pos, width, batch_size, pixformat, pixtype, src);
+            LLGLContainment::setTextureSubImage2D(
+                target,
+                miplevel,
+                x_offset,
+                y_pos,
+                width,
+                batch_size,
+                pixformat,
+                pixtype,
+                src);
             src += line_width * batch_size;
         }
     }
@@ -1209,7 +1218,16 @@ void sub_image_lines(U32 target, S32 miplevel, S32 x_offset, S32 y_offset, S32 w
         {
             // If this keeps crashing, pass down data_size, looks like it is using
             // imageraw->getData(); for data, but goes way over allocated size limit
-            glTexSubImage2D(target, miplevel, x_offset, y_pos, width, 1, pixformat, pixtype, src);
+            LLGLContainment::setTextureSubImage2D(
+                target,
+                miplevel,
+                x_offset,
+                y_pos,
+                width,
+                1,
+                pixformat,
+                pixtype,
+                src);
             src += line_width;
         }
     }
@@ -1302,7 +1320,16 @@ bool LLImageGL::setSubImage(const U8* datap, S32 data_width, S32 data_height, S3
             // setManualImage? Maybe because it only gets called with the
             // dimensions of the full image?  Or because the image is never
             // compressed?
-            glTexSubImage2D(mTarget, 0, x_pos, y_pos, width, height, mFormatPrimary, mFormatType, sub_datap);
+            LLGLContainment::setTextureSubImage2D(
+                mTarget,
+                0,
+                x_pos,
+                y_pos,
+                width,
+                height,
+                mFormatPrimary,
+                mFormatType,
+                sub_datap);
         }
         else
         {
@@ -1358,7 +1385,7 @@ void LLImageGL::generateTextures(S32 numTextures, U32 *textures)
     {
         LL_PROFILE_ZONE_NAMED("iglgt - reup pool");
         // pool is emtpy, refill it
-        glGenTextures(pool_size, name_pool);
+        LLGLContainment::generateTextures(pool_size, name_pool);
         name_count = pool_size;
     }
 
@@ -1371,7 +1398,7 @@ void LLImageGL::generateTextures(S32 numTextures, U32 *textures)
     else
     {
         LL_PROFILE_ZONE_NAMED("iglgt - pool miss");
-        glGenTextures(numTextures, textures);
+        LLGLContainment::generateTextures(numTextures, textures);
     }
 }
 
@@ -1390,7 +1417,9 @@ void LLImageGL::updateClass()
     if (!sFreeList[idx].empty())
     {
         free_tex_images((GLsizei) sFreeList[idx].size(), sFreeList[idx].data());
-        glDeleteTextures((GLsizei)sFreeList[idx].size(), sFreeList[idx].data());
+        LLGLContainment::deleteTextures(
+            static_cast<S32>(sFreeList[idx].size()),
+            sFreeList[idx].data());
         sFreeList[idx].resize(0);
     }
 }
@@ -1420,24 +1449,33 @@ void LLImageGL::setManualImage(U32 target, S32 miplevel, S32 intformat, S32 widt
         {
             if (pixformat == GL_ALPHA)
             { //GL_ALPHA is deprecated, convert to RGBA
-                const GLint mask[] = { GL_ZERO, GL_ZERO, GL_ZERO, GL_RED };
-                glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, mask);
+                const LLGLint mask[] = { GL_ZERO, GL_ZERO, GL_ZERO, GL_RED };
+                LLGLContainment::setTextureParameterIntegerVector(
+                    GL_TEXTURE_2D,
+                    GL_TEXTURE_SWIZZLE_RGBA,
+                    mask);
                 pixformat = GL_RED;
                 intformat = GL_R8;
             }
 
             if (pixformat == GL_LUMINANCE)
             { //GL_LUMINANCE is deprecated, convert to GL_RGBA
-                const GLint mask[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
-                glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, mask);
+                const LLGLint mask[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
+                LLGLContainment::setTextureParameterIntegerVector(
+                    GL_TEXTURE_2D,
+                    GL_TEXTURE_SWIZZLE_RGBA,
+                    mask);
                 pixformat = GL_RED;
                 intformat = GL_R8;
             }
 
             if (pixformat == GL_LUMINANCE_ALPHA)
             { //GL_LUMINANCE_ALPHA is deprecated, convert to RGBA
-                const GLint mask[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
-                glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, mask);
+                const LLGLint mask[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
+                LLGLContainment::setTextureParameterIntegerVector(
+                    GL_TEXTURE_2D,
+                    GL_TEXTURE_SWIZZLE_RGBA,
+                    mask);
                 pixformat = GL_RG;
                 intformat = GL_RG8;
             }
@@ -1781,8 +1819,14 @@ bool LLImageGL::createGLTexture(S32 discard_level, const U8* data_in, bool data_
         LLImageGL::generateTextures(1, &new_texname);
         {
             gGL.getTexUnit(0)->bind(this, false, false, new_texname);
-            glTexParameteri(LLTexUnit::getInternalType(mBindTarget), GL_TEXTURE_BASE_LEVEL, 0);
-            glTexParameteri(LLTexUnit::getInternalType(mBindTarget), GL_TEXTURE_MAX_LEVEL, mMaxDiscardLevel - discard_level);
+            LLGLContainment::setTextureParameterInteger(
+                LLTexUnit::getInternalType(mBindTarget),
+                GL_TEXTURE_BASE_LEVEL,
+                0);
+            LLGLContainment::setTextureParameterInteger(
+                LLTexUnit::getInternalType(mBindTarget),
+                GL_TEXTURE_MAX_LEVEL,
+                mMaxDiscardLevel - discard_level);
         }
     }
 
@@ -1968,7 +2012,7 @@ bool LLImageGL::readBackRaw(S32 discard_level, LLImageRaw* imageraw, bool compre
 
     //-----------------------------------------------------------------------------------------------
     GLenum error ;
-    while((error = glGetError()) != GL_NO_ERROR)
+    while((error = LLGLContainment::getError()) != GL_NO_ERROR)
     {
         LL_WARNS() << "GL Error happens before reading back texture. Error code: " << error << LL_ENDL ;
     }
@@ -2023,12 +2067,12 @@ bool LLImageGL::readBackRaw(S32 discard_level, LLImageRaw* imageraw, bool compre
     }
 
     //-----------------------------------------------------------------------------------------------
-    if((error = glGetError()) != GL_NO_ERROR)
+    if((error = LLGLContainment::getError()) != GL_NO_ERROR)
     {
         LL_WARNS() << "GL Error happens after reading back texture. Error code: " << error << LL_ENDL ;
         imageraw->deleteData() ;
 
-        while((error = glGetError()) != GL_NO_ERROR)
+        while((error = LLGLContainment::getError()) != GL_NO_ERROR)
         {
             LL_WARNS() << "GL Error happens after reading back texture. Error code: " << error << LL_ENDL ;
         }
@@ -2111,7 +2155,7 @@ bool LLImageGL::getIsResident(bool test_now)
     {
         if (mTexName != 0)
         {
-            glAreTexturesResident(1, (GLuint*)&mTexName, &mIsResident);
+            LLGLContainment::areTexturesResident(1, &mTexName, &mIsResident);
         }
         else
         {

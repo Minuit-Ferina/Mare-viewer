@@ -41,6 +41,8 @@ void setReadBuffer(LLGLenum buffer);
 void setDrawBuffers(S32 count, const LLGLenum* buffers);
 void generateFramebuffers(S32 count, LLGLuint* framebuffers);
 void deleteFramebuffers(S32 count, const LLGLuint* framebuffers);
+void generateTextures(S32 count, LLGLuint* textures);
+void deleteTextures(S32 count, const LLGLuint* textures);
 void generateBufferObjects(S32 count, LLGLuint* buffers);
 void deleteBufferObjects(S32 count, const LLGLuint* buffers);
 void bindBufferObject(LLGLenum target, LLGLuint buffer);
@@ -69,8 +71,28 @@ void drawVertexBufferRange(
     LLGLenum index_type,
     const void* indices);
 void drawVertexBufferArrays(LLGLenum mode, LLGLint first, S32 count);
+void getInteger(LLGLenum parameter, LLGLint* value);
 void setPixelStoreInteger(LLGLenum parameter, LLGLint value);
 void getTextureLevelParameterInteger(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value);
+void setTextureSubImage2D(
+    LLGLenum target,
+    S32 level,
+    S32 xoffset,
+    S32 yoffset,
+    S32 width,
+    S32 height,
+    LLGLenum format,
+    LLGLenum type,
+    const void* pixels);
+void setTextureParameterInteger(
+    LLGLenum target,
+    LLGLenum parameter,
+    LLGLint value);
+void setTextureParameterIntegerVector(
+    LLGLenum target,
+    LLGLenum parameter,
+    const LLGLint* values);
+void areTexturesResident(S32 count, const LLGLuint* textures, LLGLboolean* residences);
 void readCompressedTextureImage(LLGLenum target, S32 level, void* pixels);
 void readTextureImage(LLGLenum target, S32 level, LLGLenum format, LLGLenum type, void* pixels);
 void copyTextureSubImage2D(

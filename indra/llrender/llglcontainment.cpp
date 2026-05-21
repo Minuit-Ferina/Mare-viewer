@@ -76,6 +76,16 @@ void deleteFramebuffers(S32 count, const LLGLuint* framebuffers)
     glDeleteFramebuffers(static_cast<GLsizei>(count), framebuffers);
 }
 
+void generateTextures(S32 count, LLGLuint* textures)
+{
+    glGenTextures(static_cast<GLsizei>(count), textures);
+}
+
+void deleteTextures(S32 count, const LLGLuint* textures)
+{
+    glDeleteTextures(static_cast<GLsizei>(count), textures);
+}
+
 void generateBufferObjects(S32 count, LLGLuint* buffers)
 {
     glGenBuffers(static_cast<GLsizei>(count), buffers);
@@ -165,6 +175,11 @@ void drawVertexBufferArrays(LLGLenum mode, LLGLint first, S32 count)
     glDrawArrays(mode, first, static_cast<GLsizei>(count));
 }
 
+void getInteger(LLGLenum parameter, LLGLint* value)
+{
+    glGetIntegerv(parameter, value);
+}
+
 void setPixelStoreInteger(LLGLenum parameter, LLGLint value)
 {
     glPixelStorei(parameter, value);
@@ -173,6 +188,50 @@ void setPixelStoreInteger(LLGLenum parameter, LLGLint value)
 void getTextureLevelParameterInteger(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value)
 {
     glGetTexLevelParameteriv(target, level, parameter, value);
+}
+
+void setTextureSubImage2D(
+    LLGLenum target,
+    S32 level,
+    S32 xoffset,
+    S32 yoffset,
+    S32 width,
+    S32 height,
+    LLGLenum format,
+    LLGLenum type,
+    const void* pixels)
+{
+    glTexSubImage2D(
+        target,
+        level,
+        xoffset,
+        yoffset,
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height),
+        format,
+        type,
+        pixels);
+}
+
+void setTextureParameterInteger(
+    LLGLenum target,
+    LLGLenum parameter,
+    LLGLint value)
+{
+    glTexParameteri(target, parameter, value);
+}
+
+void setTextureParameterIntegerVector(
+    LLGLenum target,
+    LLGLenum parameter,
+    const LLGLint* values)
+{
+    glTexParameteriv(target, parameter, values);
+}
+
+void areTexturesResident(S32 count, const LLGLuint* textures, LLGLboolean* residences)
+{
+    glAreTexturesResident(static_cast<GLsizei>(count), textures, residences);
 }
 
 void readCompressedTextureImage(LLGLenum target, S32 level, void* pixels)
