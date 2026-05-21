@@ -609,7 +609,7 @@ without an explicit task, and do not start a direct Vulkan port.
       with `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLGLSLShader`
       vertex attribute setter source packet.
-- [ ] Add a summary for the `LLGLSLShader` vertex attribute setter containment
+- [x] Add a summary for the `LLGLSLShader` vertex attribute setter containment
       packet.
 
 ## Phase 1 Inventory
