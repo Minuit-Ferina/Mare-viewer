@@ -619,6 +619,26 @@ static void set_texture_unpack_row_length(S32 row_length)
     glPixelStorei(GL_UNPACK_ROW_LENGTH, row_length);
 }
 
+static void query_texture_level_parameter(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value)
+{
+    glGetTexLevelParameteriv(target, level, parameter, value);
+}
+
+static void read_compressed_texture_level_image(LLGLenum target, S32 level, GLvoid* pixels)
+{
+    glGetCompressedTexImage(target, level, pixels);
+}
+
+static void read_texture_level_image(LLGLenum target, S32 level, LLGLenum format, LLGLenum type, GLvoid* pixels)
+{
+    glGetTexImage(target, level, format, type, pixels);
+}
+
+static void copy_current_framebuffer_to_texture_region(LLGLenum target, S32 level, S32 xoffset, S32 yoffset, S32 x, S32 y, S32 width, S32 height)
+{
+    glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+}
+
 //static
 bool LLImageGL::checkSize(S32 width, S32 height)
 {
@@ -1246,7 +1266,7 @@ bool LLImageGL::setSubImageFromFrameBuffer(S32 fb_x, S32 fb_y, S32 x_pos, S32 y_
 {
     if (gGL.getTexUnit(0)->bind(this, false, true))
     {
-        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, fb_x, fb_y, x_pos, y_pos, width, height);
+        copy_current_framebuffer_to_texture_region(GL_TEXTURE_2D, 0, fb_x, fb_y, x_pos, y_pos, width, height);
         mGLTextureCreated = true;
         stop_glerror();
         return true;
@@ -1844,7 +1864,7 @@ bool LLImageGL::readBackRaw(S32 discard_level, LLImageRaw* imageraw, bool compre
     //checkTexSize() ;
 
     LLGLint glwidth = 0;
-    glGetTexLevelParameteriv(mTarget, gl_discard, GL_TEXTURE_WIDTH, (GLint*)&glwidth);
+    query_texture_level_parameter(mTarget, gl_discard, GL_TEXTURE_WIDTH, &glwidth);
     if (glwidth == 0)
     {
         // No mip data smaller than current discard level
@@ -1874,7 +1894,7 @@ bool LLImageGL::readBackRaw(S32 discard_level, LLImageRaw* imageraw, bool compre
     LLGLint is_compressed = 0;
     if (compressed_ok)
     {
-        glGetTexLevelParameteriv(mTarget, is_compressed, GL_TEXTURE_COMPRESSED, (GLint*)&is_compressed);
+        query_texture_level_parameter(mTarget, is_compressed, GL_TEXTURE_COMPRESSED, &is_compressed);
     }
 
     //-----------------------------------------------------------------------------------------------
@@ -1890,7 +1910,7 @@ bool LLImageGL::readBackRaw(S32 discard_level, LLImageRaw* imageraw, bool compre
     if (is_compressed)
     {
         LLGLint glbytes;
-        glGetTexLevelParameteriv(mTarget, gl_discard, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, (GLint*)&glbytes);
+        query_texture_level_parameter(mTarget, gl_discard, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &glbytes);
         if(!imageraw->allocateDataSize(width, height, ncomponents, glbytes))
         {
             constexpr S64 MAX_GL_BYTES = 2048 * 2048;
@@ -1907,7 +1927,7 @@ bool LLImageGL::readBackRaw(S32 discard_level, LLImageRaw* imageraw, bool compre
             return false ;
         }
 
-        glGetCompressedTexImage(mTarget, gl_discard, (GLvoid*)(imageraw->getData()));
+        read_compressed_texture_level_image(mTarget, gl_discard, (GLvoid*)(imageraw->getData()));
         //stop_glerror();
     }
     else
@@ -1929,7 +1949,7 @@ bool LLImageGL::readBackRaw(S32 discard_level, LLImageRaw* imageraw, bool compre
             return false ;
         }
 
-        glGetTexImage(GL_TEXTURE_2D, gl_discard, mFormatPrimary, mFormatType, (GLvoid*)(imageraw->getData()));
+        read_texture_level_image(GL_TEXTURE_2D, gl_discard, mFormatPrimary, mFormatType, (GLvoid*)(imageraw->getData()));
         //stop_glerror();
     }
 
@@ -2507,7 +2527,7 @@ bool LLImageGL::scaleDown(S32 desired_discard)
 
             free_tex_image(mTexName);
             glTexImage2D(mTarget, 0, mFormatInternal, desired_width, desired_height, 0, mFormatPrimary, mFormatType, nullptr);
-            glCopyTexSubImage2D(mTarget, 0, 0, 0, 0, 0, desired_width, desired_height);
+            copy_current_framebuffer_to_texture_region(mTarget, 0, 0, 0, 0, 0, desired_width, desired_height);
             alloc_tex_image(desired_width, desired_height, mFormatInternal, 1);
 
             mTexOptionsDirty = true;
@@ -2546,7 +2566,7 @@ bool LLImageGL::scaleDown(S32 desired_discard)
             sScratchPBOSize = (U32)size;
         }
 
-        glGetTexImage(mTarget, mip, mFormatPrimary, mFormatType, nullptr);
+        read_texture_level_image(mTarget, mip, mFormatPrimary, mFormatType, nullptr);
 
         free_tex_image(mTexName);
 

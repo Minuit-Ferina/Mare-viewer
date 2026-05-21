@@ -137,15 +137,15 @@ Reason:
 
 ## Candidate Source Cleanup
 
-Small naming-only cleanup may be reasonable later if it stays local to:
+Small naming-only cleanup is applied for the readback/query/copy callsites and
+stays local to:
 
 - `indra/llrender/llimagegl.cpp`
 
-Possible local helper groups:
+Local helper groups:
 
 - texture readback query/read helpers for `readBackRaw(...)`
 - framebuffer copy helper for `glCopyTexSubImage2D(...)`
-- scratch PBO pack/unpack binding helpers for `scaleDown(...)`
 
 Constraints:
 
@@ -156,12 +156,37 @@ Constraints:
 - do not change texture memory accounting order
 - do not change viewport, framebuffer, or texture binding assumptions
 
-## Verification For A Future Source Patch
+Not yet applied:
+
+- scratch PBO pack/unpack binding helpers for `scaleDown(...)`
+
+Reason:
+
+- PBO pack/unpack binding is a separate global buffer-state family and should
+  stay in a separate patch.
+
+## Source Cleanup Applied
+
+Applied in phase 2:
+
+- added local helpers for texture-level parameter queries
+- added local helpers for compressed and uncompressed texture readback
+- added a local helper for current-framebuffer-to-texture copy
+- replaced the documented readback/copy callsites with those helpers
+- kept public headers unchanged
+- kept allocation, error handling, texture memory accounting, and method
+  selection unchanged
+- did not move behavior into `llglcontainment.*`
+
+This does not change ownership: `LLImageGL` still owns these readback and copy
+paths.
+
+## Verification
 
 Minimum:
 
-- build `llrender/fast`
-- run `git diff --check`
+- build `llrender/fast`: passed
+- run `git diff --check`: passed
 
 If `scaleDown(...)`, framebuffer copy, PBO state, or readback failure behavior
 changes:
