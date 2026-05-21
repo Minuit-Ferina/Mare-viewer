@@ -537,7 +537,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLRender`
       blend/color source packet.
 - [x] Add `docs/architecture/103-llrender-blend-color-summary.md`.
-- [ ] Decide separately whether to handle `LLRender` global init containment.
+- [x] Decide separately whether to handle `LLRender` global init containment.
+- [x] Add a focused task for `LLRender` fixed global init containment before
+      source edits.
+- [ ] Route only fixed `LLRender::init(...)` raw calls through
+      `llglcontainment.*`.
 - [ ] Decide separately whether to handle `LLTexUnit` binding/activation
       containment.
 
