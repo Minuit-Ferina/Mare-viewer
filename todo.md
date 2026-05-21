@@ -243,11 +243,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Load a scene successfully with the Xcode-built app after the phase 3
       buffer routing packet.
 - [x] Add `docs/architecture/45-phase3-rendertarget-review-summary.md`.
+- [x] Add
+      `docs/architecture/46-llrendertarget-fbo-lifetime-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a task-specific containment note for `LLRenderTarget` FBO name
-      lifetime before source edits.
+- [ ] Route `LLRenderTarget` raw FBO name lifetime calls through
+      `llglcontainment.*` without moving owner state.
 
 ## Phase 1 Inventory
 
