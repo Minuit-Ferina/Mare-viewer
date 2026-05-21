@@ -453,10 +453,12 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLRender2DUtils`
       source packet.
+- [x] Add `docs/architecture/85-llrender2d-line-width-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a completion summary for `LLRender2DUtils` line-width containment.
+- [ ] Add a focused task for `LLGLStates` material containment before source
+      changes.
 
 ## Phase 1 Inventory
 
