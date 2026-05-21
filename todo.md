@@ -109,6 +109,11 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract internal `LLRenderTarget` buffer routing helpers without changing
       the public API.
 - [x] Verify the buffer routing helper extraction with `llrender/fast`.
+- [x] Add `docs/architecture/18-llrendertarget-attachment-contract.md`.
+- [x] Document `LLRenderTarget` FBO texture attachment intents.
+- [x] Extract internal `LLRenderTarget` attachment helpers without changing the
+      public API.
+- [x] Verify the attachment helper extraction with `llrender/fast`.
 
 ## Immediate Next Steps
 

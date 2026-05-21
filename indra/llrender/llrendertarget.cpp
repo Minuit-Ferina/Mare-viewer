@@ -91,6 +91,16 @@ void restore_tracked_fbo_binding()
     glBindFramebuffer(GL_FRAMEBUFFER, LLRenderTarget::sCurFBO);
 }
 
+void set_framebuffer_texture_attachment(GLenum attachment, LLTexUnit::eTextureType usage, U32 texture)
+{
+    glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, LLTexUnit::getInternalType(usage), texture, 0);
+}
+
+void clear_framebuffer_texture_attachment(GLenum attachment, LLTexUnit::eTextureType usage)
+{
+    set_framebuffer_texture_attachment(attachment, usage, 0);
+}
+
 void bind_default_framebuffer_for_flush()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -211,7 +221,7 @@ bool LLRenderTarget::allocate(U32 resx, U32 resy, U32 color_fmt, bool depth, LLT
     {
         bind_attachment_fbo(mFBO);
 
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, LLTexUnit::getInternalType(mUsage), mDepth, 0);
+        set_framebuffer_texture_attachment(GL_DEPTH_ATTACHMENT, mUsage, mDepth);
 
         restore_tracked_fbo_binding();
     }
@@ -245,9 +255,8 @@ void LLRenderTarget::setColorAttachment(LLImageGL* img, LLGLuint use_name)
     mTex.push_back(use_name);
 
     bind_attachment_fbo(mFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-            LLTexUnit::getInternalType(mUsage), use_name, 0);
-        stop_glerror();
+    set_framebuffer_texture_attachment(GL_COLOR_ATTACHMENT0, mUsage, use_name);
+    stop_glerror();
 
     check_framebuffer_status();
 
@@ -262,7 +271,7 @@ void LLRenderTarget::releaseColorAttachment()
     llassert(mFBO != 0);  // mFBO must be valid
 
     bind_attachment_fbo(mFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, LLTexUnit::getInternalType(mUsage), 0, 0);
+    clear_framebuffer_texture_attachment(GL_COLOR_ATTACHMENT0, mUsage);
     restore_tracked_fbo_binding();
 
     mTex.clear();
@@ -340,8 +349,7 @@ bool LLRenderTarget::addColorAttachment(U32 color_fmt)
     if (mFBO)
     {
         bind_attachment_fbo(mFBO);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+offset,
-            LLTexUnit::getInternalType(mUsage), tex, 0);
+        set_framebuffer_texture_attachment(static_cast<GLenum>(GL_COLOR_ATTACHMENT0 + offset), mUsage, tex);
 
         check_framebuffer_status();
 
@@ -407,7 +415,7 @@ void LLRenderTarget::shareDepthBuffer(LLRenderTarget& target)
     {
         bind_attachment_fbo(target.mFBO);
 
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, LLTexUnit::getInternalType(mUsage), mDepth, 0);
+        set_framebuffer_texture_attachment(GL_DEPTH_ATTACHMENT, mUsage, mDepth);
 
         check_framebuffer_status();
 
@@ -436,7 +444,7 @@ void LLRenderTarget::release()
 
         if (mUseDepth)
         { //detach shared depth buffer
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, LLTexUnit::getInternalType(mUsage), 0, 0);
+            clear_framebuffer_texture_attachment(GL_DEPTH_ATTACHMENT, mUsage);
             mUseDepth = false;
         }
 
@@ -452,7 +460,7 @@ void LLRenderTarget::release()
         for (z = mTex.size() - 1; z >= 1; z--)
         {
             sBytesAllocated -= mResX*mResY*4;
-            glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLenum>(GL_COLOR_ATTACHMENT0+z), LLTexUnit::getInternalType(mUsage), 0, 0);
+            clear_framebuffer_texture_attachment(static_cast<GLenum>(GL_COLOR_ATTACHMENT0 + z), mUsage);
             LLImageGL::deleteTextures(1, &mTex[z]);
         }
         restore_tracked_fbo_binding();
