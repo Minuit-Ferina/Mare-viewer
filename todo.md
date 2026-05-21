@@ -474,6 +474,12 @@ without an explicit task, and do not start a direct Vulkan port.
       `llglcontainment.*`.
 - [x] Route `LLPostProcess` shader and error query raw calls through
       `llglcontainment.*`.
+- [x] Verify the `LLPostProcess` containment group with `llrender/fast`.
+- [x] Regenerate the generated source inventory after the `LLPostProcess`
+      source packets.
+- [x] Add `docs/architecture/89-llpostprocess-containment-summary.md`.
+- [ ] Classify the remaining small `indra/llrender` direct-call entries before
+      more source edits.
 
 ## Phase 1 Inventory
 

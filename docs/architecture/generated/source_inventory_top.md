@@ -7,7 +7,7 @@
 | `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2091 | 80 | 80 | 0 | 11 | 116 | 0 | 2 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
 | `indra/newview/lldrawpoolterrain.cpp` | render.pipeline | 1123 | 61 | 62 | 1 | 189 | 26 | 1 | 0 |
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 431 | 50 | 50 | 0 | 0 | 92 | 0 | 0 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 492 | 59 | 59 | 0 | 0 | 107 | 0 | 0 |
 | `indra/llrender/llrender.cpp` | render.legacy_low_level | 2161 | 44 | 45 | 0 | 39 | 21 | 0 | 2 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 36 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llshadermgr.cpp` | render.legacy_low_level | 1563 | 32 | 39 | 0 | 0 | 4 | 0 | 0 |
@@ -16,7 +16,6 @@
 | `indra/newview/llmodelpreview.cpp` | render.opengl_touching | 4172 | 17 | 17 | 0 | 58 | 13 | 0 | 0 |
 | `indra/newview/gltfscenemanager.cpp` | render.pipeline | 1210 | 17 | 17 | 0 | 56 | 21 | 8 | 0 |
 | `indra/newview/llreflectionmapmanager.cpp` | render.pipeline | 1605 | 15 | 15 | 0 | 69 | 4 | 13 | 1 |
-| `indra/llrender/llpostprocess.cpp` | render.legacy_low_level | 455 | 13 | 20 | 0 | 18 | 1 | 0 | 0 |
 | `indra/newview/llmaniptranslate.cpp` | render.pipeline | 2323 | 13 | 13 | 0 | 196 | 22 | 10 | 0 |
 | `indra/newview/llviewerwindow.cpp` | render.pipeline | 6504 | 12 | 14 | 0 | 44 | 7 | 63 | 2 |
 | `indra/llwindow/llwindowsdl.cpp` | assets.texture | 2757 | 11 | 12 | 0 | 0 | 0 | 0 | 0 |
@@ -65,6 +64,7 @@
 | `indra/llui/lllocalcliprect.cpp` | render.opengl_touching | 111 | 1 | 1 | 0 | 1 | 0 | 0 | 0 |
 | `indra/llcommon/llprofiler.h` | render.opengl_touching | 186 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | `indra/llwindow/llwindowmesaheadless.cpp` | render.opengl_touching | 79 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `indra/llrender/llpostprocess.cpp` | render.legacy_low_level | 472 | 0 | 7 | 0 | 18 | 14 | 0 | 0 |
 | `indra/llui/llui.cpp` | unknown | 764 | 0 | 4 | 4 | 0 | 0 | 0 | 0 |
 | `indra/newview/llviewerjointmesh.cpp` | render.draw_pool | 532 | 0 | 3 | 0 | 12 | 4 | 0 | 0 |
 | `indra/newview/llviewershadermgr.h` | render.opengl_touching | 340 | 0 | 2 | 2 | 0 | 135 | 0 | 0 |
