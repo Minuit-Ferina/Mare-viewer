@@ -218,11 +218,12 @@ without an explicit task, and do not start a direct Vulkan port.
       first phase 3 FBO containment packet.
 - [x] Add `docs/architecture/38-phase3-fbo-containment-summary.md`.
 - [x] Add `docs/architecture/39-phase3-fbo-containment-review.md`.
+- [x] Add `docs/architecture/40-llrendertarget-attachment-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a task-specific containment note for `LLRenderTarget` FBO texture
-      attachment behavior before source edits.
+- [ ] Route `LLRenderTarget` raw FBO texture attachment calls through
+      `llglcontainment.*` without moving owner state.
 - [ ] Optionally launch the Xcode-built app for a runtime smoke test.
 
 ## Phase 1 Inventory
