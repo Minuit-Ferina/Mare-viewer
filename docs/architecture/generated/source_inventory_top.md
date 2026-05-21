@@ -26,7 +26,6 @@
 | `indra/newview/gltf/asset.cpp` | assets.texture | 1470 | 8 | 8 | 0 | 0 | 5 | 0 | 0 |
 | `indra/newview/llreflectionmap.cpp` | render.pipeline | 383 | 6 | 8 | 0 | 0 | 3 | 1 | 0 |
 | `indra/newview/llvoavatar.cpp` | render.pipeline | 12711 | 6 | 6 | 0 | 96 | 8 | 23 | 0 |
-| `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2832 | 5 | 18 | 0 | 32 | 79 | 0 | 0 |
 | `indra/newview/llvieweroctree.cpp` | render.pipeline | 1551 | 5 | 7 | 0 | 0 | 4 | 7 | 0 |
 | `indra/newview/llselectmgr.cpp` | render.pipeline | 9001 | 5 | 6 | 1 | 68 | 48 | 1 | 0 |
 | `indra/newview/llglsandbox.cpp` | render.pipeline | 1130 | 5 | 5 | 0 | 129 | 19 | 1 | 2 |
@@ -34,6 +33,7 @@
 | `indra/llrender/llcubemaparray.cpp` | render.legacy_low_level | 220 | 4 | 4 | 0 | 2 | 0 | 0 | 0 |
 | `indra/llrender/llglstates.h` | render.legacy_low_level | 197 | 4 | 4 | 0 | 0 | 46 | 0 | 0 |
 | `indra/newview/llappviewer.cpp` | render.pipeline | 6743 | 4 | 4 | 0 | 0 | 1 | 6 | 4 |
+| `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2841 | 3 | 16 | 0 | 32 | 81 | 0 | 0 |
 | `indra/llappearance/lltexlayer.cpp` | render.opengl_touching | 1931 | 3 | 5 | 0 | 85 | 17 | 0 | 10 |
 | `indra/llrender/llrender2dutils.cpp` | render.legacy_low_level | 1871 | 3 | 4 | 0 | 577 | 0 | 0 | 2 |
 | `indra/newview/llfasttimerview.cpp` | render.opengl_touching | 1668 | 3 | 4 | 0 | 75 | 4 | 0 | 1 |

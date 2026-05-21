@@ -2725,7 +2725,16 @@ bool LLImageGL::scaleDown(S32 desired_discard)
         unbind_pixel_pack_buffer();
 
         bind_scratch_pbo_for_pixel_unpack(sScratchPBO);
-        glTexImage2D(mTarget, 0, mFormatInternal, desired_width, desired_height, 0, mFormatPrimary, mFormatType, nullptr);
+        LLGLContainment::setTextureImage2D(
+            mTarget,
+            0,
+            mFormatInternal,
+            desired_width,
+            desired_height,
+            0,
+            mFormatPrimary,
+            mFormatType,
+            nullptr);
         unbind_pixel_unpack_buffer();
 
         alloc_tex_image(desired_width, desired_height, mFormatInternal, 1);
@@ -2733,7 +2742,7 @@ bool LLImageGL::scaleDown(S32 desired_discard)
         if (mHasMipMaps)
         {
             LL_PROFILE_ZONE_NAMED_CATEGORY_TEXTURE("scaleDown - glGenerateMipmap");
-            glGenerateMipmap(mTarget);
+            LLGLContainment::generateTextureMipmap(mTarget);
         }
 
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
