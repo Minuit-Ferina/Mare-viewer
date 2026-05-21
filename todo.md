@@ -75,11 +75,24 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the viewport helper extraction with `llrender/fast`.
 - [x] Reproduce that the full Makefile `mare-viewer` target is still blocked by
       the local `stage_third_party_libs` `sharedlibs/Resources` issue.
+- [x] Fix Darwin single-config Makefile staging so shared libraries are staged
+      under `sharedlibs/${CMAKE_BUILD_TYPE}/Resources`.
+- [x] Keep the Darwin `sharedlibs/Resources` symlink only for multi-config
+      generators, where it is not a self-link.
+- [x] Verify `stage_third_party_libs` copies Darwin dylibs to
+      `sharedlibs/Release/Resources` in the local Makefile build tree.
+- [x] Verify the full Makefile `mare-viewer` target reaches
+      `[100%] Built target mare-viewer` with local Clang/Python environment
+      variables.
+- [x] Verify the Makefile-built app contains `libopenal.dylib`,
+      `libalut.dylib`, and `libllwebrtc.dylib` in `Contents/Frameworks`.
+- [x] Document the local Makefile build flags and environment in
+      `docs/architecture/local-darwin-arm64-build.md`.
 
 ## Immediate Next Steps
 
-- [ ] Decide whether to recreate or repair the local Makefile build tree before
-      the next source-side containment step.
+- [ ] Run a runtime smoke test from the Makefile-built app bundle and confirm
+      that it reaches the login screen without dyld errors.
 - [ ] If continuing viewport work, keep the next patch inside the documented
       `LLRenderTarget` owner unless a new contract says otherwise.
 
@@ -113,10 +126,10 @@ No open items in this section right now.
 ## Build And Platform
 
 - [ ] Keep a known-good local macOS arm64 build path in `/private/tmp` for this machine.
-- [ ] Verify `libopenal.dylib`, `libalut.dylib`, `libllwebrtc.dylib`, and `libndofdev.dylib` are copied into app bundles.
+- [x] Verify `libopenal.dylib`, `libalut.dylib`, `libllwebrtc.dylib`, and `libndofdev.dylib` are copied into app bundles.
 - [ ] Document the existing manifest `--arch=x86_64` mismatch as local build-system debt.
 - [ ] Verify whether the manifest arch mismatch affects local dev runtime before proposing a CMake fix.
-- [ ] Investigate the local Makefile `stage_third_party_libs` symlink issue for `sharedlibs/Resources`.
+- [x] Investigate the local Makefile `stage_third_party_libs` symlink issue for `sharedlibs/Resources`.
 - [ ] Keep FSR2 disabled on Darwin unless a compatible non-compute fallback is explicitly designed.
 - [ ] Run a full local `mare-viewer` Release arm64 build after each source-side containment step on this machine.
 - [ ] Keep universal macOS build investigation separate from this machine's local arm64 dev shortcut.

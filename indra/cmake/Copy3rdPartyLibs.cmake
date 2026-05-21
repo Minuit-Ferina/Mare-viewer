@@ -303,7 +303,7 @@ add_custom_target(
         DEPENDS ${third_party_targets}
 )
 
-if(DARWIN)
+if(DARWIN AND LL_GENERATOR_IS_MULTI_CONFIG)
     # Support our "@executable_path/../Resources" load path for executables
     # that end up in any of the above SHARED_LIB_STAGING_DIR_MUMBLE
     # directories.

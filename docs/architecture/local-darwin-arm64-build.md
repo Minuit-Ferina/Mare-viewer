@@ -81,9 +81,71 @@ ls -l \
 - FSR2 is disabled on Darwin because macOS OpenGL does not expose the required
   compute API.
 
+## Makefile Build Tree Check
+
+This is a separate validation path from the local arm64 Xcode shortcut above.
+It verifies the single-config Unix Makefiles path used during phase 2 build
+system work.
+
+Build tree:
+
+```text
+/private/tmp/Mare-viewer-phase1-gl-containment-make2
+```
+
+Configure command used for the successful check:
+
+```sh
+/opt/homebrew/bin/cmake \
+  -S /Users/vitoldkapshitzer/Documents/dev/Mare-viewer/indra \
+  -B /private/tmp/Mare-viewer-phase1-gl-containment-make2 \
+  -DGCC_WARNINGS:STRING="-Wno-error=misleading-indentation;-Wno-error=deprecated-enum-enum-conversion;-Wno-error=implicit-const-int-float-conversion"
+```
+
+Build command used for the successful check:
+
+```sh
+/opt/homebrew/bin/cmake -E env \
+  CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase1-gl-containment-make2/clang-module-cache \
+  PYTHONPATH=/private/tmp/Mare-viewer-v1.2.3.1-worktree/.venv/lib/python3.14/site-packages \
+  /opt/homebrew/bin/cmake \
+    --build /private/tmp/Mare-viewer-phase1-gl-containment-make2 \
+    --target mare-viewer \
+    -- -j8
+```
+
+Expected result:
+
+```text
+[100%] Built target mare-viewer
+```
+
+Observed result on 2026-05-21:
+
+- `stage_third_party_libs` copied Darwin dylibs to
+  `/private/tmp/Mare-viewer-phase1-gl-containment-make2/sharedlibs/Release/Resources`.
+- `viewer_manifest.py` found `libllwebrtc.dylib` in that same Release staging
+  directory.
+- The app executable exists at
+  `/private/tmp/Mare-viewer-phase1-gl-containment-make2/newview/Mare Viewer.app/Contents/MacOS/Mare Viewer`.
+- The app executable is universal: `x86_64 arm64`.
+- `libopenal.dylib`, `libalut.dylib`, and `libllwebrtc.dylib` are present in
+  `Mare Viewer.app/Contents/Frameworks`.
+
+Local environment notes:
+
+- `CLANG_MODULE_CACHE_PATH` is set under `/private/tmp` so Objective-C++ module
+  compilation does not write to `~/.cache/clang` during sandboxed validation.
+- `PYTHONPATH` points at an existing temporary venv only to provide the Python
+  `llsd` module required by `viewer_manifest.py`.
+- The warning flags are local build compatibility flags for this Clang version;
+  they do not change source behavior.
+- This Makefile check is universal and does not replace the local arm64-only
+  Xcode shortcut above.
+
 ## Not Covered
 
-- Universal macOS builds.
+- Release-quality universal macOS builds.
 - Release packaging.
 - Code signing.
 - Notarization.
