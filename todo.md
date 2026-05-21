@@ -331,10 +331,12 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Defer runtime smoke for the remaining vertex buffer containment packet
       because only local wrapper helper bodies moved behind containment.
 - [x] Add `docs/architecture/65-llvertexbuffer-phase3-completion-summary.md`.
+- [x] Add `docs/architecture/66-llimagegl-local-wrapper-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a next-owner selection note before editing another render owner.
+- [ ] Route local `LLImageGL` wrapper helper call families through
+      `llglcontainment.*` without moving owner state.
 
 ## Phase 1 Inventory
 
