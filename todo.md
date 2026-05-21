@@ -173,10 +173,12 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the sync helper extraction with `llrender/fast`.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       completed `LLImageGL` phase 2 packet.
+- [x] Add `docs/architecture/31-llimagegl-phase2-review-summary.md`.
+- [x] Summarize the `LLImageGL` phase 2 packet for review.
 
 ## Immediate Next Steps
 
-- [ ] Summarize the `LLImageGL` phase 2 packet for review.
+- [ ] Map `LLImageGL` full upload, mipmap, and texture-parameter call families.
 
 ## Phase 1 Inventory
 
