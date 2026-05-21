@@ -326,11 +326,15 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the remaining vertex
       buffer source packet.
+- [x] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 remaining vertex buffer containment packet.
+- [x] Defer runtime smoke for the remaining vertex buffer containment packet
+      because only local wrapper helper bodies moved behind containment.
 
 ## Immediate Next Steps
 
-- [ ] Run a local incremental Xcode arm64 Release integration build for the
-      phase 3 remaining vertex buffer containment packet.
+- [ ] Add a full `LLVertexBuffer` phase 3 containment completion summary
+      before choosing another owner.
 
 ## Phase 1 Inventory
 

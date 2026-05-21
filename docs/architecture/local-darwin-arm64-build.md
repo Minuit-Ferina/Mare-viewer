@@ -1034,6 +1034,66 @@ Reason: this packet only moved raw buffer object name generation/deletion
 behind `llglcontainment.*`, while preserving call order and `LLVertexBuffer`
 owner state.
 
+## Phase 3 Remaining Vertex Buffer Integration Check
+
+Observed on 2026-05-21:
+
+- Branch: `phase3`.
+- Commit: `4120aac6c9 llrender: contain remaining vertex buffer calls`.
+- Worktree: `/private/tmp/Mare-viewer-phase2-xcode-worktree`.
+- Build tree:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv`.
+- Xcode project:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj`.
+- Output app:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/newview/Release/Mare Viewer.app`.
+
+The temporary Xcode worktree was moved from the vertex buffer name containment
+checkpoint to commit `4120aac6c9`, preserving `DerivedData` and the existing
+build tree.
+
+Incremental build command:
+
+```sh
+HOME=/private/tmp/Mare-viewer-phase2-xcode-worktree/home \
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-xcode-worktree/clang-module-cache \
+xcodebuild -quiet \
+  -project /private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj \
+  -scheme mare-viewer \
+  -configuration Release \
+  -destination platform=macOS,arch=arm64 \
+  -derivedDataPath /private/tmp/Mare-viewer-phase2-xcode-worktree/DerivedData \
+  build
+```
+
+Observed result:
+
+- `xcodebuild -quiet` exited with code 0
+
+No `clean` build was run.
+
+The built viewer executable was verified as arm64:
+
+```text
+Non-fat file: .../Mare Viewer.app/Contents/MacOS/Mare Viewer is architecture: arm64
+```
+
+The app bundle contained these runtime dylibs under `Contents/Frameworks`:
+
+- `libopenal.dylib`
+- `libalut.dylib`
+- `libllwebrtc.dylib`
+- `libndofdev.dylib`
+
+Non-fatal local Xcode warnings observed:
+
+- CoreSimulator services were unavailable during the macOS build.
+- Xcode could not query `DARWIN_USER_CACHE_DIR` and used an alternate cache
+  directory.
+- `xcodebuild -quiet` did not print per-target rebuild lines.
+
+Runtime smoke is deferred for now for this wrapper-only packet family.
+
 ## Makefile Build Tree Check
 
 This is a separate validation path from the local arm64 Xcode shortcut above.
