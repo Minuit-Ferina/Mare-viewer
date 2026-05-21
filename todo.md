@@ -536,7 +536,10 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLRender`
       blend/color source packet.
-- [ ] Add `docs/architecture/103-llrender-blend-color-summary.md`.
+- [x] Add `docs/architecture/103-llrender-blend-color-summary.md`.
+- [ ] Decide separately whether to handle `LLRender` global init containment.
+- [ ] Decide separately whether to handle `LLTexUnit` binding/activation
+      containment.
 
 ## Phase 1 Inventory
 
