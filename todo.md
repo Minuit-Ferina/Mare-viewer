@@ -275,11 +275,15 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       phase 3 clear/scissor containment packet.
 - [x] Add `docs/architecture/53-phase3-clear-summary.md`.
+- [x] Record that the Xcode-built app still reaches the login page after the
+      phase 3 clear/scissor packet.
+- [x] Defer viewport containment until a loaded-scene and resize smoke test is
+      available.
 
 ## Immediate Next Steps
 
-- [ ] Run a loaded-scene smoke test with the Xcode-built app after the phase 3
-      clear/scissor packet before touching viewport.
+- [ ] Add a task-specific containment note for `LLRenderTarget` texture
+      allocation error checking before source edits.
 
 ## Phase 1 Inventory
 
