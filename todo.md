@@ -289,11 +289,12 @@ without an explicit task, and do not start a direct Vulkan port.
       source packet.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       phase 3 allocation error containment packet.
+- [x] Add `docs/architecture/56-phase3-allocation-error-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a concise summary for the phase 3 allocation error containment
-      packet.
+- [ ] Wait for a loaded-scene and resize smoke test before touching
+      `LLRenderTarget` viewport containment.
 
 ## Phase 1 Inventory
 
