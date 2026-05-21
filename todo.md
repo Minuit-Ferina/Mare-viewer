@@ -430,11 +430,16 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Decide `LLCubeMap` as the next small phase 3 owner after `LLImageGL`
       active direct OpenGL containment.
 - [x] Add `docs/architecture/81-llcubemap-containment-task.md`.
+- [x] Route only active `LLCubeMap` seamless cubemap and mipmap raw calls
+      through `llglcontainment.*`.
+- [x] Verify the `LLCubeMap` containment packet with `llrender/fast`.
+- [x] Regenerate the generated source inventory after the `LLCubeMap` source
+      packet.
 
 ## Immediate Next Steps
 
-- [ ] Route only active `LLCubeMap` seamless cubemap and mipmap raw calls
-      through `llglcontainment.*`.
+- [ ] Add a focused task for `LLCubeMapArray` readback, sub-image, and storage
+      containment before source changes.
 
 ## Phase 1 Inventory
 

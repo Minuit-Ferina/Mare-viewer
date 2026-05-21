@@ -132,6 +132,7 @@ void generateTextureMipmap(LLGLenum texture_target);
 void clearBuffers(U32 mask);
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);
 LLGLenum getError();
+void enableCapability(LLGLenum capability);
 void setViewport(LLGLint x, LLGLint y, LLGLint width, LLGLint height);
 }
 

@@ -346,6 +346,11 @@ LLGLenum getError()
     return glGetError();
 }
 
+void enableCapability(LLGLenum capability)
+{
+    glEnable(capability);
+}
+
 void setViewport(LLGLint x, LLGLint y, LLGLint width, LLGLint height)
 {
     glViewport(x, y, width, height);
