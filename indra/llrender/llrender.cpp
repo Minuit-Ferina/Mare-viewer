@@ -624,7 +624,7 @@ void LLTexUnit::debugTextureUnit(void)
     if (mIndex < 0) return;
 
     GLint activeTexture;
-    glGetIntegerv(GL_ACTIVE_TEXTURE, &activeTexture);
+    LLGLContainment::getInteger(GL_ACTIVE_TEXTURE, &activeTexture);
     if ((GL_TEXTURE0 + mIndex) != activeTexture)
     {
         U32 set_unit = (activeTexture - GL_TEXTURE0);

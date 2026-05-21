@@ -493,8 +493,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/93-llrender-line-width-range-summary.md`.
 - [x] Add a focused task for `LLTexUnit::debugTextureUnit()` active texture
       query containment before source edits.
-- [ ] Route only `LLTexUnit::debugTextureUnit()` active texture query through
+- [x] Route only `LLTexUnit::debugTextureUnit()` active texture query through
       `llglcontainment.*`.
+- [x] Verify the `LLTexUnit::debugTextureUnit()` containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the
+      `LLTexUnit::debugTextureUnit()` source packet.
+- [ ] Add `docs/architecture/95-lltexunit-debug-query-summary.md`.
 
 ## Phase 1 Inventory
 
