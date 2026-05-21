@@ -959,8 +959,12 @@ The existing manifest architecture mismatch remains present:
 viewer_manifest.py --actions=copy --arch=x86_64 ...
 ```
 
-Runtime login, loaded-scene, and resize smoke still need to be run on this
-exact viewport packet build.
+Runtime smoke observed by the user after the viewport build:
+
+- login page works
+- a scene loads successfully
+- window resize works correctly
+- no regression was observed
 
 ## Makefile Build Tree Check
 

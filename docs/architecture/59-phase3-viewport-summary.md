@@ -67,13 +67,12 @@ Completed checks:
   - `libalut.dylib`
   - `libllwebrtc.dylib`
   - `libndofdev.dylib`
-
-Runtime login, loaded-scene, and resize smoke still need to be run on this
-exact viewport packet build.
+- runtime login, loaded-scene, and resize smoke: passed
 
 ## Review Result
 
-No blocking issue found in this packet from source and build checks.
+No blocking issue found in this packet from source, build, and runtime smoke
+checks.
 
 The change remains within the phase 3 boundary:
 
@@ -96,20 +95,18 @@ After this packet:
 
 ## Remaining Risk
 
-Risk level: medium until runtime smoke is repeated.
+Risk level: low to medium.
 
 Reasons:
 
 - viewport affects visible 2D and 3D framing
 - default framebuffer restore depends on `gGLViewport`
-- runtime verification has not yet been repeated after this exact source
-  packet
+- runtime verification covered login, scene load, and resize, but not a broad
+  graphics regression pass
 
 ## Stop Point
 
-Before declaring the `LLRenderTarget` phase 3 containment packet complete, run
-the Xcode-built app and verify:
+The `LLRenderTarget` viewport packet is complete for phase 3 smoke scope.
 
-- login page
-- loaded scene
-- window resize
+The next step is to summarize the full `LLRenderTarget` phase 3 containment
+work before choosing another owner.

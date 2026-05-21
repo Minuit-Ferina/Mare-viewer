@@ -301,11 +301,14 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       phase 3 viewport containment packet.
 - [x] Add `docs/architecture/59-phase3-viewport-summary.md`.
+- [x] Run login, loaded-scene, and resize smoke with the Xcode-built app after
+      the phase 3 viewport containment packet.
+- [x] Add `docs/architecture/60-phase3-viewport-runtime-smoke.md`.
 
 ## Immediate Next Steps
 
-- [ ] Run login, loaded-scene, and resize smoke with the Xcode-built app after
-      the phase 3 viewport containment packet.
+- [ ] Add a full `LLRenderTarget` phase 3 containment completion summary
+      before choosing another owner.
 
 ## Phase 1 Inventory
 
