@@ -242,11 +242,12 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/44-phase3-buffer-routing-summary.md`.
 - [x] Load a scene successfully with the Xcode-built app after the phase 3
       buffer routing packet.
+- [x] Add `docs/architecture/45-phase3-rendertarget-review-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Review all phase 3 `LLRenderTarget` packets together before choosing
-      another OpenGL family.
+- [ ] Add a task-specific containment note for `LLRenderTarget` FBO name
+      lifetime before source edits.
 
 ## Phase 1 Inventory
 
