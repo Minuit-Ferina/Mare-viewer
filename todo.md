@@ -384,12 +384,13 @@ without an explicit task, and do not start a direct Vulkan port.
       allocation source packet.
 - [x] Defer Xcode and runtime smoke for the manual image allocation packet
       because allocation order and memory accounting did not change.
+- [x] Add
+      `docs/architecture/75-llimagegl-manual-image-allocation-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a completion summary for the `LLImageGL::setManualImage(...)`
-      allocation containment packet and identify the remaining `scaleDown(...)`
-      stop point.
+- [ ] Add a focused `LLImageGL::scaleDown(...)` containment contract before
+      any source changes.
 
 ## Phase 1 Inventory
 
