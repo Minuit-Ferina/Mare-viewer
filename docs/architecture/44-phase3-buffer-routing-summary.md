@@ -98,6 +98,13 @@ Integration build:
 - `libopenal.dylib`, `libalut.dylib`, `libllwebrtc.dylib`, and
   `libndofdev.dylib` verified in the app bundle
 
+Runtime smoke:
+
+- Xcode-built app launched to the login screen successfully
+- a scene loaded successfully
+- no immediate launch, `dyld`, or loaded-scene failure was reported
+- formal FPS baseline recapture and broad graphics regression were not covered
+
 ## Review Result
 
 No blocking issue found in the source diff.
@@ -117,10 +124,10 @@ Review points checked:
 
 Risk level: medium.
 
-The remaining risk is runtime coverage beyond login. Buffer routing can affect
-whether output goes to the expected color attachment or default framebuffer, so
-a loaded-scene smoke test is still useful before widening phase 3 beyond
-`LLRenderTarget`.
+The remaining risk is focused runtime coverage. The loaded-scene smoke check
+reduces the risk that routing broke normal scene rendering, but dynamic
+textures, reflection probes, preview widgets, and a formal graphics regression
+pass are still not covered.
 
 ## Stop Point
 
@@ -128,5 +135,5 @@ Stop here before moving another OpenGL family into `llglcontainment.*`.
 
 Recommended next step:
 
-- run a loaded-scene smoke test, or review all phase 3 `LLRenderTarget`
-  packets together before choosing another family
+- review all phase 3 `LLRenderTarget` packets together before choosing another
+  family
