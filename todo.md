@@ -558,8 +558,9 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLTexUnit`
       binding/activation source packet.
 - [x] Add `docs/architecture/107-lltexunit-binding-summary.md`.
-- [ ] Decide whether the remaining Windows debug callback calls in
+- [x] Decide whether the remaining Windows debug callback calls in
       `LLRender::init(...)` should be left direct or handled separately.
+- [x] Add `docs/architecture/108-llrender-windows-debug-callback-decision.md`.
 
 ## Phase 1 Inventory
 
