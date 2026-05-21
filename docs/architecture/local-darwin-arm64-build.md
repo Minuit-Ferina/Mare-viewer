@@ -520,6 +520,19 @@ The existing manifest architecture mismatch remains present:
 viewer_manifest.py --actions=copy --arch=x86_64 ...
 ```
 
+Runtime smoke observed by the user after the build:
+
+- launched the Xcode-built app
+- reached the login screen successfully
+- no immediate launch or `dyld` failure was reported
+
+Not covered by this smoke check:
+
+- login to a region
+- window resize
+- loaded-scene rendering
+- dynamic textures, reflection probes, or preview widgets
+
 ## Makefile Build Tree Check
 
 This is a separate validation path from the local arm64 Xcode shortcut above.

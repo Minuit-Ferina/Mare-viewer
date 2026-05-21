@@ -98,6 +98,12 @@ Integration build:
 - `libopenal.dylib`, `libalut.dylib`, `libllwebrtc.dylib`, and
   `libndofdev.dylib` verified in the app bundle
 
+Runtime smoke:
+
+- Xcode-built app launched to the login screen successfully
+- no immediate launch or `dyld` failure was reported
+- loaded-scene rendering was not covered by this check
+
 ## Review Result
 
 No blocking issue found in the source diff.
@@ -117,9 +123,9 @@ Review points checked:
 
 Risk level: medium.
 
-The remaining risk is runtime coverage. Attachment behavior affects FBO
-completeness and render target consumers, so a manual viewer smoke test is
-still useful before widening phase 3 beyond `LLRenderTarget`.
+The remaining risk is runtime coverage beyond login. Attachment behavior
+affects FBO completeness and render target consumers, so a loaded-scene smoke
+test is still useful before widening phase 3 beyond `LLRenderTarget`.
 
 Watch these areas in runtime testing:
 

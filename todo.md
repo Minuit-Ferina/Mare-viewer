@@ -228,10 +228,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       phase 3 FBO attachment containment packet.
 - [x] Add `docs/architecture/41-phase3-attachment-containment-summary.md`.
+- [x] Launch the Xcode-built app to the login screen for a runtime smoke test.
 
 ## Immediate Next Steps
 
-- [ ] Optionally launch the Xcode-built app for a runtime smoke test.
+- [ ] Optionally run a loaded-scene smoke test with the Xcode-built app.
 - [ ] Review both phase 3 `LLRenderTarget` packets together before choosing
       another OpenGL family.
 
