@@ -300,6 +300,7 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       phase 3 viewport containment packet.
+- [x] Add `docs/architecture/59-phase3-viewport-summary.md`.
 
 ## Immediate Next Steps
 
