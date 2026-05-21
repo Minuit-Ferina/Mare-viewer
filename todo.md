@@ -162,11 +162,14 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract local `LLImageGL` readback/copy helper names without changing the
       public API.
 - [x] Verify the readback/copy helper extraction with `llrender/fast`.
+- [x] Add `docs/architecture/30-llimagegl-pbo-sync-contract.md`.
+- [x] Map `LLImageGL` scratch PBO and sync helper ownership before source
+      cleanup.
 
 ## Immediate Next Steps
 
-- [ ] Map `LLImageGL` scratch PBO and sync helper ownership before source
-      cleanup.
+- [ ] Extract the smallest local `LLImageGL` scratch PBO helper names without
+      changing the public API.
 - [ ] Use the local Xcode arm64 Release path as an incremental integration
       checkpoint before important source-side milestones.
 
