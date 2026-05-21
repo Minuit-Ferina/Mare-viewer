@@ -15,10 +15,9 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
-- Phase 2 is closed for review on branch `phase2`.
-- Until a phase 3 branch and plan exist, keep the phase 2 guardrails.
-- Next goal: review the phase 2 stack on top of `phase1-gl-containment`, then
-  choose one precise phase 3 containment task before adding source behavior.
+- Phase 3 is active on branch `phase3`.
+- Goal: add only one narrowly justified `llglcontainment.*` behavior at a time.
+- Start from existing phase 2 owner contracts; do not create broad wrappers.
 
 Areas allowed at the beginning:
 - docs/architecture/
@@ -35,6 +34,9 @@ Areas to avoid at the beginning:
 Exception:
 - `indra/llrender/llglcontainment.*` may be touched only for a precise,
   documented containment task. It must not become a broad OpenGL wrapper.
+- One existing owner file under `indra/llrender/` may be touched with it only
+  when the task names the exact callsite family, owner state, ordering, and
+  verification plan.
 
 OpenGL rules:
 - No new code should call OpenGL directly.

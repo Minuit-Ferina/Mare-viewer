@@ -3,10 +3,10 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 2 is closed for review on branch `phase2`. Until a phase 3
-branch and plan exist, keep the phase 2 guardrails: do not move source files,
-do not change runtime behavior without an explicit task, and do not start a
-direct Vulkan port.
+Current rule: phase 3 is active on branch `phase3`. Add only one narrowly
+justified `llglcontainment.*` behavior at a time, starting from existing phase
+2 owner contracts. Do not move source files, do not change runtime behavior
+without an explicit task, and do not start a direct Vulkan port.
 
 ## Done
 
@@ -206,12 +206,15 @@ direct Vulkan port.
 - [x] Add `docs/architecture/35-phase2-review-summary.md`.
 - [x] Close phase 2 as a reviewable stacked branch on top of
       `phase1-gl-containment`.
+- [x] Create branch `phase3` from `phase2`.
+- [x] Add `docs/architecture/36-phase3-plan.md`.
 
 ## Immediate Next Steps
 
-- [ ] Review the `phase2` branch as a stack on `phase1-gl-containment`.
-- [ ] Create a separate phase 3 branch from `phase2` before adding any
-      behavior to `llglcontainment.*`.
+- [ ] Add a task-specific containment note for `LLRenderTarget` framebuffer
+      binding/status behavior before source edits.
+- [ ] Keep the first phase 3 source packet limited to `llglcontainment.*` and
+      one owner file if the containment note supports it.
 
 ## Phase 1 Inventory
 
