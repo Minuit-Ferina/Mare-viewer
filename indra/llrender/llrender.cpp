@@ -139,15 +139,15 @@ void LLTexUnit::refreshState(void)
 
     gGL.flush();
 
-    glActiveTexture(GL_TEXTURE0 + mIndex);
+    LLGLContainment::setActiveTexture(GL_TEXTURE0 + mIndex);
 
     if (mCurrTexType != TT_NONE)
     {
-        glBindTexture(sGLTextureType[mCurrTexType], mCurrTexture);
+        LLGLContainment::bindTexture(sGLTextureType[mCurrTexType], mCurrTexture);
     }
     else
     {
-        glBindTexture(GL_TEXTURE_2D, 0);
+        LLGLContainment::bindTexture(GL_TEXTURE_2D, 0);
     }
 }
 
@@ -158,7 +158,7 @@ void LLTexUnit::activate(void)
     if ((S32)gGL.mCurrTextureUnitIndex != mIndex || gGL.mDirty)
     {
         gGL.flush();
-        glActiveTexture(GL_TEXTURE0 + mIndex);
+        LLGLContainment::setActiveTexture(GL_TEXTURE0 + mIndex);
         gGL.mCurrTextureUnitIndex = mIndex;
     }
 }
@@ -195,7 +195,7 @@ void LLTexUnit::bindFast(LLTexture* texture)
 {
     LLImageGL* gl_tex = texture->getGLTexture();
     texture->setActive();
-    glActiveTexture(GL_TEXTURE0 + mIndex);
+    LLGLContainment::setActiveTexture(GL_TEXTURE0 + mIndex);
     gGL.mCurrTextureUnitIndex = mIndex;
     mCurrTexture = gl_tex->getTexName();
     if (!mCurrTexture)
@@ -206,7 +206,7 @@ void LLTexUnit::bindFast(LLTexture* texture)
         gl_tex->forceUpdateBindStats();
         texture->bindDefaultImage(mIndex);
     }
-    glBindTexture(sGLTextureType[gl_tex->getTarget()], mCurrTexture);
+    LLGLContainment::bindTexture(sGLTextureType[gl_tex->getTarget()], mCurrTexture);
     mHasMipMaps = gl_tex->mHasMipMaps;
     if (gl_tex->mTexOptionsDirty)
     {
@@ -236,7 +236,7 @@ bool LLTexUnit::bind(LLTexture* texture, bool for_rendering, bool forceBind)
                     activate();
                     enable(gl_tex->getTarget());
                     mCurrTexture = gl_tex->getTexName();
-                    glBindTexture(sGLTextureType[gl_tex->getTarget()], mCurrTexture);
+                    LLGLContainment::bindTexture(sGLTextureType[gl_tex->getTarget()], mCurrTexture);
                     if(gl_tex->updateBindStats())
                     {
                         texture->setActive() ;
@@ -313,7 +313,7 @@ bool LLTexUnit::bind(LLImageGL* texture, bool for_rendering, bool forceBind, S32
         enable(texture->getTarget());
         stop_glerror();
         mCurrTexture = texname;
-        glBindTexture(sGLTextureType[texture->getTarget()], mCurrTexture);
+        LLGLContainment::bindTexture(sGLTextureType[texture->getTarget()], mCurrTexture);
         stop_glerror();
         texture->updateBindStats();
         mHasMipMaps = texture->mHasMipMaps;
@@ -351,7 +351,7 @@ bool LLTexUnit::bind(LLCubeMap* cubeMap)
             activate();
             enable(LLTexUnit::TT_CUBE_MAP);
             mCurrTexture = cubeMap->mImages[0]->getTexName();
-            glBindTexture(GL_TEXTURE_CUBE_MAP, mCurrTexture);
+            LLGLContainment::bindTexture(GL_TEXTURE_CUBE_MAP, mCurrTexture);
             mHasMipMaps = cubeMap->mImages[0]->mHasMipMaps;
             cubeMap->mImages[0]->updateBindStats();
             if (cubeMap->mImages[0]->mTexOptionsDirty)
@@ -406,7 +406,7 @@ bool LLTexUnit::bindManual(eTextureType type, U32 texture, bool hasMips)
         activate();
         enable(type);
         mCurrTexture = texture;
-        glBindTexture(sGLTextureType[type], texture);
+        LLGLContainment::bindTexture(sGLTextureType[type], texture);
         mHasMipMaps = hasMips;
     }
     return true;
@@ -430,11 +430,11 @@ void LLTexUnit::unbind(eTextureType type)
 
         if (type == LLTexUnit::TT_TEXTURE)
         {
-            glBindTexture(sGLTextureType[type], sWhiteTexture);
+            LLGLContainment::bindTexture(sGLTextureType[type], sWhiteTexture);
         }
         else
         {
-            glBindTexture(sGLTextureType[type], 0);
+            LLGLContainment::bindTexture(sGLTextureType[type], 0);
         }
         stop_glerror();
     }
@@ -451,11 +451,11 @@ void LLTexUnit::unbindFast(eTextureType type)
 
         if (type == LLTexUnit::TT_TEXTURE)
         {
-            glBindTexture(sGLTextureType[type], sWhiteTexture);
+            LLGLContainment::bindTexture(sGLTextureType[type], sWhiteTexture);
         }
         else
         {
-            glBindTexture(sGLTextureType[type], 0);
+            LLGLContainment::bindTexture(sGLTextureType[type], 0);
         }
     }
 }

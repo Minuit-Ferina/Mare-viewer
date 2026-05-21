@@ -86,6 +86,16 @@ void deleteTextures(S32 count, const LLGLuint* textures)
     glDeleteTextures(static_cast<GLsizei>(count), textures);
 }
 
+void setActiveTexture(LLGLenum texture)
+{
+    glActiveTexture(texture);
+}
+
+void bindTexture(LLGLenum target, LLGLuint texture)
+{
+    glBindTexture(target, texture);
+}
+
 void generateBufferObjects(S32 count, LLGLuint* buffers)
 {
     glGenBuffers(static_cast<GLsizei>(count), buffers);

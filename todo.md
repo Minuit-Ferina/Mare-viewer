@@ -551,8 +551,13 @@ without an explicit task, and do not start a direct Vulkan port.
       containment.
 - [x] Add a focused task for `LLTexUnit` binding/activation containment before
       source edits.
-- [ ] Route only `LLTexUnit` active texture and texture bind raw calls through
+- [x] Route only `LLTexUnit` active texture and texture bind raw calls through
       `llglcontainment.*`.
+- [x] Verify the `LLTexUnit` binding/activation containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the `LLTexUnit`
+      binding/activation source packet.
+- [ ] Add `docs/architecture/107-lltexunit-binding-summary.md`.
 
 ## Phase 1 Inventory
 

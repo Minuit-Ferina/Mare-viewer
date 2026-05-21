@@ -43,6 +43,8 @@ void generateFramebuffers(S32 count, LLGLuint* framebuffers);
 void deleteFramebuffers(S32 count, const LLGLuint* framebuffers);
 void generateTextures(S32 count, LLGLuint* textures);
 void deleteTextures(S32 count, const LLGLuint* textures);
+void setActiveTexture(LLGLenum texture);
+void bindTexture(LLGLenum target, LLGLuint texture);
 void generateBufferObjects(S32 count, LLGLuint* buffers);
 void deleteBufferObjects(S32 count, const LLGLuint* buffers);
 void bindBufferObject(LLGLenum target, LLGLuint buffer);
