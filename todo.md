@@ -318,11 +318,13 @@ without an explicit task, and do not start a direct Vulkan port.
       phase 3 vertex buffer name containment packet.
 - [x] Defer runtime smoke for the phase 3 vertex buffer name containment packet
       because only raw buffer object name calls moved behind containment.
+- [x] Add
+      `docs/architecture/64-llvertexbuffer-remaining-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a next-choice note for the next small `LLVertexBuffer` phase 3
-      containment packet before editing more source.
+- [ ] Route remaining local `LLVertexBuffer` wrapper call families through
+      `llglcontainment.*` without moving owner state.
 
 ## Phase 1 Inventory
 
