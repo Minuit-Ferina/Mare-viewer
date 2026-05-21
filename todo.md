@@ -119,6 +119,11 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract internal `LLRenderTarget` FBO lifetime helpers without changing
       the public API.
 - [x] Verify the FBO lifetime helper extraction with `llrender/fast`.
+- [x] Add `docs/architecture/20-llrendertarget-mipmap-contract.md`.
+- [x] Document `LLRenderTarget` mipmap generation intent.
+- [x] Extract internal `LLRenderTarget` mipmap helper without changing the
+      public API.
+- [x] Verify the mipmap helper extraction with `llrender/fast`.
 
 ## Immediate Next Steps
 

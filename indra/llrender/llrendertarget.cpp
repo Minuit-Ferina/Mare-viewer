@@ -147,6 +147,11 @@ void restore_default_framebuffer_buffer_routing()
     glReadBuffer(GL_BACK);
     glDrawBuffer(GL_BACK);
 }
+
+void generate_bound_render_target_mipmaps()
+{
+    glGenerateMipmap(GL_TEXTURE_2D);
+}
 }
 
 LLRenderTarget::LLRenderTarget() :
@@ -576,7 +581,7 @@ void LLRenderTarget::flush()
     {
         LL_PROFILE_GPU_ZONE("rt generate mipmaps");
         bindTexture(0, 0, LLTexUnit::TFO_TRILINEAR);
-        glGenerateMipmap(GL_TEXTURE_2D);
+        generate_bound_render_target_mipmaps();
     }
 
     if (mPreviousRT)
