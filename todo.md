@@ -427,11 +427,14 @@ without an explicit task, and do not start a direct Vulkan port.
       dylibs after the `scaleDown(...)` packet.
 - [x] Run login, scene load, and resize smoke with the Xcode-built app after
       the `LLImageGL::scaleDown(...)` containment packet.
+- [x] Decide `LLCubeMap` as the next small phase 3 owner after `LLImageGL`
+      active direct OpenGL containment.
+- [x] Add `docs/architecture/81-llcubemap-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Decide the next phase 3 owner after `LLImageGL` active direct OpenGL
-      containment is complete.
+- [ ] Route only active `LLCubeMap` seamless cubemap and mipmap raw calls
+      through `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
