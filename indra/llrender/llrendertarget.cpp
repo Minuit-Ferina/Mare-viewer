@@ -162,6 +162,11 @@ void set_render_target_scissor(U32 width, U32 height)
 {
     glScissor(0, 0, width, height);
 }
+
+bool render_target_texture_allocation_failed()
+{
+    return glGetError() != GL_NO_ERROR;
+}
 }
 
 LLRenderTarget::LLRenderTarget() :
@@ -336,7 +341,7 @@ bool LLRenderTarget::addColorAttachment(U32 color_fmt)
     {
         clear_glerror();
         LLImageGL::setManualImage(LLTexUnit::getInternalType(mUsage), 0, color_fmt, mResX, mResY, GL_RGBA, GL_UNSIGNED_BYTE, NULL, false);
-        if (glGetError() != GL_NO_ERROR)
+        if (render_target_texture_allocation_failed())
         {
             LL_WARNS() << "Could not allocate color buffer for render target." << LL_ENDL;
             return false;
@@ -408,7 +413,7 @@ bool LLRenderTarget::allocateDepth()
 
     sBytesAllocated += mResX*mResY*4;
 
-    if (glGetError() != GL_NO_ERROR)
+    if (render_target_texture_allocation_failed())
     {
         LL_WARNS() << "Unable to allocate depth buffer for render target." << LL_ENDL;
         return false;

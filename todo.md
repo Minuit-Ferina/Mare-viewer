@@ -134,6 +134,12 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Rename the internal `LLRenderTarget` framebuffer status helper without
       changing the public API.
 - [x] Verify the framebuffer status helper rename with `llrender/fast`.
+- [x] Add `docs/architecture/23-llrendertarget-texture-allocation-error-contract.md`.
+- [x] Document `LLRenderTarget` texture allocation error intent.
+- [x] Extract internal `LLRenderTarget` texture allocation error helper without
+      changing the public API.
+- [x] Verify the texture allocation error helper extraction with
+      `llrender/fast`.
 
 ## Immediate Next Steps
 
