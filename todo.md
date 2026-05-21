@@ -444,11 +444,14 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLCubeMapArray`
       source packet.
 - [x] Add `docs/architecture/83-cubemap-containment-summary.md`.
+- [x] Add a focused task for `LLRender2DUtils` line width containment before
+      source changes.
+- [x] Add `docs/architecture/84-llrender2d-line-width-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a focused task for `LLRender2DUtils` line width containment before
-      source changes.
+- [ ] Route only active `LLRender2DUtils` line-width raw calls through
+      `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
