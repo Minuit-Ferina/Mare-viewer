@@ -390,11 +390,15 @@ without an explicit task, and do not start a direct Vulkan port.
       any source changes.
 - [x] Add
       `docs/architecture/76-llimagegl-scaledown-containment-contract.md`.
+- [x] Decide to start a separate `scaleDown(...)` packet with split source
+      changes and deferred Xcode/runtime validation at the end of the block.
+- [x] Add
+      `docs/architecture/77-llimagegl-scaledown-fbo-draw-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Decide whether to stop phase 3 for review or start a separate
-      `scaleDown(...)` packet with Xcode/runtime validation.
+- [ ] Route only FBO-path `LLImageGL::scaleDown(...)` viewport and draw raw
+      calls through `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
