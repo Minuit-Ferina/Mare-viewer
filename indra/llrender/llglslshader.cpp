@@ -2011,7 +2011,7 @@ void LLGLSLShader::vertexAttrib4f(U32 index, GLfloat x, GLfloat y, GLfloat z, GL
 {
     if (mAttribute[index] > 0)
     {
-        glVertexAttrib4f(mAttribute[index], x, y, z, w);
+        LLGLContainment::setVertexAttribute4(mAttribute[index], x, y, z, w);
     }
 }
 
@@ -2019,7 +2019,7 @@ void LLGLSLShader::vertexAttrib4fv(U32 index, GLfloat* v)
 {
     if (mAttribute[index] > 0)
     {
-        glVertexAttrib4fv(mAttribute[index], v);
+        LLGLContainment::setVertexAttributeVector4(mAttribute[index], v);
     }
 }
 

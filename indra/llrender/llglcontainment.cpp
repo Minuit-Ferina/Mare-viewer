@@ -190,6 +190,21 @@ void setIntegerVertexAttributePointer(
         pointer);
 }
 
+void setVertexAttribute4(
+    LLGLuint location,
+    LLGLfloat first,
+    LLGLfloat second,
+    LLGLfloat third,
+    LLGLfloat fourth)
+{
+    glVertexAttrib4f(location, first, second, third, fourth);
+}
+
+void setVertexAttributeVector4(LLGLuint location, const LLGLfloat* values)
+{
+    glVertexAttrib4fv(location, values);
+}
+
 void drawVertexBufferRange(
     LLGLenum mode,
     LLGLuint start,

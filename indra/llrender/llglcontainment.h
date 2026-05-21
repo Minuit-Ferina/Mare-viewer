@@ -70,6 +70,13 @@ void setIntegerVertexAttributePointer(
     LLGLenum type,
     S32 stride,
     const void* pointer);
+void setVertexAttribute4(
+    LLGLuint location,
+    LLGLfloat first,
+    LLGLfloat second,
+    LLGLfloat third,
+    LLGLfloat fourth);
+void setVertexAttributeVector4(LLGLuint location, const LLGLfloat* values);
 void drawVertexBufferRange(
     LLGLenum mode,
     LLGLuint start,
