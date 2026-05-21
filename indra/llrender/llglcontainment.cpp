@@ -50,4 +50,19 @@ void setReadWriteFramebufferTexture2D(
 {
     glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, texture_target, texture_name, mip_level);
 }
+
+void setDrawBuffer(LLGLenum buffer)
+{
+    glDrawBuffer(buffer);
+}
+
+void setReadBuffer(LLGLenum buffer)
+{
+    glReadBuffer(buffer);
+}
+
+void setDrawBuffers(S32 count, const LLGLenum* buffers)
+{
+    glDrawBuffers(static_cast<GLsizei>(count), buffers);
+}
 }

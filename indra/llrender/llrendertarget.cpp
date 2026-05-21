@@ -130,27 +130,27 @@ void forget_current_fbo_and_bind_default()
 
 void set_render_target_buffer_routing(U32 color_attachment_count)
 {
-    GLenum drawbuffers[] = {GL_COLOR_ATTACHMENT0,
-                            GL_COLOR_ATTACHMENT1,
-                            GL_COLOR_ATTACHMENT2,
-                            GL_COLOR_ATTACHMENT3};
+    LLGLenum drawbuffers[] = {GL_COLOR_ATTACHMENT0,
+                              GL_COLOR_ATTACHMENT1,
+                              GL_COLOR_ATTACHMENT2,
+                              GL_COLOR_ATTACHMENT3};
 
     if (color_attachment_count == 0)
     {
-        glDrawBuffer(GL_NONE);
-        glReadBuffer(GL_NONE);
+        LLGLContainment::setDrawBuffer(GL_NONE);
+        LLGLContainment::setReadBuffer(GL_NONE);
     }
     else
     {
-        glDrawBuffers(static_cast<GLsizei>(color_attachment_count), drawbuffers);
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        LLGLContainment::setDrawBuffers(static_cast<S32>(color_attachment_count), drawbuffers);
+        LLGLContainment::setReadBuffer(GL_COLOR_ATTACHMENT0);
     }
 }
 
 void restore_default_framebuffer_buffer_routing()
 {
-    glReadBuffer(GL_BACK);
-    glDrawBuffer(GL_BACK);
+    LLGLContainment::setReadBuffer(GL_BACK);
+    LLGLContainment::setDrawBuffer(GL_BACK);
 }
 
 void generate_bound_render_target_mipmaps()

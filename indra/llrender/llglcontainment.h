@@ -36,6 +36,9 @@ void setReadWriteFramebufferTexture2D(
     LLGLenum texture_target,
     LLGLuint texture_name,
     LLGLint mip_level);
+void setDrawBuffer(LLGLenum buffer);
+void setReadBuffer(LLGLenum buffer);
+void setDrawBuffers(S32 count, const LLGLenum* buffers);
 }
 
 #endif // LL_LLGLCONTAINMENT_H

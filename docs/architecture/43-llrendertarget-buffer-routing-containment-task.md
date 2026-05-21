@@ -127,3 +127,46 @@ Because this is another behavior-bearing `llglcontainment.*` packet, also run:
 
 Loaded-scene runtime smoke remains recommended before widening phase 3 beyond
 `LLRenderTarget`.
+
+## Source Patch Applied
+
+Applied in phase 3:
+
+- added `LLGLContainment::setDrawBuffer(...)`
+- added `LLGLContainment::setReadBuffer(...)`
+- added `LLGLContainment::setDrawBuffers(...)`
+- delegated `set_render_target_buffer_routing(...)` to the new containment
+  helpers
+- delegated `restore_default_framebuffer_buffer_routing()` to the new
+  containment helpers
+- kept depth-only `GL_NONE` routing in `LLRenderTarget`
+- kept `GL_COLOR_ATTACHMENT*` array construction in `LLRenderTarget`
+- kept default framebuffer `GL_BACK` restore policy in `LLRenderTarget`
+- did not touch `pipeline.cpp`, draw pools, UI rendering, shader managers, or
+  texture upload code
+
+Generated inventory was regenerated after the source patch so
+`docs/architecture/generated/source_inventory.csv` and
+`docs/architecture/generated/source_inventory_top.md` reflect the new call
+locations.
+
+## Source Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-llrender-make3/clang-module-cache \
+/opt/homebrew/bin/cmake \
+  --build /private/tmp/Mare-viewer-phase2-llrender-make3 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llrendertarget.cpp.o`
+- rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
+- relinked `libllrender.a`
