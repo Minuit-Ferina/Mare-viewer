@@ -292,11 +292,12 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/56-phase3-allocation-error-summary.md`.
 - [x] Record a loaded-scene and resize smoke test after the phase 3 allocation
       error containment packet.
+- [x] Add `docs/architecture/58-llrendertarget-viewport-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a task-specific containment note for `LLRenderTarget` viewport
-      calls before source edits.
+- [ ] Route `LLRenderTarget` raw viewport calls through `llglcontainment.*`
+      without moving owner state.
 
 ## Phase 1 Inventory
 
