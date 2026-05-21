@@ -314,11 +314,13 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the vertex buffer name
       source packet.
+- [x] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 vertex buffer name containment packet.
 
 ## Immediate Next Steps
 
-- [ ] Run a local incremental Xcode arm64 Release integration build for the
-      phase 3 vertex buffer name containment packet.
+- [ ] Run login and loaded-scene geometry smoke with the Xcode-built app after
+      the phase 3 vertex buffer name containment packet.
 
 ## Phase 1 Inventory
 

@@ -231,3 +231,22 @@ Observed work:
 - rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
 - rebuilt `llrender/CMakeFiles/llrender.dir/llvertexbuffer.cpp.o`
 - relinked `libllrender.a`
+
+## Integration Build Check
+
+The phase 3 vertex buffer name containment packet was also verified with the
+local incremental Xcode arm64 Release build.
+
+Result:
+
+- `xcodebuild -quiet` exited with code 0
+- executable verified as arm64
+- `libopenal.dylib`, `libalut.dylib`, `libllwebrtc.dylib`, and
+  `libndofdev.dylib` present in the app bundle
+
+Detailed command and output notes are recorded in:
+
+- `docs/architecture/local-darwin-arm64-build.md`
+
+Runtime login and loaded-scene geometry smoke still need to be run on this
+exact vertex buffer name containment packet build.

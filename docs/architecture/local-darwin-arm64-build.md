@@ -966,6 +966,70 @@ Runtime smoke observed by the user after the viewport build:
 - window resize works correctly
 - no regression was observed
 
+## Phase 3 Vertex Buffer Name Integration Check
+
+Observed on 2026-05-21:
+
+- Branch: `phase3`.
+- Commit: `d731c3c19f llrender: contain vertex buffer name calls`.
+- Worktree: `/private/tmp/Mare-viewer-phase2-xcode-worktree`.
+- Build tree:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv`.
+- Xcode project:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj`.
+- Output app:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/newview/Release/Mare Viewer.app`.
+
+The temporary Xcode worktree was moved from the viewport containment
+checkpoint to commit `d731c3c19f`, preserving `DerivedData` and the existing
+build tree.
+
+Incremental build command:
+
+```sh
+HOME=/private/tmp/Mare-viewer-phase2-xcode-worktree/home \
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-xcode-worktree/clang-module-cache \
+xcodebuild -quiet \
+  -project /private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj \
+  -scheme mare-viewer \
+  -configuration Release \
+  -destination platform=macOS,arch=arm64 \
+  -derivedDataPath /private/tmp/Mare-viewer-phase2-xcode-worktree/DerivedData \
+  build
+```
+
+Observed result:
+
+- `xcodebuild -quiet` exited with code 0
+
+No `clean` build was run.
+
+The built viewer executable was verified as arm64:
+
+```text
+Non-fat file: .../Mare Viewer.app/Contents/MacOS/Mare Viewer is architecture: arm64
+```
+
+The app bundle contained these runtime dylibs under `Contents/Frameworks`:
+
+- `libopenal.dylib`
+- `libalut.dylib`
+- `libllwebrtc.dylib`
+- `libndofdev.dylib`
+
+Non-fatal local Xcode warnings observed:
+
+- CoreSimulator services were unavailable during the macOS build.
+- Xcode could not query `DARWIN_USER_CACHE_DIR` and used an alternate cache
+  directory.
+- `xcodebuild -quiet` did not print per-target rebuild lines.
+
+Runtime smoke still needs to be run for this packet:
+
+- login screen
+- loaded scene with visible geometry
+- quick check for missing or scrambled geometry
+
 ## Makefile Build Tree Check
 
 This is a separate validation path from the local arm64 Xcode shortcut above.
