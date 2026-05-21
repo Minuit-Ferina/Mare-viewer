@@ -190,6 +190,16 @@ void getFloat(LLGLenum parameter, LLGLfloat* value)
     glGetFloatv(parameter, value);
 }
 
+void setMaterialFloatVector(LLGLenum face, LLGLenum parameter, const LLGLfloat* values)
+{
+    glMaterialfv(face, parameter, values);
+}
+
+void setMaterialInteger(LLGLenum face, LLGLenum parameter, LLGLint value)
+{
+    glMateriali(face, parameter, value);
+}
+
 void getTextureLevelParameterInteger(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value)
 {
     glGetTexLevelParameteriv(target, level, parameter, value);

@@ -74,6 +74,8 @@ void drawVertexBufferArrays(LLGLenum mode, LLGLint first, S32 count);
 void getInteger(LLGLenum parameter, LLGLint* value);
 void setPixelStoreInteger(LLGLenum parameter, LLGLint value);
 void getFloat(LLGLenum parameter, LLGLfloat* value);
+void setMaterialFloatVector(LLGLenum face, LLGLenum parameter, const LLGLfloat* values);
+void setMaterialInteger(LLGLenum face, LLGLenum parameter, LLGLint value);
 void getTextureLevelParameterInteger(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value);
 void setTextureSubImage2D(
     LLGLenum target,
