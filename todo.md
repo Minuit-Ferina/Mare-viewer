@@ -255,11 +255,12 @@ without an explicit task, and do not start a direct Vulkan port.
       phase 3 FBO lifetime containment packet.
 - [x] Add `docs/architecture/47-phase3-fbo-lifetime-summary.md`.
 - [x] Add `docs/architecture/48-phase3-rendertarget-remaining-review.md`.
+- [x] Add `docs/architecture/49-llrendertarget-mipmap-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a task-specific containment note for `LLRenderTarget` mipmap
-      generation before source edits.
+- [ ] Route `LLRenderTarget` raw mipmap generation through
+      `llglcontainment.*` without moving owner state.
 
 ## Phase 1 Inventory
 
