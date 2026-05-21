@@ -111,6 +111,29 @@ void setTextureImage2D(
     LLGLenum format,
     LLGLenum type,
     const void* data);
+void setTextureSubImage3D(
+    LLGLenum target,
+    S32 level,
+    S32 xoffset,
+    S32 yoffset,
+    S32 zoffset,
+    S32 width,
+    S32 height,
+    S32 depth,
+    LLGLenum format,
+    LLGLenum type,
+    const void* pixels);
+void setTextureImage3D(
+    LLGLenum target,
+    S32 level,
+    LLGLint internal_format,
+    S32 width,
+    S32 height,
+    S32 depth,
+    S32 border,
+    LLGLenum format,
+    LLGLenum type,
+    const void* data);
 void areTexturesResident(S32 count, const LLGLuint* textures, LLGLboolean* residences);
 void readCompressedTextureImage(LLGLenum target, S32 level, void* pixels);
 void readTextureImage(LLGLenum target, S32 level, LLGLenum format, LLGLenum type, void* pixels);

@@ -7,8 +7,8 @@
 | `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2091 | 80 | 80 | 0 | 11 | 116 | 0 | 2 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
 | `indra/newview/lldrawpoolterrain.cpp` | render.pipeline | 1123 | 61 | 62 | 1 | 189 | 26 | 1 | 0 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 411 | 46 | 46 | 0 | 0 | 83 | 0 | 0 |
 | `indra/llrender/llrender.cpp` | render.legacy_low_level | 2161 | 44 | 45 | 0 | 39 | 21 | 0 | 2 |
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 359 | 44 | 44 | 0 | 0 | 76 | 0 | 0 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 36 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llshadermgr.cpp` | render.legacy_low_level | 1563 | 32 | 39 | 0 | 0 | 4 | 0 | 0 |
 | `indra/newview/llspatialpartition.cpp` | render.pipeline | 4188 | 27 | 27 | 0 | 206 | 28 | 44 | 0 |
@@ -30,7 +30,6 @@
 | `indra/newview/llselectmgr.cpp` | render.pipeline | 9001 | 5 | 6 | 1 | 68 | 48 | 1 | 0 |
 | `indra/newview/llglsandbox.cpp` | render.pipeline | 1130 | 5 | 5 | 0 | 129 | 19 | 1 | 2 |
 | `indra/newview/gltf/animation.cpp` | render.opengl_touching | 490 | 5 | 5 | 0 | 0 | 0 | 0 | 0 |
-| `indra/llrender/llcubemaparray.cpp` | render.legacy_low_level | 220 | 4 | 4 | 0 | 2 | 0 | 0 | 0 |
 | `indra/llrender/llglstates.h` | render.legacy_low_level | 197 | 4 | 4 | 0 | 0 | 46 | 0 | 0 |
 | `indra/newview/llappviewer.cpp` | render.pipeline | 6743 | 4 | 4 | 0 | 0 | 1 | 6 | 4 |
 | `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2841 | 3 | 16 | 0 | 32 | 81 | 0 | 0 |
@@ -63,6 +62,7 @@
 | `indra/newview/lldrawpool.cpp` | render.draw_pool | 920 | 1 | 1 | 0 | 21 | 12 | 0 | 0 |
 | `indra/newview/lldrawpoolsimple.cpp` | render.pipeline | 228 | 1 | 1 | 0 | 6 | 9 | 4 | 0 |
 | `indra/newview/llviewercamera.cpp` | render.opengl_touching | 994 | 1 | 1 | 0 | 5 | 0 | 0 | 0 |
+| `indra/llrender/llcubemaparray.cpp` | render.legacy_low_level | 246 | 1 | 1 | 0 | 2 | 3 | 0 | 0 |
 | `indra/newview/rlveffects.cpp` | render.opengl_touching | 333 | 1 | 1 | 0 | 2 | 3 | 0 | 0 |
 | `indra/llui/lllocalcliprect.cpp` | render.opengl_touching | 111 | 1 | 1 | 0 | 1 | 0 | 0 | 0 |
 | `indra/llcommon/llprofiler.h` | render.opengl_touching | 186 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |

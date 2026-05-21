@@ -438,11 +438,16 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add a focused task for `LLCubeMapArray` readback, sub-image, and storage
       containment before source changes.
 - [x] Add `docs/architecture/82-llcubemaparray-containment-task.md`.
+- [x] Route only active `LLCubeMapArray` readback, sub-image, and storage raw
+      calls through `llglcontainment.*`.
+- [x] Verify the `LLCubeMapArray` containment packet with `llrender/fast`.
+- [x] Regenerate the generated source inventory after the `LLCubeMapArray`
+      source packet.
 
 ## Immediate Next Steps
 
-- [ ] Route only active `LLCubeMapArray` readback, sub-image, and storage raw
-      calls through `llglcontainment.*`.
+- [ ] Add a completion summary for `LLCubeMap` and `LLCubeMapArray`
+      containment.
 
 ## Phase 1 Inventory
 

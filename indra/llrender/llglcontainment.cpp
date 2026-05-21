@@ -273,6 +273,58 @@ void setTextureImage2D(
         data);
 }
 
+void setTextureSubImage3D(
+    LLGLenum target,
+    S32 level,
+    S32 xoffset,
+    S32 yoffset,
+    S32 zoffset,
+    S32 width,
+    S32 height,
+    S32 depth,
+    LLGLenum format,
+    LLGLenum type,
+    const void* pixels)
+{
+    glTexSubImage3D(
+        target,
+        level,
+        xoffset,
+        yoffset,
+        zoffset,
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height),
+        static_cast<GLsizei>(depth),
+        format,
+        type,
+        pixels);
+}
+
+void setTextureImage3D(
+    LLGLenum target,
+    S32 level,
+    LLGLint internal_format,
+    S32 width,
+    S32 height,
+    S32 depth,
+    S32 border,
+    LLGLenum format,
+    LLGLenum type,
+    const void* data)
+{
+    glTexImage3D(
+        target,
+        level,
+        internal_format,
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height),
+        static_cast<GLsizei>(depth),
+        border,
+        format,
+        type,
+        data);
+}
+
 void areTexturesResident(S32 count, const LLGLuint* textures, LLGLboolean* residences)
 {
     glAreTexturesResident(static_cast<GLsizei>(count), textures, residences);
