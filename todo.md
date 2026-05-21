@@ -180,11 +180,14 @@ an explicit task, and do not start a direct Vulkan port.
       families.
 - [x] Decide to leave `LLImageGL` upload/mipmap source cleanup for later and
       switch to the next owner.
+- [x] Add `docs/architecture/33-llvertexbuffer-buffer-binding-update-contract.md`.
+- [x] Map `LLVertexBuffer` buffer binding and update call families before
+      source cleanup.
 
 ## Immediate Next Steps
 
-- [ ] Map `LLVertexBuffer` buffer binding and update call families before
-      source cleanup.
+- [ ] Extract the smallest local `LLVertexBuffer` buffer lifecycle helper names
+      without changing the public API.
 
 ## Phase 1 Inventory
 
