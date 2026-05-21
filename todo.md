@@ -201,10 +201,12 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the draw call helper extraction with `llrender/fast`.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       completed `LLVertexBuffer` phase 2 packet.
+- [x] Add `docs/architecture/34-llvertexbuffer-phase2-review-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add `docs/architecture/34-llvertexbuffer-phase2-review-summary.md`.
+- [ ] Add a phase 2 closure summary and mark remaining items as post-phase2
+      guardrails.
 
 ## Phase 1 Inventory
 
