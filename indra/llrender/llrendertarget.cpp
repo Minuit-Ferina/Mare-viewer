@@ -104,7 +104,11 @@ void restore_tracked_fbo_binding()
 
 void set_framebuffer_texture_attachment(GLenum attachment, LLTexUnit::eTextureType usage, U32 texture)
 {
-    glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, LLTexUnit::getInternalType(usage), texture, 0);
+    LLGLContainment::setReadWriteFramebufferTexture2D(
+        static_cast<LLGLenum>(attachment),
+        static_cast<LLGLenum>(LLTexUnit::getInternalType(usage)),
+        static_cast<LLGLuint>(texture),
+        0);
 }
 
 void clear_framebuffer_texture_attachment(GLenum attachment, LLTexUnit::eTextureType usage)

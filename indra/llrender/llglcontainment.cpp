@@ -41,4 +41,13 @@ U32 getDrawFramebufferStatus()
 {
     return glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
 }
+
+void setReadWriteFramebufferTexture2D(
+    LLGLenum attachment,
+    LLGLenum texture_target,
+    LLGLuint texture_name,
+    LLGLint mip_level)
+{
+    glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, texture_target, texture_name, mip_level);
+}
 }

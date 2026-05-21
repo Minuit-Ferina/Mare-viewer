@@ -23,6 +23,7 @@
 #define LL_LLGLCONTAINMENT_H
 
 #include "stdtypes.h"
+#include "llgltypes.h"
 
 namespace LLGLContainment
 {
@@ -30,6 +31,11 @@ const char* getPhaseOneScope();
 
 void bindReadWriteFramebuffer(U32 framebuffer_name);
 U32 getDrawFramebufferStatus();
+void setReadWriteFramebufferTexture2D(
+    LLGLenum attachment,
+    LLGLenum texture_target,
+    LLGLuint texture_name,
+    LLGLint mip_level);
 }
 
 #endif // LL_LLGLCONTAINMENT_H

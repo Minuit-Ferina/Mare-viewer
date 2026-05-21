@@ -16,7 +16,7 @@
 | `indra/newview/llmodelpreview.cpp` | render.opengl_touching | 4172 | 17 | 17 | 0 | 58 | 13 | 0 | 0 |
 | `indra/newview/gltfscenemanager.cpp` | render.pipeline | 1210 | 17 | 17 | 0 | 56 | 21 | 8 | 0 |
 | `indra/newview/llreflectionmapmanager.cpp` | render.pipeline | 1605 | 15 | 15 | 0 | 69 | 4 | 13 | 1 |
-| `indra/llrender/llrendertarget.cpp` | render.legacy_low_level | 671 | 15 | 15 | 0 | 12 | 8 | 0 | 42 |
+| `indra/llrender/llrendertarget.cpp` | render.legacy_low_level | 675 | 14 | 14 | 0 | 12 | 12 | 0 | 42 |
 | `indra/llrender/llpostprocess.cpp` | render.legacy_low_level | 455 | 13 | 20 | 0 | 18 | 1 | 0 | 0 |
 | `indra/llrender/llvertexbuffer.cpp` | render.legacy_low_level | 1963 | 13 | 19 | 0 | 33 | 10 | 0 | 0 |
 | `indra/newview/llmaniptranslate.cpp` | render.pipeline | 2323 | 13 | 13 | 0 | 196 | 22 | 10 | 0 |
@@ -47,6 +47,7 @@
 | `indra/newview/lldynamictexture.cpp` | render.pipeline | 308 | 3 | 3 | 0 | 4 | 5 | 4 | 3 |
 | `indra/newview/llgltfmaterialpreviewmgr.cpp` | render.pipeline | 591 | 3 | 3 | 0 | 2 | 45 | 7 | 1 |
 | `indra/llrender/llimagegl.h` | render.legacy_low_level | 369 | 3 | 3 | 0 | 0 | 25 | 0 | 0 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 50 | 3 | 3 | 0 | 0 | 5 | 0 | 0 |
 | `indra/llwindow/llwindowwin32.cpp` | render.opengl_touching | 5207 | 2 | 4 | 2 | 0 | 0 | 0 | 0 |
 | `indra/newview/llmanipscale.cpp` | render.opengl_touching | 2079 | 2 | 2 | 0 | 78 | 11 | 0 | 0 |
 | `indra/newview/lldrawpoolbump.cpp` | render.pipeline | 1083 | 2 | 2 | 0 | 47 | 21 | 8 | 1 |
@@ -55,7 +56,6 @@
 | `indra/newview/llviewerjoint.cpp` | render.pipeline | 173 | 2 | 2 | 0 | 2 | 4 | 2 | 0 |
 | `indra/newview/lldrawpooltree.cpp` | render.draw_pool | 157 | 2 | 2 | 0 | 2 | 1 | 0 | 0 |
 | `indra/llrender/llglcommonfunc.cpp` | render.legacy_low_level | 39 | 2 | 2 | 0 | 0 | 2 | 0 | 0 |
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 45 | 2 | 2 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llgl.h` | render.legacy_low_level | 485 | 1 | 26 | 0 | 0 | 62 | 0 | 0 |
 | `indra/llwindow/llwindowmacosx-objc.h` | render.opengl_touching | 187 | 1 | 3 | 2 | 0 | 0 | 0 | 0 |
 | `indra/newview/llnetmap.cpp` | assets.texture | 1804 | 1 | 1 | 0 | 92 | 0 | 0 | 0 |
