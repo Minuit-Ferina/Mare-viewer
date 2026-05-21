@@ -175,10 +175,14 @@ an explicit task, and do not start a direct Vulkan port.
       completed `LLImageGL` phase 2 packet.
 - [x] Add `docs/architecture/31-llimagegl-phase2-review-summary.md`.
 - [x] Summarize the `LLImageGL` phase 2 packet for review.
+- [x] Add `docs/architecture/32-llimagegl-upload-mipmap-parameter-contract.md`.
+- [x] Map `LLImageGL` full upload, mipmap, and texture-parameter call
+      families.
 
 ## Immediate Next Steps
 
-- [ ] Map `LLImageGL` full upload, mipmap, and texture-parameter call families.
+- [ ] Decide whether to extract the smallest local `LLImageGL` upload/mipmap
+      helper names or switch to the next owner, likely `LLVertexBuffer`.
 
 ## Phase 1 Inventory
 
