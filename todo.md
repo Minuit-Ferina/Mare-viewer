@@ -253,10 +253,12 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       phase 3 FBO lifetime containment packet.
+- [x] Add `docs/architecture/47-phase3-fbo-lifetime-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a concise summary for the phase 3 FBO lifetime containment packet.
+- [ ] Review remaining direct `LLRenderTarget` OpenGL call families before
+      choosing the next containment packet.
 
 ## Phase 1 Inventory
 
