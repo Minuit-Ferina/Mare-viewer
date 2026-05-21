@@ -342,11 +342,12 @@ without an explicit task, and do not start a direct Vulkan port.
       wrapper containment packet.
 - [x] Defer runtime smoke for the `LLImageGL` local wrapper containment packet
       because only local wrapper helper bodies moved behind containment.
+- [x] Add `docs/architecture/67-llimagegl-phase3-completion-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a full `LLImageGL` phase 3 containment completion summary before
-      considering upload, mipmap, or parameter containment.
+- [ ] Add a phase 3 completion summary covering `LLRenderTarget`,
+      `LLVertexBuffer`, and `LLImageGL` before choosing more source work.
 
 ## Phase 1 Inventory
 
