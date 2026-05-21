@@ -1619,14 +1619,32 @@ void LLImageGL::setManualImage(U32 target, S32 miplevel, S32 intformat, S32 widt
         if (!use_sub_image)
         {
             LL_PROFILE_ZONE_NAMED("glTexImage2D alloc + copy");
-            glTexImage2D(target, miplevel, intformat, width, height, 0, pixformat, pixtype, pixels);
+            LLGLContainment::setTextureImage2D(
+                target,
+                miplevel,
+                intformat,
+                width,
+                height,
+                0,
+                pixformat,
+                pixtype,
+                pixels);
         }
         else
         {
             // break up calls to a manageable size for the GL command buffer
             {
                 LL_PROFILE_ZONE_NAMED("glTexImage2D alloc");
-                glTexImage2D(target, miplevel, intformat, width, height, 0, pixformat, pixtype, nullptr);
+                LLGLContainment::setTextureImage2D(
+                    target,
+                    miplevel,
+                    intformat,
+                    width,
+                    height,
+                    0,
+                    pixformat,
+                    pixtype,
+                    nullptr);
             }
 
             U8* src = (U8*)(pixels);

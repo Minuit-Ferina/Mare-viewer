@@ -250,6 +250,29 @@ void setCompressedTextureImage2D(
         data);
 }
 
+void setTextureImage2D(
+    LLGLenum target,
+    S32 level,
+    LLGLint internal_format,
+    S32 width,
+    S32 height,
+    S32 border,
+    LLGLenum format,
+    LLGLenum type,
+    const void* data)
+{
+    glTexImage2D(
+        target,
+        level,
+        internal_format,
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height),
+        border,
+        format,
+        type,
+        data);
+}
+
 void areTexturesResident(S32 count, const LLGLuint* textures, LLGLboolean* residences)
 {
     glAreTexturesResident(static_cast<GLsizei>(count), textures, residences);

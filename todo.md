@@ -376,11 +376,20 @@ without an explicit task, and do not start a direct Vulkan port.
       `glTexImage2D(...)` allocation/copy containment before source changes.
 - [x] Add
       `docs/architecture/74-llimagegl-manual-image-allocation-containment-task.md`.
+- [x] Route only `LLImageGL::setManualImage(...)` `glTexImage2D(...)`
+      allocation/copy raw calls through `llglcontainment.*`.
+- [x] Verify the manual image allocation containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the manual image
+      allocation source packet.
+- [x] Defer Xcode and runtime smoke for the manual image allocation packet
+      because allocation order and memory accounting did not change.
 
 ## Immediate Next Steps
 
-- [ ] Route only `LLImageGL::setManualImage(...)` `glTexImage2D(...)`
-      allocation/copy raw calls through `llglcontainment.*`.
+- [ ] Add a completion summary for the `LLImageGL::setManualImage(...)`
+      allocation containment packet and identify the remaining `scaleDown(...)`
+      stop point.
 
 ## Phase 1 Inventory
 
