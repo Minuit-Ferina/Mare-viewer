@@ -490,7 +490,9 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the
       `LLRender::initVertexBuffer()` source packet.
-- [ ] Add `docs/architecture/93-llrender-line-width-range-summary.md`.
+- [x] Add `docs/architecture/93-llrender-line-width-range-summary.md`.
+- [ ] Add a focused task for `LLTexUnit::debugTextureUnit()` active texture
+      query containment before source edits.
 
 ## Phase 1 Inventory
 
