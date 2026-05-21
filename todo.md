@@ -482,8 +482,10 @@ without an explicit task, and do not start a direct Vulkan port.
       more source edits.
 - [x] Create a focused `LLRender`/`LLTexUnit` call-family map before touching
       `indra/llrender/llrender.cpp`.
-- [ ] Add a focused task for `LLRender::initVertexBuffer()` line-width range
+- [x] Add a focused task for `LLRender::initVertexBuffer()` line-width range
       query containment before source edits.
+- [ ] Route only `LLRender::initVertexBuffer()` line-width range queries
+      through `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
