@@ -102,6 +102,31 @@ void forget_current_fbo_and_bind_default()
     LLRenderTarget::sCurFBO = 0;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+
+void set_render_target_buffer_routing(U32 color_attachment_count)
+{
+    GLenum drawbuffers[] = {GL_COLOR_ATTACHMENT0,
+                            GL_COLOR_ATTACHMENT1,
+                            GL_COLOR_ATTACHMENT2,
+                            GL_COLOR_ATTACHMENT3};
+
+    if (color_attachment_count == 0)
+    {
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+    }
+    else
+    {
+        glDrawBuffers(static_cast<GLsizei>(color_attachment_count), drawbuffers);
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+    }
+}
+
+void restore_default_framebuffer_buffer_routing()
+{
+    glReadBuffer(GL_BACK);
+    glDrawBuffer(GL_BACK);
+}
 }
 
 LLRenderTarget::LLRenderTarget() :
@@ -464,22 +489,7 @@ void LLRenderTarget::bindTarget()
 
     bind_render_target_fbo(mFBO);
 
-    //setup multiple render targets
-    GLenum drawbuffers[] = {GL_COLOR_ATTACHMENT0,
-                            GL_COLOR_ATTACHMENT1,
-                            GL_COLOR_ATTACHMENT2,
-                            GL_COLOR_ATTACHMENT3};
-
-    if (mTex.empty())
-    { //no color buffer to draw to
-        glDrawBuffer(GL_NONE);
-        glReadBuffer(GL_NONE);
-    }
-    else
-    {
-        glDrawBuffers(static_cast<GLsizei>(mTex.size()), drawbuffers);
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-    }
+    set_render_target_buffer_routing(static_cast<U32>(mTex.size()));
     check_framebuffer_status();
 
     set_render_target_viewport(mResX, mResY);
@@ -563,8 +573,7 @@ void LLRenderTarget::flush()
         sBoundTarget = nullptr;
         bind_default_framebuffer_for_flush();
         restore_default_framebuffer_viewport();
-        glReadBuffer(GL_BACK);
-        glDrawBuffer(GL_BACK);
+        restore_default_framebuffer_buffer_routing();
     }
 }
 

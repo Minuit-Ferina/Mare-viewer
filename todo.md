@@ -104,11 +104,16 @@ an explicit task, and do not start a direct Vulkan port.
       helper extraction.
 - [x] Record that normal local validation should use targeted or incremental
       builds, not `clean`, unless a clean checkpoint is explicitly needed.
+- [x] Add `docs/architecture/17-llrendertarget-buffer-routing-contract.md`.
+- [x] Document `LLRenderTarget` draw/read buffer routing intents.
+- [x] Extract internal `LLRenderTarget` buffer routing helpers without changing
+      the public API.
+- [x] Verify the buffer routing helper extraction with `llrender/fast`.
 
 ## Immediate Next Steps
 
-- [ ] For the next small `llrender` containment edit, use a targeted build such
-      as `llrender/fast` first.
+- [ ] Pick the next `LLRenderTarget` callsite family only after documenting its
+      ownership and ordering contract.
 - [ ] Use the local Xcode arm64 Release path as an incremental integration
       checkpoint before important source-side milestones.
 
