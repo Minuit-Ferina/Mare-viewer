@@ -484,8 +484,13 @@ without an explicit task, and do not start a direct Vulkan port.
       `indra/llrender/llrender.cpp`.
 - [x] Add a focused task for `LLRender::initVertexBuffer()` line-width range
       query containment before source edits.
-- [ ] Route only `LLRender::initVertexBuffer()` line-width range queries
+- [x] Route only `LLRender::initVertexBuffer()` line-width range queries
       through `llglcontainment.*`.
+- [x] Verify the `LLRender::initVertexBuffer()` containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the
+      `LLRender::initVertexBuffer()` source packet.
+- [ ] Add `docs/architecture/93-llrender-line-width-range-summary.md`.
 
 ## Phase 1 Inventory
 
