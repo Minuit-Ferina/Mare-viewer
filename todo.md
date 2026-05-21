@@ -157,10 +157,13 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract local `LLImageGL` pixel store helpers without changing the public
       API.
 - [x] Verify the pixel store helper extraction with `llrender/fast`.
+- [x] Add `docs/architecture/29-llimagegl-readback-copy-contract.md`.
+- [x] Map `LLImageGL` readback and copy paths before source cleanup.
 
 ## Immediate Next Steps
 
-- [ ] Map `LLImageGL` readback and copy paths before source cleanup.
+- [ ] Extract the smallest local `LLImageGL` readback/copy helper names without
+      changing the public API.
 - [ ] Use the local Xcode arm64 Release path as an incremental integration
       checkpoint before important source-side milestones.
 
