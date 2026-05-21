@@ -470,7 +470,7 @@ without an explicit task, and do not start a direct Vulkan port.
       before editing source.
 - [x] Route `LLPostProcess` state-stack and clear raw calls through
       `llglcontainment.*`.
-- [ ] Route `LLPostProcess` texture copy/allocation raw calls through
+- [x] Route `LLPostProcess` texture copy/allocation raw calls through
       `llglcontainment.*`.
 - [ ] Route `LLPostProcess` shader and error query raw calls through
       `llglcontainment.*`.

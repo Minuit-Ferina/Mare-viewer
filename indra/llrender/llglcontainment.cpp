@@ -393,6 +393,27 @@ void copyTextureSubImage2D(
     glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
 }
 
+void copyTextureImage2D(
+    LLGLenum target,
+    S32 level,
+    LLGLenum internal_format,
+    LLGLint x,
+    LLGLint y,
+    S32 width,
+    S32 height,
+    S32 border)
+{
+    glCopyTexImage2D(
+        target,
+        level,
+        internal_format,
+        x,
+        y,
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height),
+        border);
+}
+
 LLGLsync createSyncObject()
 {
     return glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);

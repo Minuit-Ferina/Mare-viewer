@@ -154,6 +154,15 @@ void copyTextureSubImage2D(
     S32 y,
     S32 width,
     S32 height);
+void copyTextureImage2D(
+    LLGLenum target,
+    S32 level,
+    LLGLenum internal_format,
+    LLGLint x,
+    LLGLint y,
+    S32 width,
+    S32 height,
+    S32 border);
 LLGLsync createSyncObject();
 void flushCommands();
 void clientWaitSyncObject(LLGLsync sync);
