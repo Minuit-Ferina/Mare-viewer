@@ -37,6 +37,7 @@
 
 #include "llmath.h"
 #include "llgl.h"
+#include "llglcontainment.h"
 #include "llglslshader.h"
 #include "llrender.h"
 #include "llwindow.h"
@@ -610,39 +611,39 @@ static bool check_power_of_two(S32 dim)
 
 static void set_texture_unpack_swap_bytes_enabled(bool enabled)
 {
-    glPixelStorei(GL_UNPACK_SWAP_BYTES, enabled ? 1 : 0);
+    LLGLContainment::setPixelStoreInteger(GL_UNPACK_SWAP_BYTES, enabled ? 1 : 0);
 }
 
 static void set_texture_unpack_row_length(S32 row_length)
 {
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, row_length);
+    LLGLContainment::setPixelStoreInteger(GL_UNPACK_ROW_LENGTH, row_length);
 }
 
 static void query_texture_level_parameter(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value)
 {
-    glGetTexLevelParameteriv(target, level, parameter, value);
+    LLGLContainment::getTextureLevelParameterInteger(target, level, parameter, value);
 }
 
 static void read_compressed_texture_level_image(LLGLenum target, S32 level, GLvoid* pixels)
 {
-    glGetCompressedTexImage(target, level, pixels);
+    LLGLContainment::readCompressedTextureImage(target, level, pixels);
 }
 
 static void read_texture_level_image(LLGLenum target, S32 level, LLGLenum format, LLGLenum type, GLvoid* pixels)
 {
-    glGetTexImage(target, level, format, type, pixels);
+    LLGLContainment::readTextureImage(target, level, format, type, pixels);
 }
 
 static void copy_current_framebuffer_to_texture_region(LLGLenum target, S32 level, S32 xoffset, S32 yoffset, S32 x, S32 y, S32 width, S32 height)
 {
-    glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+    LLGLContainment::copyTextureSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
 }
 
 static void ensure_scratch_pbo_created(U32& pbo, U32& pbo_size)
 {
     if (pbo == 0)
     {
-        glGenBuffers(1, &pbo);
+        LLGLContainment::generateBufferObjects(1, &pbo);
         pbo_size = 0;
     }
 }
@@ -651,7 +652,7 @@ static void delete_scratch_pbo(U32& pbo, U32& pbo_size)
 {
     if (pbo != 0)
     {
-        glDeleteBuffers(1, &pbo);
+        LLGLContainment::deleteBufferObjects(1, &pbo);
         pbo = 0;
         pbo_size = 0;
     }
@@ -659,52 +660,52 @@ static void delete_scratch_pbo(U32& pbo, U32& pbo_size)
 
 static void bind_scratch_pbo_for_pixel_pack(U32 pbo)
 {
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+    LLGLContainment::bindBufferObject(GL_PIXEL_PACK_BUFFER, pbo);
 }
 
 static void unbind_pixel_pack_buffer()
 {
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    LLGLContainment::bindBufferObject(GL_PIXEL_PACK_BUFFER, 0);
 }
 
 static void bind_scratch_pbo_for_pixel_unpack(U32 pbo)
 {
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+    LLGLContainment::bindBufferObject(GL_PIXEL_UNPACK_BUFFER, pbo);
 }
 
 static void unbind_pixel_unpack_buffer()
 {
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+    LLGLContainment::bindBufferObject(GL_PIXEL_UNPACK_BUFFER, 0);
 }
 
 static void resize_pixel_pack_buffer(U64 size)
 {
-    glBufferData(GL_PIXEL_PACK_BUFFER, size, NULL, GL_STREAM_COPY);
+    LLGLContainment::allocateBufferObjectStorage(GL_PIXEL_PACK_BUFFER, size, NULL, GL_STREAM_COPY);
 }
 
 static GLsync create_texture_upload_sync()
 {
-    return glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    return static_cast<GLsync>(LLGLContainment::createSyncObject());
 }
 
 static void flush_texture_upload_commands()
 {
-    glFlush();
+    LLGLContainment::flushCommands();
 }
 
 static void client_wait_for_texture_upload_sync(GLsync sync)
 {
-    glClientWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
+    LLGLContainment::clientWaitSyncObject(sync);
 }
 
 static void wait_for_texture_upload_sync(GLsync sync)
 {
-    glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
+    LLGLContainment::waitSyncObject(sync);
 }
 
 static void delete_texture_upload_sync(GLsync sync)
 {
-    glDeleteSync(sync);
+    LLGLContainment::deleteSyncObject(sync);
 }
 
 //static

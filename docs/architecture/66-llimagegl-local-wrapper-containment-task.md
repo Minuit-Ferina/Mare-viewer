@@ -143,3 +143,60 @@ Runtime smoke:
 
 After this wrapper relocation, stop and summarize the `LLImageGL` phase 3
 state before considering upload/mipmap/parameter containment.
+
+## Source Patch Applied
+
+Applied in phase 3:
+
+- added opaque `LLGLsync` alias
+- added `LLGLContainment::setPixelStoreInteger(...)`
+- added `LLGLContainment::getTextureLevelParameterInteger(...)`
+- added `LLGLContainment::readCompressedTextureImage(...)`
+- added `LLGLContainment::readTextureImage(...)`
+- added `LLGLContainment::copyTextureSubImage2D(...)`
+- added `LLGLContainment::createSyncObject(...)`
+- added `LLGLContainment::flushCommands()`
+- added `LLGLContainment::clientWaitSyncObject(...)`
+- added `LLGLContainment::waitSyncObject(...)`
+- added `LLGLContainment::deleteSyncObject(...)`
+- reused existing `LLGLContainment` buffer object helpers for scratch PBO name,
+  bind, and resize operations
+- delegated only the matching local `LLImageGL` helper bodies
+- kept pixel-store branch ownership, readback allocation, scratch PBO state,
+  sync branch differences, queue ordering, and texture-name handoff in
+  `LLImageGL`
+- did not touch upload, sub-image upload, mipmap, swizzle, parameter, texture
+  name lifetime, `LLTexUnit`, UI, shader, draw-pool, or `pipeline.cpp` code
+
+Generated inventory was regenerated after the source patch so
+`docs/architecture/generated/source_inventory.csv` and
+`docs/architecture/generated/source_inventory_top.md` reflect the new call
+locations.
+
+After this source patch:
+
+- `indra/llrender/llimagegl.cpp` has 34 likely direct `gl*` calls in the
+  generated inventory
+- `indra/llrender/llglcontainment.cpp` has 34 likely direct `gl*` calls in the
+  generated inventory
+
+## Source Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-llrender-make3/clang-module-cache \
+/opt/homebrew/bin/cmake \
+  --build /private/tmp/Mare-viewer-phase2-llrender-make3 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
+- rebuilt `llrender/CMakeFiles/llrender.dir/llimagegl.cpp.o`
+- relinked `libllrender.a`

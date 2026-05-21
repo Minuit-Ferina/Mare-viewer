@@ -332,11 +332,17 @@ without an explicit task, and do not start a direct Vulkan port.
       because only local wrapper helper bodies moved behind containment.
 - [x] Add `docs/architecture/65-llvertexbuffer-phase3-completion-summary.md`.
 - [x] Add `docs/architecture/66-llimagegl-local-wrapper-containment-task.md`.
+- [x] Route local `LLImageGL` wrapper helper call families through
+      `llglcontainment.*` without moving owner state.
+- [x] Verify the phase 3 `LLImageGL` local wrapper containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the `LLImageGL` local
+      wrapper source packet.
 
 ## Immediate Next Steps
 
-- [ ] Route local `LLImageGL` wrapper helper call families through
-      `llglcontainment.*` without moving owner state.
+- [ ] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 `LLImageGL` local wrapper containment packet.
 
 ## Phase 1 Inventory
 

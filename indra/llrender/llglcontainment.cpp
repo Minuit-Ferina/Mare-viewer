@@ -91,7 +91,7 @@ void bindBufferObject(LLGLenum target, LLGLuint buffer)
     glBindBuffer(target, buffer);
 }
 
-void allocateBufferObjectStorage(LLGLenum target, U32 size, const void* data, LLGLenum usage)
+void allocateBufferObjectStorage(LLGLenum target, U64 size, const void* data, LLGLenum usage)
 {
     glBufferData(target, static_cast<GLsizeiptr>(size), data, usage);
 }
@@ -163,6 +163,64 @@ void drawVertexBufferRange(
 void drawVertexBufferArrays(LLGLenum mode, LLGLint first, S32 count)
 {
     glDrawArrays(mode, first, static_cast<GLsizei>(count));
+}
+
+void setPixelStoreInteger(LLGLenum parameter, LLGLint value)
+{
+    glPixelStorei(parameter, value);
+}
+
+void getTextureLevelParameterInteger(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value)
+{
+    glGetTexLevelParameteriv(target, level, parameter, value);
+}
+
+void readCompressedTextureImage(LLGLenum target, S32 level, void* pixels)
+{
+    glGetCompressedTexImage(target, level, pixels);
+}
+
+void readTextureImage(LLGLenum target, S32 level, LLGLenum format, LLGLenum type, void* pixels)
+{
+    glGetTexImage(target, level, format, type, pixels);
+}
+
+void copyTextureSubImage2D(
+    LLGLenum target,
+    S32 level,
+    S32 xoffset,
+    S32 yoffset,
+    S32 x,
+    S32 y,
+    S32 width,
+    S32 height)
+{
+    glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+}
+
+LLGLsync createSyncObject()
+{
+    return glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+}
+
+void flushCommands()
+{
+    glFlush();
+}
+
+void clientWaitSyncObject(LLGLsync sync)
+{
+    glClientWaitSync(static_cast<GLsync>(sync), 0, GL_TIMEOUT_IGNORED);
+}
+
+void waitSyncObject(LLGLsync sync)
+{
+    glWaitSync(static_cast<GLsync>(sync), 0, GL_TIMEOUT_IGNORED);
+}
+
+void deleteSyncObject(LLGLsync sync)
+{
+    glDeleteSync(static_cast<GLsync>(sync));
 }
 
 void generateTextureMipmap(LLGLenum texture_target)

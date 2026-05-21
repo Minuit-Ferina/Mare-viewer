@@ -44,7 +44,7 @@ void deleteFramebuffers(S32 count, const LLGLuint* framebuffers);
 void generateBufferObjects(S32 count, LLGLuint* buffers);
 void deleteBufferObjects(S32 count, const LLGLuint* buffers);
 void bindBufferObject(LLGLenum target, LLGLuint buffer);
-void allocateBufferObjectStorage(LLGLenum target, U32 size, const void* data, LLGLenum usage);
+void allocateBufferObjectStorage(LLGLenum target, U64 size, const void* data, LLGLenum usage);
 void updateBufferObjectSubData(LLGLenum target, U32 offset, U32 size, const void* data);
 void enableVertexAttributeArray(LLGLuint location);
 void disableVertexAttributeArray(LLGLuint location);
@@ -69,6 +69,24 @@ void drawVertexBufferRange(
     LLGLenum index_type,
     const void* indices);
 void drawVertexBufferArrays(LLGLenum mode, LLGLint first, S32 count);
+void setPixelStoreInteger(LLGLenum parameter, LLGLint value);
+void getTextureLevelParameterInteger(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value);
+void readCompressedTextureImage(LLGLenum target, S32 level, void* pixels);
+void readTextureImage(LLGLenum target, S32 level, LLGLenum format, LLGLenum type, void* pixels);
+void copyTextureSubImage2D(
+    LLGLenum target,
+    S32 level,
+    S32 xoffset,
+    S32 yoffset,
+    S32 x,
+    S32 y,
+    S32 width,
+    S32 height);
+LLGLsync createSyncObject();
+void flushCommands();
+void clientWaitSyncObject(LLGLsync sync);
+void waitSyncObject(LLGLsync sync);
+void deleteSyncObject(LLGLsync sync);
 void generateTextureMipmap(LLGLenum texture_target);
 void clearBuffers(U32 mask);
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);

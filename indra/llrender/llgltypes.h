@@ -35,5 +35,6 @@ typedef S32 LLGLint;
 typedef F32 LLGLfloat;
 typedef F64 LLGLdouble;
 typedef U8 LLGLboolean;
+typedef void* LLGLsync;
 
 #endif
