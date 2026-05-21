@@ -572,6 +572,15 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLGLSLShader`
       profiling query source packet.
 - [x] Add a summary for the `LLGLSLShader` profiling query containment packet.
+- [x] Add a focused task for `LLGLSLShader` metadata query containment before
+      source edits.
+- [ ] Route only `LLGLSLShader` metadata query raw calls through
+      `llglcontainment.*`.
+- [ ] Verify the `LLGLSLShader` metadata query containment packet with
+      `llrender/fast`.
+- [ ] Regenerate the generated source inventory after the `LLGLSLShader`
+      metadata query source packet.
+- [ ] Add a summary for the `LLGLSLShader` metadata query containment packet.
 
 ## Phase 1 Inventory
 
