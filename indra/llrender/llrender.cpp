@@ -1389,10 +1389,11 @@ void LLRender::setColorMask(bool writeColorR, bool writeColorG, bool writeColorB
         mCurrColorMask[2] = writeColorB;
         mCurrColorMask[3] = writeAlpha;
 
-        glColorMask(writeColorR ? GL_TRUE : GL_FALSE,
-                    writeColorG ? GL_TRUE : GL_FALSE,
-                    writeColorB ? GL_TRUE : GL_FALSE,
-                    writeAlpha ? GL_TRUE : GL_FALSE);
+        LLGLContainment::setColorMask(
+            writeColorR ? GL_TRUE : GL_FALSE,
+            writeColorG ? GL_TRUE : GL_FALSE,
+            writeColorB ? GL_TRUE : GL_FALSE,
+            writeAlpha ? GL_TRUE : GL_FALSE);
     }
 }
 
@@ -1439,7 +1440,7 @@ void LLRender::blendFunc(eBlendFactor sfactor, eBlendFactor dfactor)
         mCurrBlendColorDFactor = dfactor;
         mCurrBlendAlphaDFactor = dfactor;
         flush();
-        glBlendFunc(sGLBlendFactor[sfactor], sGLBlendFactor[dfactor]);
+        LLGLContainment::setBlendFunction(sGLBlendFactor[sfactor], sGLBlendFactor[dfactor]);
     }
 }
 
@@ -1460,8 +1461,11 @@ void LLRender::blendFunc(eBlendFactor color_sfactor, eBlendFactor color_dfactor,
         mCurrBlendAlphaDFactor = alpha_dfactor;
         flush();
 
-        glBlendFuncSeparate(sGLBlendFactor[color_sfactor], sGLBlendFactor[color_dfactor],
-                           sGLBlendFactor[alpha_sfactor], sGLBlendFactor[alpha_dfactor]);
+        LLGLContainment::setSeparateBlendFunction(
+            sGLBlendFactor[color_sfactor],
+            sGLBlendFactor[color_dfactor],
+            sGLBlendFactor[alpha_sfactor],
+            sGLBlendFactor[alpha_dfactor]);
     }
 }
 

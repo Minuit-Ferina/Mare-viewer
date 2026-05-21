@@ -181,6 +181,13 @@ void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);
 LLGLenum getError();
 void enableCapability(LLGLenum capability);
 bool isCapabilityEnabled(LLGLenum capability);
+void setColorMask(LLGLboolean red, LLGLboolean green, LLGLboolean blue, LLGLboolean alpha);
+void setBlendFunction(LLGLenum source_factor, LLGLenum destination_factor);
+void setSeparateBlendFunction(
+    LLGLenum color_source_factor,
+    LLGLenum color_destination_factor,
+    LLGLenum alpha_source_factor,
+    LLGLenum alpha_destination_factor);
 void setLineWidth(LLGLfloat width);
 void setViewport(LLGLint x, LLGLint y, LLGLint width, LLGLint height);
 }

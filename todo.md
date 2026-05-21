@@ -531,7 +531,12 @@ without an explicit task, and do not start a direct Vulkan port.
       or stop before central binding/init paths.
 - [x] Add a focused task for `LLRender` blend/color state containment before
       source edits.
-- [ ] Route only `LLRender` blend/color raw calls through `llglcontainment.*`.
+- [x] Route only `LLRender` blend/color raw calls through `llglcontainment.*`.
+- [x] Verify the `LLRender` blend/color containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the `LLRender`
+      blend/color source packet.
+- [ ] Add `docs/architecture/103-llrender-blend-color-summary.md`.
 
 ## Phase 1 Inventory
 

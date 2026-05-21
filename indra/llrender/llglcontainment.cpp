@@ -492,6 +492,29 @@ bool isCapabilityEnabled(LLGLenum capability)
     return glIsEnabled(capability) == GL_TRUE;
 }
 
+void setColorMask(LLGLboolean red, LLGLboolean green, LLGLboolean blue, LLGLboolean alpha)
+{
+    glColorMask(red, green, blue, alpha);
+}
+
+void setBlendFunction(LLGLenum source_factor, LLGLenum destination_factor)
+{
+    glBlendFunc(source_factor, destination_factor);
+}
+
+void setSeparateBlendFunction(
+    LLGLenum color_source_factor,
+    LLGLenum color_destination_factor,
+    LLGLenum alpha_source_factor,
+    LLGLenum alpha_destination_factor)
+{
+    glBlendFuncSeparate(
+        color_source_factor,
+        color_destination_factor,
+        alpha_source_factor,
+        alpha_destination_factor);
+}
+
 void setLineWidth(LLGLfloat width)
 {
     glLineWidth(width);
