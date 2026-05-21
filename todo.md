@@ -305,10 +305,13 @@ without an explicit task, and do not start a direct Vulkan port.
       the phase 3 viewport containment packet.
 - [x] Add `docs/architecture/60-phase3-viewport-runtime-smoke.md`.
 - [x] Add `docs/architecture/61-llrendertarget-phase3-completion-summary.md`.
+- [x] Add `docs/architecture/62-phase3-next-owner-selection.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a next-owner selection note for phase 3 before editing more source.
+- [ ] Add
+      `docs/architecture/63-llvertexbuffer-buffer-name-containment-task.md`
+      before editing source.
 
 ## Phase 1 Inventory
 
