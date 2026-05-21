@@ -185,6 +185,11 @@ void setPixelStoreInteger(LLGLenum parameter, LLGLint value)
     glPixelStorei(parameter, value);
 }
 
+void getFloat(LLGLenum parameter, LLGLfloat* value)
+{
+    glGetFloatv(parameter, value);
+}
+
 void getTextureLevelParameterInteger(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value)
 {
     glGetTexLevelParameteriv(target, level, parameter, value);
@@ -401,6 +406,11 @@ LLGLenum getError()
 void enableCapability(LLGLenum capability)
 {
     glEnable(capability);
+}
+
+void setLineWidth(LLGLfloat width)
+{
+    glLineWidth(width);
 }
 
 void setViewport(LLGLint x, LLGLint y, LLGLint width, LLGLint height)

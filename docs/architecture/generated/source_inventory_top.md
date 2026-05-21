@@ -7,7 +7,7 @@
 | `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2091 | 80 | 80 | 0 | 11 | 116 | 0 | 2 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
 | `indra/newview/lldrawpoolterrain.cpp` | render.pipeline | 1123 | 61 | 62 | 1 | 189 | 26 | 1 | 0 |
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 411 | 46 | 46 | 0 | 0 | 83 | 0 | 0 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 421 | 48 | 48 | 0 | 0 | 86 | 0 | 0 |
 | `indra/llrender/llrender.cpp` | render.legacy_low_level | 2161 | 44 | 45 | 0 | 39 | 21 | 0 | 2 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 36 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llshadermgr.cpp` | render.legacy_low_level | 1563 | 32 | 39 | 0 | 0 | 4 | 0 | 0 |
@@ -34,7 +34,6 @@
 | `indra/newview/llappviewer.cpp` | render.pipeline | 6743 | 4 | 4 | 0 | 0 | 1 | 6 | 4 |
 | `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2841 | 3 | 16 | 0 | 32 | 81 | 0 | 0 |
 | `indra/llappearance/lltexlayer.cpp` | render.opengl_touching | 1931 | 3 | 5 | 0 | 85 | 17 | 0 | 10 |
-| `indra/llrender/llrender2dutils.cpp` | render.legacy_low_level | 1871 | 3 | 4 | 0 | 577 | 0 | 0 | 2 |
 | `indra/newview/llfasttimerview.cpp` | render.opengl_touching | 1668 | 3 | 4 | 0 | 75 | 4 | 0 | 1 |
 | `indra/newview/llsnapshotlivepreview.cpp` | assets.texture | 1104 | 3 | 3 | 0 | 64 | 0 | 0 | 0 |
 | `indra/newview/llheroprobemanager.cpp` | render.pipeline | 661 | 3 | 3 | 0 | 22 | 3 | 5 | 2 |
@@ -76,6 +75,7 @@
 | `indra/newview/llfilepicker.cpp` | viewer.misc | 1834 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
 | `indra/llui/llui.h` | unknown | 476 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
 | `indra/newview/app_settings/shaders/class1/deferred/textureUtilV.glsl` | assets.texture | 185 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
+| `indra/llrender/llrender2dutils.cpp` | render.legacy_low_level | 1871 | 0 | 1 | 0 | 577 | 3 | 0 | 2 |
 | `indra/llrender/llcubemap.cpp` | render.legacy_low_level | 345 | 0 | 1 | 0 | 21 | 3 | 0 | 0 |
 | `indra/newview/llfetchedgltfmaterial.cpp` | render.pipeline | 265 | 0 | 1 | 1 | 0 | 16 | 2 | 0 |
 | `indra/newview/llscenemonitor.h` | assets.texture | 130 | 0 | 1 | 1 | 0 | 0 | 0 | 5 |

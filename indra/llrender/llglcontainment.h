@@ -73,6 +73,7 @@ void drawVertexBufferRange(
 void drawVertexBufferArrays(LLGLenum mode, LLGLint first, S32 count);
 void getInteger(LLGLenum parameter, LLGLint* value);
 void setPixelStoreInteger(LLGLenum parameter, LLGLint value);
+void getFloat(LLGLenum parameter, LLGLfloat* value);
 void getTextureLevelParameterInteger(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value);
 void setTextureSubImage2D(
     LLGLenum target,
@@ -156,6 +157,7 @@ void clearBuffers(U32 mask);
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);
 LLGLenum getError();
 void enableCapability(LLGLenum capability);
+void setLineWidth(LLGLfloat width);
 void setViewport(LLGLint x, LLGLint y, LLGLint width, LLGLint height);
 }
 

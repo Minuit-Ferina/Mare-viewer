@@ -447,11 +447,16 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add a focused task for `LLRender2DUtils` line width containment before
       source changes.
 - [x] Add `docs/architecture/84-llrender2d-line-width-containment-task.md`.
+- [x] Route only active `LLRender2DUtils` line-width raw calls through
+      `llglcontainment.*`.
+- [x] Verify the `LLRender2DUtils` line-width containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the `LLRender2DUtils`
+      source packet.
 
 ## Immediate Next Steps
 
-- [ ] Route only active `LLRender2DUtils` line-width raw calls through
-      `llglcontainment.*`.
+- [ ] Add a completion summary for `LLRender2DUtils` line-width containment.
 
 ## Phase 1 Inventory
 
