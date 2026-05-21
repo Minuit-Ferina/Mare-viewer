@@ -124,6 +124,11 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract internal `LLRenderTarget` mipmap helper without changing the
       public API.
 - [x] Verify the mipmap helper extraction with `llrender/fast`.
+- [x] Add `docs/architecture/21-llrendertarget-clear-contract.md`.
+- [x] Document `LLRenderTarget` clear/scissor intent.
+- [x] Extract internal `LLRenderTarget` clear/scissor helpers without changing
+      the public API.
+- [x] Verify the clear/scissor helper extraction with `llrender/fast`.
 
 ## Immediate Next Steps
 

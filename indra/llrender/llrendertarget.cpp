@@ -152,6 +152,16 @@ void generate_bound_render_target_mipmaps()
 {
     glGenerateMipmap(GL_TEXTURE_2D);
 }
+
+void clear_render_target_buffers(U32 mask)
+{
+    glClear(mask);
+}
+
+void set_render_target_scissor(U32 width, U32 height)
+{
+    glScissor(0, 0, width, height);
+}
 }
 
 LLRenderTarget::LLRenderTarget() :
@@ -535,15 +545,15 @@ void LLRenderTarget::clear(U32 mask_in)
     {
         check_framebuffer_status();
         stop_glerror();
-        glClear(mask & mask_in);
+        clear_render_target_buffers(mask & mask_in);
         stop_glerror();
     }
     else
     {
         LLGLEnable scissor(GL_SCISSOR_TEST);
-        glScissor(0, 0, mResX, mResY);
+        set_render_target_scissor(mResX, mResY);
         stop_glerror();
-        glClear(mask & mask_in);
+        clear_render_target_buffers(mask & mask_in);
     }
 }
 
