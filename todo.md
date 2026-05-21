@@ -465,7 +465,9 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLGLStates`
       source packet.
-- [ ] Add `docs/architecture/87-llglstates-material-summary.md`.
+- [x] Add `docs/architecture/87-llglstates-material-summary.md`.
+- [ ] Classify `LLPostProcess` direct OpenGL calls into tiny wrapper packets
+      before editing source.
 
 ## Phase 1 Inventory
 
