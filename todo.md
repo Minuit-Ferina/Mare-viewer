@@ -527,8 +527,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the
       `LLRender::setLineWidth(...)` source packet.
 - [x] Add `docs/architecture/101-llrender-set-line-width-summary.md`.
-- [ ] Decide whether to continue with `LLRender` blend/color state containment
+- [x] Decide whether to continue with `LLRender` blend/color state containment
       or stop before central binding/init paths.
+- [x] Add a focused task for `LLRender` blend/color state containment before
+      source edits.
+- [ ] Route only `LLRender` blend/color raw calls through `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
