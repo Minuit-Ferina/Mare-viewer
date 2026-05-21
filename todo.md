@@ -478,8 +478,10 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLPostProcess`
       source packets.
 - [x] Add `docs/architecture/89-llpostprocess-containment-summary.md`.
-- [ ] Classify the remaining small `indra/llrender` direct-call entries before
+- [x] Classify the remaining small `indra/llrender` direct-call entries before
       more source edits.
+- [ ] Create a focused `LLRender`/`LLTexUnit` call-family map before touching
+      `indra/llrender/llrender.cpp`.
 
 ## Phase 1 Inventory
 
