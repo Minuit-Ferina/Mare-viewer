@@ -508,7 +508,9 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLTexUnit` texture
       parameter source packet.
-- [ ] Add `docs/architecture/97-lltexunit-texture-parameter-summary.md`.
+- [x] Add `docs/architecture/97-lltexunit-texture-parameter-summary.md`.
+- [ ] Add a focused task for `LLRender::clearErrors()` containment before
+      source edits.
 
 ## Phase 1 Inventory
 
