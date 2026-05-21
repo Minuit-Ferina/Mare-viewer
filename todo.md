@@ -306,12 +306,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/60-phase3-viewport-runtime-smoke.md`.
 - [x] Add `docs/architecture/61-llrendertarget-phase3-completion-summary.md`.
 - [x] Add `docs/architecture/62-phase3-next-owner-selection.md`.
+- [x] Add
+      `docs/architecture/63-llvertexbuffer-buffer-name-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add
-      `docs/architecture/63-llvertexbuffer-buffer-name-containment-task.md`
-      before editing source.
+- [ ] Route only `LLVertexBuffer` raw buffer name generation/deletion through
+      `llglcontainment.*` without moving owner state.
 
 ## Phase 1 Inventory
 
