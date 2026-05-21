@@ -540,8 +540,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Decide separately whether to handle `LLRender` global init containment.
 - [x] Add a focused task for `LLRender` fixed global init containment before
       source edits.
-- [ ] Route only fixed `LLRender::init(...)` raw calls through
+- [x] Route only fixed `LLRender::init(...)` raw calls through
       `llglcontainment.*`.
+- [x] Verify the `LLRender` fixed global init containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the `LLRender` fixed
+      global init source packet.
+- [ ] Add `docs/architecture/105-llrender-global-init-summary.md`.
 - [ ] Decide separately whether to handle `LLTexUnit` binding/activation
       containment.
 

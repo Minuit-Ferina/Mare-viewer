@@ -859,16 +859,16 @@ bool LLRender::init(bool needs_vertex_buffer)
     }
 #endif
 
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    LLGLContainment::setPixelStoreInteger(GL_PACK_ALIGNMENT, 1);
+    LLGLContainment::setPixelStoreInteger(GL_UNPACK_ALIGNMENT, 1);
 
     gGL.setSceneBlendType(LLRender::BT_ALPHA);
     gGL.setAmbientLightColor(LLColor4::black);
 
-    glCullFace(GL_BACK);
+    LLGLContainment::setCullFace(GL_BACK);
 
     // necessary for reflection maps
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    LLGLContainment::enableCapability(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 #if LL_WINDOWS
     if (glGenVertexArrays == nullptr)
@@ -879,8 +879,8 @@ bool LLRender::init(bool needs_vertex_buffer)
 
     { //bind a dummy vertex array object so we're core profile compliant
         U32 ret;
-        glGenVertexArrays(1, &ret);
-        glBindVertexArray(ret);
+        LLGLContainment::generateVertexArrays(1, &ret);
+        LLGLContainment::bindVertexArray(ret);
     }
 
     if (needs_vertex_buffer)

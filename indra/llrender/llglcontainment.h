@@ -181,6 +181,9 @@ void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);
 LLGLenum getError();
 void enableCapability(LLGLenum capability);
 bool isCapabilityEnabled(LLGLenum capability);
+void setCullFace(LLGLenum mode);
+void generateVertexArrays(S32 count, LLGLuint* arrays);
+void bindVertexArray(LLGLuint array);
 void setColorMask(LLGLboolean red, LLGLboolean green, LLGLboolean blue, LLGLboolean alpha);
 void setBlendFunction(LLGLenum source_factor, LLGLenum destination_factor);
 void setSeparateBlendFunction(

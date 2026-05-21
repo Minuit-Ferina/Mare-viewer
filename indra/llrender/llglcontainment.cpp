@@ -492,6 +492,21 @@ bool isCapabilityEnabled(LLGLenum capability)
     return glIsEnabled(capability) == GL_TRUE;
 }
 
+void setCullFace(LLGLenum mode)
+{
+    glCullFace(mode);
+}
+
+void generateVertexArrays(S32 count, LLGLuint* arrays)
+{
+    glGenVertexArrays(static_cast<GLsizei>(count), arrays);
+}
+
+void bindVertexArray(LLGLuint array)
+{
+    glBindVertexArray(array);
+}
+
 void setColorMask(LLGLboolean red, LLGLboolean green, LLGLboolean blue, LLGLboolean alpha)
 {
     glColorMask(red, green, blue, alpha);
