@@ -88,13 +88,20 @@ an explicit task, and do not start a direct Vulkan port.
       `libalut.dylib`, and `libllwebrtc.dylib` in `Contents/Frameworks`.
 - [x] Document the local Makefile build flags and environment in
       `docs/architecture/local-darwin-arm64-build.md`.
+- [x] Reconfirm the generated Xcode project as the local macOS runtime
+      reference path; keep Makefile builds as optional build-system validation.
+- [x] Document the existing manifest `--arch=x86_64` mismatch as local
+      build-system debt.
+- [x] Record that the manifest arch mismatch did not block the baseline local
+      arm64 runtime smoke test.
 
 ## Immediate Next Steps
 
-- [ ] Run a runtime smoke test from the Makefile-built app bundle and confirm
-      that it reaches the login screen without dyld errors.
 - [ ] If continuing viewport work, keep the next patch inside the documented
       `LLRenderTarget` owner unless a new contract says otherwise.
+- [ ] Before any runtime-relevant source change, run the local Xcode arm64
+      Release build path documented in
+      `docs/architecture/local-darwin-arm64-build.md`.
 
 ## Phase 1 Inventory
 
@@ -127,9 +134,11 @@ No open items in this section right now.
 
 - [ ] Keep a known-good local macOS arm64 build path in `/private/tmp` for this machine.
 - [x] Verify `libopenal.dylib`, `libalut.dylib`, `libllwebrtc.dylib`, and `libndofdev.dylib` are copied into app bundles.
-- [ ] Document the existing manifest `--arch=x86_64` mismatch as local build-system debt.
-- [ ] Verify whether the manifest arch mismatch affects local dev runtime before proposing a CMake fix.
+- [x] Document the existing manifest `--arch=x86_64` mismatch as local build-system debt.
+- [x] Verify whether the manifest arch mismatch affects local dev runtime before proposing a CMake fix.
 - [x] Investigate the local Makefile `stage_third_party_libs` symlink issue for `sharedlibs/Resources`.
+- [ ] Treat a Makefile-built app launch test as optional non-reference
+      packaging validation unless the Makefile path becomes a required workflow.
 - [ ] Keep FSR2 disabled on Darwin unless a compatible non-compute fallback is explicitly designed.
 - [ ] Run a full local `mare-viewer` Release arm64 build after each source-side containment step on this machine.
 - [ ] Keep universal macOS build investigation separate from this machine's local arm64 dev shortcut.

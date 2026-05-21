@@ -12,6 +12,21 @@ Scope:
 - Output: local `.app` bundle under `/private/tmp`.
 - Packaging: disabled; no DMG, signing, notarization, or universal binary.
 
+## Build Path Policy
+
+The local reference build path is the generated Xcode project with an
+arm64-only `xcodebuild` invocation. This is the path that reached the login
+screen and produced the FPS baseline.
+
+The Unix Makefiles build tree is a separate build-system validation path. It is
+useful for checking single-config CMake behavior, but it is not the local macOS
+runtime reference path.
+
+Do not use raw `cmake -G Xcode` configuration as the normal local workflow
+unless the prebuilt packages have already been installed. The working local
+path was created through `autobuild configure`, which installs or references
+prebuilt dependencies before generating the Xcode project.
+
 ## Current Known-Good Paths
 
 - Worktree: `/private/tmp/Mare-viewer-v1.2.3.1-worktree`
@@ -81,11 +96,30 @@ ls -l \
 - FSR2 is disabled on Darwin because macOS OpenGL does not expose the required
   compute API.
 
+## Manifest Architecture Mismatch
+
+Current local evidence:
+
+- `indra/cmake/Variables.cmake` sets `ARCH` to `x86_64` for Darwin when
+  `ADDRESS_SIZE` is 64.
+- `indra/newview/CMakeLists.txt` passes that value to `viewer_manifest.py` as
+  `--arch=${ARCH}`.
+- The local Xcode build command overrides the actual compiler architecture with
+  `ARCHS=arm64 ONLY_ACTIVE_ARCH=YES`.
+- The resulting executable was verified as arm64 and reached the login screen.
+
+Interpretation:
+
+- The mismatch does not block the current local arm64 runtime smoke test.
+- It may still affect release packaging, archive names, or arch-specific
+  manifest branches.
+- Do not fix it until the macOS release/universal build strategy is chosen.
+
 ## Makefile Build Tree Check
 
 This is a separate validation path from the local arm64 Xcode shortcut above.
 It verifies the single-config Unix Makefiles path used during phase 2 build
-system work.
+system work. It is not the macOS runtime reference path.
 
 Build tree:
 
@@ -142,6 +176,10 @@ Local environment notes:
   they do not change source behavior.
 - This Makefile check is universal and does not replace the local arm64-only
   Xcode shortcut above.
+- A Makefile-built app bundle runtime smoke test is optional. If it fails at
+  launch because the bundle contains an uncompiled `Kokua.xib` instead of the
+  `Kokua.nib` expected by `NSMainNibFile`, treat that as non-Xcode packaging
+  debt rather than a regression in the reference Xcode path.
 
 ## Not Covered
 
