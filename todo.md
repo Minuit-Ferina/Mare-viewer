@@ -611,6 +611,7 @@ without an explicit task, and do not start a direct Vulkan port.
       vertex attribute setter source packet.
 - [x] Add a summary for the `LLGLSLShader` vertex attribute setter containment
       packet.
+- [x] Add a decision note for remaining `LLGLSLShader` direct calls.
 
 ## Phase 1 Inventory
 
