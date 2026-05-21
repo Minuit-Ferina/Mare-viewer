@@ -7,7 +7,7 @@ indra/newview/lldrawpoolterrain.cpp,render.pipeline,1123,23,61,62,61,1,189,26,31
 indra/llrender/llglcontainment.cpp,render.legacy_low_level,500,3,60,60,60,0,0,110,0,0,0,0,0,0,0
 indra/llrender/llglheaders.h,render.legacy_low_level,1076,16,36,762,36,0,0,1,0,0,0,0,0,0,0
 indra/llrender/llshadermgr.cpp,render.legacy_low_level,1563,9,32,39,32,0,0,4,0,0,0,0,0,0,0
-indra/llrender/llrender.cpp,render.legacy_low_level,2166,12,29,30,29,0,39,38,101,0,0,2,7,0,0
+indra/llrender/llrender.cpp,render.legacy_low_level,2166,12,28,29,28,0,39,39,101,0,0,2,7,0,0
 indra/newview/llspatialpartition.cpp,render.pipeline,4188,28,27,27,27,0,206,28,32,44,0,0,0,17,0
 indra/newview/llviewerdisplay.cpp,render.pipeline,1953,68,19,19,19,0,129,37,12,63,2,1,1,6,0
 indra/newview/llmodelpreview.cpp,render.opengl_touching,4172,41,17,17,17,0,58,13,17,0,0,0,0,0,0

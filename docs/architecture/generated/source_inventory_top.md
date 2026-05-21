@@ -10,7 +10,7 @@
 | `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 500 | 60 | 60 | 0 | 0 | 110 | 0 | 0 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 36 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llshadermgr.cpp` | render.legacy_low_level | 1563 | 32 | 39 | 0 | 0 | 4 | 0 | 0 |
-| `indra/llrender/llrender.cpp` | render.legacy_low_level | 2166 | 29 | 30 | 0 | 39 | 38 | 0 | 2 |
+| `indra/llrender/llrender.cpp` | render.legacy_low_level | 2166 | 28 | 29 | 0 | 39 | 39 | 0 | 2 |
 | `indra/newview/llspatialpartition.cpp` | render.pipeline | 4188 | 27 | 27 | 0 | 206 | 28 | 44 | 0 |
 | `indra/newview/llviewerdisplay.cpp` | render.pipeline | 1953 | 19 | 19 | 0 | 129 | 37 | 63 | 1 |
 | `indra/newview/llmodelpreview.cpp` | render.opengl_touching | 4172 | 17 | 17 | 0 | 58 | 13 | 0 | 0 |

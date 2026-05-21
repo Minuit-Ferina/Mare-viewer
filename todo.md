@@ -511,8 +511,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/97-lltexunit-texture-parameter-summary.md`.
 - [x] Add a focused task for `LLRender::clearErrors()` containment before
       source edits.
-- [ ] Route only `LLRender::clearErrors()` error reads through
+- [x] Route only `LLRender::clearErrors()` error reads through
       `llglcontainment.*`.
+- [x] Verify the `LLRender::clearErrors()` containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the
+      `LLRender::clearErrors()` source packet.
+- [ ] Add `docs/architecture/99-llrender-clear-errors-summary.md`.
 
 ## Phase 1 Inventory
 

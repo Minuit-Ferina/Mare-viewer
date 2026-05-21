@@ -1536,7 +1536,7 @@ bool LLRender::verifyTexUnitActive(U32 unitToVerify)
 
 void LLRender::clearErrors()
 {
-    while (glGetError())
+    while (LLGLContainment::getError())
     {
         //loop until no more error flags left
     }
