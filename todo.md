@@ -547,8 +547,12 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLRender` fixed
       global init source packet.
 - [x] Add `docs/architecture/105-llrender-global-init-summary.md`.
-- [ ] Decide separately whether to handle `LLTexUnit` binding/activation
+- [x] Decide separately whether to handle `LLTexUnit` binding/activation
       containment.
+- [x] Add a focused task for `LLTexUnit` binding/activation containment before
+      source edits.
+- [ ] Route only `LLTexUnit` active texture and texture bind raw calls through
+      `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
