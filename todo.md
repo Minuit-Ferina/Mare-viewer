@@ -330,11 +330,11 @@ without an explicit task, and do not start a direct Vulkan port.
       phase 3 remaining vertex buffer containment packet.
 - [x] Defer runtime smoke for the remaining vertex buffer containment packet
       because only local wrapper helper bodies moved behind containment.
+- [x] Add `docs/architecture/65-llvertexbuffer-phase3-completion-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a full `LLVertexBuffer` phase 3 containment completion summary
-      before choosing another owner.
+- [ ] Add a next-owner selection note before editing another render owner.
 
 ## Phase 1 Inventory
 
