@@ -269,6 +269,16 @@ LLGLuint getUniformBlockIndex(LLGLuint program, const char* name)
     return glGetUniformBlockIndex(program, name);
 }
 
+void setUniformInteger(LLGLint location, LLGLint value)
+{
+    glUniform1i(location, value);
+}
+
+void setUniformIntegerVector(LLGLint location, S32 count, const LLGLint* values)
+{
+    glUniform1iv(location, static_cast<GLsizei>(count), values);
+}
+
 void setMaterialFloatVector(LLGLenum face, LLGLenum parameter, const LLGLfloat* values)
 {
     glMaterialfv(face, parameter, values);

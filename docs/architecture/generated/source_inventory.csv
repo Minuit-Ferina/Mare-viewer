@@ -1,10 +1,10 @@
 path,category_guess,lines,includes,gl_calls,gl_raw_refs,gl_call_exprs,gl_known_false_refs,gGL,LLGL,LLRender,LLPipeline,LLDrawPool,LLRenderTarget,LLImageGL,LLViewerTexture,LLViewerWindow
 indra/newview/pipeline.cpp,render.pipeline,12046,96,81,83,81,0,340,158,89,564,137,60,19,8,0
 indra/newview/marefsr2upscaler.cpp,render.opengl_touching,379,12,81,81,81,0,3,3,1,0,0,4,0,0,0
+indra/llrender/llglcontainment.cpp,render.legacy_low_level,617,3,80,80,80,0,0,150,0,0,0,0,0,0,0
 indra/llrender/llgl.cpp,render.legacy_low_level,2949,19,79,2213,79,0,31,79,9,0,0,0,2,0,2
-indra/llrender/llglcontainment.cpp,render.legacy_low_level,607,3,78,78,78,0,0,146,0,0,0,0,0,0,0
 indra/newview/lldrawpoolterrain.cpp,render.pipeline,1123,23,61,62,61,1,189,26,31,1,30,0,0,22,0
-indra/llrender/llglslshader.cpp,render.legacy_low_level,2092,11,51,51,51,0,11,146,1,0,0,2,0,0,0
+indra/llrender/llglslshader.cpp,render.legacy_low_level,2092,11,49,49,49,0,11,148,1,0,0,2,0,0,0
 indra/llrender/llglheaders.h,render.legacy_low_level,1076,16,36,762,36,0,0,1,0,0,0,0,0,0,0
 indra/llrender/llshadermgr.cpp,render.legacy_low_level,1563,9,32,39,32,0,0,4,0,0,0,0,0,0,0
 indra/newview/llspatialpartition.cpp,render.pipeline,4188,28,27,27,27,0,206,28,32,44,0,0,0,17,0
@@ -163,7 +163,7 @@ indra/llui/llscrolllistitem.cpp,render.opengl_touching,205,4,0,0,0,0,1,0,0,0,0,0
 indra/newview/llfloaterbigpreview.cpp,ui,111,3,0,0,0,0,1,0,1,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/dynamicVelocityV.glsl,render.opengl_touching,39,0,0,0,0,0,1,0,1,0,0,0,0,0,0
 indra/newview/llviewershadermgr.cpp,render.pipeline,3765,18,0,0,0,0,0,214,2,7,0,0,0,0,0
-indra/llrender/llglcontainment.h,render.legacy_low_level,217,2,0,0,0,0,0,146,0,0,0,0,0,0,0
+indra/llrender/llglcontainment.h,render.legacy_low_level,219,2,0,0,0,0,0,150,0,0,0,0,0,0,0
 indra/llprimitive/tests/llgltfmaterial_test.cpp,render.opengl_touching,442,6,0,0,0,0,0,101,0,0,0,0,0,0,0
 indra/newview/llpanelface.cpp,ui,5988,60,0,0,0,0,0,91,35,0,0,0,0,6,0
 indra/newview/llmaterialeditor.cpp,assets.texture,3831,38,0,0,0,0,0,72,0,0,0,0,0,1,0

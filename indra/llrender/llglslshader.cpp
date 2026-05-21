@@ -828,7 +828,7 @@ GLint LLGLSLShader::mapUniformTextureChannel(GLint location, GLenum type, GLint 
         GLint ret = mActiveTextureChannels;
         if (size == 1)
         {
-            glUniform1i(location, mActiveTextureChannels);
+            LLGLContainment::setUniformInteger(location, mActiveTextureChannels);
             mActiveTextureChannels++;
         }
         else
@@ -841,7 +841,7 @@ GLint LLGLSLShader::mapUniformTextureChannel(GLint location, GLenum type, GLint 
             {
                 channel[i] = mActiveTextureChannels++;
             }
-            glUniform1iv(location, size, channel);
+            LLGLContainment::setUniformIntegerVector(location, size, channel);
         }
 
         return ret;

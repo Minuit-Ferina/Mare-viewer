@@ -95,6 +95,8 @@ void getActiveUniform(
     LLGLenum* type,
     char* name);
 LLGLuint getUniformBlockIndex(LLGLuint program, const char* name);
+void setUniformInteger(LLGLint location, LLGLint value);
+void setUniformIntegerVector(LLGLint location, S32 count, const LLGLint* values);
 void setMaterialFloatVector(LLGLenum face, LLGLenum parameter, const LLGLfloat* values);
 void setMaterialInteger(LLGLenum face, LLGLenum parameter, LLGLint value);
 void pushAttributeBits(U32 bits);

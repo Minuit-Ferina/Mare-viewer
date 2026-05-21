@@ -583,11 +583,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add a summary for the `LLGLSLShader` metadata query containment packet.
 - [x] Add a focused task for `LLGLSLShader` texture-channel uniform
       containment before source edits.
-- [ ] Route only `LLGLSLShader::mapUniformTextureChannel(...)` raw uniform
+- [x] Route only `LLGLSLShader::mapUniformTextureChannel(...)` raw uniform
       calls through `llglcontainment.*`.
-- [ ] Verify the `LLGLSLShader` texture-channel uniform containment packet
+- [x] Verify the `LLGLSLShader` texture-channel uniform containment packet
       with `llrender/fast`.
-- [ ] Regenerate the generated source inventory after the `LLGLSLShader`
+- [x] Regenerate the generated source inventory after the `LLGLSLShader`
       texture-channel uniform source packet.
 - [ ] Add a summary for the `LLGLSLShader` texture-channel uniform containment
       packet.
