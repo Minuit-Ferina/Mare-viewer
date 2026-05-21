@@ -408,11 +408,15 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the FBO storage containment packet with `llrender/fast`.
 - [x] Regenerate the generated source inventory after the FBO storage source
       packet.
+- [x] Add a focused task for PBO-path `LLImageGL::scaleDown(...)`
+      reallocation and mipmap containment before source changes.
+- [x] Add
+      `docs/architecture/79-llimagegl-scaledown-pbo-storage-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a focused task for PBO-path `LLImageGL::scaleDown(...)`
-      reallocation and mipmap containment before source changes.
+- [ ] Route only PBO-path `LLImageGL::scaleDown(...)` reallocation and mipmap
+      raw calls through `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
