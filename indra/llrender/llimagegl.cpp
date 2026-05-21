@@ -2665,12 +2665,12 @@ bool LLImageGL::scaleDown(S32 desired_discard)
 
     if (gGLManager.mDownScaleMethod == 0)
     { // use an FBO to downscale the texture
-        glViewport(0, 0, desired_width, desired_height);
+        LLGLContainment::setViewport(0, 0, desired_width, desired_height);
 
         // draw a full screen triangle
         if (gGL.getTexUnit(0)->bind(this, true, true))
         {
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            LLGLContainment::drawVertexBufferArrays(GL_TRIANGLES, 0, 3);
 
             free_tex_image(mTexName);
             glTexImage2D(mTarget, 0, mFormatInternal, desired_width, desired_height, 0, mFormatPrimary, mFormatType, nullptr);

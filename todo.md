@@ -394,11 +394,16 @@ without an explicit task, and do not start a direct Vulkan port.
       changes and deferred Xcode/runtime validation at the end of the block.
 - [x] Add
       `docs/architecture/77-llimagegl-scaledown-fbo-draw-containment-task.md`.
+- [x] Route only FBO-path `LLImageGL::scaleDown(...)` viewport and draw raw
+      calls through `llglcontainment.*`.
+- [x] Verify the FBO draw containment packet with `llrender/fast`.
+- [x] Regenerate the generated source inventory after the FBO draw source
+      packet.
 
 ## Immediate Next Steps
 
-- [ ] Route only FBO-path `LLImageGL::scaleDown(...)` viewport and draw raw
-      calls through `llglcontainment.*`.
+- [ ] Add a focused task for FBO-path `LLImageGL::scaleDown(...)`
+      reallocation and mipmap containment before source changes.
 
 ## Phase 1 Inventory
 
