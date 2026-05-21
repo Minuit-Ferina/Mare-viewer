@@ -293,11 +293,16 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Record a loaded-scene and resize smoke test after the phase 3 allocation
       error containment packet.
 - [x] Add `docs/architecture/58-llrendertarget-viewport-containment-task.md`.
+- [x] Route `LLRenderTarget` raw viewport calls through `llglcontainment.*`
+      without moving owner state.
+- [x] Verify the phase 3 viewport containment packet with `llrender/fast`.
+- [x] Regenerate the generated source inventory after the viewport source
+      packet.
 
 ## Immediate Next Steps
 
-- [ ] Route `LLRenderTarget` raw viewport calls through `llglcontainment.*`
-      without moving owner state.
+- [ ] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 viewport containment packet.
 
 ## Phase 1 Inventory
 

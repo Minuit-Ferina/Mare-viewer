@@ -64,14 +64,14 @@ void check_current_draw_framebuffer_status()
 
 void set_render_target_viewport(U32 width, U32 height)
 {
-    glViewport(0, 0, width, height);
+    LLGLContainment::setViewport(0, 0, static_cast<LLGLint>(width), static_cast<LLGLint>(height));
     LLRenderTarget::sCurResX = width;
     LLRenderTarget::sCurResY = height;
 }
 
 void restore_default_framebuffer_viewport()
 {
-    glViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+    LLGLContainment::setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
     LLRenderTarget::sCurResX = gGLViewport[2];
     LLRenderTarget::sCurResY = gGLViewport[3];
 }

@@ -126,3 +126,46 @@ After the build, perform a runtime smoke test:
 - login page
 - loaded scene
 - window resize
+
+## Source Patch Applied
+
+Applied in phase 3:
+
+- added `LLGLContainment::setViewport(...)`
+- delegated `set_render_target_viewport(...)` to the new containment helper
+- delegated `restore_default_framebuffer_viewport()` to the new containment
+  helper
+- kept `gGLViewport` reads in `LLRenderTarget`
+- kept `sCurResX` and `sCurResY` updates in `LLRenderTarget`
+- kept `bindTarget()` / `flush()` ordering unchanged
+- did not touch viewer-window, camera, probe, draw-pool, `pipeline.cpp`, UI,
+  shader, or texture upload code
+
+Generated inventory was regenerated after the source patch so
+`docs/architecture/generated/source_inventory.csv` and
+`docs/architecture/generated/source_inventory_top.md` reflect the new call
+location.
+
+After this source patch, `indra/llrender/llrendertarget.cpp` has no direct
+`gl*` calls.
+
+## Source Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-llrender-make3/clang-module-cache \
+/opt/homebrew/bin/cmake \
+  --build /private/tmp/Mare-viewer-phase2-llrender-make3 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llrendertarget.cpp.o`
+- rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
+- relinked `libllrender.a`

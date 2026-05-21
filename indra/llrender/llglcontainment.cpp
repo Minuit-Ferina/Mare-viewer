@@ -95,4 +95,9 @@ LLGLenum getError()
 {
     return glGetError();
 }
+
+void setViewport(LLGLint x, LLGLint y, LLGLint width, LLGLint height)
+{
+    glViewport(x, y, width, height);
+}
 }
