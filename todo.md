@@ -546,7 +546,7 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLRender` fixed
       global init source packet.
-- [ ] Add `docs/architecture/105-llrender-global-init-summary.md`.
+- [x] Add `docs/architecture/105-llrender-global-init-summary.md`.
 - [ ] Decide separately whether to handle `LLTexUnit` binding/activation
       containment.
 
