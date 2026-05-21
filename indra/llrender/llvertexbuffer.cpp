@@ -272,6 +272,16 @@ static void bind_vertex_buffer_target(GLenum target, GLuint buffer)
     glBindBuffer(target, buffer);
 }
 
+static void allocate_vertex_buffer_storage(GLenum target, U32 size, const void* data, GLenum usage)
+{
+    glBufferData(target, size, data, usage);
+}
+
+static void upload_vertex_buffer_sub_data(GLenum target, U32 offset, U32 size, const void* data)
+{
+    glBufferSubData(target, offset, size, data);
+}
+
 // batch calls to glGenBuffers
 static GLuint gen_buffer()
 {
@@ -467,7 +477,7 @@ public:
             mMisses++;
             name = gen_buffer();
             bind_vertex_buffer_target(type, name);
-            glBufferData(type, size, nullptr, GL_DYNAMIC_DRAW);
+            allocate_vertex_buffer_storage(type, size, nullptr, GL_DYNAMIC_DRAW);
             if (type == GL_ELEMENT_ARRAY_BUFFER)
             {
                 LLVertexBuffer::sGLRenderIndices = name;
@@ -1396,7 +1406,7 @@ void LLVertexBuffer::flush_vbo(GLenum target, U32 start, U32 end, void* data, U8
                 //LL_PROFILE_GPU_ZONE("glBufferSubData");
                 U32 tend = llmin(i + block_size, end);
                 U32 size = tend - i + 1;
-                glBufferSubData(target, i, size, (U8*) data + (i-start));
+                upload_vertex_buffer_sub_data(target, i, size, (U8*) data + (i-start));
             }
         }
     }
@@ -1444,7 +1454,7 @@ void LLVertexBuffer::_unmapBuffer()
             mGLBuffer = gen_buffer();
             bind_vertex_buffer_target(GL_ARRAY_BUFFER, mGLBuffer);
             sGLRenderBuffer = mGLBuffer;
-            glBufferData(GL_ARRAY_BUFFER, mSize, mMappedData, GL_STATIC_DRAW);
+            allocate_vertex_buffer_storage(GL_ARRAY_BUFFER, mSize, mMappedData, GL_STATIC_DRAW);
         }
         else if (mGLBuffer != sGLRenderBuffer)
         {
@@ -1464,7 +1474,7 @@ void LLVertexBuffer::_unmapBuffer()
             bind_vertex_buffer_target(GL_ELEMENT_ARRAY_BUFFER, mGLIndices);
             sGLRenderIndices = mGLIndices;
 
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, mIndicesSize, mMappedIndexData, GL_STATIC_DRAW);
+            allocate_vertex_buffer_storage(GL_ELEMENT_ARRAY_BUFFER, mIndicesSize, mMappedIndexData, GL_STATIC_DRAW);
         }
         else if (mGLIndices != sGLRenderIndices)
         {
@@ -1920,4 +1930,3 @@ void LLVertexBuffer::setIndexData(const U32* data, U32 offset, U32 count)
     }
     flush_vbo(GL_ELEMENT_ARRAY_BUFFER, offset * sizeof(U32), (offset + count) * sizeof(U32) - 1, (U8*)data, mMappedIndexData);
 }
-

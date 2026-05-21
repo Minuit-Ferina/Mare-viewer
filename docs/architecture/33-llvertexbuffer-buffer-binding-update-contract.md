@@ -296,8 +296,8 @@ Reason:
 
 ## Candidate Source Cleanup
 
-Small naming-only cleanup is applied for GL buffer name generation/deletion and
-buffer target binding. It stays local to:
+Small naming-only cleanup is applied for GL buffer name generation/deletion,
+buffer target binding, and buffer storage/upload calls. It stays local to:
 
 - `indra/llrender/llvertexbuffer.cpp`
 
@@ -305,11 +305,11 @@ Local helper groups:
 
 - GL buffer name generation/deletion helpers
 - buffer target binding helper
+- buffer storage allocation helper
+- buffer sub-data upload helper
 
 Not yet applied:
 
-- buffer storage allocation helper
-- buffer sub-data upload helper
 - attribute array enable/disable helper
 - attribute pointer setup helpers
 - draw call helpers
@@ -329,18 +329,24 @@ Applied in phase 2:
 
 - added local helpers for `glGenBuffers(...)` and `glDeleteBuffers(...)`
 - added a local helper for `glBindBuffer(...)`
+- added local helpers for `glBufferData(...)` and `glBufferSubData(...)`
 - replaced buffer name generation callsites in `gen_buffer()`
 - replaced the delayed deletion callsite in `delete_buffers(...)`
 - replaced buffer binding callsites in allocation, unbind, unmap/flush, and
   draw setup paths
+- replaced buffer storage allocation callsites in default allocation and Apple
+  unmap/reallocation paths
+- replaced the sub-data upload callsite in `flush_vbo(...)`
 - kept the AMD one-buffer-at-a-time workaround unchanged
 - kept delayed deletion timing unchanged
 - kept `sGLRenderBuffer` and `sGLRenderIndices` update placement unchanged
+- kept `GL_DYNAMIC_DRAW` and `GL_STATIC_DRAW` usage unchanged
+- kept `flush_vbo(...)` block splitting unchanged
 - kept public headers unchanged
 - did not move behavior into `llglcontainment.*`
 
 This does not change ownership: `LLVertexBuffer` still owns buffer name pooling
-delayed deletion, and binding state tracking.
+delayed deletion, binding state tracking, and buffer data upload.
 
 ## Verification
 

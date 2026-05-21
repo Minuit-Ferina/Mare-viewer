@@ -189,11 +189,14 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract local `LLVertexBuffer` buffer binding helper names without
       changing the public API.
 - [x] Verify the buffer binding helper extraction with `llrender/fast`.
+- [x] Extract local `LLVertexBuffer` buffer upload helper names without
+      changing the public API.
+- [x] Verify the buffer upload helper extraction with `llrender/fast`.
 
 ## Immediate Next Steps
 
-- [ ] Extract the smallest local `LLVertexBuffer` buffer upload helper names
-      without changing the public API.
+- [ ] Extract the smallest local `LLVertexBuffer` attribute array/layout helper
+      names without changing the public API.
 
 ## Phase 1 Inventory
 
