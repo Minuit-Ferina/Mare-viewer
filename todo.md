@@ -208,11 +208,10 @@ without an explicit task, and do not start a direct Vulkan port.
       `phase1-gl-containment`.
 - [x] Create branch `phase3` from `phase2`.
 - [x] Add `docs/architecture/36-phase3-plan.md`.
+- [x] Add `docs/architecture/37-llrendertarget-fbo-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a task-specific containment note for `LLRenderTarget` framebuffer
-      binding/status behavior before source edits.
 - [ ] Keep the first phase 3 source packet limited to `llglcontainment.*` and
       one owner file if the containment note supports it.
 
