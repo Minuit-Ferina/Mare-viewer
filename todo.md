@@ -601,6 +601,16 @@ without an explicit task, and do not start a direct Vulkan port.
       `LLGLSLShader::uniform*` source packet.
 - [x] Add a summary for the public `LLGLSLShader::uniform*` containment
       packet.
+- [x] Add a focused task for `LLGLSLShader` vertex attribute setter
+      containment before source edits.
+- [ ] Route `LLGLSLShader` vertex attribute setter raw calls through
+      `llglcontainment.*`.
+- [ ] Verify the `LLGLSLShader` vertex attribute setter containment packet
+      with `llrender/fast`.
+- [ ] Regenerate the generated source inventory after the `LLGLSLShader`
+      vertex attribute setter source packet.
+- [ ] Add a summary for the `LLGLSLShader` vertex attribute setter containment
+      packet.
 
 ## Phase 1 Inventory
 
