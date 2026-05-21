@@ -472,7 +472,7 @@ without an explicit task, and do not start a direct Vulkan port.
       `llglcontainment.*`.
 - [x] Route `LLPostProcess` texture copy/allocation raw calls through
       `llglcontainment.*`.
-- [ ] Route `LLPostProcess` shader and error query raw calls through
+- [x] Route `LLPostProcess` shader and error query raw calls through
       `llglcontainment.*`.
 
 ## Phase 1 Inventory

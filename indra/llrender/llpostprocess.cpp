@@ -290,7 +290,7 @@ void LLPostProcess::getShaderUniforms(glslUniforms & uniforms, GLuint & prog)
     /// Find uniform locations and insert into map
     glslUniforms::iterator i;
     for (i  = uniforms.begin(); i != uniforms.end(); ++i){
-        i->second = glGetUniformLocation(prog, i->first.String().c_str());
+        i->second = LLGLContainment::getUniformLocation(prog, i->first.String().c_str());
     }
 }
 
@@ -419,7 +419,7 @@ bool LLPostProcess::checkError(void)
     GLenum glErr;
     bool    retCode = false;
 
-    glErr = glGetError();
+    glErr = LLGLContainment::getError();
     while (glErr != GL_NO_ERROR)
     {
         // shaderErrorLog << (const char *) gluErrorString(glErr) << std::endl;
@@ -437,7 +437,7 @@ bool LLPostProcess::checkError(void)
         }
 
         retCode = true;
-        glErr = glGetError();
+        glErr = LLGLContainment::getError();
     }
     return retCode;
 }
@@ -450,7 +450,7 @@ void LLPostProcess::checkShaderError(GLuint shader)
 
     checkError();  // Check for OpenGL errors
 
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infologLength);
+    LLGLContainment::getShaderInteger(shader, GL_INFO_LOG_LENGTH, &infologLength);
 
     checkError();  // Check for OpenGL errors
 
@@ -462,7 +462,7 @@ void LLPostProcess::checkShaderError(GLuint shader)
             /// Could not allocate infolog buffer
             return;
         }
-       glGetProgramInfoLog(shader, infologLength, &charsWritten, infoLog);
+        LLGLContainment::getProgramInfoLog(shader, infologLength, &charsWritten, infoLog);
         // shaderErrorLog << (char *) infoLog << std::endl;
         mShaderErrorString = (char *) infoLog;
         free(infoLog);

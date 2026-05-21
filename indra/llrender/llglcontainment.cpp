@@ -190,6 +190,21 @@ void getFloat(LLGLenum parameter, LLGLfloat* value)
     glGetFloatv(parameter, value);
 }
 
+LLGLint getUniformLocation(LLGLuint program, const char* name)
+{
+    return glGetUniformLocation(program, name);
+}
+
+void getShaderInteger(LLGLuint shader, LLGLenum parameter, LLGLint* value)
+{
+    glGetShaderiv(shader, parameter, value);
+}
+
+void getProgramInfoLog(LLGLuint program, S32 buffer_size, LLGLint* length, char* info_log)
+{
+    glGetProgramInfoLog(program, static_cast<GLsizei>(buffer_size), length, info_log);
+}
+
 void setMaterialFloatVector(LLGLenum face, LLGLenum parameter, const LLGLfloat* values)
 {
     glMaterialfv(face, parameter, values);
