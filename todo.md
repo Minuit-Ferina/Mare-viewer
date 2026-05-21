@@ -178,11 +178,13 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/32-llimagegl-upload-mipmap-parameter-contract.md`.
 - [x] Map `LLImageGL` full upload, mipmap, and texture-parameter call
       families.
+- [x] Decide to leave `LLImageGL` upload/mipmap source cleanup for later and
+      switch to the next owner.
 
 ## Immediate Next Steps
 
-- [ ] Decide whether to extract the smallest local `LLImageGL` upload/mipmap
-      helper names or switch to the next owner, likely `LLVertexBuffer`.
+- [ ] Map `LLVertexBuffer` buffer binding and update call families before
+      source cleanup.
 
 ## Phase 1 Inventory
 
