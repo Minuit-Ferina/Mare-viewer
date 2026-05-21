@@ -123,3 +123,58 @@ Runtime smoke:
 
 After this grouped wrapper relocation, stop and summarize the `LLVertexBuffer`
 phase 3 state before choosing another owner or touching `LLImageGL`.
+
+## Source Patch Applied
+
+Applied in phase 3:
+
+- added `LLGLContainment::bindBufferObject(...)`
+- added `LLGLContainment::allocateBufferObjectStorage(...)`
+- added `LLGLContainment::updateBufferObjectSubData(...)`
+- added `LLGLContainment::enableVertexAttributeArray(...)`
+- added `LLGLContainment::disableVertexAttributeArray(...)`
+- added `LLGLContainment::setVertexAttributePointer(...)`
+- added `LLGLContainment::setIntegerVertexAttributePointer(...)`
+- added `LLGLContainment::drawVertexBufferRange(...)`
+- added `LLGLContainment::drawVertexBufferArrays(...)`
+- delegated only the matching local `LLVertexBuffer` helper bodies
+- kept all static tracker updates, dirty-region logic, shader attribute
+  decisions, draw validation, matrix sync, and `STOP_GLERROR` placement in
+  `LLVertexBuffer`
+- did not touch disabled GL work queue sync code, draw pools, UI rendering,
+  shader managers, texture upload code, or `pipeline.cpp`
+
+Generated inventory was regenerated after the source patch so
+`docs/architecture/generated/source_inventory.csv` and
+`docs/architecture/generated/source_inventory_top.md` reflect the new call
+locations.
+
+After this source patch:
+
+- active local `LLVertexBuffer` wrapper helper bodies no longer issue raw
+  OpenGL calls directly
+- `indra/llrender/llvertexbuffer.cpp` has 2 likely direct `gl*` calls in the
+  generated inventory, both from disabled/commented GL work queue sync context
+- `indra/llrender/llglcontainment.cpp` has 24 likely direct `gl*` calls in the
+  generated inventory
+
+## Source Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-llrender-make3/clang-module-cache \
+/opt/homebrew/bin/cmake \
+  --build /private/tmp/Mare-viewer-phase2-llrender-make3 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
+- rebuilt `llrender/CMakeFiles/llrender.dir/llvertexbuffer.cpp.o`
+- relinked `libllrender.a`

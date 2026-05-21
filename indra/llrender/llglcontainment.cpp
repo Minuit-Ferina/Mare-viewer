@@ -86,6 +86,85 @@ void deleteBufferObjects(S32 count, const LLGLuint* buffers)
     glDeleteBuffers(static_cast<GLsizei>(count), buffers);
 }
 
+void bindBufferObject(LLGLenum target, LLGLuint buffer)
+{
+    glBindBuffer(target, buffer);
+}
+
+void allocateBufferObjectStorage(LLGLenum target, U32 size, const void* data, LLGLenum usage)
+{
+    glBufferData(target, static_cast<GLsizeiptr>(size), data, usage);
+}
+
+void updateBufferObjectSubData(LLGLenum target, U32 offset, U32 size, const void* data)
+{
+    glBufferSubData(target, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), data);
+}
+
+void enableVertexAttributeArray(LLGLuint location)
+{
+    glEnableVertexAttribArray(location);
+}
+
+void disableVertexAttributeArray(LLGLuint location)
+{
+    glDisableVertexAttribArray(location);
+}
+
+void setVertexAttributePointer(
+    LLGLuint location,
+    LLGLint size,
+    LLGLenum type,
+    LLGLboolean normalized,
+    S32 stride,
+    const void* pointer)
+{
+    glVertexAttribPointer(
+        location,
+        size,
+        type,
+        static_cast<GLboolean>(normalized),
+        static_cast<GLsizei>(stride),
+        pointer);
+}
+
+void setIntegerVertexAttributePointer(
+    LLGLuint location,
+    LLGLint size,
+    LLGLenum type,
+    S32 stride,
+    const void* pointer)
+{
+    glVertexAttribIPointer(
+        location,
+        size,
+        type,
+        static_cast<GLsizei>(stride),
+        pointer);
+}
+
+void drawVertexBufferRange(
+    LLGLenum mode,
+    LLGLuint start,
+    LLGLuint end,
+    S32 count,
+    LLGLenum index_type,
+    const void* indices)
+{
+    glDrawRangeElements(
+        mode,
+        start,
+        end,
+        static_cast<GLsizei>(count),
+        index_type,
+        indices);
+}
+
+void drawVertexBufferArrays(LLGLenum mode, LLGLint first, S32 count)
+{
+    glDrawArrays(mode, first, static_cast<GLsizei>(count));
+}
+
 void generateTextureMipmap(LLGLenum texture_target)
 {
     glGenerateMipmap(texture_target);

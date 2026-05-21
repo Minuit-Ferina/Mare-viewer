@@ -43,6 +43,32 @@ void generateFramebuffers(S32 count, LLGLuint* framebuffers);
 void deleteFramebuffers(S32 count, const LLGLuint* framebuffers);
 void generateBufferObjects(S32 count, LLGLuint* buffers);
 void deleteBufferObjects(S32 count, const LLGLuint* buffers);
+void bindBufferObject(LLGLenum target, LLGLuint buffer);
+void allocateBufferObjectStorage(LLGLenum target, U32 size, const void* data, LLGLenum usage);
+void updateBufferObjectSubData(LLGLenum target, U32 offset, U32 size, const void* data);
+void enableVertexAttributeArray(LLGLuint location);
+void disableVertexAttributeArray(LLGLuint location);
+void setVertexAttributePointer(
+    LLGLuint location,
+    LLGLint size,
+    LLGLenum type,
+    LLGLboolean normalized,
+    S32 stride,
+    const void* pointer);
+void setIntegerVertexAttributePointer(
+    LLGLuint location,
+    LLGLint size,
+    LLGLenum type,
+    S32 stride,
+    const void* pointer);
+void drawVertexBufferRange(
+    LLGLenum mode,
+    LLGLuint start,
+    LLGLuint end,
+    S32 count,
+    LLGLenum index_type,
+    const void* indices);
+void drawVertexBufferArrays(LLGLenum mode, LLGLint first, S32 count);
 void generateTextureMipmap(LLGLenum texture_target);
 void clearBuffers(U32 mask);
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);

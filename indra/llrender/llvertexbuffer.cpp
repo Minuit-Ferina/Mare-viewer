@@ -270,47 +270,47 @@ static void delete_vertex_buffer_names(GLsizei count, const GLuint* buffers)
 
 static void bind_vertex_buffer_target(GLenum target, GLuint buffer)
 {
-    glBindBuffer(target, buffer);
+    LLGLContainment::bindBufferObject(target, buffer);
 }
 
 static void allocate_vertex_buffer_storage(GLenum target, U32 size, const void* data, GLenum usage)
 {
-    glBufferData(target, size, data, usage);
+    LLGLContainment::allocateBufferObjectStorage(target, size, data, usage);
 }
 
 static void upload_vertex_buffer_sub_data(GLenum target, U32 offset, U32 size, const void* data)
 {
-    glBufferSubData(target, offset, size, data);
+    LLGLContainment::updateBufferObjectSubData(target, offset, size, data);
 }
 
 static void enable_vertex_attribute_array(GLuint location)
 {
-    glEnableVertexAttribArray(location);
+    LLGLContainment::enableVertexAttributeArray(location);
 }
 
 static void disable_vertex_attribute_array(GLuint location)
 {
-    glDisableVertexAttribArray(location);
+    LLGLContainment::disableVertexAttributeArray(location);
 }
 
 static void set_vertex_attribute_pointer(GLuint location, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void* pointer)
 {
-    glVertexAttribPointer(location, size, type, normalized, stride, pointer);
+    LLGLContainment::setVertexAttributePointer(location, size, type, normalized, stride, pointer);
 }
 
 static void set_integer_vertex_attribute_pointer(GLuint location, GLint size, GLenum type, GLsizei stride, const void* pointer)
 {
-    glVertexAttribIPointer(location, size, type, stride, pointer);
+    LLGLContainment::setIntegerVertexAttributePointer(location, size, type, stride, pointer);
 }
 
 static void draw_vertex_buffer_range(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum index_type, const void* indices)
 {
-    glDrawRangeElements(mode, start, end, count, index_type, indices);
+    LLGLContainment::drawVertexBufferRange(mode, start, end, count, index_type, indices);
 }
 
 static void draw_vertex_buffer_arrays(GLenum mode, GLint first, GLsizei count)
 {
-    glDrawArrays(mode, first, count);
+    LLGLContainment::drawVertexBufferArrays(mode, first, count);
 }
 
 // batch buffer object name generation

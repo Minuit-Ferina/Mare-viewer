@@ -320,11 +320,17 @@ without an explicit task, and do not start a direct Vulkan port.
       because only raw buffer object name calls moved behind containment.
 - [x] Add
       `docs/architecture/64-llvertexbuffer-remaining-containment-task.md`.
+- [x] Route remaining local `LLVertexBuffer` wrapper call families through
+      `llglcontainment.*` without moving owner state.
+- [x] Verify the phase 3 remaining vertex buffer containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the remaining vertex
+      buffer source packet.
 
 ## Immediate Next Steps
 
-- [ ] Route remaining local `LLVertexBuffer` wrapper call families through
-      `llglcontainment.*` without moving owner state.
+- [ ] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 remaining vertex buffer containment packet.
 
 ## Phase 1 Inventory
 
