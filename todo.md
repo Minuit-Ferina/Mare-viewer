@@ -372,11 +372,15 @@ without an explicit task, and do not start a direct Vulkan port.
       not change.
 - [x] Add
       `docs/architecture/73-llimagegl-compressed-upload-automip-summary.md`.
+- [x] Add a focused contract for `LLImageGL::setManualImage(...)`
+      `glTexImage2D(...)` allocation/copy containment before source changes.
+- [x] Add
+      `docs/architecture/74-llimagegl-manual-image-allocation-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a focused contract for `LLImageGL::setManualImage(...)`
-      `glTexImage2D(...)` allocation/copy containment before source changes.
+- [ ] Route only `LLImageGL::setManualImage(...)` `glTexImage2D(...)`
+      allocation/copy raw calls through `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
