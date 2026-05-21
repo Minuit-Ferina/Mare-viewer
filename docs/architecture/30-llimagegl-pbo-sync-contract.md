@@ -179,15 +179,6 @@ Constraints:
 - do not change texture memory accounting order
 - do not move behavior into `llglcontainment.*`
 
-Not yet applied:
-
-- sync create/wait/delete helpers local to `syncToMainThread(...)`
-
-Reason:
-
-- GPU sync uses vendor-specific branching and main-thread callback ordering, so
-  it should stay in a separate patch.
-
 ## Source Cleanup Applied
 
 Applied in phase 2:
@@ -196,12 +187,17 @@ Applied in phase 2:
 - added local helpers for `GL_PIXEL_PACK_BUFFER` and
   `GL_PIXEL_UNPACK_BUFFER` bind/unbind state
 - added a local helper for scratch PBO resize
-- replaced the documented scratch PBO callsites with those helpers
+- added local helpers for texture-upload sync creation, flush, wait, and
+  deletion
+- replaced the documented scratch PBO and sync callsites with those helpers
 - kept public headers unchanged
+- kept vendor-specific sync branching unchanged
+- kept main-thread callback order unchanged
 - kept texture memory accounting order unchanged
 - did not move behavior into `llglcontainment.*`
 
-This does not change ownership: `LLImageGL` still owns scratch PBO state.
+This does not change ownership: `LLImageGL` still owns scratch PBO state and
+texture-upload sync handoff.
 
 ## Verification
 

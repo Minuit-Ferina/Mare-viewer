@@ -168,13 +168,15 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract local `LLImageGL` scratch PBO helper names without changing the
       public API.
 - [x] Verify the scratch PBO helper extraction with `llrender/fast`.
+- [x] Extract local `LLImageGL` sync helper names without changing callback
+      order.
+- [x] Verify the sync helper extraction with `llrender/fast`.
 
 ## Immediate Next Steps
 
-- [ ] Extract the smallest local `LLImageGL` sync helper names without changing
-      callback order.
 - [ ] Use the local Xcode arm64 Release path as an incremental integration
       checkpoint before important source-side milestones.
+- [ ] Summarize the `LLImageGL` phase 2 packet for review.
 
 ## Phase 1 Inventory
 

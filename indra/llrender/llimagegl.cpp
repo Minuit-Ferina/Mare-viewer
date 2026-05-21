@@ -682,6 +682,31 @@ static void resize_pixel_pack_buffer(U64 size)
     glBufferData(GL_PIXEL_PACK_BUFFER, size, NULL, GL_STREAM_COPY);
 }
 
+static GLsync create_texture_upload_sync()
+{
+    return glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+}
+
+static void flush_texture_upload_commands()
+{
+    glFlush();
+}
+
+static void client_wait_for_texture_upload_sync(GLsync sync)
+{
+    glClientWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
+}
+
+static void wait_for_texture_upload_sync(GLsync sync)
+{
+    glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
+}
+
+static void delete_texture_upload_sync(GLsync sync)
+{
+    glDeleteSync(sync);
+}
+
 //static
 bool LLImageGL::checkSize(S32 width, S32 height)
 {
@@ -1827,19 +1852,19 @@ void LLImageGL::syncToMainThread(LLGLuint new_tex_name)
         {
             // wait for texture upload to finish before notifying main thread
             // upload is complete
-            auto sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-            glFlush();
-            glClientWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
-            glDeleteSync(sync);
+            auto sync = create_texture_upload_sync();
+            flush_texture_upload_commands();
+            client_wait_for_texture_upload_sync(sync);
+            delete_texture_upload_sync(sync);
         }
         else
         {
             // post a sync to the main thread (will execute before tex name swap lambda below)
             // glFlush calls here are partly superstitious and partly backed by observation
             // on AMD hardware
-            glFlush();
-            auto sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-            glFlush();
+            flush_texture_upload_commands();
+            auto sync = create_texture_upload_sync();
+            flush_texture_upload_commands();
             LL::WorkQueue::postMaybe(
                 mMainQueue,
                 [=]()
@@ -1847,11 +1872,11 @@ void LLImageGL::syncToMainThread(LLGLuint new_tex_name)
                     LL_PROFILE_ZONE_NAMED("cglt - wait sync");
                     {
                         LL_PROFILE_ZONE_NAMED("glWaitSync");
-                        glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
+                        wait_for_texture_upload_sync(sync);
                     }
                     {
                         LL_PROFILE_ZONE_NAMED("glDeleteSync");
-                        glDeleteSync(sync);
+                        delete_texture_upload_sync(sync);
                     }
                 });
         }
