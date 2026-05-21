@@ -591,6 +591,16 @@ without an explicit task, and do not start a direct Vulkan port.
       texture-channel uniform source packet.
 - [x] Add a summary for the `LLGLSLShader` texture-channel uniform containment
       packet.
+- [x] Add a focused task for public `LLGLSLShader::uniform*` containment before
+      source edits.
+- [ ] Route public `LLGLSLShader::uniform*` setter raw calls through
+      `llglcontainment.*`.
+- [ ] Verify the public `LLGLSLShader::uniform*` containment packet with
+      `llrender/fast`.
+- [ ] Regenerate the generated source inventory after the public
+      `LLGLSLShader::uniform*` source packet.
+- [ ] Add a summary for the public `LLGLSLShader::uniform*` containment
+      packet.
 
 ## Phase 1 Inventory
 
