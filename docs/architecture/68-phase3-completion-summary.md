@@ -12,7 +12,8 @@ Completed phase 3 owners:
 
 - `LLRenderTarget`
 - active local `LLVertexBuffer` wrapper helpers
-- local `LLImageGL` wrapper helpers already isolated in phase 2
+- active `LLImageGL` wrapper, upload, allocation, and `scaleDown(...)`
+  call-through helpers
 
 ## What Changed
 
@@ -24,6 +25,9 @@ Raw OpenGL calls were moved behind `llglcontainment.*` for:
   attribute array/layout, and draw calls
 - image pixel store, readback, framebuffer copy, scratch PBO, and texture sync
   calls
+- image texture name lifetime, debug queries, residency, sub-image upload,
+  texture parameters, compressed upload, auto-mipmap, manual allocation, and
+  `scaleDown(...)` storage/draw calls
 
 The changes were intentionally limited to wrapper relocation. The original
 owner files still own state, branch policy, ordering, validation, accounting,
@@ -38,6 +42,8 @@ This phase did not change:
 - UI rendering
 - shader managers
 - `LLImageGL` upload/mipmap/parameter/swizzle policy
+- `LLImageGL::scaleDown(...)` method selection, PBO order, framebuffer copy
+  order, or discard-level mutation
 - texture memory accounting
 - public `LLRenderTarget`, `LLVertexBuffer`, or `LLImageGL` APIs
 - runtime behavior intentionally
@@ -58,6 +64,8 @@ Runtime smoke:
 - completed for final `LLRenderTarget` viewport packet
 - intentionally deferred for later wrapper-only `LLVertexBuffer` and `LLImageGL`
   packets by project decision
+- still required for the completed `LLImageGL::scaleDown(...)` packet after
+  the successful Xcode integration build
 
 ## Current Inventory Notes
 
@@ -66,9 +74,8 @@ Current generated inventory highlights:
 - `indra/llrender/llrendertarget.cpp` has no direct `gl*` calls
 - `indra/llrender/llvertexbuffer.cpp` has only disabled/commented GL work queue
   sync matches left in the generated `gl_calls` counter
-- `indra/llrender/llimagegl.cpp` still has direct calls in upload, sub-image,
-  mipmap, swizzle, parameter, debug texture-size, and scale-down allocation
-  paths
+- `indra/llrender/llimagegl.cpp` has no active direct `gl*` calls based on the
+  local source scan; generated matches are inactive/comment-only references
 - `indra/llrender/llglcontainment.cpp` now owns the raw OpenGL calls moved by
   phase 3
 
@@ -78,9 +85,8 @@ Risk level: medium.
 
 Reasons:
 
-- no broad runtime graphics regression was run for the later wrapper-only
-  packets
-- `LLImageGL` still contains high-risk upload/mipmap/parameter paths
+- runtime smoke is still pending for the completed `LLImageGL::scaleDown(...)`
+  packet
 - shader managers still contain a large direct OpenGL surface
 - `llglcontainment.*` is still a containment layer, not a renderer abstraction
 
@@ -91,8 +97,8 @@ Treat phase 3 as complete for the current wrapper-relocation objective.
 Recommended next step:
 
 - review the phase 3 branch as a stack on top of `phase2`
-- decide whether to stop here or open a separate phase for higher-risk
-  `LLImageGL` upload/mipmap/parameter work
+- run the pending login, texture-heavy scene load, and resize smoke test for
+  the Xcode-built app
 
-Do not start upload/mipmap/parameter containment in the same phase without a
-new task note and a stronger verification plan.
+Do not start broader renderer containment in `pipeline.cpp`, draw pools, UI, or
+shader managers without a new phase and a stronger verification plan.
