@@ -261,11 +261,12 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the phase 3 mipmap containment packet with `llrender/fast`.
 - [x] Regenerate the generated source inventory after the mipmap source
       packet.
+- [x] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 mipmap containment packet.
 
 ## Immediate Next Steps
 
-- [ ] Run a local incremental Xcode arm64 Release integration build for the
-      phase 3 mipmap containment packet.
+- [ ] Add a concise summary for the phase 3 mipmap containment packet.
 
 ## Phase 1 Inventory
 
