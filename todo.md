@@ -230,12 +230,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/41-phase3-attachment-containment-summary.md`.
 - [x] Launch the Xcode-built app to the login screen for a runtime smoke test.
 - [x] Add `docs/architecture/42-phase3-rendertarget-combined-review.md`.
+- [x] Add `docs/architecture/43-llrendertarget-buffer-routing-containment-task.md`.
 
 ## Immediate Next Steps
 
 - [ ] Optionally run a loaded-scene smoke test with the Xcode-built app.
-- [ ] Add a task-specific containment note for `LLRenderTarget` buffer routing
-      behavior before source edits.
+- [ ] Route `LLRenderTarget` raw draw/read buffer routing calls through
+      `llglcontainment.*` without moving owner state.
 
 ## Phase 1 Inventory
 
