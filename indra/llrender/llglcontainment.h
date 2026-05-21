@@ -76,6 +76,11 @@ void setPixelStoreInteger(LLGLenum parameter, LLGLint value);
 void getFloat(LLGLenum parameter, LLGLfloat* value);
 void setMaterialFloatVector(LLGLenum face, LLGLenum parameter, const LLGLfloat* values);
 void setMaterialInteger(LLGLenum face, LLGLenum parameter, LLGLint value);
+void pushAttributeBits(U32 bits);
+void pushClientAttributeBits(U32 bits);
+void popClientAttributes();
+void popAttributes();
+void setClearColor(LLGLfloat red, LLGLfloat green, LLGLfloat blue, LLGLfloat alpha);
 void getTextureLevelParameterInteger(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value);
 void setTextureSubImage2D(
     LLGLenum target,

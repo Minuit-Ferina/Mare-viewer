@@ -468,7 +468,7 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/87-llglstates-material-summary.md`.
 - [x] Classify `LLPostProcess` direct OpenGL calls into tiny wrapper packets
       before editing source.
-- [ ] Route `LLPostProcess` state-stack and clear raw calls through
+- [x] Route `LLPostProcess` state-stack and clear raw calls through
       `llglcontainment.*`.
 - [ ] Route `LLPostProcess` texture copy/allocation raw calls through
       `llglcontainment.*`.

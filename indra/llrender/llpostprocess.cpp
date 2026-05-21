@@ -27,6 +27,7 @@
 #include "linden_common.h"
 
 #include "llpostprocess.h"
+#include "llglcontainment.h"
 #include "llglslshader.h"
 #include "llsdserialize.h"
 #include "llrender.h"
@@ -296,8 +297,8 @@ void LLPostProcess::getShaderUniforms(glslUniforms & uniforms, GLuint & prog)
 void LLPostProcess::doEffects(void)
 {
     /// Save GL State
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glPushClientAttrib(GL_ALL_ATTRIB_BITS);
+    LLGLContainment::pushAttributeBits(GL_ALL_ATTRIB_BITS);
+    LLGLContainment::pushClientAttributeBits(GL_ALL_ATTRIB_BITS);
 
     /// Copy the screen buffer to the render texture
     {
@@ -306,8 +307,8 @@ void LLPostProcess::doEffects(void)
     }
 
     /// Clear the frame buffer.
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    LLGLContainment::setClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT);
 
     /// Change to an orthogonal view
     viewOrthogonal(screenW, screenH);
@@ -322,8 +323,8 @@ void LLPostProcess::doEffects(void)
     viewPerspective();
 
     /// Reset GL State
-    glPopClientAttrib();
-    glPopAttrib();
+    LLGLContainment::popClientAttributes();
+    LLGLContainment::popAttributes();
     checkError();
 }
 

@@ -200,6 +200,31 @@ void setMaterialInteger(LLGLenum face, LLGLenum parameter, LLGLint value)
     glMateriali(face, parameter, value);
 }
 
+void pushAttributeBits(U32 bits)
+{
+    glPushAttrib(bits);
+}
+
+void pushClientAttributeBits(U32 bits)
+{
+    glPushClientAttrib(bits);
+}
+
+void popClientAttributes()
+{
+    glPopClientAttrib();
+}
+
+void popAttributes()
+{
+    glPopAttrib();
+}
+
+void setClearColor(LLGLfloat red, LLGLfloat green, LLGLfloat blue, LLGLfloat alpha)
+{
+    glClearColor(red, green, blue, alpha);
+}
+
 void getTextureLevelParameterInteger(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value)
 {
     glGetTexLevelParameteriv(target, level, parameter, value);
