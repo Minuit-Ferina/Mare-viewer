@@ -158,3 +158,19 @@ Observed work:
 - rebuilt `llrender/CMakeFiles/llrender.dir/llrendertarget.cpp.o`
 - rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
 - relinked `libllrender.a`
+
+## Integration Build Check
+
+The phase 3 allocation error containment packet was also verified with the
+local incremental Xcode arm64 Release build.
+
+Result:
+
+- `** BUILD SUCCEEDED **`
+- executable verified as arm64
+- `libopenal.dylib`, `libalut.dylib`, `libllwebrtc.dylib`, and
+  `libndofdev.dylib` present in the app bundle
+
+Detailed command and output notes are recorded in:
+
+- `docs/architecture/local-darwin-arm64-build.md`
