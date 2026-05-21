@@ -94,11 +94,15 @@ an explicit task, and do not start a direct Vulkan port.
       build-system debt.
 - [x] Record that the manifest arch mismatch did not block the baseline local
       arm64 runtime smoke test.
+- [x] Add `docs/architecture/16-llrendertarget-fbo-contract.md`.
+- [x] Document `LLRenderTarget` FBO binding intents before any framebuffer
+      containment patch.
 
 ## Immediate Next Steps
 
-- [ ] If continuing viewport work, keep the next patch inside the documented
-      `LLRenderTarget` owner unless a new contract says otherwise.
+- [ ] If continuing `LLRenderTarget` work, keep the next patch inside
+      `indra/llrender/llrendertarget.cpp` and limit it to naming existing FBO
+      intent unless a new contract says otherwise.
 - [ ] Before any runtime-relevant source change, run the local Xcode arm64
       Release build path documented in
       `docs/architecture/local-darwin-arm64-build.md`.
