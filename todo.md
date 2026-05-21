@@ -154,11 +154,13 @@ an explicit task, and do not start a direct Vulkan port.
       thread handoff before source cleanup.
 - [x] Add `docs/architecture/28-llimagegl-pixel-store-contract.md`.
 - [x] Document `LLImageGL` pixel store ownership before source cleanup.
+- [x] Extract local `LLImageGL` pixel store helpers without changing the public
+      API.
+- [x] Verify the pixel store helper extraction with `llrender/fast`.
 
 ## Immediate Next Steps
 
-- [ ] Extract local `LLImageGL` pixel store helpers without changing the public
-      API.
+- [ ] Map `LLImageGL` readback and copy paths before source cleanup.
 - [ ] Use the local Xcode arm64 Release path as an incremental integration
       checkpoint before important source-side milestones.
 

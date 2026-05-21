@@ -10,9 +10,16 @@ Related files:
 
 ## Inventory
 
-Current local calls in `indra/llrender/llimagegl.cpp`:
+Original local calls in `indra/llrender/llimagegl.cpp` before the phase 2
+source cleanup:
 
 - `glPixelStorei(...)`: 12
+
+After the phase 2 source cleanup:
+
+- direct `glPixelStorei(...)` calls remain only in local helper bodies
+- upload paths call named local helpers instead of spelling the OpenGL state
+  mutation at every callsite
 
 Pixel store names used:
 
@@ -128,12 +135,11 @@ Reason:
 
 ## Candidate Source Cleanup
 
-A future source cleanup may be reasonable if it is naming-only and remains
-inside:
+The source cleanup is naming-only and remains inside:
 
 - `indra/llrender/llimagegl.cpp`
 
-Possible helper names:
+Local helper names:
 
 - `set_texture_unpack_swap_bytes_enabled(...)`
 - `set_texture_unpack_row_length(...)`
@@ -147,12 +153,28 @@ Constraints:
 - do not alter error-check placement
 - do not change early return behavior in `setImage(...)`
 
-## Verification For A Future Source Patch
+## Source Cleanup Applied
+
+Applied in phase 2:
+
+- added local `static` helpers for `GL_UNPACK_SWAP_BYTES` and
+  `GL_UNPACK_ROW_LENGTH`
+- replaced the existing upload-path `glPixelStorei(...)` callsites with those
+  helpers
+- kept `stop_glerror()` placement unchanged
+- kept public headers unchanged
+- kept `LLTexUnit` unchanged
+- did not move behavior into `llglcontainment.*`
+
+This does not change ownership: `LLImageGL` still owns these temporary unpack
+state changes.
+
+## Verification
 
 Minimum:
 
-- build `llrender/fast`
-- run `git diff --check`
+- build `llrender/fast`: passed
+- run `git diff --check`: passed
 
 If behavior changes or non-`llrender` files are touched:
 

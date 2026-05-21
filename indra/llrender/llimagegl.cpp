@@ -609,6 +609,16 @@ static bool check_power_of_two(S32 dim)
     return !(dim & (dim - 1)) ;
 }
 
+static void set_texture_unpack_swap_bytes_enabled(bool enabled)
+{
+    glPixelStorei(GL_UNPACK_SWAP_BYTES, enabled ? 1 : 0);
+}
+
+static void set_texture_unpack_row_length(S32 row_length)
+{
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, row_length);
+}
+
 //static
 bool LLImageGL::checkSize(S32 width, S32 height)
 {
@@ -798,7 +808,7 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
                 {
                     if(mFormatSwapBytes)
                     {
-                        glPixelStorei(GL_UNPACK_SWAP_BYTES, 1);
+                        set_texture_unpack_swap_bytes_enabled(true);
                         stop_glerror();
                     }
 
@@ -811,7 +821,7 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
 
                     if(mFormatSwapBytes)
                     {
-                        glPixelStorei(GL_UNPACK_SWAP_BYTES, 0);
+                        set_texture_unpack_swap_bytes_enabled(false);
                         stop_glerror();
                     }
 
@@ -828,7 +838,7 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
                 {
                     if(mFormatSwapBytes)
                     {
-                        glPixelStorei(GL_UNPACK_SWAP_BYTES, 1);
+                        set_texture_unpack_swap_bytes_enabled(true);
                         stop_glerror();
                     }
 
@@ -856,7 +866,7 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
 
                     if(mFormatSwapBytes)
                     {
-                        glPixelStorei(GL_UNPACK_SWAP_BYTES, 0);
+                        set_texture_unpack_swap_bytes_enabled(false);
                         stop_glerror();
                     }
 
@@ -945,7 +955,7 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
                     {
                         if(mFormatSwapBytes)
                         {
-                            glPixelStorei(GL_UNPACK_SWAP_BYTES, 1);
+                            set_texture_unpack_swap_bytes_enabled(true);
                             stop_glerror();
                         }
 
@@ -962,7 +972,7 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
 
                         if(mFormatSwapBytes)
                         {
-                            glPixelStorei(GL_UNPACK_SWAP_BYTES, 0);
+                            set_texture_unpack_swap_bytes_enabled(false);
                             stop_glerror();
                         }
                     }
@@ -1001,7 +1011,7 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
         {
             if(mFormatSwapBytes)
             {
-                glPixelStorei(GL_UNPACK_SWAP_BYTES, 1);
+                set_texture_unpack_swap_bytes_enabled(true);
                 stop_glerror();
             }
 
@@ -1015,7 +1025,7 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
 
             if(mFormatSwapBytes)
             {
-                glPixelStorei(GL_UNPACK_SWAP_BYTES, 0);
+                set_texture_unpack_swap_bytes_enabled(false);
                 stop_glerror();
             }
 
@@ -1181,12 +1191,12 @@ bool LLImageGL::setSubImage(const U8* datap, S32 data_width, S32 data_height, S3
         }
 
 
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, data_width);
+        set_texture_unpack_row_length(data_width);
         stop_glerror();
 
         if(mFormatSwapBytes)
         {
-            glPixelStorei(GL_UNPACK_SWAP_BYTES, 1);
+            set_texture_unpack_swap_bytes_enabled(true);
             stop_glerror();
         }
 
@@ -1214,11 +1224,11 @@ bool LLImageGL::setSubImage(const U8* datap, S32 data_width, S32 data_height, S3
 
         if(mFormatSwapBytes)
         {
-            glPixelStorei(GL_UNPACK_SWAP_BYTES, 0);
+            set_texture_unpack_swap_bytes_enabled(false);
             stop_glerror();
         }
 
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+        set_texture_unpack_row_length(0);
         stop_glerror();
         mGLTextureCreated = true;
     }
@@ -2647,4 +2657,3 @@ void LLImageGLThread::run()
     gGL.shutdown();
     mWindow->destroySharedContext(mContext);
 }
-
