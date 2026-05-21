@@ -2,16 +2,16 @@
 
 | file | category | lines | gl_calls | gl_raw_refs | gl_known_false_refs | gGL | LLGL | LLPipeline | LLRenderTarget |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 697 | 95 | 95 | 0 | 0 | 191 | 0 | 0 |
 | `indra/newview/pipeline.cpp` | render.pipeline | 12046 | 81 | 83 | 0 | 340 | 158 | 564 | 60 |
 | `indra/newview/marefsr2upscaler.cpp` | render.opengl_touching | 379 | 81 | 81 | 0 | 3 | 3 | 0 | 4 |
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 617 | 80 | 80 | 0 | 0 | 150 | 0 | 0 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
 | `indra/newview/lldrawpoolterrain.cpp` | render.pipeline | 1123 | 61 | 62 | 1 | 189 | 26 | 1 | 0 |
-| `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2092 | 49 | 49 | 0 | 11 | 148 | 0 | 2 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 36 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llshadermgr.cpp` | render.legacy_low_level | 1563 | 32 | 39 | 0 | 0 | 4 | 0 | 0 |
 | `indra/newview/llspatialpartition.cpp` | render.pipeline | 4188 | 27 | 27 | 0 | 206 | 28 | 44 | 0 |
 | `indra/newview/llviewerdisplay.cpp` | render.pipeline | 1953 | 19 | 19 | 0 | 129 | 37 | 63 | 1 |
+| `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2092 | 18 | 18 | 0 | 11 | 179 | 0 | 2 |
 | `indra/newview/llmodelpreview.cpp` | render.opengl_touching | 4172 | 17 | 17 | 0 | 58 | 13 | 0 | 0 |
 | `indra/newview/gltfscenemanager.cpp` | render.pipeline | 1210 | 17 | 17 | 0 | 56 | 21 | 8 | 0 |
 | `indra/newview/llreflectionmapmanager.cpp` | render.pipeline | 1605 | 15 | 15 | 0 | 69 | 4 | 13 | 1 |

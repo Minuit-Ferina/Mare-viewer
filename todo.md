@@ -593,11 +593,11 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Add a focused task for public `LLGLSLShader::uniform*` containment before
       source edits.
-- [ ] Route public `LLGLSLShader::uniform*` setter raw calls through
+- [x] Route public `LLGLSLShader::uniform*` setter raw calls through
       `llglcontainment.*`.
-- [ ] Verify the public `LLGLSLShader::uniform*` containment packet with
+- [x] Verify the public `LLGLSLShader::uniform*` containment packet with
       `llrender/fast`.
-- [ ] Regenerate the generated source inventory after the public
+- [x] Regenerate the generated source inventory after the public
       `LLGLSLShader::uniform*` source packet.
 - [ ] Add a summary for the public `LLGLSLShader::uniform*` containment
       packet.

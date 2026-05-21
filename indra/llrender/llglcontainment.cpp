@@ -274,9 +274,89 @@ void setUniformInteger(LLGLint location, LLGLint value)
     glUniform1i(location, value);
 }
 
+void setUniformInteger2(LLGLint location, LLGLint first, LLGLint second)
+{
+    glUniform2i(location, first, second);
+}
+
 void setUniformIntegerVector(LLGLint location, S32 count, const LLGLint* values)
 {
     glUniform1iv(location, static_cast<GLsizei>(count), values);
+}
+
+void setUniformIntegerVector4(LLGLint location, S32 count, const LLGLint* values)
+{
+    glUniform4iv(location, static_cast<GLsizei>(count), values);
+}
+
+void setUniformUnsignedIntegerVector4(LLGLint location, S32 count, const LLGLuint* values)
+{
+    glUniform4uiv(location, static_cast<GLsizei>(count), values);
+}
+
+void setUniformFloat(LLGLint location, LLGLfloat value)
+{
+    glUniform1f(location, value);
+}
+
+void setUniformFloat2(LLGLint location, LLGLfloat first, LLGLfloat second)
+{
+    glUniform2f(location, first, second);
+}
+
+void setUniformFloat3(LLGLint location, LLGLfloat first, LLGLfloat second, LLGLfloat third)
+{
+    glUniform3f(location, first, second, third);
+}
+
+void setUniformFloat4(
+    LLGLint location,
+    LLGLfloat first,
+    LLGLfloat second,
+    LLGLfloat third,
+    LLGLfloat fourth)
+{
+    glUniform4f(location, first, second, third, fourth);
+}
+
+void setUniformFloatVector(LLGLint location, S32 count, const LLGLfloat* values)
+{
+    glUniform1fv(location, static_cast<GLsizei>(count), values);
+}
+
+void setUniformFloatVector2(LLGLint location, S32 count, const LLGLfloat* values)
+{
+    glUniform2fv(location, static_cast<GLsizei>(count), values);
+}
+
+void setUniformFloatVector3(LLGLint location, S32 count, const LLGLfloat* values)
+{
+    glUniform3fv(location, static_cast<GLsizei>(count), values);
+}
+
+void setUniformFloatVector4(LLGLint location, S32 count, const LLGLfloat* values)
+{
+    glUniform4fv(location, static_cast<GLsizei>(count), values);
+}
+
+void setUniformMatrix2(LLGLint location, S32 count, LLGLboolean transpose, const LLGLfloat* values)
+{
+    glUniformMatrix2fv(location, static_cast<GLsizei>(count), static_cast<GLboolean>(transpose), values);
+}
+
+void setUniformMatrix3(LLGLint location, S32 count, LLGLboolean transpose, const LLGLfloat* values)
+{
+    glUniformMatrix3fv(location, static_cast<GLsizei>(count), static_cast<GLboolean>(transpose), values);
+}
+
+void setUniformMatrix3x4(LLGLint location, S32 count, LLGLboolean transpose, const LLGLfloat* values)
+{
+    glUniformMatrix3x4fv(location, static_cast<GLsizei>(count), static_cast<GLboolean>(transpose), values);
+}
+
+void setUniformMatrix4(LLGLint location, S32 count, LLGLboolean transpose, const LLGLfloat* values)
+{
+    glUniformMatrix4fv(location, static_cast<GLsizei>(count), static_cast<GLboolean>(transpose), values);
 }
 
 void setMaterialFloatVector(LLGLenum face, LLGLenum parameter, const LLGLfloat* values)

@@ -96,7 +96,27 @@ void getActiveUniform(
     char* name);
 LLGLuint getUniformBlockIndex(LLGLuint program, const char* name);
 void setUniformInteger(LLGLint location, LLGLint value);
+void setUniformInteger2(LLGLint location, LLGLint first, LLGLint second);
 void setUniformIntegerVector(LLGLint location, S32 count, const LLGLint* values);
+void setUniformIntegerVector4(LLGLint location, S32 count, const LLGLint* values);
+void setUniformUnsignedIntegerVector4(LLGLint location, S32 count, const LLGLuint* values);
+void setUniformFloat(LLGLint location, LLGLfloat value);
+void setUniformFloat2(LLGLint location, LLGLfloat first, LLGLfloat second);
+void setUniformFloat3(LLGLint location, LLGLfloat first, LLGLfloat second, LLGLfloat third);
+void setUniformFloat4(
+    LLGLint location,
+    LLGLfloat first,
+    LLGLfloat second,
+    LLGLfloat third,
+    LLGLfloat fourth);
+void setUniformFloatVector(LLGLint location, S32 count, const LLGLfloat* values);
+void setUniformFloatVector2(LLGLint location, S32 count, const LLGLfloat* values);
+void setUniformFloatVector3(LLGLint location, S32 count, const LLGLfloat* values);
+void setUniformFloatVector4(LLGLint location, S32 count, const LLGLfloat* values);
+void setUniformMatrix2(LLGLint location, S32 count, LLGLboolean transpose, const LLGLfloat* values);
+void setUniformMatrix3(LLGLint location, S32 count, LLGLboolean transpose, const LLGLfloat* values);
+void setUniformMatrix3x4(LLGLint location, S32 count, LLGLboolean transpose, const LLGLfloat* values);
+void setUniformMatrix4(LLGLint location, S32 count, LLGLboolean transpose, const LLGLfloat* values);
 void setMaterialFloatVector(LLGLenum face, LLGLenum parameter, const LLGLfloat* values);
 void setMaterialInteger(LLGLenum face, LLGLenum parameter, LLGLint value);
 void pushAttributeBits(U32 bits);
