@@ -183,10 +183,13 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/33-llvertexbuffer-buffer-binding-update-contract.md`.
 - [x] Map `LLVertexBuffer` buffer binding and update call families before
       source cleanup.
+- [x] Extract local `LLVertexBuffer` buffer lifecycle helper names without
+      changing the public API.
+- [x] Verify the buffer lifecycle helper extraction with `llrender/fast`.
 
 ## Immediate Next Steps
 
-- [ ] Extract the smallest local `LLVertexBuffer` buffer lifecycle helper names
+- [ ] Extract the smallest local `LLVertexBuffer` buffer binding helper names
       without changing the public API.
 
 ## Phase 1 Inventory

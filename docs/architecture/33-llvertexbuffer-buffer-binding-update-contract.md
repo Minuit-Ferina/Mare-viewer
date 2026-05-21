@@ -296,13 +296,17 @@ Reason:
 
 ## Candidate Source Cleanup
 
-Small naming-only cleanup may be reasonable later if it stays local to:
+Small naming-only cleanup is applied for GL buffer name generation/deletion and
+stays local to:
 
 - `indra/llrender/llvertexbuffer.cpp`
 
-Possible helper groups:
+Local helper groups:
 
 - GL buffer name generation/deletion helpers
+
+Not yet applied:
+
 - array/index buffer bind helpers that update static trackers
 - buffer storage allocation helper
 - buffer sub-data upload helper
@@ -319,12 +323,27 @@ Constraints:
 - do not change shader attribute enum assumptions
 - do not move behavior into `llglcontainment.*`
 
-## Verification For A Future Source Patch
+## Source Cleanup Applied
+
+Applied in phase 2:
+
+- added local helpers for `glGenBuffers(...)` and `glDeleteBuffers(...)`
+- replaced buffer name generation callsites in `gen_buffer()`
+- replaced the delayed deletion callsite in `delete_buffers(...)`
+- kept the AMD one-buffer-at-a-time workaround unchanged
+- kept delayed deletion timing unchanged
+- kept public headers unchanged
+- did not move behavior into `llglcontainment.*`
+
+This does not change ownership: `LLVertexBuffer` still owns buffer name pooling
+and delayed deletion.
+
+## Verification
 
 Minimum:
 
-- build `llrender/fast`
-- run `git diff --check`
+- build `llrender/fast`: passed
+- run `git diff --check`: passed
 
 If binding, dirty-region flushing, attribute layout, or draw calls change:
 

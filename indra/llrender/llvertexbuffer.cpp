@@ -257,6 +257,16 @@ static GLWorkQueue* sQueue = nullptr;
 //============================================================================
 // Pool of reusable VertexBuffer state
 
+static void generate_vertex_buffer_names(GLsizei count, GLuint* buffers)
+{
+    glGenBuffers(count, buffers);
+}
+
+static void delete_vertex_buffer_names(GLsizei count, const GLuint* buffers)
+{
+    glDeleteBuffers(count, buffers);
+}
+
 // batch calls to glGenBuffers
 static GLuint gen_buffer()
 {
@@ -275,14 +285,14 @@ static GLuint gen_buffer()
 #if !LL_DARWIN
         if (!gGLManager.mIsAMD)
         {
-            glGenBuffers(pool_size, sNamePool);
+            generate_vertex_buffer_names((GLsizei)pool_size, sNamePool);
         }
         else
 #endif
         { // work around for AMD driver bug
             for (U32 i = 0; i < pool_size; ++i)
             {
-                glGenBuffers(1, sNamePool + i);
+                generate_vertex_buffer_names(1, sNamePool + i);
             }
         }
     }
@@ -311,7 +321,7 @@ static void delete_buffers(S32 count, GLuint* buffers)
 
         if (!sFreeList[idx].empty())
         {
-            glDeleteBuffers((GLsizei)sFreeList[idx].size(), sFreeList[idx].data());
+            delete_vertex_buffer_names((GLsizei)sFreeList[idx].size(), sFreeList[idx].data());
             sFreeList[idx].resize(0);
         }
     }
@@ -1905,7 +1915,5 @@ void LLVertexBuffer::setIndexData(const U32* data, U32 offset, U32 count)
     }
     flush_vbo(GL_ELEMENT_ARRAY_BUFFER, offset * sizeof(U32), (offset + count) * sizeof(U32) - 1, (U8*)data, mMappedIndexData);
 }
-
-
 
 
