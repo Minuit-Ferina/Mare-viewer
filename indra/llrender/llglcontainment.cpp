@@ -65,4 +65,14 @@ void setDrawBuffers(S32 count, const LLGLenum* buffers)
 {
     glDrawBuffers(static_cast<GLsizei>(count), buffers);
 }
+
+void generateFramebuffers(S32 count, LLGLuint* framebuffers)
+{
+    glGenFramebuffers(static_cast<GLsizei>(count), framebuffers);
+}
+
+void deleteFramebuffers(S32 count, const LLGLuint* framebuffers)
+{
+    glDeleteFramebuffers(static_cast<GLsizei>(count), framebuffers);
+}
 }

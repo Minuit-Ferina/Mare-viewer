@@ -245,11 +245,17 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/45-phase3-rendertarget-review-summary.md`.
 - [x] Add
       `docs/architecture/46-llrendertarget-fbo-lifetime-containment-task.md`.
+- [x] Route `LLRenderTarget` raw FBO name lifetime calls through
+      `llglcontainment.*` without moving owner state.
+- [x] Verify the phase 3 FBO lifetime containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the FBO lifetime source
+      packet.
 
 ## Immediate Next Steps
 
-- [ ] Route `LLRenderTarget` raw FBO name lifetime calls through
-      `llglcontainment.*` without moving owner state.
+- [ ] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 FBO lifetime containment packet.
 
 ## Phase 1 Inventory
 

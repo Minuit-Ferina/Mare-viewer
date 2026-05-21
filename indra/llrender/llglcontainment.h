@@ -39,6 +39,8 @@ void setReadWriteFramebufferTexture2D(
 void setDrawBuffer(LLGLenum buffer);
 void setReadBuffer(LLGLenum buffer);
 void setDrawBuffers(S32 count, const LLGLenum* buffers);
+void generateFramebuffers(S32 count, LLGLuint* framebuffers);
+void deleteFramebuffers(S32 count, const LLGLuint* framebuffers);
 }
 
 #endif // LL_LLGLCONTAINMENT_H

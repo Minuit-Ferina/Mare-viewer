@@ -128,3 +128,43 @@ Because this is another behavior-bearing `llglcontainment.*` packet, also run:
 Runtime scene testing is optional for this packet because the previous packet
 already loaded a scene successfully, but it remains useful before leaving
 `LLRenderTarget`.
+
+## Source Patch Applied
+
+Applied in phase 3:
+
+- added `LLGLContainment::generateFramebuffers(...)`
+- added `LLGLContainment::deleteFramebuffers(...)`
+- delegated `generate_framebuffer_name(...)` to the new containment helper
+- delegated `delete_framebuffer_name(...)` to the new containment helper
+- kept `mFBO` ownership in `LLRenderTarget`
+- kept `release()` ordering, `sCurFBO` safety reset, attachment detach,
+  texture deletion, and `mFBO = 0` behavior in `LLRenderTarget`
+- did not touch `pipeline.cpp`, draw pools, UI rendering, shader managers, or
+  texture upload code
+
+Generated inventory was regenerated after the source patch so
+`docs/architecture/generated/source_inventory.csv` and
+`docs/architecture/generated/source_inventory_top.md` reflect the new call
+locations.
+
+## Source Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-llrender-make3/clang-module-cache \
+/opt/homebrew/bin/cmake \
+  --build /private/tmp/Mare-viewer-phase2-llrender-make3 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llrendertarget.cpp.o`
+- rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
+- relinked `libllrender.a`

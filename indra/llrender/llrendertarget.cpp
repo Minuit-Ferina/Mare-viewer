@@ -89,12 +89,12 @@ void bind_attachment_fbo(U32 fbo)
 
 void generate_framebuffer_name(U32* fbo)
 {
-    glGenFramebuffers(1, (GLuint *) fbo);
+    LLGLContainment::generateFramebuffers(1, fbo);
 }
 
 void delete_framebuffer_name(U32* fbo)
 {
-    glDeleteFramebuffers(1, (GLuint *) fbo);
+    LLGLContainment::deleteFramebuffers(1, fbo);
 }
 
 void restore_tracked_fbo_binding()
