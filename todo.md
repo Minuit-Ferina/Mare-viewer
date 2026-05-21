@@ -417,11 +417,19 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the PBO storage containment packet with `llrender/fast`.
 - [x] Regenerate the generated source inventory after the PBO storage source
       packet.
+- [x] Add
+      `docs/architecture/80-llimagegl-scaledown-containment-summary.md`.
+- [x] Run a local incremental Xcode arm64 Release integration build for the
+      completed `LLImageGL::scaleDown(...)` packet.
+- [x] Verify the Xcode-built viewer executable is arm64 after the
+      `scaleDown(...)` packet.
+- [x] Verify the Xcode-built app bundle still contains the expected runtime
+      dylibs after the `scaleDown(...)` packet.
 
 ## Immediate Next Steps
 
-- [ ] Add a completion summary for the `LLImageGL::scaleDown(...)`
-      containment packets and run the required integration checkpoint.
+- [ ] Run login, texture-heavy scene load, and resize smoke with the Xcode-built
+      app after the `LLImageGL::scaleDown(...)` containment packet.
 
 ## Phase 1 Inventory
 
