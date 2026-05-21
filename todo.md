@@ -229,12 +229,13 @@ without an explicit task, and do not start a direct Vulkan port.
       phase 3 FBO attachment containment packet.
 - [x] Add `docs/architecture/41-phase3-attachment-containment-summary.md`.
 - [x] Launch the Xcode-built app to the login screen for a runtime smoke test.
+- [x] Add `docs/architecture/42-phase3-rendertarget-combined-review.md`.
 
 ## Immediate Next Steps
 
 - [ ] Optionally run a loaded-scene smoke test with the Xcode-built app.
-- [ ] Review both phase 3 `LLRenderTarget` packets together before choosing
-      another OpenGL family.
+- [ ] Add a task-specific containment note for `LLRenderTarget` buffer routing
+      behavior before source edits.
 
 ## Phase 1 Inventory
 
