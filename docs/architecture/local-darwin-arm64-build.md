@@ -893,6 +893,75 @@ Runtime scene smoke was not rerun for this packet. This packet only moved the
 render target allocation error raw read behind `llglcontainment.*`; viewport
 remains deferred until a loaded-scene and resize smoke test is available.
 
+## Phase 3 Viewport Integration Check
+
+Observed on 2026-05-21:
+
+- Branch: `phase3`.
+- Commit: `a7624d9ce6 llrender: contain render target viewport calls`.
+- Worktree: `/private/tmp/Mare-viewer-phase2-xcode-worktree`.
+- Build tree:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv`.
+- Xcode project:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj`.
+- Output app:
+  `/private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/newview/Release/Mare Viewer.app`.
+
+The temporary Xcode worktree was moved from the allocation error containment
+checkpoint to commit `a7624d9ce6`, preserving `DerivedData` and the existing
+build tree.
+
+Incremental build command:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/Users/vitoldkapshitzer/.cache/clang/ModuleCache \
+xcodebuild \
+  -project /private/tmp/Mare-viewer-phase2-xcode-worktree/build-darwin-universal-kokua-mkrlv/Mare.xcodeproj \
+  -scheme mare-viewer \
+  -configuration Release \
+  -destination platform=macOS,arch=arm64 \
+  -derivedDataPath /private/tmp/Mare-viewer-phase2-xcode-worktree/DerivedData \
+  build
+```
+
+Observed result:
+
+```text
+** BUILD SUCCEEDED **
+```
+
+Observed work:
+
+- rebuilt `llrender` object `llglcontainment.cpp.o`
+- rebuilt `llrender` object `llrendertarget.cpp.o`
+- relinked `libllrender.a`
+- relinked `Mare Viewer.app/Contents/MacOS/Mare Viewer`
+- ran the existing manifest copy step
+
+No `clean` build was run.
+
+The built viewer executable was verified as arm64:
+
+```text
+Non-fat file: .../Mare Viewer.app/Contents/MacOS/Mare Viewer is architecture: arm64
+```
+
+The app bundle contained these runtime dylibs under `Contents/Frameworks`:
+
+- `libopenal.dylib`
+- `libalut.dylib`
+- `libllwebrtc.dylib`
+- `libndofdev.dylib`
+
+The existing manifest architecture mismatch remains present:
+
+```text
+viewer_manifest.py --actions=copy --arch=x86_64 ...
+```
+
+Runtime login, loaded-scene, and resize smoke still need to be run on this
+exact viewport packet build.
+
 ## Makefile Build Tree Check
 
 This is a separate validation path from the local arm64 Xcode shortcut above.
