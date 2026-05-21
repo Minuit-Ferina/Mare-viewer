@@ -272,11 +272,12 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the clear/scissor source
       packet.
+- [x] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 clear/scissor containment packet.
 
 ## Immediate Next Steps
 
-- [ ] Run a local incremental Xcode arm64 Release integration build for the
-      phase 3 clear/scissor containment packet.
+- [ ] Add a concise summary for the phase 3 clear/scissor containment packet.
 
 ## Phase 1 Inventory
 
