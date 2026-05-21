@@ -163,6 +163,13 @@ U32  LLImageGL::sScratchPBO = 0;
 U32  LLImageGL::sScratchPBOSize = 0;
 U32* LLImageGL::sManualScratch = nullptr;
 
+static void ensure_scratch_pbo_created(U32& pbo, U32& pbo_size);
+static void delete_scratch_pbo(U32& pbo, U32& pbo_size);
+static void bind_scratch_pbo_for_pixel_pack(U32 pbo);
+static void unbind_pixel_pack_buffer();
+static void bind_scratch_pbo_for_pixel_unpack(U32 pbo);
+static void unbind_pixel_unpack_buffer();
+static void resize_pixel_pack_buffer(U64 size);
 
 //------------------------
 //****************************************************************************************************
@@ -251,10 +258,7 @@ void LLImageGL::initClass(LLWindow* window, S32 num_catagories, bool skip_analyz
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
     sSkipAnalyzeAlpha = skip_analyze_alpha;
 
-    if (sScratchPBO == 0)
-    {
-        glGenBuffers(1, &sScratchPBO);
-    }
+    ensure_scratch_pbo_created(sScratchPBO, sScratchPBOSize);
 
     if (thread_texture_loads || thread_media_updates)
     {
@@ -285,12 +289,7 @@ void LLImageGL::cleanupClass()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
     LLImageGLThread::deleteSingleton();
-    if (sScratchPBO != 0)
-    {
-        glDeleteBuffers(1, &sScratchPBO);
-        sScratchPBO = 0;
-        sScratchPBOSize = 0;
-    }
+    delete_scratch_pbo(sScratchPBO, sScratchPBOSize);
 
     delete[] sManualScratch;
 }
@@ -637,6 +636,50 @@ static void read_texture_level_image(LLGLenum target, S32 level, LLGLenum format
 static void copy_current_framebuffer_to_texture_region(LLGLenum target, S32 level, S32 xoffset, S32 yoffset, S32 x, S32 y, S32 width, S32 height)
 {
     glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+}
+
+static void ensure_scratch_pbo_created(U32& pbo, U32& pbo_size)
+{
+    if (pbo == 0)
+    {
+        glGenBuffers(1, &pbo);
+        pbo_size = 0;
+    }
+}
+
+static void delete_scratch_pbo(U32& pbo, U32& pbo_size)
+{
+    if (pbo != 0)
+    {
+        glDeleteBuffers(1, &pbo);
+        pbo = 0;
+        pbo_size = 0;
+    }
+}
+
+static void bind_scratch_pbo_for_pixel_pack(U32 pbo)
+{
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+}
+
+static void unbind_pixel_pack_buffer()
+{
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+}
+
+static void bind_scratch_pbo_for_pixel_unpack(U32 pbo)
+{
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+}
+
+static void unbind_pixel_unpack_buffer()
+{
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+}
+
+static void resize_pixel_pack_buffer(U64 size)
+{
+    glBufferData(GL_PIXEL_PACK_BUFFER, size, NULL, GL_STREAM_COPY);
 }
 
 //static
@@ -2552,17 +2595,13 @@ bool LLImageGL::scaleDown(S32 desired_discard)
         llassert(size <= 2048 * 2048 * 4); // we shouldn't be using this method to downscale huge textures, but it'll work
         gGL.getTexUnit(0)->bind(this, false, true);
 
-        if (sScratchPBO == 0)
-        {
-            glGenBuffers(1, &sScratchPBO);
-            sScratchPBOSize = 0;
-        }
+        ensure_scratch_pbo_created(sScratchPBO, sScratchPBOSize);
 
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, sScratchPBO);
+        bind_scratch_pbo_for_pixel_pack(sScratchPBO);
 
         if (size > sScratchPBOSize)
         {
-            glBufferData(GL_PIXEL_PACK_BUFFER, size, NULL, GL_STREAM_COPY);
+            resize_pixel_pack_buffer(size);
             sScratchPBOSize = (U32)size;
         }
 
@@ -2570,11 +2609,11 @@ bool LLImageGL::scaleDown(S32 desired_discard)
 
         free_tex_image(mTexName);
 
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        unbind_pixel_pack_buffer();
 
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, sScratchPBO);
+        bind_scratch_pbo_for_pixel_unpack(sScratchPBO);
         glTexImage2D(mTarget, 0, mFormatInternal, desired_width, desired_height, 0, mFormatPrimary, mFormatType, nullptr);
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+        unbind_pixel_unpack_buffer();
 
         alloc_tex_image(desired_width, desired_height, mFormatInternal, 1);
 

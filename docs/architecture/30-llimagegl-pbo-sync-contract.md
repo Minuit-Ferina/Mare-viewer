@@ -159,16 +159,16 @@ Reason:
 
 ## Candidate Source Cleanup
 
-Small naming-only cleanup may be reasonable later if it stays local to:
+Small naming-only cleanup is applied for the scratch PBO callsites and stays
+local to:
 
 - `indra/llrender/llimagegl.cpp`
 
-Possible helper groups:
+Local helper groups:
 
 - scratch PBO name generation/deletion helpers
 - scratch PBO pack/unpack bind helpers
 - scratch PBO resize helper
-- sync create/wait/delete helpers local to `syncToMainThread(...)`
 
 Constraints:
 
@@ -179,12 +179,36 @@ Constraints:
 - do not change texture memory accounting order
 - do not move behavior into `llglcontainment.*`
 
-## Verification For A Future Source Patch
+Not yet applied:
+
+- sync create/wait/delete helpers local to `syncToMainThread(...)`
+
+Reason:
+
+- GPU sync uses vendor-specific branching and main-thread callback ordering, so
+  it should stay in a separate patch.
+
+## Source Cleanup Applied
+
+Applied in phase 2:
+
+- added local helpers for scratch PBO creation and deletion
+- added local helpers for `GL_PIXEL_PACK_BUFFER` and
+  `GL_PIXEL_UNPACK_BUFFER` bind/unbind state
+- added a local helper for scratch PBO resize
+- replaced the documented scratch PBO callsites with those helpers
+- kept public headers unchanged
+- kept texture memory accounting order unchanged
+- did not move behavior into `llglcontainment.*`
+
+This does not change ownership: `LLImageGL` still owns scratch PBO state.
+
+## Verification
 
 Minimum:
 
-- build `llrender/fast`
-- run `git diff --check`
+- build `llrender/fast`: passed
+- run `git diff --check`: passed
 
 If sync callback order, PBO binding, or texture-name handoff changes:
 
