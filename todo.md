@@ -279,11 +279,13 @@ without an explicit task, and do not start a direct Vulkan port.
       phase 3 clear/scissor packet.
 - [x] Defer viewport containment until a loaded-scene and resize smoke test is
       available.
+- [x] Add
+      `docs/architecture/55-llrendertarget-allocation-error-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a task-specific containment note for `LLRenderTarget` texture
-      allocation error checking before source edits.
+- [ ] Route `LLRenderTarget` raw texture allocation error read through
+      `llglcontainment.*` without moving owner state.
 
 ## Phase 1 Inventory
 
