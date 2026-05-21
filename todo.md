@@ -140,11 +140,14 @@ an explicit task, and do not start a direct Vulkan port.
       changing the public API.
 - [x] Verify the texture allocation error helper extraction with
       `llrender/fast`.
+- [x] Add `docs/architecture/24-llrendertarget-local-intent-map.md`.
+- [x] Summarize the phase 2 `LLRenderTarget` local helper boundary and keep
+      `llglcontainment.*` reserved for a later cross-owner contract.
 
 ## Immediate Next Steps
 
-- [ ] Pick the next `LLRenderTarget` callsite family only after documenting its
-      ownership and ordering contract.
+- [ ] Run one local incremental Xcode arm64 Release integration build before
+      declaring the `LLRenderTarget` phase 2 packet ready for review.
 - [ ] Use the local Xcode arm64 Release path as an incremental integration
       checkpoint before important source-side milestones.
 
