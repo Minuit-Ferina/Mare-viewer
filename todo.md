@@ -480,8 +480,10 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/89-llpostprocess-containment-summary.md`.
 - [x] Classify the remaining small `indra/llrender` direct-call entries before
       more source edits.
-- [ ] Create a focused `LLRender`/`LLTexUnit` call-family map before touching
+- [x] Create a focused `LLRender`/`LLTexUnit` call-family map before touching
       `indra/llrender/llrender.cpp`.
+- [ ] Add a focused task for `LLRender::initVertexBuffer()` line-width range
+      query containment before source edits.
 
 ## Phase 1 Inventory
 
