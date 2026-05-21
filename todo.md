@@ -557,7 +557,9 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLTexUnit`
       binding/activation source packet.
-- [ ] Add `docs/architecture/107-lltexunit-binding-summary.md`.
+- [x] Add `docs/architecture/107-lltexunit-binding-summary.md`.
+- [ ] Decide whether the remaining Windows debug callback calls in
+      `LLRender::init(...)` should be left direct or handled separately.
 
 ## Phase 1 Inventory
 
