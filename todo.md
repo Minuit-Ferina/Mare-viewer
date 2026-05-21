@@ -304,11 +304,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Run login, loaded-scene, and resize smoke with the Xcode-built app after
       the phase 3 viewport containment packet.
 - [x] Add `docs/architecture/60-phase3-viewport-runtime-smoke.md`.
+- [x] Add `docs/architecture/61-llrendertarget-phase3-completion-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a full `LLRenderTarget` phase 3 containment completion summary
-      before choosing another owner.
+- [ ] Add a next-owner selection note for phase 3 before editing more source.
 
 ## Phase 1 Inventory
 
