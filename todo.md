@@ -599,7 +599,7 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the public
       `LLGLSLShader::uniform*` source packet.
-- [ ] Add a summary for the public `LLGLSLShader::uniform*` containment
+- [x] Add a summary for the public `LLGLSLShader::uniform*` containment
       packet.
 
 ## Phase 1 Inventory
