@@ -82,8 +82,19 @@ void getInteger(LLGLenum parameter, LLGLint* value);
 void setPixelStoreInteger(LLGLenum parameter, LLGLint value);
 void getFloat(LLGLenum parameter, LLGLfloat* value);
 LLGLint getUniformLocation(LLGLuint program, const char* name);
+LLGLint getAttributeLocation(LLGLuint program, const char* name);
 void getShaderInteger(LLGLuint shader, LLGLenum parameter, LLGLint* value);
+void getProgramInteger(LLGLuint program, LLGLenum parameter, LLGLint* value);
 void getProgramInfoLog(LLGLuint program, S32 buffer_size, LLGLint* length, char* info_log);
+void getActiveUniform(
+    LLGLuint program,
+    LLGLuint index,
+    S32 buffer_size,
+    LLGLint* length,
+    LLGLint* size,
+    LLGLenum* type,
+    char* name);
+LLGLuint getUniformBlockIndex(LLGLuint program, const char* name);
 void setMaterialFloatVector(LLGLenum face, LLGLenum parameter, const LLGLfloat* values);
 void setMaterialInteger(LLGLenum face, LLGLenum parameter, LLGLint value);
 void pushAttributeBits(U32 bits);

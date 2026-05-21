@@ -400,7 +400,7 @@ void LLGLSLShader::unloadInternal()
     }
 
     //hack to make apple not complain
-    glGetError();
+    LLGLContainment::getError();
 
     stop_glerror();
 }
@@ -684,7 +684,7 @@ bool LLGLSLShader::mapAttributes()
         for (U32 i = 0; i < LLShaderMgr::instance()->mReservedAttribs.size(); i++)
         {
             const char* name = LLShaderMgr::instance()->mReservedAttribs[i].c_str();
-            S32 index = glGetAttribLocation(mProgramObject, (const GLchar*)name);
+            S32 index = LLGLContainment::getAttributeLocation(mProgramObject, name);
             if (index != -1)
             {
 #if LL_RELEASE_WITH_DEBUG_INFO
@@ -719,7 +719,7 @@ void LLGLSLShader::mapUniform(GLint index)
     name[0] = 0;
 
 
-    glGetActiveUniform(mProgramObject, index, 1024, &length, &size, &type, (GLchar*)name);
+    LLGLContainment::getActiveUniform(mProgramObject, index, 1024, &length, &size, &type, name);
     if (size > 0)
     {
         switch (type)
@@ -762,7 +762,7 @@ void LLGLSLShader::mapUniform(GLint index)
         mTotalUniformSize += size;
     }
 
-    S32 location = glGetUniformLocation(mProgramObject, name);
+    S32 location = LLGLContainment::getUniformLocation(mProgramObject, name);
     if (location != -1)
     {
         //chop off "[0]" so we can always access the first element
@@ -869,7 +869,7 @@ bool LLGLSLShader::mapUniforms()
 
     //get the number of active uniforms
     GLint activeCount;
-    glGetProgramiv(mProgramObject, GL_ACTIVE_UNIFORMS, &activeCount);
+    LLGLContainment::getProgramInteger(mProgramObject, GL_ACTIVE_UNIFORMS, &activeCount);
 
     //........................................................................................................................................
     //........................................................................................
@@ -896,12 +896,12 @@ bool LLGLSLShader::mapUniforms()
     */
 
 
-    S32 diffuseMap = glGetUniformLocation(mProgramObject, "diffuseMap");
-    S32 specularMap = glGetUniformLocation(mProgramObject, "specularMap");
-    S32 bumpMap = glGetUniformLocation(mProgramObject, "bumpMap");
-    S32 altDiffuseMap = glGetUniformLocation(mProgramObject, "altDiffuseMap");
-    S32 environmentMap = glGetUniformLocation(mProgramObject, "environmentMap");
-    S32 reflectionMap = glGetUniformLocation(mProgramObject, "reflectionMap");
+    S32 diffuseMap = LLGLContainment::getUniformLocation(mProgramObject, "diffuseMap");
+    S32 specularMap = LLGLContainment::getUniformLocation(mProgramObject, "specularMap");
+    S32 bumpMap = LLGLContainment::getUniformLocation(mProgramObject, "bumpMap");
+    S32 altDiffuseMap = LLGLContainment::getUniformLocation(mProgramObject, "altDiffuseMap");
+    S32 environmentMap = LLGLContainment::getUniformLocation(mProgramObject, "environmentMap");
+    S32 reflectionMap = LLGLContainment::getUniformLocation(mProgramObject, "reflectionMap");
 
     std::set<S32> skip_index;
 
@@ -918,7 +918,7 @@ bool LLGLSLShader::mapUniforms()
         {
             name[0] = '\0';
 
-            glGetActiveUniform(mProgramObject, i, 1024, &length, &size, &type, (GLchar*)name);
+            LLGLContainment::getActiveUniform(mProgramObject, i, 1024, &length, &size, &type, name);
 
             if (-1 == diffuseMap && std::string(name) == "diffuseMap")
             {
@@ -1015,7 +1015,7 @@ bool LLGLSLShader::mapUniforms()
 
     for (U32 i = 0; i < NUM_UNIFORM_BLOCKS; ++i)
     {
-        GLuint UBOBlockIndex = glGetUniformBlockIndex(mProgramObject, ubo_names[i]);
+        LLGLuint UBOBlockIndex = LLGLContainment::getUniformBlockIndex(mProgramObject, ubo_names[i]);
         if (UBOBlockIndex != GL_INVALID_INDEX)
         {
             glUniformBlockBinding(mProgramObject, UBOBlockIndex, i);
@@ -1721,7 +1721,7 @@ GLint LLGLSLShader::getUniformLocation(const LLStaticHashedString& uniform)
             if (gDebugGL)
             {
                 stop_glerror();
-                if (iter->second != glGetUniformLocation(mProgramObject, uniform.String().c_str()))
+                if (iter->second != LLGLContainment::getUniformLocation(mProgramObject, uniform.String().c_str()))
                 {
                     LL_ERRS() << "Uniform does not match." << LL_ENDL;
                 }
