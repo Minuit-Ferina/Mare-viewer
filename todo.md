@@ -143,11 +143,12 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/24-llrendertarget-local-intent-map.md`.
 - [x] Summarize the phase 2 `LLRenderTarget` local helper boundary and keep
       `llglcontainment.*` reserved for a later cross-owner contract.
+- [x] Run a local incremental Xcode arm64 Release integration build for the
+      completed `LLRenderTarget` phase 2 packet.
 
 ## Immediate Next Steps
 
-- [ ] Run one local incremental Xcode arm64 Release integration build before
-      declaring the `LLRenderTarget` phase 2 packet ready for review.
+- [ ] Prepare a concise `LLRenderTarget` phase 2 packet summary for review.
 - [ ] Use the local Xcode arm64 Release path as an incremental integration
       checkpoint before important source-side milestones.
 
