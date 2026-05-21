@@ -1024,11 +1024,15 @@ Non-fatal local Xcode warnings observed:
   directory.
 - `xcodebuild -quiet` did not print per-target rebuild lines.
 
-Runtime smoke still needs to be run for this packet:
+Runtime smoke is deferred for now for this packet:
 
 - login screen
 - loaded scene with visible geometry
 - quick check for missing or scrambled geometry
+
+Reason: this packet only moved raw buffer object name generation/deletion
+behind `llglcontainment.*`, while preserving call order and `LLVertexBuffer`
+owner state.
 
 ## Makefile Build Tree Check
 

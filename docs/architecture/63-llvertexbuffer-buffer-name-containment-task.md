@@ -248,5 +248,7 @@ Detailed command and output notes are recorded in:
 
 - `docs/architecture/local-darwin-arm64-build.md`
 
-Runtime login and loaded-scene geometry smoke still need to be run on this
-exact vertex buffer name containment packet build.
+Runtime login and loaded-scene geometry smoke is deferred for now. This packet
+only moved raw buffer object name generation/deletion behind
+`llglcontainment.*`, while preserving call order and `LLVertexBuffer` owner
+state.

@@ -316,11 +316,13 @@ without an explicit task, and do not start a direct Vulkan port.
       source packet.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       phase 3 vertex buffer name containment packet.
+- [x] Defer runtime smoke for the phase 3 vertex buffer name containment packet
+      because only raw buffer object name calls moved behind containment.
 
 ## Immediate Next Steps
 
-- [ ] Run login and loaded-scene geometry smoke with the Xcode-built app after
-      the phase 3 vertex buffer name containment packet.
+- [ ] Add a next-choice note for the next small `LLVertexBuffer` phase 3
+      containment packet before editing more source.
 
 ## Phase 1 Inventory
 
