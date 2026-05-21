@@ -466,8 +466,14 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLGLStates`
       source packet.
 - [x] Add `docs/architecture/87-llglstates-material-summary.md`.
-- [ ] Classify `LLPostProcess` direct OpenGL calls into tiny wrapper packets
+- [x] Classify `LLPostProcess` direct OpenGL calls into tiny wrapper packets
       before editing source.
+- [ ] Route `LLPostProcess` state-stack and clear raw calls through
+      `llglcontainment.*`.
+- [ ] Route `LLPostProcess` texture copy/allocation raw calls through
+      `llglcontainment.*`.
+- [ ] Route `LLPostProcess` shader and error query raw calls through
+      `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
