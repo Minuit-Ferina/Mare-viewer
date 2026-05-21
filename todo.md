@@ -343,11 +343,12 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Defer runtime smoke for the `LLImageGL` local wrapper containment packet
       because only local wrapper helper bodies moved behind containment.
 - [x] Add `docs/architecture/67-llimagegl-phase3-completion-summary.md`.
+- [x] Add `docs/architecture/68-phase3-completion-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a phase 3 completion summary covering `LLRenderTarget`,
-      `LLVertexBuffer`, and `LLImageGL` before choosing more source work.
+- [ ] Review the phase 3 branch as a stack on top of `phase2` before choosing
+      higher-risk upload, mipmap, parameter, shader, or pipeline work.
 
 ## Phase 1 Inventory
 
