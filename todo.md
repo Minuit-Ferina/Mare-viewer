@@ -97,12 +97,12 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/16-llrendertarget-fbo-contract.md`.
 - [x] Document `LLRenderTarget` FBO binding intents before any framebuffer
       containment patch.
+- [x] Extract internal `LLRenderTarget` FBO binding helpers without changing
+      the public API.
+- [x] Verify the FBO helper extraction with `llrender/fast`.
 
 ## Immediate Next Steps
 
-- [ ] If continuing `LLRenderTarget` work, keep the next patch inside
-      `indra/llrender/llrendertarget.cpp` and limit it to naming existing FBO
-      intent unless a new contract says otherwise.
 - [ ] Before any runtime-relevant source change, run the local Xcode arm64
       Release build path documented in
       `docs/architecture/local-darwin-arm64-build.md`.

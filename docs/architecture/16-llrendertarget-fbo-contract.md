@@ -167,3 +167,45 @@ is touched:
 
 The next source-side FBO cleanup should only name existing local intent. It
 should not introduce a broader OpenGL containment layer.
+
+## Source Cleanup Applied
+
+The first source cleanup keeps the behavior local to
+`indra/llrender/llrendertarget.cpp`.
+
+Implementation shape:
+
+- added internal helper `bind_render_target_fbo(...)`
+- added internal helper `bind_attachment_fbo(...)`
+- added internal helper `restore_tracked_fbo_binding()`
+- added internal helper `bind_default_framebuffer_for_flush()`
+- added internal helper `forget_current_fbo_and_bind_default()`
+- kept all helpers in the `.cpp` file only
+- did not change public headers
+- did not add an `LLGLContainment` framebuffer wrapper
+- did not touch `pipeline.cpp`
+
+Behavior intent:
+
+- preserve existing framebuffer binding behavior
+- make draw-time target binding distinct from attachment mutation binding
+- preserve the existing `sCurFBO` update points
+- preserve the existing `sBoundTarget` stack contract
+
+## Source Cleanup Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+cmake --build /private/tmp/Mare-viewer-phase1-gl-containment-make2 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llrendertarget.cpp.o`
+- relinked `libllrender.a`

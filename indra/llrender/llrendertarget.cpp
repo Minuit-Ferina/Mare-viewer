@@ -74,6 +74,34 @@ void restore_default_framebuffer_viewport()
     LLRenderTarget::sCurResX = gGLViewport[2];
     LLRenderTarget::sCurResY = gGLViewport[3];
 }
+
+void bind_render_target_fbo(U32 fbo)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    LLRenderTarget::sCurFBO = fbo;
+}
+
+void bind_attachment_fbo(U32 fbo)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+}
+
+void restore_tracked_fbo_binding()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, LLRenderTarget::sCurFBO);
+}
+
+void bind_default_framebuffer_for_flush()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    LLRenderTarget::sCurFBO = 0;
+}
+
+void forget_current_fbo_and_bind_default()
+{
+    LLRenderTarget::sCurFBO = 0;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 }
 
 LLRenderTarget::LLRenderTarget() :
@@ -156,11 +184,11 @@ bool LLRenderTarget::allocate(U32 resx, U32 resy, U32 color_fmt, bool depth, LLT
 
     if (mDepth)
     {
-        glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+        bind_attachment_fbo(mFBO);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, LLTexUnit::getInternalType(mUsage), mDepth, 0);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, sCurFBO);
+        restore_tracked_fbo_binding();
     }
 
     return addColorAttachment(color_fmt);
@@ -191,14 +219,14 @@ void LLRenderTarget::setColorAttachment(LLImageGL* img, LLGLuint use_name)
 
     mTex.push_back(use_name);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+    bind_attachment_fbo(mFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
             LLTexUnit::getInternalType(mUsage), use_name, 0);
         stop_glerror();
 
     check_framebuffer_status();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, sCurFBO);
+    restore_tracked_fbo_binding();
 }
 
 void LLRenderTarget::releaseColorAttachment()
@@ -208,9 +236,9 @@ void LLRenderTarget::releaseColorAttachment()
     llassert(mTex.size() == 1); //cannot use releaseColorAttachment with LLRenderTarget managed color targets
     llassert(mFBO != 0);  // mFBO must be valid
 
-    glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+    bind_attachment_fbo(mFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, LLTexUnit::getInternalType(mUsage), 0, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, sCurFBO);
+    restore_tracked_fbo_binding();
 
     mTex.clear();
 }
@@ -286,13 +314,13 @@ bool LLRenderTarget::addColorAttachment(U32 color_fmt)
 
     if (mFBO)
     {
-        glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+        bind_attachment_fbo(mFBO);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+offset,
             LLTexUnit::getInternalType(mUsage), tex, 0);
 
         check_framebuffer_status();
 
-        glBindFramebuffer(GL_FRAMEBUFFER, sCurFBO);
+        restore_tracked_fbo_binding();
     }
 
     mTex.push_back(tex);
@@ -352,13 +380,13 @@ void LLRenderTarget::shareDepthBuffer(LLRenderTarget& target)
 
     if (mDepth)
     {
-        glBindFramebuffer(GL_FRAMEBUFFER, target.mFBO);
+        bind_attachment_fbo(target.mFBO);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, LLTexUnit::getInternalType(mUsage), mDepth, 0);
 
         check_framebuffer_status();
 
-        glBindFramebuffer(GL_FRAMEBUFFER, sCurFBO);
+        restore_tracked_fbo_binding();
 
         target.mUseDepth = true;
     }
@@ -379,7 +407,7 @@ void LLRenderTarget::release()
     }
     else if (mFBO)
     {
-        glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+        bind_attachment_fbo(mFBO);
 
         if (mUseDepth)
         { //detach shared depth buffer
@@ -387,14 +415,14 @@ void LLRenderTarget::release()
             mUseDepth = false;
         }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, sCurFBO);
+        restore_tracked_fbo_binding();
     }
 
     // Detach any extra color buffers (e.g. SRGB spec buffers)
     //
     if (mFBO && (mTex.size() > 1))
     {
-        glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+        bind_attachment_fbo(mFBO);
         size_t z;
         for (z = mTex.size() - 1; z >= 1; z--)
         {
@@ -402,15 +430,14 @@ void LLRenderTarget::release()
             glFramebufferTexture2D(GL_FRAMEBUFFER, static_cast<GLenum>(GL_COLOR_ATTACHMENT0+z), LLTexUnit::getInternalType(mUsage), 0, 0);
             LLImageGL::deleteTextures(1, &mTex[z]);
         }
-        glBindFramebuffer(GL_FRAMEBUFFER, sCurFBO);
+        restore_tracked_fbo_binding();
     }
 
     if (mFBO)
     {
         if (mFBO == sCurFBO)
         {
-            sCurFBO = 0;
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            forget_current_fbo_and_bind_default();
         }
 
         glDeleteFramebuffers(1, (GLuint *) &mFBO);
@@ -435,8 +462,7 @@ void LLRenderTarget::bindTarget()
     llassert(mFBO);
     llassert(!isBoundInStack());
 
-    glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
-    sCurFBO = mFBO;
+    bind_render_target_fbo(mFBO);
 
     //setup multiple render targets
     GLenum drawbuffers[] = {GL_COLOR_ATTACHMENT0,
@@ -535,8 +561,7 @@ void LLRenderTarget::flush()
     else
     {
         sBoundTarget = nullptr;
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        sCurFBO = 0;
+        bind_default_framebuffer_for_flush();
         restore_default_framebuffer_viewport();
         glReadBuffer(GL_BACK);
         glDrawBuffer(GL_BACK);
