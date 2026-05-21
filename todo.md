@@ -171,11 +171,11 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract local `LLImageGL` sync helper names without changing callback
       order.
 - [x] Verify the sync helper extraction with `llrender/fast`.
+- [x] Run a local incremental Xcode arm64 Release integration build for the
+      completed `LLImageGL` phase 2 packet.
 
 ## Immediate Next Steps
 
-- [ ] Use the local Xcode arm64 Release path as an incremental integration
-      checkpoint before important source-side milestones.
 - [ ] Summarize the `LLImageGL` phase 2 packet for review.
 
 ## Phase 1 Inventory
