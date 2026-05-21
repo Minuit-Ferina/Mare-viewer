@@ -345,11 +345,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/67-llimagegl-phase3-completion-summary.md`.
 - [x] Add `docs/architecture/68-phase3-completion-summary.md`.
 - [x] Add `docs/architecture/69-llimagegl-remaining-call-classification.md`.
+- [x] Add
+      `docs/architecture/70-llimagegl-wrapper-pure-containment-task.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a task note for `LLImageGL` texture object name containment before
-      editing source.
+- [ ] Route the remaining wrapper-pure `LLImageGL` call families through
+      `llglcontainment.*` without moving owner state.
 
 ## Phase 1 Inventory
 
