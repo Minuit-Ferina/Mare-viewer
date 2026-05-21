@@ -149,10 +149,13 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Prepare a concise `LLRenderTarget` phase 2 packet summary for review.
 - [x] Add `docs/architecture/26-llimagegl-texture-lifecycle-map.md`.
 - [x] Map `LLImageGL` texture lifecycle call families before source cleanup.
+- [x] Add `docs/architecture/27-llimagegl-texture-name-lifetime-contract.md`.
+- [x] Document `LLImageGL` texture name generation, delayed deletion, and
+      thread handoff before source cleanup.
 
 ## Immediate Next Steps
 
-- [ ] Add an `LLImageGL` texture name lifetime contract before source cleanup.
+- [ ] Add an `LLImageGL` pixel store contract before source cleanup.
 - [ ] Use the local Xcode arm64 Release path as an incremental integration
       checkpoint before important source-side milestones.
 
