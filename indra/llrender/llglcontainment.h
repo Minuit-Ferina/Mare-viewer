@@ -180,6 +180,7 @@ void clearBuffers(U32 mask);
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);
 LLGLenum getError();
 void enableCapability(LLGLenum capability);
+bool isCapabilityEnabled(LLGLenum capability);
 void setLineWidth(LLGLfloat width);
 void setViewport(LLGLint x, LLGLint y, LLGLint width, LLGLint height);
 }

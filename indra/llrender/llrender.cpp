@@ -1507,7 +1507,9 @@ void LLRender::setLineWidth(F32 line_width)
     }
     else if (line_width > 1.f)
     {
-        line_width = llmin(line_width, glIsEnabled(GL_LINE_SMOOTH) ? mMaxLineWidthSmooth : mMaxLineWidthAliased);
+        line_width = llmin(
+            line_width,
+            LLGLContainment::isCapabilityEnabled(GL_LINE_SMOOTH) ? mMaxLineWidthSmooth : mMaxLineWidthAliased);
     }
     if (mLineWidth != line_width || mDirty)
     {
@@ -1516,7 +1518,7 @@ void LLRender::setLineWidth(F32 line_width)
             flush();
         }
         mLineWidth = line_width;
-        glLineWidth(line_width);
+        LLGLContainment::setLineWidth(line_width);
     }
 }
 // </FS>

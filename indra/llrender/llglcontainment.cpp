@@ -487,6 +487,11 @@ void enableCapability(LLGLenum capability)
     glEnable(capability);
 }
 
+bool isCapabilityEnabled(LLGLenum capability)
+{
+    return glIsEnabled(capability) == GL_TRUE;
+}
+
 void setLineWidth(LLGLfloat width)
 {
     glLineWidth(width);

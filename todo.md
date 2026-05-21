@@ -520,8 +520,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/99-llrender-clear-errors-summary.md`.
 - [x] Add a focused task for `LLRender::setLineWidth(...)` containment before
       source edits.
-- [ ] Route only `LLRender::setLineWidth(...)` raw calls through
+- [x] Route only `LLRender::setLineWidth(...)` raw calls through
       `llglcontainment.*`.
+- [x] Verify the `LLRender::setLineWidth(...)` containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the
+      `LLRender::setLineWidth(...)` source packet.
+- [ ] Add `docs/architecture/101-llrender-set-line-width-summary.md`.
 
 ## Phase 1 Inventory
 
