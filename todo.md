@@ -563,7 +563,7 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/108-llrender-windows-debug-callback-decision.md`.
 - [x] Classify `LLGLSLShader` direct OpenGL calls into source packet families
       before editing shader source.
-- [ ] Add a focused task for `LLGLSLShader` profiling query containment before
+- [x] Add a focused task for `LLGLSLShader` profiling query containment before
       source edits.
 - [ ] Route only `LLGLSLShader` profiling query raw calls through
       `llglcontainment.*`.
