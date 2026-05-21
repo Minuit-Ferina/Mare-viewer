@@ -196,11 +196,14 @@ an explicit task, and do not start a direct Vulkan port.
       without changing the public API.
 - [x] Verify the attribute array/layout helper extraction with
       `llrender/fast`.
+- [x] Extract local `LLVertexBuffer` draw call helper names without changing
+      the public API.
+- [x] Verify the draw call helper extraction with `llrender/fast`.
 
 ## Immediate Next Steps
 
-- [ ] Extract the smallest local `LLVertexBuffer` draw call helper names
-      without changing the public API.
+- [ ] Run a local incremental Xcode arm64 Release integration build for the
+      completed `LLVertexBuffer` phase 2 packet.
 
 ## Phase 1 Inventory
 

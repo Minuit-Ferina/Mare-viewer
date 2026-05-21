@@ -302,6 +302,16 @@ static void set_integer_vertex_attribute_pointer(GLuint location, GLint size, GL
     glVertexAttribIPointer(location, size, type, stride, pointer);
 }
 
+static void draw_vertex_buffer_range(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum index_type, const void* indices)
+{
+    glDrawRangeElements(mode, start, end, count, index_type, indices);
+}
+
+static void draw_vertex_buffer_arrays(GLenum mode, GLint first, GLsizei count)
+{
+    glDrawArrays(mode, first, count);
+}
+
 // batch calls to glGenBuffers
 static GLuint gen_buffer()
 {
@@ -946,14 +956,14 @@ void LLVertexBuffer::drawRange(U32 mode, U32 start, U32 end, U32 count, U32 indi
     llassert(mGLIndices == sGLRenderIndices);
     gGL.syncMatrices();
     STOP_GLERROR;
-    glDrawRangeElements(sGLMode[mode], start, end, count, mIndicesType,
+    draw_vertex_buffer_range(sGLMode[mode], start, end, count, mIndicesType,
         (GLvoid*) (indices_offset * (size_t) mIndicesStride));
     STOP_GLERROR;
 }
 
 void LLVertexBuffer::drawRangeFast(U32 mode, U32 start, U32 end, U32 count, U32 indices_offset) const
 {
-    glDrawRangeElements(sGLMode[mode], start, end, count, mIndicesType,
+    draw_vertex_buffer_range(sGLMode[mode], start, end, count, mIndicesType,
         (GLvoid*)(indices_offset * (size_t)mIndicesStride));
 }
 
@@ -972,7 +982,7 @@ void LLVertexBuffer::drawArrays(U32 mode, U32 first, U32 count) const
 
     gGL.syncMatrices();
     STOP_GLERROR;
-    glDrawArrays(sGLMode[mode], first, count);
+    draw_vertex_buffer_arrays(sGLMode[mode], first, count);
     STOP_GLERROR;
 }
 

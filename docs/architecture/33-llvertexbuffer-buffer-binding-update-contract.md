@@ -297,8 +297,8 @@ Reason:
 ## Candidate Source Cleanup
 
 Small naming-only cleanup is applied for GL buffer name generation/deletion,
-buffer target binding, buffer storage/upload calls, and vertex attribute
-array/layout calls. It stays local to:
+buffer target binding, buffer storage/upload calls, vertex attribute
+array/layout calls, and draw calls. It stays local to:
 
 - `indra/llrender/llvertexbuffer.cpp`
 
@@ -310,9 +310,6 @@ Local helper groups:
 - buffer sub-data upload helper
 - attribute array enable/disable helpers
 - attribute pointer setup helpers
-
-Not yet applied:
-
 - draw call helpers
 
 Constraints:
@@ -335,6 +332,8 @@ Applied in phase 2:
   `glDisableVertexAttribArray(...)`
 - added local helpers for `glVertexAttribPointer(...)` and
   `glVertexAttribIPointer(...)`
+- added local helpers for `glDrawRangeElements(...)` and
+  `glDrawArrays(...)`
 - replaced buffer name generation callsites in `gen_buffer()`
 - replaced the delayed deletion callsite in `delete_buffers(...)`
 - replaced buffer binding callsites in allocation, unbind, unmap/flush, and
@@ -342,6 +341,8 @@ Applied in phase 2:
 - replaced buffer storage allocation callsites in default allocation and Apple
   unmap/reallocation paths
 - replaced the sub-data upload callsite in `flush_vbo(...)`
+- replaced draw call callsites in `drawRange(...)`, `drawRangeFast(...)`, and
+  member `drawArrays(...)`
 - kept the AMD one-buffer-at-a-time workaround unchanged
 - kept delayed deletion timing unchanged
 - kept `sGLRenderBuffer` and `sGLRenderIndices` update placement unchanged
@@ -350,6 +351,8 @@ Applied in phase 2:
 - kept `sLastMask` update placement unchanged
 - kept shader attribute enum/location assumptions unchanged
 - kept all attribute offsets, sizes, types, and normalized flags unchanged
+- kept draw validation, matrix sync, and `STOP_GLERROR` placement unchanged
+- kept `drawRangeFast(...)` validation and matrix sync differences unchanged
 - kept public headers unchanged
 - did not move behavior into `llglcontainment.*`
 
