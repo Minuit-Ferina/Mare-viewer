@@ -3,9 +3,10 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 2 is narrow tooling, contracts, and smallest containment
-preparation. Do not move source files, do not change runtime behavior without
-an explicit task, and do not start a direct Vulkan port.
+Current rule: phase 2 is closed for review on branch `phase2`. Until a phase 3
+branch and plan exist, keep the phase 2 guardrails: do not move source files,
+do not change runtime behavior without an explicit task, and do not start a
+direct Vulkan port.
 
 ## Done
 
@@ -202,17 +203,21 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       completed `LLVertexBuffer` phase 2 packet.
 - [x] Add `docs/architecture/34-llvertexbuffer-phase2-review-summary.md`.
+- [x] Add `docs/architecture/35-phase2-review-summary.md`.
+- [x] Close phase 2 as a reviewable stacked branch on top of
+      `phase1-gl-containment`.
 
 ## Immediate Next Steps
 
-- [ ] Add a phase 2 closure summary and mark remaining items as post-phase2
-      guardrails.
+- [ ] Review the `phase2` branch as a stack on `phase1-gl-containment`.
+- [ ] Create a separate phase 3 branch from `phase2` before adding any
+      behavior to `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
 No open items in this section right now.
 
-## Phase 2 Scope
+## Post-Phase2 Guardrails
 
 - [ ] Keep `phase1-gl-containment` reviewable as the phase 1 evidence branch.
 - [ ] Keep `phase2` stacked on top of `phase1-gl-containment`.

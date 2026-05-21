@@ -15,9 +15,10 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
-- Phase 2: narrow tooling, contracts, and smallest containment preparation.
-- Goal: turn phase 1 evidence into reviewable follow-up tasks without changing
-  runtime behavior unless a task explicitly asks for it.
+- Phase 2 is closed for review on branch `phase2`.
+- Until a phase 3 branch and plan exist, keep the phase 2 guardrails.
+- Next goal: review the phase 2 stack on top of `phase1-gl-containment`, then
+  choose one precise phase 3 containment task before adding source behavior.
 
 Areas allowed at the beginning:
 - docs/architecture/
