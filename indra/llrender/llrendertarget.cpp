@@ -29,6 +29,7 @@
 #include "llrendertarget.h"
 #include "llrender.h"
 #include "llgl.h"
+#include "llglcontainment.h"
 
 LLRenderTarget* LLRenderTarget::sBoundTarget = NULL;
 U32 LLRenderTarget::sBytesAllocated = 0;
@@ -48,7 +49,7 @@ void check_current_draw_framebuffer_status()
 {
     if (gDebugGL)
     {
-        GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+        U32 status = LLGLContainment::getDrawFramebufferStatus();
         switch (status)
         {
         case GL_FRAMEBUFFER_COMPLETE:
@@ -77,13 +78,13 @@ void restore_default_framebuffer_viewport()
 
 void bind_render_target_fbo(U32 fbo)
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    LLGLContainment::bindReadWriteFramebuffer(fbo);
     LLRenderTarget::sCurFBO = fbo;
 }
 
 void bind_attachment_fbo(U32 fbo)
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    LLGLContainment::bindReadWriteFramebuffer(fbo);
 }
 
 void generate_framebuffer_name(U32* fbo)
@@ -98,7 +99,7 @@ void delete_framebuffer_name(U32* fbo)
 
 void restore_tracked_fbo_binding()
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, LLRenderTarget::sCurFBO);
+    LLGLContainment::bindReadWriteFramebuffer(LLRenderTarget::sCurFBO);
 }
 
 void set_framebuffer_texture_attachment(GLenum attachment, LLTexUnit::eTextureType usage, U32 texture)
@@ -113,14 +114,14 @@ void clear_framebuffer_texture_attachment(GLenum attachment, LLTexUnit::eTexture
 
 void bind_default_framebuffer_for_flush()
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    LLGLContainment::bindReadWriteFramebuffer(0);
     LLRenderTarget::sCurFBO = 0;
 }
 
 void forget_current_fbo_and_bind_default()
 {
     LLRenderTarget::sCurFBO = 0;
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    LLGLContainment::bindReadWriteFramebuffer(0);
 }
 
 void set_render_target_buffer_routing(U32 color_attachment_count)

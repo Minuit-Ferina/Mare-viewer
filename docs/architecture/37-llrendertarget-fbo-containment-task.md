@@ -144,3 +144,47 @@ interrupting local work:
 
 After this source packet, stop and summarize the result before moving another
 OpenGL family into `llglcontainment.*`.
+
+## Source Patch Applied
+
+Applied in phase 3:
+
+- added `LLGLContainment::bindReadWriteFramebuffer(...)`
+- added `LLGLContainment::getDrawFramebufferStatus()`
+- delegated `LLRenderTarget` local FBO binding helper bodies to
+  `LLGLContainment::bindReadWriteFramebuffer(...)`
+- delegated `check_current_draw_framebuffer_status()` to
+  `LLGLContainment::getDrawFramebufferStatus()`
+- kept `LLRenderTarget` local helper names as the intent layer
+- kept `sCurFBO` assignments in `LLRenderTarget`
+- kept attachment mutation helpers from updating `sCurFBO`
+- kept `gDebugGL`, warning text, and `ll_fail(...)` behavior in
+  `LLRenderTarget`
+- did not touch `pipeline.cpp`, draw pools, UI rendering, shader managers, or
+  texture upload code
+
+Generated inventory was regenerated after the source patch so
+`docs/architecture/generated/source_inventory.csv` and
+`docs/architecture/generated/source_inventory_top.md` reflect the new call
+locations.
+
+## Source Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-llrender-make3/clang-module-cache \
+/opt/homebrew/bin/cmake \
+  --build /private/tmp/Mare-viewer-phase2-llrender-make3 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llrendertarget.cpp.o`
+- rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
+- relinked `libllrender.a`

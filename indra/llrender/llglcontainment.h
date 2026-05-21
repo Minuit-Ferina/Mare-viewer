@@ -1,6 +1,6 @@
 /**
  * @file llglcontainment.h
- * @brief Phase 1 OpenGL containment markers.
+ * @brief Narrow OpenGL containment helpers.
  *
  * $LicenseInfo:firstyear=2026&license=viewerlgpl$
  * This library is free software; you can redistribute it and/or
@@ -22,10 +22,14 @@
 #ifndef LL_LLGLCONTAINMENT_H
 #define LL_LLGLCONTAINMENT_H
 
+#include "stdtypes.h"
+
 namespace LLGLContainment
 {
-// Phase 1 marker only. Add behavior here only through small reviewed tasks.
 const char* getPhaseOneScope();
+
+void bindReadWriteFramebuffer(U32 framebuffer_name);
+U32 getDrawFramebufferStatus();
 }
 
 #endif // LL_LLGLCONTAINMENT_H

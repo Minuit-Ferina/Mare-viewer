@@ -6,11 +6,9 @@
 | `indra/newview/marefsr2upscaler.cpp` | render.opengl_touching | 379 | 81 | 81 | 0 | 3 | 3 | 0 | 4 |
 | `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2091 | 80 | 80 | 0 | 11 | 116 | 0 | 2 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
-| `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2651 | 71 | 84 | 0 | 32 | 21 | 0 | 0 |
 | `indra/newview/lldrawpoolterrain.cpp` | render.pipeline | 1123 | 61 | 62 | 1 | 189 | 26 | 1 | 0 |
+| `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2744 | 52 | 65 | 0 | 32 | 29 | 0 | 0 |
 | `indra/llrender/llrender.cpp` | render.legacy_low_level | 2161 | 44 | 45 | 0 | 39 | 21 | 0 | 2 |
-| `indra/llrender/llrendertarget.cpp` | render.legacy_low_level | 585 | 42 | 42 | 0 | 12 | 2 | 0 | 34 |
-| `indra/llrender/llvertexbuffer.cpp` | render.legacy_low_level | 1912 | 40 | 46 | 0 | 33 | 10 | 0 | 0 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 36 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llshadermgr.cpp` | render.legacy_low_level | 1563 | 32 | 39 | 0 | 0 | 4 | 0 | 0 |
 | `indra/newview/llspatialpartition.cpp` | render.pipeline | 4188 | 27 | 27 | 0 | 206 | 28 | 44 | 0 |
@@ -18,7 +16,9 @@
 | `indra/newview/llmodelpreview.cpp` | render.opengl_touching | 4172 | 17 | 17 | 0 | 58 | 13 | 0 | 0 |
 | `indra/newview/gltfscenemanager.cpp` | render.pipeline | 1210 | 17 | 17 | 0 | 56 | 21 | 8 | 0 |
 | `indra/newview/llreflectionmapmanager.cpp` | render.pipeline | 1605 | 15 | 15 | 0 | 69 | 4 | 13 | 1 |
+| `indra/llrender/llrendertarget.cpp` | render.legacy_low_level | 671 | 15 | 15 | 0 | 12 | 8 | 0 | 42 |
 | `indra/llrender/llpostprocess.cpp` | render.legacy_low_level | 455 | 13 | 20 | 0 | 18 | 1 | 0 | 0 |
+| `indra/llrender/llvertexbuffer.cpp` | render.legacy_low_level | 1963 | 13 | 19 | 0 | 33 | 10 | 0 | 0 |
 | `indra/newview/llmaniptranslate.cpp` | render.pipeline | 2323 | 13 | 13 | 0 | 196 | 22 | 10 | 0 |
 | `indra/newview/llviewerwindow.cpp` | render.pipeline | 6504 | 12 | 14 | 0 | 44 | 7 | 63 | 2 |
 | `indra/llwindow/llwindowsdl.cpp` | assets.texture | 2757 | 11 | 12 | 0 | 0 | 0 | 0 | 0 |
@@ -55,6 +55,7 @@
 | `indra/newview/llviewerjoint.cpp` | render.pipeline | 173 | 2 | 2 | 0 | 2 | 4 | 2 | 0 |
 | `indra/newview/lldrawpooltree.cpp` | render.draw_pool | 157 | 2 | 2 | 0 | 2 | 1 | 0 | 0 |
 | `indra/llrender/llglcommonfunc.cpp` | render.legacy_low_level | 39 | 2 | 2 | 0 | 0 | 2 | 0 | 0 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 45 | 2 | 2 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llgl.h` | render.legacy_low_level | 485 | 1 | 26 | 0 | 0 | 62 | 0 | 0 |
 | `indra/llwindow/llwindowmacosx-objc.h` | render.opengl_touching | 187 | 1 | 3 | 2 | 0 | 0 | 0 | 0 |
 | `indra/newview/llnetmap.cpp` | assets.texture | 1804 | 1 | 1 | 0 | 92 | 0 | 0 | 0 |
@@ -101,4 +102,3 @@
 | `indra/newview/llfloatermodelpreview.cpp` | ui | 2124 | 0 | 0 | 0 | 17 | 0 | 0 | 0 |
 | `indra/newview/animationexplorer.cpp` | render.opengl_touching | 564 | 0 | 0 | 0 | 17 | 0 | 0 | 0 |
 | `indra/newview/llhudicon.cpp` | assets.texture | 354 | 0 | 0 | 0 | 16 | 3 | 0 | 0 |
-| `indra/llui/llstatbar.cpp` | render.opengl_touching | 723 | 0 | 0 | 0 | 16 | 1 | 0 | 0 |

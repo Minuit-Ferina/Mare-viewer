@@ -209,11 +209,16 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Create branch `phase3` from `phase2`.
 - [x] Add `docs/architecture/36-phase3-plan.md`.
 - [x] Add `docs/architecture/37-llrendertarget-fbo-containment-task.md`.
+- [x] Route `LLRenderTarget` raw FBO bind/status calls through
+      `llglcontainment.*` without moving owner state.
+- [x] Verify the first phase 3 FBO containment packet with `llrender/fast`.
+- [x] Regenerate the generated source inventory after the first phase 3 source
+      packet.
 
 ## Immediate Next Steps
 
-- [ ] Keep the first phase 3 source packet limited to `llglcontainment.*` and
-      one owner file if the containment note supports it.
+- [ ] Run a local incremental Xcode arm64 Release integration build for the
+      first phase 3 FBO containment packet.
 
 ## Phase 1 Inventory
 
