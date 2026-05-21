@@ -370,11 +370,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Defer Xcode and runtime smoke for the compressed upload and automatic
       mipmap packet because upload policy, ordering, and memory accounting did
       not change.
+- [x] Add
+      `docs/architecture/73-llimagegl-compressed-upload-automip-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a completion summary for the `LLImageGL::setImage(...)` compressed
-      upload and automatic mipmap containment packet.
+- [ ] Add a focused contract for `LLImageGL::setManualImage(...)`
+      `glTexImage2D(...)` allocation/copy containment before source changes.
 
 ## Phase 1 Inventory
 
