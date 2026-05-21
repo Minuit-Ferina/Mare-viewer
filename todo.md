@@ -589,7 +589,7 @@ without an explicit task, and do not start a direct Vulkan port.
       with `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLGLSLShader`
       texture-channel uniform source packet.
-- [ ] Add a summary for the `LLGLSLShader` texture-channel uniform containment
+- [x] Add a summary for the `LLGLSLShader` texture-channel uniform containment
       packet.
 
 ## Phase 1 Inventory
