@@ -308,11 +308,17 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/62-phase3-next-owner-selection.md`.
 - [x] Add
       `docs/architecture/63-llvertexbuffer-buffer-name-containment-task.md`.
+- [x] Route only `LLVertexBuffer` raw buffer name generation/deletion through
+      `llglcontainment.*` without moving owner state.
+- [x] Verify the phase 3 vertex buffer name containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the vertex buffer name
+      source packet.
 
 ## Immediate Next Steps
 
-- [ ] Route only `LLVertexBuffer` raw buffer name generation/deletion through
-      `llglcontainment.*` without moving owner state.
+- [ ] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 vertex buffer name containment packet.
 
 ## Phase 1 Inventory
 

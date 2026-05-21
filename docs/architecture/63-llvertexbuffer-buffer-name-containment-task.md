@@ -181,3 +181,53 @@ After the task note is committed, the next source packet should be limited to:
 
 Do not continue into buffer binding, upload, attribute setup, or draw calls in
 the same source packet.
+
+## Source Patch Applied
+
+Applied in phase 3:
+
+- added `LLGLContainment::generateBufferObjects(...)`
+- added `LLGLContainment::deleteBufferObjects(...)`
+- included `llglcontainment.h` in `llvertexbuffer.cpp`
+- delegated `generate_vertex_buffer_names(...)` to the new containment helper
+- delegated `delete_vertex_buffer_names(...)` to the new containment helper
+- kept `gen_buffer()` name pooling in `LLVertexBuffer`
+- kept the AMD one-buffer-at-a-time workaround in `LLVertexBuffer`
+- kept delayed deletion queues and frame-count policy in `LLVertexBuffer`
+- did not touch buffer binding, upload, attribute setup, draw calls, draw
+  pools, UI rendering, shader managers, or texture upload code
+
+Generated inventory was regenerated after the source patch so
+`docs/architecture/generated/source_inventory.csv` and
+`docs/architecture/generated/source_inventory_top.md` reflect the new call
+location.
+
+After this source patch:
+
+- `indra/llrender/llvertexbuffer.cpp` no longer contains direct
+  `glGenBuffers(...)` or `glDeleteBuffers(...)` calls
+- `indra/llrender/llvertexbuffer.cpp` has 11 likely direct `gl*` calls in the
+  generated inventory
+- `indra/llrender/llglcontainment.cpp` has 15 likely direct `gl*` calls in the
+  generated inventory
+
+## Source Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-llrender-make3/clang-module-cache \
+/opt/homebrew/bin/cmake \
+  --build /private/tmp/Mare-viewer-phase2-llrender-make3 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
+- rebuilt `llrender/CMakeFiles/llrender.dir/llvertexbuffer.cpp.o`
+- relinked `libllrender.a`

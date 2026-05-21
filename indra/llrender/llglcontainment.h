@@ -41,6 +41,8 @@ void setReadBuffer(LLGLenum buffer);
 void setDrawBuffers(S32 count, const LLGLenum* buffers);
 void generateFramebuffers(S32 count, LLGLuint* framebuffers);
 void deleteFramebuffers(S32 count, const LLGLuint* framebuffers);
+void generateBufferObjects(S32 count, LLGLuint* buffers);
+void deleteBufferObjects(S32 count, const LLGLuint* buffers);
 void generateTextureMipmap(LLGLenum texture_target);
 void clearBuffers(U32 mask);
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);

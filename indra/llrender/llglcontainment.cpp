@@ -76,6 +76,16 @@ void deleteFramebuffers(S32 count, const LLGLuint* framebuffers)
     glDeleteFramebuffers(static_cast<GLsizei>(count), framebuffers);
 }
 
+void generateBufferObjects(S32 count, LLGLuint* buffers)
+{
+    glGenBuffers(static_cast<GLsizei>(count), buffers);
+}
+
+void deleteBufferObjects(S32 count, const LLGLuint* buffers)
+{
+    glDeleteBuffers(static_cast<GLsizei>(count), buffers);
+}
+
 void generateTextureMipmap(LLGLenum texture_target)
 {
     glGenerateMipmap(texture_target);

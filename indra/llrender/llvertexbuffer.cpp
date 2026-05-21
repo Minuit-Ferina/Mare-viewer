@@ -27,6 +27,7 @@
 #include "linden_common.h"
 
 #include "llfasttimer.h"
+#include "llglcontainment.h"
 #include "llsys.h"
 #include "llvertexbuffer.h"
 // #include "llrender.h"
@@ -259,12 +260,12 @@ static GLWorkQueue* sQueue = nullptr;
 
 static void generate_vertex_buffer_names(GLsizei count, GLuint* buffers)
 {
-    glGenBuffers(count, buffers);
+    LLGLContainment::generateBufferObjects(count, buffers);
 }
 
 static void delete_vertex_buffer_names(GLsizei count, const GLuint* buffers)
 {
-    glDeleteBuffers(count, buffers);
+    LLGLContainment::deleteBufferObjects(count, buffers);
 }
 
 static void bind_vertex_buffer_target(GLenum target, GLuint buffer)
@@ -312,7 +313,7 @@ static void draw_vertex_buffer_arrays(GLenum mode, GLint first, GLsizei count)
     glDrawArrays(mode, first, count);
 }
 
-// batch calls to glGenBuffers
+// batch buffer object name generation
 static GLuint gen_buffer()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_VERTEX;
