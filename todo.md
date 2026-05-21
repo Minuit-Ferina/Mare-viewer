@@ -517,7 +517,9 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the
       `LLRender::clearErrors()` source packet.
-- [ ] Add `docs/architecture/99-llrender-clear-errors-summary.md`.
+- [x] Add `docs/architecture/99-llrender-clear-errors-summary.md`.
+- [ ] Add a focused task for `LLRender::setLineWidth(...)` containment before
+      source edits.
 
 ## Phase 1 Inventory
 
