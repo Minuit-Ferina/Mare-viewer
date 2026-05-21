@@ -99,6 +99,10 @@ void setTextureParameterInteger(
     LLGLenum target,
     LLGLenum parameter,
     LLGLint value);
+void setTextureParameterFloat(
+    LLGLenum target,
+    LLGLenum parameter,
+    LLGLfloat value);
 void setTextureParameterIntegerVector(
     LLGLenum target,
     LLGLenum parameter,

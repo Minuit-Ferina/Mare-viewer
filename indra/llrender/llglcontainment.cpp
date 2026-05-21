@@ -276,6 +276,14 @@ void setTextureParameterInteger(
     glTexParameteri(target, parameter, value);
 }
 
+void setTextureParameterFloat(
+    LLGLenum target,
+    LLGLenum parameter,
+    LLGLfloat value)
+{
+    glTexParameterf(target, parameter, value);
+}
+
 void setTextureParameterIntegerVector(
     LLGLenum target,
     LLGLenum parameter,
