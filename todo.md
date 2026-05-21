@@ -263,10 +263,12 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Run a local incremental Xcode arm64 Release integration build for the
       phase 3 mipmap containment packet.
+- [x] Add `docs/architecture/50-phase3-mipmap-summary.md`.
 
 ## Immediate Next Steps
 
-- [ ] Add a concise summary for the phase 3 mipmap containment packet.
+- [ ] Choose the next remaining `LLRenderTarget` containment packet:
+      viewport, clear/scissor, or texture allocation error check.
 
 ## Phase 1 Inventory
 
