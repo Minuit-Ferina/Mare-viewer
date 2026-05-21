@@ -500,8 +500,10 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the
       `LLTexUnit::debugTextureUnit()` source packet.
 - [x] Add `docs/architecture/95-lltexunit-debug-query-summary.md`.
-- [ ] Add a focused task for `LLTexUnit` texture parameter containment before
+- [x] Add a focused task for `LLTexUnit` texture parameter containment before
       source edits.
+- [ ] Route only `LLTexUnit` texture parameter raw calls through
+      `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
