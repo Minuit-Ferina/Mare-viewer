@@ -86,6 +86,16 @@ void bind_attachment_fbo(U32 fbo)
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 }
 
+void generate_framebuffer_name(U32* fbo)
+{
+    glGenFramebuffers(1, (GLuint *) fbo);
+}
+
+void delete_framebuffer_name(U32* fbo)
+{
+    glDeleteFramebuffers(1, (GLuint *) fbo);
+}
+
 void restore_tracked_fbo_binding()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, LLRenderTarget::sCurFBO);
@@ -215,7 +225,7 @@ bool LLRenderTarget::allocate(U32 resx, U32 resy, U32 color_fmt, bool depth, LLT
         }
     }
 
-    glGenFramebuffers(1, (GLuint *) &mFBO);
+    generate_framebuffer_name(&mFBO);
 
     if (mDepth)
     {
@@ -240,7 +250,7 @@ void LLRenderTarget::setColorAttachment(LLImageGL* img, LLGLuint use_name)
 
     if (mFBO == 0)
     {
-        glGenFramebuffers(1, (GLuint*)&mFBO);
+        generate_framebuffer_name(&mFBO);
     }
 
     mResX = img->getWidth();
@@ -473,7 +483,7 @@ void LLRenderTarget::release()
             forget_current_fbo_and_bind_default();
         }
 
-        glDeleteFramebuffers(1, (GLuint *) &mFBO);
+        delete_framebuffer_name(&mFBO);
         mFBO = 0;
     }
 

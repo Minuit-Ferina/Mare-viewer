@@ -114,6 +114,11 @@ an explicit task, and do not start a direct Vulkan port.
 - [x] Extract internal `LLRenderTarget` attachment helpers without changing the
       public API.
 - [x] Verify the attachment helper extraction with `llrender/fast`.
+- [x] Add `docs/architecture/19-llrendertarget-fbo-lifetime-contract.md`.
+- [x] Document `LLRenderTarget` FBO name lifetime intents.
+- [x] Extract internal `LLRenderTarget` FBO lifetime helpers without changing
+      the public API.
+- [x] Verify the FBO lifetime helper extraction with `llrender/fast`.
 
 ## Immediate Next Steps
 
