@@ -361,11 +361,20 @@ without an explicit task, and do not start a direct Vulkan port.
       scale-down families before source changes.
 - [x] Add
       `docs/architecture/72-llimagegl-compressed-upload-automip-containment-task.md`.
+- [x] Route only `LLImageGL::setImage(...)` compressed upload and automatic
+      mipmap raw calls through `llglcontainment.*`.
+- [x] Verify the compressed upload and automatic mipmap containment packet
+      with `llrender/fast`.
+- [x] Regenerate the generated source inventory after the compressed upload
+      and automatic mipmap source packet.
+- [x] Defer Xcode and runtime smoke for the compressed upload and automatic
+      mipmap packet because upload policy, ordering, and memory accounting did
+      not change.
 
 ## Immediate Next Steps
 
-- [ ] Route only `LLImageGL::setImage(...)` compressed upload and automatic
-      mipmap raw calls through `llglcontainment.*`.
+- [ ] Add a completion summary for the `LLImageGL::setImage(...)` compressed
+      upload and automatic mipmap containment packet.
 
 ## Phase 1 Inventory
 

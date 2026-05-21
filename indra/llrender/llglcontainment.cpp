@@ -229,6 +229,27 @@ void setTextureParameterIntegerVector(
     glTexParameteriv(target, parameter, values);
 }
 
+void setCompressedTextureImage2D(
+    LLGLenum target,
+    S32 level,
+    LLGLint internal_format,
+    S32 width,
+    S32 height,
+    S32 border,
+    S32 image_size,
+    const void* data)
+{
+    glCompressedTexImage2D(
+        target,
+        level,
+        internal_format,
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height),
+        border,
+        static_cast<GLsizei>(image_size),
+        data);
+}
+
 void areTexturesResident(S32 count, const LLGLuint* textures, LLGLboolean* residences)
 {
     glAreTexturesResident(static_cast<GLsizei>(count), textures, residences);

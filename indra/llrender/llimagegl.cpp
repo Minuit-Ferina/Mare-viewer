@@ -890,7 +890,15 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
                 if (is_compressed)
                 {
                     GLsizei tex_size = (GLsizei)dataFormatBytes(mFormatPrimary, w, h);
-                    glCompressedTexImage2D(mTarget, gl_level, mFormatPrimary, w, h, 0, tex_size, (GLvoid *)data_in);
+                    LLGLContainment::setCompressedTextureImage2D(
+                        mTarget,
+                        gl_level,
+                        mFormatPrimary,
+                        w,
+                        h,
+                        0,
+                        tex_size,
+                        data_in);
                     stop_glerror();
                 }
                 else
@@ -941,7 +949,7 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
                     //      (some rendering issues while core profile is enabled are acceptable at this point in time)
                     if (!LLRender::sGLCoreProfile)
                     {
-                        glTexParameteri(mTarget, GL_GENERATE_MIPMAP, GL_TRUE);
+                        LLGLContainment::setTextureParameterInteger(mTarget, GL_GENERATE_MIPMAP, GL_TRUE);
                     }
 
                     LLImageGL::setManualImage(mTarget, 0, mFormatInternal,
@@ -962,7 +970,7 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
                     if (LLRender::sGLCoreProfile)
                     {
                         LL_PROFILE_GPU_ZONE("generate mip map");
-                        glGenerateMipmap(mTarget);
+                        LLGLContainment::generateTextureMipmap(mTarget);
                     }
                     stop_glerror();
                 }
@@ -1093,7 +1101,15 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
         if (is_compressed)
         {
             GLsizei tex_size = (GLsizei)dataFormatBytes(mFormatPrimary, w, h);
-            glCompressedTexImage2D(mTarget, 0, mFormatPrimary, w, h, 0, tex_size, (GLvoid *)data_in);
+            LLGLContainment::setCompressedTextureImage2D(
+                mTarget,
+                0,
+                mFormatPrimary,
+                w,
+                h,
+                0,
+                tex_size,
+                data_in);
             stop_glerror();
         }
         else

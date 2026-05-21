@@ -92,6 +92,15 @@ void setTextureParameterIntegerVector(
     LLGLenum target,
     LLGLenum parameter,
     const LLGLint* values);
+void setCompressedTextureImage2D(
+    LLGLenum target,
+    S32 level,
+    LLGLint internal_format,
+    S32 width,
+    S32 height,
+    S32 border,
+    S32 image_size,
+    const void* data);
 void areTexturesResident(S32 count, const LLGLuint* textures, LLGLboolean* residences);
 void readCompressedTextureImage(LLGLenum target, S32 level, void* pixels);
 void readTextureImage(LLGLenum target, S32 level, LLGLenum format, LLGLenum type, void* pixels);
