@@ -509,8 +509,10 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLTexUnit` texture
       parameter source packet.
 - [x] Add `docs/architecture/97-lltexunit-texture-parameter-summary.md`.
-- [ ] Add a focused task for `LLRender::clearErrors()` containment before
+- [x] Add a focused task for `LLRender::clearErrors()` containment before
       source edits.
+- [ ] Route only `LLRender::clearErrors()` error reads through
+      `llglcontainment.*`.
 
 ## Phase 1 Inventory
 
