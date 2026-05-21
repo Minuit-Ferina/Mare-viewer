@@ -126,3 +126,45 @@ Because this is another behavior-bearing `llglcontainment.*` packet, also run:
 
 Runtime loaded-scene smoke is recommended before moving to viewport because
 clear behavior affects visible render target contents.
+
+## Source Patch Applied
+
+Applied in phase 3:
+
+- added `LLGLContainment::clearBuffers(...)`
+- added `LLGLContainment::setScissorBox(...)`
+- delegated `clear_render_target_buffers(...)` to the new containment helper
+- delegated `set_render_target_scissor(...)` to the new containment helper
+- kept mask calculation in `LLRenderTarget::clear()`
+- kept framebuffer status checking in `LLRenderTarget::clear()`
+- kept fallback `LLGLEnable scissor(GL_SCISSOR_TEST)` scope in
+  `LLRenderTarget::clear()`
+- kept `stop_glerror()` placement unchanged
+- did not touch `pipeline.cpp`, draw pools, UI rendering, shader managers, or
+  texture upload code
+
+Generated inventory was regenerated after the source patch so
+`docs/architecture/generated/source_inventory.csv` and
+`docs/architecture/generated/source_inventory_top.md` reflect the new call
+locations.
+
+## Source Build Check
+
+Date: 2026-05-21 CEST
+
+Targeted build:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/Mare-viewer-phase2-llrender-make3/clang-module-cache \
+/opt/homebrew/bin/cmake \
+  --build /private/tmp/Mare-viewer-phase2-llrender-make3 \
+  --target llrender/fast -- -j8
+```
+
+Result: passed.
+
+Observed work:
+
+- rebuilt `llrender/CMakeFiles/llrender.dir/llrendertarget.cpp.o`
+- rebuilt `llrender/CMakeFiles/llrender.dir/llglcontainment.cpp.o`
+- relinked `libllrender.a`

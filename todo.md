@@ -266,11 +266,17 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/50-phase3-mipmap-summary.md`.
 - [x] Add `docs/architecture/51-phase3-rendertarget-next-choice.md`.
 - [x] Add `docs/architecture/52-llrendertarget-clear-containment-task.md`.
+- [x] Route `LLRenderTarget` raw clear/scissor calls through
+      `llglcontainment.*` without moving owner state.
+- [x] Verify the phase 3 clear/scissor containment packet with
+      `llrender/fast`.
+- [x] Regenerate the generated source inventory after the clear/scissor source
+      packet.
 
 ## Immediate Next Steps
 
-- [ ] Route `LLRenderTarget` raw clear/scissor calls through
-      `llglcontainment.*` without moving owner state.
+- [ ] Run a local incremental Xcode arm64 Release integration build for the
+      phase 3 clear/scissor containment packet.
 
 ## Phase 1 Inventory
 

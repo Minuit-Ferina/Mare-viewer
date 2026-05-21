@@ -80,4 +80,14 @@ void generateTextureMipmap(LLGLenum texture_target)
 {
     glGenerateMipmap(texture_target);
 }
+
+void clearBuffers(U32 mask)
+{
+    glClear(mask);
+}
+
+void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height)
+{
+    glScissor(x, y, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
+}
 }

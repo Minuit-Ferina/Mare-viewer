@@ -160,12 +160,12 @@ void generate_bound_render_target_mipmaps()
 
 void clear_render_target_buffers(U32 mask)
 {
-    glClear(mask);
+    LLGLContainment::clearBuffers(mask);
 }
 
 void set_render_target_scissor(U32 width, U32 height)
 {
-    glScissor(0, 0, width, height);
+    LLGLContainment::setScissorBox(0, 0, width, height);
 }
 
 bool render_target_texture_allocation_failed()
