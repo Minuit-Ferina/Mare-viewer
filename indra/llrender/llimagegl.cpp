@@ -2673,7 +2673,16 @@ bool LLImageGL::scaleDown(S32 desired_discard)
             LLGLContainment::drawVertexBufferArrays(GL_TRIANGLES, 0, 3);
 
             free_tex_image(mTexName);
-            glTexImage2D(mTarget, 0, mFormatInternal, desired_width, desired_height, 0, mFormatPrimary, mFormatType, nullptr);
+            LLGLContainment::setTextureImage2D(
+                mTarget,
+                0,
+                mFormatInternal,
+                desired_width,
+                desired_height,
+                0,
+                mFormatPrimary,
+                mFormatType,
+                nullptr);
             copy_current_framebuffer_to_texture_region(mTarget, 0, 0, 0, 0, 0, desired_width, desired_height);
             alloc_tex_image(desired_width, desired_height, mFormatInternal, 1);
 
@@ -2683,7 +2692,7 @@ bool LLImageGL::scaleDown(S32 desired_discard)
             { // generate mipmaps if needed
                 LL_PROFILE_ZONE_NAMED_CATEGORY_TEXTURE("scaleDown - glGenerateMipmap");
                 gGL.getTexUnit(0)->bind(this);
-                glGenerateMipmap(mTarget);
+                LLGLContainment::generateTextureMipmap(mTarget);
                 gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
             }
         }

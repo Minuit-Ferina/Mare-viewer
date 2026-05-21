@@ -24,9 +24,9 @@
 | `indra/newview/llface.cpp` | render.pipeline | 2638 | 9 | 9 | 0 | 15 | 13 | 5 | 0 |
 | `indra/newview/lldrawpoolmaterials.cpp` | render.draw_pool | 290 | 8 | 8 | 0 | 11 | 0 | 0 | 0 |
 | `indra/newview/gltf/asset.cpp` | assets.texture | 1470 | 8 | 8 | 0 | 0 | 5 | 0 | 0 |
-| `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2823 | 7 | 20 | 0 | 32 | 77 | 0 | 0 |
 | `indra/newview/llreflectionmap.cpp` | render.pipeline | 383 | 6 | 8 | 0 | 0 | 3 | 1 | 0 |
 | `indra/newview/llvoavatar.cpp` | render.pipeline | 12711 | 6 | 6 | 0 | 96 | 8 | 23 | 0 |
+| `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2832 | 5 | 18 | 0 | 32 | 79 | 0 | 0 |
 | `indra/newview/llvieweroctree.cpp` | render.pipeline | 1551 | 5 | 7 | 0 | 0 | 4 | 7 | 0 |
 | `indra/newview/llselectmgr.cpp` | render.pipeline | 9001 | 5 | 6 | 1 | 68 | 48 | 1 | 0 |
 | `indra/newview/llglsandbox.cpp` | render.pipeline | 1130 | 5 | 5 | 0 | 129 | 19 | 1 | 2 |
