@@ -28,6 +28,7 @@
 
 #include "lltexlayer.h"
 
+#include "llgl.h"
 #include "llglcontainment.h"
 #include "llavatarappearance.h"
 #include "llcrc.h"

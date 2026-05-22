@@ -29,6 +29,7 @@
 #include "llavatarappearance.h"
 #include "llavatarappearancedefines.h"
 #include "llavatarjointmesh.h"
+#include "llgl.h"
 #include "lljointdata.h"
 #include "llstl.h"
 #include "lldir.h"

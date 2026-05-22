@@ -28,6 +28,7 @@
 
 #include "lltexlayerparams.h"
 
+#include "llgl.h"
 #include "llavatarappearance.h"
 #include "llimagetga.h"
 #include "llquantize.h"

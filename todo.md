@@ -1164,6 +1164,14 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add
       `docs/architecture/236-drawpool-alpha-cleanup-checkpoint.md` as the
       review checkpoint for the local alpha cleanup block.
+- [x] Fix the final `mare-viewer` Makefile checkpoint by making
+      `stop_glerror()` dependencies explicit in `llappearance` implementation
+      files.
+- [x] Verify the `llappearance` include fix with `llappearance`, final
+      non-clean `mare-viewer` Makefile checkpoint, both GL guardrails, and
+      regenerated source inventory.
+- [x] Add
+      `docs/architecture/237-llappearance-stop-glerror-include-summary.md`.
 
 ## Phase 1 Inventory
 
