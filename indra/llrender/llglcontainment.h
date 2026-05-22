@@ -93,6 +93,9 @@ LLGLint getAttributeLocation(LLGLuint program, const char* name);
 void bindAttributeLocation(LLGLuint program, LLGLuint index, const char* name);
 LLGLuint createProgram();
 void attachShader(LLGLuint program, LLGLuint shader);
+LLGLuint createShader(LLGLenum type);
+void setShaderSource(LLGLuint shader, S32 count, const char* const* strings);
+void compileShader(LLGLuint shader);
 void getAttachedShaders(
     LLGLuint program,
     S32 max_count,
@@ -102,6 +105,18 @@ void detachShader(LLGLuint program, LLGLuint shader);
 bool isShader(LLGLuint shader);
 void deleteShader(LLGLuint shader);
 void deleteProgram(LLGLuint program);
+void getShaderInfoLog(LLGLuint shader, S32 buffer_size, LLGLint* length, char* info_log);
+bool isProgram(LLGLuint program);
+void linkProgram(LLGLuint program);
+void validateProgram(LLGLuint program);
+void setProgramParameterInteger(LLGLuint program, LLGLenum parameter, LLGLint value);
+void setProgramBinary(LLGLuint program, LLGLenum binary_format, const void* binary, S32 length);
+void getProgramBinary(
+    LLGLuint program,
+    S32 buffer_size,
+    LLGLint* length,
+    LLGLenum* binary_format,
+    void* binary);
 void getShaderInteger(LLGLuint shader, LLGLenum parameter, LLGLint* value);
 void getProgramInteger(LLGLuint program, LLGLenum parameter, LLGLint* value);
 void getProgramInfoLog(LLGLuint program, S32 buffer_size, LLGLint* length, char* info_log);

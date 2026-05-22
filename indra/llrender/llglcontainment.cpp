@@ -267,6 +267,21 @@ void attachShader(LLGLuint program, LLGLuint shader)
     glAttachShader(program, shader);
 }
 
+LLGLuint createShader(LLGLenum type)
+{
+    return glCreateShader(type);
+}
+
+void setShaderSource(LLGLuint shader, S32 count, const char* const* strings)
+{
+    glShaderSource(shader, static_cast<GLsizei>(count), reinterpret_cast<const GLchar* const*>(strings), nullptr);
+}
+
+void compileShader(LLGLuint shader)
+{
+    glCompileShader(shader);
+}
+
 void getAttachedShaders(
     LLGLuint program,
     S32 max_count,
@@ -294,6 +309,46 @@ void deleteShader(LLGLuint shader)
 void deleteProgram(LLGLuint program)
 {
     glDeleteProgram(program);
+}
+
+void getShaderInfoLog(LLGLuint shader, S32 buffer_size, LLGLint* length, char* info_log)
+{
+    glGetShaderInfoLog(shader, static_cast<GLsizei>(buffer_size), length, info_log);
+}
+
+bool isProgram(LLGLuint program)
+{
+    return glIsProgram(program) == GL_TRUE;
+}
+
+void linkProgram(LLGLuint program)
+{
+    glLinkProgram(program);
+}
+
+void validateProgram(LLGLuint program)
+{
+    glValidateProgram(program);
+}
+
+void setProgramParameterInteger(LLGLuint program, LLGLenum parameter, LLGLint value)
+{
+    glProgramParameteri(program, parameter, value);
+}
+
+void setProgramBinary(LLGLuint program, LLGLenum binary_format, const void* binary, S32 length)
+{
+    glProgramBinary(program, binary_format, binary, static_cast<GLsizei>(length));
+}
+
+void getProgramBinary(
+    LLGLuint program,
+    S32 buffer_size,
+    LLGLint* length,
+    LLGLenum* binary_format,
+    void* binary)
+{
+    glGetProgramBinary(program, static_cast<GLsizei>(buffer_size), length, binary_format, binary);
 }
 
 void getShaderInteger(LLGLuint shader, LLGLenum parameter, LLGLint* value)
