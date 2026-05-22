@@ -29,8 +29,10 @@
 
 // LLRenderTarget is unavailible on the mapserver since it uses FBOs.
 
-#include "llgl.h"
+#include "llgltypes.h"
 #include "llrender.h"
+
+#include <vector>
 
 /*
  Wrapper around OpenGL framebuffer objects for use in render-to-texture
@@ -191,4 +193,3 @@ protected:
 };
 
 #endif
-

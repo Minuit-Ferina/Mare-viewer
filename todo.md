@@ -965,6 +965,11 @@ without an explicit task, and do not start a direct Vulkan port.
       `llui`, targeted viewer texture `newview` object compiles, the
       containment guardrail, and regenerated source inventory.
 - [x] Add `docs/architecture/193-llgltexture-header-boundary-summary.md`.
+- [x] Narrow `llrendertarget.h` so it no longer includes `llgl.h` directly.
+- [x] Verify the `LLRenderTarget` header boundary packet with `llrender/fast`,
+      `llui`, targeted render-target-heavy `newview` object compiles, the
+      containment guardrail, and regenerated source inventory.
+- [x] Add `docs/architecture/194-llrendertarget-header-boundary-summary.md`.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 - [ ] Continue reducing header-level OpenGL ABI exposure in small packets,
