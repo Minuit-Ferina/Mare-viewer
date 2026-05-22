@@ -1185,10 +1185,12 @@ not start a direct Vulkan port.
 
 ## Immediate Next Steps
 
-- [ ] Add a docs-only `LLDrawPoolAlpha` normal shader-selection map before any
+- [x] Add a docs-only `LLDrawPoolAlpha` normal shader-selection map before any
       source changes in that area.
-- [ ] Identify invariants for GLTF blend, material, fullbright, HUD, rigged,
+- [x] Identify invariants for GLTF blend, material, fullbright, HUD, rigged,
       and exposure-map alpha shader selection.
+- [x] Add
+      `docs/architecture/240-drawpool-alpha-shader-selection-map.md`.
 - [ ] Decide whether a tiny source cleanup is safe after the shader-selection
       map, or stop phase 4 as documentation-only.
 
