@@ -41,6 +41,7 @@
 #include "llexception.h"
 #include "llfasttimer.h"
 #include "llgl.h"
+#include "llglcontainment.h"
 #include "llstring.h"
 #include "lldir.h"
 #include "llsdutil.h"
@@ -1779,8 +1780,8 @@ const   S32   max_format  = (S32)num_formats - 1;
     if (auto_show)
     {
         show();
-        glClearColor(0.0f, 0.0f, 0.0f, 0.f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        LLGLContainment::setClearColor(0.0f, 0.0f, 0.0f, 0.f);
+        LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT);
         swapBuffers();
     }
 

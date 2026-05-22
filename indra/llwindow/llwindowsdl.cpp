@@ -36,6 +36,7 @@
 
 #include "llerror.h"
 #include "llgl.h"
+#include "llglcontainment.h"
 #include "llstring.h"
 #include "lldir.h"
 #include "llfindlocale.h"
@@ -642,12 +643,12 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
     unsigned int vram_megabytes = 0;
     queryInteger(GLX_RENDERER_VIDEO_MEMORY_MESA, &vram_megabytes);
     if (!vram_megabytes) {
-        glGetIntegerv(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX,
+        LLGLContainment::getInteger(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX,
                 (int *)&vram_megabytes);
         vram_megabytes /= 1024;
     }
     if (!vram_megabytes) {
-        glGetIntegerv(GL_VBO_FREE_MEMORY_ATI, (int *)&vram_megabytes);
+        LLGLContainment::getInteger(GL_VBO_FREE_MEMORY_ATI, (int *)&vram_megabytes);
         vram_megabytes /= 1024;
     }
 
@@ -658,16 +659,16 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
 
     // *TODO: Now would be an appropriate time to check for some
     // explicitly unsupported cards.
-    //const char* RENDERER = (const char*) glGetString(GL_RENDERER);
+    // Renderer string probing could be added here if needed.
 
     GLint depthBits, stencilBits, redBits, greenBits, blueBits, alphaBits;
 
-    glGetIntegerv(GL_RED_BITS, &redBits);
-    glGetIntegerv(GL_GREEN_BITS, &greenBits);
-    glGetIntegerv(GL_BLUE_BITS, &blueBits);
-    glGetIntegerv(GL_ALPHA_BITS, &alphaBits);
-    glGetIntegerv(GL_DEPTH_BITS, &depthBits);
-    glGetIntegerv(GL_STENCIL_BITS, &stencilBits);
+    LLGLContainment::getInteger(GL_RED_BITS, &redBits);
+    LLGLContainment::getInteger(GL_GREEN_BITS, &greenBits);
+    LLGLContainment::getInteger(GL_BLUE_BITS, &blueBits);
+    LLGLContainment::getInteger(GL_ALPHA_BITS, &alphaBits);
+    LLGLContainment::getInteger(GL_DEPTH_BITS, &depthBits);
+    LLGLContainment::getInteger(GL_STENCIL_BITS, &stencilBits);
 
     LL_INFOS() << "GL buffer:" << LL_ENDL;
         LL_INFOS() << "  Red Bits " << S32(redBits) << LL_ENDL;
@@ -741,7 +742,7 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
 
 
     //make sure multisampling is disabled by default
-    glDisable(GL_MULTISAMPLE_ARB);
+    LLGLContainment::disableCapability(GL_MULTISAMPLE_ARB);
 
     // We need to do this here, once video is init'd
     if (-1 == SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,

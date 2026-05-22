@@ -27,6 +27,8 @@
 
 namespace LLGLContainment
 {
+using DebugMessageCallback = void (*)();
+
 const char* getPhaseOneScope();
 
 void bindReadWriteFramebuffer(U32 framebuffer_name);
@@ -99,6 +101,8 @@ void getFloat(LLGLenum parameter, LLGLfloat* value);
 void setMatrixMode(LLGLenum mode);
 void pushMatrix();
 void popMatrix();
+void setDebugMessageCallback(DebugMessageCallback callback, void* user_param);
+bool hasVertexArrayGenerator();
 LLGLint getUniformLocation(LLGLuint program, const char* name);
 LLGLint getAttributeLocation(LLGLuint program, const char* name);
 void bindAttributeLocation(LLGLuint program, LLGLuint index, const char* name);
@@ -279,6 +283,7 @@ void copyTextureImage2D(
     S32 border);
 LLGLsync createSyncObject();
 void flushCommands();
+void finishCommands();
 void clientWaitSyncObject(LLGLsync sync);
 void waitSyncObject(LLGLsync sync);
 void deleteSyncObject(LLGLsync sync);

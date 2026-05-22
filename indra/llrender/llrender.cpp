@@ -853,9 +853,9 @@ bool LLRender::init(bool needs_vertex_buffer)
 #if LL_WINDOWS
     if (gGLManager.mHasDebugOutput && gDebugGL)
     { //setup debug output callback
-        //glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_LOW_ARB, 0, NULL, GL_TRUE);
-        glDebugMessageCallback((GLDEBUGPROC) gl_debug_callback, NULL);
-        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        // Debug message filtering remains intentionally disabled here.
+        LLGLContainment::setDebugMessageCallback(reinterpret_cast<LLGLContainment::DebugMessageCallback>(gl_debug_callback), NULL);
+        LLGLContainment::enableCapability(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     }
 #endif
 
@@ -871,7 +871,7 @@ bool LLRender::init(bool needs_vertex_buffer)
     LLGLContainment::enableCapability(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 #if LL_WINDOWS
-    if (glGenVertexArrays == nullptr)
+    if (!LLGLContainment::hasVertexArrayGenerator())
     {
         return false;
     }

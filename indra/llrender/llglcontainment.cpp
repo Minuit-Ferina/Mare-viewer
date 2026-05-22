@@ -297,6 +297,25 @@ void popMatrix()
     glPopMatrix();
 }
 
+void setDebugMessageCallback(DebugMessageCallback callback, void* user_param)
+{
+#if LL_WINDOWS
+    glDebugMessageCallback(reinterpret_cast<GLDEBUGPROC>(callback), user_param);
+#else
+    (void)callback;
+    (void)user_param;
+#endif
+}
+
+bool hasVertexArrayGenerator()
+{
+#if LL_WINDOWS
+    return glGenVertexArrays != nullptr;
+#else
+    return true;
+#endif
+}
+
 LLGLint getUniformLocation(LLGLuint program, const char* name)
 {
     return glGetUniformLocation(program, name);
@@ -830,6 +849,11 @@ LLGLsync createSyncObject()
 void flushCommands()
 {
     glFlush();
+}
+
+void finishCommands()
+{
+    glFinish();
 }
 
 void clientWaitSyncObject(LLGLsync sync)

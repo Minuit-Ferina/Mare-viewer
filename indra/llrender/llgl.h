@@ -189,8 +189,8 @@ void clear_glerror();
     enable/disable states of the GL to prevent redundant setting of state within a
     render path or the accidental corruption of what state the next path expects.
 
-    Essentially, wherever you would call glEnable set a state and then
-    subsequently reset it by calling glDisable (or vice versa), make an instance of
+    Essentially, wherever you would enable a GL state and then subsequently
+    disable it (or vice versa), make an instance of
     LLGLEnable with the state you want to set, and assume it will be restored to its
     original state when that instance of LLGLEnable is destroyed.  It is good practice
     to exploit stack frame controls for optimal setting/unsetting and readability of

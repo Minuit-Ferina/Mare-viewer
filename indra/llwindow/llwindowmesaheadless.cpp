@@ -29,6 +29,7 @@
 
 #include "llwindowmesaheadless.h"
 #include "llgl.h"
+#include "llglcontainment.h"
 
 #define MESA_CHANNEL_TYPE GL_UNSIGNED_SHORT
 #define MESA_CHANNEL_SIZE 2
@@ -74,5 +75,5 @@ LLWindowMesaHeadless::~LLWindowMesaHeadless()
 
 void LLWindowMesaHeadless::swapBuffers()
 {
-    glFinish();
+    LLGLContainment::finishCommands();
 }
