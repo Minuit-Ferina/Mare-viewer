@@ -658,11 +658,11 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Add a focused task for disabled `LLGLSLShader` debug include
       containment before source edits.
-- [ ] Route disabled `LLGLSLShader` debug include raw calls through existing
+- [x] Route disabled `LLGLSLShader` debug include raw calls through existing
       `llglcontainment.*` helpers.
-- [ ] Verify the disabled `LLGLSLShader` debug include containment packet with
+- [x] Verify the disabled `LLGLSLShader` debug include containment packet with
       `llrender/fast`.
-- [ ] Regenerate the generated source inventory after the disabled
+- [x] Regenerate the generated source inventory after the disabled
       `LLGLSLShader` debug include source packet.
 - [ ] Add a summary for the disabled `LLGLSLShader` debug include containment
       packet.

@@ -42,7 +42,7 @@
 #include "OpenGL/OpenGL.h"
 #endif
 
- // Print-print list of shader included source files that are linked together via glAttachShader()
+ // Print-print list of shader included source files linked together during shader attach.
  // i.e. On macOS / OSX the AMD GLSL linker will display an error if a varying is left in an undefined state.
 #define DEBUG_SHADER_INCLUDES 0
 
@@ -563,14 +563,14 @@ void dumpAttachObject(const char* func_name, GLuint program_object, const std::s
     GLint      info_len_expect = 0;
     GLint      info_len_actual = 0;
 
-    glGetShaderiv(program_object, GL_INFO_LOG_LENGTH, , &info_len_expect);
+    LLGLContainment::getShaderInteger(program_object, GL_INFO_LOG_LENGTH, &info_len_expect);
     fprintf(stderr, " * %-20s(), log size: %d, %s\n", func_name, info_len_expect, object_path.c_str());
 
     if (info_len_expect > 0)
     {
         fprintf(stderr, " ========== %s() ========== \n", func_name);
         info_log = new GLchar[info_len_expect];
-        glGetProgramInfoLog(program_object, info_len_expect, &info_len_actual, info_log);
+        LLGLContainment::getProgramInfoLog(program_object, info_len_expect, &info_len_actual, info_log);
         fprintf(stderr, "%s\n", info_log);
         delete[] info_log;
     }

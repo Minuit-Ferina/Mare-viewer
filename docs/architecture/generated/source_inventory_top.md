@@ -37,7 +37,6 @@
 | `indra/newview/llhudeffectlookat.cpp` | render.opengl_touching | 826 | 3 | 3 | 0 | 16 | 1 | 0 | 0 |
 | `indra/newview/llterrainpaintmap.cpp` | assets.texture | 287 | 3 | 3 | 0 | 15 | 8 | 0 | 1 |
 | `indra/newview/llhudeffectpointat.cpp` | render.opengl_touching | 523 | 3 | 3 | 0 | 15 | 1 | 0 | 0 |
-| `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2092 | 3 | 3 | 0 | 11 | 194 | 0 | 2 |
 | `indra/newview/lldynamictexture.cpp` | render.pipeline | 308 | 3 | 3 | 0 | 4 | 5 | 4 | 3 |
 | `indra/newview/llgltfmaterialpreviewmgr.cpp` | render.pipeline | 591 | 3 | 3 | 0 | 2 | 45 | 7 | 1 |
 | `indra/llrender/llimagegl.h` | render.legacy_low_level | 369 | 3 | 3 | 0 | 0 | 25 | 0 | 0 |
@@ -102,3 +101,4 @@
 | `indra/newview/llhudicon.cpp` | assets.texture | 354 | 0 | 0 | 0 | 16 | 3 | 0 | 0 |
 | `indra/llui/llstatbar.cpp` | render.opengl_touching | 723 | 0 | 0 | 0 | 16 | 1 | 0 | 0 |
 | `indra/newview/llbox.cpp` | render.opengl_touching | 133 | 0 | 0 | 0 | 16 | 0 | 0 | 0 |
+| `indra/newview/qtoolalign.cpp` | render.opengl_touching | 572 | 0 | 0 | 0 | 15 | 4 | 0 | 0 |
