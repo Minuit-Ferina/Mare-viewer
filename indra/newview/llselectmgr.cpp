@@ -36,6 +36,7 @@
 #include "llavatarnamecache.h"
 #include "lldbstrings.h"
 #include "llgl.h"
+#include "llglcontainment.h"
 #include "llmediaentry.h"
 #include "llrender.h"
 #include "llnotifications.h"
@@ -6389,7 +6390,7 @@ void LLSelectMgr::updateSilhouettes()
         //gGLSPipelineSelection.set();
 
         //mSilhouetteImagep->bindTexture();
-        //glAlphaFunc(GL_GREATER, sHighlightAlphaTest);
+        // Legacy alpha-test threshold would be configured here.
 
         std::set<LLViewerObject*> roots;
 
@@ -6582,7 +6583,7 @@ void LLSelectMgr::updateSelectionSilhouette(LLObjectSelectionHandle object_handl
         //gGLSPipelineSelection.set();
 
         //mSilhouetteImagep->bindTexture();
-        //glAlphaFunc(GL_GREATER, sHighlightAlphaTest);
+        // Legacy alpha-test threshold would be configured here.
 
         for (S32 pass = 0; pass < 2; pass++)
         {
@@ -6728,7 +6729,7 @@ void LLSelectMgr::renderSilhouettes(bool for_hud)
             }
         }
 
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
         S32 num_tes = llmin((S32)objectp->getNumTEs(), (S32)objectp->getNumFaces()); // avatars have TEs but no faces
         for (S32 te = 0; te < num_tes; ++te)
@@ -6742,8 +6743,8 @@ void LLSelectMgr::renderSilhouettes(bool for_hud)
         gGL.popMatrix();
         gGL.popMatrix();
 
-        glLineWidth(1.f);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        LLGLContainment::setLineWidth(1.f);
+        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         if (shader)
         {
@@ -8997,4 +8998,3 @@ bool LLCheckIdenticalFunctor<class LLFace *>::same(class LLFace* const & a, clas
     (void)tolerance;                                                                \
     return a == b;                                                                  \
 }
-

@@ -732,11 +732,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add a summary for the `LLReflectionMapManager` containment packet.
 - [x] Add a focused task for debug-overlay fixed-function containment before
       source edits.
-- [ ] Route debug-overlay line width and polygon mode calls through
+- [x] Route debug-overlay line width and polygon mode calls through
       `llglcontainment.*`.
-- [ ] Verify the debug-overlay containment packet with targeted or incremental
+- [x] Verify the debug-overlay containment packet with targeted or incremental
       newview builds.
-- [ ] Regenerate the generated source inventory after the debug-overlay source
+- [x] Regenerate the generated source inventory after the debug-overlay source
       packet.
 - [ ] Add a summary for the debug-overlay fixed-function containment packet.
 

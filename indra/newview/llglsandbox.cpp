@@ -34,6 +34,7 @@
 #include "llviewercontrol.h"
 
 #include "llgl.h"
+#include "llglcontainment.h"
 #include "llrender.h"
 #include "llglheaders.h"
 #include "llparcel.h"
@@ -778,7 +779,7 @@ void LLViewerObjectList::renderObjectBeacons()
             if (line_width != last_line_width)
             {
                 gGL.flush();
-                glLineWidth( (F32)line_width );
+                LLGLContainment::setLineWidth((F32)line_width);
                 last_line_width = line_width;
             }
 
@@ -808,7 +809,7 @@ void LLViewerObjectList::renderObjectBeacons()
             if (line_width != last_line_width)
             {
                 gGL.flush();
-                glLineWidth( (F32)line_width );
+                LLGLContainment::setLineWidth((F32)line_width);
                 last_line_width = line_width;
             }
 
@@ -822,7 +823,7 @@ void LLViewerObjectList::renderObjectBeacons()
         }
 
         gGL.flush();
-        glLineWidth(1.f);
+        LLGLContainment::setLineWidth(1.f);
 
         for (std::vector<LLDebugBeacon>::iterator iter = mDebugBeacons.begin(); iter != mDebugBeacons.end(); ++iter)
         {
@@ -857,7 +858,7 @@ void LLSky::renderSunMoonBeacons(const LLVector3& pos_agent, const LLVector3& di
     {
         pos_end.mV[i] = pos_agent.mV[i] + (50 * direction.mV[i]);
     }
-    glLineWidth((GLfloat)LLPipeline::DebugBeaconLineWidth);
+    LLGLContainment::setLineWidth((GLfloat)LLPipeline::DebugBeaconLineWidth);
     gGL.begin(LLRender::LINES);
     color.mV[3] *= 0.5f;
     gGL.color4fv(color.mV);
@@ -868,7 +869,7 @@ void LLSky::renderSunMoonBeacons(const LLVector3& pos_agent, const LLVector3& di
     gGL.end();
 
     gGL.flush();
-    glLineWidth(1.f);
+    LLGLContainment::setLineWidth(1.f);
 
 }
 
