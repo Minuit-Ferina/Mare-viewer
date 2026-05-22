@@ -1191,8 +1191,12 @@ not start a direct Vulkan port.
       and exposure-map alpha shader selection.
 - [x] Add
       `docs/architecture/240-drawpool-alpha-shader-selection-map.md`.
-- [ ] Decide whether a tiny source cleanup is safe after the shader-selection
-      map, or stop phase 4 as documentation-only.
+- [x] Decide that only a tiny GLTF alpha-blend shader target helper is safe as
+      the first phase 4 source cleanup.
+- [x] Add
+      `docs/architecture/241-drawpool-alpha-gltf-shader-task.md`.
+- [ ] Extract only the GLTF alpha-blend shader target helper in
+      `LLDrawPoolAlpha`.
 
 ## Phase 1 Inventory
 
