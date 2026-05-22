@@ -27,11 +27,15 @@
 #ifndef LL_LLCUBEMAP_H
 #define LL_LLCUBEMAP_H
 
-#include "llgl.h"
+#include "llgltypes.h"
+#include "llimagegl.h"
+#include "llpointer.h"
+#include "llrefcount.h"
 
 #include <vector>
 
 class LLVector3;
+class LLImageRaw;
 
 // Environment map hack!
 class LLCubeMap : public LLRefCount
@@ -72,7 +76,7 @@ public:
     // NOTE: Cube Map MUST already be resident in VRAM
     void generateMipMaps();
 
-    GLuint getGLName();
+    LLGLuint getGLName();
 
     void destroyGL();
 

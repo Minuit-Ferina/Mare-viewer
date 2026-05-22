@@ -39,6 +39,7 @@
 #include "llglslshader.h"
 
 #include "llglcontainment.h"
+#include "llgl.h"
 #include "llglheaders.h"
 
 //#pragma optimize("", off)
@@ -46,7 +47,7 @@
 using namespace LLImageGLMemory;
 
 // MUST match order of OpenGL face-layers
-GLenum LLCubeMapArray::sTargets[6] =
+LLGLenum LLCubeMapArray::sTargets[6] =
 {
     GL_TEXTURE_CUBE_MAP_POSITIVE_X,
     GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -234,7 +235,7 @@ void LLCubeMapArray::unbind()
     mTextureStage = -1;
 }
 
-GLuint LLCubeMapArray::getGLName()
+LLGLuint LLCubeMapArray::getGLName()
 {
     return mImage->getTexName();
 }

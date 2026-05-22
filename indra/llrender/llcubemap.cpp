@@ -39,6 +39,7 @@
 #include "llglslshader.h"
 
 #include "llglcontainment.h"
+#include "llgl.h"
 #include "llglheaders.h"
 
 namespace {
@@ -244,7 +245,7 @@ void LLCubeMap::generateMipMaps()
     disable();
 }
 
-GLuint LLCubeMap::getGLName()
+LLGLuint LLCubeMap::getGLName()
 {
     return mImages[0]->getTexName();
 }

@@ -21,7 +21,7 @@ indra/newview/app_settings/shaders/class1/deferred/textureUtilV.glsl,assets.text
 indra/llrender/llrender2dutils.cpp,render.legacy_low_level,1872,14,0,1,0,0,577,3,33,0,0,2,0,0,0
 indra/newview/lldrawpoolterrain.cpp,render.pipeline,1124,24,0,1,0,1,189,85,31,1,30,0,0,22,0
 indra/newview/llselectmgr.cpp,render.pipeline,9001,71,0,1,0,1,68,51,14,1,0,0,0,3,0
-indra/llrender/llcubemap.cpp,render.legacy_low_level,345,12,0,1,0,0,21,3,4,0,0,0,6,0,0
+indra/llrender/llcubemap.cpp,render.legacy_low_level,346,13,0,1,0,0,21,4,4,0,0,0,6,0,0
 indra/newview/llfetchedgltfmaterial.cpp,render.pipeline,265,8,0,1,0,1,0,16,0,2,0,0,0,4,0
 indra/newview/llscenemonitor.h,assets.texture,130,5,0,1,0,1,0,0,0,0,0,5,0,2,0
 indra/newview/app_settings/shaders/class2/interface/irradianceGenF.glsl,viewer.misc,215,0,0,1,0,1,0,0,0,0,0,0,0,0,0
@@ -119,10 +119,10 @@ indra/llrender/llrender.h,render.legacy_low_level,576,12,0,0,0,0,2,40,8,0,0,2,4,
 indra/newview/llvosky.cpp,render.pipeline,1600,26,0,0,0,0,2,11,6,7,11,0,0,2,0
 indra/newview/llviewerjoint.cpp,render.pipeline,174,9,0,0,0,0,2,6,0,2,0,0,0,0,0
 indra/newview/llhudtext.cpp,render.opengl_touching,719,22,0,0,0,0,2,6,0,0,0,0,0,0,0
+indra/llrender/llcubemaparray.cpp,render.legacy_low_level,247,13,0,0,0,0,2,5,0,0,0,0,2,0,0
 indra/newview/llpreviewtexture.cpp,assets.texture,798,30,0,0,0,0,2,4,0,0,0,0,0,1,0
 indra/newview/rlveffects.cpp,render.opengl_touching,334,11,0,0,0,0,2,4,1,0,0,0,0,0,0
 indra/newview/lldrawpooltree.cpp,render.draw_pool,157,14,0,0,0,0,2,3,2,0,14,0,0,3,0
-indra/llrender/llcubemaparray.cpp,render.legacy_low_level,246,12,0,0,0,0,2,3,0,0,0,0,2,0,0
 indra/newview/llhudnametag.cpp,render.opengl_touching,949,21,0,0,0,0,2,2,0,0,0,0,0,0,0
 indra/newview/lldrawpoolpbropaque.cpp,render.pipeline,96,6,0,0,0,0,2,0,0,6,8,0,0,0,0
 indra/llui/llfolderviewitem.cpp,render.opengl_touching,2632,14,0,0,0,0,2,0,0,0,0,0,0,0,1
@@ -238,8 +238,10 @@ indra/newview/llviewerregion.h,assets.texture,723,14,0,0,0,0,0,2,0,0,0,0,0,2,0
 indra/newview/lldrawpoolavatar.h,render.draw_pool,152,4,0,0,0,0,0,2,0,0,4,0,0,1,0
 indra/newview/llsprite.h,assets.texture,105,6,0,0,0,0,0,2,0,0,0,0,0,1,0
 indra/newview/lldrawpoolmaterials.h,render.draw_pool,71,5,0,0,0,0,0,2,0,0,3,0,0,1,0
+indra/llrender/llcubemaparray.h,render.legacy_low_level,82,4,0,0,0,0,0,2,0,0,0,0,2,0,0
 indra/llrender/lltexture.h,render.legacy_low_level,76,2,0,0,0,0,0,2,0,0,0,0,2,0,0
 indra/newview/llviewermedia.cpp,assets.texture,4248,50,0,0,0,0,0,2,0,0,0,0,1,0,0
+indra/llrender/llcubemap.h,render.legacy_low_level,97,5,0,0,0,0,0,2,0,0,0,0,1,0,0
 indra/llappearance/llwearable.cpp,render.opengl_touching,775,9,0,0,0,0,0,2,0,0,0,0,0,0,0
 indra/newview/llthumbnailctrl.cpp,render.opengl_touching,270,11,0,0,0,0,0,2,0,0,0,0,0,0,0
 indra/newview/llfloaterscriptdebug.cpp,ui,221,14,0,0,0,0,0,2,0,0,0,0,0,0,0
@@ -262,7 +264,6 @@ indra/newview/llviewerparceloverlay.h,assets.texture,140,4,0,0,0,0,0,1,0,0,0,0,0
 indra/llappearance/llavatarjointmesh.cpp,world.avatar,391,11,0,0,0,0,0,1,0,0,0,0,0,1,0
 indra/newview/gltfscenemanager.h,assets.texture,106,3,0,0,0,0,0,1,0,0,0,0,0,1,0
 indra/newview/lldrawpoolwaterexclusion.h,render.draw_pool,62,5,0,0,0,0,0,1,0,0,3,0,0,1,0
-indra/llrender/llcubemap.h,render.legacy_low_level,93,2,0,0,0,0,0,1,0,0,0,0,1,0,0
 indra/llui/lltexteditor.cpp,render.opengl_touching,3317,34,0,0,0,0,0,1,0,0,0,0,0,0,0
 indra/newview/llfloaterchangeitemthumbnail.cpp,ui,1121,21,0,0,0,0,0,1,0,0,0,0,0,0,0
 indra/newview/llfloaterreporter.cpp,ui,1075,54,0,0,0,0,0,1,0,0,0,0,0,0,0
@@ -361,7 +362,6 @@ indra/newview/tests/llviewertexture_stub.cpp,assets.texture,35,3,0,0,0,0,0,0,0,0
 indra/llrender/llfontbitmapcache.h,render.legacy_low_level,84,2,0,0,0,0,0,0,0,0,0,0,2,0,0
 indra/llrender/llfontfreetype.cpp,render.legacy_low_level,904,14,0,0,0,0,0,0,0,0,0,0,1,0,0
 indra/integration_tests/llui_libtest/llui_libtest.cpp,assets.texture,219,14,0,0,0,0,0,0,0,0,0,0,1,0,0
-indra/llrender/llcubemaparray.h,render.legacy_low_level,79,2,0,0,0,0,0,0,0,0,0,0,1,0,0
 indra/llrender/lltexture.cpp,render.legacy_low_level,44,2,0,0,0,0,0,0,0,0,0,0,1,0,0
 indra/newview/SMAAAreaTex.h,viewer.misc,15006,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llinventorybridge.cpp,viewer.misc,9422,59,0,0,0,0,0,0,0,0,0,0,0,0,0

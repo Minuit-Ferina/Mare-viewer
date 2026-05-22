@@ -941,10 +941,19 @@ without an explicit task, and do not start a direct Vulkan port.
       `llui`, targeted shader-manager `newview` object compiles, the
       containment guardrail, and regenerated source inventory.
 - [x] Add `docs/architecture/190-llshadermgr-header-boundary-summary.md`.
+- [x] Narrow `llcubemap.h` and `llcubemaparray.h` so they no longer include
+      `llgl.h` directly.
+- [x] Replace public cube-map OpenGL scalar spellings with `llgltypes.h`
+      aliases while keeping `llgl.h` local to the implementation files.
+- [x] Verify the cube-map header boundary packet with `llrender/fast`, `llui`,
+      targeted reflection-probe `newview` object compiles, the containment
+      guardrail, and regenerated source inventory.
+- [x] Add `docs/architecture/191-cubemap-header-boundary-summary.md`.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 - [ ] Continue reducing header-level OpenGL ABI exposure in small packets,
-      starting with `llgl.h` and `llglstates.h`.
+      starting with low-risk resource headers before `llgl.h` and
+      `llglstates.h`.
 
 ## Phase 1 Inventory
 
