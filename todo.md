@@ -1059,6 +1059,9 @@ without an explicit task, and do not start a direct Vulkan port.
       current draw-pool order and pass-state assumptions.
 - [x] Add `docs/architecture/215-renderer-contract-draft.md` as the first
       small renderer contract after the evidence phase.
+- [x] Add
+      `docs/architecture/216-narrow-renderer-abstraction-candidates.md` to
+      consider narrow follow-up abstractions without starting one.
 
 ## Phase 1 Inventory
 
@@ -1113,7 +1116,7 @@ No open items in this section right now.
 - [x] Identify shader lifetime ownership across compile, bind, uniforms, and reload.
 - [x] Identify render pass ordering dependencies in draw pools and `pipeline.cpp`.
 - [x] Prepare a small renderer contract document after phase 1 evidence is complete.
-- [ ] Only then consider narrow abstractions that reduce real OpenGL coupling.
+- [x] Only then consider narrow abstractions that reduce real OpenGL coupling.
 
 ## Very Long-Term Product Direction
 
