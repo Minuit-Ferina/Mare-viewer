@@ -35,6 +35,7 @@
 
 #include "llvertexbuffer.h"
 #include "llglslshader.h"
+#include "llrender.h"
 
 LLRenderSphere gSphere;
 

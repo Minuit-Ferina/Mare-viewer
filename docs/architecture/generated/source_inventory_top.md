@@ -7,7 +7,7 @@
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 0 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llgl.h` | render.legacy_low_level | 485 | 0 | 24 | 0 | 0 | 62 | 0 | 0 |
 | `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2841 | 0 | 13 | 0 | 32 | 81 | 0 | 0 |
-| `indra/llrender/llpostprocess.cpp` | render.legacy_low_level | 473 | 0 | 7 | 0 | 18 | 16 | 0 | 0 |
+| `indra/llrender/llpostprocess.cpp` | render.legacy_low_level | 474 | 0 | 7 | 0 | 18 | 16 | 0 | 0 |
 | `indra/llrender/llshadermgr.cpp` | render.legacy_low_level | 1564 | 0 | 7 | 0 | 0 | 60 | 0 | 0 |
 | `indra/llrender/llvertexbuffer.cpp` | render.legacy_low_level | 1964 | 0 | 5 | 0 | 33 | 21 | 0 | 0 |
 | `indra/llui/llui.cpp` | unknown | 764 | 0 | 4 | 4 | 0 | 0 | 0 | 0 |
@@ -90,7 +90,7 @@
 | `indra/newview/llcylinder.cpp` | render.opengl_touching | 74 | 0 | 0 | 0 | 10 | 0 | 0 | 0 |
 | `indra/newview/marenisupscaler.cpp` | render.opengl_touching | 135 | 0 | 0 | 0 | 9 | 4 | 0 | 8 |
 | `indra/newview/llviewerjointattachment.cpp` | render.pipeline | 720 | 0 | 0 | 0 | 9 | 1 | 3 | 0 |
-| `indra/llrender/llrendersphere.cpp` | render.legacy_low_level | 129 | 0 | 0 | 0 | 9 | 1 | 0 | 0 |
+| `indra/llrender/llrendersphere.cpp` | render.legacy_low_level | 130 | 0 | 0 | 0 | 9 | 1 | 0 | 0 |
 | `indra/llrender/llfontvertexbuffer.cpp` | render.legacy_low_level | 240 | 0 | 0 | 0 | 9 | 0 | 0 | 0 |
 | `indra/newview/llhudrender.cpp` | render.opengl_touching | 136 | 0 | 0 | 0 | 9 | 0 | 0 | 0 |
 | `indra/llappearance/lltexlayerparams.cpp` | render.opengl_touching | 598 | 0 | 0 | 0 | 8 | 1 | 0 | 0 |

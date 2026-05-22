@@ -30,6 +30,7 @@
 #include "llglcontainment.h"
 #include "llglheaders.h"
 #include "llglslshader.h"
+#include "llimagegl.h"
 #include "llsdserialize.h"
 #include "llrender.h"
 

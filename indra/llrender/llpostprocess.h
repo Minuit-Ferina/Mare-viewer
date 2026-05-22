@@ -27,11 +27,16 @@
 #ifndef LL_POSTPROCESS_H
 #define LL_POSTPROCESS_H
 
-#include <map>
-#include <fstream>
-#include "llgl.h"
 #include "llgltypes.h"
+#include "llpointer.h"
+#include "llsd.h"
 #include "llstaticstringtable.h"
+
+#include <fstream>
+#include <map>
+#include <string>
+
+class LLImageGL;
 
 class LLPostProcess
 {

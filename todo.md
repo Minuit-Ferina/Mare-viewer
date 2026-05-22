@@ -949,6 +949,15 @@ without an explicit task, and do not start a direct Vulkan port.
       targeted reflection-probe `newview` object compiles, the containment
       guardrail, and regenerated source inventory.
 - [x] Add `docs/architecture/191-cubemap-header-boundary-summary.md`.
+- [x] Narrow `llpostprocess.h` and `llrendersphere.h` so they no longer
+      include `llgl.h` directly.
+- [x] Make postprocess texture and sphere renderer implementation dependencies
+      explicit in their `.cpp` files.
+- [x] Verify the postprocess/sphere header boundary packet with
+      `llrender/fast`, `llui`, targeted `newview` object compiles, the
+      containment guardrail, and regenerated source inventory.
+- [x] Add
+      `docs/architecture/192-postprocess-sphere-header-boundary-summary.md`.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 - [ ] Continue reducing header-level OpenGL ABI exposure in small packets,
