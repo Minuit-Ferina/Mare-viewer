@@ -721,6 +721,15 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLDrawPoolMaterials`
       source packet.
 - [x] Add a summary for the `LLDrawPoolMaterials` uniform containment packet.
+- [x] Add a focused task for `LLReflectionMapManager` containment before
+      source edits.
+- [ ] Route `LLReflectionMapManager` OpenGL calls through
+      `llglcontainment.*`.
+- [ ] Verify the `LLReflectionMapManager` containment packet with a targeted
+      or incremental newview build.
+- [ ] Regenerate the generated source inventory after the
+      `LLReflectionMapManager` source packet.
+- [ ] Add a summary for the `LLReflectionMapManager` containment packet.
 
 ## Phase 1 Inventory
 
