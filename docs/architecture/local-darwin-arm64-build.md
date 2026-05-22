@@ -1218,10 +1218,55 @@ Local environment notes:
   they do not change source behavior.
 - This Makefile check is universal and does not replace the local arm64-only
   Xcode shortcut above.
-- A Makefile-built app bundle runtime smoke test is optional. If it fails at
-  launch because the bundle contains an uncompiled `Kokua.xib` instead of the
-  `Kokua.nib` expected by `NSMainNibFile`, treat that as non-Xcode packaging
-  debt rather than a regression in the reference Xcode path.
+- Do not launch a Makefile-built app bundle before checking the main nib.
+  Xcode compiles `Kokua.xib` into `Kokua.nib` automatically, but the Unix
+  Makefiles path can leave only the source `Kokua.xib` in the app resources.
+
+### Makefile Main Nib Guardrail
+
+Symptom:
+
+```text
+Unable to load nib file: Kokua.nib, exiting
+```
+
+Cause:
+
+- `Info-SecondLife.plist` sets `NSMainNibFile` to `Kokua.nib`.
+- The Makefile bundle can contain
+  `Mare Viewer.app/Contents/Resources/Kokua.xib` without the compiled
+  `Mare Viewer.app/Contents/Resources/Kokua.nib`.
+- This is a non-Xcode packaging gap, not a renderer regression.
+
+Check after every Unix Makefiles `mare-viewer` checkpoint:
+
+```sh
+APP_BUNDLE="/private/tmp/Mare-viewer-phase2-llrender-make3/newview/Mare Viewer.app"
+test -e "$APP_BUNDLE/Contents/Resources/Kokua.nib"
+plutil -p "$APP_BUNDLE/Contents/Info.plist" | rg NSMainNibFile
+```
+
+If the nib is missing, repair the local bundle before runtime smoke:
+
+```sh
+APP_BUNDLE="/private/tmp/Mare-viewer-phase2-llrender-make3/newview/Mare Viewer.app"
+xcrun ibtool \
+  --compile "$APP_BUNDLE/Contents/Resources/Kokua.nib" \
+  "/Users/vitoldkapshitzer/Documents/dev/Mare-viewer/indra/newview/Kokua.xib"
+```
+
+Durable fix if the Unix Makefiles app becomes a regular runtime path:
+
+- Add a Darwin non-Xcode `POST_BUILD` step that runs the same `ibtool
+  --compile` command after `viewer_manifest.py`.
+- Keep the Xcode path unchanged; Xcode already handles `.xib` compilation.
+
+Observed on 2026-05-22 with:
+
+- Build tree: `/private/tmp/Mare-viewer-phase2-llrender-make3`
+- Runtime failure: app launched, then aborted because `Kokua.nib` was absent.
+- Local bundle repair: `xcrun ibtool --compile .../Kokua.nib .../Kokua.xib`
+  created the missing nib.
 
 ## Not Covered
 

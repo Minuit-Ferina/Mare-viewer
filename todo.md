@@ -887,7 +887,15 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Add a summary for the pipeline containment packet.
 - [x] Add a phase 3 containment completion summary.
-- [ ] Run one non-clean incremental viewer link checkpoint on `phase3`.
+- [x] Run one non-clean incremental viewer link checkpoint on `phase3`.
+      Note: the reused Make build tree needed
+      `AUTOBUILD_EXECUTABLE=/private/tmp/Mare-viewer-v1.2.3.1-worktree/.venv/bin/autobuild`
+      before the `mare-viewer` target could generate `packages-info.txt`.
+- [x] Document the Unix Makefiles `Kokua.xib`/`Kokua.nib` runtime guardrail
+      and the local `ibtool --compile` repair command.
+- [ ] If the Unix Makefiles app becomes a regular runtime path, add a Darwin
+      non-Xcode CMake `POST_BUILD` step to compile `Kokua.xib` into
+      `Kokua.nib` after `viewer_manifest.py`.
 - [ ] Optionally perform a minimal manual smoke after the final pipeline
       containment packet: launch, login, load one scene, resize, quit.
 - [ ] Write a renderer containment contract for what `LLGLContainment` may own
