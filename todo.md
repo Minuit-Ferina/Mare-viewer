@@ -1161,6 +1161,9 @@ without an explicit task, and do not start a direct Vulkan port.
       inventory.
 - [x] Add
       `docs/architecture/235-drawpool-alpha-highlight-draw-summary.md`.
+- [x] Add
+      `docs/architecture/236-drawpool-alpha-cleanup-checkpoint.md` as the
+      review checkpoint for the local alpha cleanup block.
 
 ## Phase 1 Inventory
 
