@@ -622,11 +622,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add a summary for the `LLGLSLShader` UBO binding containment packet.
 - [x] Add a focused task for `LLGLSLShader` attribute binding containment
       before source edits.
-- [ ] Route `LLGLSLShader` reserved attribute binding through
+- [x] Route `LLGLSLShader` reserved attribute binding through
       `llglcontainment.*`.
-- [ ] Verify the `LLGLSLShader` attribute binding containment packet with
+- [x] Verify the `LLGLSLShader` attribute binding containment packet with
       `llrender/fast`.
-- [ ] Regenerate the generated source inventory after the `LLGLSLShader`
+- [x] Regenerate the generated source inventory after the `LLGLSLShader`
       attribute binding source packet.
 - [ ] Add a summary for the `LLGLSLShader` attribute binding containment
       packet.

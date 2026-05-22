@@ -661,7 +661,7 @@ bool LLGLSLShader::mapAttributes()
         for (U32 i = 0; i < LLShaderMgr::instance()->mReservedAttribs.size(); i++)
         {
             const char* name = LLShaderMgr::instance()->mReservedAttribs[i].c_str();
-            glBindAttribLocation(mProgramObject, i, (const GLchar*)name);
+            LLGLContainment::bindAttributeLocation(mProgramObject, i, name);
         }
 
         //link the program
