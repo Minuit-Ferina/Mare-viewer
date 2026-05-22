@@ -2430,7 +2430,7 @@ void LLGLState::dumpStates()
     }
 }
 
-void LLGLState::checkStates(GLboolean writeAlpha)
+void LLGLState::checkStates(LLGLboolean writeAlpha)
 {
     if (!gDebugGL)
     {

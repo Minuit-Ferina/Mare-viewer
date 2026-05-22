@@ -243,7 +243,7 @@ public:
     // make sure GL blend function, GL states, and GL color mask match
     // what we expect
     //  writeAlpha - whether or not writing to alpha channel is expected
-    static void checkStates(GLboolean writeAlpha = GL_TRUE);
+    static void checkStates(LLGLboolean writeAlpha = GL_TRUE);
 
 protected:
     static boost::unordered_map<LLGLenum, LLGLboolean> sStateMap;

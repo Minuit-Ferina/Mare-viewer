@@ -1010,6 +1010,12 @@ without an explicit task, and do not start a direct Vulkan port.
       scene-monitor `newview` object compiles, the containment guardrail, and
       regenerated source inventory.
 - [x] Add `docs/architecture/200-probe-query-header-types-summary.md`.
+- [x] Narrow the remaining raw `GLboolean` spelling in `llgl.h` to
+      `LLGLboolean`.
+- [x] Verify the `llgl.h` type boundary packet with `llrender/fast`, `llui`,
+      targeted `newview` object compiles, the containment guardrail, and
+      regenerated source inventory.
+- [x] Add `docs/architecture/201-llgl-header-type-boundary-summary.md`.
 - [ ] Validate `marefsr2upscaler.cpp` on a configuration where
       `MARE_ENABLE_FSR2` is active.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the

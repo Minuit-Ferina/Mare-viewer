@@ -3,9 +3,9 @@
 | file | category | lines | gl_calls | gl_raw_refs | gl_known_false_refs | gGL | LLGL | LLPipeline | LLRenderTarget |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 1140 | 160 | 161 | 0 | 0 | 321 | 0 | 0 |
-| `indra/llrender/llgl.cpp` | render.legacy_low_level | 2948 | 0 | 2134 | 0 | 31 | 163 | 0 | 0 |
+| `indra/llrender/llgl.cpp` | render.legacy_low_level | 2948 | 0 | 2134 | 0 | 31 | 164 | 0 | 0 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 0 | 762 | 0 | 0 | 1 | 0 | 0 |
-| `indra/llrender/llgl.h` | render.legacy_low_level | 485 | 0 | 24 | 0 | 0 | 62 | 0 | 0 |
+| `indra/llrender/llgl.h` | render.legacy_low_level | 485 | 0 | 24 | 0 | 0 | 63 | 0 | 0 |
 | `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2841 | 0 | 13 | 0 | 32 | 81 | 0 | 0 |
 | `indra/llrender/llpostprocess.cpp` | render.legacy_low_level | 474 | 0 | 7 | 0 | 18 | 16 | 0 | 0 |
 | `indra/llrender/llshadermgr.cpp` | render.legacy_low_level | 1564 | 0 | 7 | 0 | 0 | 60 | 0 | 0 |
