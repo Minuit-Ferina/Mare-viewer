@@ -15,9 +15,13 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
-- Phase 3 is active on branch `phase3`.
-- Goal: add only one narrowly justified `llglcontainment.*` behavior at a time.
-- Start from existing phase 2 owner contracts; do not create broad wrappers.
+- Phase 4 is active on branch `phase4`.
+- Goal: use the completed OpenGL containment boundary as a guardrail, then
+  document and prepare the next renderer boundaries with small reviewable
+  steps.
+- Start with contracts and maps. Source changes are allowed only after a
+  task-specific document names the exact owner, ordering, state, risk, and
+  verification plan.
 
 Areas allowed at the beginning:
 - docs/architecture/
@@ -32,17 +36,18 @@ Areas to avoid at the beginning:
 - indra/llui/
 
 Exception:
-- `indra/llrender/llglcontainment.*` may be touched only for a precise,
-  documented containment task. It must not become a broad OpenGL wrapper.
-- One existing owner file under `indra/llrender/` may be touched with it only
-  when the task names the exact callsite family, owner state, ordering, and
-  verification plan.
+- `indra/llrender/llglcontainment.*` is now a closed containment boundary
+  unless a later task explicitly reopens a narrow missing call family.
+- Existing owner files may be touched only when the task names the exact
+  behavior, owner state, ordering, and verification plan.
 
 OpenGL rules:
 - No new code should call OpenGL directly.
 - Existing OpenGL calls should not be wrapped or replaced mechanically.
 - Do not replace `gl*` until a specific task identifies the callsite family,
   ownership, ordering, and verification plan.
+- The phase 3 guardrails must continue to pass before and after phase 4 source
+  work.
 
 Expected format:
 - Summarize the inspected files.

@@ -3,10 +3,11 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 3 is active on branch `phase3`. Add only one narrowly
-justified `llglcontainment.*` behavior at a time, starting from existing phase
-2 owner contracts. Do not move source files, do not change runtime behavior
-without an explicit task, and do not start a direct Vulkan port.
+Current rule: phase 4 is active on branch `phase4`. Preserve the completed
+phase 3 OpenGL containment and header guardrails, then prepare the next
+renderer boundaries with docs-first, small, reviewable packets. Do not move
+source files, do not change runtime behavior without an explicit task, and do
+not start a direct Vulkan port.
 
 ## Done
 
@@ -1178,6 +1179,18 @@ without an explicit task, and do not start a direct Vulkan port.
       `docs/architecture/238-phase3-final-review-summary.md`.
 - [x] Treat `phase3` as complete and ready for stacked review on top of
       `phase2`.
+- [x] Create branch `phase4` from `phase3`.
+- [x] Update project instructions for phase 4 guardrails.
+- [x] Add `docs/architecture/239-phase4-plan.md`.
+
+## Immediate Next Steps
+
+- [ ] Add a docs-only `LLDrawPoolAlpha` normal shader-selection map before any
+      source changes in that area.
+- [ ] Identify invariants for GLTF blend, material, fullbright, HUD, rigged,
+      and exposure-map alpha shader selection.
+- [ ] Decide whether a tiny source cleanup is safe after the shader-selection
+      map, or stop phase 4 as documentation-only.
 
 ## Phase 1 Inventory
 
