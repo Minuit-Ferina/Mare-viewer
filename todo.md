@@ -833,6 +833,17 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the small inventory
       remainder packet.
 - [x] Add a summary for the small inventory remainder packet.
+- [x] Add a focused task for platform and `llrender` small containment before
+      source edits.
+- [ ] Route small `llrender` and platform OpenGL calls through
+      `llglcontainment.*` where ownership allows.
+- [ ] Leave explicitly documented platform/macro exceptions outside wrapper
+      containment.
+- [ ] Verify the platform and `llrender` small containment packet with
+      targeted or incremental builds.
+- [ ] Regenerate the generated source inventory after the platform and
+      `llrender` small packet.
+- [ ] Add a summary for the platform and `llrender` small containment packet.
 
 ## Phase 1 Inventory
 
