@@ -29,6 +29,7 @@
 #include "llrender.h"
 
 #include "llglcontainment.h"
+#include "llgl.h"
 #include "llglheaders.h"
 #include "llvertexbuffer.h"
 #include "llcubemap.h"

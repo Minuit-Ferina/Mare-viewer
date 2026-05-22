@@ -9,7 +9,7 @@
 | `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2841 | 0 | 13 | 0 | 32 | 81 | 0 | 0 |
 | `indra/llrender/llpostprocess.cpp` | render.legacy_low_level | 474 | 0 | 7 | 0 | 18 | 16 | 0 | 0 |
 | `indra/llrender/llshadermgr.cpp` | render.legacy_low_level | 1564 | 0 | 7 | 0 | 0 | 60 | 0 | 0 |
-| `indra/llrender/llvertexbuffer.cpp` | render.legacy_low_level | 1964 | 0 | 5 | 0 | 33 | 21 | 0 | 0 |
+| `indra/llrender/llvertexbuffer.cpp` | render.legacy_low_level | 1966 | 0 | 5 | 0 | 33 | 22 | 0 | 0 |
 | `indra/llui/llui.cpp` | unknown | 764 | 0 | 4 | 4 | 0 | 0 | 0 | 0 |
 | `indra/newview/llviewerjointmesh.cpp` | render.draw_pool | 532 | 0 | 3 | 0 | 12 | 4 | 0 | 0 |
 | `indra/newview/llviewershadermgr.h` | render.opengl_touching | 340 | 0 | 2 | 2 | 0 | 135 | 0 | 0 |
@@ -49,7 +49,7 @@
 | `indra/newview/lldrawpoolbump.cpp` | render.pipeline | 1083 | 0 | 0 | 0 | 47 | 23 | 8 | 1 |
 | `indra/newview/lldrawpoolavatar.cpp` | render.pipeline | 991 | 0 | 0 | 0 | 46 | 4 | 17 | 0 |
 | `indra/newview/llviewerwindow.cpp` | render.pipeline | 6505 | 0 | 0 | 0 | 44 | 18 | 63 | 2 |
-| `indra/llrender/llrender.cpp` | render.legacy_low_level | 2173 | 0 | 0 | 0 | 39 | 111 | 0 | 2 |
+| `indra/llrender/llrender.cpp` | render.legacy_low_level | 2174 | 0 | 0 | 0 | 39 | 111 | 0 | 2 |
 | `indra/newview/lltracker.cpp` | render.opengl_touching | 928 | 0 | 0 | 0 | 39 | 3 | 0 | 0 |
 | `indra/newview/lltoolmorph.cpp` | render.opengl_touching | 337 | 0 | 0 | 0 | 37 | 4 | 0 | 0 |
 | `indra/newview/lldrawpoolwlsky.cpp` | render.pipeline | 523 | 0 | 0 | 0 | 36 | 11 | 5 | 0 |

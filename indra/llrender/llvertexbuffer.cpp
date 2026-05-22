@@ -27,6 +27,7 @@
 #include "linden_common.h"
 
 #include "llfasttimer.h"
+#include "llgl.h"
 #include "llglcontainment.h"
 #include "llsys.h"
 #include "llvertexbuffer.h"
@@ -1051,6 +1052,7 @@ void LLVertexBuffer::cleanupClass()
 
 LLVertexBuffer::LLVertexBuffer(U32 typemask)
 :   LLRefCount(),
+    mIndicesType(GL_UNSIGNED_SHORT),
     mTypeMask(typemask)
 {
     //zero out offsets
@@ -1405,7 +1407,7 @@ U8* LLVertexBuffer::mapIndexBuffer(U32 index, S32 count)
 //  end -- last byte to copy (NOT last byte + 1)
 //  data -- data to be flushed
 //  dst -- mMappedData or mMappedIndexData
-void LLVertexBuffer::flush_vbo(GLenum target, U32 start, U32 end, void* data, U8* dst)
+void LLVertexBuffer::flush_vbo(LLGLenum target, U32 start, U32 end, void* data, U8* dst)
 {
     if (gGLManager.mIsApple)
     {

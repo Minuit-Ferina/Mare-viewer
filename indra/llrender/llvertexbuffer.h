@@ -27,7 +27,8 @@
 #ifndef LL_LLVERTEXBUFFER_H
 #define LL_LLVERTEXBUFFER_H
 
-#include "llgl.h"
+#include "llgltypes.h"
+#include "llrefcount.h"
 #include "v2math.h"
 #include "v3math.h"
 #include "v4math.h"
@@ -54,6 +55,7 @@
 //============================================================================
 // base class
 class LLPrivateMemoryPool;
+class LLWindow;
 class LLVertexBuffer;
 
 class LLVertexBufferData
@@ -282,7 +284,7 @@ protected:
     U32     mGLIndices = 0;     // GL IBO handle
     U32     mNumVerts = 0;      // Number of vertices allocated
     U32     mNumIndices = 0;    // Number of indices allocated
-    U32     mIndicesType = GL_UNSIGNED_SHORT; // type of indices in index buffer
+    LLGLenum mIndicesType; // type of indices in index buffer
     U32     mIndicesStride = 2;     // size of each index in bytes
     U32     mOffsets[TYPE_MAX]; // byte offsets into mMappedData of each attribute
 
@@ -306,7 +308,7 @@ private:
     friend class LLNavShapeVBOManager;
     friend class LLNavMeshVBOManager;
 
-    void flush_vbo(GLenum target, U32 start, U32 end, void* data, U8* dst);
+    void flush_vbo(LLGLenum target, U32 start, U32 end, void* data, U8* dst);
 
     LLVertexBuffer(U32 typemask, U32 usage)
         : LLVertexBuffer(typemask)
