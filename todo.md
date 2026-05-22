@@ -630,6 +630,14 @@ without an explicit task, and do not start a direct Vulkan port.
       attribute binding source packet.
 - [x] Add a summary for the `LLGLSLShader` attribute binding containment
       packet.
+- [x] Add a focused task for `LLGLSLShader` program binding containment before
+      source edits.
+- [ ] Route `LLGLSLShader` program bind/unbind through `llglcontainment.*`.
+- [ ] Verify the `LLGLSLShader` program binding containment packet with
+      `llrender/fast`.
+- [ ] Regenerate the generated source inventory after the `LLGLSLShader`
+      program binding source packet.
+- [ ] Add a summary for the `LLGLSLShader` program binding containment packet.
 
 ## Phase 1 Inventory
 
