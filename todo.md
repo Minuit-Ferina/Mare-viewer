@@ -682,7 +682,7 @@ without an explicit task, and do not start a direct Vulkan port.
       incremental newview build.
 - [x] Regenerate the generated source inventory after the `LLDrawPoolTerrain`
       source packet.
-- [ ] Add a summary for the `LLDrawPoolTerrain` fixed-function containment
+- [x] Add a summary for the `LLDrawPoolTerrain` fixed-function containment
       packet.
 
 ## Phase 1 Inventory
