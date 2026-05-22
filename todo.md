@@ -898,8 +898,12 @@ without an explicit task, and do not start a direct Vulkan port.
       `Kokua.nib` after `viewer_manifest.py`.
 - [ ] Optionally perform a minimal manual smoke after the final pipeline
       containment packet: launch, login, load one scene, resize, quit.
-- [ ] Write a renderer containment contract for what `LLGLContainment` may own
+- [x] Write a renderer containment contract for what `LLGLContainment` may own
       versus what remains owned by renderer classes.
+- [x] Add an executable GL containment guardrail that fails on new runtime
+      `gl*` calls outside `llglcontainment.cpp`.
+- [x] Classify the current `LLGLContainment` wrapper surface by future renderer
+      concern.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 

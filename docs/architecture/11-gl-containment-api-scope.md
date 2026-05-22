@@ -1,17 +1,21 @@
 # GL Containment API Scope
 
+Historical note: this document records the phase 1 placeholder decision. The
+current phase 3 containment contract is
+`docs/architecture/182-llglcontainment-contract.md`.
+
 This document defines the phase 1 scope for `indra/llrender/llglcontainment.*`.
 It is a documentation artifact only. It does not propose source behavior
 changes.
 
-## Current State
+## Phase 1 State
 
 Files:
 
 - `indra/llrender/llglcontainment.h`
 - `indra/llrender/llglcontainment.cpp`
 
-Current API:
+Phase 1 API:
 
 ```cpp
 namespace LLGLContainment
@@ -20,7 +24,7 @@ const char* getPhaseOneScope();
 }
 ```
 
-Current behavior:
+Phase 1 behavior:
 
 - returns the marker string `phase-1-inventory-only`
 - performs no GL calls

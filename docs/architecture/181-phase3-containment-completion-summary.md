@@ -41,6 +41,8 @@ Contained major owner files:
 Tooling updated:
 - `tools/architecture/source_inventory.py` now avoids counting comments,
   `extern gl*` prototypes, and function-pointer typedefs as runtime callsites.
+- `tools/architecture/check_gl_containment.py` now fails on runtime `gl*`
+  calls outside `llglcontainment.cpp`.
 
 ## Verification Used
 
@@ -52,22 +54,21 @@ Recent final checks:
 - targeted `pipeline.cpp.o` incremental compile
 - `git diff --check`
 - regenerated source inventory
+- non-clean Unix Makefiles `mare-viewer` target link
+- `tools/architecture/check_gl_containment.py`
 
 No clean build was run.
-No full viewer link was run after the final pipeline packet.
-Runtime smoke after the final pipeline packet is still deferred.
+The Makefiles app bundle needed the documented local `Kokua.xib` to
+`Kokua.nib` repair before launch. After that repair, the user confirmed the app
+still worked as expected.
 
 ## Remaining Short-Term Work
 
 Recommended next small tasks:
-- do one non-clean incremental viewer link checkpoint on this branch
-- optionally perform a minimal manual smoke: launch, login, load one scene,
-  resize, quit
-- write a renderer containment contract that describes what
-  `LLGLContainment` is allowed to own and what must remain with current owner
-  classes
 - review `todo.md` guardrails that are now obsolete because phase 3 has passed
   the original "first family only" plan
+- decide whether the Unix Makefiles app is important enough to receive a
+  durable non-Xcode `Kokua.nib` post-build step
 
 ## Not Started
 
