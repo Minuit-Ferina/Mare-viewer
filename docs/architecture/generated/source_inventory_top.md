@@ -2,8 +2,7 @@
 
 | file | category | lines | gl_calls | gl_raw_refs | gl_known_false_refs | gGL | LLGL | LLPipeline | LLRenderTarget |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 1135 | 159 | 160 | 0 | 0 | 320 | 0 | 0 |
-| `indra/newview/pipeline.cpp` | render.pipeline | 12046 | 72 | 83 | 0 | 340 | 158 | 564 | 60 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 1140 | 160 | 161 | 0 | 0 | 321 | 0 | 0 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2948 | 0 | 2134 | 0 | 31 | 157 | 0 | 0 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 0 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llgl.h` | render.legacy_low_level | 485 | 0 | 24 | 0 | 0 | 62 | 0 | 0 |
@@ -30,6 +29,7 @@
 | `indra/newview/llscenemonitor.h` | assets.texture | 130 | 0 | 1 | 1 | 0 | 0 | 0 | 5 |
 | `indra/newview/app_settings/shaders/class2/interface/irradianceGenF.glsl` | viewer.misc | 215 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |
 | `indra/newview/app_settings/shaders/class1/interface/radianceGenF.glsl` | viewer.misc | 170 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |
+| `indra/newview/pipeline.cpp` | render.pipeline | 12042 | 0 | 0 | 0 | 340 | 230 | 564 | 60 |
 | `indra/newview/llspatialpartition.cpp` | render.pipeline | 4192 | 0 | 0 | 0 | 206 | 46 | 44 | 0 |
 | `indra/newview/llmaniptranslate.cpp` | render.pipeline | 2322 | 0 | 0 | 0 | 196 | 29 | 10 | 0 |
 | `indra/newview/llviewerdisplay.cpp` | render.pipeline | 1954 | 0 | 0 | 0 | 129 | 54 | 63 | 1 |

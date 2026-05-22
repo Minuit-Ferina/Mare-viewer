@@ -877,6 +877,14 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `llgl` boundary
       packet.
 - [x] Add a summary for the `llgl` boundary packet.
+- [x] Add a focused task for final `pipeline.cpp` containment.
+- [x] Route executable `pipeline.cpp` OpenGL callsites through
+      `llglcontainment.*`.
+- [x] Remove remaining `gl*` raw refs from disabled/commented pipeline snippets.
+- [x] Verify the pipeline containment packet with targeted `llrender/fast` and
+      `pipeline.cpp.o` incremental compile.
+- [x] Regenerate the generated source inventory after the pipeline containment
+      packet.
 
 ## Phase 1 Inventory
 

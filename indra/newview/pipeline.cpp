@@ -44,6 +44,7 @@
 #include "v3color.h"
 #include "llui.h"
 #include "llglheaders.h"
+#include "llglcontainment.h"
 #include "llrender.h"
 #include "llstartup.h"
 #include "llwindow.h"   // swapBuffers()
@@ -730,7 +731,7 @@ void LLPipeline::destroyGL()
 
     if (mMeshDirtyQueryObject)
     {
-        glDeleteQueries(1, &mMeshDirtyQueryObject);
+        LLGLContainment::deleteQueries(1, &mMeshDirtyQueryObject);
         mMeshDirtyQueryObject = 0;
     }
 }
@@ -1093,8 +1094,8 @@ bool LLPipeline::allocateShadowBuffer(U32 resX, U32 resY)
                 gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_ANISOTROPIC);
                 gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
 
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+                LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+                LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
             }
         }
     }
@@ -1110,8 +1111,8 @@ bool LLPipeline::allocateShadowBuffer(U32 resX, U32 resY)
                 gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_ANISOTROPIC);
                 gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
 
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+                LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+                LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
             }
         }
     }
@@ -1563,8 +1564,8 @@ void LLPipeline::createLUTBuffers()
         LLImageGL::setManualImage(LLTexUnit::getInternalType(LLTexUnit::TT_TEXTURE), 0, pix_format, lightResX, lightResY, GL_RED, GL_FLOAT, ls, false);
         gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
         gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_TRILINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
         delete [] ls;
     }
@@ -1595,9 +1596,9 @@ void LLPipeline::createLUTBuffers()
 
     mExposureMap.allocate(1, 1, GL_R16F);
     mExposureMap.bindTarget();
-    glClearColor(1, 1, 1, 0);
+    LLGLContainment::setClearColor(1, 1, 1, 0);
     mExposureMap.clear();
-    glClearColor(0, 0, 0, 0);
+    LLGLContainment::setClearColor(0, 0, 0, 0);
     mExposureMap.flush();
 
     mLuminanceMap.allocate(256, 256, GL_R16F, false, LLTexUnit::TT_TEXTURE, LLTexUnit::TMG_AUTO);
@@ -3097,7 +3098,7 @@ void LLPipeline::shiftObjects(const LLVector3 &offset)
     LL_PROFILE_ZONE_SCOPED_CATEGORY_PIPELINE;
     assertInitialized();
 
-    glClear(GL_DEPTH_BUFFER_BIT);
+    LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
     gDepthDirty = true;
 
     LLVector4a offseta;
@@ -3797,11 +3798,11 @@ void LLPipeline::postSort(LLCamera &camera)
 
         if (!mMeshDirtyQueryObject)
         {
-            glGenQueries(1, &mMeshDirtyQueryObject);
+            LLGLContainment::generateQueries(1, &mMeshDirtyQueryObject);
         }
 
 
-        glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, mMeshDirtyQueryObject);
+        LLGLContainment::beginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, mMeshDirtyQueryObject);
     }*/
 
     // pack vertex buffers for groups that chose to delay their updates
@@ -3815,7 +3816,7 @@ void LLPipeline::postSort(LLCamera &camera)
 
     /*if (use_transform_feedback)
     {
-        glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+        LLGLContainment::endQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
     }*/
 
     mMeshDirtyGroup.clear();
@@ -3963,9 +3964,7 @@ void render_hud_elements()
     LLGLSUIDefault gls_ui;
 
     //LLGLEnable stencil(GL_STENCIL_TEST);
-    //glStencilFunc(GL_ALWAYS, 255, 0xFFFFFFFF);
-    //glStencilMask(0xFFFFFFFF);
-    //glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    // Stencil replace setup disabled here.
 
     gUIProgram.bind();
     gGL.color4f(1, 1, 1, 1);
@@ -4127,7 +4126,7 @@ void LLPipeline::renderGeomDeferred(LLCamera& camera, bool do_occlusion)
 
     if (gUseWireframe)
     {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
     if (&camera == LLViewerCamera::getInstance())
@@ -4250,7 +4249,7 @@ void LLPipeline::renderGeomDeferred(LLCamera& camera, bool do_occlusion)
 
     if (gUseWireframe)
     {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 }
 
@@ -4263,7 +4262,7 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
 
     if (gUseWireframe)
     {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
     U32 cur_type = 0;
@@ -4394,7 +4393,7 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
 
     if (gUseWireframe)
     {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 }
 
@@ -4489,8 +4488,8 @@ void LLPipeline::renderPhysicsDisplay()
     gDebugProgram.bind();
 
     LLGLEnable polygon_offset_line(GL_POLYGON_OFFSET_LINE);
-    glPolygonOffset(3.f, 3.f);
-    glLineWidth(3.f);
+    LLGLContainment::setPolygonOffset(3.f, 3.f);
+    LLGLContainment::setLineWidth(3.f);
     LLGLEnable blend(GL_BLEND);
     gGL.setSceneBlendType(LLRender::BT_ALPHA);
 
@@ -4506,7 +4505,7 @@ void LLPipeline::renderPhysicsDisplay()
 
         if (wireframe)
         {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
 
         for (LLWorld::region_list_t::const_iterator iter = LLWorld::getInstance()->getRegionList().begin();
@@ -4529,10 +4528,10 @@ void LLPipeline::renderPhysicsDisplay()
 
         if (wireframe)
         {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
     }
-    glLineWidth(1.f);
+    LLGLContainment::setLineWidth(1.f);
     gDebugProgram.unbind();
 
 }
@@ -4607,17 +4606,17 @@ void LLPipeline::renderDebug()
                     {
                         const LLColor4 clearColor = gSavedSettings.getColor4("PathfindingNavMeshClear");
                         gGL.setColorMask(true, true);
-                        glClearColor(clearColor.mV[0],clearColor.mV[1],clearColor.mV[2],0);
-                        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // no stencil -- deprecated | GL_STENCIL_BUFFER_BIT);
+                        LLGLContainment::setClearColor(clearColor.mV[0],clearColor.mV[1],clearColor.mV[2],0);
+                        LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // no stencil -- deprecated | GL_STENCIL_BUFFER_BIT);
                         gGL.setColorMask(true, false);
-                        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+                        LLGLContainment::setPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
                     }
 
                     //NavMesh
                     if ( pathfindingConsole->isRenderNavMesh() )
                     {
                         gGL.flush();
-                        glLineWidth(2.0f);
+                        LLGLContainment::setLineWidth(2.0f);
                         LLGLEnable cull(GL_CULL_FACE);
                         LLGLDisable blend(GL_BLEND);
 
@@ -4640,8 +4639,8 @@ void LLPipeline::renderDebug()
                         gPathfindingProgram.bind();
 
                         gGL.flush();
-                        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-                        glLineWidth(1.0f);
+                        LLGLContainment::setPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+                        LLGLContainment::setLineWidth(1.0f);
                         gGL.flush();
                     }
                     //User designated path
@@ -4697,11 +4696,11 @@ void LLPipeline::renderDebug()
                             LLGLDisable cull(i >= 2 ? GL_CULL_FACE : 0);
 
                             gGL.flush();
-                            glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+                            LLGLContainment::setPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
                             //get rid of some z-fighting
                             LLGLEnable polyOffset(GL_POLYGON_OFFSET_FILL);
-                            glPolygonOffset(1.0f, 1.0f);
+                            LLGLContainment::setPolygonOffset(1.0f, 1.0f);
 
                             //render to depth first to avoid blending artifacts
                             gGL.setColorMask(false, false);
@@ -4709,7 +4708,7 @@ void LLPipeline::renderDebug()
                             gGL.setColorMask(true, false);
 
                             //get rid of some z-fighting
-                            glPolygonOffset(0.f, 0.f);
+                            LLGLContainment::setPolygonOffset(0.f, 0.f);
 
                             LLGLEnable blend(GL_BLEND);
 
@@ -4723,7 +4722,7 @@ void LLPipeline::renderDebug()
                                 }
 
                                 LLGLEnable lineOffset(GL_POLYGON_OFFSET_LINE);
-                                glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+                                LLGLContainment::setPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
                                 F32 offset = gSavedSettings.getF32("PathfindingLineOffset");
 
@@ -4734,7 +4733,7 @@ void LLPipeline::renderDebug()
                                     LLGLEnable blend(GL_BLEND);
                                     LLGLDepthTest depth(GL_TRUE, GL_FALSE, GL_GREATER);
 
-                                    glPolygonOffset(offset, -offset);
+                                    LLGLContainment::setPolygonOffset(offset, -offset);
 
                                     if (gSavedSettings.getBOOL("PathfindingXRayWireframe"))
                                     { //draw hidden wireframe as darker and less opaque
@@ -4743,32 +4742,32 @@ void LLPipeline::renderDebug()
                                     }
                                     else
                                     {
-                                        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+                                        LLGLContainment::setPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
                                         gPathfindingProgram.uniform1f(sAmbiance, ambiance);
                                         llPathingLibInstance->renderNavMeshShapesVBO( render_order[i] );
-                                        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
                                     }
                                 }
 
                                 { //draw visible wireframe as brighter, thicker and more opaque
-                                    glPolygonOffset(offset, offset);
+                                    LLGLContainment::setPolygonOffset(offset, offset);
                                     gPathfindingProgram.uniform1f(sAmbiance, 1.f);
                                     gPathfindingProgram.uniform1f(sTint, 1.f);
                                     gPathfindingProgram.uniform1f(sAlphaScale, 1.f);
 
-                                    glLineWidth(gSavedSettings.getF32("PathfindingLineWidth"));
+                                    LLGLContainment::setLineWidth(gSavedSettings.getF32("PathfindingLineWidth"));
                                     LLGLDisable blendOut(GL_BLEND);
                                     llPathingLibInstance->renderNavMeshShapesVBO( render_order[i] );
                                     gGL.flush();
-                                    glLineWidth(1.f);
+                                    LLGLContainment::setLineWidth(1.f);
                                 }
 
-                                glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+                                LLGLContainment::setPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
                             }
                         }
                     }
 
-                    glPolygonOffset(0.f, 0.f);
+                    LLGLContainment::setPolygonOffset(0.f, 0.f);
 
                     if ( pathfindingConsole->isRenderNavMesh() && pathfindingConsole->isRenderXRay() )
                     {   //render navmesh xray
@@ -4778,12 +4777,12 @@ void LLPipeline::renderDebug()
                         LLGLEnable polyOffset(GL_POLYGON_OFFSET_FILL);
 
                         F32 offset = gSavedSettings.getF32("PathfindingLineOffset");
-                        glPolygonOffset(offset, -offset);
+                        LLGLContainment::setPolygonOffset(offset, -offset);
 
                         LLGLEnable blend(GL_BLEND);
                         LLGLDepthTest depth(GL_TRUE, GL_FALSE, GL_GREATER);
                         gGL.flush();
-                        glLineWidth(2.0f);
+                        LLGLContainment::setLineWidth(2.0f);
                         LLGLEnable cull(GL_CULL_FACE);
 
                         gPathfindingProgram.uniform1f(sTint, gSavedSettings.getF32("PathfindingXRayTint"));
@@ -4791,10 +4790,10 @@ void LLPipeline::renderDebug()
 
                         if (gSavedSettings.getBOOL("PathfindingXRayWireframe"))
                         { //draw hidden wireframe as darker and less opaque
-                            glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+                            LLGLContainment::setPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
                             gPathfindingProgram.uniform1f(sAmbiance, 1.f);
                             llPathingLibInstance->renderNavMesh();
-                            glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+                            LLGLContainment::setPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
                         }
                         else
                         {
@@ -4810,10 +4809,10 @@ void LLPipeline::renderDebug()
                         gPathfindingProgram.bind();
 
                         gGL.flush();
-                        glLineWidth(1.0f);
+                        LLGLContainment::setLineWidth(1.0f);
                     }
 
-                    glPolygonOffset(0.f, 0.f);
+                    LLGLContainment::setPolygonOffset(0.f, 0.f);
 
                     gGL.flush();
                     gPathfindingProgram.unbind();
@@ -4834,7 +4833,7 @@ void LLPipeline::renderDebug()
 
         gGL.getTexUnit(0)->bind(LLViewerFetchedTexture::sWhiteImagep, true);
 
-        glPointSize(8.f);
+        LLGLContainment::setPointSize(8.f);
         LLGLDepthTest depth(GL_TRUE, GL_TRUE, GL_ALWAYS);
 
         gGL.begin(LLRender::POINTS);
@@ -4859,7 +4858,7 @@ void LLPipeline::renderDebug()
         }
         gGL.end();
         gGL.flush();
-        glPointSize(1.f);
+        LLGLContainment::setPointSize(1.f);
     }
 
     // Debug stuff.
@@ -5063,7 +5062,7 @@ void LLPipeline::renderDebug()
                 {
                     //render visible point cloud
                     gGL.flush();
-                    glPointSize(8.f);
+                    LLGLContainment::setPointSize(8.f);
                     gGL.begin(LLRender::POINTS);
 
                     F32* c = col+i*4;
@@ -5077,7 +5076,7 @@ void LLPipeline::renderDebug()
                     gGL.end();
 
                     gGL.flush();
-                    glPointSize(1.f);
+                    LLGLContainment::setPointSize(1.f);
 
                     LLVector3* ext = mShadowExtents[i];
                     LLVector3 pos = (ext[0]+ext[1])*0.5f;
@@ -5103,7 +5102,7 @@ void LLPipeline::renderDebug()
             }
 
             /*gGL.flush();
-            glLineWidth(16-i*2);
+            LLGLContainment::setLineWidth(16-i*2);
             for (LLWorld::region_list_t::const_iterator iter = LLWorld::getInstance()->getRegionList().begin();
                     iter != LLWorld::getInstance()->getRegionList().end(); ++iter)
             {
@@ -5121,7 +5120,7 @@ void LLPipeline::renderDebug()
                 }
             }
             gGL.flush();
-            glLineWidth(1.f);*/
+            LLGLContainment::setLineWidth(1.f);*/
         }
     }
 
@@ -7166,7 +7165,7 @@ void apply_cube_face_rotation(U32 face)
 void validate_framebuffer_object()
 {
     GLenum status;
-    status = glCheckFramebufferStatus(GL_FRAMEBUFFER_EXT);
+    status = LLGLContainment::getFramebufferStatus(GL_FRAMEBUFFER_EXT);
     switch(status)
     {
         case GL_FRAMEBUFFER_COMPLETE:
@@ -7256,8 +7255,8 @@ void LLPipeline::generateLuminance(LLRenderTarget* src, LLRenderTarget* dst)
         mScreenTriangleVB->drawArrays(LLRender::TRIANGLES, 0, 3);
         dst->flush();
 
-        // note -- unbind AFTER the glGenerateMipMap so time in generatemipmap can be profiled under "Luminance"
-        // also note -- keep an eye on the performance of glGenerateMipmap, might need to replace it with a mip generation shader
+        // note -- unbind AFTER mip generation so time can be profiled under "Luminance"
+        // also note -- keep an eye on mip generation performance, might need to replace it with a shader
         gLuminanceProgram.unbind();
     }
 }
@@ -7722,7 +7721,7 @@ void LLPipeline::applyFXAA(LLRenderTarget* src, LLRenderTarget* dst)
             gGLViewport[2] = gViewerWindow->getWorldViewRectRaw().getWidth();
             gGLViewport[3] = gViewerWindow->getWorldViewRectRaw().getHeight();
 
-            glViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+            LLGLContainment::setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
 
             F32 scale_x = (F32)width / mFXAAMap.getWidth();
             F32 scale_y = (F32)height / mFXAAMap.getHeight();
@@ -7802,9 +7801,7 @@ void LLPipeline::generateSMAABuffers(LLRenderTarget* src)
 
             //if (use_stencil)
             //{
-            //    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-            //    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-            //    glStencilMask(0xFF);
+            //    stencil replace setup
             //}
             mScreenTriangleVB->setBuffer();
             mScreenTriangleVB->drawArrays(LLRender::TRIANGLES, 0, 3);
@@ -7851,14 +7848,13 @@ void LLPipeline::generateSMAABuffers(LLRenderTarget* src)
 
             //if (use_stencil)
             //{
-            //    glStencilFunc(GL_EQUAL, 1, 0xFF);
-            //    glStencilMask(0x00);
+            //    stencil equal test setup
             //}
             mScreenTriangleVB->setBuffer();
             mScreenTriangleVB->drawArrays(LLRender::TRIANGLES, 0, 3);
             //if (use_stencil)
             //{
-            //    glStencilFunc(GL_ALWAYS, 0, 0xFF);
+            //    stencil reset setup
             //}
             blend_weights_shader.unbind();
             dest.flush();
@@ -8124,7 +8120,7 @@ void LLPipeline::renderDoF(LLRenderTarget* src, LLRenderTarget* dst)
 
             { // perform DoF sampling at half-res (preserve alpha channel)
                 src->bindTarget();
-                glViewport(0, 0, dof_width, dof_height);
+                LLGLContainment::setViewport(0, 0, dof_width, dof_height);
 
                 gGL.setColorMask(true, false);
 
@@ -8147,7 +8143,7 @@ void LLPipeline::renderDoF(LLRenderTarget* src, LLRenderTarget* dst)
             { // combine result based on alpha
 
                 dst->bindTarget();
-                glViewport(0, 0, dst->getWidth(), dst->getHeight());
+                LLGLContainment::setViewport(0, 0, dst->getWidth(), dst->getHeight());
 
                 gDeferredDoFCombineProgram.bind();
                 gDeferredDoFCombineProgram.bindTexture(LLShaderMgr::DEFERRED_DIFFUSE, src, LLTexUnit::TFO_POINT);
@@ -8194,7 +8190,7 @@ void LLPipeline::renderFinalize()
     enableLightsFullbright();
 
     gGL.setColorMask(true, true);
-    glClearColor(0, 0, 0, 0);
+    LLGLContainment::setClearColor(0, 0, 0, 0);
 
     static LLCachedControl<bool> has_hdr(gSavedSettings, "RenderHDREnabled", true);
     bool hdr = gGLManager.mGLVersion > 4.05f && has_hdr();
@@ -8243,7 +8239,7 @@ void LLPipeline::renderFinalize()
     gGLViewport[1] = gViewerWindow->getWorldViewRectRaw().mBottom;
     gGLViewport[2] = gViewerWindow->getWorldViewRectRaw().getWidth();
     gGLViewport[3] = gViewerWindow->getWorldViewRectRaw().getHeight();
-    glViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+    LLGLContainment::setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
 
     if((RenderDepthOfFieldInEditMode || !LLToolMgr::getInstance()->inBuildMode()) &&
         RenderDepthOfField &&
@@ -8702,9 +8698,9 @@ void LLPipeline::renderDeferredLighting()
                 LLGLSLShader& sun_shader = gCubeSnapshot ? gDeferredSunProbeProgram : gDeferredSunProgram;
                 bindDeferredShader(sun_shader, deferred_light_target);
                 mScreenTriangleVB->setBuffer();
-                glClearColor(1, 1, 1, 1);
+                LLGLContainment::setClearColor(1, 1, 1, 1);
                 deferred_light_target->clear(GL_COLOR_BUFFER_BIT);
-                glClearColor(0, 0, 0, 0);
+                LLGLContainment::setClearColor(0, 0, 0, 0);
 
                 sun_shader.uniform2f(LLShaderMgr::DEFERRED_SCREEN_RES,
                                               (GLfloat)deferred_light_target->getWidth(),
@@ -8728,9 +8724,9 @@ void LLPipeline::renderDeferredLighting()
             LL_PROFILE_GPU_ZONE("soften shadow");
             // blur lightmap
             screen_target->bindTarget();
-            glClearColor(1, 1, 1, 1);
+            LLGLContainment::setClearColor(1, 1, 1, 1);
             screen_target->clear(GL_COLOR_BUFFER_BIT);
-            glClearColor(0, 0, 0, 0);
+            LLGLContainment::setClearColor(0, 0, 0, 0);
 
             bindDeferredShader(gDeferredBlurLightProgram);
 
@@ -8796,8 +8792,8 @@ void LLPipeline::renderDeferredLighting()
             {
                 mare_velocity_valid = false;
                 mVelocityBuffer.bindTarget();
-                glClearColor(0.f, 0.f, 0.f, 0.f);
-                glClear(GL_COLOR_BUFFER_BIT);
+                LLGLContainment::setClearColor(0.f, 0.f, 0.f, 0.f);
+                LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT);
                 mVelocityBuffer.flush();
             }
         }
@@ -8991,7 +8987,7 @@ void LLPipeline::renderDeferredLighting()
                                 gDeferredAvatarVelocityProgram.getUniformLocation(sPrevPalette);
                             if (prevPalLoc >= 0)
                             {
-                                glUniformMatrix3x4fv(prevPalLoc, (GLsizei)count,
+                                LLGLContainment::setUniformMatrix3x4(prevPalLoc, count,
                                     GL_FALSE, mpc.mPrevGLMp.data());
                             }
 
@@ -9012,7 +9008,7 @@ void LLPipeline::renderDeferredLighting()
 
         screen_target->bindTarget();
         // clear color buffer here - zeroing alpha (glow) is important or it will accumulate against sky
-        glClearColor(0, 0, 0, 0);
+        LLGLContainment::setClearColor(0, 0, 0, 0);
         screen_target->clear(GL_COLOR_BUFFER_BIT);
 
         if (RenderDeferredAtmospheric)
@@ -9550,12 +9546,12 @@ void LLPipeline::doWaterHaze()
 void LLPipeline::doWaterExclusionMask()
 {
     mWaterExclusionMask.bindTarget();
-    glClearColor(1, 1, 1, 1);
+    LLGLContainment::setClearColor(1, 1, 1, 1);
     mWaterExclusionMask.clear();
     mWaterExclusionPool->render();
 
     mWaterExclusionMask.flush();
-    glClearColor(0, 0, 0, 0);
+    LLGLContainment::setClearColor(0, 0, 0, 0);
 }
 
 void LLPipeline::setupSpotLight(LLGLSLShader& shader, LLDrawable* drawablep)
@@ -9725,7 +9721,7 @@ void LLPipeline::unbindDeferredShader(LLGLSLShader &shader)
     {
         if (shader.disableTexture(LLShaderMgr::DEFERRED_SHADOW0+i) > -1)
         {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+            LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
         }
     }
 
@@ -9733,7 +9729,7 @@ void LLPipeline::unbindDeferredShader(LLGLSLShader &shader)
     {
         if (shader.disableTexture(LLShaderMgr::DEFERRED_SHADOW0+i) > -1)
         {
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+            LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
         }
     }
 
@@ -11448,7 +11444,7 @@ void LLPipeline::generateImpostor(LLVOAvatar* avatar, bool preview_avatar, bool 
         gGL.loadMatrix(glm::value_ptr(mat));
         set_current_modelview(mat);
 
-        glClearColor(0.0f,0.0f,0.0f,0.0f);
+        LLGLContainment::setClearColor(0.0f,0.0f,0.0f,0.0f);
         gGL.setColorMask(true, true);
 
         // get the number of pixels per angle
@@ -11528,7 +11524,7 @@ void LLPipeline::generateImpostor(LLVOAvatar* avatar, bool preview_avatar, bool 
         if (LLPipeline::sRenderDeferred)
         {
             GLuint buff = GL_COLOR_ATTACHMENT0;
-            glDrawBuffers(1, &buff);
+            LLGLContainment::setDrawBuffers(1, &buff);
         }
 
         LLGLDisable blend(GL_BLEND);

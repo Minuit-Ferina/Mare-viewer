@@ -42,6 +42,11 @@ void bindFramebuffer(LLGLenum target, U32 framebuffer_name)
     glBindFramebuffer(target, framebuffer_name);
 }
 
+U32 getFramebufferStatus(LLGLenum target)
+{
+    return glCheckFramebufferStatus(target);
+}
+
 U32 getDrawFramebufferStatus()
 {
     return glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);

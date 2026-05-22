@@ -33,6 +33,7 @@ const char* getPhaseOneScope();
 
 void bindReadWriteFramebuffer(U32 framebuffer_name);
 void bindFramebuffer(LLGLenum target, U32 framebuffer_name);
+U32 getFramebufferStatus(LLGLenum target);
 U32 getDrawFramebufferStatus();
 void setReadWriteFramebufferTexture2D(
     LLGLenum attachment,
