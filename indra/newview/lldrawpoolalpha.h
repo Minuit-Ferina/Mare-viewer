@@ -84,6 +84,11 @@ private:
     void renderRiggedEmissives(std::vector<LLDrawInfo*>& emissives);
     void renderPbrEmissives(std::vector<LLDrawInfo*>& emissives);
     void renderRiggedPbrEmissives(std::vector<LLDrawInfo*>& emissives);
+    void renderAlphaEmissiveSubpass(std::vector<LLDrawInfo*>& emissives,
+                                    std::vector<LLDrawInfo*>& pbr_emissives,
+                                    std::vector<LLDrawInfo*>& rigged_emissives,
+                                    std::vector<LLDrawInfo*>& pbr_rigged_emissives,
+                                    bool& light_enabled);
     bool TexSetup(LLDrawInfo* draw, bool use_material);
     void RestoreTexSetup(bool tex_setup);
 

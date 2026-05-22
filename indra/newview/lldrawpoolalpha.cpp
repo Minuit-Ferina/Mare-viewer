@@ -941,6 +941,58 @@ void LLDrawPoolAlpha::renderRiggedPbrEmissives(std::vector<LLDrawInfo*>& emissiv
     }
 }
 
+void LLDrawPoolAlpha::renderAlphaEmissiveSubpass(
+    std::vector<LLDrawInfo*>& emissives,
+    std::vector<LLDrawInfo*>& pbr_emissives,
+    std::vector<LLDrawInfo*>& rigged_emissives,
+    std::vector<LLDrawInfo*>& pbr_rigged_emissives,
+    bool& light_enabled)
+{
+    gPipeline.enableLightsDynamic();
+
+    // install glow-accumulating blend mode
+    // don't touch color, add to alpha (glow)
+    gGL.blendFunc(LLRender::BF_ZERO, LLRender::BF_ONE, LLRender::BF_ONE, LLRender::BF_ONE);
+
+    bool rebind = false;
+    LLGLSLShader* lastShader = current_shader;
+    if (!emissives.empty())
+    {
+        light_enabled = true;
+        renderEmissives(emissives);
+        rebind = true;
+    }
+
+    if (!pbr_emissives.empty())
+    {
+        light_enabled = true;
+        renderPbrEmissives(pbr_emissives);
+        rebind = true;
+    }
+
+    if (!rigged_emissives.empty())
+    {
+        light_enabled = true;
+        renderRiggedEmissives(rigged_emissives);
+        rebind = true;
+    }
+
+    if (!pbr_rigged_emissives.empty())
+    {
+        light_enabled = true;
+        renderRiggedPbrEmissives(pbr_rigged_emissives);
+        rebind = true;
+    }
+
+    // restore our alpha blend mode
+    gGL.blendFunc(mColorSFactor, mColorDFactor, mAlphaSFactor, mAlphaDFactor);
+
+    if (lastShader && rebind)
+    {
+        lastShader->bind();
+    }
+}
+
 void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
@@ -1130,49 +1182,11 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
             // render emissive faces into alpha channel for bloom effects
             if (!depth_only)
             {
-                gPipeline.enableLightsDynamic();
-
-                // install glow-accumulating blend mode
-                // don't touch color, add to alpha (glow)
-                gGL.blendFunc(LLRender::BF_ZERO, LLRender::BF_ONE, LLRender::BF_ONE, LLRender::BF_ONE);
-
-                bool rebind = false;
-                LLGLSLShader* lastShader = current_shader;
-                if (!emissives.empty())
-                {
-                    light_enabled = true;
-                    renderEmissives(emissives);
-                    rebind = true;
-                }
-
-                if (!pbr_emissives.empty())
-                {
-                    light_enabled = true;
-                    renderPbrEmissives(pbr_emissives);
-                    rebind = true;
-                }
-
-                if (!rigged_emissives.empty())
-                {
-                    light_enabled = true;
-                    renderRiggedEmissives(rigged_emissives);
-                    rebind = true;
-                }
-
-                if (!pbr_rigged_emissives.empty())
-                {
-                    light_enabled = true;
-                    renderRiggedPbrEmissives(pbr_rigged_emissives);
-                    rebind = true;
-                }
-
-                // restore our alpha blend mode
-                gGL.blendFunc(mColorSFactor, mColorDFactor, mAlphaSFactor, mAlphaDFactor);
-
-                if (lastShader && rebind)
-                {
-                    lastShader->bind();
-                }
+                renderAlphaEmissiveSubpass(emissives,
+                                           pbr_emissives,
+                                           rigged_emissives,
+                                           pbr_rigged_emissives,
+                                           light_enabled);
             }
         }
     }
