@@ -170,6 +170,70 @@ static LLSpatialGroup::drawmap_elem_t& get_alpha_highlight_draw_info(LLSpatialGr
     return group->mDrawMap[LLRenderPass::PASS_ALPHA + pass];
 }
 
+static void push_static_alpha_highlight_mask_batches(LLRenderPass& render_pass)
+{
+    const U32 passes[] =
+    {
+        LLRenderPass::PASS_ALPHA_MASK,
+        LLRenderPass::PASS_ALPHA_INVISIBLE
+    };
+
+    for (U32 pass : passes)
+    {
+        render_pass.pushUntexturedBatches(pass);
+    }
+}
+
+static void push_static_material_alpha_highlight_batches(LLRenderPass& render_pass)
+{
+    const U32 passes[] =
+    {
+        LLRenderPass::PASS_MATERIAL_ALPHA_MASK,
+        LLRenderPass::PASS_NORMMAP_MASK,
+        LLRenderPass::PASS_SPECMAP_MASK,
+        LLRenderPass::PASS_NORMSPEC_MASK,
+        LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK,
+        LLRenderPass::PASS_GLTF_PBR_ALPHA_MASK
+    };
+
+    for (U32 pass : passes)
+    {
+        render_pass.pushUntexturedBatches(pass);
+    }
+}
+
+static void push_rigged_alpha_highlight_mask_batches(LLRenderPass& render_pass)
+{
+    const U32 passes[] =
+    {
+        LLRenderPass::PASS_ALPHA_MASK_RIGGED,
+        LLRenderPass::PASS_ALPHA_INVISIBLE_RIGGED
+    };
+
+    for (U32 pass : passes)
+    {
+        render_pass.pushRiggedBatches(pass, false);
+    }
+}
+
+static void push_rigged_material_alpha_highlight_batches(LLRenderPass& render_pass)
+{
+    const U32 passes[] =
+    {
+        LLRenderPass::PASS_MATERIAL_ALPHA_MASK_RIGGED,
+        LLRenderPass::PASS_NORMMAP_MASK_RIGGED,
+        LLRenderPass::PASS_SPECMAP_MASK_RIGGED,
+        LLRenderPass::PASS_NORMSPEC_MASK_RIGGED,
+        LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK_RIGGED,
+        LLRenderPass::PASS_GLTF_PBR_ALPHA_MASK_RIGGED
+    };
+
+    for (U32 pass : passes)
+    {
+        render_pass.pushRiggedBatches(pass, false);
+    }
+}
+
 LLDrawPoolAlpha::LLDrawPoolAlpha(U32 type) :
         LLRenderPass(type), target_shader(NULL),
         mColorSFactor(LLRender::BF_UNDEF), mColorDFactor(LLRender::BF_UNDEF),
@@ -419,17 +483,11 @@ void LLDrawPoolAlpha::renderDebugAlpha()
 
         renderAlphaHighlight();
 
-        pushUntexturedBatches(LLRenderPass::PASS_ALPHA_MASK);
-        pushUntexturedBatches(LLRenderPass::PASS_ALPHA_INVISIBLE);
+        push_static_alpha_highlight_mask_batches(*this);
 
         // Material alpha mask
         gGL.diffuseColor4f(0, 0, 1, 1);
-        pushUntexturedBatches(LLRenderPass::PASS_MATERIAL_ALPHA_MASK);
-        pushUntexturedBatches(LLRenderPass::PASS_NORMMAP_MASK);
-        pushUntexturedBatches(LLRenderPass::PASS_SPECMAP_MASK);
-        pushUntexturedBatches(LLRenderPass::PASS_NORMSPEC_MASK);
-        pushUntexturedBatches(LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK);
-        pushUntexturedBatches(LLRenderPass::PASS_GLTF_PBR_ALPHA_MASK);
+        push_static_material_alpha_highlight_batches(*this);
 
         gGL.diffuseColor4f(0, 1, 0, 1);
         pushUntexturedBatches(LLRenderPass::PASS_INVISIBLE);
@@ -437,17 +495,11 @@ void LLDrawPoolAlpha::renderDebugAlpha()
         gHighlightProgram.mRiggedVariant->bind();
         gGL.diffuseColor4f(1, 0, 0, 1);
 
-        pushRiggedBatches(LLRenderPass::PASS_ALPHA_MASK_RIGGED, false);
-        pushRiggedBatches(LLRenderPass::PASS_ALPHA_INVISIBLE_RIGGED, false);
+        push_rigged_alpha_highlight_mask_batches(*this);
 
         // Material alpha mask
         gGL.diffuseColor4f(0, 0, 1, 1);
-        pushRiggedBatches(LLRenderPass::PASS_MATERIAL_ALPHA_MASK_RIGGED, false);
-        pushRiggedBatches(LLRenderPass::PASS_NORMMAP_MASK_RIGGED, false);
-        pushRiggedBatches(LLRenderPass::PASS_SPECMAP_MASK_RIGGED, false);
-        pushRiggedBatches(LLRenderPass::PASS_NORMSPEC_MASK_RIGGED, false);
-        pushRiggedBatches(LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK_RIGGED, false);
-        pushRiggedBatches(LLRenderPass::PASS_GLTF_PBR_ALPHA_MASK_RIGGED, false);
+        push_rigged_material_alpha_highlight_batches(*this);
 
         gGL.diffuseColor4f(0, 1, 0, 1);
         pushRiggedBatches(LLRenderPass::PASS_INVISIBLE_RIGGED, false);

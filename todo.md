@@ -1147,6 +1147,13 @@ without an explicit task, and do not start a direct Vulkan port.
       inventory.
 - [x] Add
       `docs/architecture/233-drawpool-alpha-unused-helper-summary.md`.
+- [x] Extract local `LLDrawPoolAlpha` debug alpha-highlight batch helpers
+      without changing batch IDs, colors, or order.
+- [x] Verify the alpha debug-batch packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [x] Add
+      `docs/architecture/234-drawpool-alpha-debug-batches-summary.md`.
 
 ## Phase 1 Inventory
 
