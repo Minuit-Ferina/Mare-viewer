@@ -1069,6 +1069,8 @@ without an explicit task, and do not start a direct Vulkan port.
       attempting any dynamic texture source extraction.
 - [x] Add `docs/architecture/219-ui-clip-rect-scissor-task.md` before
       attempting any UI scissor behavior cleanup.
+- [x] Add `docs/architecture/220-drawpool-alpha-state-task.md` before any
+      alpha draw-pool state cleanup.
 
 ## Phase 1 Inventory
 
