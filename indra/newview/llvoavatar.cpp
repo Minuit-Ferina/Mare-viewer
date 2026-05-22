@@ -54,6 +54,7 @@
 #include "lldrawpoolavatar.h"
 #include "lldriverparam.h"
 #include "llpolyskeletaldistortion.h"
+#include "llglcontainment.h"
 #include "lleditingmotion.h"
 #include "llemote.h"
 #include "llfloatertools.h"
@@ -5913,7 +5914,7 @@ U32 LLVOAvatar::renderImpostor(LLColor4U color, S32 diffuse_channel)
         gGL.begin(LLRender::LINES);
         gGL.color4f(1.f,1.f,1.f,1.f);
         F32 thickness = llmax(F32(5.0f-5.0f*(gFrameTimeSeconds-mLastImpostorUpdateFrameTime)),1.0f);
-        glLineWidth(thickness);
+        LLGLContainment::setLineWidth(thickness);
         gGL.vertex3fv((pos+left-up).mV);
         gGL.vertex3fv((pos-left-up).mV);
         gGL.vertex3fv((pos-left-up).mV);
@@ -12554,27 +12555,27 @@ void LLVOAvatar::placeProfileQuery()
 {
     if (mGPUTimerQuery == 0)
     {
-        glGenQueries(1, &mGPUTimerQuery);
+        LLGLContainment::generateQueries(1, &mGPUTimerQuery);
     }
 
-    glBeginQuery(GL_TIME_ELAPSED, mGPUTimerQuery);
+    LLGLContainment::beginQuery(GL_TIME_ELAPSED, mGPUTimerQuery);
 }
 
 void LLVOAvatar::readProfileQuery(S32 retries)
 {
     if (!mGPUProfilePending)
     {
-        glEndQuery(GL_TIME_ELAPSED);
+        LLGLContainment::endQuery(GL_TIME_ELAPSED);
         mGPUProfilePending = true;
     }
 
-    GLuint64 result = 0;
-    glGetQueryObjectui64v(mGPUTimerQuery, GL_QUERY_RESULT_AVAILABLE, &result);
+    U64 result = 0;
+    LLGLContainment::getQueryObjectUnsignedInteger64(mGPUTimerQuery, GL_QUERY_RESULT_AVAILABLE, &result);
 
     if (result == GL_TRUE || --retries <= 0)
     { // query available, readback result
-        GLuint64 time_elapsed = 0;
-        glGetQueryObjectui64v(mGPUTimerQuery, GL_QUERY_RESULT, &time_elapsed);
+        U64 time_elapsed = 0;
+        LLGLContainment::getQueryObjectUnsignedInteger64(mGPUTimerQuery, GL_QUERY_RESULT, &time_elapsed);
         mGPURenderTime = time_elapsed / 1000000.f;
         mGPUProfilePending = false;
 

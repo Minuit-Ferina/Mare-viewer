@@ -789,11 +789,11 @@ without an explicit task, and do not start a direct Vulkan port.
       source packet.
 - [x] Add a summary for the `LLViewerDisplay` containment packet.
 - [x] Add a focused task for `LLVOAvatar` containment before source edits.
-- [ ] Route `LLVOAvatar` impostor/profile OpenGL calls through
+- [x] Route `LLVOAvatar` impostor/profile OpenGL calls through
       `llglcontainment.*`.
-- [ ] Verify the `LLVOAvatar` containment packet with a targeted or
+- [x] Verify the `LLVOAvatar` containment packet with a targeted or
       incremental newview build.
-- [ ] Regenerate the generated source inventory after the `LLVOAvatar` source
+- [x] Regenerate the generated source inventory after the `LLVOAvatar` source
       packet.
 - [ ] Add a summary for the `LLVOAvatar` containment packet.
 

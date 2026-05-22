@@ -9,7 +9,6 @@
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 36 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/newview/llviewerwindow.cpp` | render.pipeline | 6504 | 12 | 14 | 0 | 44 | 7 | 63 | 2 |
 | `indra/llwindow/llwindowsdl.cpp` | assets.texture | 2757 | 11 | 12 | 0 | 0 | 0 | 0 | 0 |
-| `indra/newview/llvoavatar.cpp` | render.pipeline | 12711 | 6 | 6 | 0 | 96 | 8 | 23 | 0 |
 | `indra/newview/llappviewer.cpp` | render.pipeline | 6743 | 4 | 4 | 0 | 0 | 1 | 6 | 4 |
 | `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2841 | 3 | 16 | 0 | 32 | 81 | 0 | 0 |
 | `indra/llappearance/lltexlayer.cpp` | render.opengl_touching | 1931 | 3 | 5 | 0 | 85 | 17 | 0 | 10 |
@@ -69,6 +68,7 @@
 | `indra/newview/llmaniptranslate.cpp` | render.pipeline | 2322 | 0 | 0 | 0 | 196 | 29 | 10 | 0 |
 | `indra/newview/llviewerdisplay.cpp` | render.pipeline | 1954 | 0 | 0 | 0 | 129 | 54 | 63 | 1 |
 | `indra/newview/llglsandbox.cpp` | render.pipeline | 1131 | 0 | 0 | 0 | 129 | 24 | 1 | 2 |
+| `indra/newview/llvoavatar.cpp` | render.pipeline | 12712 | 0 | 0 | 0 | 96 | 14 | 23 | 0 |
 | `indra/newview/llworldmapview.cpp` | render.opengl_touching | 1983 | 0 | 0 | 0 | 88 | 2 | 0 | 0 |
 | `indra/newview/llmaniprotate.cpp` | render.opengl_touching | 1976 | 0 | 0 | 0 | 70 | 13 | 0 | 0 |
 | `indra/newview/llreflectionmapmanager.cpp` | render.pipeline | 1637 | 0 | 0 | 0 | 69 | 17 | 13 | 1 |
