@@ -110,6 +110,42 @@ static LLSpatialGroup::drawmap_elem_t& get_alpha_draw_info(LLSpatialGroup* group
                     group->mDrawMap[LLRenderPass::PASS_ALPHA];
 }
 
+static bool should_queue_alpha_emissive(U32 pool_type, const LLDrawInfo& params)
+{
+    return pool_type != LLDrawPool::POOL_ALPHA_PRE_WATER &&
+           params.mVertexBuffer->hasDataType(LLVertexBuffer::TYPE_EMISSIVE);
+}
+
+static void queue_alpha_emissive(LLDrawInfo& params,
+                                 std::vector<LLDrawInfo*>& emissives,
+                                 std::vector<LLDrawInfo*>& rigged_emissives,
+                                 std::vector<LLDrawInfo*>& pbr_emissives,
+                                 std::vector<LLDrawInfo*>& pbr_rigged_emissives)
+{
+    if (params.mAvatar != nullptr)
+    {
+        if (params.mGLTFMaterial.isNull())
+        {
+            rigged_emissives.push_back(&params);
+        }
+        else
+        {
+            pbr_rigged_emissives.push_back(&params);
+        }
+    }
+    else
+    {
+        if (params.mGLTFMaterial.isNull())
+        {
+            emissives.push_back(&params);
+        }
+        else
+        {
+            pbr_emissives.push_back(&params);
+        }
+    }
+}
+
 LLDrawPoolAlpha::LLDrawPoolAlpha(U32 type) :
         LLRenderPass(type), target_shader(NULL),
         mColorSFactor(LLRender::BF_UNDEF), mColorDFactor(LLRender::BF_UNDEF),
@@ -899,40 +935,16 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
                 }
 
                 // If this alpha mesh has glow, then draw it a second time to add the destination-alpha (=glow).  Interleaving these state-changing calls is expensive, but glow must be drawn Z-sorted with alpha.
-                if (getType() != LLDrawPool::POOL_ALPHA_PRE_WATER &&
-                    params.mVertexBuffer->hasDataType(LLVertexBuffer::TYPE_EMISSIVE))
+                if (should_queue_alpha_emissive(getType(), params))
                 {
-                    if (params.mAvatar != nullptr)
-                    {
-                        if (params.mGLTFMaterial.isNull())
-                        {
-                            rigged_emissives.push_back(&params);
-                        }
-                        else
-                        {
-                            pbr_rigged_emissives.push_back(&params);
-                        }
-                    }
-                    else
-                    {
-                        if (params.mGLTFMaterial.isNull())
-                        {
-                            emissives.push_back(&params);
-                        }
-                        else
-                        {
-                            pbr_emissives.push_back(&params);
-                        }
-                    }
+                    queue_alpha_emissive(params,
+                                         emissives,
+                                         rigged_emissives,
+                                         pbr_emissives,
+                                         pbr_rigged_emissives);
                 }
 
-                if (tex_setup)
-                {
-                    gGL.getTexUnit(0)->activate();
-                    gGL.matrixMode(LLRender::MM_TEXTURE);
-                    gGL.loadIdentity();
-                    gGL.matrixMode(LLRender::MM_MODELVIEW);
-                }
+                RestoreTexSetup(tex_setup);
             }
 
             // render emissive faces into alpha channel for bloom effects

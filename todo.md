@@ -1126,6 +1126,13 @@ without an explicit task, and do not start a direct Vulkan port.
       inventory.
 - [x] Add
       `docs/architecture/230-drawpool-alpha-group-filter-summary.md`.
+- [x] Extract local `LLDrawPoolAlpha` emissive queue helpers and reuse the
+      existing texture-matrix restore helper in the main alpha draw loop.
+- [x] Verify the alpha emissive-queue packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [x] Add
+      `docs/architecture/231-drawpool-alpha-emissive-queue-summary.md`.
 
 ## Phase 1 Inventory
 
