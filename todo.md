@@ -649,10 +649,10 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add a summary for the `LLGLSLShader` create/attach containment packet.
 - [x] Add a focused task for `LLGLSLShader` unload lifecycle containment
       before source edits.
-- [ ] Route `LLGLSLShader` unload lifecycle calls through `llglcontainment.*`.
-- [ ] Verify the `LLGLSLShader` unload lifecycle containment packet with
+- [x] Route `LLGLSLShader` unload lifecycle calls through `llglcontainment.*`.
+- [x] Verify the `LLGLSLShader` unload lifecycle containment packet with
       `llrender/fast`.
-- [ ] Regenerate the generated source inventory after the `LLGLSLShader`
+- [x] Regenerate the generated source inventory after the `LLGLSLShader`
       unload lifecycle source packet.
 - [ ] Add a summary for the `LLGLSLShader` unload lifecycle containment
       packet.

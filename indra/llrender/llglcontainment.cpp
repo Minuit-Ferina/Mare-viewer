@@ -267,6 +267,35 @@ void attachShader(LLGLuint program, LLGLuint shader)
     glAttachShader(program, shader);
 }
 
+void getAttachedShaders(
+    LLGLuint program,
+    S32 max_count,
+    LLGLint* count,
+    LLGLuint* shaders)
+{
+    glGetAttachedShaders(program, static_cast<GLsizei>(max_count), count, shaders);
+}
+
+void detachShader(LLGLuint program, LLGLuint shader)
+{
+    glDetachShader(program, shader);
+}
+
+bool isShader(LLGLuint shader)
+{
+    return glIsShader(shader) == GL_TRUE;
+}
+
+void deleteShader(LLGLuint shader)
+{
+    glDeleteShader(shader);
+}
+
+void deleteProgram(LLGLuint program)
+{
+    glDeleteProgram(program);
+}
+
 void getShaderInteger(LLGLuint shader, LLGLenum parameter, LLGLint* value)
 {
     glGetShaderiv(shader, parameter, value);

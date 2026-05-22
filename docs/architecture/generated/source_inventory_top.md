@@ -2,7 +2,7 @@
 
 | file | category | lines | gl_calls | gl_raw_refs | gl_known_false_refs | gGL | LLGL | LLPipeline | LLRenderTarget |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 737 | 102 | 102 | 0 | 0 | 207 | 0 | 0 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 766 | 107 | 107 | 0 | 0 | 215 | 0 | 0 |
 | `indra/newview/pipeline.cpp` | render.pipeline | 12046 | 81 | 83 | 0 | 340 | 158 | 564 | 60 |
 | `indra/newview/marefsr2upscaler.cpp` | render.opengl_touching | 379 | 81 | 81 | 0 | 3 | 3 | 0 | 4 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
@@ -19,7 +19,6 @@
 | `indra/llwindow/llwindowsdl.cpp` | assets.texture | 2757 | 11 | 12 | 0 | 0 | 0 | 0 | 0 |
 | `indra/newview/llscenemonitor.cpp` | render.pipeline | 757 | 11 | 11 | 0 | 26 | 3 | 10 | 8 |
 | `indra/newview/llface.cpp` | render.pipeline | 2638 | 9 | 9 | 0 | 15 | 13 | 5 | 0 |
-| `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2092 | 8 | 8 | 0 | 11 | 189 | 0 | 2 |
 | `indra/newview/lldrawpoolmaterials.cpp` | render.draw_pool | 290 | 8 | 8 | 0 | 11 | 0 | 0 | 0 |
 | `indra/newview/gltf/asset.cpp` | assets.texture | 1470 | 8 | 8 | 0 | 0 | 5 | 0 | 0 |
 | `indra/newview/llreflectionmap.cpp` | render.pipeline | 383 | 6 | 8 | 0 | 0 | 3 | 1 | 0 |
@@ -38,6 +37,7 @@
 | `indra/newview/llhudeffectlookat.cpp` | render.opengl_touching | 826 | 3 | 3 | 0 | 16 | 1 | 0 | 0 |
 | `indra/newview/llterrainpaintmap.cpp` | assets.texture | 287 | 3 | 3 | 0 | 15 | 8 | 0 | 1 |
 | `indra/newview/llhudeffectpointat.cpp` | render.opengl_touching | 523 | 3 | 3 | 0 | 15 | 1 | 0 | 0 |
+| `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2092 | 3 | 3 | 0 | 11 | 194 | 0 | 2 |
 | `indra/newview/lldynamictexture.cpp` | render.pipeline | 308 | 3 | 3 | 0 | 4 | 5 | 4 | 3 |
 | `indra/newview/llgltfmaterialpreviewmgr.cpp` | render.pipeline | 591 | 3 | 3 | 0 | 2 | 45 | 7 | 1 |
 | `indra/llrender/llimagegl.h` | render.legacy_low_level | 369 | 3 | 3 | 0 | 0 | 25 | 0 | 0 |
