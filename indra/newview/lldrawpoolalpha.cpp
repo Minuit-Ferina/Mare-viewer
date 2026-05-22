@@ -146,6 +146,30 @@ static void queue_alpha_emissive(LLDrawInfo& params,
     }
 }
 
+static bool is_alpha_highlight_rigged_pass(S32 pass)
+{
+    return pass != 0;
+}
+
+static LLCullResult::sg_iterator begin_alpha_highlight_groups(bool rigged)
+{
+    return rigged ? gPipeline.beginRiggedAlphaGroups() :
+                    gPipeline.beginAlphaGroups();
+}
+
+static LLCullResult::sg_iterator end_alpha_highlight_groups(bool rigged)
+{
+    return rigged ? gPipeline.endRiggedAlphaGroups() :
+                    gPipeline.endAlphaGroups();
+}
+
+static LLSpatialGroup::drawmap_elem_t& get_alpha_highlight_draw_info(LLSpatialGroup* group,
+                                                                     S32 pass)
+{
+    // Preserve the existing +pass mapping to use PASS_ALPHA_RIGGED on the second pass.
+    return group->mDrawMap[LLRenderPass::PASS_ALPHA + pass];
+}
+
 LLDrawPoolAlpha::LLDrawPoolAlpha(U32 type) :
         LLRenderPass(type), target_shader(NULL),
         mColorSFactor(LLRender::BF_UNDEF), mColorDFactor(LLRender::BF_UNDEF),
@@ -439,8 +463,9 @@ void LLDrawPoolAlpha::renderAlphaHighlight()
         U64 lastMeshId = 0;
         bool skipLastSkin = false;
 
-        LLCullResult::sg_iterator begin = pass == 0 ? gPipeline.beginAlphaGroups() : gPipeline.beginRiggedAlphaGroups();
-        LLCullResult::sg_iterator end = pass == 0 ? gPipeline.endAlphaGroups() : gPipeline.endRiggedAlphaGroups();
+        const bool rigged_pass = is_alpha_highlight_rigged_pass(pass);
+        LLCullResult::sg_iterator begin = begin_alpha_highlight_groups(rigged_pass);
+        LLCullResult::sg_iterator end = end_alpha_highlight_groups(rigged_pass);
 
         for (LLCullResult::sg_iterator i = begin; i != end; ++i)
         {
@@ -448,7 +473,7 @@ void LLDrawPoolAlpha::renderAlphaHighlight()
             if (group->getSpatialPartition()->mRenderByGroup &&
                 !group->isDead())
             {
-                LLSpatialGroup::drawmap_elem_t& draw_info = group->mDrawMap[LLRenderPass::PASS_ALPHA+pass]; // <-- hacky + pass to use PASS_ALPHA_RIGGED on second pass
+                LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_highlight_draw_info(group, pass);
 
                 for (LLSpatialGroup::drawmap_elem_t::iterator k = draw_info.begin(); k != draw_info.end(); ++k)
                 {

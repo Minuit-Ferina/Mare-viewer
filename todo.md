@@ -1133,6 +1133,13 @@ without an explicit task, and do not start a direct Vulkan port.
       inventory.
 - [x] Add
       `docs/architecture/231-drawpool-alpha-emissive-queue-summary.md`.
+- [x] Extract local `LLDrawPoolAlpha` debug highlight group-selection helpers
+      while preserving the existing `PASS_ALPHA + pass` mapping.
+- [x] Verify the alpha highlight packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [x] Add
+      `docs/architecture/232-drawpool-alpha-highlight-summary.md`.
 
 ## Phase 1 Inventory
 

@@ -56,7 +56,7 @@
 | `indra/newview/llvoicevisualizer.cpp` | render.opengl_touching | 616 | 0 | 0 | 0 | 36 | 4 | 0 | 0 |
 | `indra/newview/llfloaterbvhpreview.cpp` | render.draw_pool | 1212 | 0 | 0 | 0 | 32 | 2 | 0 | 0 |
 | `indra/newview/lljoystickbutton.cpp` | render.opengl_touching | 1129 | 0 | 0 | 0 | 32 | 2 | 0 | 0 |
-| `indra/newview/lldrawpoolalpha.cpp` | render.pipeline | 1009 | 0 | 0 | 0 | 31 | 20 | 21 | 0 |
+| `indra/newview/lldrawpoolalpha.cpp` | render.pipeline | 1034 | 0 | 0 | 0 | 31 | 20 | 21 | 0 |
 | `indra/newview/llmanip.cpp` | render.opengl_touching | 663 | 0 | 0 | 0 | 31 | 1 | 0 | 0 |
 | `indra/newview/llmediactrl.cpp` | render.opengl_touching | 1312 | 0 | 0 | 0 | 30 | 0 | 0 | 0 |
 | `indra/llappearance/llavatarjoint.cpp` | world.avatar | 316 | 0 | 0 | 0 | 30 | 0 | 0 | 0 |
