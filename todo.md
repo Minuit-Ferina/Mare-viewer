@@ -1046,6 +1046,8 @@ without an explicit task, and do not start a direct Vulkan port.
       dynamic texture users by order bucket, target group, and risk.
 - [x] Add `docs/architecture/209-dynamic-texture-overrides.md` to map
       dynamic texture virtual overrides before source changes.
+- [x] Add `docs/architecture/210-map-ui-render-boundaries.md` to split
+      minimap, world map, and shared tracking overlay responsibilities.
 
 ## Phase 1 Inventory
 
