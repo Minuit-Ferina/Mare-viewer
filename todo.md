@@ -904,6 +904,8 @@ without an explicit task, and do not start a direct Vulkan port.
       `gl*` calls outside `llglcontainment.cpp`.
 - [x] Classify the current `LLGLContainment` wrapper surface by future renderer
       concern.
+- [x] Run a first `llglheaders.h` include trim pass and document the remaining
+      header-containment surface.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 

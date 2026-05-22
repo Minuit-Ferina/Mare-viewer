@@ -34,7 +34,6 @@
 #include "v3math.h"
 #include "llquaternion.h"
 #include "llfontgl.h"
-#include "llglheaders.h"
 #include "llviewerwindow.h"
 #include "llui.h"
 

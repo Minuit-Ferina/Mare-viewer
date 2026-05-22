@@ -36,7 +36,6 @@
 #include "llagentcamera.h"
 #include "lldrawable.h"
 #include "llface.h"
-#include "llglheaders.h"
 #include "llsky.h"
 #include "llviewercamera.h"
 #include "llviewertexturelist.h"
@@ -796,4 +795,3 @@ bool approximatelyEqual(const AtmosphericsVars& a, const AtmosphericsVars& b, co
 
     return true;
 }
-

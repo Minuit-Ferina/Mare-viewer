@@ -66,7 +66,6 @@
 #include "llviewerwindow.h"
 #include "llviewerobject.h"
 #include "llviewercontrol.h"
-#include "llglheaders.h"
 #include "lluictrlfactory.h"
 #include "lltrans.h"
 
@@ -2517,7 +2516,6 @@ namespace LLInitParam
         declare("material", PICK_MATERIAL);
     }
 }
-
 
 
 

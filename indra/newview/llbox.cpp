@@ -30,7 +30,6 @@
 
 #include "llgl.h"
 #include "llrender.h"
-#include "llglheaders.h"
 
 LLBox       gBox;
 

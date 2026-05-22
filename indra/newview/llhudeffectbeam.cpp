@@ -35,7 +35,6 @@
 #include "lldrawable.h"
 #include "llfontgl.h"
 #include "llgl.h"
-#include "llglheaders.h"
 #include "llhudrender.h"
 #include "llrendersphere.h"
 #include "llviewercamera.h"

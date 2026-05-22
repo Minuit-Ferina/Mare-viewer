@@ -64,7 +64,6 @@
 
 #include "llfloatertos.h"
 #include "lltrans.h"
-#include "llglheaders.h"
 #include "llpanelloginlistener.h"
 #include "stringize.h"
 
@@ -1388,4 +1387,3 @@ std::string LLPanelLogin::getUserName(LLPointer<LLCredential> &cred)
 
     return "unknown";
 }
-

@@ -43,7 +43,6 @@
 #include "llviewerwindow.h"
 #include "llviewercamera.h"
 
-#include "llglheaders.h"
 
 // Globals
 const S32 SLOP_RADIUS = 5;

@@ -44,7 +44,6 @@
 #include "lltrans.h"
 #include "llstyle.h"
 
-#include "llglheaders.h"
 #include "llagent.h"
 #include "llavatariconctrl.h"
 #include "llinventorytype.h"
@@ -229,4 +228,3 @@ bool LLToastGroupNotifyPanel::isAttachmentOpenable(LLAssetType::EType type)
         return false;
     }
 }
-

@@ -34,7 +34,6 @@
 #include "llui.h"
 #include "llfontgl.h"
 #include "lltimer.h"
-#include "llglheaders.h"
 
 #include "llfocusmgr.h"
 #include "lluictrlfactory.h"

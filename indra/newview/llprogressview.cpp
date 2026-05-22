@@ -36,7 +36,6 @@
 #include "llfontgl.h"
 #include "lltimer.h"
 #include "lltextbox.h"
-#include "llglheaders.h"
 
 #include "llagent.h"
 #include "llbutton.h"

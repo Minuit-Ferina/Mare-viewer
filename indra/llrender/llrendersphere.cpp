@@ -33,7 +33,6 @@
 #include "llrendersphere.h"
 #include "llerror.h"
 
-#include "llglheaders.h"
 #include "llvertexbuffer.h"
 #include "llglslshader.h"
 

@@ -50,7 +50,6 @@
 #include "llpointer.h"
 #include "llimage.h"
 #include "llmousehandler.h"
-#include "llglheaders.h"
 #include "llcheckboxctrl.h"
 #include "lltextbox.h"
 #include "lluiconstants.h"

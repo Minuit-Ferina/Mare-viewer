@@ -43,7 +43,6 @@
 #include "llviewerwindow.h"
 #include "llmoveview.h"
 
-#include "llglheaders.h"
 
 static LLDefaultChildRegistry::Register<LLJoystickAgentSlide> r1("joystick_slide");
 static LLDefaultChildRegistry::Register<LLJoystickAgentTurn> r2("joystick_turn");
@@ -1126,5 +1125,4 @@ LLQuaternion LLJoystickQuaternion::getRotation() const
 {
     return mRotation;
 }
-
 

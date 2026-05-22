@@ -24,7 +24,6 @@
 * $/LicenseInfo$
 */
 
-#include "llglheaders.h"
 #include "llglcommonfunc.h"
 
 namespace LLGLCommonFunc

@@ -49,7 +49,6 @@
 // Linden library includes
 #include "llaudioengine.h"
 #include "llbutton.h"
-#include "llglheaders.h"
 #include "llfloater.h"
 #include "llfloaterreg.h"
 #include "llimagej2c.h"
@@ -441,4 +440,3 @@ void LLFloaterAboutUtil::checkUpdatesAndNotify()
 {
     LLFloaterAbout::setUpdateListener();
 }
-

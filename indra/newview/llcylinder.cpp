@@ -35,7 +35,6 @@
 #include "v3math.h"
 #include "llvertexbuffer.h"
 #include "llgl.h"
-#include "llglheaders.h"
 
 LLCone      gCone;
 
@@ -72,4 +71,3 @@ void LLCone::render(S32 sides)
 
     gGL.end();
 }
-
