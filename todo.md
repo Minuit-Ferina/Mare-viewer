@@ -983,6 +983,14 @@ without an explicit task, and do not start a direct Vulkan port.
       `llui`, targeted `LLGLDepthTest`-heavy `newview` object compiles, the
       containment guardrail, and regenerated source inventory.
 - [x] Add `docs/architecture/196-llglstates-type-boundary-summary.md`.
+- [x] Narrow `llsprite.h`, `lldynamictexture.h`, and `llviewertexturelist.h`
+      so they no longer include `llgl.h` directly.
+- [x] Keep `lllocalcliprect.h` unchanged because it owns an `LLGLState` member
+      by value and needs a separate state-helper extraction.
+- [x] Verify the newview texture/sprite header boundary packet with targeted
+      `newview` object compiles, the containment guardrail, and regenerated
+      source inventory.
+- [x] Add `docs/architecture/197-newview-texture-header-boundary-summary.md`.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 - [ ] Continue reducing header-level OpenGL ABI exposure in small packets,

@@ -28,10 +28,13 @@
 #define LL_LLDYNAMICTEXTURE_H
 
 #include "llcamera.h"
-#include "llgl.h"
 #include "llcoord.h"
+#include "llgltypes.h"
 #include "llviewertexture.h"
-#include "llcamera.h"
+
+#include <set>
+
+class LLRenderTarget;
 
 class LLViewerDynamicTexture : public LLViewerTexture
 {

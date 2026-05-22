@@ -29,6 +29,7 @@
 #include "lldynamictexture.h"
 
 // Linden library includes
+#include "llgl.h"
 #include "llglcontainment.h"
 #include "llglheaders.h"
 #include "llwindow.h"           // getPosition()
