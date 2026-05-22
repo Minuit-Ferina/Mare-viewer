@@ -1042,6 +1042,8 @@ without an explicit task, and do not start a direct Vulkan port.
       record the post-containment UI/render boundary candidates.
 - [x] Add `docs/architecture/207-dynamic-texture-update-flow.md` before any
       dynamic texture source changes.
+- [x] Add `docs/architecture/208-dynamic-texture-user-table.md` to split
+      dynamic texture users by order bucket, target group, and risk.
 
 ## Phase 1 Inventory
 
