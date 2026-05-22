@@ -40,7 +40,7 @@
 #include "v4math.h"
 #include "llstrider.h"
 #include "llpointer.h"
-#include "llglheaders.h"
+#include "llgltypes.h"
 #include "llmatrix4a.h"
 #include "glm/mat4x4.hpp"
 #include <boost/align/aligned_allocator.hpp>
@@ -235,8 +235,8 @@ protected:
     bool                mHasMipMaps;
 
     void debugTextureUnit(void);
-    GLint getTextureSource(eTextureBlendSrc src);
-    GLint getTextureSourceType(eTextureBlendSrc src, bool isAlpha = false);
+    LLGLint getTextureSource(eTextureBlendSrc src);
+    LLGLint getTextureSourceType(eTextureBlendSrc src, bool isAlpha = false);
 };
 
 class LLLightState
@@ -388,16 +388,16 @@ public:
     // Needed when the render context has changed and invalidated the current state
     void refreshState(void);
 
-    void translatef(const GLfloat& x, const GLfloat& y, const GLfloat& z);
-    void scalef(const GLfloat& x, const GLfloat& y, const GLfloat& z);
-    void rotatef(const GLfloat& a, const GLfloat& x, const GLfloat& y, const GLfloat& z);
+    void translatef(const LLGLfloat& x, const LLGLfloat& y, const LLGLfloat& z);
+    void scalef(const LLGLfloat& x, const LLGLfloat& y, const LLGLfloat& z);
+    void rotatef(const LLGLfloat& a, const LLGLfloat& x, const LLGLfloat& y, const LLGLfloat& z);
     void ortho(F32 left, F32 right, F32 bottom, F32 top, F32 zNear, F32 zFar);
 
     void pushMatrix();
     void popMatrix();
-    void loadMatrix(const GLfloat* m);
+    void loadMatrix(const LLGLfloat* m);
     void loadIdentity();
-    void multMatrix(const GLfloat* m);
+    void multMatrix(const LLGLfloat* m);
     void matrixMode(eMatrixMode mode);
     eMatrixMode getMatrixMode();
 
@@ -421,27 +421,27 @@ public:
     void beginList(std::list<LLVertexBufferData> *list);
     void endList();
 
-    void begin(const GLuint& mode);
+    void begin(const LLGLuint& mode);
     void end();
 
     U8 getMode() const { return mMode; }
 
-    void vertex2i(const GLint& x, const GLint& y);
-    void vertex2f(const GLfloat& x, const GLfloat& y);
-    void vertex3f(const GLfloat& x, const GLfloat& y, const GLfloat& z);
-    void vertex2fv(const GLfloat* v);
-    void vertex3fv(const GLfloat* v);
+    void vertex2i(const LLGLint& x, const LLGLint& y);
+    void vertex2f(const LLGLfloat& x, const LLGLfloat& y);
+    void vertex3f(const LLGLfloat& x, const LLGLfloat& y, const LLGLfloat& z);
+    void vertex2fv(const LLGLfloat* v);
+    void vertex3fv(const LLGLfloat* v);
 
-    void texCoord2i(const GLint& x, const GLint& y);
-    void texCoord2f(const GLfloat& x, const GLfloat& y);
-    void texCoord2fv(const GLfloat* tc);
+    void texCoord2i(const LLGLint& x, const LLGLint& y);
+    void texCoord2f(const LLGLfloat& x, const LLGLfloat& y);
+    void texCoord2fv(const LLGLfloat* tc);
 
-    void color4ub(const GLubyte& r, const GLubyte& g, const GLubyte& b, const GLubyte& a);
-    void color4f(const GLfloat& r, const GLfloat& g, const GLfloat& b, const GLfloat& a);
-    void color4fv(const GLfloat* c);
-    void color3f(const GLfloat& r, const GLfloat& g, const GLfloat& b);
-    void color3fv(const GLfloat* c);
-    void color4ubv(const GLubyte* c);
+    void color4ub(const U8& r, const U8& g, const U8& b, const U8& a);
+    void color4f(const LLGLfloat& r, const LLGLfloat& g, const LLGLfloat& b, const LLGLfloat& a);
+    void color4fv(const LLGLfloat* c);
+    void color3f(const LLGLfloat& r, const LLGLfloat& g, const LLGLfloat& b);
+    void color3fv(const LLGLfloat* c);
+    void color4ubv(const U8* c);
 
     void diffuseColor3f(F32 r, F32 g, F32 b);
     void diffuseColor3fv(const F32* c);
@@ -481,9 +481,9 @@ public:
 
     struct Vertex
     {
-        GLfloat v[3];
-        GLubyte c[4];
-        GLfloat uv[2];
+        LLGLfloat v[3];
+        U8 c[4];
+        LLGLfloat uv[2];
     };
 
 public:

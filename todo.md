@@ -908,8 +908,19 @@ without an explicit task, and do not start a direct Vulkan port.
       header-containment surface.
 - [x] Run a second `llglheaders.h` include trim pass for GLTF false positives
       and type-only includes.
+- [x] Narrow `llrender.h` so it no longer includes `llglheaders.h` directly.
+- [x] Replace public `LLRender` OpenGL scalar spellings with `llgltypes.h`
+      aliases and fix the `LLImageGL::setTexName(...)` transitive typedef
+      dependency.
+- [x] Verify the `LLRender` header boundary packet with `llrender/fast`,
+      `llui`, targeted `newview` object compiles, the containment guardrail,
+      and regenerated source inventory.
+- [x] Add `docs/architecture/187-llrender-header-boundary-summary.md`.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
+- [ ] Continue reducing header-level OpenGL ABI exposure in small packets,
+      starting with `llrender2dutils.h`, `llglslshader.h`, and
+      `llshadermgr.h`.
 
 ## Phase 1 Inventory
 

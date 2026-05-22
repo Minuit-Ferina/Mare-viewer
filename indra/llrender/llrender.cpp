@@ -29,6 +29,7 @@
 #include "llrender.h"
 
 #include "llglcontainment.h"
+#include "llglheaders.h"
 #include "llvertexbuffer.h"
 #include "llcubemap.h"
 #include "llglslshader.h"
@@ -545,7 +546,7 @@ void LLTexUnit::setTextureFilteringOptionFast(LLTexUnit::eTextureFilterOptions o
     }
 }
 
-GLint LLTexUnit::getTextureSource(eTextureBlendSrc src)
+LLGLint LLTexUnit::getTextureSource(eTextureBlendSrc src)
 {
     switch(src)
     {
@@ -583,7 +584,7 @@ GLint LLTexUnit::getTextureSource(eTextureBlendSrc src)
     }
 }
 
-GLint LLTexUnit::getTextureSourceType(eTextureBlendSrc src, bool isAlpha)
+LLGLint LLTexUnit::getTextureSourceType(eTextureBlendSrc src, bool isAlpha)
 {
     switch(src)
     {
@@ -1143,7 +1144,7 @@ void LLRender::syncMatrices()
     STOP_GLERROR;
 }
 
-void LLRender::translatef(const GLfloat& x, const GLfloat& y, const GLfloat& z)
+void LLRender::translatef(const LLGLfloat& x, const LLGLfloat& y, const LLGLfloat& z)
 {
     flush();
 
@@ -1153,7 +1154,7 @@ void LLRender::translatef(const GLfloat& x, const GLfloat& y, const GLfloat& z)
     }
 }
 
-void LLRender::scalef(const GLfloat& x, const GLfloat& y, const GLfloat& z)
+void LLRender::scalef(const LLGLfloat& x, const LLGLfloat& y, const LLGLfloat& z)
 {
     flush();
 
@@ -1173,7 +1174,7 @@ void LLRender::ortho(F32 left, F32 right, F32 bottom, F32 top, F32 zNear, F32 zF
     }
 }
 
-void LLRender::rotatef(const GLfloat& a, const GLfloat& x, const GLfloat& y, const GLfloat& z)
+void LLRender::rotatef(const LLGLfloat& a, const LLGLfloat& x, const LLGLfloat& y, const LLGLfloat& z)
 {
     flush();
 
@@ -1216,16 +1217,16 @@ void LLRender::popMatrix()
     }
 }
 
-void LLRender::loadMatrix(const GLfloat* m)
+void LLRender::loadMatrix(const LLGLfloat* m)
 {
     flush();
     {
-        mMatrix[mMatrixMode][mMatIdx[mMatrixMode]] = glm::make_mat4((GLfloat*) m);
+        mMatrix[mMatrixMode][mMatIdx[mMatrixMode]] = glm::make_mat4((LLGLfloat*) m);
         mMatHash[mMatrixMode]++;
     }
 }
 
-void LLRender::multMatrix(const GLfloat* m)
+void LLRender::multMatrix(const LLGLfloat* m)
 {
     flush();
     {
@@ -1572,7 +1573,7 @@ void LLRender::endList()
     }
 }
 
-void LLRender::begin(const GLuint& mode)
+void LLRender::begin(const LLGLuint& mode)
 {
     if (mode != mMode)
     {
@@ -1799,7 +1800,7 @@ void LLRender::resetStriders(S32 count)
     mCount = 0;
 }
 
-void LLRender::vertex3f(const GLfloat& x, const GLfloat& y, const GLfloat& z)
+void LLRender::vertex3f(const LLGLfloat& x, const LLGLfloat& y, const LLGLfloat& z)
 {
     //the range of mVerticesp, mColorsp and mTexcoordsp is [0, 4095]
     if (mCount > 2048)
@@ -1906,42 +1907,42 @@ void LLRender::vertexBatchPreTransformed(LLVector4a* verts, LLVector2* uvs, LLCo
     }
 }
 
-void LLRender::vertex2i(const GLint& x, const GLint& y)
+void LLRender::vertex2i(const LLGLint& x, const LLGLint& y)
 {
-    vertex3f((GLfloat) x, (GLfloat) y, 0);
+    vertex3f((LLGLfloat) x, (LLGLfloat) y, 0);
 }
 
-void LLRender::vertex2f(const GLfloat& x, const GLfloat& y)
+void LLRender::vertex2f(const LLGLfloat& x, const LLGLfloat& y)
 {
     vertex3f(x,y,0);
 }
 
-void LLRender::vertex2fv(const GLfloat* v)
+void LLRender::vertex2fv(const LLGLfloat* v)
 {
     vertex3f(v[0], v[1], 0);
 }
 
-void LLRender::vertex3fv(const GLfloat* v)
+void LLRender::vertex3fv(const LLGLfloat* v)
 {
     vertex3f(v[0], v[1], v[2]);
 }
 
-void LLRender::texCoord2f(const GLfloat& x, const GLfloat& y)
+void LLRender::texCoord2f(const LLGLfloat& x, const LLGLfloat& y)
 {
     mTexcoordsp[mCount] = LLVector2(x,y);
 }
 
-void LLRender::texCoord2i(const GLint& x, const GLint& y)
+void LLRender::texCoord2i(const LLGLint& x, const LLGLint& y)
 {
-    texCoord2f((GLfloat) x, (GLfloat) y);
+    texCoord2f((LLGLfloat) x, (LLGLfloat) y);
 }
 
-void LLRender::texCoord2fv(const GLfloat* tc)
+void LLRender::texCoord2fv(const LLGLfloat* tc)
 {
     texCoord2f(tc[0], tc[1]);
 }
 
-void LLRender::color4ub(const GLubyte& r, const GLubyte& g, const GLubyte& b, const GLubyte& a)
+void LLRender::color4ub(const U8& r, const U8& g, const U8& b, const U8& a)
 {
     if (!LLGLSLShader::sCurBoundShaderPtr || LLGLSLShader::sCurBoundShaderPtr->mAttributeMask & LLVertexBuffer::MAP_COLOR)
     {
@@ -1952,30 +1953,30 @@ void LLRender::color4ub(const GLubyte& r, const GLubyte& g, const GLubyte& b, co
         diffuseColor4ub(r,g,b,a);
     }
 }
-void LLRender::color4ubv(const GLubyte* c)
+void LLRender::color4ubv(const U8* c)
 {
     color4ub(c[0], c[1], c[2], c[3]);
 }
 
-void LLRender::color4f(const GLfloat& r, const GLfloat& g, const GLfloat& b, const GLfloat& a)
+void LLRender::color4f(const LLGLfloat& r, const LLGLfloat& g, const LLGLfloat& b, const LLGLfloat& a)
 {
-    color4ub((GLubyte) (llclamp(r, 0.f, 1.f)*255),
-        (GLubyte) (llclamp(g, 0.f, 1.f)*255),
-        (GLubyte) (llclamp(b, 0.f, 1.f)*255),
-        (GLubyte) (llclamp(a, 0.f, 1.f)*255));
+    color4ub((U8) (llclamp(r, 0.f, 1.f)*255),
+        (U8) (llclamp(g, 0.f, 1.f)*255),
+        (U8) (llclamp(b, 0.f, 1.f)*255),
+        (U8) (llclamp(a, 0.f, 1.f)*255));
 }
 
-void LLRender::color4fv(const GLfloat* c)
+void LLRender::color4fv(const LLGLfloat* c)
 {
     color4f(c[0],c[1],c[2],c[3]);
 }
 
-void LLRender::color3f(const GLfloat& r, const GLfloat& g, const GLfloat& b)
+void LLRender::color3f(const LLGLfloat& r, const LLGLfloat& g, const LLGLfloat& b)
 {
     color4f(r,g,b,1);
 }
 
-void LLRender::color3fv(const GLfloat* c)
+void LLRender::color3fv(const LLGLfloat* c)
 {
     color4f(c[0],c[1],c[2],1);
 }
