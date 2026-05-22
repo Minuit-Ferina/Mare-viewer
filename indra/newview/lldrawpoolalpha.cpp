@@ -691,33 +691,28 @@ void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
     }
 }
 
-void LLDrawPoolAlpha::forwardRender(bool rigged)
+void LLDrawPoolAlpha::setupForwardAlphaRenderState()
 {
-    gPipeline.enableLightsDynamic();
-
-    LLGLSPipelineAlpha gls_pipeline_alpha;
-
     //enable writing to alpha for emissive effects
     gGL.setColorMask(true, true);
-
-    bool write_depth = should_write_alpha_depth(rigged, getType());
-    LLGLDepthTest depth(GL_TRUE, write_depth ? GL_TRUE : GL_FALSE);
 
     mColorSFactor = LLRender::BF_SOURCE_ALPHA;           // } regular alpha blend
     mColorDFactor = LLRender::BF_ONE_MINUS_SOURCE_ALPHA; // }
     mAlphaSFactor = LLRender::BF_ZERO;                         // } glow suppression
     mAlphaDFactor = LLRender::BF_ONE_MINUS_SOURCE_ALPHA;       // }
     gGL.blendFunc(mColorSFactor, mColorDFactor, mAlphaSFactor, mAlphaDFactor);
+}
 
+void LLDrawPoolAlpha::renderRiggedGltfDepthPrepass(bool rigged)
+{
     if (rigged && mType == LLDrawPool::POOL_ALPHA_POST_WATER)
     { // draw GLTF scene to depth buffer before rigged alpha
         render_gltf_scene_depth_for_rigged_alpha();
     }
+}
 
-    // If the face is more than 90% transparent, then don't update the Depth buffer for Dof
-    // We don't want the nearly invisible objects to cause of DoF effects
-    renderAlpha(get_alpha_vertex_data_mask(), false, rigged);
-
+void LLDrawPoolAlpha::finishForwardAlphaRender(bool rigged)
+{
     gGL.setColorMask(true, false);
 
     if (!rigged)
@@ -727,6 +722,25 @@ void LLDrawPoolAlpha::forwardRender(bool rigged)
         // variables above are still in scope
         renderDebugAlpha();
     }
+}
+
+void LLDrawPoolAlpha::forwardRender(bool rigged)
+{
+    gPipeline.enableLightsDynamic();
+
+    LLGLSPipelineAlpha gls_pipeline_alpha;
+
+    bool write_depth = should_write_alpha_depth(rigged, getType());
+    LLGLDepthTest depth(GL_TRUE, write_depth ? GL_TRUE : GL_FALSE);
+
+    setupForwardAlphaRenderState();
+    renderRiggedGltfDepthPrepass(rigged);
+
+    // If the face is more than 90% transparent, then don't update the Depth buffer for Dof
+    // We don't want the nearly invisible objects to cause of DoF effects
+    renderAlpha(get_alpha_vertex_data_mask(), false, rigged);
+
+    finishForwardAlphaRender(rigged);
 }
 
 void LLDrawPoolAlpha::renderDebugAlpha()
