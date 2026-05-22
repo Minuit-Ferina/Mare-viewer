@@ -638,6 +638,15 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLGLSLShader`
       program binding source packet.
 - [x] Add a summary for the `LLGLSLShader` program binding containment packet.
+- [x] Add a focused task for `LLGLSLShader` create/attach containment before
+      source edits.
+- [ ] Route `LLGLSLShader` program create and shader attach calls through
+      `llglcontainment.*`.
+- [ ] Verify the `LLGLSLShader` create/attach containment packet with
+      `llrender/fast`.
+- [ ] Regenerate the generated source inventory after the `LLGLSLShader`
+      create/attach source packet.
+- [ ] Add a summary for the `LLGLSLShader` create/attach containment packet.
 
 ## Phase 1 Inventory
 
