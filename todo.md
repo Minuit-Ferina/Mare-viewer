@@ -676,11 +676,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add a summary for the `LLShaderMgr` containment packet.
 - [x] Add a focused task for `LLDrawPoolTerrain` fixed-function containment
       before source edits.
-- [ ] Route `LLDrawPoolTerrain` fixed-function OpenGL calls through
+- [x] Route `LLDrawPoolTerrain` fixed-function OpenGL calls through
       `llglcontainment.*`.
-- [ ] Verify the `LLDrawPoolTerrain` containment packet with a targeted or
+- [x] Verify the `LLDrawPoolTerrain` containment packet with a targeted or
       incremental newview build.
-- [ ] Regenerate the generated source inventory after the `LLDrawPoolTerrain`
+- [x] Regenerate the generated source inventory after the `LLDrawPoolTerrain`
       source packet.
 - [ ] Add a summary for the `LLDrawPoolTerrain` fixed-function containment
       packet.

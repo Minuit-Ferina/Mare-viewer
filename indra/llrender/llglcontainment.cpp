@@ -570,6 +570,16 @@ void setTextureParameterIntegerVector(
     glTexParameteriv(target, parameter, values);
 }
 
+void setTextureGenerationInteger(LLGLenum coordinate, LLGLenum parameter, LLGLint value)
+{
+    glTexGeni(coordinate, parameter, value);
+}
+
+void setTextureGenerationFloatVector(LLGLenum coordinate, LLGLenum parameter, const LLGLfloat* values)
+{
+    glTexGenfv(coordinate, parameter, values);
+}
+
 void setCompressedTextureImage2D(
     LLGLenum target,
     S32 level,
@@ -750,6 +760,11 @@ void clearBuffers(U32 mask)
     glClear(mask);
 }
 
+void setPolygonOffset(LLGLfloat factor, LLGLfloat units)
+{
+    glPolygonOffset(factor, units);
+}
+
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height)
 {
     glScissor(x, y, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
@@ -763,6 +778,11 @@ LLGLenum getError()
 void enableCapability(LLGLenum capability)
 {
     glEnable(capability);
+}
+
+void disableCapability(LLGLenum capability)
+{
+    glDisable(capability);
 }
 
 bool isCapabilityEnabled(LLGLenum capability)

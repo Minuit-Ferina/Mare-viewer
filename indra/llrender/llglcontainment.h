@@ -183,6 +183,8 @@ void setTextureParameterIntegerVector(
     LLGLenum target,
     LLGLenum parameter,
     const LLGLint* values);
+void setTextureGenerationInteger(LLGLenum coordinate, LLGLenum parameter, LLGLint value);
+void setTextureGenerationFloatVector(LLGLenum coordinate, LLGLenum parameter, const LLGLfloat* values);
 void setCompressedTextureImage2D(
     LLGLenum target,
     S32 level,
@@ -253,9 +255,11 @@ void waitSyncObject(LLGLsync sync);
 void deleteSyncObject(LLGLsync sync);
 void generateTextureMipmap(LLGLenum texture_target);
 void clearBuffers(U32 mask);
+void setPolygonOffset(LLGLfloat factor, LLGLfloat units);
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);
 LLGLenum getError();
 void enableCapability(LLGLenum capability);
+void disableCapability(LLGLenum capability);
 bool isCapabilityEnabled(LLGLenum capability);
 void setCullFace(LLGLenum mode);
 void generateVertexArrays(S32 count, LLGLuint* arrays);

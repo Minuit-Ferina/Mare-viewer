@@ -47,6 +47,7 @@
 #include "llworld.h"
 #include "pipeline.h"
 #include "llviewershadermgr.h"
+#include "llglcontainment.h"
 #include "llrender.h"
 #include "llenvironment.h"
 #include "llsettingsvo.h"
@@ -178,9 +179,9 @@ void LLDrawPoolTerrain::renderShadow(S32 pass)
         return;
     }
     //LLGLEnable offset(GL_POLYGON_OFFSET);
-    //glCullFace(GL_FRONT);
+    // front-face cull disabled for this path
     drawLoop();
-    //glCullFace(GL_BACK);
+    // back-face cull restore not needed here
 }
 
 
@@ -635,7 +636,7 @@ void LLDrawPoolTerrain::hilightParcelOwners()
         sShader->bind();
         gGL.diffuseColor4f(1, 1, 1, 1);
         LLGLEnable polyOffset(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(-1.0f, -1.0f);
+        LLGLContainment::setPolygonOffset(-1.0f, -1.0f);
         renderOwnership();
         sShader = old_shader;
         sShader->bind();
@@ -680,13 +681,13 @@ void LLDrawPoolTerrain::renderFull4TU()
     gGL.getTexUnit(0)->activate();
     gGL.getTexUnit(0)->bind(detail_texture0p);
 
-    glEnable(GL_TEXTURE_GEN_S);
-    glEnable(GL_TEXTURE_GEN_T);
-    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_T);
+    LLGLContainment::setTextureGenerationInteger(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationInteger(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
 
-    glTexGenfv(GL_S, GL_OBJECT_PLANE, tp0.mV);
-    glTexGenfv(GL_T, GL_OBJECT_PLANE, tp1.mV);
+    LLGLContainment::setTextureGenerationFloatVector(GL_S, GL_OBJECT_PLANE, tp0.mV);
+    LLGLContainment::setTextureGenerationFloatVector(GL_T, GL_OBJECT_PLANE, tp1.mV);
 
     //
     // Stage 1: Generate alpha ramp for detail0/detail1 transition
@@ -703,12 +704,12 @@ void LLDrawPoolTerrain::renderFull4TU()
     gGL.getTexUnit(2)->enable(LLTexUnit::TT_TEXTURE);
     gGL.getTexUnit(2)->activate();
 
-    glEnable(GL_TEXTURE_GEN_S);
-    glEnable(GL_TEXTURE_GEN_T);
-    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGenfv(GL_S, GL_OBJECT_PLANE, tp0.mV);
-    glTexGenfv(GL_T, GL_OBJECT_PLANE, tp1.mV);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_T);
+    LLGLContainment::setTextureGenerationInteger(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationInteger(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationFloatVector(GL_S, GL_OBJECT_PLANE, tp0.mV);
+    LLGLContainment::setTextureGenerationFloatVector(GL_T, GL_OBJECT_PLANE, tp1.mV);
 
     //
     // Stage 3: Modulate with primary (vertex) color for lighting
@@ -730,12 +731,12 @@ void LLDrawPoolTerrain::renderFull4TU()
     gGL.getTexUnit(0)->activate();
     gGL.getTexUnit(0)->bind(detail_texture3p);
 
-    glEnable(GL_TEXTURE_GEN_S);
-    glEnable(GL_TEXTURE_GEN_T);
-    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGenfv(GL_S, GL_OBJECT_PLANE, tp0.mV);
-    glTexGenfv(GL_T, GL_OBJECT_PLANE, tp1.mV);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_T);
+    LLGLContainment::setTextureGenerationInteger(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationInteger(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationFloatVector(GL_S, GL_OBJECT_PLANE, tp0.mV);
+    LLGLContainment::setTextureGenerationFloatVector(GL_T, GL_OBJECT_PLANE, tp1.mV);
 
     //
     // Stage 1: Generate alpha ramp for detail2/detail3 transition
@@ -756,12 +757,12 @@ void LLDrawPoolTerrain::renderFull4TU()
     gGL.getTexUnit(2)->enable(LLTexUnit::TT_TEXTURE);
     gGL.getTexUnit(2)->activate();
 
-    glEnable(GL_TEXTURE_GEN_S);
-    glEnable(GL_TEXTURE_GEN_T);
-    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGenfv(GL_S, GL_OBJECT_PLANE, tp0.mV);
-    glTexGenfv(GL_T, GL_OBJECT_PLANE, tp1.mV);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_T);
+    LLGLContainment::setTextureGenerationInteger(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationInteger(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationFloatVector(GL_S, GL_OBJECT_PLANE, tp0.mV);
+    LLGLContainment::setTextureGenerationFloatVector(GL_T, GL_OBJECT_PLANE, tp1.mV);
 
     //
     // Stage 3: Generate alpha ramp for detail1/detail2 transition
@@ -796,8 +797,8 @@ void LLDrawPoolTerrain::renderFull4TU()
     gGL.getTexUnit(2)->disable();
     gGL.getTexUnit(2)->activate();
 
-    glDisable(GL_TEXTURE_GEN_S);
-    glDisable(GL_TEXTURE_GEN_T);
+    LLGLContainment::disableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::disableCapability(GL_TEXTURE_GEN_T);
     gGL.matrixMode(LLRender::MM_TEXTURE);
     gGL.loadIdentity();
     gGL.matrixMode(LLRender::MM_MODELVIEW);
@@ -820,8 +821,8 @@ void LLDrawPoolTerrain::renderFull4TU()
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
 
-    glDisable(GL_TEXTURE_GEN_S);
-    glDisable(GL_TEXTURE_GEN_T);
+    LLGLContainment::disableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::disableCapability(GL_TEXTURE_GEN_T);
     gGL.matrixMode(LLRender::MM_TEXTURE);
     gGL.loadIdentity();
     gGL.matrixMode(LLRender::MM_MODELVIEW);
@@ -862,13 +863,13 @@ void LLDrawPoolTerrain::renderFull2TU()
     // Stage 0: Render detail 0 into base
     //
     gGL.getTexUnit(0)->bind(detail_texture0p);
-    glEnable(GL_TEXTURE_GEN_S);
-    glEnable(GL_TEXTURE_GEN_T);
-    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_T);
+    LLGLContainment::setTextureGenerationInteger(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationInteger(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
 
-    glTexGenfv(GL_S, GL_OBJECT_PLANE, tp0.mV);
-    glTexGenfv(GL_T, GL_OBJECT_PLANE, tp1.mV);
+    LLGLContainment::setTextureGenerationFloatVector(GL_S, GL_OBJECT_PLANE, tp0.mV);
+    LLGLContainment::setTextureGenerationFloatVector(GL_T, GL_OBJECT_PLANE, tp1.mV);
 
     drawLoop();
 
@@ -880,8 +881,8 @@ void LLDrawPoolTerrain::renderFull2TU()
     //
     gGL.getTexUnit(0)->bind(m2DAlphaRampImagep);
 
-    glDisable(GL_TEXTURE_GEN_S);
-    glDisable(GL_TEXTURE_GEN_T);
+    LLGLContainment::disableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::disableCapability(GL_TEXTURE_GEN_T);
 
     //
     // Stage 1: Write detail1
@@ -890,12 +891,12 @@ void LLDrawPoolTerrain::renderFull2TU()
     gGL.getTexUnit(1)->enable(LLTexUnit::TT_TEXTURE);
     gGL.getTexUnit(1)->activate();
 
-    glEnable(GL_TEXTURE_GEN_S);
-    glEnable(GL_TEXTURE_GEN_T);
-    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGenfv(GL_S, GL_OBJECT_PLANE, tp0.mV);
-    glTexGenfv(GL_T, GL_OBJECT_PLANE, tp1.mV);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_T);
+    LLGLContainment::setTextureGenerationInteger(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationInteger(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationFloatVector(GL_S, GL_OBJECT_PLANE, tp0.mV);
+    LLGLContainment::setTextureGenerationFloatVector(GL_T, GL_OBJECT_PLANE, tp1.mV);
 
     gGL.getTexUnit(0)->activate();
     {
@@ -923,12 +924,12 @@ void LLDrawPoolTerrain::renderFull2TU()
     gGL.getTexUnit(1)->enable(LLTexUnit::TT_TEXTURE);
     gGL.getTexUnit(1)->activate();
 
-    glEnable(GL_TEXTURE_GEN_S);
-    glEnable(GL_TEXTURE_GEN_T);
-    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGenfv(GL_S, GL_OBJECT_PLANE, tp0.mV);
-    glTexGenfv(GL_T, GL_OBJECT_PLANE, tp1.mV);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_T);
+    LLGLContainment::setTextureGenerationInteger(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationInteger(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationFloatVector(GL_S, GL_OBJECT_PLANE, tp0.mV);
+    LLGLContainment::setTextureGenerationFloatVector(GL_T, GL_OBJECT_PLANE, tp1.mV);
 
     {
         LLGLEnable blend(GL_BLEND);
@@ -954,12 +955,12 @@ void LLDrawPoolTerrain::renderFull2TU()
     gGL.getTexUnit(1)->enable(LLTexUnit::TT_TEXTURE);
     gGL.getTexUnit(1)->activate();
 
-    glEnable(GL_TEXTURE_GEN_S);
-    glEnable(GL_TEXTURE_GEN_T);
-    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGenfv(GL_S, GL_OBJECT_PLANE, tp0.mV);
-    glTexGenfv(GL_T, GL_OBJECT_PLANE, tp1.mV);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::enableCapability(GL_TEXTURE_GEN_T);
+    LLGLContainment::setTextureGenerationInteger(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationInteger(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    LLGLContainment::setTextureGenerationFloatVector(GL_S, GL_OBJECT_PLANE, tp0.mV);
+    LLGLContainment::setTextureGenerationFloatVector(GL_T, GL_OBJECT_PLANE, tp1.mV);
 
     gGL.getTexUnit(0)->activate();
     {
@@ -976,8 +977,8 @@ void LLDrawPoolTerrain::renderFull2TU()
     gGL.getTexUnit(1)->disable();
     gGL.getTexUnit(1)->activate();
 
-    glDisable(GL_TEXTURE_GEN_S);
-    glDisable(GL_TEXTURE_GEN_T);
+    LLGLContainment::disableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::disableCapability(GL_TEXTURE_GEN_T);
     gGL.matrixMode(LLRender::MM_TEXTURE);
     gGL.loadIdentity();
     gGL.matrixMode(LLRender::MM_MODELVIEW);
@@ -988,8 +989,8 @@ void LLDrawPoolTerrain::renderFull2TU()
     gGL.getTexUnit(0)->activate();
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
-    glDisable(GL_TEXTURE_GEN_S);
-    glDisable(GL_TEXTURE_GEN_T);
+    LLGLContainment::disableCapability(GL_TEXTURE_GEN_S);
+    LLGLContainment::disableCapability(GL_TEXTURE_GEN_T);
     gGL.matrixMode(LLRender::MM_TEXTURE);
     gGL.loadIdentity();
     gGL.matrixMode(LLRender::MM_MODELVIEW);
