@@ -35,6 +35,7 @@
 #include "llviewerregion.h"
 #include "pipeline.h"
 #include "llviewershadermgr.h"
+#include "llglcontainment.h"
 #include "llviewercontrol.h"
 #include "llenvironment.h"
 #include "llstartup.h"
@@ -79,13 +80,13 @@ void load_exr(const std::string& filename)
 
         gGL.getTexUnit(0)->bind(gEXRImage);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGBA, GL_FLOAT, out);
+        LLGLContainment::setTextureImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGBA, GL_FLOAT, out);
 
         LLImageGLMemory::alloc_tex_image(width, height, GL_RGB16F, 1);
 
         free(out); // release memory of image data
 
-        glGenerateMipmap(GL_TEXTURE_2D);
+        LLGLContainment::generateTextureMipmap(GL_TEXTURE_2D);
 
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
@@ -883,11 +884,20 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
             {
                 LL_PROFILE_GPU_ZONE("probe mip copy");
                 mTexture->bind(0);
-                //glCopyTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mip, 0, 0, probe->mCubeIndex * 6 + face, 0, 0, res, res);
-                glCopyTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mip, 0, 0, sourceIdx * 6 + face, 0, 0, res, res);
+                // Copy from the current framebuffer into the selected cube-array mip and face.
+                LLGLContainment::copyTextureSubImage3D(
+                    GL_TEXTURE_CUBE_MAP_ARRAY,
+                    mip,
+                    0,
+                    0,
+                    sourceIdx * 6 + face,
+                    0,
+                    0,
+                    res,
+                    res);
                 //if (i == 0)
                 //{
-                    //glCopyTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mip, 0, 0, probe->mCubeIndex * 6 + face, 0, 0, res, res);
+                    // Copy probe->mCubeIndex into the same cube-array mip and face here.
                 //}
                 mTexture->unbind();
             }
@@ -943,13 +953,22 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
 
                     mVertexBuffer->drawArrays(gGL.TRIANGLE_STRIP, 0, 4);
 
-                    glCopyTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, i, 0, 0, probe->mCubeIndex * 6 + cf, 0, 0, res, res);
+                    LLGLContainment::copyTextureSubImage3D(
+                        GL_TEXTURE_CUBE_MAP_ARRAY,
+                        i,
+                        0,
+                        0,
+                        probe->mCubeIndex * 6 + cf,
+                        0,
+                        0,
+                        res,
+                        res);
                 }
 
                 if (i != mMipChain.size() - 1)
                 {
                     res /= 2;
-                    glViewport(0, 0, res, res);
+                    LLGLContainment::setViewport(0, 0, res, res);
                 }
             }
 
@@ -980,7 +999,7 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
             {
                 int i = start_mip;
                 LL_PROFILE_GPU_ZONE("probe irradiance gen");
-                glViewport(0, 0, mMipChain[i].getWidth(), mMipChain[i].getHeight());
+                LLGLContainment::setViewport(0, 0, mMipChain[i].getWidth(), mMipChain[i].getHeight());
                 for (int cf = 0; cf < 6; ++cf)
                 { // for each cube face
                     LLCoordFrame frame;
@@ -994,7 +1013,16 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
 
                     S32 res = mMipChain[i].getWidth();
                     mIrradianceMaps->bind(channel);
-                    glCopyTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, i - start_mip, 0, 0, probe->mCubeIndex * 6 + cf, 0, 0, res, res);
+                    LLGLContainment::copyTextureSubImage3D(
+                        GL_TEXTURE_CUBE_MAP_ARRAY,
+                        i - start_mip,
+                        0,
+                        0,
+                        probe->mCubeIndex * 6 + cf,
+                        0,
+                        0,
+                        res,
+                        res);
                     mTexture->bind(channel);
                 }
             }
@@ -1282,14 +1310,18 @@ void LLReflectionMapManager::updateUniforms()
     //copy mProbeData into uniform buffer object
     if (mUBO == 0)
     {
-        glGenBuffers(1, &mUBO);
+        LLGLContainment::generateBufferObjects(1, &mUBO);
     }
 
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("rmmsu - update buffer");
-        glBindBuffer(GL_UNIFORM_BUFFER, mUBO);
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(ReflectionProbeData), &mProbeData, GL_STREAM_DRAW);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, mUBO);
+        LLGLContainment::allocateBufferObjectStorage(
+            GL_UNIFORM_BUFFER,
+            sizeof(ReflectionProbeData),
+            &mProbeData,
+            GL_STREAM_DRAW);
+        LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, 0);
     }
 
 #if 0
@@ -1319,7 +1351,7 @@ void LLReflectionMapManager::setUniforms()
     {
         updateUniforms();
     }
-    glBindBufferBase(GL_UNIFORM_BUFFER, LLGLSLShader::UB_REFLECTION_PROBES, mUBO);
+    LLGLContainment::bindBufferBase(GL_UNIFORM_BUFFER, LLGLSLShader::UB_REFLECTION_PROBES, mUBO);
 }
 
 
@@ -1546,7 +1578,7 @@ void LLReflectionMapManager::cleanup()
     mDefaultProbe = nullptr;
     mUpdatingProbe = nullptr;
 
-    glDeleteBuffers(1, &mUBO);
+    LLGLContainment::deleteBufferObjects(1, &mUBO);
     mUBO = 0;
 
     // note: also called on teleport (not just shutdown), so make sure we're in a good "starting" state

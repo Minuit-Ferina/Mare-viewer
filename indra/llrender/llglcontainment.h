@@ -242,6 +242,16 @@ void copyTextureSubImage2D(
     S32 y,
     S32 width,
     S32 height);
+void copyTextureSubImage3D(
+    LLGLenum target,
+    S32 level,
+    S32 xoffset,
+    S32 yoffset,
+    S32 zoffset,
+    LLGLint x,
+    LLGLint y,
+    S32 width,
+    S32 height);
 void copyTextureImage2D(
     LLGLenum target,
     S32 level,

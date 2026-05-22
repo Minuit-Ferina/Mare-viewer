@@ -719,6 +719,29 @@ void copyTextureSubImage2D(
     glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
 }
 
+void copyTextureSubImage3D(
+    LLGLenum target,
+    S32 level,
+    S32 xoffset,
+    S32 yoffset,
+    S32 zoffset,
+    LLGLint x,
+    LLGLint y,
+    S32 width,
+    S32 height)
+{
+    glCopyTexSubImage3D(
+        target,
+        level,
+        xoffset,
+        yoffset,
+        zoffset,
+        x,
+        y,
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height));
+}
+
 void copyTextureImage2D(
     LLGLenum target,
     S32 level,
