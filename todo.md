@@ -765,6 +765,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLSceneMonitor`
       source packet.
 - [x] Add a summary for the `LLSceneMonitor` containment packet.
+- [x] Add a focused task for GLTF UBO containment before source edits.
+- [ ] Route GLTF asset and skin UBO calls through `llglcontainment.*`.
+- [ ] Verify the GLTF UBO containment packet with targeted or incremental
+      newview builds.
+- [ ] Regenerate the generated source inventory after the GLTF UBO source
+      packet.
+- [ ] Add a summary for the GLTF UBO containment packet.
 
 ## Phase 1 Inventory
 
