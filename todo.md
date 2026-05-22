@@ -747,6 +747,16 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the occlusion query
       source packet.
 - [x] Add a summary for the occlusion query containment packet.
+- [x] Add a focused task for disabled `LLManipTranslate` stencil containment
+      before source edits.
+- [ ] Route disabled `LLManipTranslate` cull/stencil OpenGL calls through
+      `llglcontainment.*`.
+- [ ] Verify the `LLManipTranslate` containment packet with a targeted or
+      incremental newview build.
+- [ ] Regenerate the generated source inventory after the `LLManipTranslate`
+      source packet.
+- [ ] Add a summary for the disabled `LLManipTranslate` stencil containment
+      packet.
 
 ## Phase 1 Inventory
 
