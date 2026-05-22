@@ -1195,8 +1195,14 @@ not start a direct Vulkan port.
       the first phase 4 source cleanup.
 - [x] Add
       `docs/architecture/241-drawpool-alpha-gltf-shader-task.md`.
-- [ ] Extract only the GLTF alpha-blend shader target helper in
+- [x] Extract only the GLTF alpha-blend shader target helper in
       `LLDrawPoolAlpha`.
+- [x] Verify the GLTF alpha shader helper packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [x] Add
+      `docs/architecture/242-drawpool-alpha-gltf-shader-summary.md`.
+- [ ] Decide the next phase 4 packet after the GLTF alpha shader helper.
 
 ## Phase 1 Inventory
 

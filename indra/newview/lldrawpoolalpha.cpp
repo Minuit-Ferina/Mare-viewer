@@ -375,6 +375,16 @@ static void render_gltf_scene_depth_for_rigged_alpha()
     LL::GLTFSceneManager::instance().render(false, true, true);
 }
 
+static LLGLSLShader* get_gltf_alpha_shader(LLGLSLShader* pbr_shader, const LLDrawInfo& params)
+{
+    LLGLSLShader* shader = pbr_shader;
+    if (params.mAvatar != nullptr)
+    {
+        shader = shader->mRiggedVariant;
+    }
+    return shader;
+}
+
 void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
@@ -830,11 +840,7 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
 
                 if (gltf_mat && gltf_mat->mAlphaMode == LLGLTFMaterial::ALPHA_MODE_BLEND)
                 {
-                    target_shader = pbr_shader;
-                    if (params.mAvatar != nullptr)
-                    {
-                        target_shader = target_shader->mRiggedVariant;
-                    }
+                    target_shader = get_gltf_alpha_shader(pbr_shader, params);
 
                     // shader must be bound before LLGLTFMaterial::bind
                     if (current_shader != target_shader)
