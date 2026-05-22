@@ -656,6 +656,16 @@ without an explicit task, and do not start a direct Vulkan port.
       unload lifecycle source packet.
 - [x] Add a summary for the `LLGLSLShader` unload lifecycle containment
       packet.
+- [x] Add a focused task for disabled `LLGLSLShader` debug include
+      containment before source edits.
+- [ ] Route disabled `LLGLSLShader` debug include raw calls through existing
+      `llglcontainment.*` helpers.
+- [ ] Verify the disabled `LLGLSLShader` debug include containment packet with
+      `llrender/fast`.
+- [ ] Regenerate the generated source inventory after the disabled
+      `LLGLSLShader` debug include source packet.
+- [ ] Add a summary for the disabled `LLGLSLShader` debug include containment
+      packet.
 
 ## Phase 1 Inventory
 
