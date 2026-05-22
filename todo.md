@@ -704,6 +704,14 @@ without an explicit task, and do not start a direct Vulkan port.
       source packet.
 - [x] Add a summary for the `LLModelPreview` debug/fixed-function containment
       packet.
+- [x] Add a focused task for `GLTFSceneManager` containment before source
+      edits.
+- [ ] Route `GLTFSceneManager` OpenGL calls through `llglcontainment.*`.
+- [ ] Verify the `GLTFSceneManager` containment packet with a targeted or
+      incremental newview build.
+- [ ] Regenerate the generated source inventory after the `GLTFSceneManager`
+      source packet.
+- [ ] Add a summary for the `GLTFSceneManager` containment packet.
 
 ## Phase 1 Inventory
 
