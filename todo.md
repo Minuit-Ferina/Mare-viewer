@@ -1089,6 +1089,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the alpha predicate packet with targeted `lldrawpoolalpha.cpp.o`
       and both GL guardrails.
 - [x] Add `docs/architecture/224-drawpool-alpha-particle-cull-summary.md`.
+- [x] Extract dynamic texture preview/bake target validation into an
+      implementation-local helper without changing incomplete-target behavior.
+- [x] Verify the dynamic texture target-validation packet with targeted
+      `lldynamictexture.cpp.o` and both GL guardrails.
+- [x] Add `docs/architecture/225-dynamic-texture-target-validation-summary.md`.
 
 ## Phase 1 Inventory
 

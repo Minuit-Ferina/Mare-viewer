@@ -49,6 +49,24 @@
 LLViewerDynamicTexture::instance_list_t LLViewerDynamicTexture::sInstances[ LLViewerDynamicTexture::ORDER_COUNT ];
 S32 LLViewerDynamicTexture::sNumRenders = 0;
 
+namespace
+{
+bool validate_dynamic_texture_targets(LLRenderTarget& preview_target, LLRenderTarget& bake_target)
+{
+    if (!preview_target.isComplete() || !bake_target.isComplete())
+    {
+        llassert(false);
+        return false;
+    }
+
+    llassert(preview_target.getWidth() >= LLPipeline::MAX_PREVIEW_WIDTH);
+    llassert(preview_target.getHeight() >= LLPipeline::MAX_PREVIEW_WIDTH);
+    llassert(bake_target.getWidth() >= (U32) LLAvatarAppearanceDefines::SCRATCH_TEX_WIDTH);
+    llassert(bake_target.getHeight() >= (U32) LLAvatarAppearanceDefines::SCRATCH_TEX_HEIGHT);
+    return true;
+}
+}
+
 //-----------------------------------------------------------------------------
 // LLViewerDynamicTexture()
 //-----------------------------------------------------------------------------
@@ -195,15 +213,10 @@ bool LLViewerDynamicTexture::updateAllInstances()
 
     LLRenderTarget& preview_target = gPipeline.mAuxillaryRT.deferredScreen;
     LLRenderTarget& bake_target = gPipeline.mBakeMap;
-    if (!preview_target.isComplete() || !bake_target.isComplete())
+    if (!validate_dynamic_texture_targets(preview_target, bake_target))
     {
-        llassert(false);
         return false;
     }
-    llassert(preview_target.getWidth() >= LLPipeline::MAX_PREVIEW_WIDTH);
-    llassert(preview_target.getHeight() >= LLPipeline::MAX_PREVIEW_WIDTH);
-    llassert(bake_target.getWidth() >= (U32) LLAvatarAppearanceDefines::SCRATCH_TEX_WIDTH);
-    llassert(bake_target.getHeight() >= (U32) LLAvatarAppearanceDefines::SCRATCH_TEX_HEIGHT);
 
     preview_target.bindTarget();
     preview_target.clear();
