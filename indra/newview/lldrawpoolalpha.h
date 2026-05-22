@@ -70,6 +70,16 @@ public:
     static bool sShowDebugAlpha;
 
 private:
+    struct AlphaEmissiveQueues
+    {
+        std::vector<LLDrawInfo*> emissives;
+        std::vector<LLDrawInfo*> rigged_emissives;
+        std::vector<LLDrawInfo*> pbr_emissives;
+        std::vector<LLDrawInfo*> pbr_rigged_emissives;
+
+        void clear();
+    };
+
     LLGLSLShader* target_shader;
 
     // setup by beginFooPass, [0] is static variant, [1] is rigged variant
@@ -86,11 +96,16 @@ private:
     void renderRiggedEmissives(std::vector<LLDrawInfo*>& emissives);
     void renderPbrEmissives(std::vector<LLDrawInfo*>& emissives);
     void renderRiggedPbrEmissives(std::vector<LLDrawInfo*>& emissives);
-    void renderAlphaEmissiveSubpass(std::vector<LLDrawInfo*>& emissives,
-                                    std::vector<LLDrawInfo*>& pbr_emissives,
-                                    std::vector<LLDrawInfo*>& rigged_emissives,
-                                    std::vector<LLDrawInfo*>& pbr_rigged_emissives,
-                                    bool& light_enabled);
+    void queueAlphaEmissive(LLDrawInfo& params, AlphaEmissiveQueues& queues);
+    void renderAlphaEmissiveSubpass(AlphaEmissiveQueues& queues, bool& light_enabled);
+    void renderAlphaDraw(LLDrawInfo& params,
+                         const LLVOAvatar*& lastAvatar,
+                         U64& lastMeshId,
+                         const LLGLSLShader*& lastAvatarShader,
+                         bool& skipLastSkin,
+                         bool& initialized_lighting,
+                         bool& light_enabled,
+                         AlphaEmissiveQueues& queues);
     bool SetupTextureMatrix(LLDrawInfo* draw);
     bool SetupGltfTextures(LLDrawInfo* draw);
     void BindLegacyMaterialAuxMaps(LLDrawInfo* draw, bool use_material);

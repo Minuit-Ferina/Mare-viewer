@@ -151,36 +151,6 @@ static bool should_queue_alpha_emissive(U32 pool_type, const LLDrawInfo& params)
            params.mVertexBuffer->hasDataType(LLVertexBuffer::TYPE_EMISSIVE);
 }
 
-static void queue_alpha_emissive(LLDrawInfo& params,
-                                 std::vector<LLDrawInfo*>& emissives,
-                                 std::vector<LLDrawInfo*>& rigged_emissives,
-                                 std::vector<LLDrawInfo*>& pbr_emissives,
-                                 std::vector<LLDrawInfo*>& pbr_rigged_emissives)
-{
-    if (params.mAvatar != nullptr)
-    {
-        if (params.mGLTFMaterial.isNull())
-        {
-            rigged_emissives.push_back(&params);
-        }
-        else
-        {
-            pbr_rigged_emissives.push_back(&params);
-        }
-    }
-    else
-    {
-        if (params.mGLTFMaterial.isNull())
-        {
-            emissives.push_back(&params);
-        }
-        else
-        {
-            pbr_emissives.push_back(&params);
-        }
-    }
-}
-
 static bool is_alpha_highlight_rigged_pass(S32 pass)
 {
     return pass != 0;
@@ -302,6 +272,13 @@ LLDrawPoolAlpha::~LLDrawPoolAlpha()
 {
 }
 
+void LLDrawPoolAlpha::AlphaEmissiveQueues::clear()
+{
+    emissives.resize(0);
+    rigged_emissives.resize(0);
+    pbr_emissives.resize(0);
+    pbr_rigged_emissives.resize(0);
+}
 
 void LLDrawPoolAlpha::prerender()
 {
@@ -1017,12 +994,33 @@ void LLDrawPoolAlpha::renderRiggedPbrEmissives(std::vector<LLDrawInfo*>& emissiv
     }
 }
 
-void LLDrawPoolAlpha::renderAlphaEmissiveSubpass(
-    std::vector<LLDrawInfo*>& emissives,
-    std::vector<LLDrawInfo*>& pbr_emissives,
-    std::vector<LLDrawInfo*>& rigged_emissives,
-    std::vector<LLDrawInfo*>& pbr_rigged_emissives,
-    bool& light_enabled)
+void LLDrawPoolAlpha::queueAlphaEmissive(LLDrawInfo& params, AlphaEmissiveQueues& queues)
+{
+    if (params.mAvatar != nullptr)
+    {
+        if (params.mGLTFMaterial.isNull())
+        {
+            queues.rigged_emissives.push_back(&params);
+        }
+        else
+        {
+            queues.pbr_rigged_emissives.push_back(&params);
+        }
+    }
+    else
+    {
+        if (params.mGLTFMaterial.isNull())
+        {
+            queues.emissives.push_back(&params);
+        }
+        else
+        {
+            queues.pbr_emissives.push_back(&params);
+        }
+    }
+}
+
+void LLDrawPoolAlpha::renderAlphaEmissiveSubpass(AlphaEmissiveQueues& queues, bool& light_enabled)
 {
     gPipeline.enableLightsDynamic();
 
@@ -1032,31 +1030,31 @@ void LLDrawPoolAlpha::renderAlphaEmissiveSubpass(
 
     bool rebind = false;
     LLGLSLShader* lastShader = current_shader;
-    if (!emissives.empty())
+    if (!queues.emissives.empty())
     {
         light_enabled = true;
-        renderEmissives(emissives);
+        renderEmissives(queues.emissives);
         rebind = true;
     }
 
-    if (!pbr_emissives.empty())
+    if (!queues.pbr_emissives.empty())
     {
         light_enabled = true;
-        renderPbrEmissives(pbr_emissives);
+        renderPbrEmissives(queues.pbr_emissives);
         rebind = true;
     }
 
-    if (!rigged_emissives.empty())
+    if (!queues.rigged_emissives.empty())
     {
         light_enabled = true;
-        renderRiggedEmissives(rigged_emissives);
+        renderRiggedEmissives(queues.rigged_emissives);
         rebind = true;
     }
 
-    if (!pbr_rigged_emissives.empty())
+    if (!queues.pbr_rigged_emissives.empty())
     {
         light_enabled = true;
-        renderRiggedPbrEmissives(pbr_rigged_emissives);
+        renderRiggedPbrEmissives(queues.pbr_rigged_emissives);
         rebind = true;
     }
 
@@ -1067,6 +1065,113 @@ void LLDrawPoolAlpha::renderAlphaEmissiveSubpass(
     {
         lastShader->bind();
     }
+}
+
+void LLDrawPoolAlpha::renderAlphaDraw(
+    LLDrawInfo& params,
+    const LLVOAvatar*& lastAvatar,
+    U64& lastMeshId,
+    const LLGLSLShader*& lastAvatarShader,
+    bool& skipLastSkin,
+    bool& initialized_lighting,
+    bool& light_enabled,
+    AlphaEmissiveQueues& queues)
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DRAWPOOL("ra - push batch");
+
+    LLRenderPass::applyModelMatrix(params);
+
+    LLMaterial* mat = NULL;
+    LLGLTFMaterial *gltf_mat = params.mGLTFMaterial;
+
+    LLGLDisable cull_face(gltf_mat && gltf_mat->mDoubleSided ? GL_CULL_FACE : 0);
+
+    if (gltf_mat && gltf_mat->mAlphaMode == LLGLTFMaterial::ALPHA_MODE_BLEND)
+    {
+        target_shader = get_gltf_alpha_shader(pbr_shader, params);
+
+        // shader must be bound before LLGLTFMaterial::bind
+        if (current_shader != target_shader)
+        {
+            gPipeline.bindDeferredShaderFast(*target_shader);
+        }
+
+        params.mGLTFMaterial->bind(params.mTexture);
+    }
+    else
+// RLV:PBR this code block looks to need relocating
+/*
+//MK
+    LLFace* facep = params.mFace;
+    if (facep)
+    {
+        LLDrawable* drawable = facep->getDrawable();
+        if (drawable)
+        {
+            LLVOVolume* vovolume = drawable->getVOVolume();
+            if (vovolume)
+            {
+                if (vision_restricted)
+                {
+                    // If we are under @camtextures, do not render this alpha surface if it is phantom and it is not an attachment
+                    if (gAgent.mRRInterface.mContainsCamTextures && vovolume->flagPhantom() && !vovolume->isAttachment())
+                    {
+                        continue;
+                    }
+
+                    // Do not render any alpha surface (except on our HUDs) if the vision is restricted and
+                    // the face is farther than the outer vision sphere.
+                    LLVector3 face_pos = LLVector3::zero;
+                    LLVector3 face_avatar_offset = LLVector3::zero;
+                    F32 face_distance_to_avatar_squared = EXTREMUM;
+
+                    if (!vovolume->isHUDAttachment())
+                    {
+                        face_pos = facep->getPositionAgent();
+                        face_avatar_offset = face_pos - joint_pos;
+                        face_distance_to_avatar_squared = (F32)face_avatar_offset.magVecSquared();
+                        if (face_distance_to_avatar_squared > gAgent.mRRInterface.mLeastDistMaxSquared)
+                        {
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+    }
+//mk
+*/
+    {
+        mat = get_non_gltf_alpha_material(params);
+        update_non_gltf_alpha_lighting_state(
+            params,
+            initialized_lighting,
+            light_enabled);
+        target_shader = get_non_gltf_alpha_shader(
+            params,
+            mat,
+            simple_shader,
+            fullbright_shader);
+        bind_alpha_shader_if_needed(target_shader, params.mFullbright);
+        set_non_gltf_alpha_uniforms(get_non_gltf_alpha_uniforms(params, mat));
+    }
+
+    if (params.mAvatar && !uploadMatrixPalette(params.mAvatar, params.mSkinInfo, lastAvatar, lastMeshId, lastAvatarShader, skipLastSkin))
+    {
+        return;
+    }
+
+    bool tex_setup = TexSetup(&params, (mat != nullptr));
+
+    render_alpha_batch(params, mAlphaSFactor, mAlphaDFactor);
+
+    // If this alpha mesh has glow, then draw it a second time to add the destination-alpha (=glow). Interleaving these state-changing calls is expensive, but glow must be drawn Z-sorted with alpha.
+    if (should_queue_alpha_emissive(getType(), params))
+    {
+        queueAlphaEmissive(params, queues);
+    }
+
+    RestoreTexSetup(tex_setup);
 }
 
 void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
@@ -1116,15 +1221,8 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
                 continue;
             }
 
-            static std::vector<LLDrawInfo*> emissives;
-            static std::vector<LLDrawInfo*> rigged_emissives;
-            static std::vector<LLDrawInfo*> pbr_emissives;
-            static std::vector<LLDrawInfo*> pbr_rigged_emissives;
-
-            emissives.resize(0);
-            rigged_emissives.resize(0);
-            pbr_emissives.resize(0);
-            pbr_rigged_emissives.resize(0);
+            static AlphaEmissiveQueues emissive_queues;
+            emissive_queues.clear();
 
             const bool disable_cull = is_particle_or_hud_particle_group(group);
             LLGLDisable cull(disable_cull ? GL_CULL_FACE : 0);
@@ -1139,115 +1237,20 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
                     continue;
                 }
 
-                LL_PROFILE_ZONE_NAMED_CATEGORY_DRAWPOOL("ra - push batch");
-
-                LLRenderPass::applyModelMatrix(params);
-
-                LLMaterial* mat = NULL;
-                LLGLTFMaterial *gltf_mat = params.mGLTFMaterial;
-
-                LLGLDisable cull_face(gltf_mat && gltf_mat->mDoubleSided ? GL_CULL_FACE : 0);
-
-                if (gltf_mat && gltf_mat->mAlphaMode == LLGLTFMaterial::ALPHA_MODE_BLEND)
-                {
-                    target_shader = get_gltf_alpha_shader(pbr_shader, params);
-
-                    // shader must be bound before LLGLTFMaterial::bind
-                    if (current_shader != target_shader)
-                    {
-                        gPipeline.bindDeferredShaderFast(*target_shader);
-                    }
-
-                    params.mGLTFMaterial->bind(params.mTexture);
-                }
-                else
-// RLV:PBR this code block looks to need relocating
-/*
-//MK
-                LLFace* facep = params.mFace;
-                if (facep)
-                {
-                    LLDrawable* drawable = facep->getDrawable();
-                    if (drawable)
-                    {
-                        LLVOVolume* vovolume = drawable->getVOVolume();
-                        if (vovolume)
-                        {
-                            if (vision_restricted)
-                            {
-                                // If we are under @camtextures, do not render this alpha surface if it is phantom and it is not an attachment
-                                if (gAgent.mRRInterface.mContainsCamTextures && vovolume->flagPhantom() && !vovolume->isAttachment())
-                                {
-                                    continue;
-                                }
-
-                                // Do not render any alpha surface (except on our HUDs) if the vision is restricted and
-                                // the face is farther than the outer vision sphere.
-                                LLVector3 face_pos = LLVector3::zero;
-                                LLVector3 face_avatar_offset = LLVector3::zero;
-                                F32 face_distance_to_avatar_squared = EXTREMUM;
-
-                                if (!vovolume->isHUDAttachment())
-                                {
-                                    face_pos = facep->getPositionAgent();
-                                    face_avatar_offset = face_pos - joint_pos;
-                                    face_distance_to_avatar_squared = (F32)face_avatar_offset.magVecSquared();
-                                    if (face_distance_to_avatar_squared > gAgent.mRRInterface.mLeastDistMaxSquared)
-                                    {
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-//mk
-*/
-                {
-                    mat = get_non_gltf_alpha_material(params);
-                    update_non_gltf_alpha_lighting_state(
-                        params,
-                        initialized_lighting,
-                        light_enabled);
-                    target_shader = get_non_gltf_alpha_shader(
-                        params,
-                        mat,
-                        simple_shader,
-                        fullbright_shader);
-                    bind_alpha_shader_if_needed(target_shader, params.mFullbright);
-                    set_non_gltf_alpha_uniforms(get_non_gltf_alpha_uniforms(params, mat));
-                }
-
-                if (params.mAvatar && !uploadMatrixPalette(params.mAvatar, params.mSkinInfo, lastAvatar, lastMeshId, lastAvatarShader, skipLastSkin))
-                {
-                    continue;
-                }
-
-                bool tex_setup = TexSetup(&params, (mat != nullptr));
-
-                render_alpha_batch(params, mAlphaSFactor, mAlphaDFactor);
-
-                // If this alpha mesh has glow, then draw it a second time to add the destination-alpha (=glow).  Interleaving these state-changing calls is expensive, but glow must be drawn Z-sorted with alpha.
-                if (should_queue_alpha_emissive(getType(), params))
-                {
-                    queue_alpha_emissive(params,
-                                         emissives,
-                                         rigged_emissives,
-                                         pbr_emissives,
-                                         pbr_rigged_emissives);
-                }
-
-                RestoreTexSetup(tex_setup);
+                renderAlphaDraw(params,
+                                lastAvatar,
+                                lastMeshId,
+                                lastAvatarShader,
+                                skipLastSkin,
+                                initialized_lighting,
+                                light_enabled,
+                                emissive_queues);
             }
 
             // render emissive faces into alpha channel for bloom effects
             if (!depth_only)
             {
-                renderAlphaEmissiveSubpass(emissives,
-                                           pbr_emissives,
-                                           rigged_emissives,
-                                           pbr_rigged_emissives,
-                                           light_enabled);
+                renderAlphaEmissiveSubpass(emissive_queues, light_enabled);
             }
         }
     }

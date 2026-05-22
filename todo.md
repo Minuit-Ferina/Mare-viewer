@@ -1259,8 +1259,17 @@ not start a direct Vulkan port.
 - [x] Verify the alpha emissive draw packet with targeted
       `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
       inventory.
-- [ ] Decide the next larger phase 4 packet after the alpha emissive draw
-      helpers.
+- [x] Decide to extract the alpha draw pipeline and emissive queue structure as
+      the next larger phase 4 packet.
+- [x] Add
+      `docs/architecture/250-drawpool-alpha-draw-pipeline-packet.md`.
+- [x] Extract owner-local alpha emissive queue structure and per-draw alpha
+      pipeline helper in `LLDrawPoolAlpha`.
+- [x] Verify the alpha draw pipeline packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [ ] Decide the next larger phase 4 packet after the alpha draw pipeline
+      helper.
 
 ## Phase 1 Inventory
 
