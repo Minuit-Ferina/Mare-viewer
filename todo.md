@@ -1234,7 +1234,15 @@ not start a direct Vulkan port.
       final restore helpers in `LLDrawPoolAlpha`.
 - [x] Verify the alpha traversal packet with targeted `lldrawpoolalpha.cpp.o`,
       both GL guardrails, and regenerated source inventory.
-- [ ] Decide the next larger phase 4 packet after the alpha traversal helpers.
+- [x] Decide to extract `TexSetup(...)` into GLTF and legacy texture setup
+      helpers as the next larger phase 4 packet.
+- [x] Add
+      `docs/architecture/247-drawpool-alpha-texture-setup-packet.md`.
+- [x] Extract owner-local texture setup helpers in `LLDrawPoolAlpha`.
+- [x] Verify the alpha texture setup packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [ ] Decide the next larger phase 4 packet after the texture setup helpers.
 
 ## Phase 1 Inventory
 

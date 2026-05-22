@@ -807,80 +807,100 @@ void LLDrawPoolAlpha::renderAlphaHighlight()
     gHighlightProgram.bind();
 }
 
-bool LLDrawPoolAlpha::TexSetup(LLDrawInfo* draw, bool use_material)
+bool LLDrawPoolAlpha::SetupTextureMatrix(LLDrawInfo* draw)
 {
-    bool tex_setup = false;
-
-    if (draw->mGLTFMaterial)
+    if (!draw->mTextureMatrix)
     {
-        if (draw->mTextureMatrix)
+        return false;
+    }
+
+    gGL.getTexUnit(0)->activate();
+    gGL.matrixMode(LLRender::MM_TEXTURE);
+    gGL.loadMatrix((GLfloat*)draw->mTextureMatrix->mMatrix);
+    gPipeline.mTextureMatrixOps++;
+
+    return true;
+}
+
+bool LLDrawPoolAlpha::SetupGltfTextures(LLDrawInfo* draw)
+{
+    return SetupTextureMatrix(draw);
+}
+
+void LLDrawPoolAlpha::BindLegacyMaterialAuxMaps(LLDrawInfo* draw, bool use_material)
+{
+    if (!LLPipeline::sRenderingHUDs && use_material && current_shader)
+    {
+        if (draw->mNormalMap)
         {
-            tex_setup = true;
-            gGL.getTexUnit(0)->activate();
-            gGL.matrixMode(LLRender::MM_TEXTURE);
-            gGL.loadMatrix((GLfloat*)draw->mTextureMatrix->mMatrix);
-            gPipeline.mTextureMatrixOps++;
+            current_shader->bindTexture(LLShaderMgr::BUMP_MAP, draw->mNormalMap);
+        }
+
+        if (draw->mSpecularMap)
+        {
+            current_shader->bindTexture(LLShaderMgr::SPECULAR_MAP, draw->mSpecularMap);
         }
     }
-    else
+    else if (current_shader == simple_shader || current_shader == simple_shader->mRiggedVariant)
     {
-        if (!LLPipeline::sRenderingHUDs && use_material && current_shader)
-        {
-            if (draw->mNormalMap)
-            {
-                current_shader->bindTexture(LLShaderMgr::BUMP_MAP, draw->mNormalMap);
-            }
+        current_shader->bindTexture(LLShaderMgr::BUMP_MAP, LLViewerFetchedTexture::sFlatNormalImagep);
+        current_shader->bindTexture(LLShaderMgr::SPECULAR_MAP, LLViewerFetchedTexture::sWhiteImagep);
+    }
+}
 
-            if (draw->mSpecularMap)
-            {
-                current_shader->bindTexture(LLShaderMgr::SPECULAR_MAP, draw->mSpecularMap);
-            }
-        }
-        else if (current_shader == simple_shader || current_shader == simple_shader->mRiggedVariant)
+void LLDrawPoolAlpha::BindLegacyTextureList(LLDrawInfo* draw)
+{
+    for (U32 i = 0; i < draw->mTextureList.size(); ++i)
+    {
+        if (draw->mTextureList[i].notNull())
         {
-            current_shader->bindTexture(LLShaderMgr::BUMP_MAP, LLViewerFetchedTexture::sFlatNormalImagep);
-            current_shader->bindTexture(LLShaderMgr::SPECULAR_MAP, LLViewerFetchedTexture::sWhiteImagep);
+            gGL.getTexUnit(i)->bindFast(draw->mTextureList[i]);
         }
-        if (draw->mTextureList.size() > 1)
+    }
+}
+
+bool LLDrawPoolAlpha::BindLegacySingleTexture(LLDrawInfo* draw, bool use_material)
+{
+    if (draw->mTexture.notNull())
+    {
+        if (use_material)
         {
-            for (U32 i = 0; i < draw->mTextureList.size(); ++i)
-            {
-                if (draw->mTextureList[i].notNull())
-                {
-                    gGL.getTexUnit(i)->bindFast(draw->mTextureList[i]);
-                }
-            }
+            current_shader->bindTexture(LLShaderMgr::DIFFUSE_MAP, draw->mTexture);
         }
         else
-        { //not batching textures or batch has only 1 texture -- might need a texture matrix
-            if (draw->mTexture.notNull())
-            {
-                if (use_material)
-                {
-                    current_shader->bindTexture(LLShaderMgr::DIFFUSE_MAP, draw->mTexture);
-                }
-                else
-                {
-                    gGL.getTexUnit(0)->bindFast(draw->mTexture);
-                }
-
-                if (draw->mTextureMatrix)
-                {
-                    tex_setup = true;
-                    gGL.getTexUnit(0)->activate();
-                    gGL.matrixMode(LLRender::MM_TEXTURE);
-                    gGL.loadMatrix((GLfloat*)draw->mTextureMatrix->mMatrix);
-                    gPipeline.mTextureMatrixOps++;
-                }
-            }
-            else
-            {
-                gGL.getTexUnit(0)->unbindFast(LLTexUnit::TT_TEXTURE);
-            }
+        {
+            gGL.getTexUnit(0)->bindFast(draw->mTexture);
         }
+
+        return SetupTextureMatrix(draw);
     }
 
-    return tex_setup;
+    gGL.getTexUnit(0)->unbindFast(LLTexUnit::TT_TEXTURE);
+    return false;
+}
+
+bool LLDrawPoolAlpha::SetupLegacyTextures(LLDrawInfo* draw, bool use_material)
+{
+    BindLegacyMaterialAuxMaps(draw, use_material);
+
+    if (draw->mTextureList.size() > 1)
+    {
+        BindLegacyTextureList(draw);
+        return false;
+    }
+
+    // Not batching textures or batch has only 1 texture: might need a texture matrix.
+    return BindLegacySingleTexture(draw, use_material);
+}
+
+bool LLDrawPoolAlpha::TexSetup(LLDrawInfo* draw, bool use_material)
+{
+    if (draw->mGLTFMaterial)
+    {
+        return SetupGltfTextures(draw);
+    }
+
+    return SetupLegacyTextures(draw, use_material);
 }
 
 void LLDrawPoolAlpha::RestoreTexSetup(bool tex_setup)

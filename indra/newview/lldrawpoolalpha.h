@@ -89,6 +89,12 @@ private:
                                     std::vector<LLDrawInfo*>& rigged_emissives,
                                     std::vector<LLDrawInfo*>& pbr_rigged_emissives,
                                     bool& light_enabled);
+    bool SetupTextureMatrix(LLDrawInfo* draw);
+    bool SetupGltfTextures(LLDrawInfo* draw);
+    void BindLegacyMaterialAuxMaps(LLDrawInfo* draw, bool use_material);
+    void BindLegacyTextureList(LLDrawInfo* draw);
+    bool BindLegacySingleTexture(LLDrawInfo* draw, bool use_material);
+    bool SetupLegacyTextures(LLDrawInfo* draw, bool use_material);
     bool TexSetup(LLDrawInfo* draw, bool use_material);
     void RestoreTexSetup(bool tex_setup);
 
