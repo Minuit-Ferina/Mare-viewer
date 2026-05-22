@@ -385,6 +385,140 @@ static LLGLSLShader* get_gltf_alpha_shader(LLGLSLShader* pbr_shader, const LLDra
     return shader;
 }
 
+struct NonGltfAlphaUniforms
+{
+    LLVector4 spec_color = LLVector4(1, 1, 1, 1);
+    F32 env_intensity = 0.0f;
+    F32 brightness = 1.0f;
+};
+
+static LLMaterial* get_non_gltf_alpha_material(LLDrawInfo& params)
+{
+    return LLPipeline::sRenderingHUDs ? nullptr : params.mMaterial.get();
+}
+
+static void update_non_gltf_alpha_lighting_state(
+    const LLDrawInfo& params,
+    bool& initialized_lighting,
+    bool& light_enabled)
+{
+    if (params.mFullbright)
+    {
+        // Turn off lighting if it hasn't already been so.
+        if (light_enabled || !initialized_lighting)
+        {
+            initialized_lighting = true;
+            light_enabled = false;
+        }
+    }
+    // Turn on lighting if it isn't already.
+    else if (!light_enabled || !initialized_lighting)
+    {
+        initialized_lighting = true;
+        light_enabled = true;
+    }
+}
+
+static LLGLSLShader* get_non_gltf_alpha_base_shader(
+    const LLDrawInfo& params,
+    LLMaterial* mat,
+    LLGLSLShader* simple_shader,
+    LLGLSLShader* fullbright_shader)
+{
+    if (LLPipeline::sRenderingHUDs)
+    {
+        return fullbright_shader;
+    }
+
+    if (mat)
+    {
+        U32 mask = params.mShaderMask;
+
+        llassert(mask < LLMaterial::SHADER_COUNT);
+        return &(gDeferredMaterialProgram[mask]);
+    }
+
+    if (!params.mFullbright)
+    {
+        return simple_shader;
+    }
+
+    return fullbright_shader;
+}
+
+static LLGLSLShader* get_rigged_alpha_shader(LLGLSLShader* shader, const LLDrawInfo& params)
+{
+    if (params.mAvatar != nullptr)
+    {
+        llassert(shader->mRiggedVariant != nullptr);
+        shader = shader->mRiggedVariant;
+    }
+    return shader;
+}
+
+static LLGLSLShader* get_non_gltf_alpha_shader(
+    const LLDrawInfo& params,
+    LLMaterial* mat,
+    LLGLSLShader* simple_shader,
+    LLGLSLShader* fullbright_shader)
+{
+    LLGLSLShader* shader = get_non_gltf_alpha_base_shader(
+        params,
+        mat,
+        simple_shader,
+        fullbright_shader);
+    return get_rigged_alpha_shader(shader, params);
+}
+
+static void bind_alpha_shader_if_needed(LLGLSLShader* target_shader, bool bind_exposure_map)
+{
+    if (current_shader == target_shader)
+    {
+        return;
+    }
+
+    gPipeline.bindDeferredShaderFast(*target_shader);
+
+    if (bind_exposure_map)
+    { // make sure the bind the exposure map for fullbright shaders so they can cancel out exposure
+        S32 channel = target_shader->enableTexture(LLShaderMgr::EXPOSURE_MAP);
+        if (channel > -1)
+        {
+            gGL.getTexUnit(channel)->bind(&gPipeline.mExposureMap);
+        }
+    }
+}
+
+static NonGltfAlphaUniforms get_non_gltf_alpha_uniforms(const LLDrawInfo& params, LLMaterial* mat)
+{
+    NonGltfAlphaUniforms uniforms;
+
+    // We have a material. Supply the appropriate data here.
+    if (mat)
+    {
+        uniforms.spec_color = params.mSpecColor;
+        uniforms.env_intensity = params.mEnvIntensity;
+        uniforms.brightness = params.mFullbright ? 1.f : 0.f;
+    }
+
+    return uniforms;
+}
+
+static void set_non_gltf_alpha_uniforms(const NonGltfAlphaUniforms& uniforms)
+{
+    if (current_shader)
+    {
+        current_shader->uniform4f(
+            LLShaderMgr::SPECULAR_COLOR,
+            uniforms.spec_color.mV[VRED],
+            uniforms.spec_color.mV[VGREEN],
+            uniforms.spec_color.mV[VBLUE],
+            uniforms.spec_color.mV[VALPHA]);
+        current_shader->uniform1f(LLShaderMgr::ENVIRONMENT_INTENSITY, uniforms.env_intensity);
+        current_shader->uniform1f(LLShaderMgr::EMISSIVE_BRIGHTNESS, uniforms.brightness);
+    }
+}
+
 void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
@@ -894,86 +1028,18 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
 //mk
 */
                 {
-                    mat = LLPipeline::sRenderingHUDs ? nullptr : params.mMaterial;
-
-                    if (params.mFullbright)
-                    {
-                        // Turn off lighting if it hasn't already been so.
-                        if (light_enabled || !initialized_lighting)
-                        {
-                            initialized_lighting = true;
-                            target_shader = fullbright_shader;
-
-                            light_enabled = false;
-                        }
-                    }
-                    // Turn on lighting if it isn't already.
-                    else if (!light_enabled || !initialized_lighting)
-                    {
-                        initialized_lighting = true;
-                        target_shader = simple_shader;
-                        light_enabled = true;
-                    }
-
-                    if (LLPipeline::sRenderingHUDs)
-                    {
-                        target_shader = fullbright_shader;
-                    }
-                    else if (mat)
-                    {
-                        U32 mask = params.mShaderMask;
-
-                        llassert(mask < LLMaterial::SHADER_COUNT);
-                        target_shader = &(gDeferredMaterialProgram[mask]);
-                    }
-                    else if (!params.mFullbright)
-                    {
-                        target_shader = simple_shader;
-                    }
-                    else
-                    {
-                        target_shader = fullbright_shader;
-                    }
-
-                    if (params.mAvatar != nullptr)
-                    {
-                        llassert(target_shader->mRiggedVariant != nullptr);
-                        target_shader = target_shader->mRiggedVariant;
-                    }
-
-                    if (current_shader != target_shader)
-                    {// If we need shaders, and we're not ALREADY using the proper shader, then bind it
-                    // (this way we won't rebind shaders unnecessarily).
-                        gPipeline.bindDeferredShaderFast(*target_shader);
-
-                        if (params.mFullbright)
-                        { // make sure the bind the exposure map for fullbright shaders so they can cancel out exposure
-                            S32 channel = target_shader->enableTexture(LLShaderMgr::EXPOSURE_MAP);
-                            if (channel > -1)
-                            {
-                                gGL.getTexUnit(channel)->bind(&gPipeline.mExposureMap);
-                            }
-                        }
-                    }
-
-                    LLVector4 spec_color(1, 1, 1, 1);
-                    F32 env_intensity = 0.0f;
-                    F32 brightness = 1.0f;
-
-                    // We have a material.  Supply the appropriate data here.
-                    if (mat)
-                    {
-                        spec_color = params.mSpecColor;
-                        env_intensity = params.mEnvIntensity;
-                        brightness = params.mFullbright ? 1.f : 0.f;
-                    }
-
-                    if (current_shader)
-                    {
-                        current_shader->uniform4f(LLShaderMgr::SPECULAR_COLOR, spec_color.mV[VRED], spec_color.mV[VGREEN], spec_color.mV[VBLUE], spec_color.mV[VALPHA]);
-                        current_shader->uniform1f(LLShaderMgr::ENVIRONMENT_INTENSITY, env_intensity);
-                        current_shader->uniform1f(LLShaderMgr::EMISSIVE_BRIGHTNESS, brightness);
-                    }
+                    mat = get_non_gltf_alpha_material(params);
+                    update_non_gltf_alpha_lighting_state(
+                        params,
+                        initialized_lighting,
+                        light_enabled);
+                    target_shader = get_non_gltf_alpha_shader(
+                        params,
+                        mat,
+                        simple_shader,
+                        fullbright_shader);
+                    bind_alpha_shader_if_needed(target_shader, params.mFullbright);
+                    set_non_gltf_alpha_uniforms(get_non_gltf_alpha_uniforms(params, mat));
                 }
 
                 if (params.mAvatar && !uploadMatrixPalette(params.mAvatar, params.mSkinInfo, lastAvatar, lastMeshId, lastAvatarShader, skipLastSkin))
