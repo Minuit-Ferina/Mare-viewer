@@ -30,7 +30,7 @@
 #include <map>
 #include <fstream>
 #include "llgl.h"
-#include "llglheaders.h"
+#include "llgltypes.h"
 #include "llstaticstringtable.h"
 
 class LLPostProcess
@@ -45,7 +45,7 @@ public:
     } QuadType;
 
     /// GLSL Shader Encapsulation Struct
-    typedef LLStaticStringTable<GLuint> glslUniforms;
+    typedef LLStaticStringTable<LLGLuint> glslUniforms;
 
     struct PostProcessTweaks : public LLSD {
         inline PostProcessTweaks() : LLSD(LLSD::emptyMap())
@@ -249,12 +249,12 @@ private:
     void applyColorFilterShader(void);
 
     /// OpenGL Helper Functions
-    void getShaderUniforms(glslUniforms & uniforms, GLuint & prog);
+    void getShaderUniforms(glslUniforms & uniforms, LLGLuint & prog);
     void createTexture(LLPointer<LLImageGL>& texture, unsigned int width, unsigned int height);
     void copyFrameBuffer(U32 & texture, unsigned int width, unsigned int height);
     void createNoiseTexture(LLPointer<LLImageGL>& texture);
     bool checkError(void);
-    void checkShaderError(GLuint shader);
+    void checkShaderError(LLGLuint shader);
     void drawOrthoQuad(unsigned int width, unsigned int height, QuadType type);
     void viewOrthogonal(unsigned int width, unsigned int height);
     void changeOrthogonal(unsigned int width, unsigned int height);

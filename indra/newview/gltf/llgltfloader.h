@@ -31,7 +31,6 @@
 
 #include "asset.h"
 
-#include "llglheaders.h"
 #include "lljointdata.h"
 #include "llmodelloader.h"
 

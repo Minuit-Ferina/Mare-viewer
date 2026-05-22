@@ -28,6 +28,7 @@
 
 #include "llpostprocess.h"
 #include "llglcontainment.h"
+#include "llglheaders.h"
 #include "llglslshader.h"
 #include "llsdserialize.h"
 #include "llrender.h"
@@ -285,7 +286,7 @@ void LLPostProcess::createBloomShader(void)
     bloomBlurUniforms[sBlurWidth] = 0;
 }
 
-void LLPostProcess::getShaderUniforms(glslUniforms & uniforms, GLuint & prog)
+void LLPostProcess::getShaderUniforms(glslUniforms & uniforms, LLGLuint & prog)
 {
     /// Find uniform locations and insert into map
     glslUniforms::iterator i;
@@ -442,7 +443,7 @@ bool LLPostProcess::checkError(void)
     return retCode;
 }
 
-void LLPostProcess::checkShaderError(GLuint shader)
+void LLPostProcess::checkShaderError(LLGLuint shader)
 {
     GLint infologLength = 0;
     GLint charsWritten  = 0;

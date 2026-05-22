@@ -906,6 +906,8 @@ without an explicit task, and do not start a direct Vulkan port.
       concern.
 - [x] Run a first `llglheaders.h` include trim pass and document the remaining
       header-containment surface.
+- [x] Run a second `llglheaders.h` include trim pass for GLTF false positives
+      and type-only includes.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 

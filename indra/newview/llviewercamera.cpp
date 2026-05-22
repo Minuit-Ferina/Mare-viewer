@@ -51,7 +51,7 @@
 #include "llface.h"
 #include "llgl.h"
 #include "llglcontainment.h"
-#include "llglheaders.h"
+#include "llgltypes.h"
 #include "llquaternion.h"
 #include "llwindow.h"           // getPixelAspectRatio()
 #include "lltracerecording.h"
@@ -339,7 +339,7 @@ void LLViewerCamera::calcProjection(const F32 far_distance) const
 //static
 void LLViewerCamera::updateFrustumPlanes(LLCamera& camera, bool ortho, bool zflip, bool no_hacks)
 {
-    glm::ivec4 viewport = glm::make_vec4((GLint*) gGLViewport);
+    glm::ivec4 viewport = glm::make_vec4((LLGLint*) gGLViewport);
     glm::mat4 model = get_current_modelview();
     glm::mat4 proj = get_current_projection();
 
@@ -461,7 +461,7 @@ void LLViewerCamera::setPerspective(bool for_selection,
             gViewerWindow->getWorldViewRectRaw().getWidth(),
             gViewerWindow->getWorldViewRectRaw().getHeight());
 
-        proj_mat = glm::pickMatrix(glm::vec2(x + width / 2.f, y_from_bot + height / 2.f), glm::vec2((GLfloat)width, (GLfloat)height), viewport);
+        proj_mat = glm::pickMatrix(glm::vec2(x + width / 2.f, y_from_bot + height / 2.f), glm::vec2((LLGLfloat)width, (LLGLfloat)height), viewport);
 
         if (limit_select_distance)
         {
@@ -522,9 +522,9 @@ void LLViewerCamera::setPerspective(bool for_selection,
 
     gGL.matrixMode(LLRender::MM_MODELVIEW);
 
-    glm::mat4 modelview(glm::make_mat4((GLfloat*)OGL_TO_CFR_ROTATION));
+    glm::mat4 modelview(glm::make_mat4((LLGLfloat*)OGL_TO_CFR_ROTATION));
 
-    GLfloat         ogl_matrix[16];
+    LLGLfloat      ogl_matrix[16];
 
     getOpenGLTransform(ogl_matrix);
 
