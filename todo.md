@@ -1071,6 +1071,11 @@ without an explicit task, and do not start a direct Vulkan port.
       attempting any UI scissor behavior cleanup.
 - [x] Add `docs/architecture/220-drawpool-alpha-state-task.md` before any
       alpha draw-pool state cleanup.
+- [x] Extract the UI scissor box calculation into an implementation-local
+      helper without changing `LLScreenClipRect` update ordering.
+- [x] Verify the UI scissor helper packet with `llui`, targeted `newview`
+      consumer object compiles, and both GL guardrails.
+- [x] Add `docs/architecture/221-ui-clip-rect-scissor-summary.md`.
 
 ## Phase 1 Inventory
 

@@ -34,6 +34,17 @@
 
 /*static*/ std::stack<LLRect> LLScreenClipRect::sClipRectStack;
 
+namespace
+{
+void compute_scissor_box(const LLRect& rect, S32& x, S32& y, S32& w, S32& h)
+{
+    const LLVector2& scale = LLUI::getScaleFactor();
+    x = llfloor(rect.mLeft * scale.mV[VX]);
+    y = llfloor(rect.mBottom * scale.mV[VY]);
+    w = llmax(0, llceil(rect.getWidth() * scale.mV[VX])) + 1;
+    h = llmax(0, llceil(rect.getHeight() * scale.mV[VY])) + 1;
+}
+}
 
 LLScreenClipRect::LLScreenClipRect(const LLRect& rect, bool enabled)
 :   mScissorState(new LLGLState(GL_SCISSOR_TEST)),
@@ -91,10 +102,7 @@ void LLScreenClipRect::updateScissorRegion()
     LLRect rect = sClipRectStack.top();
     stop_glerror();
     S32 x,y,w,h;
-    x = llfloor(rect.mLeft * LLUI::getScaleFactor().mV[VX]);
-    y = llfloor(rect.mBottom * LLUI::getScaleFactor().mV[VY]);
-    w = llmax(0, llceil(rect.getWidth() * LLUI::getScaleFactor().mV[VX])) + 1;
-    h = llmax(0, llceil(rect.getHeight() * LLUI::getScaleFactor().mV[VY])) + 1;
+    compute_scissor_box(rect, x, y, w, h);
     LLGLContainment::setScissorBox(x, y, w, h);
     stop_glerror();
 }
