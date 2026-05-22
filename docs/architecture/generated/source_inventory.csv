@@ -51,7 +51,7 @@ indra/newview/lltracker.cpp,render.opengl_touching,928,33,0,0,0,0,39,3,3,0,0,0,0
 indra/newview/lltoolmorph.cpp,render.opengl_touching,337,28,0,0,0,0,37,4,7,0,0,0,0,0,0
 indra/newview/lldrawpoolwlsky.cpp,render.pipeline,523,18,0,0,0,0,36,11,8,5,19,0,1,12,0
 indra/newview/llvoicevisualizer.cpp,render.opengl_touching,616,12,0,0,0,0,36,4,4,0,0,0,0,0,0
-indra/newview/lldrawpoolalpha.cpp,render.pipeline,951,26,0,0,0,0,35,20,29,21,30,0,0,0,0
+indra/newview/lldrawpoolalpha.cpp,render.pipeline,955,26,0,0,0,0,35,20,29,21,30,0,0,0,0
 indra/newview/llfloaterbvhpreview.cpp,render.draw_pool,1212,37,0,0,0,0,32,2,5,0,2,0,0,0,0
 indra/newview/lljoystickbutton.cpp,render.opengl_touching,1129,13,0,0,0,0,32,2,2,0,0,0,0,0,0
 indra/newview/llmanip.cpp,render.opengl_touching,663,27,0,0,0,0,31,1,5,0,0,0,0,0,0
@@ -104,7 +104,7 @@ indra/newview/llviewercamera.cpp,render.opengl_touching,995,25,0,0,0,0,5,6,2,0,0
 indra/newview/lldrawpoolwater.cpp,render.pipeline,339,22,0,0,0,0,5,4,1,1,19,3,0,3,0
 indra/llui/lltextbase.cpp,render.opengl_touching,4485,20,0,0,0,0,5,0,0,0,0,0,0,0,0
 indra/newview/lltoolselectrect.cpp,render.opengl_touching,207,12,0,0,0,0,5,0,0,0,0,0,0,0,0
-indra/newview/lldynamictexture.cpp,render.pipeline,310,15,0,0,0,0,4,8,0,4,0,3,0,3,0
+indra/newview/lldynamictexture.cpp,render.pipeline,342,15,0,0,0,0,4,8,0,4,0,6,0,3,0
 indra/llui/llbutton.cpp,render.opengl_touching,1434,23,0,0,0,0,4,0,5,0,0,0,0,0,0
 indra/llui/llscrollbar.cpp,render.opengl_touching,667,14,0,0,0,0,4,0,4,0,0,0,0,0,0
 indra/newview/marefsr2upscaler.cpp,render.opengl_touching,401,14,0,0,0,0,3,76,1,0,0,4,0,0,0
@@ -132,7 +132,7 @@ indra/newview/llvovolume.cpp,render.pipeline,7187,62,0,0,0,0,1,13,19,29,11,0,0,2
 indra/llappearance/lllocaltextureobject.cpp,assets.texture,213,8,0,0,0,0,1,3,0,0,0,0,0,0,0
 indra/llui/llscrolllistctrl.cpp,render.opengl_touching,3857,28,0,0,0,0,1,2,0,0,0,0,0,0,0
 indra/newview/llhudobject.cpp,render.opengl_touching,336,14,0,0,0,0,1,2,0,0,0,0,0,0,0
-indra/llui/lllocalcliprect.cpp,render.opengl_touching,114,7,0,0,0,0,1,2,0,0,0,0,0,0,0
+indra/llui/lllocalcliprect.cpp,render.opengl_touching,122,7,0,0,0,0,1,2,0,0,0,0,0,0,0
 indra/newview/llvotree.cpp,render.pipeline,1245,26,0,0,0,0,1,1,1,6,5,0,0,1,0
 indra/llrender/llrendertarget.h,render.legacy_low_level,196,3,0,0,0,0,1,1,0,0,0,14,3,0,0
 indra/newview/llscripteditor.cpp,render.opengl_touching,253,5,0,0,0,0,1,1,0,0,0,0,0,0,0
