@@ -1051,6 +1051,8 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add
       `docs/architecture/211-viewer-tex-layer-dynamic-texture-boundary.md` to
       keep avatar bake dynamic textures separate from UI preview cleanup.
+- [x] Add `docs/architecture/212-low-level-render-contract-index.md` to index
+      the low-level render contracts already documented.
 
 ## Phase 1 Inventory
 
@@ -1073,7 +1075,7 @@ No open items in this section right now.
 ## Renderer Risk Zones
 
 - [x] Do not edit `indra/newview/pipeline.cpp` until render target and pass ownership are mapped.
-- [ ] Do not edit low-level `llgl*`, `llrender*`, `llrendertarget*`, or `llvertexbuffer*` behavior until contracts are documented.
+- [x] Do not edit low-level `llgl*`, `llrender*`, `llrendertarget*`, or `llvertexbuffer*` behavior until contracts are documented.
 - [ ] Do not edit draw pools until their pass order and state assumptions are mapped.
 - [ ] Do not edit shader managers until shader family ownership is mapped.
 - [x] Do not edit UI rendering paths until UI/render boundary candidates are listed.
