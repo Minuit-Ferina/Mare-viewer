@@ -1154,6 +1154,13 @@ without an explicit task, and do not start a direct Vulkan port.
       inventory.
 - [x] Add
       `docs/architecture/234-drawpool-alpha-debug-batches-summary.md`.
+- [x] Extract local `LLDrawPoolAlpha` debug alpha-highlight per-draw helper
+      while preserving matrix-palette skip behavior and draw range.
+- [x] Verify the alpha highlight-draw packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [x] Add
+      `docs/architecture/235-drawpool-alpha-highlight-draw-summary.md`.
 
 ## Phase 1 Inventory
 

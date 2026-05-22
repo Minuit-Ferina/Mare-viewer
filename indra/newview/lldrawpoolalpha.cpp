@@ -234,6 +234,27 @@ static void push_rigged_material_alpha_highlight_batches(LLRenderPass& render_pa
     }
 }
 
+static bool draw_alpha_highlight_info(LLDrawInfo& params,
+                                      const LLVOAvatar*& last_avatar,
+                                      U64& last_mesh_id,
+                                      bool& skip_last_skin)
+{
+    const bool rigged = params.mAvatar != nullptr;
+    gHighlightProgram.bind(rigged);
+
+    if (rigged &&
+        !LLRenderPass::uploadMatrixPalette(params.mAvatar, params.mSkinInfo, last_avatar, last_mesh_id, skip_last_skin))
+    { // failed to upload matrix palette, skip rendering
+        return false;
+    }
+
+    gGL.diffuseColor4f(1, 0, 0, 1);
+    LLRenderPass::applyModelMatrix(params);
+    params.mVertexBuffer->setBuffer();
+    params.mVertexBuffer->drawRange(LLRender::TRIANGLES, params.mStart, params.mEnd, params.mCount, params.mOffset);
+    return true;
+}
+
 LLDrawPoolAlpha::LLDrawPoolAlpha(U32 type) :
         LLRenderPass(type), target_shader(NULL),
         mColorSFactor(LLRender::BF_UNDEF), mColorDFactor(LLRender::BF_UNDEF),
@@ -522,30 +543,19 @@ void LLDrawPoolAlpha::renderAlphaHighlight()
         for (LLCullResult::sg_iterator i = begin; i != end; ++i)
         {
             LLSpatialGroup* group = *i;
-            if (group->getSpatialPartition()->mRenderByGroup &&
-                !group->isDead())
+            if (!is_renderable_alpha_group(group))
             {
-                LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_highlight_draw_info(group, pass);
+                continue;
+            }
 
-                for (LLSpatialGroup::drawmap_elem_t::iterator k = draw_info.begin(); k != draw_info.end(); ++k)
+            LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_highlight_draw_info(group, pass);
+
+            for (LLSpatialGroup::drawmap_elem_t::iterator k = draw_info.begin(); k != draw_info.end(); ++k)
+            {
+                LLDrawInfo& params = **k;
+                if (!draw_alpha_highlight_info(params, lastAvatar, lastMeshId, skipLastSkin))
                 {
-                    LLDrawInfo& params = **k;
-
-                    bool rigged = (params.mAvatar != nullptr);
-                    gHighlightProgram.bind(rigged);
-
-                    if (rigged)
-                    {
-                        if (!uploadMatrixPalette(params.mAvatar, params.mSkinInfo, lastAvatar, lastMeshId, skipLastSkin))
-                        { // failed to upload matrix palette, skip rendering
-                            continue;
-                        }
-                    }
-
-                    gGL.diffuseColor4f(1, 0, 0, 1);
-                    LLRenderPass::applyModelMatrix(params);
-                    params.mVertexBuffer->setBuffer();
-                    params.mVertexBuffer->drawRange(LLRender::TRIANGLES, params.mStart, params.mEnd, params.mCount, params.mOffset);
+                    continue;
                 }
             }
         }
