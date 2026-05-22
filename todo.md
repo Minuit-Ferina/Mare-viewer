@@ -1210,8 +1210,15 @@ not start a direct Vulkan port.
       inventory.
 - [x] Add
       `docs/architecture/243-drawpool-alpha-non-gltf-shader-summary.md`.
-- [ ] Decide the next larger phase 4 packet after the non-GLTF alpha shader
-      setup helpers.
+- [x] Decide to extract the adjacent per-draw alpha blend/minimum-alpha/draw
+      block as the next larger phase 4 packet.
+- [x] Add
+      `docs/architecture/244-drawpool-alpha-draw-state-packet.md`.
+- [x] Extract local alpha draw-state and draw-call helpers in `LLDrawPoolAlpha`.
+- [x] Verify the alpha draw-state packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [ ] Decide the next larger phase 4 packet after the alpha draw-state helpers.
 
 ## Phase 1 Inventory
 

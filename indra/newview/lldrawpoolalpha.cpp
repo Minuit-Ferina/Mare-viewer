@@ -519,6 +519,69 @@ static void set_non_gltf_alpha_uniforms(const NonGltfAlphaUniforms& uniforms)
     }
 }
 
+static void apply_alpha_draw_blend_state(
+    const LLDrawInfo& params,
+    LLRender::eBlendFactor alpha_s_factor,
+    LLRender::eBlendFactor alpha_d_factor)
+{
+    gGL.blendFunc(
+        (LLRender::eBlendFactor) params.mBlendFuncSrc,
+        (LLRender::eBlendFactor) params.mBlendFuncDst,
+        alpha_s_factor,
+        alpha_d_factor);
+}
+
+static bool should_lower_minimum_alpha_for_draw(const LLDrawInfo& params)
+{
+    // Custom blend modes may require rendering fragments below the normal alpha cutoff.
+    return !LLPipeline::sImpostorRender &&
+           params.mBlendFuncDst != LLRender::BF_SOURCE_ALPHA &&
+           params.mBlendFuncSrc != LLRender::BF_SOURCE_ALPHA;
+}
+
+static void lower_minimum_alpha_for_draw()
+{
+    current_shader->setMinimumAlpha(0.f);
+}
+
+static void restore_minimum_alpha_after_draw()
+{
+    current_shader->setMinimumAlpha(MINIMUM_ALPHA);
+}
+
+static void draw_alpha_batch(LLDrawInfo& params)
+{
+    params.mVertexBuffer->setBuffer();
+    params.mVertexBuffer->drawRange(
+        LLRender::TRIANGLES,
+        params.mStart,
+        params.mEnd,
+        params.mCount,
+        params.mOffset);
+    stop_glerror();
+}
+
+static void render_alpha_batch(
+    LLDrawInfo& params,
+    LLRender::eBlendFactor alpha_s_factor,
+    LLRender::eBlendFactor alpha_d_factor)
+{
+    apply_alpha_draw_blend_state(params, alpha_s_factor, alpha_d_factor);
+
+    const bool reset_minimum_alpha = should_lower_minimum_alpha_for_draw(params);
+    if (reset_minimum_alpha)
+    {
+        lower_minimum_alpha_for_draw();
+    }
+
+    draw_alpha_batch(params);
+
+    if (reset_minimum_alpha)
+    {
+        restore_minimum_alpha_after_draw();
+    }
+}
+
 void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
@@ -1049,27 +1112,7 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
 
                 bool tex_setup = TexSetup(&params, (mat != nullptr));
 
-                {
-                    gGL.blendFunc((LLRender::eBlendFactor) params.mBlendFuncSrc, (LLRender::eBlendFactor) params.mBlendFuncDst, mAlphaSFactor, mAlphaDFactor);
-
-                    bool reset_minimum_alpha = false;
-                    if (!LLPipeline::sImpostorRender &&
-                        params.mBlendFuncDst != LLRender::BF_SOURCE_ALPHA &&
-                        params.mBlendFuncSrc != LLRender::BF_SOURCE_ALPHA)
-                    { // this draw call has a custom blend function that may require rendering of "invisible" fragments
-                        current_shader->setMinimumAlpha(0.f);
-                        reset_minimum_alpha = true;
-                    }
-
-                    params.mVertexBuffer->setBuffer();
-                    params.mVertexBuffer->drawRange(LLRender::TRIANGLES, params.mStart, params.mEnd, params.mCount, params.mOffset);
-                    stop_glerror();
-
-                    if (reset_minimum_alpha)
-                    {
-                        current_shader->setMinimumAlpha(MINIMUM_ALPHA);
-                    }
-                }
+                render_alpha_batch(params, mAlphaSFactor, mAlphaDFactor);
 
                 // If this alpha mesh has glow, then draw it a second time to add the destination-alpha (=glow).  Interleaving these state-changing calls is expensive, but glow must be drawn Z-sorted with alpha.
                 if (should_queue_alpha_emissive(getType(), params))
