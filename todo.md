@@ -805,6 +805,15 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLAppViewer`
       source packet.
 - [x] Add a summary for the `LLAppViewer` containment packet.
+- [x] Add a focused task for `LLViewerWindow` containment before source edits.
+- [ ] Add the `readPixels` containment helper for snapshot/debug readback.
+- [ ] Route `LLViewerWindow` readback, cull, clear, and viewport OpenGL calls
+      through `llglcontainment.*`.
+- [ ] Verify the `LLViewerWindow` containment packet with targeted or
+      incremental builds.
+- [ ] Regenerate the generated source inventory after the `LLViewerWindow`
+      source packet.
+- [ ] Add a summary for the `LLViewerWindow` containment packet.
 
 ## Phase 1 Inventory
 
