@@ -1099,6 +1099,10 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the dynamic texture range-update packet with targeted
       `lldynamictexture.cpp.o` and both GL guardrails.
 - [x] Add `docs/architecture/226-dynamic-texture-range-update-summary.md`.
+- [x] Regenerate `docs/architecture/generated/source_inventory.csv` and
+      `source_inventory_top.md` after the small source cleanups.
+- [x] Add
+      `docs/architecture/227-phase3-small-source-cleanups-checkpoint.md`.
 
 ## Phase 1 Inventory
 
