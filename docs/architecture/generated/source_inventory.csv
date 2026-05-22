@@ -8,9 +8,7 @@ indra/newview/llviewerdisplay.cpp,render.pipeline,1953,68,19,19,19,0,129,37,12,6
 indra/newview/llviewerwindow.cpp,render.pipeline,6504,170,12,14,12,0,44,7,13,63,2,2,5,4,174
 indra/llwindow/llwindowsdl.cpp,assets.texture,2757,17,11,12,11,0,0,0,0,0,0,0,1,0,0
 indra/newview/llface.cpp,render.pipeline,2638,30,9,9,9,0,15,13,38,5,3,0,0,14,0
-indra/newview/gltf/asset.cpp,assets.texture,1470,11,8,8,8,0,0,5,0,0,0,0,0,2,0
 indra/newview/llvoavatar.cpp,render.pipeline,12711,90,6,6,6,0,96,8,6,23,11,0,4,18,0
-indra/newview/gltf/animation.cpp,render.opengl_touching,490,4,5,5,5,0,0,0,0,0,0,0,0,0,0
 indra/newview/llappviewer.cpp,render.pipeline,6743,197,4,4,4,0,0,1,3,6,0,4,3,0,3
 indra/llrender/llimagegl.cpp,render.legacy_low_level,2841,13,3,16,3,0,32,81,3,0,0,0,123,0,0
 indra/llappearance/lltexlayer.cpp,render.opengl_touching,1931,16,3,5,3,0,85,17,17,0,0,10,0,0,0
@@ -181,6 +179,7 @@ indra/llrender/llglslshader.h,render.legacy_low_level,392,5,0,0,0,0,0,15,1,0,1,2
 indra/newview/llviewertexturelist.h,assets.texture,303,7,0,0,0,0,0,15,0,0,0,0,0,11,0
 indra/newview/llgltffolderitem.cpp,render.opengl_touching,165,3,0,0,0,0,0,15,0,0,0,0,0,0,0
 indra/newview/llvocache.cpp,assets.texture,2029,10,0,0,0,0,0,13,0,0,0,0,0,2,0
+indra/newview/gltf/asset.cpp,assets.texture,1478,12,0,0,0,0,0,13,0,0,0,0,0,2,0
 indra/newview/llfloaterregioninfo.cpp,render.draw_pool,4424,72,0,0,0,0,0,13,0,0,1,0,0,0,0
 indra/newview/llgltfmateriallist.h,render.opengl_touching,177,6,0,0,0,0,0,12,0,0,0,0,0,0,0
 indra/newview/pipeline.h,render.pipeline,1133,15,0,0,0,0,0,11,2,5,49,53,0,5,0
@@ -204,6 +203,7 @@ indra/newview/llsettingsvo.cpp,render.pipeline,1670,30,0,0,0,0,0,5,1,1,4,0,0,0,0
 indra/newview/lltexturectrl.cpp,assets.texture,2525,48,0,0,0,0,0,5,0,0,0,0,0,5,0
 indra/newview/gltf/primitive.cpp,render.opengl_touching,813,6,0,0,0,0,0,5,10,0,0,0,0,0,0
 indra/newview/tests/llworldmap_test.cpp,render.opengl_touching,522,10,0,0,0,0,0,5,0,0,0,0,0,0,0
+indra/newview/gltf/animation.cpp,render.opengl_touching,495,5,0,0,0,0,0,5,0,0,0,0,0,0,0
 indra/newview/llmaterialeditor.h,render.opengl_touching,326,4,0,0,0,0,0,5,0,0,0,0,0,0,0
 indra/newview/llpbrterrainfeatures.cpp,render.opengl_touching,199,6,0,0,0,0,0,5,0,0,0,0,0,0,0
 indra/newview/lllocalbitmaps.h,render.opengl_touching,161,4,0,0,0,0,0,5,0,0,0,0,0,0,0

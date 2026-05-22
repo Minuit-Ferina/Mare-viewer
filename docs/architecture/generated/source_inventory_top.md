@@ -11,9 +11,7 @@
 | `indra/newview/llviewerwindow.cpp` | render.pipeline | 6504 | 12 | 14 | 0 | 44 | 7 | 63 | 2 |
 | `indra/llwindow/llwindowsdl.cpp` | assets.texture | 2757 | 11 | 12 | 0 | 0 | 0 | 0 | 0 |
 | `indra/newview/llface.cpp` | render.pipeline | 2638 | 9 | 9 | 0 | 15 | 13 | 5 | 0 |
-| `indra/newview/gltf/asset.cpp` | assets.texture | 1470 | 8 | 8 | 0 | 0 | 5 | 0 | 0 |
 | `indra/newview/llvoavatar.cpp` | render.pipeline | 12711 | 6 | 6 | 0 | 96 | 8 | 23 | 0 |
-| `indra/newview/gltf/animation.cpp` | render.opengl_touching | 490 | 5 | 5 | 0 | 0 | 0 | 0 | 0 |
 | `indra/newview/llappviewer.cpp` | render.pipeline | 6743 | 4 | 4 | 0 | 0 | 1 | 6 | 4 |
 | `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2841 | 3 | 16 | 0 | 32 | 81 | 0 | 0 |
 | `indra/llappearance/lltexlayer.cpp` | render.opengl_touching | 1931 | 3 | 5 | 0 | 85 | 17 | 0 | 10 |
@@ -102,3 +100,5 @@
 | `indra/llui/llview.cpp` | render.opengl_touching | 2959 | 0 | 0 | 0 | 14 | 0 | 0 | 0 |
 | `indra/llrender/llrendertarget.cpp` | render.legacy_low_level | 675 | 0 | 0 | 0 | 12 | 29 | 0 | 42 |
 | `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2092 | 0 | 0 | 0 | 11 | 196 | 0 | 2 |
+| `indra/newview/lldrawpoolmaterials.cpp` | render.draw_pool | 291 | 0 | 0 | 0 | 11 | 8 | 0 | 0 |
+| `indra/newview/llprogressview.cpp` | assets.texture | 714 | 0 | 0 | 0 | 11 | 1 | 0 | 0 |

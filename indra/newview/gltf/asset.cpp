@@ -27,6 +27,7 @@
 #include "../llviewerprecompiledheaders.h"
 
 #include "asset.h"
+#include "llglcontainment.h"
 #include "llvolumeoctree.h"
 #include "../llviewershadermgr.h"
 #include "../llviewercontrol.h"
@@ -180,12 +181,16 @@ void Asset::uploadTransforms()
 
     if (mNodesUBO == 0)
     {
-        glGenBuffers(1, &mNodesUBO);
+        LLGLContainment::generateBufferObjects(1, &mNodesUBO);
     }
 
-    glBindBuffer(GL_UNIFORM_BUFFER, mNodesUBO);
-    glBufferData(GL_UNIFORM_BUFFER, glmp.size() * sizeof(F32), glmp.data(), GL_STREAM_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, mNodesUBO);
+    LLGLContainment::allocateBufferObjectStorage(
+        GL_UNIFORM_BUFFER,
+        glmp.size() * sizeof(F32),
+        glmp.data(),
+        GL_STREAM_DRAW);
+    LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, 0);
 }
 
 void Asset::uploadMaterials()
@@ -229,12 +234,16 @@ void Asset::uploadMaterials()
 
     if (mMaterialsUBO == 0)
     {
-        glGenBuffers(1, &mMaterialsUBO);
+        LLGLContainment::generateBufferObjects(1, &mMaterialsUBO);
     }
 
-    glBindBuffer(GL_UNIFORM_BUFFER, mMaterialsUBO);
-    glBufferData(GL_UNIFORM_BUFFER, md.size() * sizeof(vec4), md.data(), GL_STREAM_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, mMaterialsUBO);
+    LLGLContainment::allocateBufferObjectStorage(
+        GL_UNIFORM_BUFFER,
+        md.size() * sizeof(vec4),
+        md.data(),
+        GL_STREAM_DRAW);
+    LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, 0);
 }
 
 S32 Asset::lineSegmentIntersect(const LLVector4a& start, const LLVector4a& end,
@@ -1465,5 +1474,4 @@ const Sampler& Sampler::operator=(const Value& src)
 
     return *this;
 }
-
 
