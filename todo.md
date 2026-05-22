@@ -1314,8 +1314,11 @@ not start a direct Vulkan port.
       `docs/architecture/256-drawpool-alpha-phase4-checkpoint.md`.
 - [x] Summarize the completed `LLDrawPoolAlpha` phase 4 cleanup block for
       review.
-- [ ] Run one non-clean integration build checkpoint before declaring the
+- [x] Run one non-clean integration build checkpoint before declaring the
       `LLDrawPoolAlpha` phase 4 block complete.
+- [x] Record that the non-clean Makefile `mare-viewer` checkpoint reached
+      `[100%] Built target mare-viewer` after the `LLDrawPoolAlpha` phase 4
+      block.
 - [ ] Decide whether phase 4 closes after the `LLDrawPoolAlpha` checkpoint or
       continues with another owner map.
 

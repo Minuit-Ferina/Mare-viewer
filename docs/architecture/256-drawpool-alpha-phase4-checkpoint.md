@@ -92,12 +92,35 @@ Runtime smoke:
   state/context extractions. A runtime checkpoint is still appropriate before
   closing phase 4.
 
+## Integration Checkpoint
+
+Command run:
+
+```sh
+make -C /private/tmp/Mare-viewer-phase2-llrender-make3 mare-viewer -j8
+```
+
+Result:
+
+- passed;
+- final output reached `[100%] Built target mare-viewer`;
+- app bundle staging copied OpenAL, ALUT, WebRTC, SLPlugin, CEF, VLC, shader,
+  skin, font, character, and settings resources.
+
+Notes:
+
+- This was a non-clean Makefile integration checkpoint.
+- The build still rebuilt a large part of `newview`.
+- Existing warnings were observed outside the `LLDrawPoolAlpha` packet:
+  - enum arithmetic warning in `gltf/llgltfloader.cpp`;
+  - enum arithmetic warning in `llpaneloutfitedit.cpp`;
+  - `RAND_MAX` integer-to-float conversion warnings in `llvoicewebrtc.cpp`;
+  - linker warnings for prebuilt `libjpeg.a` object platform load commands.
+
 ## Remaining Near-Term Work
 
 Recommended next steps:
 
-- run one non-clean integration build checkpoint before declaring the
-  `LLDrawPoolAlpha` phase 4 block done;
 - perform a runtime smoke when convenient: login, scene load, resize, alpha
   content, and debug alpha only if that mode is available;
 - then either close phase 4 with a review summary or start the next owner with
