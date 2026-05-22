@@ -2382,9 +2382,9 @@ void clear_glerror()
 // Static members
 boost::unordered_map<LLGLenum, LLGLboolean> LLGLState::sStateMap;
 
-GLboolean LLGLDepthTest::sDepthEnabled = GL_FALSE; // OpenGL default
-GLenum LLGLDepthTest::sDepthFunc = GL_LESS; // OpenGL default
-GLboolean LLGLDepthTest::sWriteEnabled = GL_TRUE; // OpenGL default
+LLGLboolean LLGLDepthTest::sDepthEnabled = GL_FALSE; // OpenGL default
+LLGLenum LLGLDepthTest::sDepthFunc = GL_LESS; // OpenGL default
+LLGLboolean LLGLDepthTest::sWriteEnabled = GL_TRUE; // OpenGL default
 
 //static
 void LLGLState::initClass()
@@ -2741,7 +2741,7 @@ LLGLUserClipPlane::~LLGLUserClipPlane()
     disable();
 }
 
-LLGLDepthTest::LLGLDepthTest(GLboolean depth_enabled, GLboolean write_enabled, GLenum depth_func)
+LLGLDepthTest::LLGLDepthTest(LLGLboolean depth_enabled, LLGLboolean write_enabled, LLGLenum depth_func)
 : mPrevDepthEnabled(sDepthEnabled), mPrevDepthFunc(sDepthFunc), mPrevWriteEnabled(sWriteEnabled)
 {
     stop_glerror();

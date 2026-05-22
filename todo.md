@@ -977,6 +977,12 @@ without an explicit task, and do not start a direct Vulkan port.
       `llui`, targeted vertex-buffer-heavy `newview` object compiles, the
       containment guardrail, and regenerated source inventory.
 - [x] Add `docs/architecture/195-llvertexbuffer-header-boundary-summary.md`.
+- [x] Narrow `llglstates.h` public raw GL scalar spellings to `llgltypes.h`
+      aliases.
+- [x] Verify the `LLGLStates` type boundary packet with `llrender/fast`,
+      `llui`, targeted `LLGLDepthTest`-heavy `newview` object compiles, the
+      containment guardrail, and regenerated source inventory.
+- [x] Add `docs/architecture/196-llglstates-type-boundary-summary.md`.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 - [ ] Continue reducing header-level OpenGL ABI exposure in small packets,

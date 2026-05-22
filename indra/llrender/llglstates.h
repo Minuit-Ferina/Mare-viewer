@@ -29,6 +29,7 @@
 #define LL_LLGLSTATES_H
 
 #include "llglcontainment.h"
+#include "llgltypes.h"
 #include "llimagegl.h"
 
 //----------------------------------------------------------------------------
@@ -37,19 +38,19 @@ class LLGLDepthTest
 {
     // Enabled by default
 public:
-    LLGLDepthTest(GLboolean depth_enabled, GLboolean write_enabled = GL_TRUE, GLenum depth_func = GL_LEQUAL);
+    LLGLDepthTest(LLGLboolean depth_enabled, LLGLboolean write_enabled = GL_TRUE, LLGLenum depth_func = GL_LEQUAL);
 
     ~LLGLDepthTest();
 
     void checkState();
 
-    GLboolean mPrevDepthEnabled;
-    GLenum mPrevDepthFunc;
-    GLboolean mPrevWriteEnabled;
+    LLGLboolean mPrevDepthEnabled;
+    LLGLenum mPrevDepthFunc;
+    LLGLboolean mPrevWriteEnabled;
 private:
-    static GLboolean sDepthEnabled; // defaults to GL_FALSE
-    static GLenum sDepthFunc; // defaults to GL_LESS
-    static GLboolean sWriteEnabled; // defaults to GL_TRUE
+    static LLGLboolean sDepthEnabled; // defaults to GL_FALSE
+    static LLGLenum sDepthFunc; // defaults to GL_LESS
+    static LLGLboolean sWriteEnabled; // defaults to GL_TRUE
 };
 
 //----------------------------------------------------------------------------
