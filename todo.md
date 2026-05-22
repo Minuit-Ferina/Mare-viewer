@@ -1023,6 +1023,9 @@ without an explicit task, and do not start a direct Vulkan port.
       `newview` object compiles, the containment guardrail, and regenerated
       source inventory.
 - [x] Add `docs/architecture/202-localcliprect-header-boundary-summary.md`.
+- [x] Add an executable header-boundary guardrail for direct `llgl.h` includes
+      and raw GL scalar types in runtime headers.
+- [x] Add `docs/architecture/203-gl-header-boundary-guardrail.md`.
 - [ ] Validate `marefsr2upscaler.cpp` on a configuration where
       `MARE_ENABLE_FSR2` is active.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
