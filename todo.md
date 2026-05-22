@@ -823,7 +823,7 @@ without an explicit task, and do not start a direct Vulkan port.
       incremental builds.
 - [x] Regenerate the generated source inventory after the small render-file
       source packet.
-- [ ] Add a summary for the small render-file containment packet.
+- [x] Add a summary for the small render-file containment packet.
 
 ## Phase 1 Inventory
 
