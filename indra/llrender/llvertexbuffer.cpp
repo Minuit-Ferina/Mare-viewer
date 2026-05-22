@@ -126,7 +126,7 @@ void GLWorkQueue::syncGL()
     /*if (mSync)
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        glWaitSync(mSync, 0, GL_TIMEOUT_IGNORED);
+        Wait on the GL sync object here.
         mSync = 0;
     }*/
 }
@@ -193,7 +193,7 @@ void GLWorkQueue::runOne()
     LL_PROFILE_ZONE_SCOPED_CATEGORY_THREAD;
     Work w = pop();
     w();
-    //mSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    // Create a GL fence sync here if producer/consumer fencing is re-enabled.
 }
 
 void GLWorkQueue::runUntilClose()

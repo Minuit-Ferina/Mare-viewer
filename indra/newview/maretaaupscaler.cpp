@@ -15,6 +15,7 @@
 #include "llviewershadermgr.h"  // gDeferredTAAProgram, gDeferredTAACopyProgram
 #include "llrendertarget.h"
 #include "llrender.h"           // gGL
+#include "llglcontainment.h"
 #include "llglslshader.h"       // LLGLSLProgram
 #include "llglheaders.h"        // GL_TEXTURE_2D etc.
 #include "llviewercontrol.h"    // gSavedSettings, LLCachedControl
@@ -57,8 +58,8 @@ bool MARETAAUpscaler::initialize(U32 renderW, U32 renderH)
     for (int i = 0; i < 2; ++i)
     {
         mAccumBuffer[i].bindTarget();
-        glClearColor(0.f, 0.f, 0.f, 0.f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        LLGLContainment::setClearColor(0.f, 0.f, 0.f, 0.f);
+        LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT);
         mAccumBuffer[i].flush();
     }
 

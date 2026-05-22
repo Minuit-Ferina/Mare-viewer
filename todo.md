@@ -826,11 +826,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add a summary for the small render-file containment packet.
 - [x] Add a focused task for the small inventory remainder before source
       edits.
-- [ ] Route the small TAA upscaler clear calls through `llglcontainment.*`.
-- [ ] Remove comment-only `gl*` false positives from small `llrender` files.
-- [ ] Verify the small inventory remainder packet with targeted or incremental
+- [x] Route the small TAA upscaler clear calls through `llglcontainment.*`.
+- [x] Remove comment-only `gl*` false positives from small `llrender` files.
+- [x] Verify the small inventory remainder packet with targeted or incremental
       builds.
-- [ ] Regenerate the generated source inventory after the small inventory
+- [x] Regenerate the generated source inventory after the small inventory
       remainder packet.
 - [ ] Add a summary for the small inventory remainder packet.
 

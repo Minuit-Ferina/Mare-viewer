@@ -1177,7 +1177,7 @@ bool should_stagger_image_set(bool compressed)
 #endif
 }
 
-// Equivalent to calling glSetSubImage2D(target, miplevel, x_offset, y_offset, width, height, pixformat, pixtype, src), assuming the total width of the image is data_width
+// Equivalent to setting a 2D texture subimage with the supplied target, mip level, offsets, dimensions, format, type, and source pointer, assuming the total width of the image is data_width
 // However, instead there are multiple calls to glSetSubImage2D on smaller slices of the image
 void sub_image_lines(U32 target, S32 miplevel, S32 x_offset, S32 y_offset, S32 width, S32 height, U32 pixformat, U32 pixtype, const U8* src, S32 data_width)
 {
@@ -2811,8 +2811,8 @@ void LLImageGL::checkActiveThread()
         {
             delete prev_mip_data;
         }
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL,  nummips);
+        Set the texture base level to 0.
+        Set the texture max level to nummips.
 */
 
 LLImageGLThread::LLImageGLThread(LLWindow* window)

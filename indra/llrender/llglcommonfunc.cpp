@@ -32,7 +32,7 @@ namespace LLGLCommonFunc
     void selected_stencil_test()
     {
         // deprecated
-        //glStencilFunc(GL_ALWAYS, 2, 0xffff);
-        //glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        // Selected stencil setup would configure the stencil function here.
+        // Selected stencil setup would configure the stencil operation here.
     }
 }
