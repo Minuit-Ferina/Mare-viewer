@@ -1111,6 +1111,14 @@ without an explicit task, and do not start a direct Vulkan port.
       GL guardrails, and regenerated source inventory.
 - [x] Add
       `docs/architecture/228-dynamic-texture-class-helper-summary.md`.
+- [x] Extract local `LLDrawPoolAlpha` pass-decision helpers for water sign,
+      depth-of-field alpha pass selection, alpha depth writes, and GLTF
+      rigged depth prerendering.
+- [x] Verify the alpha pass-decision packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [x] Add
+      `docs/architecture/229-drawpool-alpha-pass-decision-summary.md`.
 
 ## Phase 1 Inventory
 

@@ -150,6 +150,53 @@ static void prepare_alpha_shader(LLGLSLShader* shader, bool deferredEnvironment,
 
 extern bool gCubeSnapshot;
 
+static F32 get_alpha_water_sign(U32 pool_type)
+{
+    F32 water_sign = 1.f;
+
+    if (pool_type == LLDrawPool::POOL_ALPHA_PRE_WATER)
+    {
+        water_sign = -1.f;
+    }
+
+    if (LLPipeline::sUnderWaterRender)
+    {
+        water_sign *= -1.f;
+    }
+
+    return water_sign;
+}
+
+static bool should_render_alpha_depth_of_field_pass(U32 pool_type)
+{
+    return !LLPipeline::sImpostorRender &&
+           LLPipeline::RenderDepthOfField &&
+           !gCubeSnapshot &&
+           !LLPipeline::sRenderingHUDs &&
+           pool_type == LLDrawPool::POOL_ALPHA_POST_WATER;
+}
+
+static bool should_write_alpha_depth(bool rigged, U32 pool_type)
+{
+    // Depth is needed so rendered alpha can contribute to the impostor alpha mask.
+    const bool needs_depth_for_alpha_mask =
+        LLDrawPoolWater::sSkipScreenCopy ||
+        LLPipeline::sImpostorRenderAlphaDepthPass;
+
+    const bool needs_depth_for_water_fog =
+        pool_type == LLDrawPoolAlpha::POOL_ALPHA_PRE_WATER;
+
+    return rigged || needs_depth_for_alpha_mask || needs_depth_for_water_fog;
+}
+
+static void render_gltf_scene_depth_for_rigged_alpha()
+{
+    LL::GLTFSceneManager::instance().render(false, false);
+    LL::GLTFSceneManager::instance().render(false, true);
+    LL::GLTFSceneManager::instance().render(false, false, true);
+    LL::GLTFSceneManager::instance().render(false, true, true);
+}
+
 void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
@@ -159,17 +206,7 @@ void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
         return;
     }
 
-    F32 water_sign = 1.f;
-
-    if (getType() == LLDrawPool::POOL_ALPHA_PRE_WATER)
-    {
-        water_sign = -1.f;
-    }
-
-    if (LLPipeline::sUnderWaterRender)
-    {
-        water_sign *= -1.f;
-    }
+    F32 water_sign = get_alpha_water_sign(getType());
 
     // prepare shaders
     llassert(LLPipeline::sRenderDeferred);
@@ -220,7 +257,7 @@ void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
     forwardRender();
 
     // final pass, render to depth for depth of field effects
-    if (!LLPipeline::sImpostorRender && LLPipeline::RenderDepthOfField && !gCubeSnapshot && !LLPipeline::sRenderingHUDs && getType() == LLDrawPool::POOL_ALPHA_POST_WATER)
+    if (should_render_alpha_depth_of_field_pass(getType()))
     {
         //update depth buffer sampler
         simple_shader = fullbright_shader = &gDeferredFullbrightAlphaMaskProgram;
@@ -249,14 +286,7 @@ void LLDrawPoolAlpha::forwardRender(bool rigged)
     //enable writing to alpha for emissive effects
     gGL.setColorMask(true, true);
 
-    bool write_depth = rigged ||
-        LLDrawPoolWater::sSkipScreenCopy
-        // we want depth written so that rendered alpha will
-        // contribute to the alpha mask used for impostors
-        || LLPipeline::sImpostorRenderAlphaDepthPass
-        || getType() == LLDrawPoolAlpha::POOL_ALPHA_PRE_WATER; // needed for accurate water fog
-
-
+    bool write_depth = should_write_alpha_depth(rigged, getType());
     LLGLDepthTest depth(GL_TRUE, write_depth ? GL_TRUE : GL_FALSE);
 
     mColorSFactor = LLRender::BF_SOURCE_ALPHA;           // } regular alpha blend
@@ -267,10 +297,7 @@ void LLDrawPoolAlpha::forwardRender(bool rigged)
 
     if (rigged && mType == LLDrawPool::POOL_ALPHA_POST_WATER)
     { // draw GLTF scene to depth buffer before rigged alpha
-        LL::GLTFSceneManager::instance().render(false, false);
-        LL::GLTFSceneManager::instance().render(false, true);
-        LL::GLTFSceneManager::instance().render(false, false, true);
-        LL::GLTFSceneManager::instance().render(false, true, true);
+        render_gltf_scene_depth_for_rigged_alpha();
     }
 
     // If the face is more than 90% transparent, then don't update the Depth buffer for Dof
