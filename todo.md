@@ -845,15 +845,15 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender` small packet.
 - [x] Add a summary for the platform and `llrender` small containment packet.
 - [x] Add a focused task for profiler, SDL loader, and macOS bridge edge cases.
-- [ ] Remove the profiler RenderDoc macro direct `gl*` inventory hit without
+- [x] Remove the profiler RenderDoc macro direct `gl*` inventory hit without
       adding an `llcommon` dependency on `llrender`.
-- [ ] Remove the SDL GLX loader direct `gl*` inventory hit while preserving
+- [x] Remove the SDL GLX loader direct `gl*` inventory hit while preserving
       the same platform lookup.
-- [ ] Rename the unused macOS bridge `glSwapBuffers` declaration/definition to
+- [x] Rename the unused macOS bridge `glSwapBuffers` declaration/definition to
       avoid looking like an OpenGL call.
-- [ ] Verify the profiler, SDL, and macOS edge packet with targeted or
+- [x] Verify the profiler, SDL, and macOS edge packet with targeted or
       incremental builds.
-- [ ] Regenerate the generated source inventory after the profiler, SDL, and
+- [x] Regenerate the generated source inventory after the profiler, SDL, and
       macOS edge packet.
 - [ ] Add a summary for the profiler, SDL, and macOS edge packet.
 

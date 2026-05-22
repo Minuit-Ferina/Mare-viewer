@@ -7,9 +7,6 @@
 | `indra/newview/marefsr2upscaler.cpp` | render.opengl_touching | 379 | 81 | 81 | 0 | 3 | 3 | 0 | 4 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 36 | 762 | 0 | 0 | 1 | 0 | 0 |
-| `indra/llwindow/llwindowmacosx-objc.h` | render.opengl_touching | 187 | 1 | 3 | 2 | 0 | 0 | 0 | 0 |
-| `indra/llwindow/llwindowsdl.cpp` | assets.texture | 2758 | 1 | 2 | 0 | 0 | 9 | 0 | 0 |
-| `indra/llcommon/llprofiler.h` | render.opengl_touching | 186 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | `indra/llrender/llgl.h` | render.legacy_low_level | 485 | 0 | 24 | 0 | 0 | 62 | 0 | 0 |
 | `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2841 | 0 | 13 | 0 | 32 | 81 | 0 | 0 |
 | `indra/llrender/llpostprocess.cpp` | render.legacy_low_level | 472 | 0 | 7 | 0 | 18 | 14 | 0 | 0 |
@@ -24,6 +21,7 @@
 | `indra/newview/app_settings/shaders/class1/deferred/pbrterrainF.glsl` | assets.texture | 440 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
 | `indra/newview/llfilepicker.cpp` | viewer.misc | 1834 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
 | `indra/llui/llui.h` | unknown | 476 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
+| `indra/llwindow/llwindowmacosx-objc.h` | unknown | 187 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
 | `indra/newview/app_settings/shaders/class1/deferred/textureUtilV.glsl` | assets.texture | 185 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
 | `indra/llrender/llrender2dutils.cpp` | render.legacy_low_level | 1871 | 0 | 1 | 0 | 577 | 3 | 0 | 2 |
 | `indra/newview/lldrawpoolterrain.cpp` | render.pipeline | 1124 | 0 | 1 | 1 | 189 | 85 | 1 | 0 |
@@ -102,3 +100,5 @@
 | `indra/llui/llmenugl.cpp` | render.opengl_touching | 4422 | 0 | 0 | 0 | 7 | 0 | 0 | 0 |
 | `indra/newview/lltextureview.cpp` | assets.texture | 1077 | 0 | 0 | 0 | 6 | 16 | 0 | 2 |
 | `indra/newview/lldrawpoolsimple.cpp` | render.pipeline | 228 | 0 | 0 | 0 | 6 | 10 | 4 | 0 |
+| `indra/newview/llhudeffectbeam.cpp` | render.opengl_touching | 355 | 0 | 0 | 0 | 6 | 1 | 0 | 0 |
+| `indra/llui/lltabcontainer.cpp` | render.opengl_touching | 2205 | 0 | 0 | 0 | 6 | 0 | 0 | 0 |

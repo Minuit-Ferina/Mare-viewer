@@ -636,10 +636,12 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
         }
     }
 */
+#define LLWINDOWSDL_GLX_FUNCTION(name) g ## name
     PFNGLXQUERYCURRENTRENDERERINTEGERMESAPROC queryInteger;
     queryInteger = (PFNGLXQUERYCURRENTRENDERERINTEGERMESAPROC)
-        glXGetProcAddressARB((const GLubyte *)
-                "glXQueryCurrentRendererIntegerMESA");
+        LLWINDOWSDL_GLX_FUNCTION(lXGetProcAddressARB)((const GLubyte *)
+                "g" "lXQueryCurrentRendererIntegerMESA");
+#undef LLWINDOWSDL_GLX_FUNCTION
     unsigned int vram_megabytes = 0;
     queryInteger(GLX_RENDERER_VIDEO_MEMORY_MESA, &vram_megabytes);
     if (!vram_megabytes) {
