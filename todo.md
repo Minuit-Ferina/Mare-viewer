@@ -843,7 +843,7 @@ without an explicit task, and do not start a direct Vulkan port.
       targeted or incremental builds.
 - [x] Regenerate the generated source inventory after the platform and
       `llrender` small packet.
-- [ ] Add a summary for the platform and `llrender` small containment packet.
+- [x] Add a summary for the platform and `llrender` small containment packet.
 
 ## Phase 1 Inventory
 
