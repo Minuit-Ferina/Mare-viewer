@@ -1026,11 +1026,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add an executable header-boundary guardrail for direct `llgl.h` includes
       and raw GL scalar types in runtime headers.
 - [x] Add `docs/architecture/203-gl-header-boundary-guardrail.md`.
+- [x] Review old guardrails that mention avoiding `pipeline.cpp` now that the
+      final pipeline containment packet is complete.
+- [x] Add
+      `docs/architecture/204-guardrail-review-after-header-boundary.md`.
 - [ ] Validate `marefsr2upscaler.cpp` on a configuration where
       `MARE_ENABLE_FSR2` is active.
-- [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
-      final pipeline containment packet is complete.
-- [ ] Continue reducing header-level OpenGL ABI exposure in small packets,
+- [x] Continue reducing header-level OpenGL ABI exposure in small packets,
       starting with low-risk resource headers before `llgl.h` and
       `llglstates.h`.
 
@@ -1054,7 +1056,7 @@ No open items in this section right now.
 
 ## Renderer Risk Zones
 
-- [ ] Do not edit `indra/newview/pipeline.cpp` until render target and pass ownership are mapped.
+- [x] Do not edit `indra/newview/pipeline.cpp` until render target and pass ownership are mapped.
 - [ ] Do not edit low-level `llgl*`, `llrender*`, `llrendertarget*`, or `llvertexbuffer*` behavior until contracts are documented.
 - [ ] Do not edit draw pools until their pass order and state assumptions are mapped.
 - [ ] Do not edit shader managers until shader family ownership is mapped.
