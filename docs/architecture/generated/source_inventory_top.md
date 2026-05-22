@@ -26,7 +26,7 @@
 | `indra/newview/llselectmgr.cpp` | render.pipeline | 9001 | 0 | 1 | 1 | 68 | 51 | 1 | 0 |
 | `indra/llrender/llcubemap.cpp` | render.legacy_low_level | 346 | 0 | 1 | 0 | 21 | 4 | 0 | 0 |
 | `indra/newview/llfetchedgltfmaterial.cpp` | render.pipeline | 265 | 0 | 1 | 1 | 0 | 16 | 2 | 0 |
-| `indra/newview/llscenemonitor.h` | assets.texture | 130 | 0 | 1 | 1 | 0 | 0 | 0 | 5 |
+| `indra/newview/llscenemonitor.h` | assets.texture | 130 | 0 | 1 | 1 | 0 | 1 | 0 | 5 |
 | `indra/newview/app_settings/shaders/class2/interface/irradianceGenF.glsl` | viewer.misc | 215 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |
 | `indra/newview/app_settings/shaders/class1/interface/radianceGenF.glsl` | viewer.misc | 170 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |
 | `indra/newview/pipeline.cpp` | render.pipeline | 12043 | 0 | 0 | 0 | 340 | 230 | 564 | 60 |

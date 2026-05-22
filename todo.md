@@ -1003,6 +1003,13 @@ without an explicit task, and do not start a direct Vulkan port.
       `maretaaupscaler.cpp.o` and `llviewercamera.cpp.o` compiles, the
       containment guardrail, and regenerated source inventory.
 - [x] Add `docs/architecture/199-fsr2-header-boundary-summary.md`.
+- [x] Narrow probe/query header raw GL scalar spellings in
+      `llheroprobemanager.h`, `llreflectionmapmanager.h`,
+      `llreflectionmap.h`, and `llscenemonitor.h`.
+- [x] Verify the probe/query header type packet with targeted reflection and
+      scene-monitor `newview` object compiles, the containment guardrail, and
+      regenerated source inventory.
+- [x] Add `docs/architecture/200-probe-query-header-types-summary.md`.
 - [ ] Validate `marefsr2upscaler.cpp` on a configuration where
       `MARE_ENABLE_FSR2` is active.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the

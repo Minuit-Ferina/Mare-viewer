@@ -27,6 +27,7 @@
 #pragma once
 
 #include "llcubemaparray.h"
+#include "llgltypes.h"
 #include "llmemory.h"
 
 class LLSpatialGroup;
@@ -133,10 +134,9 @@ public:
     U32 mPriority = 0;
 
     // occlusion culling state
-    GLuint mOcclusionQuery = 0;
+    LLGLuint mOcclusionQuery = 0;
     bool mOccluded = false;
     U32 mOcclusionPendingFrames = 0;
 
     ProbeType mType;
 };
-

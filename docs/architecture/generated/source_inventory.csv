@@ -23,7 +23,7 @@ indra/newview/lldrawpoolterrain.cpp,render.pipeline,1124,24,0,1,0,1,189,85,31,1,
 indra/newview/llselectmgr.cpp,render.pipeline,9001,71,0,1,0,1,68,51,14,1,0,0,0,3,0
 indra/llrender/llcubemap.cpp,render.legacy_low_level,346,13,0,1,0,0,21,4,4,0,0,0,6,0,0
 indra/newview/llfetchedgltfmaterial.cpp,render.pipeline,265,8,0,1,0,1,0,16,0,2,0,0,0,4,0
-indra/newview/llscenemonitor.h,assets.texture,130,5,0,1,0,1,0,0,0,0,0,5,0,2,0
+indra/newview/llscenemonitor.h,assets.texture,130,6,0,1,0,1,0,1,0,0,0,5,0,2,0
 indra/newview/app_settings/shaders/class2/interface/irradianceGenF.glsl,viewer.misc,215,0,0,1,0,1,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/interface/radianceGenF.glsl,viewer.misc,170,0,0,1,0,1,0,0,0,0,0,0,0,0,0
 indra/newview/pipeline.cpp,render.pipeline,12043,98,0,0,0,0,340,230,89,564,137,60,19,8,0
@@ -190,6 +190,7 @@ indra/newview/llworldmipmap.cpp,assets.texture,272,5,0,0,0,0,0,8,0,0,0,0,0,1,0
 indra/newview/lllocalbitmaps.cpp,render.opengl_touching,1319,31,0,0,0,0,0,8,10,0,0,0,0,0,0
 indra/newview/llpanelface.h,ui,741,8,0,0,0,0,0,8,4,0,0,0,0,0,0
 indra/newview/lltinygltfhelper.cpp,render.opengl_touching,390,5,0,0,0,0,0,8,0,0,0,0,0,0,0
+indra/newview/llreflectionmapmanager.h,render.pipeline,281,5,0,0,0,0,0,7,0,2,0,2,0,0,0
 indra/llprimitive/lltextureentry.cpp,assets.texture,801,7,0,0,0,0,0,7,0,0,0,0,0,0,0
 indra/newview/lldrawpoolalpha.h,render.draw_pool,101,3,0,0,0,0,0,7,4,0,4,0,0,0,0
 indra/newview/llfloaterprofiletexture.cpp,ui,291,9,0,0,0,0,0,6,0,0,0,0,0,5,0
@@ -215,6 +216,7 @@ indra/newview/llviewermenufile.cpp,render.opengl_touching,1517,50,0,0,0,0,0,4,0,
 indra/newview/tests/llworldmipmap_test.cpp,render.opengl_touching,166,5,0,0,0,0,0,4,0,0,0,0,0,0,0
 indra/llappearance/lllocaltextureobject.h,assets.texture,85,2,0,0,0,0,0,4,0,0,0,0,0,0,0
 indra/newview/lltextureview.h,assets.texture,80,1,0,0,0,0,0,4,0,0,0,0,0,0,0
+indra/newview/llheroprobemanager.h,render.pipeline,151,6,0,0,0,0,0,3,0,1,0,2,0,0,0
 indra/newview/lldynamictexture.h,assets.texture,106,5,0,0,0,0,0,3,0,0,0,3,0,3,0
 indra/llrender/llrender2dutils.h,render.legacy_low_level,183,5,0,0,0,0,0,3,0,0,0,3,0,0,0
 indra/newview/lldrawpoolbump.h,render.draw_pool,165,5,0,0,0,0,0,3,0,0,4,1,0,4,0
@@ -276,6 +278,7 @@ indra/newview/llsprite.cpp,render.opengl_touching,303,8,0,0,0,0,0,1,0,0,0,0,0,0,
 indra/newview/llinspecttexture.cpp,assets.texture,255,9,0,0,0,0,0,1,0,0,0,0,0,0,0
 indra/newview/llsettingsvo.h,render.opengl_touching,191,7,0,0,0,0,0,1,0,0,0,0,0,0,0
 indra/newview/tests/llvocache_test.cpp,render.opengl_touching,148,12,0,0,0,0,0,1,0,0,0,0,0,0,0
+indra/newview/llreflectionmap.h,render.opengl_touching,143,3,0,0,0,0,0,1,0,0,0,0,0,0,0
 indra/newview/lldrawpoolsimple.h,render.draw_pool,142,1,0,0,0,0,0,1,0,0,14,0,0,0,0
 indra/newview/lllocalgltfmaterials.h,render.opengl_touching,120,3,0,0,0,0,0,1,0,0,0,0,0,0,0
 indra/newview/gltf/primitive.h,render.opengl_touching,119,3,0,0,0,0,0,1,3,0,0,0,0,0,0
@@ -295,7 +298,6 @@ indra/newview/llpipelinelistener.cpp,render.pipeline,217,6,0,0,0,0,0,0,0,5,0,0,0
 indra/newview/llviewerstats.cpp,render.pipeline,1031,38,0,0,0,0,0,0,0,3,0,0,0,1,0
 indra/newview/llvosurfacepatch.cpp,render.pipeline,1107,16,0,0,0,0,0,0,0,3,3,0,0,0,0
 indra/newview/tests/llpipeline_stub.cpp,render.pipeline,33,0,0,0,0,0,0,0,0,3,0,0,0,0,0
-indra/newview/llreflectionmapmanager.h,render.pipeline,281,4,0,0,0,0,0,0,0,2,0,2,0,0,0
 indra/newview/llsurface.cpp,render.pipeline,1175,19,0,0,0,0,0,0,0,2,3,0,0,1,0
 indra/newview/llviewerpartsim.cpp,render.pipeline,927,16,0,0,0,0,0,0,0,2,0,0,0,1,0
 indra/newview/llpanelvolume.cpp,render.pipeline,1666,48,0,0,0,0,0,0,0,2,0,0,0,0,0
@@ -304,7 +306,6 @@ indra/newview/llflexibleobject.cpp,render.pipeline,939,16,0,0,0,0,0,0,0,2,0,0,0,
 indra/newview/llvopartgroup.h,render.pipeline,126,6,0,0,0,0,0,0,2,2,0,0,0,0,0
 indra/newview/llvowater.h,render.pipeline,94,4,0,0,0,0,0,0,0,2,0,0,0,0,0
 indra/newview/llpipelinelistener.h,render.pipeline,42,1,0,0,0,0,0,0,0,2,0,0,0,0,0
-indra/newview/llheroprobemanager.h,render.pipeline,151,5,0,0,0,0,0,0,0,1,0,2,0,0,0
 indra/newview/llvosky.h,render.pipeline,363,10,0,0,0,0,0,0,0,1,0,0,0,11,0
 indra/newview/lldrawable.h,render.pipeline,383,15,0,0,0,0,0,0,0,1,2,0,0,10,0
 indra/newview/llviewerpartsource.cpp,render.pipeline,947,13,0,0,0,0,0,0,6,1,0,0,0,2,0
@@ -1701,7 +1702,6 @@ indra/llwindow/llkeyboard.h,unknown,144,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/pbropaqueV.glsl,viewer.misc,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llsearchhistory.h,viewer.misc,143,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterchangeitemthumbnail.h,ui,143,3,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llreflectionmap.h,viewer.misc,143,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llstyle.h,unknown,143,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/tests/lltrustedmessageservice_test.cpp,network,143,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/fsfloaterposestand.cpp,viewer.misc,142,8,0,0,0,0,0,0,0,0,0,0,0,0,0

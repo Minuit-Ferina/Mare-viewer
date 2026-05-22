@@ -31,6 +31,7 @@
 #include "llcubemaparray.h"
 #include "llcubemap.h"
 #include "lldrawable.h"
+#include "llgltypes.h"
 
 class LLSpatialGroup;
 class LLViewerObject;
@@ -42,9 +43,9 @@ struct HeroProbeData
 {
     LLMatrix4 heroBox;
     LLVector4 heroSphere;
-    GLint     heroShape;
-    GLint     heroMipCount;
-    GLint     heroProbeCount;
+    LLGLint   heroShape;
+    LLGLint   heroMipCount;
+    LLGLint   heroProbeCount;
 };
 
 class alignas(16) LLHeroProbeManager
@@ -147,4 +148,3 @@ private:
     // Part of a hacky workaround to fix #3331.
     bool mInitialized = false;
 };
-

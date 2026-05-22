@@ -30,6 +30,7 @@
 #include "llrendertarget.h"
 #include "llcubemaparray.h"
 #include "llcubemap.h"
+#include "llgltypes.h"
 
 class LLSpatialGroup;
 class LLViewerObject;
@@ -87,18 +88,18 @@ public:
         //  [i][1] - index into "refNeighbor" for probes that intersect this probe
         //  [i][2] - number of probes  that intersect this probe, or -1 for no neighbors
         //  [i][3] - priority (probe type stored in sign bit - positive for spheres, negative for boxes)
-        GLint refIndex[LL_MAX_REFLECTION_PROBE_COUNT][4];
+        LLGLint refIndex[LL_MAX_REFLECTION_PROBE_COUNT][4];
 
         // list of neighbor indices
-        GLint refNeighbor[4096];
+        LLGLint refNeighbor[4096];
 
-        GLint refBucket[256][4]; // lookup table for which index to start with for the given Z depth
+        LLGLint refBucket[256][4]; // lookup table for which index to start with for the given Z depth
         // numbrer of active refmaps
-        GLint refmapCount;
+        LLGLint refmapCount;
 
-        GLint heroShape;
-        GLint heroMipCount;
-        GLint heroProbeCount;
+        LLGLint heroShape;
+        LLGLint heroMipCount;
+        LLGLint heroProbeCount;
     };
 
     // allocate an environment map of the given resolution
@@ -277,4 +278,3 @@ private:
 
     ReflectionProbeData mProbeData;
 };
-
