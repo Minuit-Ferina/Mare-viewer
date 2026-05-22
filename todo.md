@@ -779,6 +779,15 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLFace` source
       packet.
 - [x] Add a summary for the `LLFace` debug containment packet.
+- [x] Add a focused task for `LLViewerDisplay` containment before source
+      edits.
+- [ ] Route `LLViewerDisplay` display orchestration OpenGL calls through
+      `llglcontainment.*`.
+- [ ] Verify the `LLViewerDisplay` containment packet with a targeted or
+      incremental newview build.
+- [ ] Regenerate the generated source inventory after the `LLViewerDisplay`
+      source packet.
+- [ ] Add a summary for the `LLViewerDisplay` containment packet.
 
 ## Phase 1 Inventory
 
