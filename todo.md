@@ -1062,6 +1062,9 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add
       `docs/architecture/216-narrow-renderer-abstraction-candidates.md` to
       consider narrow follow-up abstractions without starting one.
+- [x] Add `docs/architecture/217-phase3-autonomous-checkpoint.md` to summarize
+      the autonomous phase 3 documentation checkpoint and remaining external
+      decisions.
 
 ## Phase 1 Inventory
 
