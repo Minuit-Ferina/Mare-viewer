@@ -637,7 +637,7 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLGLSLShader`
       program binding source packet.
-- [ ] Add a summary for the `LLGLSLShader` program binding containment packet.
+- [x] Add a summary for the `LLGLSLShader` program binding containment packet.
 
 ## Phase 1 Inventory
 
