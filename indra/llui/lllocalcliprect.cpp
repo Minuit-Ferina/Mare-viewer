@@ -27,20 +27,22 @@
 #include "lllocalcliprect.h"
 
 #include "llfontgl.h"
+#include "llgl.h"
 #include "llglcontainment.h"
+#include "llrender.h"
 #include "llui.h"
 
 /*static*/ std::stack<LLRect> LLScreenClipRect::sClipRectStack;
 
 
 LLScreenClipRect::LLScreenClipRect(const LLRect& rect, bool enabled)
-:   mScissorState(GL_SCISSOR_TEST),
+:   mScissorState(new LLGLState(GL_SCISSOR_TEST)),
     mEnabled(enabled)
 {
     if (mEnabled)
     {
         pushClipRect(rect);
-        mScissorState.setEnabled(!sClipRectStack.empty());
+        mScissorState->setEnabled(!sClipRectStack.empty());
         updateScissorRegion();
     }
 }

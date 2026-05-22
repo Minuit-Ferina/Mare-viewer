@@ -1016,6 +1016,13 @@ without an explicit task, and do not start a direct Vulkan port.
       targeted `newview` object compiles, the containment guardrail, and
       regenerated source inventory.
 - [x] Add `docs/architecture/201-llgl-header-type-boundary-summary.md`.
+- [x] Narrow `lllocalcliprect.h` so it no longer includes `llgl.h` directly.
+- [x] Preserve `LLLocalClipRect` scissor state restoration ordering while
+      moving the complete `LLGLState` dependency into `lllocalcliprect.cpp`.
+- [x] Verify the local clip rect header boundary packet with `llui`, targeted
+      `newview` object compiles, the containment guardrail, and regenerated
+      source inventory.
+- [x] Add `docs/architecture/202-localcliprect-header-boundary-summary.md`.
 - [ ] Validate `marefsr2upscaler.cpp` on a configuration where
       `MARE_ENABLE_FSR2` is active.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the

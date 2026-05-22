@@ -132,10 +132,10 @@ indra/newview/llvovolume.cpp,render.pipeline,7187,62,0,0,0,0,1,13,19,29,11,0,0,2
 indra/llappearance/lllocaltextureobject.cpp,assets.texture,213,8,0,0,0,0,1,3,0,0,0,0,0,0,0
 indra/llui/llscrolllistctrl.cpp,render.opengl_touching,3857,28,0,0,0,0,1,2,0,0,0,0,0,0,0
 indra/newview/llhudobject.cpp,render.opengl_touching,336,14,0,0,0,0,1,2,0,0,0,0,0,0,0
+indra/llui/lllocalcliprect.cpp,render.opengl_touching,114,7,0,0,0,0,1,2,0,0,0,0,0,0,0
 indra/newview/llvotree.cpp,render.pipeline,1245,26,0,0,0,0,1,1,1,6,5,0,0,1,0
 indra/llrender/llrendertarget.h,render.legacy_low_level,196,3,0,0,0,0,1,1,0,0,0,14,3,0,0
 indra/newview/llscripteditor.cpp,render.opengl_touching,253,5,0,0,0,0,1,1,0,0,0,0,0,0,0
-indra/llui/lllocalcliprect.cpp,render.opengl_touching,112,5,0,0,0,0,1,1,0,0,0,0,0,0,0
 indra/newview/llworld.cpp,assets.texture,1526,25,0,0,0,0,1,0,0,0,0,0,0,1,0
 indra/llrender/llfontbitmapcache.cpp,render.legacy_low_level,189,3,0,0,0,0,1,0,0,0,0,0,4,0,0
 indra/llui/lllineeditor.cpp,render.opengl_touching,2846,21,0,0,0,0,1,0,0,0,0,0,0,0,0
@@ -254,6 +254,7 @@ indra/llappearance/llavatarjointmesh.h,world.avatar,142,4,0,0,0,0,0,2,0,0,0,0,0,
 indra/newview/rlveffects.h,render.opengl_touching,112,2,0,0,0,0,0,2,0,0,0,0,0,0,0
 indra/newview/lldrawpoolwaterexclusion.cpp,render.draw_pool,80,7,0,0,0,0,0,2,0,0,8,0,0,0,0
 indra/newview/lldrawpoolsky.h,render.draw_pool,69,1,0,0,0,0,0,2,0,0,3,0,0,0,0
+indra/llui/lllocalcliprect.h,render.opengl_touching,67,3,0,0,0,0,0,2,0,0,0,0,0,0,0
 indra/llrender/llglcommonfunc.cpp,render.legacy_low_level,38,1,0,0,0,0,0,2,0,0,0,0,0,0,0
 indra/newview/llvograss.cpp,render.pipeline,898,20,0,0,0,0,0,1,0,7,2,0,0,1,0
 indra/newview/llvovolume.h,render.pipeline,513,9,0,0,0,0,0,1,1,1,1,0,0,5,0
@@ -283,7 +284,6 @@ indra/newview/lldrawpoolsimple.h,render.draw_pool,142,1,0,0,0,0,0,1,0,0,14,0,0,0
 indra/newview/lllocalgltfmaterials.h,render.opengl_touching,120,3,0,0,0,0,0,1,0,0,0,0,0,0,0
 indra/newview/gltf/primitive.h,render.opengl_touching,119,3,0,0,0,0,0,1,3,0,0,0,0,0,0
 indra/llwindow/llwindowmesaheadless.cpp,render.opengl_touching,80,5,0,0,0,0,0,1,0,0,0,0,0,0,0
-indra/llui/lllocalcliprect.h,render.opengl_touching,64,3,0,0,0,0,0,1,0,0,0,0,0,0,0
 indra/newview/tests/llviewershadermgr_stub.cpp,render.opengl_touching,51,1,0,0,0,0,0,1,0,0,0,0,0,0,0
 indra/llrender/llglcommonfunc.h,render.legacy_low_level,31,0,0,0,0,0,0,1,0,0,0,0,0,0,0
 indra/newview/llviewermenu.cpp,render.pipeline,12224,141,0,0,0,0,0,0,2,125,4,0,0,21,1

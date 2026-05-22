@@ -25,9 +25,12 @@
 #ifndef LLLOCALCLIPRECT_H
 #define LLLOCALCLIPRECT_H
 
-#include "llgl.h"
 #include "llrect.h"     // can't forward declare, it's templated
+
+#include <memory>
 #include <stack>
+
+class LLGLState;
 
 // Clip rendering to a specific rectangle using GL scissor
 // Just create one of these on the stack:
@@ -47,8 +50,8 @@ private:
     static void updateScissorRegion();
 
 private:
-    LLGLState       mScissorState;
-    bool            mEnabled;
+    std::unique_ptr<LLGLState> mScissorState;
+    bool                       mEnabled;
 
     static std::stack<LLRect> sClipRectStack;
 };
