@@ -813,7 +813,7 @@ without an explicit task, and do not start a direct Vulkan port.
       incremental builds.
 - [x] Regenerate the generated source inventory after the `LLViewerWindow`
       source packet.
-- [ ] Add a summary for the `LLViewerWindow` containment packet.
+- [x] Add a summary for the `LLViewerWindow` containment packet.
 
 ## Phase 1 Inventory
 
