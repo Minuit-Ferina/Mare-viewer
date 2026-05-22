@@ -257,6 +257,16 @@ void bindAttributeLocation(LLGLuint program, LLGLuint index, const char* name)
     glBindAttribLocation(program, index, name);
 }
 
+LLGLuint createProgram()
+{
+    return glCreateProgram();
+}
+
+void attachShader(LLGLuint program, LLGLuint shader)
+{
+    glAttachShader(program, shader);
+}
+
 void getShaderInteger(LLGLuint shader, LLGLenum parameter, LLGLint* value)
 {
     glGetShaderiv(shader, parameter, value);

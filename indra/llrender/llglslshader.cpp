@@ -433,7 +433,7 @@ bool LLGLSLShader::createShader()
     mShaderHash = hash();
 
     // Create program
-    mProgramObject = glCreateProgram();
+    mProgramObject = LLGLContainment::createProgram();
     if (mProgramObject == 0)
     {
         // Shouldn't happen if shader related extensions, like ARB_vertex_shader, exist.
@@ -582,7 +582,7 @@ bool LLGLSLShader::attachVertexObject(std::string object_path)
     if (LLShaderMgr::instance()->mVertexShaderObjects.count(object_path) > 0)
     {
         stop_glerror();
-        glAttachShader(mProgramObject, LLShaderMgr::instance()->mVertexShaderObjects[object_path]);
+        LLGLContainment::attachShader(mProgramObject, LLShaderMgr::instance()->mVertexShaderObjects[object_path]);
 #if DEBUG_SHADER_INCLUDES
         dumpAttachObject("attachVertexObject", mProgramObject, object_path);
 #endif // DEBUG_SHADER_INCLUDES
@@ -604,7 +604,7 @@ bool LLGLSLShader::attachFragmentObject(std::string object_path)
     if (LLShaderMgr::instance()->mFragmentShaderObjects.count(object_path) > 0)
     {
         stop_glerror();
-        glAttachShader(mProgramObject, LLShaderMgr::instance()->mFragmentShaderObjects[object_path]);
+        LLGLContainment::attachShader(mProgramObject, LLShaderMgr::instance()->mFragmentShaderObjects[object_path]);
 #if DEBUG_SHADER_INCLUDES
         dumpAttachObject("attachFragmentObject", mProgramObject, object_path);
 #endif // DEBUG_SHADER_INCLUDES
@@ -626,7 +626,7 @@ void LLGLSLShader::attachObject(GLuint object)
     if (object != 0)
     {
         stop_glerror();
-        glAttachShader(mProgramObject, object);
+        LLGLContainment::attachShader(mProgramObject, object);
 #if DEBUG_SHADER_INCLUDES
         std::string object_path("???");
         dumpAttachObject("attachObject", mProgramObject, object_path);

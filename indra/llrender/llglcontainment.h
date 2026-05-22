@@ -91,6 +91,8 @@ void getFloat(LLGLenum parameter, LLGLfloat* value);
 LLGLint getUniformLocation(LLGLuint program, const char* name);
 LLGLint getAttributeLocation(LLGLuint program, const char* name);
 void bindAttributeLocation(LLGLuint program, LLGLuint index, const char* name);
+LLGLuint createProgram();
+void attachShader(LLGLuint program, LLGLuint shader);
 void getShaderInteger(LLGLuint shader, LLGLenum parameter, LLGLint* value);
 void getProgramInteger(LLGLuint program, LLGLenum parameter, LLGLint* value);
 void getProgramInfoLog(LLGLuint program, S32 buffer_size, LLGLint* length, char* info_log);
