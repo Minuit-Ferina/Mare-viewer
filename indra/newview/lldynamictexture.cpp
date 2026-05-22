@@ -211,32 +211,35 @@ bool LLViewerDynamicTexture::updateAllInstances()
     LLGLSLShader::unbind();
     LLVertexBuffer::unbind();
 
-    bool result = false;
     bool ret = false ;
-    auto update_func = [&](LLViewerDynamicTexture* dynamicTexture, LLRenderTarget& renderTarget, S32 width, S32 height)
+    auto update_dynamic_texture = [&](LLViewerDynamicTexture* dynamicTexture,
+                                      LLRenderTarget& renderTarget,
+                                      S32 width,
+                                      S32 height) -> bool
         {
-            if (dynamicTexture->needsRender())
+            if (!dynamicTexture->needsRender())
             {
-                llassert(dynamicTexture->getFullWidth() <= width);
-                llassert(dynamicTexture->getFullHeight() <= height);
-
-                LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
-
-                gGL.color4f(1.f, 1.f, 1.f, 1.f);
-                dynamicTexture->setBoundTarget(&renderTarget);
-                dynamicTexture->preRender();    // Must be called outside of startRender()
-                result = false;
-                if (dynamicTexture->render())
-                {
-                    ret = true;
-                    result = true;
-                    sNumRenders++;
-                }
-                gGL.flush();
-                LLVertexBuffer::unbind();
-                dynamicTexture->setBoundTarget(nullptr);
-                dynamicTexture->postRender(result);
+                return false;
             }
+
+            llassert(dynamicTexture->getFullWidth() <= width);
+            llassert(dynamicTexture->getFullHeight() <= height);
+
+            LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
+
+            gGL.color4f(1.f, 1.f, 1.f, 1.f);
+            dynamicTexture->setBoundTarget(&renderTarget);
+            dynamicTexture->preRender();    // Must be called outside of startRender()
+            bool result = dynamicTexture->render();
+            if (result)
+            {
+                sNumRenders++;
+            }
+            gGL.flush();
+            LLVertexBuffer::unbind();
+            dynamicTexture->setBoundTarget(nullptr);
+            dynamicTexture->postRender(result);
+            return result;
         };
 
     // ORDER_FIRST is unused, ORDER_MIDDLE is various ui preview
@@ -244,7 +247,13 @@ bool LLViewerDynamicTexture::updateAllInstances()
     {
         for (LLViewerDynamicTexture* dynamicTexture : LLViewerDynamicTexture::sInstances[order])
         {
-            update_func(dynamicTexture, preview_target, LLPipeline::MAX_PREVIEW_WIDTH, LLPipeline::MAX_PREVIEW_WIDTH);
+            if (update_dynamic_texture(dynamicTexture,
+                                       preview_target,
+                                       LLPipeline::MAX_PREVIEW_WIDTH,
+                                       LLPipeline::MAX_PREVIEW_WIDTH))
+            {
+                ret = true;
+            }
         }
     }
     preview_target.flush();
@@ -253,13 +262,18 @@ bool LLViewerDynamicTexture::updateAllInstances()
     bake_target.bindTarget();
     bake_target.clear();
 
-    result = false;
     ret = false;
     for (S32 order = ORDER_LAST; order < ORDER_COUNT; ++order)
     {
         for (LLViewerDynamicTexture* dynamicTexture : LLViewerDynamicTexture::sInstances[order])
         {
-            update_func(dynamicTexture, bake_target, LLAvatarAppearanceDefines::SCRATCH_TEX_WIDTH, LLAvatarAppearanceDefines::SCRATCH_TEX_HEIGHT);
+            if (update_dynamic_texture(dynamicTexture,
+                                       bake_target,
+                                       LLAvatarAppearanceDefines::SCRATCH_TEX_WIDTH,
+                                       LLAvatarAppearanceDefines::SCRATCH_TEX_HEIGHT))
+            {
+                ret = true;
+            }
         }
     }
     bake_target.flush();

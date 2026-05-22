@@ -1078,6 +1078,12 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/221-ui-clip-rect-scissor-summary.md`.
 - [x] Add `docs/architecture/222-phase3-source-checkpoint.md` after the first
       post-checkpoint source patch.
+- [x] Convert the local `LLViewerDynamicTexture::updateAllInstances()` lambda
+      to return the per-texture render result while preserving existing group
+      return semantics.
+- [x] Verify the dynamic texture helper-shape packet with `llrender/fast`,
+      targeted `lldynamictexture.cpp.o`, and both GL guardrails.
+- [x] Add `docs/architecture/223-dynamic-texture-render-scope-summary.md`.
 
 ## Phase 1 Inventory
 
