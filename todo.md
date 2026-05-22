@@ -886,6 +886,14 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the pipeline containment
       packet.
 - [x] Add a summary for the pipeline containment packet.
+- [x] Add a phase 3 containment completion summary.
+- [ ] Run one non-clean incremental viewer link checkpoint on `phase3`.
+- [ ] Optionally perform a minimal manual smoke after the final pipeline
+      containment packet: launch, login, load one scene, resize, quit.
+- [ ] Write a renderer containment contract for what `LLGLContainment` may own
+      versus what remains owned by renderer classes.
+- [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
+      final pipeline containment packet is complete.
 
 ## Phase 1 Inventory
 
