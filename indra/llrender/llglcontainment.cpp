@@ -848,6 +848,11 @@ void setLineWidth(LLGLfloat width)
     glLineWidth(width);
 }
 
+void setPointSize(LLGLfloat size)
+{
+    glPointSize(size);
+}
+
 void setViewport(LLGLint x, LLGLint y, LLGLint width, LLGLint height)
 {
     glViewport(x, y, width, height);

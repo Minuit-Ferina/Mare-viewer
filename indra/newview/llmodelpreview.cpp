@@ -45,6 +45,7 @@
 #include "llmeshrepository.h"
 #include "llmeshoptimizer.h"
 #include "llrender.h"
+#include "llglcontainment.h"
 #include "llsdutil_math.h"
 #include "llskinningutil.h"
 #include "llstring.h"
@@ -3597,11 +3598,11 @@ bool LLModelPreview::render()
                     gGL.diffuseColor4fv(PREVIEW_EDGE_COL.mV);
                     if (show_edges)
                     {
-                        glLineWidth(PREVIEW_EDGE_WIDTH);
-                        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                        LLGLContainment::setLineWidth(PREVIEW_EDGE_WIDTH);
+                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
                         buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
-                        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                        glLineWidth(1.f);
+                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                        LLGLContainment::setLineWidth(1.f);
                     }
                     buffer->unmapBuffer();
                 }
@@ -3610,7 +3611,7 @@ bool LLModelPreview::render()
 
             if (show_physics)
             {
-                glClear(GL_DEPTH_BUFFER_BIT);
+                LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
 
                 for (U32 pass = 0; pass < 2; pass++)
                 {
@@ -3724,12 +3725,12 @@ bool LLModelPreview::render()
                                     buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
 
                                     gGL.diffuseColor4fv(PREVIEW_PSYH_EDGE_COL.mV);
-                                    glLineWidth(PREVIEW_PSYH_EDGE_WIDTH);
-                                    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                                    LLGLContainment::setLineWidth(PREVIEW_PSYH_EDGE_WIDTH);
+                                    LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
                                     buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
 
-                                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                                    glLineWidth(1.f);
+                                    LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                                    LLGLContainment::setLineWidth(1.f);
 
                                     buffer->unmapBuffer();
                                 }
@@ -3741,8 +3742,8 @@ bool LLModelPreview::render()
                     // only do this if mDegenerate was set in the preceding mesh checks [Check this if the ordering ever breaks]
                     if (mHasDegenerate)
                     {
-                        glLineWidth(PREVIEW_DEG_EDGE_WIDTH);
-                        glPointSize(PREVIEW_DEG_POINT_SIZE);
+                        LLGLContainment::setLineWidth(PREVIEW_DEG_EDGE_WIDTH);
+                        LLGLContainment::setPointSize(PREVIEW_DEG_POINT_SIZE);
                         gPipeline.enableLightsFullbright();
                         //show degenerate triangles
                         LLGLDepthTest depth(GL_TRUE, GL_TRUE, GL_ALWAYS);
@@ -3811,8 +3812,8 @@ bool LLModelPreview::render()
 
                             gGL.popMatrix();
                         }
-                        glLineWidth(1.f);
-                        glPointSize(1.f);
+                        LLGLContainment::setLineWidth(1.f);
+                        LLGLContainment::setPointSize(1.f);
                         gPipeline.enableLightsPreview();
                         gGL.setSceneBlendType(LLRender::BT_ALPHA);
                     }
@@ -3933,11 +3934,11 @@ bool LLModelPreview::render()
                             {
                                 gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
                                 gGL.diffuseColor4fv(PREVIEW_EDGE_COL.mV);
-                                glLineWidth(PREVIEW_EDGE_WIDTH);
-                                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                                LLGLContainment::setLineWidth(PREVIEW_EDGE_WIDTH);
+                                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
                                 buffer->draw(LLRender::TRIANGLES, buffer->getNumIndices(), 0);
-                                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                                glLineWidth(1.f);
+                                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                                LLGLContainment::setLineWidth(1.f);
                             }
                         }
                     }
@@ -4168,4 +4169,3 @@ void LLModelPreview::onLODMeshOptimizerParamCommit(S32 requested_lod, bool enfor
         mDirty = true;
     }
 }
-

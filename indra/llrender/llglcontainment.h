@@ -275,6 +275,7 @@ void setSeparateBlendFunction(
     LLGLenum alpha_source_factor,
     LLGLenum alpha_destination_factor);
 void setLineWidth(LLGLfloat width);
+void setPointSize(LLGLfloat size);
 void setViewport(LLGLint x, LLGLint y, LLGLint width, LLGLint height);
 }
 
