@@ -503,28 +503,6 @@ void LLDrawPoolAlpha::renderAlphaHighlight()
     gHighlightProgram.bind();
 }
 
-inline bool IsFullbright(LLDrawInfo& params)
-{
-    return params.mFullbright;
-}
-
-inline bool IsMaterial(LLDrawInfo& params)
-{
-    return params.mMaterial != nullptr;
-}
-
-inline bool IsEmissive(LLDrawInfo& params)
-{
-    return params.mVertexBuffer->hasDataType(LLVertexBuffer::TYPE_EMISSIVE);
-}
-
-inline void Draw(LLDrawInfo* draw, U32 mask)
-{
-    draw->mVertexBuffer->setBuffer();
-    LLRenderPass::applyModelMatrix(*draw);
-    draw->mVertexBuffer->drawRange(LLRender::TRIANGLES, draw->mStart, draw->mEnd, draw->mCount, draw->mOffset);
-}
-
 bool LLDrawPoolAlpha::TexSetup(LLDrawInfo* draw, bool use_material)
 {
     bool tex_setup = false;

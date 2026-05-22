@@ -53,7 +53,7 @@ indra/newview/lldrawpoolwlsky.cpp,render.pipeline,523,18,0,0,0,0,36,11,8,5,19,0,
 indra/newview/llvoicevisualizer.cpp,render.opengl_touching,616,12,0,0,0,0,36,4,4,0,0,0,0,0,0
 indra/newview/llfloaterbvhpreview.cpp,render.draw_pool,1212,37,0,0,0,0,32,2,5,0,2,0,0,0,0
 indra/newview/lljoystickbutton.cpp,render.opengl_touching,1129,13,0,0,0,0,32,2,2,0,0,0,0,0,0
-indra/newview/lldrawpoolalpha.cpp,render.pipeline,1034,26,0,0,0,0,31,20,27,21,30,0,0,0,0
+indra/newview/lldrawpoolalpha.cpp,render.pipeline,1012,26,0,0,0,0,31,20,26,21,30,0,0,0,0
 indra/newview/llmanip.cpp,render.opengl_touching,663,27,0,0,0,0,31,1,5,0,0,0,0,0,0
 indra/newview/llmediactrl.cpp,render.opengl_touching,1312,33,0,0,0,0,30,0,1,0,0,0,0,0,0
 indra/llappearance/llavatarjoint.cpp,world.avatar,316,5,0,0,0,0,30,0,1,0,0,0,0,0,0

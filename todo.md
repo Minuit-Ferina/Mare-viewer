@@ -1140,6 +1140,13 @@ without an explicit task, and do not start a direct Vulkan port.
       inventory.
 - [x] Add
       `docs/architecture/232-drawpool-alpha-highlight-summary.md`.
+- [x] Remove unused `LLDrawPoolAlpha` implementation-local helpers with no
+      callsites.
+- [x] Verify the alpha unused-helper removal with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [x] Add
+      `docs/architecture/233-drawpool-alpha-unused-helper-summary.md`.
 
 ## Phase 1 Inventory
 
