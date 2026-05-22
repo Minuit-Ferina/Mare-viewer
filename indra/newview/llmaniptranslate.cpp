@@ -33,6 +33,7 @@
 #include "llmaniptranslate.h"
 
 #include "llgl.h"
+#include "llglcontainment.h"
 #include "llrender.h"
 
 #include "llagent.h"
@@ -1674,13 +1675,11 @@ void LLManipTranslate::highlightIntersection(LLVector3 normal,
     }
 
     {
-        //glStencilMask(stencil_mask); //deprecated
-        //glClearStencil(1);
-        //glClear(GL_STENCIL_BUFFER_BIT);
+        // Legacy stencil mask, clear value, and stencil clear were configured here.
         LLGLEnable cull_face(GL_CULL_FACE);
         //LLGLEnable stencil(GL_STENCIL_TEST);
         LLGLDepthTest depth (GL_TRUE, GL_FALSE, GL_ALWAYS);
-        //glStencilFunc(GL_ALWAYS, 0, stencil_mask);
+        // Legacy stencil function was configured here.
         gGL.setColorMask(false, false);
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
@@ -1713,15 +1712,15 @@ void LLManipTranslate::highlightIntersection(LLVector3 normal,
         }
 
         //stencil in volumes
-        //glStencilOp(GL_INCR, GL_INCR, GL_INCR);
-        glCullFace(GL_FRONT);
+        // Legacy increment stencil operation was configured here.
+        LLGLContainment::setCullFace(GL_FRONT);
         for (U32 i = 0; i < num_types; i++)
         {
             gPipeline.renderObjects(types[i], LLVertexBuffer::MAP_VERTEX, false);
         }
 
-        //glStencilOp(GL_DECR, GL_DECR, GL_DECR);
-        glCullFace(GL_BACK);
+        // Legacy decrement stencil operation was configured here.
+        LLGLContainment::setCullFace(GL_BACK);
         for (U32 i = 0; i < num_types; i++)
         {
             gPipeline.renderObjects(types[i], LLVertexBuffer::MAP_VERTEX, false);
@@ -1760,14 +1759,14 @@ void LLManipTranslate::highlightIntersection(LLVector3 normal,
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
         LLGLDepthTest depth(GL_FALSE);
         //LLGLEnable stencil(GL_STENCIL_TEST);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-        glStencilFunc(GL_EQUAL, 0, stencil_mask);
+        LLGLContainment::setStencilOperation(GL_KEEP, GL_KEEP, GL_KEEP);
+        LLGLContainment::setStencilFunction(GL_EQUAL, 0, stencil_mask);
         renderGrid(0,0,tiles,inner_color.mV[0], inner_color.mV[1], inner_color.mV[2], 0.25f);
     }
 
-    glStencilFunc(GL_ALWAYS, 255, 0xFFFFFFFF);
-    glStencilMask(0xFFFFFFFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    LLGLContainment::setStencilFunction(GL_ALWAYS, 255, 0xFFFFFFFF);
+    LLGLContainment::setStencilMask(0xFFFFFFFF);
+    LLGLContainment::setStencilOperation(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     gGL.popMatrix();
 #endif

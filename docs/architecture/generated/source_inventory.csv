@@ -1,11 +1,10 @@
 path,category_guess,lines,includes,gl_calls,gl_raw_refs,gl_call_exprs,gl_known_false_refs,gGL,LLGL,LLRender,LLPipeline,LLDrawPool,LLRenderTarget,LLImageGL,LLViewerTexture,LLViewerWindow
-indra/llrender/llglcontainment.cpp,render.legacy_low_level,894,3,128,128,128,0,0,257,0,0,0,0,0,0,0
+indra/llrender/llglcontainment.cpp,render.legacy_low_level,909,3,131,131,131,0,0,264,0,0,0,0,0,0,0
 indra/newview/pipeline.cpp,render.pipeline,12046,96,81,83,81,0,340,158,89,564,137,60,19,8,0
 indra/newview/marefsr2upscaler.cpp,render.opengl_touching,379,12,81,81,81,0,3,3,1,0,0,4,0,0,0
 indra/llrender/llgl.cpp,render.legacy_low_level,2949,19,79,2213,79,0,31,79,9,0,0,0,2,0,2
 indra/llrender/llglheaders.h,render.legacy_low_level,1076,16,36,762,36,0,0,1,0,0,0,0,0,0,0
 indra/newview/llviewerdisplay.cpp,render.pipeline,1953,68,19,19,19,0,129,37,12,63,2,1,1,6,0
-indra/newview/llmaniptranslate.cpp,render.pipeline,2323,31,13,13,13,0,196,22,18,10,0,0,1,1,0
 indra/newview/llviewerwindow.cpp,render.pipeline,6504,170,12,14,12,0,44,7,13,63,2,2,5,4,174
 indra/llwindow/llwindowsdl.cpp,assets.texture,2757,17,11,12,11,0,0,0,0,0,0,0,1,0,0
 indra/newview/llscenemonitor.cpp,render.pipeline,757,17,11,11,11,0,26,3,0,10,0,8,0,0,0
@@ -69,6 +68,7 @@ indra/newview/llscenemonitor.h,assets.texture,130,5,0,1,0,1,0,0,0,0,0,5,0,2,0
 indra/newview/app_settings/shaders/class2/interface/irradianceGenF.glsl,viewer.misc,215,0,0,1,0,1,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/interface/radianceGenF.glsl,viewer.misc,170,0,0,1,0,1,0,0,0,0,0,0,0,0,0
 indra/newview/llspatialpartition.cpp,render.pipeline,4192,29,0,0,0,0,206,46,32,44,0,0,0,17,0
+indra/newview/llmaniptranslate.cpp,render.pipeline,2322,32,0,0,0,0,196,29,18,10,0,0,1,1,0
 indra/newview/llglsandbox.cpp,render.pipeline,1131,33,0,0,0,0,129,24,16,1,0,2,3,0,0
 indra/newview/llworldmapview.cpp,render.opengl_touching,1983,31,0,0,0,0,88,2,8,0,0,0,0,0,0
 indra/newview/llmaniprotate.cpp,render.opengl_touching,1976,33,0,0,0,0,70,13,6,0,0,0,0,0,1
@@ -160,7 +160,7 @@ indra/llui/llcontainerview.cpp,render.opengl_touching,301,11,0,0,0,0,1,0,0,0,0,0
 indra/llui/llscrolllistitem.cpp,render.opengl_touching,205,4,0,0,0,0,1,0,0,0,0,0,0,0,0
 indra/newview/llfloaterbigpreview.cpp,ui,111,3,0,0,0,0,1,0,1,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/dynamicVelocityV.glsl,render.opengl_touching,39,0,0,0,0,0,1,0,1,0,0,0,0,0,0
-indra/llrender/llglcontainment.h,render.legacy_low_level,295,2,0,0,0,0,0,257,0,0,0,0,0,0,0
+indra/llrender/llglcontainment.h,render.legacy_low_level,298,2,0,0,0,0,0,264,0,0,0,0,0,0,0
 indra/newview/llviewershadermgr.cpp,render.pipeline,3765,18,0,0,0,0,0,214,2,7,0,0,0,0,0
 indra/llprimitive/tests/llgltfmaterial_test.cpp,render.opengl_touching,442,6,0,0,0,0,0,101,0,0,0,0,0,0,0
 indra/newview/llpanelface.cpp,ui,5988,60,0,0,0,0,0,91,35,0,0,0,0,6,0

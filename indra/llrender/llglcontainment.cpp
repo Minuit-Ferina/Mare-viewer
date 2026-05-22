@@ -818,6 +818,21 @@ void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height)
     glScissor(x, y, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
 }
 
+void setStencilFunction(LLGLenum function, LLGLint reference, LLGLuint mask)
+{
+    glStencilFunc(function, reference, mask);
+}
+
+void setStencilMask(LLGLuint mask)
+{
+    glStencilMask(mask);
+}
+
+void setStencilOperation(LLGLenum stencil_fail, LLGLenum depth_fail, LLGLenum depth_pass)
+{
+    glStencilOp(stencil_fail, depth_fail, depth_pass);
+}
+
 LLGLenum getError()
 {
     return glGetError();

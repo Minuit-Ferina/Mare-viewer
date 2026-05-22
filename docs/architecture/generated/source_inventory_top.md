@@ -2,13 +2,12 @@
 
 | file | category | lines | gl_calls | gl_raw_refs | gl_known_false_refs | gGL | LLGL | LLPipeline | LLRenderTarget |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 894 | 128 | 128 | 0 | 0 | 257 | 0 | 0 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 909 | 131 | 131 | 0 | 0 | 264 | 0 | 0 |
 | `indra/newview/pipeline.cpp` | render.pipeline | 12046 | 81 | 83 | 0 | 340 | 158 | 564 | 60 |
 | `indra/newview/marefsr2upscaler.cpp` | render.opengl_touching | 379 | 81 | 81 | 0 | 3 | 3 | 0 | 4 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 36 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/newview/llviewerdisplay.cpp` | render.pipeline | 1953 | 19 | 19 | 0 | 129 | 37 | 63 | 1 |
-| `indra/newview/llmaniptranslate.cpp` | render.pipeline | 2323 | 13 | 13 | 0 | 196 | 22 | 10 | 0 |
 | `indra/newview/llviewerwindow.cpp` | render.pipeline | 6504 | 12 | 14 | 0 | 44 | 7 | 63 | 2 |
 | `indra/llwindow/llwindowsdl.cpp` | assets.texture | 2757 | 11 | 12 | 0 | 0 | 0 | 0 | 0 |
 | `indra/newview/llscenemonitor.cpp` | render.pipeline | 757 | 11 | 11 | 0 | 26 | 3 | 10 | 8 |
@@ -72,6 +71,7 @@
 | `indra/newview/app_settings/shaders/class2/interface/irradianceGenF.glsl` | viewer.misc | 215 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |
 | `indra/newview/app_settings/shaders/class1/interface/radianceGenF.glsl` | viewer.misc | 170 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |
 | `indra/newview/llspatialpartition.cpp` | render.pipeline | 4192 | 0 | 0 | 0 | 206 | 46 | 44 | 0 |
+| `indra/newview/llmaniptranslate.cpp` | render.pipeline | 2322 | 0 | 0 | 0 | 196 | 29 | 10 | 0 |
 | `indra/newview/llglsandbox.cpp` | render.pipeline | 1131 | 0 | 0 | 0 | 129 | 24 | 1 | 2 |
 | `indra/newview/llworldmapview.cpp` | render.opengl_touching | 1983 | 0 | 0 | 0 | 88 | 2 | 0 | 0 |
 | `indra/newview/llmaniprotate.cpp` | render.opengl_touching | 1976 | 0 | 0 | 0 | 70 | 13 | 0 | 0 |
