@@ -778,7 +778,7 @@ without an explicit task, and do not start a direct Vulkan port.
       newview build.
 - [x] Regenerate the generated source inventory after the `LLFace` source
       packet.
-- [ ] Add a summary for the `LLFace` debug containment packet.
+- [x] Add a summary for the `LLFace` debug containment packet.
 
 ## Phase 1 Inventory
 
