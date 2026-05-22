@@ -998,6 +998,13 @@ without an explicit task, and do not start a direct Vulkan port.
       `newview` object compiles, the containment guardrail, and regenerated
       source inventory.
 - [x] Add `docs/architecture/198-pipeline-header-boundary-summary.md`.
+- [x] Narrow `marefsr2upscaler.h` so it no longer includes `llgl.h` directly.
+- [x] Verify Darwin-visible FSR2 header consumers with targeted
+      `maretaaupscaler.cpp.o` and `llviewercamera.cpp.o` compiles, the
+      containment guardrail, and regenerated source inventory.
+- [x] Add `docs/architecture/199-fsr2-header-boundary-summary.md`.
+- [ ] Validate `marefsr2upscaler.cpp` on a configuration where
+      `MARE_ENABLE_FSR2` is active.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 - [ ] Continue reducing header-level OpenGL ABI exposure in small packets,

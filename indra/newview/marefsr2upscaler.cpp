@@ -8,6 +8,7 @@
 #include "marefsr2upscaler.h"
 
 #include "llrendertarget.h"
+#include "llgl.h"
 #include "llglcontainment.h"
 #include "llglheaders.h"
 #include "llglslshader.h"       // LLGLSLShader
@@ -82,7 +83,7 @@ void MAREFSR2Upscaler::computeJitter(
 // Shader loading
 // ─────────────────────────────────────────────────────────────────────────────
 
-GLuint MAREFSR2Upscaler::compileComputeProgram(const std::string& relPath)
+LLGLuint MAREFSR2Upscaler::compileComputeProgram(const std::string& relPath)
 {
     // Build absolute path via LL_PATH_APP_SETTINGS so the path resolves to
     // Release/app_settings/shaders/class1/deferred/<relPath> in dev builds.
@@ -139,7 +140,7 @@ GLuint MAREFSR2Upscaler::compileComputeProgram(const std::string& relPath)
 // Internal texture helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-GLuint MAREFSR2Upscaler::createTexture2D(U32 w, U32 h, GLenum internalFmt)
+LLGLuint MAREFSR2Upscaler::createTexture2D(U32 w, U32 h, LLGLenum internalFmt)
 {
     GLuint tex;
     LLGLContainment::createTextures(GL_TEXTURE_2D, 1, &tex);
@@ -151,7 +152,7 @@ GLuint MAREFSR2Upscaler::createTexture2D(U32 w, U32 h, GLenum internalFmt)
     return tex;
 }
 
-void MAREFSR2Upscaler::deleteTexture(GLuint& tex)
+void MAREFSR2Upscaler::deleteTexture(LLGLuint& tex)
 {
     if (tex) { LLGLContainment::deleteTextures(1, &tex); tex = 0; }
 }

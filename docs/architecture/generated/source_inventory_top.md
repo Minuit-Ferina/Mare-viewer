@@ -14,8 +14,8 @@
 | `indra/newview/llviewerjointmesh.cpp` | render.draw_pool | 532 | 0 | 3 | 0 | 12 | 4 | 0 | 0 |
 | `indra/newview/llviewershadermgr.h` | render.opengl_touching | 340 | 0 | 2 | 2 | 0 | 135 | 0 | 0 |
 | `indra/llprimitive/llgltfmaterial.cpp` | render.opengl_touching | 957 | 0 | 2 | 2 | 0 | 80 | 0 | 0 |
+| `indra/newview/marefsr2upscaler.h` | render.opengl_touching | 104 | 0 | 2 | 0 | 0 | 20 | 0 | 5 |
 | `indra/llwindow/llwindowwin32.cpp` | render.opengl_touching | 5208 | 0 | 2 | 2 | 0 | 2 | 0 | 0 |
-| `indra/newview/marefsr2upscaler.h` | render.opengl_touching | 104 | 0 | 2 | 0 | 0 | 1 | 0 | 5 |
 | `indra/newview/app_settings/shaders/class1/deferred/pbrterrainF.glsl` | assets.texture | 440 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
 | `indra/newview/llfilepicker.cpp` | viewer.misc | 1834 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
 | `indra/llui/llui.h` | unknown | 476 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |

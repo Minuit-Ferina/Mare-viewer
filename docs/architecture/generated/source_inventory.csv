@@ -11,8 +11,8 @@ indra/llui/llui.cpp,unknown,764,33,0,4,4,4,0,0,2,0,0,0,0,0,0
 indra/newview/llviewerjointmesh.cpp,render.draw_pool,532,26,0,3,0,0,12,4,2,0,4,0,0,0,0
 indra/newview/llviewershadermgr.h,render.opengl_touching,340,3,0,2,0,2,0,135,0,0,0,0,0,0,0
 indra/llprimitive/llgltfmaterial.cpp,render.opengl_touching,957,5,0,2,0,2,0,80,0,0,0,0,0,0,0
+indra/newview/marefsr2upscaler.h,render.opengl_touching,104,2,0,2,0,0,0,20,0,0,0,5,0,0,0
 indra/llwindow/llwindowwin32.cpp,render.opengl_touching,5208,40,0,2,2,2,0,2,2,0,0,0,0,0,0
-indra/newview/marefsr2upscaler.h,render.opengl_touching,104,2,0,2,0,0,0,1,0,0,0,5,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/pbrterrainF.glsl,assets.texture,440,0,0,2,0,2,0,0,0,0,0,0,0,1,0
 indra/newview/llfilepicker.cpp,viewer.misc,1834,13,0,2,1,2,0,0,0,0,0,0,0,0,0
 indra/llui/llui.h,unknown,476,15,0,2,2,2,0,0,0,0,0,0,0,0,0
@@ -107,7 +107,7 @@ indra/newview/lltoolselectrect.cpp,render.opengl_touching,207,12,0,0,0,0,5,0,0,0
 indra/newview/lldynamictexture.cpp,render.pipeline,310,15,0,0,0,0,4,8,0,4,0,3,0,3,0
 indra/llui/llbutton.cpp,render.opengl_touching,1434,23,0,0,0,0,4,0,5,0,0,0,0,0,0
 indra/llui/llscrollbar.cpp,render.opengl_touching,667,14,0,0,0,0,4,0,4,0,0,0,0,0,0
-indra/newview/marefsr2upscaler.cpp,render.opengl_touching,400,13,0,0,0,0,3,72,1,0,0,4,0,0,0
+indra/newview/marefsr2upscaler.cpp,render.opengl_touching,401,14,0,0,0,0,3,76,1,0,0,4,0,0,0
 indra/newview/llviewertexture.cpp,render.pipeline,4096,34,0,0,0,0,3,39,27,1,0,0,17,134,0
 indra/newview/llfloaterauction.cpp,ui,560,29,0,0,0,0,3,1,0,0,0,0,0,1,0
 indra/newview/llfloatersnapshot.cpp,ui,1531,16,0,0,0,0,3,0,1,0,0,0,0,0,0
