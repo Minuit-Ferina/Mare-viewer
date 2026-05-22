@@ -772,6 +772,13 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the GLTF UBO source
       packet.
 - [x] Add a summary for the GLTF UBO containment packet.
+- [x] Add a focused task for `LLFace` debug containment before source edits.
+- [ ] Route `LLFace` debug draw OpenGL calls through `llglcontainment.*`.
+- [ ] Verify the `LLFace` containment packet with a targeted or incremental
+      newview build.
+- [ ] Regenerate the generated source inventory after the `LLFace` source
+      packet.
+- [ ] Add a summary for the `LLFace` debug containment packet.
 
 ## Phase 1 Inventory
 
