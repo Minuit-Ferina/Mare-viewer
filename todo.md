@@ -1037,6 +1037,9 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Continue reducing header-level OpenGL ABI exposure in small packets,
       starting with low-risk resource headers before `llgl.h` and
       `llglstates.h`.
+- [x] Add
+      `docs/architecture/206-ui-render-boundaries-post-containment.md` to
+      record the post-containment UI/render boundary candidates.
 
 ## Phase 1 Inventory
 
@@ -1062,7 +1065,7 @@ No open items in this section right now.
 - [ ] Do not edit low-level `llgl*`, `llrender*`, `llrendertarget*`, or `llvertexbuffer*` behavior until contracts are documented.
 - [ ] Do not edit draw pools until their pass order and state assumptions are mapped.
 - [ ] Do not edit shader managers until shader family ownership is mapped.
-- [ ] Do not edit UI rendering paths until UI/render boundary candidates are listed.
+- [x] Do not edit UI rendering paths until UI/render boundary candidates are listed.
 - [ ] Do not move files in `indra/newview/`, `indra/llrender/`, `indra/llwindow/`, or `indra/llui/` during phase 2.
 
 ## Build And Platform
