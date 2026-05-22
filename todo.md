@@ -771,7 +771,7 @@ without an explicit task, and do not start a direct Vulkan port.
       newview builds.
 - [x] Regenerate the generated source inventory after the GLTF UBO source
       packet.
-- [ ] Add a summary for the GLTF UBO containment packet.
+- [x] Add a summary for the GLTF UBO containment packet.
 
 ## Phase 1 Inventory
 
