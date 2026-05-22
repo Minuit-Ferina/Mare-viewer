@@ -942,9 +942,29 @@ No open items in this section right now.
 - [ ] Prepare a small renderer contract document after phase 1 evidence is complete.
 - [ ] Only then consider narrow abstractions that reduce real OpenGL coupling.
 
+## Very Long-Term Product Direction
+
+- [ ] Treat `run -> login -> disconnect -> login` as an eventual lifecycle goal,
+      not a near-term task.
+- [ ] Separate app lifetime from connected-session lifetime so disconnect does
+      not inherently mean process quit.
+- [ ] Keep the native Linden/Kokua windowing backends for now; do not port to
+      SDL unless the existing `LLWindow` backends become a concrete blocker.
+- [ ] Explore multi-window UI only after the app/session lifecycle is better
+      understood.
+- [ ] Support moving selected floaters, such as chat, into separate OS windows
+      for multi-monitor workflows.
+- [ ] Investigate whether detached floaters need independent native windows,
+      independent root views, shared GL contexts, or non-GL UI composition.
+- [ ] Treat simultaneous multi-login as a later architecture problem, likely
+      requiring session-scoped replacements for current globals.
+- [ ] Evaluate multi-login tabs only after deciding between in-process
+      multi-session and multi-process session isolation.
+
 ## Non-Goals For Now
 
 - [ ] Do not start a Vulkan backend.
+- [ ] Do not port the viewer to SDL without a specific windowing/input blocker.
 - [ ] Do not replace all `gl*` calls globally.
 - [ ] Do not do a massive renderer refactor.
 - [ ] Do not move source files.
