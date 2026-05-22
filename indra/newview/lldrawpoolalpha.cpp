@@ -1174,6 +1174,66 @@ void LLDrawPoolAlpha::renderAlphaDraw(
     RestoreTexSetup(tex_setup);
 }
 
+void LLDrawPoolAlpha::renderAlphaGroup(
+    LLSpatialGroup* group,
+    bool rigged,
+    bool depth_only,
+    bool above_water,
+    F32 water_height,
+    const LLVOAvatar*& lastAvatar,
+    U64& lastMeshId,
+    const LLGLSLShader*& lastAvatarShader,
+    bool& skipLastSkin,
+    bool& initialized_lighting,
+    bool& light_enabled)
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DRAWPOOL("renderAlpha - group");
+    llassert(group);
+    llassert(group->getSpatialPartition());
+
+    if (!is_renderable_alpha_group(group))
+    {
+        return;
+    }
+
+    if (!is_alpha_group_on_rendered_side_of_water(group, above_water, water_height))
+    {
+        return;
+    }
+
+    static AlphaEmissiveQueues emissive_queues;
+    emissive_queues.clear();
+
+    const bool disable_cull = is_particle_or_hud_particle_group(group);
+    LLGLDisable cull(disable_cull ? GL_CULL_FACE : 0);
+
+    LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_draw_info(group, rigged);
+
+    for (LLSpatialGroup::drawmap_elem_t::iterator k = draw_info.begin(); k != draw_info.end(); ++k)
+    {
+        LLDrawInfo& params = **k;
+        if (!is_alpha_draw_info_for_pass(params, rigged))
+        {
+            continue;
+        }
+
+        renderAlphaDraw(params,
+                        lastAvatar,
+                        lastMeshId,
+                        lastAvatarShader,
+                        skipLastSkin,
+                        initialized_lighting,
+                        light_enabled,
+                        emissive_queues);
+    }
+
+    // render emissive faces into alpha channel for bloom effects
+    if (!depth_only)
+    {
+        renderAlphaEmissiveSubpass(emissive_queues, light_enabled);
+    }
+}
+
 void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
@@ -1209,50 +1269,17 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
 
     for (LLCullResult::sg_iterator i = begin; i != end; ++i)
     {
-        LL_PROFILE_ZONE_NAMED_CATEGORY_DRAWPOOL("renderAlpha - group");
-        LLSpatialGroup* group = *i;
-        llassert(group);
-        llassert(group->getSpatialPartition());
-
-        if (is_renderable_alpha_group(group))
-        {
-            if (!is_alpha_group_on_rendered_side_of_water(group, above_water, water_height))
-            {
-                continue;
-            }
-
-            static AlphaEmissiveQueues emissive_queues;
-            emissive_queues.clear();
-
-            const bool disable_cull = is_particle_or_hud_particle_group(group);
-            LLGLDisable cull(disable_cull ? GL_CULL_FACE : 0);
-
-            LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_draw_info(group, rigged);
-
-            for (LLSpatialGroup::drawmap_elem_t::iterator k = draw_info.begin(); k != draw_info.end(); ++k)
-            {
-                LLDrawInfo& params = **k;
-                if (!is_alpha_draw_info_for_pass(params, rigged))
-                {
-                    continue;
-                }
-
-                renderAlphaDraw(params,
-                                lastAvatar,
-                                lastMeshId,
-                                lastAvatarShader,
-                                skipLastSkin,
-                                initialized_lighting,
-                                light_enabled,
-                                emissive_queues);
-            }
-
-            // render emissive faces into alpha channel for bloom effects
-            if (!depth_only)
-            {
-                renderAlphaEmissiveSubpass(emissive_queues, light_enabled);
-            }
-        }
+        renderAlphaGroup(*i,
+                         rigged,
+                         depth_only,
+                         above_water,
+                         water_height,
+                         lastAvatar,
+                         lastMeshId,
+                         lastAvatarShader,
+                         skipLastSkin,
+                         initialized_lighting,
+                         light_enabled);
     }
 
     finish_alpha_render(light_enabled);

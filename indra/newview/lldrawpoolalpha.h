@@ -106,6 +106,17 @@ private:
                          bool& initialized_lighting,
                          bool& light_enabled,
                          AlphaEmissiveQueues& queues);
+    void renderAlphaGroup(LLSpatialGroup* group,
+                          bool rigged,
+                          bool depth_only,
+                          bool above_water,
+                          F32 water_height,
+                          const LLVOAvatar*& lastAvatar,
+                          U64& lastMeshId,
+                          const LLGLSLShader*& lastAvatarShader,
+                          bool& skipLastSkin,
+                          bool& initialized_lighting,
+                          bool& light_enabled);
     bool SetupTextureMatrix(LLDrawInfo* draw);
     bool SetupGltfTextures(LLDrawInfo* draw);
     void BindLegacyMaterialAuxMaps(LLDrawInfo* draw, bool use_material);

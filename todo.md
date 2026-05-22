@@ -1268,7 +1268,15 @@ not start a direct Vulkan port.
 - [x] Verify the alpha draw pipeline packet with targeted
       `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
       inventory.
-- [ ] Decide the next larger phase 4 packet after the alpha draw pipeline
+- [x] Decide to extract the alpha spatial-group body as the next larger phase 4
+      packet.
+- [x] Add
+      `docs/architecture/251-drawpool-alpha-group-pipeline-packet.md`.
+- [x] Extract owner-local alpha spatial-group helper in `LLDrawPoolAlpha`.
+- [x] Verify the alpha group pipeline packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [ ] Decide the next larger phase 4 packet after the alpha group pipeline
       helper.
 
 ## Phase 1 Inventory
