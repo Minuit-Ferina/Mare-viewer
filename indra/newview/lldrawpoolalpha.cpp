@@ -1091,12 +1091,7 @@ void LLDrawPoolAlpha::renderAlphaEmissiveSubpass(AlphaEmissiveQueues& queues, bo
 
 void LLDrawPoolAlpha::renderAlphaDraw(
     LLDrawInfo& params,
-    const LLVOAvatar*& lastAvatar,
-    U64& lastMeshId,
-    const LLGLSLShader*& lastAvatarShader,
-    bool& skipLastSkin,
-    bool& initialized_lighting,
-    bool& light_enabled,
+    AlphaRenderState& state,
     AlphaEmissiveQueues& queues)
 {
     LL_PROFILE_ZONE_NAMED_CATEGORY_DRAWPOOL("ra - push batch");
@@ -1167,8 +1162,8 @@ void LLDrawPoolAlpha::renderAlphaDraw(
         mat = get_non_gltf_alpha_material(params);
         update_non_gltf_alpha_lighting_state(
             params,
-            initialized_lighting,
-            light_enabled);
+            state.initialized_lighting,
+            state.light_enabled);
         target_shader = get_non_gltf_alpha_shader(
             params,
             mat,
@@ -1178,7 +1173,14 @@ void LLDrawPoolAlpha::renderAlphaDraw(
         set_non_gltf_alpha_uniforms(get_non_gltf_alpha_uniforms(params, mat));
     }
 
-    if (params.mAvatar && !uploadMatrixPalette(params.mAvatar, params.mSkinInfo, lastAvatar, lastMeshId, lastAvatarShader, skipLastSkin))
+    if (params.mAvatar &&
+        !uploadMatrixPalette(
+            params.mAvatar,
+            params.mSkinInfo,
+            state.lastAvatar,
+            state.lastMeshId,
+            state.lastAvatarShader,
+            state.skipLastSkin))
     {
         return;
     }
@@ -1202,12 +1204,7 @@ void LLDrawPoolAlpha::renderAlphaGroup(
     bool depth_only,
     bool above_water,
     F32 water_height,
-    const LLVOAvatar*& lastAvatar,
-    U64& lastMeshId,
-    const LLGLSLShader*& lastAvatarShader,
-    bool& skipLastSkin,
-    bool& initialized_lighting,
-    bool& light_enabled)
+    AlphaRenderState& state)
 {
     LL_PROFILE_ZONE_NAMED_CATEGORY_DRAWPOOL("renderAlpha - group");
     llassert(group);
@@ -1240,32 +1237,21 @@ void LLDrawPoolAlpha::renderAlphaGroup(
         }
 
         renderAlphaDraw(params,
-                        lastAvatar,
-                        lastMeshId,
-                        lastAvatarShader,
-                        skipLastSkin,
-                        initialized_lighting,
-                        light_enabled,
+                        state,
                         emissive_queues);
     }
 
     // render emissive faces into alpha channel for bloom effects
     if (!depth_only)
     {
-        renderAlphaEmissiveSubpass(emissive_queues, light_enabled);
+        renderAlphaEmissiveSubpass(emissive_queues, state.light_enabled);
     }
 }
 
 void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
-    bool initialized_lighting = false;
-    bool light_enabled = true;
-
-    const LLVOAvatar* lastAvatar = nullptr;
-    U64 lastMeshId = 0;
-    const LLGLSLShader* lastAvatarShader = nullptr;
-    bool skipLastSkin = false;
+    AlphaRenderState state;
 
     LLCullResult::sg_iterator begin = begin_alpha_groups(rigged);
     LLCullResult::sg_iterator end = end_alpha_groups(rigged);
@@ -1296,13 +1282,8 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
                          depth_only,
                          above_water,
                          water_height,
-                         lastAvatar,
-                         lastMeshId,
-                         lastAvatarShader,
-                         skipLastSkin,
-                         initialized_lighting,
-                         light_enabled);
+                         state);
     }
 
-    finish_alpha_render(light_enabled);
+    finish_alpha_render(state.light_enabled);
 }

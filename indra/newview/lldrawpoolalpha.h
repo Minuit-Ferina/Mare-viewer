@@ -80,6 +80,16 @@ private:
         void clear();
     };
 
+    struct AlphaRenderState
+    {
+        const LLVOAvatar* lastAvatar = nullptr;
+        U64 lastMeshId = 0;
+        const LLGLSLShader* lastAvatarShader = nullptr;
+        bool skipLastSkin = false;
+        bool initialized_lighting = false;
+        bool light_enabled = true;
+    };
+
     LLGLSLShader* target_shader;
 
     // setup by beginFooPass, [0] is static variant, [1] is rigged variant
@@ -99,24 +109,14 @@ private:
     void queueAlphaEmissive(LLDrawInfo& params, AlphaEmissiveQueues& queues);
     void renderAlphaEmissiveSubpass(AlphaEmissiveQueues& queues, bool& light_enabled);
     void renderAlphaDraw(LLDrawInfo& params,
-                         const LLVOAvatar*& lastAvatar,
-                         U64& lastMeshId,
-                         const LLGLSLShader*& lastAvatarShader,
-                         bool& skipLastSkin,
-                         bool& initialized_lighting,
-                         bool& light_enabled,
+                         AlphaRenderState& state,
                          AlphaEmissiveQueues& queues);
     void renderAlphaGroup(LLSpatialGroup* group,
                           bool rigged,
                           bool depth_only,
                           bool above_water,
                           F32 water_height,
-                          const LLVOAvatar*& lastAvatar,
-                          U64& lastMeshId,
-                          const LLGLSLShader*& lastAvatarShader,
-                          bool& skipLastSkin,
-                          bool& initialized_lighting,
-                          bool& light_enabled);
+                          AlphaRenderState& state);
     bool SetupTextureMatrix(LLDrawInfo* draw);
     bool SetupGltfTextures(LLDrawInfo* draw);
     void BindLegacyMaterialAuxMaps(LLDrawInfo* draw, bool use_material);
