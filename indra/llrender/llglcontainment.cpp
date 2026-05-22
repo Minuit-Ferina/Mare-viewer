@@ -731,6 +731,25 @@ void readTextureImage(LLGLenum target, S32 level, LLGLenum format, LLGLenum type
     glGetTexImage(target, level, format, type, pixels);
 }
 
+void readPixels(
+    LLGLint x,
+    LLGLint y,
+    S32 width,
+    S32 height,
+    LLGLenum format,
+    LLGLenum type,
+    void* pixels)
+{
+    glReadPixels(
+        x,
+        y,
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height),
+        format,
+        type,
+        pixels);
+}
+
 void copyTextureSubImage2D(
     LLGLenum target,
     S32 level,

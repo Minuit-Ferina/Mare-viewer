@@ -55,6 +55,7 @@
 #include "llviewquery.h"
 #include "llxmltree.h"
 #include "llslurl.h"
+#include "llglcontainment.h"
 #include "llrender.h"
 
 #include "stringize.h"
@@ -819,7 +820,7 @@ public:
             addText(xpos, ypos, "View Matrix");
             ypos += y_inc;
         }
-        // disable use of glReadPixels which messes up nVidia nSight graphics debugging
+        // disable GPU readback which messes up nVidia nSight graphics debugging
         static LLCachedControl<bool> debug_show_color(gSavedSettings, "DebugShowColor", false);
         if (debug_show_color() && !LLRender::sNsightDebugSupport)
         {
@@ -830,7 +831,7 @@ public:
             S32 x_raw = (S32)llround(coord.mX * gViewerWindow->getWindowWidthRaw() / (F32) gViewerWindow->getWindowWidthScaled());
             S32 y_raw = (S32)llround(coord.mY * gViewerWindow->getWindowHeightRaw() / (F32) gViewerWindow->getWindowHeightScaled());
 
-            glReadPixels(x_raw, y_raw, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, color);
+            LLGLContainment::readPixels(x_raw, y_raw, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, color);
             addText(xpos, ypos, llformat("Pixel <%1d, %1d> R:%1d G:%1d B:%1d A:%1d", x_raw, y_raw, color[0], color[1], color[2], color[3]));
             ypos += y_inc;
         }
@@ -2585,7 +2586,7 @@ void LLViewerWindow::reshape(S32 width, S32 height)
         mWindowRectRaw.mRight = mWindowRectRaw.mLeft + width;
         mWindowRectRaw.mTop = mWindowRectRaw.mBottom + height;
 
-        //glViewport(0, 0, width, height );
+        // The viewport used to be reset here.
 
         LLViewerCamera * camera = LLViewerCamera::getInstance(); // simpleton, might not exist
         if (height > 0 && camera)
@@ -4262,9 +4263,9 @@ void LLViewerWindow::renderSelections( bool for_gl_pick, bool pick_parcel_walls,
                         gSphere.render();
 
                         // Render Inside
-                        glCullFace(GL_FRONT);
+                        LLGLContainment::setCullFace(GL_FRONT);
                         gSphere.render();
-                        glCullFace(GL_BACK);
+                        LLGLContainment::setCullFace(GL_BACK);
 
                         gGL.popMatrix();
                     }
@@ -5108,7 +5109,7 @@ bool LLViewerWindow::rawSnapshot(LLImageRaw *raw, S32 image_width, S32 image_hei
     gSnapshotNoPost = no_post;
     gDisplaySwapBuffers = false;
 
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // stencil buffer is deprecated | GL_STENCIL_BUFFER_BIT);
+    LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // stencil buffer is deprecated | GL_STENCIL_BUFFER_BIT);
     setCursor(UI_CURSOR_WAIT);
 
     // Hide all the UI widgets first and draw a frame
@@ -5311,12 +5312,12 @@ bool LLViewerWindow::rawSnapshot(LLImageRaw *raw, S32 image_width, S32 image_hei
                     {
                         LLAppViewer::instance()->pingMainloopTimeout("LLViewerWindow::rawSnapshot");
                     }
-                    // disable use of glReadPixels when doing nVidia nSight graphics debugging
+                    // disable GPU readback when doing nVidia nSight graphics debugging
                     if (!LLRender::sNsightDebugSupport)
                     {
                         if (type == LLSnapshotModel::SNAPSHOT_TYPE_COLOR)
                         {
-                            glReadPixels(
+                            LLGLContainment::readPixels(
                                      subimage_x_offset, out_y + subimage_y_offset,
                                      read_width, 1,
                                      GL_RGB, GL_UNSIGNED_BYTE,
@@ -5326,7 +5327,7 @@ bool LLViewerWindow::rawSnapshot(LLImageRaw *raw, S32 image_width, S32 image_hei
                         else // LLSnapshotModel::SNAPSHOT_TYPE_DEPTH
                         {
                             LLPointer<LLImageRaw> depth_line_buffer = new LLImageRaw(read_width, 1, sizeof(GL_FLOAT)); // need to store floating point values
-                            glReadPixels(
+                            LLGLContainment::readPixels(
                                          subimage_x_offset, out_y + subimage_y_offset,
                                          read_width, 1,
                                          GL_DEPTH_COMPONENT, GL_FLOAT,
@@ -5428,7 +5429,7 @@ bool LLViewerWindow::simpleSnapshot(LLImageRaw* raw, S32 image_width, S32 image_
     LL_PROFILE_ZONE_SCOPED_CATEGORY_APP;
     gDisplaySwapBuffers = false;
 
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // stencil buffer is deprecated | GL_STENCIL_BUFFER_BIT);
+    LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // stencil buffer is deprecated | GL_STENCIL_BUFFER_BIT);
     setCursor(UI_CURSOR_WAIT);
 
     bool prev_draw_ui = gPipeline.hasRenderDebugFeatureMask(LLPipeline::RENDER_DEBUG_FEATURE_UI);
@@ -5494,7 +5495,7 @@ bool LLViewerWindow::simpleSnapshot(LLImageRaw* raw, S32 image_width, S32 image_
 
     LLImageDataSharedLock lock(raw);
 
-    glReadPixels(
+    LLGLContainment::readPixels(
         0, 0,
         image_width,
         image_height,
@@ -5573,7 +5574,7 @@ bool LLViewerWindow::cubeSnapshot(const LLVector3& origin, LLCubeMapArray* cubea
 
     gPipeline.pushRenderTypeMask();
 
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // stencil buffer is deprecated | GL_STENCIL_BUFFER_BIT);
+    LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // stencil buffer is deprecated | GL_STENCIL_BUFFER_BIT);
 
     U32 dynamic_render_types[] = {
         LLPipeline::RENDER_TYPE_AVATAR,
@@ -5794,7 +5795,7 @@ void LLViewerWindow::setup2DViewport(S32 x_offset, S32 y_offset)
     gGLViewport[1] = mWindowRectRaw.mBottom + y_offset;
     gGLViewport[2] = mWindowRectRaw.getWidth();
     gGLViewport[3] = mWindowRectRaw.getHeight();
-    glViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+    LLGLContainment::setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
 }
 
 
@@ -5812,7 +5813,7 @@ void LLViewerWindow::setup3DViewport(S32 x_offset, S32 y_offset)
     gGLViewport[1] = mWorldViewRectRaw.mBottom + y_offset;
     gGLViewport[2] = mWorldViewRectRaw.getWidth();
     gGLViewport[3] = mWorldViewRectRaw.getHeight();
-    glViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+    LLGLContainment::setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
 }
 
 void LLViewerWindow::revealIntroPanel()
