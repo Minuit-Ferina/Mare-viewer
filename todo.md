@@ -1030,7 +1030,9 @@ without an explicit task, and do not start a direct Vulkan port.
       final pipeline containment packet is complete.
 - [x] Add
       `docs/architecture/204-guardrail-review-after-header-boundary.md`.
-- [ ] Validate `marefsr2upscaler.cpp` on a configuration where
+- [x] Add `docs/architecture/205-fsr2-enabled-validation-plan.md` for the
+      non-Darwin `MARE_ENABLE_FSR2=ON` validation path.
+- [ ] Run the FSR2-enabled validation plan on a configuration where
       `MARE_ENABLE_FSR2` is active.
 - [x] Continue reducing header-level OpenGL ABI exposure in small packets,
       starting with low-risk resource headers before `llgl.h` and
