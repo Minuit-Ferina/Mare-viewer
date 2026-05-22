@@ -933,10 +933,18 @@ without an explicit task, and do not start a direct Vulkan port.
       `llui`, targeted shader-heavy `newview` object compiles, the
       containment guardrail, and regenerated source inventory.
 - [x] Add `docs/architecture/189-llglslshader-header-boundary-summary.md`.
+- [x] Narrow `llshadermgr.h` so it no longer includes `llgl.h` directly.
+- [x] Replace public `LLShaderMgr` OpenGL scalar spellings with
+      `llgltypes.h` aliases or native scalar types while keeping `llgl.h`
+      local to `llshadermgr.cpp`.
+- [x] Verify the `LLShaderMgr` header boundary packet with `llrender/fast`,
+      `llui`, targeted shader-manager `newview` object compiles, the
+      containment guardrail, and regenerated source inventory.
+- [x] Add `docs/architecture/190-llshadermgr-header-boundary-summary.md`.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 - [ ] Continue reducing header-level OpenGL ABI exposure in small packets,
-      starting with `llshadermgr.h`, `llgl.h`, and `llglstates.h`.
+      starting with `llgl.h` and `llglstates.h`.
 
 ## Phase 1 Inventory
 

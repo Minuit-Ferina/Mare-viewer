@@ -5,7 +5,7 @@ indra/llrender/llglheaders.h,render.legacy_low_level,1076,16,0,762,0,0,0,1,0,0,0
 indra/llrender/llgl.h,render.legacy_low_level,485,15,0,24,0,0,0,62,0,0,0,0,0,0,0
 indra/llrender/llimagegl.cpp,render.legacy_low_level,2841,13,0,13,0,0,32,81,3,0,0,0,123,0,0
 indra/llrender/llpostprocess.cpp,render.legacy_low_level,473,7,0,7,0,0,18,16,4,0,0,0,5,0,0
-indra/llrender/llshadermgr.cpp,render.legacy_low_level,1563,10,0,7,0,0,0,36,0,0,0,0,0,0,0
+indra/llrender/llshadermgr.cpp,render.legacy_low_level,1564,11,0,7,0,0,0,60,0,0,0,0,0,0,0
 indra/llrender/llvertexbuffer.cpp,render.legacy_low_level,1964,13,0,5,0,0,33,21,6,0,0,0,2,0,0
 indra/llui/llui.cpp,unknown,764,33,0,4,4,4,0,0,2,0,0,0,0,0,0
 indra/newview/llviewerjointmesh.cpp,render.draw_pool,532,26,0,3,0,0,12,4,2,0,4,0,0,0,0
@@ -176,6 +176,7 @@ indra/newview/llgltffolderitem.cpp,render.opengl_touching,165,3,0,0,0,0,0,15,0,0
 indra/newview/llvocache.cpp,assets.texture,2029,10,0,0,0,0,0,13,0,0,0,0,0,2,0
 indra/newview/gltf/asset.cpp,assets.texture,1478,12,0,0,0,0,0,13,0,0,0,0,0,2,0
 indra/newview/llfloaterregioninfo.cpp,render.draw_pool,4423,71,0,0,0,0,0,13,0,0,1,0,0,0,0
+indra/llrender/llshadermgr.h,render.legacy_low_level,414,5,0,0,0,0,0,12,0,0,0,0,0,0,0
 indra/newview/llgltfmateriallist.h,render.opengl_touching,177,6,0,0,0,0,0,12,0,0,0,0,0,0,0
 indra/newview/pipeline.h,render.pipeline,1133,15,0,0,0,0,0,11,2,5,49,53,0,5,0
 indra/llprimitive/lltextureentry.h,assets.texture,262,6,0,0,0,0,0,11,0,0,0,0,0,0,0
@@ -211,7 +212,6 @@ indra/newview/llvoavatarself.h,world.avatar,425,5,0,0,0,0,0,4,0,0,0,0,0,7,0
 indra/newview/llvlcomposition.h,render.draw_pool,170,7,0,0,0,0,0,4,0,0,2,0,0,3,0
 indra/newview/llenvironment.cpp,render.opengl_touching,3637,27,0,0,0,0,0,4,0,0,0,0,0,0,0
 indra/newview/llviewermenufile.cpp,render.opengl_touching,1517,50,0,0,0,0,0,4,0,0,0,0,0,0,0
-indra/llrender/llshadermgr.h,render.legacy_low_level,410,2,0,0,0,0,0,4,0,0,0,0,0,0,0
 indra/newview/tests/llworldmipmap_test.cpp,render.opengl_touching,166,5,0,0,0,0,0,4,0,0,0,0,0,0,0
 indra/llappearance/lllocaltextureobject.h,assets.texture,85,2,0,0,0,0,0,4,0,0,0,0,0,0,0
 indra/newview/lltextureview.h,assets.texture,80,1,0,0,0,0,0,4,0,0,0,0,0,0,0

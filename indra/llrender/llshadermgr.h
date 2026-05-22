@@ -27,8 +27,12 @@
 #ifndef LL_SHADERMGR_H
 #define LL_SHADERMGR_H
 
-#include "llgl.h"
+#include "llgltypes.h"
 #include "llglslshader.h"
+
+#include <map>
+#include <string>
+#include <vector>
 
 class LLShaderMgr
 {
@@ -359,11 +363,11 @@ public:
     virtual void initAttribsAndUniforms(void);
 
     bool attachShaderFeatures(LLGLSLShader * shader);
-    void dumpObjectLog(GLuint ret, bool warns = true, const std::string& filename = "");
-    void dumpShaderSource(U32 shader_code_count, GLchar** shader_code_text);
-    bool    linkProgramObject(GLuint obj, bool suppress_errors = false);
-    bool    validateProgramObject(GLuint obj);
-    GLuint loadShaderFile(const std::string& filename, S32 & shader_level, GLenum type, std::map<std::string, std::string>* defines = NULL, S32 texture_index_channels = -1);
+    void dumpObjectLog(LLGLuint ret, bool warns = true, const std::string& filename = "");
+    void dumpShaderSource(U32 shader_code_count, char** shader_code_text);
+    bool    linkProgramObject(LLGLuint obj, bool suppress_errors = false);
+    bool    validateProgramObject(LLGLuint obj);
+    LLGLuint loadShaderFile(const std::string& filename, S32 & shader_level, LLGLenum type, std::map<std::string, std::string>* defines = NULL, S32 texture_index_channels = -1);
 
     // Implemented in the application to actually point to the shader directory.
     virtual std::string getShaderDirPrefix(void) = 0; // Pure Virtual
@@ -380,8 +384,8 @@ public:
 
 public:
     // Map of shader names to compiled
-    std::map<std::string, GLuint> mVertexShaderObjects;
-    std::map<std::string, GLuint> mFragmentShaderObjects;
+    std::map<std::string, LLGLuint> mVertexShaderObjects;
+    std::map<std::string, LLGLuint> mFragmentShaderObjects;
 
     //global (reserved slot) shader parameters
     std::vector<std::string> mReservedAttribs;
@@ -390,8 +394,8 @@ public:
 
     struct ProgramBinaryData
     {
-        GLsizei mBinaryLength = 0;
-        GLenum mBinaryFormat = 0;
+        S32 mBinaryLength = 0;
+        LLGLenum mBinaryFormat = 0;
         F32 mLastUsedTime = 0.0;
     };
     std::map<LLUUID, ProgramBinaryData> mShaderBinaryCache;

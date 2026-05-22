@@ -26,6 +26,7 @@
 
 #include "linden_common.h"
 #include "llshadermgr.h"
+#include "llgl.h"
 #include "llglcontainment.h"
 #include "llrender.h"
 #include "llfile.h"
@@ -369,17 +370,17 @@ bool LLShaderMgr::attachShaderFeatures(LLGLSLShader * shader)
 //============================================================================
 // Load Shader
 
-static std::string get_shader_log(GLuint ret)
+static std::string get_shader_log(LLGLuint ret)
 {
     std::string res;
 
     //get log length
-    GLint length;
+    LLGLint length;
     LLGLContainment::getShaderInteger(ret, GL_INFO_LOG_LENGTH, &length);
     if (length > 0)
     {
         //the log could be any size, so allocate appropriately
-        GLchar* log = new GLchar[length];
+        char* log = new char[length];
         LLGLContainment::getShaderInfoLog(ret, length, &length, log);
         res = std::string((char *)log);
         delete[] log;
@@ -387,18 +388,18 @@ static std::string get_shader_log(GLuint ret)
     return res;
 }
 
-static std::string get_program_log(GLuint ret)
+static std::string get_program_log(LLGLuint ret)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
     std::string res;
 
     //get log length
-    GLint length;
+    LLGLint length;
     LLGLContainment::getProgramInteger(ret, GL_INFO_LOG_LENGTH, &length);
     if (length > 0)
     {
         //the log could be any size, so allocate appropriately
-        GLchar* log = new GLchar[length];
+        char* log = new char[length];
         LLGLContainment::getProgramInfoLog(ret, length, &length, log);
         res = std::string((char*)log);
         delete[] log;
@@ -408,7 +409,7 @@ static std::string get_program_log(GLuint ret)
 
 // get the info log for the given object, be it a shader or program object
 // NOTE: ret MUST be a shader OR a program object
-static std::string get_object_log(GLuint ret)
+static std::string get_object_log(LLGLuint ret)
 {
     if (LLGLContainment::isProgram(ret))
     {
@@ -422,7 +423,7 @@ static std::string get_object_log(GLuint ret)
 }
 
 //dump shader source for debugging
-void LLShaderMgr::dumpShaderSource(U32 shader_code_count, GLchar** shader_code_text)
+void LLShaderMgr::dumpShaderSource(U32 shader_code_count, char** shader_code_text)
 {
     char num_str[16]; // U32 = max 10 digits
 
@@ -437,7 +438,7 @@ void LLShaderMgr::dumpShaderSource(U32 shader_code_count, GLchar** shader_code_t
     LL_CONT << LL_ENDL;
 }
 
-void LLShaderMgr::dumpObjectLog(GLuint ret, bool warns, const std::string& filename)
+void LLShaderMgr::dumpObjectLog(LLGLuint ret, bool warns, const std::string& filename)
 {
     std::string log;
     log = get_object_log(ret);
@@ -454,7 +455,7 @@ void LLShaderMgr::dumpObjectLog(GLuint ret, bool warns, const std::string& filen
     }
  }
 
-GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_level, GLenum type, std::map<std::string, std::string>* defines, S32 texture_index_channels)
+LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_level, LLGLenum type, std::map<std::string, std::string>* defines, S32 texture_index_channels)
 {
 
 // endsure work-around for missing GLSL funcs gets propogated to feature shader files (e.g. srgbF.glsl)
@@ -465,7 +466,7 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
     }
 #endif
 
-    GLenum error = GL_NO_ERROR;
+    LLGLenum error = GL_NO_ERROR;
 
     error = LLGLContainment::getError();
     if (error != GL_NO_ERROR)
@@ -554,10 +555,10 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
 
     //we can't have any lines longer than 1024 characters
     //or any shaders longer than 4096 lines... deal - DaveP
-    GLchar buff[1024];
-    GLchar *extra_code_text[1024];
-    GLchar *shader_code_text[4096 + LL_ARRAY_SIZE(extra_code_text)] = { NULL };
-    GLuint extra_code_count = 0, shader_code_count = 0;
+    char buff[1024];
+    char *extra_code_text[1024];
+    char *shader_code_text[4096 + LL_ARRAY_SIZE(extra_code_text)] = { NULL };
+    LLGLuint extra_code_count = 0, shader_code_count = 0;
     BOOST_STATIC_ASSERT(LL_ARRAY_SIZE(extra_code_text) < LL_ARRAY_SIZE(shader_code_text));
 
 
@@ -639,7 +640,7 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
         for (auto iter = defines->begin(); iter != defines->end(); ++iter)
         {
             std::string define = "#define " + iter->first + " " + iter->second + "\n";
-            extra_code_text[extra_code_count++] = (GLchar *) strdup(define.c_str());
+            extra_code_text[extra_code_count++] = (char *) strdup(define.c_str());
         }
     }
 
@@ -754,7 +755,7 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
 
     unsigned char flags = flag_write_to_out_of_extra_block_area;
 
-    GLuint out_of_extra_block_counter = 0, start_shader_code = shader_code_count, file_lines_count = 0;
+    LLGLuint out_of_extra_block_counter = 0, start_shader_code = shader_code_count, file_lines_count = 0;
 
 #define TOUCH_SHADERS 0
 
@@ -782,7 +783,7 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
             if(!(flag_write_to_out_of_extra_block_area & flags))
             {
                 //shift
-                for(GLuint to = start_shader_code, from = extra_code_count + start_shader_code;
+                for(LLGLuint to = start_shader_code, from = extra_code_count + start_shader_code;
                     from < shader_code_count; ++to, ++from)
                 {
                     shader_code_text[to] = shader_code_text[from];
@@ -792,7 +793,7 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
             }
 
             //copy extra code
-            for(GLuint n = 0; n < extra_code_count
+            for(LLGLuint n = 0; n < extra_code_count
                 && shader_code_count < (LL_ARRAY_SIZE(shader_code_text) - LL_ARRAY_SIZE(extra_code_text)); ++n)
             {
                 shader_code_text[shader_code_count++] = extra_code_text[n];
@@ -805,7 +806,7 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
         }
         else
         {
-            shader_code_text[shader_code_count] = (GLchar *)strdup((char *)buff);
+            shader_code_text[shader_code_count] = (char *)strdup((char *)buff);
 
             if(flag_write_to_out_of_extra_block_area & flags)
             {
@@ -826,7 +827,7 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
 
     if(!(flag_extra_block_marker_was_found & flags))
     {
-        for(GLuint n = start_shader_code; n < extra_code_count + start_shader_code; ++n)
+        for(LLGLuint n = start_shader_code; n < extra_code_count + start_shader_code; ++n)
         {
             shader_code_text[n] = extra_code_text[n - start_shader_code];
         }
@@ -849,7 +850,7 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
     fclose(file);
 
     //create shader object
-    GLuint ret = LLGLContainment::createShader(type);
+    LLGLuint ret = LLGLContainment::createShader(type);
 
     error = LLGLContainment::getError();
     if (error != GL_NO_ERROR)
@@ -896,7 +897,7 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
     {
         //check for errors
         LL_DEBUGS("ShaderLoading") << "glCompileShader done" << U32(ret) << LL_ENDL;
-        GLint success = GL_TRUE;
+        LLGLint success = GL_TRUE;
         LLGLContainment::getShaderInteger(ret, GL_COMPILE_STATUS, &success);
 
         error = LLGLContainment::getError();
@@ -918,7 +919,7 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
     stop_glerror();
 
     //free memory
-    for (GLuint i = 0; i < shader_code_count; i++)
+    for (LLGLuint i = 0; i < shader_code_count; i++)
     {
         free(shader_code_text[i]);
     }
@@ -949,7 +950,7 @@ GLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_lev
     return ret;
 }
 
-bool LLShaderMgr::linkProgramObject(GLuint obj, bool suppress_errors)
+bool LLShaderMgr::linkProgramObject(LLGLuint obj, bool suppress_errors)
 {
     //check for errors
     {
@@ -957,7 +958,7 @@ bool LLShaderMgr::linkProgramObject(GLuint obj, bool suppress_errors)
         LLGLContainment::linkProgram(obj);
     }
 
-    GLint success = GL_TRUE;
+    LLGLint success = GL_TRUE;
 
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_SHADER("glsl check link status");
@@ -982,11 +983,11 @@ bool LLShaderMgr::linkProgramObject(GLuint obj, bool suppress_errors)
     return success;
 }
 
-bool LLShaderMgr::validateProgramObject(GLuint obj)
+bool LLShaderMgr::validateProgramObject(LLGLuint obj)
 {
     //check program validity against current GL
     LLGLContainment::validateProgram(obj);
-    GLint success = GL_TRUE;
+    LLGLint success = GL_TRUE;
     LLGLContainment::getProgramInteger(obj, GL_LINK_STATUS, &success);
     if (success == GL_FALSE)
     {
@@ -1141,11 +1142,11 @@ bool LLShaderMgr::loadCachedProgramBinary(LLGLSLShader* shader)
 
                 if (result == in_data.size())
                 {
-                    GLenum error = LLGLContainment::getError(); // Clear current error
+                    LLGLenum error = LLGLContainment::getError(); // Clear current error
                     LLGLContainment::setProgramBinary(shader->mProgramObject, shader_info.mBinaryFormat, in_data.data(), shader_info.mBinaryLength);
 
                     error = LLGLContainment::getError();
-                    GLint success = GL_TRUE;
+                    LLGLint success = GL_TRUE;
                     LLGLContainment::getProgramInteger(shader->mProgramObject, GL_LINK_STATUS, &success);
                     if (error == GL_NO_ERROR && success == GL_TRUE)
                     {
@@ -1175,7 +1176,7 @@ bool LLShaderMgr::saveCachedProgramBinary(LLGLSLShader* shader)
         std::vector<U8> program_binary;
         program_binary.resize(binary_info.mBinaryLength);
 
-        GLenum error = LLGLContainment::getError(); // Clear current error
+        LLGLenum error = LLGLContainment::getError(); // Clear current error
         LLGLContainment::getProgramBinary(shader->mProgramObject, program_binary.size() * sizeof(U8), nullptr, &binary_info.mBinaryFormat, program_binary.data());
         error = LLGLContainment::getError();
         if (error == GL_NO_ERROR)
