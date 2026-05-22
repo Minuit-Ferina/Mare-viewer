@@ -855,7 +855,7 @@ without an explicit task, and do not start a direct Vulkan port.
       incremental builds.
 - [x] Regenerate the generated source inventory after the profiler, SDL, and
       macOS edge packet.
-- [ ] Add a summary for the profiler, SDL, and macOS edge packet.
+- [x] Add a summary for the profiler, SDL, and macOS edge packet.
 
 ## Phase 1 Inventory
 
