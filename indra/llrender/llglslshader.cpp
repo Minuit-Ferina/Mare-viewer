@@ -1018,7 +1018,7 @@ bool LLGLSLShader::mapUniforms()
         LLGLuint UBOBlockIndex = LLGLContainment::getUniformBlockIndex(mProgramObject, ubo_names[i]);
         if (UBOBlockIndex != GL_INVALID_INDEX)
         {
-            glUniformBlockBinding(mProgramObject, UBOBlockIndex, i);
+            LLGLContainment::bindUniformBlock(mProgramObject, UBOBlockIndex, i);
         }
     }
 

@@ -614,10 +614,10 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add a decision note for remaining `LLGLSLShader` direct calls.
 - [x] Add a focused task for `LLGLSLShader` UBO binding containment before
       source edits.
-- [ ] Route `LLGLSLShader` UBO binding raw call through `llglcontainment.*`.
-- [ ] Verify the `LLGLSLShader` UBO binding containment packet with
+- [x] Route `LLGLSLShader` UBO binding raw call through `llglcontainment.*`.
+- [x] Verify the `LLGLSLShader` UBO binding containment packet with
       `llrender/fast`.
-- [ ] Regenerate the generated source inventory after the `LLGLSLShader` UBO
+- [x] Regenerate the generated source inventory after the `LLGLSLShader` UBO
       binding source packet.
 - [ ] Add a summary for the `LLGLSLShader` UBO binding containment packet.
 

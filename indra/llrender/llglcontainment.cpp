@@ -284,6 +284,11 @@ LLGLuint getUniformBlockIndex(LLGLuint program, const char* name)
     return glGetUniformBlockIndex(program, name);
 }
 
+void bindUniformBlock(LLGLuint program, LLGLuint block_index, LLGLuint binding)
+{
+    glUniformBlockBinding(program, block_index, binding);
+}
+
 void setUniformInteger(LLGLint location, LLGLint value)
 {
     glUniform1i(location, value);

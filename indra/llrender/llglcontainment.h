@@ -102,6 +102,7 @@ void getActiveUniform(
     LLGLenum* type,
     char* name);
 LLGLuint getUniformBlockIndex(LLGLuint program, const char* name);
+void bindUniformBlock(LLGLuint program, LLGLuint block_index, LLGLuint binding);
 void setUniformInteger(LLGLint location, LLGLint value);
 void setUniformInteger2(LLGLint location, LLGLint first, LLGLint second);
 void setUniformIntegerVector(LLGLint location, S32 count, const LLGLint* values);
