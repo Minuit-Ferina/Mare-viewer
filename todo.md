@@ -692,7 +692,7 @@ without an explicit task, and do not start a direct Vulkan port.
       incremental newview build.
 - [x] Regenerate the generated source inventory after the `LLSpatialPartition`
       source packet.
-- [ ] Add a summary for the `LLSpatialPartition` debug/fixed-function
+- [x] Add a summary for the `LLSpatialPartition` debug/fixed-function
       containment packet.
 
 ## Phase 1 Inventory
