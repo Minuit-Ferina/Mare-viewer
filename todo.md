@@ -729,7 +729,7 @@ without an explicit task, and do not start a direct Vulkan port.
       or incremental newview build.
 - [x] Regenerate the generated source inventory after the
       `LLReflectionMapManager` source packet.
-- [ ] Add a summary for the `LLReflectionMapManager` containment packet.
+- [x] Add a summary for the `LLReflectionMapManager` containment packet.
 
 ## Phase 1 Inventory
 
