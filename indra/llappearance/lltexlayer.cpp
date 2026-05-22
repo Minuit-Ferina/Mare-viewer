@@ -28,6 +28,7 @@
 
 #include "lltexlayer.h"
 
+#include "llglcontainment.h"
 #include "llavatarappearance.h"
 #include "llcrc.h"
 #include "llimagej2c.h"
@@ -1425,12 +1426,12 @@ void LLTexLayer::renderMorphMasks(S32 x, S32 y, S32 width, S32 height, const LLC
 
             alpha_data = (U8*)ll_aligned_malloc_32(mem_size);
 
-            bool skip_readback = LLRender::sNsightDebugSupport; // nSight doesn't support use of glReadPixels
+            bool skip_readback = LLRender::sNsightDebugSupport; // nSight doesn't support GPU readback
 
             if (!skip_readback)
             {
                 if (gGLManager.mIsIntel)
-                { // work-around for broken intel drivers which cannot do glReadPixels on an RGBA FBO
+                { // work-around for broken intel drivers which cannot read pixels from an RGBA FBO
                   // returning only the alpha portion without locking up downstream
                     U8* temp = (U8*)ll_aligned_malloc_32(mem_size << 2); // allocate same size, but RGBA
 
@@ -1443,8 +1444,8 @@ void LLTexLayer::renderMorphMasks(S32 x, S32 y, S32 width, S32 height, const LLC
                         gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, 0);
                     }
 
-                    glGetTexImage(LLTexUnit::getInternalType(LLTexUnit::TT_TEXTURE), 0, GL_RGBA, GL_UNSIGNED_BYTE, temp);
-                    GLenum error = glGetError();
+                    LLGLContainment::readTextureImage(LLTexUnit::getInternalType(LLTexUnit::TT_TEXTURE), 0, GL_RGBA, GL_UNSIGNED_BYTE, temp);
+                    GLenum error = LLGLContainment::getError();
                     if (error != GL_NO_ERROR)
                     {
                         LL_INFOS("Morph") << "GL Error while reading back morph texture. Error code: " << error << LL_ENDL;
@@ -1469,7 +1470,7 @@ void LLTexLayer::renderMorphMasks(S32 x, S32 y, S32 width, S32 height, const LLC
                     // We just want GL_ALPHA, but that isn't supported in OGL core profile 4.
                     static const size_t TEMP_BYTES_PER_PIXEL = 4;
                     U8* temp_data = (U8*)ll_aligned_malloc_32(mem_size * TEMP_BYTES_PER_PIXEL);
-                    glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, temp_data);
+                    LLGLContainment::readPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, temp_data);
                     for (size_t pixel = 0; pixel < pixels; pixel++) {
                         alpha_data[pixel] = temp_data[(pixel * TEMP_BYTES_PER_PIXEL) + 3];
                     }
@@ -1927,4 +1928,3 @@ bool LLTexLayerStaticImageList::loadImageRaw(const std::string& file_name, LLIma
 
     return success;
 }
-

@@ -282,6 +282,21 @@ void getFloat(LLGLenum parameter, LLGLfloat* value)
     glGetFloatv(parameter, value);
 }
 
+void setMatrixMode(LLGLenum mode)
+{
+    glMatrixMode(mode);
+}
+
+void pushMatrix()
+{
+    glPushMatrix();
+}
+
+void popMatrix()
+{
+    glPopMatrix();
+}
+
 LLGLint getUniformLocation(LLGLuint program, const char* name)
 {
     return glGetUniformLocation(program, name);
@@ -915,6 +930,11 @@ void bindVertexArray(LLGLuint array)
 void setColorMask(LLGLboolean red, LLGLboolean green, LLGLboolean blue, LLGLboolean alpha)
 {
     glColorMask(red, green, blue, alpha);
+}
+
+void setColorUnsignedByteVector(const U8* values)
+{
+    glColor4ubv(reinterpret_cast<const GLubyte*>(values));
 }
 
 void setBlendFunction(LLGLenum source_factor, LLGLenum destination_factor)

@@ -34,6 +34,7 @@
 #include "m3math.h"
 #include "m4math.h"
 #include "v4math.h"
+#include "llglcontainment.h"
 #include "llglheaders.h"
 #include "llrender.h"
 
@@ -525,7 +526,7 @@ void LLDrawPoolBump::renderBump(U32 pass)
     gGL.diffuseColor4f(1,1,1,1);
     /// Get rid of z-fighting with non-bump pass.
     LLGLEnable polyOffset(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(-1.0f, -1.0f);
+    LLGLContainment::setPolygonOffset(-1.0f, -1.0f);
     pushBumpBatches(pass);
 }
 
@@ -967,7 +968,7 @@ void LLBumpImageList::onSourceUpdated(LLViewerTexture* src, EBumpEffect bump_cod
 
         // generate mipmap
         gGL.getTexUnit(0)->bind(bump);
-        glGenerateMipmap(GL_TEXTURE_2D);
+        LLGLContainment::generateTextureMipmap(GL_TEXTURE_2D);
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
     }
 
@@ -1079,4 +1080,3 @@ void LLRenderPass::pushBumpBatch(LLDrawInfo& params, bool texture, bool batch_te
         gGL.matrixMode(LLRender::MM_MODELVIEW);
     }
 }
-

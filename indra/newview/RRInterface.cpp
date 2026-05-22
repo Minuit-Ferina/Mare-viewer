@@ -63,6 +63,7 @@
 #include "llpaneltopinfobar.h"
 #include "llpresetsmanager.h"
 #include "llregionhandle.h"
+#include "llglcontainment.h"
 #include "llrendersphere.h"
 #include "llselectmgr.h"
 #include "llsettingssky.h" // new include for EEP
@@ -6701,9 +6702,9 @@ void RRInterface::drawSphere (LLVector3 center, F32 scale, LLColor3 color, F32 a
             gGL.color4fv(color_alpha.mV);
 
             // Render inside only (the camera is not supposed to go outside anyway)
-            glCullFace(GL_FRONT);
+            LLGLContainment::setCullFace(GL_FRONT);
             gSphere.render();
-            glCullFace(GL_BACK);
+            LLGLContainment::setCullFace(GL_BACK);
         }
         gGL.popMatrix();
     }

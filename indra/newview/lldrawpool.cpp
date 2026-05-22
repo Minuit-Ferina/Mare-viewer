@@ -27,6 +27,7 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "lldrawpool.h"
+#include "llglcontainment.h"
 #include "llrender.h"
 #include "llfasttimer.h"
 #include "llviewercontrol.h"
@@ -369,7 +370,7 @@ void LLFacePool::LLOverrideFaceColor::setColor(const LLColor4& color)
 
 void LLFacePool::LLOverrideFaceColor::setColor(const LLColor4U& color)
 {
-    glColor4ubv(color.mV);
+    LLGLContainment::setColorUnsignedByteVector(color.mV);
 }
 
 void LLFacePool::LLOverrideFaceColor::setColor(F32 r, F32 g, F32 b, F32 a)
@@ -916,4 +917,3 @@ void LLRenderPass::pushUntexturedRiggedGLTFBatch(LLDrawInfo& params, const LLVOA
         pushUntexturedGLTFBatch(params);
     }
 }
-

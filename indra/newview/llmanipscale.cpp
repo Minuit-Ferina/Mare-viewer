@@ -33,6 +33,7 @@
 #include "v3math.h"
 #include "llquaternion.h"
 #include "llgl.h"
+#include "llglcontainment.h"
 #include "llrender.h"
 #include "v4color.h"
 #include "llprimitive.h"
@@ -294,7 +295,7 @@ void LLManipScale::render()
 
             {
                 LLGLEnable poly_offset(GL_POLYGON_OFFSET_FILL);
-                glPolygonOffset( -2.f, -2.f);
+                LLGLContainment::setPolygonOffset( -2.f, -2.f);
 
                 renderCorners( bbox );
                 renderFaces( bbox );
@@ -304,7 +305,7 @@ void LLManipScale::render()
                     renderGuidelinesPart( bbox );
                 }
 
-                glPolygonOffset( 0.f, 0.f);
+                LLGLContainment::setPolygonOffset( 0.f, 0.f);
             }
         }
         gGL.popMatrix();

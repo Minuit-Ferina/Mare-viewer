@@ -50,6 +50,7 @@
 #include "lldrawable.h"
 #include "llface.h"
 #include "llgl.h"
+#include "llglcontainment.h"
 #include "llglheaders.h"
 #include "llquaternion.h"
 #include "llwindow.h"           // getPixelAspectRatio()
@@ -479,7 +480,7 @@ void LLViewerCamera::setPerspective(bool for_selection,
         {
             z_far = MAX_FAR_CLIP;
         }
-        glViewport(x, y_from_bot, width, height);
+        LLGLContainment::setViewport(x, y_from_bot, width, height);
         gGLViewport[0] = x;
         gGLViewport[1] = y_from_bot;
         gGLViewport[2] = width;

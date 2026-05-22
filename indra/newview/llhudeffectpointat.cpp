@@ -29,6 +29,7 @@
 #include "llhudeffectpointat.h"
 
 #include "llgl.h"
+#include "llglcontainment.h"
 #include "llrender.h"
 #include "llui.h"
 
@@ -368,8 +369,8 @@ void LLHUDEffectPointAt::render()
             //  render name above crosshairs
             //
             const LLFontGL *fontp = LLFontGL::getFont(LLFontDescriptor("SansSerif", "Small", LLFontGL::BOLD));
-            glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
+            LLGLContainment::setMatrixMode(GL_MODELVIEW);
+            LLGLContainment::pushMatrix();
             LLVector3 position = target + LLVector3(0.0f, 0.0f, 0.3f);
 
             LLAvatarName nameBuffer;
@@ -379,7 +380,7 @@ void LLHUDEffectPointAt::render()
             gViewerWindow->setup3DRender();
             hud_render_utf8text(name, position, *fontp, LLFontGL::NORMAL, LLFontGL::NO_SHADOW, (F32)(-0.5*fontp->getWidthF32(name)), 3.0, LLColor3(1.f, 0.f, 0.f), FALSE);
 
-            glPopMatrix();
+            LLGLContainment::popMatrix();
         }
 
         //

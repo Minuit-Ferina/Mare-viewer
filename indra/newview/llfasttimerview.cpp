@@ -33,6 +33,7 @@
 #include "llcombobox.h"
 #include "llerror.h"
 #include "llgl.h"
+#include "llglcontainment.h"
 #include "llimagepng.h"
 #include "llrender.h"
 #include "llrendertarget.h"
@@ -445,13 +446,13 @@ void LLFastTimerView::onClose(bool app_quitting)
 
 void saveChart(const std::string& label, const char* suffix, LLImageRaw* scratch)
 {
-    // disable use of glReadPixels which messes up nVidia nSight graphics debugging
+    // disable GPU readback which messes up nVidia nSight graphics debugging
     if (!LLRender::sNsightDebugSupport)
     {
         LLImageDataSharedLock lock(scratch);
 
         //read result back into raw image
-        glReadPixels(0, 0, 1024, 512, GL_RGB, GL_UNSIGNED_BYTE, scratch->getData());
+        LLGLContainment::readPixels(0, 0, 1024, 512, GL_RGB, GL_UNSIGNED_BYTE, scratch->getData());
 
         //write results to disk
         LLPointer<LLImagePNG> result = new LLImagePNG();
@@ -1058,7 +1059,7 @@ void LLFastTimerView::drawLineGraph()
         if (mHoverID == idp)
         {
             gGL.flush();
-            glLineWidth(3);
+            LLGLContainment::setLineWidth(3);
         }
 
         llassert(idp->getIndex() < sTimerColors.size());
@@ -1119,7 +1120,7 @@ void LLFastTimerView::drawLineGraph()
         if (mHoverID == idp)
         {
             gGL.flush();
-            glLineWidth(1);
+            LLGLContainment::setLineWidth(1);
         }
 
         if (idp->getTreeNode().mCollapsed)

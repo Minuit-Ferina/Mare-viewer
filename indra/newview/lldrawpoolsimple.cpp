@@ -35,6 +35,7 @@
 #include "pipeline.h"
 #include "llspatialpartition.h"
 #include "llviewershadermgr.h"
+#include "llglcontainment.h"
 #include "llrender.h"
 #include "gltfscenemanager.h"
 
@@ -63,7 +64,7 @@ void LLDrawPoolGlow::renderPostDeferred(S32 pass)
     gGL.flush();
     /// Get rid of z-fighting with non-glow pass.
     LLGLEnable polyOffset(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(-1.0f, -1.0f);
+    LLGLContainment::setPolygonOffset(-1.0f, -1.0f);
     gGL.setSceneBlendType(LLRender::BT_ADD);
 
     LLGLDepthTest depth(GL_TRUE, GL_FALSE);
@@ -224,4 +225,3 @@ void LLDrawPoolFullbrightAlphaMask::renderPostDeferred(S32 pass)
         pushRiggedMaskBatches(LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK_RIGGED, true, true);
     }
 }
-

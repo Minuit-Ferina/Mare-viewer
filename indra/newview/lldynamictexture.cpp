@@ -29,6 +29,7 @@
 #include "lldynamictexture.h"
 
 // Linden library includes
+#include "llglcontainment.h"
 #include "llglheaders.h"
 #include "llwindow.h"           // getPosition()
 
@@ -132,10 +133,10 @@ void LLViewerDynamicTexture::preRender(bool clear_depth)
     mCamera.setView(camera->getView());
     mCamera.setNear(camera->getNear());
 
-    glViewport(mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight);
+    LLGLContainment::setViewport(mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight);
     if (clear_depth)
     {
-        glClear(GL_DEPTH_BUFFER_BIT);
+        LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
     }
 }
 
@@ -218,7 +219,7 @@ bool LLViewerDynamicTexture::updateAllInstances()
                 llassert(dynamicTexture->getFullWidth() <= width);
                 llassert(dynamicTexture->getFullHeight() <= height);
 
-                glClear(GL_DEPTH_BUFFER_BIT);
+                LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
 
                 gGL.color4f(1.f, 1.f, 1.f, 1.f);
                 dynamicTexture->setBoundTarget(&renderTarget);

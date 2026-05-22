@@ -96,6 +96,9 @@ void drawElements(LLGLenum mode, S32 count, LLGLenum index_type, const void* ind
 void getInteger(LLGLenum parameter, LLGLint* value);
 void setPixelStoreInteger(LLGLenum parameter, LLGLint value);
 void getFloat(LLGLenum parameter, LLGLfloat* value);
+void setMatrixMode(LLGLenum mode);
+void pushMatrix();
+void popMatrix();
 LLGLint getUniformLocation(LLGLuint program, const char* name);
 LLGLint getAttributeLocation(LLGLuint program, const char* name);
 void bindAttributeLocation(LLGLuint program, LLGLuint index, const char* name);
@@ -296,6 +299,7 @@ void setCullFace(LLGLenum mode);
 void generateVertexArrays(S32 count, LLGLuint* arrays);
 void bindVertexArray(LLGLuint array);
 void setColorMask(LLGLboolean red, LLGLboolean green, LLGLboolean blue, LLGLboolean alpha);
+void setColorUnsignedByteVector(const U8* values);
 void setBlendFunction(LLGLenum source_factor, LLGLenum destination_factor);
 void setSeparateBlendFunction(
     LLGLenum color_source_factor,

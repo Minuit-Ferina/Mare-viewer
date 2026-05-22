@@ -27,6 +27,7 @@
 #include "lllocalcliprect.h"
 
 #include "llfontgl.h"
+#include "llglcontainment.h"
 #include "llui.h"
 
 /*static*/ std::stack<LLRect> LLScreenClipRect::sClipRectStack;
@@ -92,7 +93,7 @@ void LLScreenClipRect::updateScissorRegion()
     y = llfloor(rect.mBottom * LLUI::getScaleFactor().mV[VY]);
     w = llmax(0, llceil(rect.getWidth() * LLUI::getScaleFactor().mV[VX])) + 1;
     h = llmax(0, llceil(rect.getHeight() * LLUI::getScaleFactor().mV[VY])) + 1;
-    glScissor( x,y,w,h );
+    LLGLContainment::setScissorBox(x, y, w, h);
     stop_glerror();
 }
 
