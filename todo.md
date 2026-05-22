@@ -711,7 +711,7 @@ without an explicit task, and do not start a direct Vulkan port.
       incremental newview build.
 - [x] Regenerate the generated source inventory after the `GLTFSceneManager`
       source packet.
-- [ ] Add a summary for the `GLTFSceneManager` containment packet.
+- [x] Add a summary for the `GLTFSceneManager` containment packet.
 
 ## Phase 1 Inventory
 
