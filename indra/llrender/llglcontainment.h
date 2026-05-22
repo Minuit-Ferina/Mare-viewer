@@ -48,6 +48,7 @@ void bindTexture(LLGLenum target, LLGLuint texture);
 void generateBufferObjects(S32 count, LLGLuint* buffers);
 void deleteBufferObjects(S32 count, const LLGLuint* buffers);
 void bindBufferObject(LLGLenum target, LLGLuint buffer);
+void bindBufferBase(LLGLenum target, LLGLuint index, LLGLuint buffer);
 void allocateBufferObjectStorage(LLGLenum target, U64 size, const void* data, LLGLenum usage);
 void updateBufferObjectSubData(LLGLenum target, U32 offset, U32 size, const void* data);
 void generateQueries(S32 count, LLGLuint* queries);

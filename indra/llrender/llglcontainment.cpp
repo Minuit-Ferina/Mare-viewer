@@ -111,6 +111,11 @@ void bindBufferObject(LLGLenum target, LLGLuint buffer)
     glBindBuffer(target, buffer);
 }
 
+void bindBufferBase(LLGLenum target, LLGLuint index, LLGLuint buffer)
+{
+    glBindBufferBase(target, index, buffer);
+}
+
 void allocateBufferObjectStorage(LLGLenum target, U64 size, const void* data, LLGLenum usage)
 {
     glBufferData(target, static_cast<GLsizeiptr>(size), data, usage);
