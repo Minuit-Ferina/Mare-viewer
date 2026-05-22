@@ -1057,6 +1057,8 @@ without an explicit task, and do not start a direct Vulkan port.
       current shader manager ownership map and containment status.
 - [x] Add `docs/architecture/214-draw-pool-pass-status.md` to record the
       current draw-pool order and pass-state assumptions.
+- [x] Add `docs/architecture/215-renderer-contract-draft.md` as the first
+      small renderer contract after the evidence phase.
 
 ## Phase 1 Inventory
 
@@ -1104,13 +1106,13 @@ No open items in this section right now.
 
 ## Longer-Term Architecture
 
-- [ ] Separate conceptual ownership: frame orchestration, resources, render passes, UI rendering, platform windowing.
-- [ ] Identify seams where UI requests rendering without owning OpenGL state.
-- [ ] Identify seams where world rendering depends on viewer UI or global state.
-- [ ] Identify texture lifetime ownership across fetch, cache, upload, preview, and GLTF.
-- [ ] Identify shader lifetime ownership across compile, bind, uniforms, and reload.
-- [ ] Identify render pass ordering dependencies in draw pools and `pipeline.cpp`.
-- [ ] Prepare a small renderer contract document after phase 1 evidence is complete.
+- [x] Separate conceptual ownership: frame orchestration, resources, render passes, UI rendering, platform windowing.
+- [x] Identify seams where UI requests rendering without owning OpenGL state.
+- [x] Identify seams where world rendering depends on viewer UI or global state.
+- [x] Identify texture lifetime ownership across fetch, cache, upload, preview, and GLTF.
+- [x] Identify shader lifetime ownership across compile, bind, uniforms, and reload.
+- [x] Identify render pass ordering dependencies in draw pools and `pipeline.cpp`.
+- [x] Prepare a small renderer contract document after phase 1 evidence is complete.
 - [ ] Only then consider narrow abstractions that reduce real OpenGL coupling.
 
 ## Very Long-Term Product Direction
