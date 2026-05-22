@@ -1053,6 +1053,8 @@ without an explicit task, and do not start a direct Vulkan port.
       keep avatar bake dynamic textures separate from UI preview cleanup.
 - [x] Add `docs/architecture/212-low-level-render-contract-index.md` to index
       the low-level render contracts already documented.
+- [x] Add `docs/architecture/213-shader-ownership-status.md` to record the
+      current shader manager ownership map and containment status.
 
 ## Phase 1 Inventory
 
@@ -1077,7 +1079,7 @@ No open items in this section right now.
 - [x] Do not edit `indra/newview/pipeline.cpp` until render target and pass ownership are mapped.
 - [x] Do not edit low-level `llgl*`, `llrender*`, `llrendertarget*`, or `llvertexbuffer*` behavior until contracts are documented.
 - [ ] Do not edit draw pools until their pass order and state assumptions are mapped.
-- [ ] Do not edit shader managers until shader family ownership is mapped.
+- [x] Do not edit shader managers until shader family ownership is mapped.
 - [x] Do not edit UI rendering paths until UI/render boundary candidates are listed.
 - [ ] Do not move files in `indra/newview/`, `indra/llrender/`, `indra/llwindow/`, or `indra/llui/` during phase 2.
 
