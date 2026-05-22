@@ -1044,6 +1044,8 @@ without an explicit task, and do not start a direct Vulkan port.
       dynamic texture source changes.
 - [x] Add `docs/architecture/208-dynamic-texture-user-table.md` to split
       dynamic texture users by order bucket, target group, and risk.
+- [x] Add `docs/architecture/209-dynamic-texture-overrides.md` to map
+      dynamic texture virtual overrides before source changes.
 
 ## Phase 1 Inventory
 
