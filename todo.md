@@ -654,7 +654,7 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLGLSLShader`
       unload lifecycle source packet.
-- [ ] Add a summary for the `LLGLSLShader` unload lifecycle containment
+- [x] Add a summary for the `LLGLSLShader` unload lifecycle containment
       packet.
 
 ## Phase 1 Inventory
