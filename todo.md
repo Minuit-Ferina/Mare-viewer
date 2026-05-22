@@ -755,7 +755,7 @@ without an explicit task, and do not start a direct Vulkan port.
       incremental newview build.
 - [x] Regenerate the generated source inventory after the `LLManipTranslate`
       source packet.
-- [ ] Add a summary for the disabled `LLManipTranslate` stencil containment
+- [x] Add a summary for the disabled `LLManipTranslate` stencil containment
       packet.
 
 ## Phase 1 Inventory
