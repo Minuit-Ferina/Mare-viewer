@@ -77,6 +77,7 @@ void setVertexAttribute4(
     LLGLfloat third,
     LLGLfloat fourth);
 void setVertexAttributeVector4(LLGLuint location, const LLGLfloat* values);
+void setVertexPointer(LLGLint size, LLGLenum type, S32 stride, const void* pointer);
 void drawVertexBufferRange(
     LLGLenum mode,
     LLGLuint start,
@@ -85,6 +86,7 @@ void drawVertexBufferRange(
     LLGLenum index_type,
     const void* indices);
 void drawVertexBufferArrays(LLGLenum mode, LLGLint first, S32 count);
+void drawElements(LLGLenum mode, S32 count, LLGLenum index_type, const void* indices);
 void getInteger(LLGLenum parameter, LLGLint* value);
 void setPixelStoreInteger(LLGLenum parameter, LLGLint value);
 void getFloat(LLGLenum parameter, LLGLfloat* value);
@@ -256,6 +258,7 @@ void deleteSyncObject(LLGLsync sync);
 void generateTextureMipmap(LLGLenum texture_target);
 void clearBuffers(U32 mask);
 void setPolygonOffset(LLGLfloat factor, LLGLfloat units);
+void setPolygonMode(LLGLenum face, LLGLenum mode);
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);
 LLGLenum getError();
 void enableCapability(LLGLenum capability);

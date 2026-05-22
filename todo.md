@@ -686,11 +686,11 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Add a focused task for `LLSpatialPartition` debug/fixed-function
       containment before source edits.
-- [ ] Route `LLSpatialPartition` debug/fixed-function OpenGL calls through
+- [x] Route `LLSpatialPartition` debug/fixed-function OpenGL calls through
       `llglcontainment.*`.
-- [ ] Verify the `LLSpatialPartition` containment packet with a targeted or
+- [x] Verify the `LLSpatialPartition` containment packet with a targeted or
       incremental newview build.
-- [ ] Regenerate the generated source inventory after the `LLSpatialPartition`
+- [x] Regenerate the generated source inventory after the `LLSpatialPartition`
       source packet.
 - [ ] Add a summary for the `LLSpatialPartition` debug/fixed-function
       containment packet.

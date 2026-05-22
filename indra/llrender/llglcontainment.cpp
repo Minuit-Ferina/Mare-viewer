@@ -205,6 +205,11 @@ void setVertexAttributeVector4(LLGLuint location, const LLGLfloat* values)
     glVertexAttrib4fv(location, values);
 }
 
+void setVertexPointer(LLGLint size, LLGLenum type, S32 stride, const void* pointer)
+{
+    glVertexPointer(size, type, static_cast<GLsizei>(stride), pointer);
+}
+
 void drawVertexBufferRange(
     LLGLenum mode,
     LLGLuint start,
@@ -225,6 +230,11 @@ void drawVertexBufferRange(
 void drawVertexBufferArrays(LLGLenum mode, LLGLint first, S32 count)
 {
     glDrawArrays(mode, first, static_cast<GLsizei>(count));
+}
+
+void drawElements(LLGLenum mode, S32 count, LLGLenum index_type, const void* indices)
+{
+    glDrawElements(mode, static_cast<GLsizei>(count), index_type, indices);
 }
 
 void getInteger(LLGLenum parameter, LLGLint* value)
@@ -763,6 +773,11 @@ void clearBuffers(U32 mask)
 void setPolygonOffset(LLGLfloat factor, LLGLfloat units)
 {
     glPolygonOffset(factor, units);
+}
+
+void setPolygonMode(LLGLenum face, LLGLenum mode)
+{
+    glPolygonMode(face, mode);
 }
 
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height)

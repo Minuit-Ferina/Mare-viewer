@@ -46,6 +46,7 @@
 #include "pipeline.h"
 #include "llmeshrepository.h"
 #include "llrender.h"
+#include "llglcontainment.h"
 #include "lldrawpool.h"
 #include "lloctree.h"
 #include "llphysicsshapebuilderutil.h"
@@ -1659,16 +1660,16 @@ void renderOctree(LLSpatialGroup* group)
 
         {
             LLGLDepthTest gl_depth(false, false);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
             gGL.diffuseColor4f(1,0,0,group->mBuilt);
             gGL.flush();
-            glLineWidth(5.f);
+            LLGLContainment::setLineWidth(5.f);
 
             const LLVector4a* bounds = group->getObjectBounds();
             drawBoxOutline(bounds[0], bounds[1]);
             gGL.flush();
-            glLineWidth(1.f);
+            LLGLContainment::setLineWidth(1.f);
             gGL.flush();
 
             const LLVOAvatar* lastAvatar = nullptr;
@@ -1756,7 +1757,7 @@ void renderOctree(LLSpatialGroup* group)
                     gGL.popMatrix();
                 }
             }
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             gDebugProgram.bind(); // make sure non-rigged variant is bound
             gGL.diffuseColor4f(1,1,1,1);
         }
@@ -1978,12 +1979,12 @@ void renderBoundingBox(LLDrawable* drawable, bool set_color = true)
     if (vobj && vobj->onActiveList())
     {
         gGL.flush();
-        glLineWidth(llmax(4.f*sinf(gFrameTimeSeconds*2.f)+1.f, 1.f));
-        //glLineWidth(4.f*(sinf(gFrameTimeSeconds*2.f)*0.25f+0.75f));
+        LLGLContainment::setLineWidth(llmax(4.f*sinf(gFrameTimeSeconds*2.f)+1.f, 1.f));
+        // Alternate active outline width: 4.f*(sinf(gFrameTimeSeconds*2.f)*0.25f+0.75f).
         stop_glerror();
         drawBoxOutline(pos,size);
         gGL.flush();
-        glLineWidth(1.f);
+        LLGLContainment::setLineWidth(1.f);
     }
     else
     {
@@ -2498,12 +2499,16 @@ void renderPhysicsShape(LLDrawable* drawable, LLVOVolume* volume, bool wireframe
 
             llassert(LLGLSLShader::sCurBoundShader != 0);
             LLVertexBuffer::unbind();
-            glVertexPointer(3, GL_FLOAT, 16, phys_volume->mHullPoints);
+            LLGLContainment::setVertexPointer(3, GL_FLOAT, 16, phys_volume->mHullPoints);
 
             gGL.diffuseColor4fv(color.mV);
 
             gGL.syncMatrices();
-            glDrawElements(GL_TRIANGLES, phys_volume->mNumHullIndices, GL_UNSIGNED_SHORT, phys_volume->mHullIndices);
+            LLGLContainment::drawElements(
+                GL_TRIANGLES,
+                phys_volume->mNumHullIndices,
+                GL_UNSIGNED_SHORT,
+                phys_volume->mHullIndices);
         }
         else
         {
@@ -2582,14 +2587,14 @@ void renderPhysicsShapes(LLSpatialGroup* group, bool wireframe)
                             LLVertexBuffer* buff = face->getVertexBuffer();
                             if (buff)
                             {
-                                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
                                 buff->setBuffer();
                                 gGL.diffuseColor4f(0.2f, 0.5f, 0.3f, 0.5f);
                                 buff->draw(LLRender::TRIANGLES, buff->getNumIndices(), 0);
 
                                 gGL.diffuseColor4f(0.2f, 1.f, 0.3f, 0.75f);
-                                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
                                 buff->draw(LLRender::TRIANGLES, buff->getNumIndices(), 0);
                             }
                         }
@@ -2680,7 +2685,7 @@ void renderTextureAnim(LLDrawInfo* params)
 void renderBatchSize(LLDrawInfo* params)
 {
     LLGLEnable offset(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(-1.f, 1.f);
+    LLGLContainment::setPolygonOffset(-1.f, 1.f);
     LLGLSLShader* old_shader = LLGLSLShader::sCurBoundShaderPtr;
     bool bind = false;
     if (params->mAvatar)
@@ -2790,18 +2795,18 @@ void renderTexelDensity(LLDrawable* drawable)
     //  checkboard_matrix.initScale(LLVector3(texturep->getWidth(discard_level) / 8, texturep->getHeight(discard_level) / 8, 1.f));
     //  gGL.getTexUnit(i)->activate();
 
-    //  glMatrixMode(GL_TEXTURE);
-    //  glPushMatrix();
-    //  glLoadIdentity();
+    //  Legacy texture matrix mode would be selected here.
+    //  Legacy texture matrix stack would be pushed here.
+    //  Legacy texture matrix identity would be loaded here.
     //  //gGL.matrixMode(LLRender::MM_TEXTURE);
-    //  glLoadMatrixf((GLfloat*) checkboard_matrix.mMatrix);
+    //  The checkerboard texture matrix would be loaded here.
 
     //  gGL.getTexUnit(i)->bind(LLViewerTexture::sCheckerBoardImagep, true);
 
     //  pushVerts(params, LLVertexBuffer::MAP_VERTEX | LLVertexBuffer::MAP_TEXCOORD0 | LLVertexBuffer::MAP_COLOR | LLVertexBuffer::MAP_NORMAL );
 
-    //  glPopMatrix();
-    //  glMatrixMode(GL_MODELVIEW);
+    //  Legacy texture matrix stack would be popped here.
+    //  Legacy model-view matrix mode would be restored here.
     //  //gGL.matrixMode(LLRender::MM_MODELVIEW);
     //}
 }
@@ -2896,7 +2901,7 @@ public:
             if (i == 1)
             {
                 gGL.flush();
-                glLineWidth(3.f);
+                LLGLContainment::setLineWidth(3.f);
             }
 
             gGL.begin(LLRender::TRIANGLES);
@@ -2915,7 +2920,7 @@ public:
             if (i == 1)
             {
                 gGL.flush();
-                glLineWidth(1.f);
+                LLGLContainment::setLineWidth(1.f);
             }
         }
     }
@@ -2938,9 +2943,9 @@ void renderRaycast(LLDrawable* drawablep)
         LLVOVolume* vobj = drawablep->getVOVolume();
         if (vobj && !vobj->isDead())
         {
-            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            // Wireframe polygon mode can be enabled here while debugging raycast faces.
             //pushVerts(drawablep->getFace(gDebugRaycastFaceHit), LLVertexBuffer::MAP_VERTEX);
-            //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            // Fill polygon mode can be restored here after debugging raycast faces.
 
             LLVolume* volume = vobj->getVolume();
 
@@ -2985,7 +2990,7 @@ void renderRaycast(LLDrawable* drawablep)
                     dir.setSub(end, start);
 
                     gGL.flush();
-                    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                    LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
                     {
                         //render face positions
@@ -3004,7 +3009,7 @@ void renderRaycast(LLDrawable* drawablep)
                     }
 
                     gGL.popMatrix();
-                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                    LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
                 }
             }
         }
@@ -3597,16 +3602,16 @@ void LLSpatialPartition::renderDebug()
 
             LLGLEnable blend(GL_BLEND);
             LLGLDepthTest depth_under(GL_TRUE, GL_FALSE, GL_GREATER);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             gGL.diffuseColor4f(0.5f, 0.0f, 0, 0.25f);
 
             LLGLEnable offset(GL_POLYGON_OFFSET_LINE);
-            glPolygonOffset(-1.f, -1.f);
+            LLGLContainment::setPolygonOffset(-1.f, -1.f);
 
             LLOctreeRenderXRay xray(camera);
             xray.traverse(mOctree);
 
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
     }
     gDebugProgram.unbind();
@@ -4184,4 +4189,3 @@ void LLCullResult::assertDrawMapsEmpty()
         }
     }
 }
-
