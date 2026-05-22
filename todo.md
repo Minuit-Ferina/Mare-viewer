@@ -1226,8 +1226,15 @@ not start a direct Vulkan port.
 - [x] Verify the alpha emissive subpass packet with targeted
       `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
       inventory.
-- [ ] Decide the next larger phase 4 packet after the alpha emissive subpass
-      helper.
+- [x] Decide to extract alpha traversal setup and final restore as the next
+      larger phase 4 packet.
+- [x] Add
+      `docs/architecture/246-drawpool-alpha-traversal-packet.md`.
+- [x] Extract local alpha group iterator, water-side, draw-info filter, and
+      final restore helpers in `LLDrawPoolAlpha`.
+- [x] Verify the alpha traversal packet with targeted `lldrawpoolalpha.cpp.o`,
+      both GL guardrails, and regenerated source inventory.
+- [ ] Decide the next larger phase 4 packet after the alpha traversal helpers.
 
 ## Phase 1 Inventory
 

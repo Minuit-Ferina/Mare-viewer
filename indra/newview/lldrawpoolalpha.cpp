@@ -110,6 +110,41 @@ static LLSpatialGroup::drawmap_elem_t& get_alpha_draw_info(LLSpatialGroup* group
                     group->mDrawMap[LLRenderPass::PASS_ALPHA];
 }
 
+static LLCullResult::sg_iterator begin_alpha_groups(bool rigged)
+{
+    return rigged ? gPipeline.beginRiggedAlphaGroups() :
+                    gPipeline.beginAlphaGroups();
+}
+
+static LLCullResult::sg_iterator end_alpha_groups(bool rigged)
+{
+    return rigged ? gPipeline.endRiggedAlphaGroups() :
+                    gPipeline.endAlphaGroups();
+}
+
+static bool is_alpha_draw_info_for_pass(const LLDrawInfo& params, bool rigged)
+{
+    return (bool)params.mAvatar == rigged;
+}
+
+static bool is_above_water_alpha_pool(U32 pool_type)
+{
+    const bool above_water = pool_type == LLDrawPool::POOL_ALPHA_POST_WATER;
+    return LLPipeline::sUnderWaterRender ? !above_water : above_water;
+}
+
+static void finish_alpha_render(bool light_enabled)
+{
+    gGL.setSceneBlendType(LLRender::BT_ALPHA);
+
+    LLVertexBuffer::unbind();
+
+    if (!light_enabled)
+    {
+        gPipeline.enableLightsDynamic();
+    }
+}
+
 static bool should_queue_alpha_emissive(U32 pool_type, const LLDrawInfo& params)
 {
     return pool_type != LLDrawPool::POOL_ALPHA_PRE_WATER &&
@@ -1004,28 +1039,13 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
     const LLGLSLShader* lastAvatarShader = nullptr;
     bool skipLastSkin = false;
 
-    LLCullResult::sg_iterator begin;
-    LLCullResult::sg_iterator end;
-
-    if (rigged)
-    {
-        begin = gPipeline.beginRiggedAlphaGroups();
-        end = gPipeline.endRiggedAlphaGroups();
-    }
-    else
-    {
-        begin = gPipeline.beginAlphaGroups();
-        end = gPipeline.endAlphaGroups();
-    }
+    LLCullResult::sg_iterator begin = begin_alpha_groups(rigged);
+    LLCullResult::sg_iterator end = end_alpha_groups(rigged);
 
     LLEnvironment& env = LLEnvironment::instance();
     F32 water_height = env.getWaterHeight();
 
-    bool above_water = getType() == LLDrawPool::POOL_ALPHA_POST_WATER;
-    if (LLPipeline::sUnderWaterRender)
-    {
-        above_water = !above_water;
-    }
+    const bool above_water = is_above_water_alpha_pool(getType());
 
 
 //MK
@@ -1073,7 +1093,7 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
             for (LLSpatialGroup::drawmap_elem_t::iterator k = draw_info.begin(); k != draw_info.end(); ++k)
             {
                 LLDrawInfo& params = **k;
-                if ((bool)params.mAvatar != rigged)
+                if (!is_alpha_draw_info_for_pass(params, rigged))
                 {
                     continue;
                 }
@@ -1191,12 +1211,5 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
         }
     }
 
-    gGL.setSceneBlendType(LLRender::BT_ALPHA);
-
-    LLVertexBuffer::unbind();
-
-    if (!light_enabled)
-    {
-        gPipeline.enableLightsDynamic();
-    }
+    finish_alpha_render(light_enabled);
 }
