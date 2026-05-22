@@ -1067,6 +1067,8 @@ without an explicit task, and do not start a direct Vulkan port.
       decisions.
 - [x] Add `docs/architecture/218-dynamic-texture-render-scope-task.md` before
       attempting any dynamic texture source extraction.
+- [x] Add `docs/architecture/219-ui-clip-rect-scissor-task.md` before
+      attempting any UI scissor behavior cleanup.
 
 ## Phase 1 Inventory
 
