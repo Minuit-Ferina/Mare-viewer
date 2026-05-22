@@ -885,6 +885,7 @@ without an explicit task, and do not start a direct Vulkan port.
       `pipeline.cpp.o` incremental compile.
 - [x] Regenerate the generated source inventory after the pipeline containment
       packet.
+- [x] Add a summary for the pipeline containment packet.
 
 ## Phase 1 Inventory
 
