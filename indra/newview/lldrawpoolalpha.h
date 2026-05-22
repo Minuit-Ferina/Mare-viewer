@@ -130,6 +130,8 @@ private:
     void setupForwardAlphaRenderState();
     void renderRiggedGltfDepthPrepass(bool rigged);
     void finishForwardAlphaRender(bool rigged);
+    void renderStaticDebugAlphaBatches();
+    void renderRiggedDebugAlphaBatches();
 
     // our 'normal' alpha blend function for this pass
     LLRender::eBlendFactor mColorSFactor;

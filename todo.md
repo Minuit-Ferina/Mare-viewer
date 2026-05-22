@@ -1284,7 +1284,16 @@ not start a direct Vulkan port.
 - [x] Verify the forward alpha render packet with targeted
       `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
       inventory.
-- [ ] Decide the next larger phase 4 packet after the forward alpha render
+- [x] Decide to extract debug alpha static/rigged rendering halves as the next
+      larger phase 4 packet.
+- [x] Add
+      `docs/architecture/253-drawpool-alpha-debug-render-packet.md`.
+- [x] Extract owner-local debug alpha static and rigged helpers in
+      `LLDrawPoolAlpha`.
+- [x] Verify the debug alpha render packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [ ] Decide the next larger phase 4 packet after the debug alpha render
       helpers.
 
 ## Phase 1 Inventory

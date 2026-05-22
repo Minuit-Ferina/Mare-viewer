@@ -724,6 +724,35 @@ void LLDrawPoolAlpha::finishForwardAlphaRender(bool rigged)
     }
 }
 
+void LLDrawPoolAlpha::renderStaticDebugAlphaBatches()
+{
+    renderAlphaHighlight();
+
+    push_static_alpha_highlight_mask_batches(*this);
+
+    // Material alpha mask
+    gGL.diffuseColor4f(0, 0, 1, 1);
+    push_static_material_alpha_highlight_batches(*this);
+
+    gGL.diffuseColor4f(0, 1, 0, 1);
+    pushUntexturedBatches(LLRenderPass::PASS_INVISIBLE);
+}
+
+void LLDrawPoolAlpha::renderRiggedDebugAlphaBatches()
+{
+    gHighlightProgram.mRiggedVariant->bind();
+    gGL.diffuseColor4f(1, 0, 0, 1);
+
+    push_rigged_alpha_highlight_mask_batches(*this);
+
+    // Material alpha mask
+    gGL.diffuseColor4f(0, 0, 1, 1);
+    push_rigged_material_alpha_highlight_batches(*this);
+
+    gGL.diffuseColor4f(0, 1, 0, 1);
+    pushRiggedBatches(LLRenderPass::PASS_INVISIBLE_RIGGED, false);
+}
+
 void LLDrawPoolAlpha::forwardRender(bool rigged)
 {
     gPipeline.enableLightsDynamic();
@@ -751,29 +780,8 @@ void LLDrawPoolAlpha::renderDebugAlpha()
         gGL.diffuseColor4f(1, 0, 0, 1);
         gGL.getTexUnit(0)->bindFast(LLViewerFetchedTexture::getSmokeImage());
 
-
-        renderAlphaHighlight();
-
-        push_static_alpha_highlight_mask_batches(*this);
-
-        // Material alpha mask
-        gGL.diffuseColor4f(0, 0, 1, 1);
-        push_static_material_alpha_highlight_batches(*this);
-
-        gGL.diffuseColor4f(0, 1, 0, 1);
-        pushUntexturedBatches(LLRenderPass::PASS_INVISIBLE);
-
-        gHighlightProgram.mRiggedVariant->bind();
-        gGL.diffuseColor4f(1, 0, 0, 1);
-
-        push_rigged_alpha_highlight_mask_batches(*this);
-
-        // Material alpha mask
-        gGL.diffuseColor4f(0, 0, 1, 1);
-        push_rigged_material_alpha_highlight_batches(*this);
-
-        gGL.diffuseColor4f(0, 1, 0, 1);
-        pushRiggedBatches(LLRenderPass::PASS_INVISIBLE_RIGGED, false);
+        renderStaticDebugAlphaBatches();
+        renderRiggedDebugAlphaBatches();
         LLGLSLShader::sCurBoundShaderPtr->unbind();
     }
 }
