@@ -31,6 +31,8 @@
 
 // Project includes
 #include "lluiimage.h"
+#include "llrender.h"
+#include "v3math.h"
 
 LLUIImage::LLUIImage(const std::string& name, LLPointer<LLTexture> image)
 :   mName(name),
@@ -169,4 +171,3 @@ namespace LLInitParam
             return (a == b);
     }
 }
-

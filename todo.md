@@ -916,11 +916,19 @@ without an explicit task, and do not start a direct Vulkan port.
       `llui`, targeted `newview` object compiles, the containment guardrail,
       and regenerated source inventory.
 - [x] Add `docs/architecture/187-llrender-header-boundary-summary.md`.
+- [x] Narrow `llrender2dutils.h` so it no longer includes `llglslshader.h`
+      directly.
+- [x] Make the `LLUIImage` and `LLFloater` transitive render/GL dependencies
+      explicit after the `llrender2dutils.h` trim.
+- [x] Verify the `LLRender2DUtils` header boundary packet with
+      `llrender/fast`, `llui`, targeted `llviewerwindow.cpp.o`, the
+      containment guardrail, and regenerated source inventory.
+- [x] Add
+      `docs/architecture/188-llrender2dutils-header-boundary-summary.md`.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 - [ ] Continue reducing header-level OpenGL ABI exposure in small packets,
-      starting with `llrender2dutils.h`, `llglslshader.h`, and
-      `llshadermgr.h`.
+      starting with `llglslshader.h` and `llshadermgr.h`.
 
 ## Phase 1 Inventory
 

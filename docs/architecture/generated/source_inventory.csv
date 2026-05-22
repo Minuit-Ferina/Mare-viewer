@@ -18,7 +18,7 @@ indra/newview/llfilepicker.cpp,viewer.misc,1834,13,0,2,1,2,0,0,0,0,0,0,0,0,0
 indra/llui/llui.h,unknown,476,15,0,2,2,2,0,0,0,0,0,0,0,0,0
 indra/llwindow/llwindowmacosx-objc.h,unknown,187,6,0,2,0,2,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/textureUtilV.glsl,assets.texture,185,0,0,2,0,2,0,0,0,0,0,0,0,0,0
-indra/llrender/llrender2dutils.cpp,render.legacy_low_level,1871,13,0,1,0,0,577,3,33,0,0,2,0,0,0
+indra/llrender/llrender2dutils.cpp,render.legacy_low_level,1872,14,0,1,0,0,577,3,33,0,0,2,0,0,0
 indra/newview/lldrawpoolterrain.cpp,render.pipeline,1124,24,0,1,0,1,189,85,31,1,30,0,0,22,0
 indra/newview/llselectmgr.cpp,render.pipeline,9001,71,0,1,0,1,68,51,14,1,0,0,0,3,0
 indra/llrender/llcubemap.cpp,render.legacy_low_level,345,12,0,1,0,0,21,3,4,0,0,0,6,0,0
@@ -60,7 +60,7 @@ indra/llappearance/llavatarjoint.cpp,world.avatar,316,5,0,0,0,0,30,0,1,0,0,0,0,0
 indra/newview/llsceneview.cpp,render.opengl_touching,436,9,0,0,0,0,29,0,8,0,0,0,0,0,0
 indra/newview/llscenemonitor.cpp,render.pipeline,765,18,0,0,0,0,26,14,0,10,0,8,0,0,0
 indra/newview/llviewerparceloverlay.cpp,render.pipeline,845,21,0,0,0,0,23,4,4,1,0,0,0,0,0
-indra/llui/llfloater.cpp,ui,3796,31,0,0,0,0,23,1,1,0,0,0,0,0,0
+indra/llui/llfloater.cpp,ui,3797,32,0,0,0,0,23,1,1,0,0,0,0,0,0
 indra/newview/llheroprobemanager.cpp,render.pipeline,662,17,0,0,0,0,22,6,3,5,0,2,0,0,0
 indra/newview/lltoolbrush.cpp,render.opengl_touching,722,26,0,0,0,0,22,1,2,0,0,0,0,0,0
 indra/newview/lldrawpool.cpp,render.draw_pool,920,28,0,0,0,0,21,13,11,0,49,0,0,3,0
@@ -126,7 +126,7 @@ indra/llrender/llcubemaparray.cpp,render.legacy_low_level,246,12,0,0,0,0,2,3,0,0
 indra/newview/llhudnametag.cpp,render.opengl_touching,949,21,0,0,0,0,2,2,0,0,0,0,0,0,0
 indra/newview/lldrawpoolpbropaque.cpp,render.pipeline,96,6,0,0,0,0,2,0,0,6,8,0,0,0,0
 indra/llui/llfolderviewitem.cpp,render.opengl_touching,2632,14,0,0,0,0,2,0,0,0,0,0,0,0,1
-indra/llrender/lluiimage.cpp,render.legacy_low_level,173,2,0,0,0,0,2,0,0,0,0,0,0,0,0
+indra/llrender/lluiimage.cpp,render.legacy_low_level,174,4,0,0,0,0,2,0,0,0,0,0,0,0,0
 indra/newview/llviewertexturelist.cpp,assets.texture,1907,33,0,0,0,0,1,23,3,0,0,0,3,31,0
 indra/newview/llvovolume.cpp,render.pipeline,7187,62,0,0,0,0,1,13,19,29,11,0,0,21,0
 indra/llappearance/lllocaltextureobject.cpp,assets.texture,213,8,0,0,0,0,1,3,0,0,0,0,0,0,0
@@ -215,6 +215,7 @@ indra/llrender/llshadermgr.h,render.legacy_low_level,410,2,0,0,0,0,0,4,0,0,0,0,0
 indra/newview/tests/llworldmipmap_test.cpp,render.opengl_touching,166,5,0,0,0,0,0,4,0,0,0,0,0,0,0
 indra/llappearance/lllocaltextureobject.h,assets.texture,85,2,0,0,0,0,0,4,0,0,0,0,0,0,0
 indra/newview/lltextureview.h,assets.texture,80,1,0,0,0,0,0,4,0,0,0,0,0,0,0
+indra/llrender/llrender2dutils.h,render.legacy_low_level,183,5,0,0,0,0,0,3,0,0,0,3,0,0,0
 indra/newview/lldynamictexture.h,assets.texture,103,5,0,0,0,0,0,3,0,0,0,2,0,3,0
 indra/newview/lldrawpoolbump.h,render.draw_pool,165,5,0,0,0,0,0,3,0,0,4,1,0,4,0
 indra/newview/lldrawpoolwlsky.h,render.draw_pool,77,1,0,0,0,0,0,3,0,0,6,0,0,3,0
@@ -232,7 +233,6 @@ indra/newview/llvoavatar.h,render.pipeline,1307,24,0,0,0,0,0,2,0,2,0,1,0,8,0
 indra/newview/lldrawpool.h,render.pipeline,488,4,0,0,0,0,0,2,0,2,12,0,0,7,0
 indra/newview/llstartup.cpp,render.pipeline,4530,180,0,0,0,0,0,2,0,2,1,0,0,1,0
 indra/llappearance/lltexlayer.h,render.opengl_touching,314,5,0,0,0,0,0,2,0,0,0,12,0,0,0
-indra/llrender/llrender2dutils.h,render.legacy_low_level,179,4,0,0,0,0,0,2,0,0,0,2,0,0,0
 indra/newview/llviewerparcelmgr.cpp,assets.texture,2808,41,0,0,0,0,0,2,0,0,0,0,0,4,0
 indra/newview/llviewerregion.h,assets.texture,723,14,0,0,0,0,0,2,0,0,0,0,0,2,0
 indra/newview/lldrawpoolavatar.h,render.draw_pool,152,4,0,0,0,0,0,2,0,0,4,0,0,1,0

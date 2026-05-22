@@ -41,6 +41,7 @@
 #include "lldraghandle.h"
 #include "llfloaterreg.h"
 #include "llfocusmgr.h"
+#include "llgl.h"
 #include "llresizebar.h"
 #include "llresizehandle.h"
 #include "llkeyboard.h"

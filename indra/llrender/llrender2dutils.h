@@ -33,11 +33,16 @@
 #include "llpointer.h"      // LLPointer<>
 #include "llrect.h"
 #include "llsingleton.h"
-#include "llglslshader.h"
+
+#include <list>
+#include <string>
 
 class LLColor4;
-class LLVector3;
+class LLGLSLShader;
+class LLRenderTarget;
+class LLTexture;
 class LLVector2;
+class LLVector3;
 class LLUIImage;
 class LLUUID;
 
@@ -59,7 +64,7 @@ void gl_rect_2d_offset_local( S32 left, S32 top, S32 right, S32 bottom, const LL
 void gl_rect_2d_offset_local( S32 left, S32 top, S32 right, S32 bottom, S32 pixel_offset = 0, bool filled = true );
 void gl_rect_2d(const LLRect& rect, bool filled = true );
 void gl_rect_2d(const LLRect& rect, const LLColor4& color, bool filled = true );
-void gl_rect_2d_checkerboard(const LLRect& rect, GLfloat alpha = 1.0f);
+void gl_rect_2d_checkerboard(const LLRect& rect, F32 alpha = 1.0f);
 
 void gl_drop_shadow(S32 left, S32 top, S32 right, S32 bottom, const LLColor4 &start_color, S32 lines);
 
@@ -175,4 +180,3 @@ extern LLGLSLShader gSolidColorProgram;
 extern LLGLSLShader gUIProgram;
 
 #endif // LL_RENDER2DUTILS_H
-

@@ -35,6 +35,7 @@
 #include "llglcontainment.h"
 #include "llrect.h"
 #include "llgl.h"
+#include "llglslshader.h"
 #include "lltexture.h"
 #include "llfasttimer.h"
 
@@ -974,7 +975,7 @@ void gl_ring( F32 radius, F32 width, const LLColor4& center_color, const LLColor
 }
 
 // Draw gray and white checkerboard with black border
-void gl_rect_2d_checkerboard(const LLRect& rect, GLfloat alpha)
+void gl_rect_2d_checkerboard(const LLRect& rect, F32 alpha)
 {
     //polygon stipple is deprecated, use "Checker" texture
     LLPointer<LLUIImage> img = LLRender2D::getInstance()->getUIImage("Checker");
@@ -1802,7 +1803,7 @@ void LLRender2D::setLineWidth(F32 width)
     gGL.flush();
     // If outside the allowed range, glLineWidth fails with "invalid value".
     // On Darwin, the range is [1, 1].
-    static GLfloat range[2]{0.0};
+    static F32 range[2]{0.0};
     if (range[1] == 0)
     {
         LLGLContainment::getFloat(GL_SMOOTH_LINE_WIDTH_RANGE, range);
