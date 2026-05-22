@@ -11,7 +11,6 @@ indra/newview/llviewerwindow.cpp,render.pipeline,6504,170,12,14,12,0,44,7,13,63,
 indra/llwindow/llwindowsdl.cpp,assets.texture,2757,17,11,12,11,0,0,0,0,0,0,0,1,0,0
 indra/newview/llscenemonitor.cpp,render.pipeline,757,17,11,11,11,0,26,3,0,10,0,8,0,0,0
 indra/newview/llface.cpp,render.pipeline,2638,30,9,9,9,0,15,13,38,5,3,0,0,14,0
-indra/newview/lldrawpoolmaterials.cpp,render.draw_pool,290,6,8,8,8,0,11,0,3,0,9,0,0,0,0
 indra/newview/gltf/asset.cpp,assets.texture,1470,11,8,8,8,0,0,5,0,0,0,0,0,2,0
 indra/newview/llreflectionmap.cpp,render.pipeline,383,7,6,8,6,0,0,3,1,1,0,0,0,0,0
 indra/newview/llvoavatar.cpp,render.pipeline,12711,90,6,6,6,0,96,8,6,23,11,0,4,18,0
@@ -102,6 +101,7 @@ indra/newview/qtoolalign.cpp,render.opengl_touching,572,14,0,0,0,0,15,4,2,0,0,0,
 indra/llui/llview.cpp,render.opengl_touching,2959,25,0,0,0,0,14,0,2,0,0,0,0,0,0
 indra/llrender/llrendertarget.cpp,render.legacy_low_level,675,5,0,0,0,0,12,29,0,0,0,42,11,0,0
 indra/llrender/llglslshader.cpp,render.legacy_low_level,2092,11,0,0,0,0,11,196,1,0,0,2,0,0,0
+indra/newview/lldrawpoolmaterials.cpp,render.draw_pool,291,7,0,0,0,0,11,8,3,0,9,0,0,0,0
 indra/newview/llprogressview.cpp,assets.texture,714,26,0,0,0,0,11,1,0,0,0,0,0,1,0
 indra/llui/llbadge.cpp,render.opengl_touching,390,5,0,0,0,0,10,0,2,0,0,0,0,0,0
 indra/newview/llcylinder.cpp,render.opengl_touching,76,10,0,0,0,0,10,0,2,0,0,0,0,0,0

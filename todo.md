@@ -714,11 +714,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add a summary for the `GLTFSceneManager` containment packet.
 - [x] Add a focused task for `LLDrawPoolMaterials` uniform containment before
       source edits.
-- [ ] Route `LLDrawPoolMaterials` uniform OpenGL calls through
+- [x] Route `LLDrawPoolMaterials` uniform OpenGL calls through
       `llglcontainment.*`.
-- [ ] Verify the `LLDrawPoolMaterials` containment packet with a targeted or
+- [x] Verify the `LLDrawPoolMaterials` containment packet with a targeted or
       incremental newview build.
-- [ ] Regenerate the generated source inventory after the `LLDrawPoolMaterials`
+- [x] Regenerate the generated source inventory after the `LLDrawPoolMaterials`
       source packet.
 - [ ] Add a summary for the `LLDrawPoolMaterials` uniform containment packet.
 

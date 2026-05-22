@@ -14,7 +14,6 @@
 | `indra/llwindow/llwindowsdl.cpp` | assets.texture | 2757 | 11 | 12 | 0 | 0 | 0 | 0 | 0 |
 | `indra/newview/llscenemonitor.cpp` | render.pipeline | 757 | 11 | 11 | 0 | 26 | 3 | 10 | 8 |
 | `indra/newview/llface.cpp` | render.pipeline | 2638 | 9 | 9 | 0 | 15 | 13 | 5 | 0 |
-| `indra/newview/lldrawpoolmaterials.cpp` | render.draw_pool | 290 | 8 | 8 | 0 | 11 | 0 | 0 | 0 |
 | `indra/newview/gltf/asset.cpp` | assets.texture | 1470 | 8 | 8 | 0 | 0 | 5 | 0 | 0 |
 | `indra/newview/llreflectionmap.cpp` | render.pipeline | 383 | 6 | 8 | 0 | 0 | 3 | 1 | 0 |
 | `indra/newview/llvoavatar.cpp` | render.pipeline | 12711 | 6 | 6 | 0 | 96 | 8 | 23 | 0 |
@@ -102,3 +101,4 @@
 | `indra/llui/llstatbar.cpp` | render.opengl_touching | 723 | 0 | 0 | 0 | 16 | 1 | 0 | 0 |
 | `indra/newview/llbox.cpp` | render.opengl_touching | 133 | 0 | 0 | 0 | 16 | 0 | 0 | 0 |
 | `indra/newview/qtoolalign.cpp` | render.opengl_touching | 572 | 0 | 0 | 0 | 15 | 4 | 0 | 0 |
+| `indra/llui/llview.cpp` | render.opengl_touching | 2959 | 0 | 0 | 0 | 14 | 0 | 0 | 0 |
