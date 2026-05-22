@@ -2,9 +2,8 @@
 
 | file | category | lines | gl_calls | gl_raw_refs | gl_known_false_refs | gGL | LLGL | LLPipeline | LLRenderTarget |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 997 | 143 | 144 | 0 | 0 | 275 | 0 | 0 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 1095 | 151 | 152 | 0 | 0 | 306 | 0 | 0 |
 | `indra/newview/pipeline.cpp` | render.pipeline | 12046 | 81 | 83 | 0 | 340 | 158 | 564 | 60 |
-| `indra/newview/marefsr2upscaler.cpp` | render.opengl_touching | 379 | 81 | 81 | 0 | 3 | 3 | 0 | 4 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 36 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llgl.h` | render.legacy_low_level | 485 | 0 | 24 | 0 | 0 | 62 | 0 | 0 |
@@ -102,3 +101,4 @@
 | `indra/newview/lldrawpoolsimple.cpp` | render.pipeline | 228 | 0 | 0 | 0 | 6 | 10 | 4 | 0 |
 | `indra/newview/llhudeffectbeam.cpp` | render.opengl_touching | 355 | 0 | 0 | 0 | 6 | 1 | 0 | 0 |
 | `indra/llui/lltabcontainer.cpp` | render.opengl_touching | 2205 | 0 | 0 | 0 | 6 | 0 | 0 | 0 |
+| `indra/newview/llscrollingpanelparam.cpp` | render.opengl_touching | 354 | 0 | 0 | 0 | 6 | 0 | 0 | 0 |

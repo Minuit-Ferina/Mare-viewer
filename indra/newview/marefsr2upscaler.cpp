@@ -8,6 +8,7 @@
 #include "marefsr2upscaler.h"
 
 #include "llrendertarget.h"
+#include "llglcontainment.h"
 #include "llglheaders.h"
 #include "llglslshader.h"       // LLGLSLShader
 #include "llviewershadermgr.h"  // gDeferredTAACopyProgram (copy-back helper)
@@ -35,6 +36,26 @@ static F32 halton(U32 index, U32 base)
         i /= base;
     }
     return r;
+}
+
+static void setProgramUniformInteger(GLuint program, const char* name, GLint value)
+{
+    LLGLContainment::setUniformInteger(LLGLContainment::getUniformLocation(program, name), value);
+}
+
+static void setProgramUniformInteger2(GLuint program, const char* name, GLint first, GLint second)
+{
+    LLGLContainment::setUniformInteger2(LLGLContainment::getUniformLocation(program, name), first, second);
+}
+
+static void setProgramUniformFloat(GLuint program, const char* name, GLfloat value)
+{
+    LLGLContainment::setUniformFloat(LLGLContainment::getUniformLocation(program, name), value);
+}
+
+static void setProgramUniformFloat2(GLuint program, const char* name, GLfloat first, GLfloat second)
+{
+    LLGLContainment::setUniformFloat2(LLGLContainment::getUniformLocation(program, name), first, second);
 }
 
 /*static*/
@@ -80,34 +101,34 @@ GLuint MAREFSR2Upscaler::compileComputeProgram(const std::string& relPath)
     std::string src = ss.str();
 
     const char* csrc = src.c_str();
-    GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
-    glShaderSource(shader, 1, &csrc, nullptr);
-    glCompileShader(shader);
+    GLuint shader = LLGLContainment::createShader(GL_COMPUTE_SHADER);
+    LLGLContainment::setShaderSource(shader, 1, &csrc);
+    LLGLContainment::compileShader(shader);
 
     GLint ok = 0;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+    LLGLContainment::getShaderInteger(shader, GL_COMPILE_STATUS, &ok);
     if (!ok)
     {
         GLchar log[2048];
-        glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
+        LLGLContainment::getShaderInfoLog(shader, sizeof(log), nullptr, log);
         LL_WARNS() << "MAREFSR2: compute shader compile error (" << relPath << "):\n" << log << LL_ENDL;
-        glDeleteShader(shader);
+        LLGLContainment::deleteShader(shader);
         return 0;
     }
 
-    GLuint prog = glCreateProgram();
-    glAttachShader(prog, shader);
-    glLinkProgram(prog);
-    glDeleteShader(shader);  // shader is now owned by the program
+    GLuint prog = LLGLContainment::createProgram();
+    LLGLContainment::attachShader(prog, shader);
+    LLGLContainment::linkProgram(prog);
+    LLGLContainment::deleteShader(shader);  // shader is now owned by the program
 
     GLint linked = 0;
-    glGetProgramiv(prog, GL_LINK_STATUS, &linked);
+    LLGLContainment::getProgramInteger(prog, GL_LINK_STATUS, &linked);
     if (!linked)
     {
         GLchar log[2048];
-        glGetProgramInfoLog(prog, sizeof(log), nullptr, log);
+        LLGLContainment::getProgramInfoLog(prog, sizeof(log), nullptr, log);
         LL_WARNS() << "MAREFSR2: compute program link error (" << relPath << "):\n" << log << LL_ENDL;
-        glDeleteProgram(prog);
+        LLGLContainment::deleteProgram(prog);
         return 0;
     }
 
@@ -121,18 +142,18 @@ GLuint MAREFSR2Upscaler::compileComputeProgram(const std::string& relPath)
 GLuint MAREFSR2Upscaler::createTexture2D(U32 w, U32 h, GLenum internalFmt)
 {
     GLuint tex;
-    glCreateTextures(GL_TEXTURE_2D, 1, &tex);
-    glTextureStorage2D(tex, 1, internalFmt, (GLsizei)w, (GLsizei)h);
-    glTextureParameteri(tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTextureParameteri(tex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(tex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    LLGLContainment::createTextures(GL_TEXTURE_2D, 1, &tex);
+    LLGLContainment::setTextureStorage2D(tex, 1, internalFmt, w, h);
+    LLGLContainment::setNamedTextureParameterInteger(tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    LLGLContainment::setNamedTextureParameterInteger(tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    LLGLContainment::setNamedTextureParameterInteger(tex, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    LLGLContainment::setNamedTextureParameterInteger(tex, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     return tex;
 }
 
 void MAREFSR2Upscaler::deleteTexture(GLuint& tex)
 {
-    if (tex) { glDeleteTextures(1, &tex); tex = 0; }
+    if (tex) { LLGLContainment::deleteTextures(1, &tex); tex = 0; }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -179,11 +200,11 @@ bool MAREFSR2Upscaler::initialize(U32 renderW, U32 renderH)
 
 void MAREFSR2Upscaler::destroy()
 {
-    if (mProgDepthClip)      { glDeleteProgram(mProgDepthClip);      mProgDepthClip      = 0; }
-    if (mProgReconPrevDepth) { glDeleteProgram(mProgReconPrevDepth); mProgReconPrevDepth = 0; }
-    if (mProgLock)           { glDeleteProgram(mProgLock);           mProgLock           = 0; }
-    if (mProgAccumulate)     { glDeleteProgram(mProgAccumulate);     mProgAccumulate     = 0; }
-    if (mProgRCAS)           { glDeleteProgram(mProgRCAS);           mProgRCAS           = 0; }
+    if (mProgDepthClip)      { LLGLContainment::deleteProgram(mProgDepthClip);      mProgDepthClip      = 0; }
+    if (mProgReconPrevDepth) { LLGLContainment::deleteProgram(mProgReconPrevDepth); mProgReconPrevDepth = 0; }
+    if (mProgLock)           { LLGLContainment::deleteProgram(mProgLock);           mProgLock           = 0; }
+    if (mProgAccumulate)     { LLGLContainment::deleteProgram(mProgAccumulate);     mProgAccumulate     = 0; }
+    if (mProgRCAS)           { LLGLContainment::deleteProgram(mProgRCAS);           mProgRCAS           = 0; }
 
     deleteTexture(mDilatedDepth);
     deleteTexture(mDilatedMV);
@@ -251,31 +272,31 @@ void MAREFSR2Upscaler::apply(
     // Inputs:  u_depth (tex 0), u_motionVec (tex 1)
     // Outputs: u_dilatedDepth (image 2), u_dilatedMV (image 3)
     {
-        glUseProgram(mProgDepthClip);
-        glUniform2i(glGetUniformLocation(mProgDepthClip, "u_renderSize"), (GLint)rW, (GLint)rH);
+        LLGLContainment::useProgram(mProgDepthClip);
+        setProgramUniformInteger2(mProgDepthClip, "u_renderSize", (GLint)rW, (GLint)rH);
 
-        glBindTextureUnit(0, depthTex ? depthTex : 0);
-        glBindTextureUnit(1, velocityTex);
-        glBindImageTexture(2, mDilatedDepth, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
-        glBindImageTexture(3, mDilatedMV,    0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
+        LLGLContainment::bindTextureUnit(0, depthTex ? depthTex : 0);
+        LLGLContainment::bindTextureUnit(1, velocityTex);
+        LLGLContainment::bindImageTexture(2, mDilatedDepth, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+        LLGLContainment::bindImageTexture(3, mDilatedMV,    0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
 
-        glDispatchCompute(groups(rW), groups(rH), 1);
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+        LLGLContainment::dispatchCompute(groups(rW), groups(rH), 1);
+        LLGLContainment::setMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
     }
 
     // ── Pass 2: Reconstruct Previous Depth ────────────────────────────────────
     // Inputs:  u_dilatedMV (tex 0), u_prevDepth (tex 1)
     // Output:  u_reconPrevDepth (image 2)
     {
-        glUseProgram(mProgReconPrevDepth);
-        glUniform2i(glGetUniformLocation(mProgReconPrevDepth, "u_renderSize"), (GLint)rW, (GLint)rH);
+        LLGLContainment::useProgram(mProgReconPrevDepth);
+        setProgramUniformInteger2(mProgReconPrevDepth, "u_renderSize", (GLint)rW, (GLint)rH);
 
-        glBindTextureUnit(0, mDilatedMV);
-        glBindTextureUnit(1, mPrevDepth);
-        glBindImageTexture(2, mReconPrevDepth, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+        LLGLContainment::bindTextureUnit(0, mDilatedMV);
+        LLGLContainment::bindTextureUnit(1, mPrevDepth);
+        LLGLContainment::bindImageTexture(2, mReconPrevDepth, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 
-        glDispatchCompute(groups(rW), groups(rH), 1);
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+        LLGLContainment::dispatchCompute(groups(rW), groups(rH), 1);
+        LLGLContainment::setMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
     }
 
     // ── Pass 3: Lock ──────────────────────────────────────────────────────────
@@ -283,17 +304,17 @@ void MAREFSR2Upscaler::apply(
     //          u_dilatedDepth (tex 2), u_reconPrevDepth (tex 3)
     // Output:  u_lockStatus (image 4)
     {
-        glUseProgram(mProgLock);
-        glUniform2i(glGetUniformLocation(mProgLock, "u_renderSize"), (GLint)rW, (GLint)rH);
+        LLGLContainment::useProgram(mProgLock);
+        setProgramUniformInteger2(mProgLock, "u_renderSize", (GLint)rW, (GLint)rH);
 
-        glBindTextureUnit(0, colorTex);
-        glBindTextureUnit(1, mAccumBuffer[histIdx]);
-        glBindTextureUnit(2, mDilatedDepth);
-        glBindTextureUnit(3, mReconPrevDepth);
-        glBindImageTexture(4, mLockStatus, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8);
+        LLGLContainment::bindTextureUnit(0, colorTex);
+        LLGLContainment::bindTextureUnit(1, mAccumBuffer[histIdx]);
+        LLGLContainment::bindTextureUnit(2, mDilatedDepth);
+        LLGLContainment::bindTextureUnit(3, mReconPrevDepth);
+        LLGLContainment::bindImageTexture(4, mLockStatus, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8);
 
-        glDispatchCompute(groups(rW), groups(rH), 1);
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+        LLGLContainment::dispatchCompute(groups(rW), groups(rH), 1);
+        LLGLContainment::setMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
     }
 
     // ── Pass 4: Temporal Accumulation ─────────────────────────────────────────
@@ -304,21 +325,21 @@ void MAREFSR2Upscaler::apply(
         static U32 sFrameIndex = 0;
         ++sFrameIndex;
 
-        glUseProgram(mProgAccumulate);
-        glUniform2i(glGetUniformLocation(mProgAccumulate, "u_renderSize"),  (GLint)rW, (GLint)rH);
-        glUniform2i(glGetUniformLocation(mProgAccumulate, "u_displaySize"), (GLint)dW, (GLint)dH);
-        glUniform2f(glGetUniformLocation(mProgAccumulate, "u_jitter"),      jitterX,   jitterY);
-        glUniform1i(glGetUniformLocation(mProgAccumulate, "u_cameraCut"),   cameraCut ? 1 : 0);
-        glUniform1i(glGetUniformLocation(mProgAccumulate, "u_frameIndex"),  (GLint)sFrameIndex);
+        LLGLContainment::useProgram(mProgAccumulate);
+        setProgramUniformInteger2(mProgAccumulate, "u_renderSize",  (GLint)rW, (GLint)rH);
+        setProgramUniformInteger2(mProgAccumulate, "u_displaySize", (GLint)dW, (GLint)dH);
+        setProgramUniformFloat2(mProgAccumulate, "u_jitter", jitterX, jitterY);
+        setProgramUniformInteger(mProgAccumulate, "u_cameraCut", cameraCut ? 1 : 0);
+        setProgramUniformInteger(mProgAccumulate, "u_frameIndex", (GLint)sFrameIndex);
 
-        glBindTextureUnit(0, colorTex);
-        glBindTextureUnit(1, mAccumBuffer[histIdx]);
-        glBindTextureUnit(2, mDilatedMV);
-        glBindTextureUnit(3, mLockStatus);
-        glBindImageTexture(4, mAccumBuffer[outIdx], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+        LLGLContainment::bindTextureUnit(0, colorTex);
+        LLGLContainment::bindTextureUnit(1, mAccumBuffer[histIdx]);
+        LLGLContainment::bindTextureUnit(2, mDilatedMV);
+        LLGLContainment::bindTextureUnit(3, mLockStatus);
+        LLGLContainment::bindImageTexture(4, mAccumBuffer[outIdx], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
-        glDispatchCompute(groups(dW), groups(dH), 1);
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+        LLGLContainment::dispatchCompute(groups(dW), groups(dH), 1);
+        LLGLContainment::setMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
         mAccumIdx = outIdx;  // swap ping-pong for next frame
     }
@@ -329,15 +350,15 @@ void MAREFSR2Upscaler::apply(
     {
         static LLCachedControl<F32> sharpness(gSavedSettings, "RenderNISSharpenStrength", 0.5f);
 
-        glUseProgram(mProgRCAS);
-        glUniform2i(glGetUniformLocation(mProgRCAS, "u_displaySize"), (GLint)dW, (GLint)dH);
-        glUniform1f(glGetUniformLocation(mProgRCAS, "u_sharpness"),   (F32)sharpness);
+        LLGLContainment::useProgram(mProgRCAS);
+        setProgramUniformInteger2(mProgRCAS, "u_displaySize", (GLint)dW, (GLint)dH);
+        setProgramUniformFloat(mProgRCAS, "u_sharpness", (F32)sharpness);
 
-        glBindTextureUnit(0, mAccumBuffer[outIdx]);
-        glBindImageTexture(1, mRCASBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+        LLGLContainment::bindTextureUnit(0, mAccumBuffer[outIdx]);
+        LLGLContainment::bindImageTexture(1, mRCASBuffer, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
-        glDispatchCompute(groups(dW), groups(dH), 1);
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+        LLGLContainment::dispatchCompute(groups(dW), groups(dH), 1);
+        LLGLContainment::setMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
     }
 
     // ── Copy mRCASBuffer → outputDst (mDisplayScreen) ─────────────────────────
@@ -367,12 +388,12 @@ void MAREFSR2Upscaler::apply(
     if (depthTex)
     {
         // Blit current depth into mPrevDepth via a simple copy image call.
-        glCopyImageSubData(
+        LLGLContainment::copyImageSubData(
             depthTex,    GL_TEXTURE_2D, 0, 0, 0, 0,
             mPrevDepth,  GL_TEXTURE_2D, 0, 0, 0, 0,
-            (GLsizei)rW, (GLsizei)rH, 1);
+            rW, rH, 1);
     }
 
     // Unbind compute program.
-    glUseProgram(0);
+    LLGLContainment::useProgram(0);
 }

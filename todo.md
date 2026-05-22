@@ -856,6 +856,16 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the profiler, SDL, and
       macOS edge packet.
 - [x] Add a summary for the profiler, SDL, and macOS edge packet.
+- [x] Add a focused task for the remaining FSR2 and low-level GL boundary
+      files.
+- [x] Route FSR2 compute, image, DSA texture, and shader program calls through
+      `llglcontainment.*` on non-Darwin builds.
+- [x] Keep `llgl.cpp` and `llglheaders.h` classified as explicit low-level GL
+      boundary files instead of mechanically wrapping their loader/declaration
+      code.
+- [x] Verify the remaining GL boundary packet with targeted `llrender/fast`.
+- [x] Regenerate the generated source inventory after the remaining GL
+      boundary packet.
 
 ## Phase 1 Inventory
 

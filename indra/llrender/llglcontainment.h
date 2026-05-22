@@ -46,8 +46,32 @@ void generateFramebuffers(S32 count, LLGLuint* framebuffers);
 void deleteFramebuffers(S32 count, const LLGLuint* framebuffers);
 void generateTextures(S32 count, LLGLuint* textures);
 void deleteTextures(S32 count, const LLGLuint* textures);
+#if !LL_DARWIN
+void createTextures(LLGLenum target, S32 count, LLGLuint* textures);
+void setTextureStorage2D(
+    LLGLuint texture,
+    S32 levels,
+    LLGLenum internal_format,
+    S32 width,
+    S32 height);
+void setNamedTextureParameterInteger(
+    LLGLuint texture,
+    LLGLenum parameter,
+    LLGLint value);
+#endif
 void setActiveTexture(LLGLenum texture);
 void bindTexture(LLGLenum target, LLGLuint texture);
+#if !LL_DARWIN
+void bindTextureUnit(LLGLuint unit, LLGLuint texture);
+void bindImageTexture(
+    LLGLuint unit,
+    LLGLuint texture,
+    LLGLint level,
+    LLGLboolean layered,
+    LLGLint layer,
+    LLGLenum access,
+    LLGLenum format);
+#endif
 void generateBufferObjects(S32 count, LLGLuint* buffers);
 void deleteBufferObjects(S32 count, const LLGLuint* buffers);
 void bindBufferObject(LLGLenum target, LLGLuint buffer);
@@ -146,6 +170,10 @@ void getActiveUniform(
 LLGLuint getUniformBlockIndex(LLGLuint program, const char* name);
 void bindUniformBlock(LLGLuint program, LLGLuint block_index, LLGLuint binding);
 void useProgram(LLGLuint program);
+#if !LL_DARWIN
+void dispatchCompute(LLGLuint groups_x, LLGLuint groups_y, LLGLuint groups_z);
+void setMemoryBarrier(U32 barriers);
+#endif
 void setUniformInteger(LLGLint location, LLGLint value);
 void setUniformInteger2(LLGLint location, LLGLint first, LLGLint second);
 void setUniformIntegerVector(LLGLint location, S32 count, const LLGLint* values);
@@ -281,6 +309,24 @@ void copyTextureImage2D(
     S32 width,
     S32 height,
     S32 border);
+#if !LL_DARWIN
+void copyImageSubData(
+    LLGLuint source_name,
+    LLGLenum source_target,
+    LLGLint source_level,
+    LLGLint source_x,
+    LLGLint source_y,
+    LLGLint source_z,
+    LLGLuint destination_name,
+    LLGLenum destination_target,
+    LLGLint destination_level,
+    LLGLint destination_x,
+    LLGLint destination_y,
+    LLGLint destination_z,
+    S32 width,
+    S32 height,
+    S32 depth);
+#endif
 LLGLsync createSyncObject();
 void flushCommands();
 void finishCommands();
