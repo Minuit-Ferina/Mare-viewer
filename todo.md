@@ -804,7 +804,7 @@ without an explicit task, and do not start a direct Vulkan port.
       builds.
 - [x] Regenerate the generated source inventory after the `LLAppViewer`
       source packet.
-- [ ] Add a summary for the `LLAppViewer` containment packet.
+- [x] Add a summary for the `LLAppViewer` containment packet.
 
 ## Phase 1 Inventory
 
