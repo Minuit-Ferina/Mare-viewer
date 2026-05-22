@@ -43,6 +43,7 @@
 #include "material_codes.h"
 #include "v3color.h"
 #include "llui.h"
+#include "llgl.h"
 #include "llglheaders.h"
 #include "llglcontainment.h"
 #include "llrender.h"

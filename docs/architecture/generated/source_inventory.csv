@@ -26,7 +26,7 @@ indra/newview/llfetchedgltfmaterial.cpp,render.pipeline,265,8,0,1,0,1,0,16,0,2,0
 indra/newview/llscenemonitor.h,assets.texture,130,5,0,1,0,1,0,0,0,0,0,5,0,2,0
 indra/newview/app_settings/shaders/class2/interface/irradianceGenF.glsl,viewer.misc,215,0,0,1,0,1,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/interface/radianceGenF.glsl,viewer.misc,170,0,0,1,0,1,0,0,0,0,0,0,0,0,0
-indra/newview/pipeline.cpp,render.pipeline,12042,97,0,0,0,0,340,230,89,564,137,60,19,8,0
+indra/newview/pipeline.cpp,render.pipeline,12043,98,0,0,0,0,340,230,89,564,137,60,19,8,0
 indra/newview/llspatialpartition.cpp,render.pipeline,4192,29,0,0,0,0,206,46,32,44,0,0,0,17,0
 indra/newview/llmaniptranslate.cpp,render.pipeline,2322,32,0,0,0,0,196,29,18,10,0,0,1,1,0
 indra/newview/llviewerdisplay.cpp,render.pipeline,1954,69,0,0,0,0,129,54,12,63,2,1,1,6,0
@@ -176,9 +176,9 @@ indra/newview/llgltffolderitem.cpp,render.opengl_touching,165,3,0,0,0,0,0,15,0,0
 indra/newview/llvocache.cpp,assets.texture,2029,10,0,0,0,0,0,13,0,0,0,0,0,2,0
 indra/newview/gltf/asset.cpp,assets.texture,1478,12,0,0,0,0,0,13,0,0,0,0,0,2,0
 indra/newview/llfloaterregioninfo.cpp,render.draw_pool,4423,71,0,0,0,0,0,13,0,0,1,0,0,0,0
+indra/newview/pipeline.h,render.pipeline,1133,14,0,0,0,0,0,12,2,5,49,53,0,5,0
 indra/llrender/llshadermgr.h,render.legacy_low_level,414,5,0,0,0,0,0,12,0,0,0,0,0,0,0
 indra/newview/llgltfmateriallist.h,render.opengl_touching,177,6,0,0,0,0,0,12,0,0,0,0,0,0,0
-indra/newview/pipeline.h,render.pipeline,1133,15,0,0,0,0,0,11,2,5,49,53,0,5,0
 indra/llprimitive/lltextureentry.h,assets.texture,262,6,0,0,0,0,0,11,0,0,0,0,0,0,0
 indra/newview/llviewertexture.h,assets.texture,795,13,0,0,0,0,0,10,5,0,0,0,4,26,0
 indra/newview/gltf/llgltfloader.h,render.opengl_touching,216,4,0,0,0,0,0,10,0,0,0,0,0,0,0

@@ -991,6 +991,13 @@ without an explicit task, and do not start a direct Vulkan port.
       `newview` object compiles, the containment guardrail, and regenerated
       source inventory.
 - [x] Add `docs/architecture/197-newview-texture-header-boundary-summary.md`.
+- [x] Narrow `pipeline.h` so it no longer includes `llgl.h` directly.
+- [x] Make the pipeline implementation dependency on `llgl.h` explicit in
+      `pipeline.cpp`.
+- [x] Verify the pipeline header boundary packet with targeted pipeline-heavy
+      `newview` object compiles, the containment guardrail, and regenerated
+      source inventory.
+- [x] Add `docs/architecture/198-pipeline-header-boundary-summary.md`.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 - [ ] Continue reducing header-level OpenGL ABI exposure in small packets,

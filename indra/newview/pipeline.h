@@ -35,7 +35,6 @@
 #include "llpointer.h"
 #include "lldrawpoolalpha.h"
 #include "lldrawpoolmaterials.h"
-#include "llgl.h"
 #include "lldrawable.h"
 #include "llrendertarget.h"
 #include "llreflectionmapmanager.h"
@@ -53,6 +52,7 @@ class LLTextureEntry;
 class LLCullResult;
 class LLVOAvatar;
 class LLVOPartGroup;
+class LLGLUpdate;
 class LLGLSLShader;
 class LLDrawPoolAlpha;
 class LLSettingsSky;
