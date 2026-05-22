@@ -1103,6 +1103,14 @@ without an explicit task, and do not start a direct Vulkan port.
       `source_inventory_top.md` after the small source cleanups.
 - [x] Add
       `docs/architecture/227-phase3-small-source-cleanups-checkpoint.md`.
+- [x] Move the dynamic texture validation and update helpers into private
+      `LLViewerDynamicTexture` static helper methods without changing public
+      API or render ordering.
+- [x] Verify the dynamic texture class-helper packet with targeted
+      `lldynamictexture.cpp.o`, direct header-consumer object compiles, both
+      GL guardrails, and regenerated source inventory.
+- [x] Add
+      `docs/architecture/228-dynamic-texture-class-helper-summary.md`.
 
 ## Phase 1 Inventory
 

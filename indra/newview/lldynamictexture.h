@@ -90,6 +90,18 @@ protected:
     void generateGLTexture();
     void generateGLTexture(LLGLint internal_format, LLGLenum primary_format, LLGLenum type_format, bool swap_bytes = false);
 
+private:
+    static bool validateDynamicTextureTargets(LLRenderTarget& preview_target, LLRenderTarget& bake_target);
+    static bool updateDynamicTexture(LLViewerDynamicTexture* dynamic_texture,
+                                     LLRenderTarget& render_target,
+                                     S32 width,
+                                     S32 height);
+    static bool updateDynamicTextureRange(S32 begin_order,
+                                          S32 end_order,
+                                          LLRenderTarget& render_target,
+                                          S32 width,
+                                          S32 height);
+
 protected:
     bool mClamp;
     LLCoordGL mOrigin;
