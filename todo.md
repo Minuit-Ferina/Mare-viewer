@@ -1048,6 +1048,9 @@ without an explicit task, and do not start a direct Vulkan port.
       dynamic texture virtual overrides before source changes.
 - [x] Add `docs/architecture/210-map-ui-render-boundaries.md` to split
       minimap, world map, and shared tracking overlay responsibilities.
+- [x] Add
+      `docs/architecture/211-viewer-tex-layer-dynamic-texture-boundary.md` to
+      keep avatar bake dynamic textures separate from UI preview cleanup.
 
 ## Phase 1 Inventory
 
