@@ -925,10 +925,18 @@ without an explicit task, and do not start a direct Vulkan port.
       containment guardrail, and regenerated source inventory.
 - [x] Add
       `docs/architecture/188-llrender2dutils-header-boundary-summary.md`.
+- [x] Narrow `llglslshader.h` so it no longer includes `llgl.h` directly.
+- [x] Replace public `LLGLSLShader` OpenGL scalar spellings with
+      `llgltypes.h` aliases while keeping `llgl.h` local to
+      `llglslshader.cpp`.
+- [x] Verify the `LLGLSLShader` header boundary packet with `llrender/fast`,
+      `llui`, targeted shader-heavy `newview` object compiles, the
+      containment guardrail, and regenerated source inventory.
+- [x] Add `docs/architecture/189-llglslshader-header-boundary-summary.md`.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 - [ ] Continue reducing header-level OpenGL ABI exposure in small packets,
-      starting with `llglslshader.h` and `llshadermgr.h`.
+      starting with `llshadermgr.h`, `llgl.h`, and `llglstates.h`.
 
 ## Phase 1 Inventory
 

@@ -27,11 +27,16 @@
 #ifndef LL_LLGLSLSHADER_H
 #define LL_LLGLSLSHADER_H
 
-#include "llgl.h"
+#include "llgltypes.h"
 #include "llrender.h"
 #include "llstaticstringtable.h"
 #include <boost/json.hpp>
+#include <map>
+#include <set>
+#include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 class LLShaderFeatures
 {
@@ -148,7 +153,7 @@ public:
         SG_COUNT
     } eGroup;
 
-    enum UniformBlock : GLuint
+    enum UniformBlock : LLGLuint
     {
         UB_REFLECTION_PROBES,   // "ReflectionProbes"
         UB_GLTF_JOINTS,         // "GLTFJoints"
@@ -165,7 +170,7 @@ public:
     LLGLSLShader();
     ~LLGLSLShader();
 
-    static GLuint sCurBoundShader;
+    static LLGLuint sCurBoundShader;
     static LLGLSLShader* sCurBoundShaderPtr;
     static S32 sIndexedTextureChannels;
 
@@ -195,54 +200,54 @@ public:
     bool createShader();
     bool attachFragmentObject(std::string object);
     bool attachVertexObject(std::string object);
-    void attachObject(GLuint object);
-    void attachObjects(GLuint* objects = NULL, S32 count = 0);
+    void attachObject(LLGLuint object);
+    void attachObjects(LLGLuint* objects = NULL, S32 count = 0);
     bool mapAttributes();
     bool mapUniforms();
-    void mapUniform(GLint index);
-    void uniform1i(U32 index, GLint i);
-    void uniform1f(U32 index, GLfloat v);
-    void fastUniform1f(U32 index, GLfloat v);
-    void uniform2f(U32 index, GLfloat x, GLfloat y);
-    void uniform3f(U32 index, GLfloat x, GLfloat y, GLfloat z);
-    void uniform4f(U32 index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-    void uniform1iv(U32 index, U32 count, const GLint* i);
-    void uniform4iv(U32 index, U32 count, const GLint* i);
-    void uniform1fv(U32 index, U32 count, const GLfloat* v);
-    void uniform2fv(U32 index, U32 count, const GLfloat* v);
-    void uniform3fv(U32 index, U32 count, const GLfloat* v);
-    void uniform4fv(U32 index, U32 count, const GLfloat* v);
-    void uniform4uiv(U32 index, U32 count, const GLuint* v);
-    void uniform2i(const LLStaticHashedString& uniform, GLint i, GLint j);
-    void uniformMatrix2fv(U32 index, U32 count, GLboolean transpose, const GLfloat* v);
-    void uniformMatrix3fv(U32 index, U32 count, GLboolean transpose, const GLfloat* v);
-    void uniformMatrix3x4fv(U32 index, U32 count, GLboolean transpose, const GLfloat* v);
-    void uniformMatrix4fv(U32 index, U32 count, GLboolean transpose, const GLfloat* v);
-    void uniform1i(const LLStaticHashedString& uniform, GLint i);
-    void uniform1iv(const LLStaticHashedString& uniform, U32 count, const GLint* v);
-    void uniform4iv(const LLStaticHashedString& uniform, U32 count, const GLint* v);
-    void uniform1f(const LLStaticHashedString& uniform, GLfloat v);
-    void uniform2f(const LLStaticHashedString& uniform, GLfloat x, GLfloat y);
-    void uniform3f(const LLStaticHashedString& uniform, GLfloat x, GLfloat y, GLfloat z);
-    void uniform4f(const LLStaticHashedString& uniform, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-    void uniform1fv(const LLStaticHashedString& uniform, U32 count, const GLfloat* v);
-    void uniform2fv(const LLStaticHashedString& uniform, U32 count, const GLfloat* v);
-    void uniform3fv(const LLStaticHashedString& uniform, U32 count, const GLfloat* v);
-    void uniform4fv(const LLStaticHashedString& uniform, U32 count, const GLfloat* v);
-    void uniform4uiv(const LLStaticHashedString& uniform, U32 count, const GLuint* v);
-    void uniformMatrix4fv(const LLStaticHashedString& uniform, U32 count, GLboolean transpose, const GLfloat* v);
+    void mapUniform(LLGLint index);
+    void uniform1i(U32 index, LLGLint i);
+    void uniform1f(U32 index, LLGLfloat v);
+    void fastUniform1f(U32 index, LLGLfloat v);
+    void uniform2f(U32 index, LLGLfloat x, LLGLfloat y);
+    void uniform3f(U32 index, LLGLfloat x, LLGLfloat y, LLGLfloat z);
+    void uniform4f(U32 index, LLGLfloat x, LLGLfloat y, LLGLfloat z, LLGLfloat w);
+    void uniform1iv(U32 index, U32 count, const LLGLint* i);
+    void uniform4iv(U32 index, U32 count, const LLGLint* i);
+    void uniform1fv(U32 index, U32 count, const LLGLfloat* v);
+    void uniform2fv(U32 index, U32 count, const LLGLfloat* v);
+    void uniform3fv(U32 index, U32 count, const LLGLfloat* v);
+    void uniform4fv(U32 index, U32 count, const LLGLfloat* v);
+    void uniform4uiv(U32 index, U32 count, const LLGLuint* v);
+    void uniform2i(const LLStaticHashedString& uniform, LLGLint i, LLGLint j);
+    void uniformMatrix2fv(U32 index, U32 count, LLGLboolean transpose, const LLGLfloat* v);
+    void uniformMatrix3fv(U32 index, U32 count, LLGLboolean transpose, const LLGLfloat* v);
+    void uniformMatrix3x4fv(U32 index, U32 count, LLGLboolean transpose, const LLGLfloat* v);
+    void uniformMatrix4fv(U32 index, U32 count, LLGLboolean transpose, const LLGLfloat* v);
+    void uniform1i(const LLStaticHashedString& uniform, LLGLint i);
+    void uniform1iv(const LLStaticHashedString& uniform, U32 count, const LLGLint* v);
+    void uniform4iv(const LLStaticHashedString& uniform, U32 count, const LLGLint* v);
+    void uniform1f(const LLStaticHashedString& uniform, LLGLfloat v);
+    void uniform2f(const LLStaticHashedString& uniform, LLGLfloat x, LLGLfloat y);
+    void uniform3f(const LLStaticHashedString& uniform, LLGLfloat x, LLGLfloat y, LLGLfloat z);
+    void uniform4f(const LLStaticHashedString& uniform, LLGLfloat x, LLGLfloat y, LLGLfloat z, LLGLfloat w);
+    void uniform1fv(const LLStaticHashedString& uniform, U32 count, const LLGLfloat* v);
+    void uniform2fv(const LLStaticHashedString& uniform, U32 count, const LLGLfloat* v);
+    void uniform3fv(const LLStaticHashedString& uniform, U32 count, const LLGLfloat* v);
+    void uniform4fv(const LLStaticHashedString& uniform, U32 count, const LLGLfloat* v);
+    void uniform4uiv(const LLStaticHashedString& uniform, U32 count, const LLGLuint* v);
+    void uniformMatrix4fv(const LLStaticHashedString& uniform, U32 count, LLGLboolean transpose, const LLGLfloat* v);
 
     void setMinimumAlpha(F32 minimum);
 
-    void vertexAttrib4f(U32 index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
-    void vertexAttrib4fv(U32 index, GLfloat* v);
+    void vertexAttrib4f(U32 index, LLGLfloat x, LLGLfloat y, LLGLfloat z, LLGLfloat w);
+    void vertexAttrib4fv(U32 index, LLGLfloat* v);
 
-    //GLint getUniformLocation(const std::string& uniform);
-    GLint getUniformLocation(const LLStaticHashedString& uniform);
-    GLint getUniformLocation(U32 index);
+    //LLGLint getUniformLocation(const std::string& uniform);
+    LLGLint getUniformLocation(const LLStaticHashedString& uniform);
+    LLGLint getUniformLocation(U32 index);
 
-    GLint getAttribLocation(U32 attrib);
-    GLint mapUniformTextureChannel(GLint location, GLenum type, GLint size);
+    LLGLint getAttribLocation(U32 attrib);
+    LLGLint mapUniformTextureChannel(LLGLint location, LLGLenum type, LLGLint size);
 
     void clearPermutations();
     void addPermutation(std::string name, std::string value);
@@ -288,32 +293,32 @@ public:
     U32 mMatHash[LLRender::NUM_MATRIX_MODES];
     U32 mLightHash;
 
-    GLuint mProgramObject;
+    LLGLuint mProgramObject;
 #if LL_RELEASE_WITH_DEBUG_INFO
     struct attr_name
     {
-        GLint loc;
+        LLGLint loc;
         const char* name;
-        void operator = (GLint _loc) { loc = _loc; }
-        operator GLint () { return loc; }
+        void operator = (LLGLint _loc) { loc = _loc; }
+        operator LLGLint () { return loc; }
     };
     std::vector<attr_name> mAttribute; //lookup table of attribute enum to attribute channel
 #else
-    std::vector<GLint> mAttribute; //lookup table of attribute enum to attribute channel
+    std::vector<LLGLint> mAttribute; //lookup table of attribute enum to attribute channel
 #endif
     U32 mAttributeMask;  //mask of which reserved attributes are set (lines up with LLVertexBuffer::getTypeMask())
-    std::vector<GLint> mUniform;   //lookup table of uniform enum to uniform location
-    LLStaticStringTable<GLint> mUniformMap; //lookup map of uniform name to uniform location
-    typedef std::unordered_map<GLint, LLVector4> uniform_value_map_t;
+    std::vector<LLGLint> mUniform;   //lookup table of uniform enum to uniform location
+    LLStaticStringTable<LLGLint> mUniformMap; //lookup map of uniform name to uniform location
+    typedef std::unordered_map<LLGLint, LLVector4> uniform_value_map_t;
     uniform_value_map_t mValue; //lookup map of uniform location to last known value
-    std::vector<GLint> mTexture;
+    std::vector<LLGLint> mTexture;
     S32 mTotalUniformSize;
     S32 mActiveTextureChannels;
     S32 mShaderLevel;
     S32 mShaderGroup; // see LLGLSLShader::eGroup
     bool mUniformsDirty;
     LLShaderFeatures mFeatures;
-    std::vector< std::pair< std::string, GLenum > > mShaderFiles;
+    std::vector< std::pair< std::string, LLGLenum > > mShaderFiles;
     std::string mName;
     typedef std::map<std::string, std::string> defines_map_t; //NOTE: this must be an ordered map to maintain hash consistency
     defines_map_t mDefines;

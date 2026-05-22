@@ -80,7 +80,7 @@ indra/newview/llhudeffectpointat.cpp,render.opengl_touching,524,18,0,0,0,0,15,4,
 indra/newview/RRInterface.cpp,render.pipeline,6996,75,0,0,0,0,14,9,1,15,3,0,0,1,0
 indra/llui/llview.cpp,render.opengl_touching,2959,25,0,0,0,0,14,0,2,0,0,0,0,0,0
 indra/llrender/llrendertarget.cpp,render.legacy_low_level,675,5,0,0,0,0,12,29,0,0,0,42,11,0,0
-indra/llrender/llglslshader.cpp,render.legacy_low_level,2092,11,0,0,0,0,11,196,1,0,0,2,0,0,0
+indra/llrender/llglslshader.cpp,render.legacy_low_level,2093,12,0,0,0,0,11,292,1,0,0,2,0,0,0
 indra/newview/lldrawpoolmaterials.cpp,render.draw_pool,291,7,0,0,0,0,11,8,3,0,9,0,0,0,0
 indra/newview/llprogressview.cpp,assets.texture,713,25,0,0,0,0,11,1,0,0,0,0,0,1,0
 indra/llui/llbadge.cpp,render.opengl_touching,390,5,0,0,0,0,10,0,2,0,0,0,0,0,0
@@ -155,6 +155,7 @@ indra/newview/app_settings/shaders/class1/deferred/dynamicVelocityV.glsl,render.
 indra/llrender/llglcontainment.h,render.legacy_low_level,375,2,0,0,0,0,0,321,0,0,0,0,0,0,0
 indra/newview/llviewershadermgr.cpp,render.pipeline,3765,18,0,0,0,0,0,214,2,7,0,0,0,0,0
 indra/llprimitive/tests/llgltfmaterial_test.cpp,render.opengl_touching,442,6,0,0,0,0,0,101,0,0,0,0,0,0,0
+indra/llrender/llglslshader.h,render.legacy_low_level,397,10,0,0,0,0,0,92,1,0,1,2,0,0,0
 indra/newview/llpanelface.cpp,ui,5988,60,0,0,0,0,0,91,35,0,0,0,0,6,0
 indra/newview/llmaterialeditor.cpp,assets.texture,3831,38,0,0,0,0,0,72,0,0,0,0,0,1,0
 indra/llrender/llgltexture.cpp,render.legacy_low_level,380,2,0,0,0,0,0,65,0,0,0,0,3,0,0
@@ -170,7 +171,6 @@ indra/llrender/llgltexture.h,render.legacy_low_level,202,2,0,0,0,0,0,22,0,0,0,0,
 indra/newview/llgltffoldermodel.cpp,render.opengl_touching,74,3,0,0,0,0,0,19,0,0,0,0,0,0,0
 indra/llprimitive/llgltfmaterial.h,render.opengl_touching,287,10,0,0,0,0,0,17,0,0,0,0,0,0,0
 indra/newview/llgltffoldermodel.h,render.opengl_touching,92,2,0,0,0,0,0,17,0,0,0,0,0,0,0
-indra/llrender/llglslshader.h,render.legacy_low_level,392,5,0,0,0,0,0,15,1,0,1,2,0,0,0
 indra/newview/llviewertexturelist.h,assets.texture,303,7,0,0,0,0,0,15,0,0,0,0,0,11,0
 indra/newview/llgltffolderitem.cpp,render.opengl_touching,165,3,0,0,0,0,0,15,0,0,0,0,0,0,0
 indra/newview/llvocache.cpp,assets.texture,2029,10,0,0,0,0,0,13,0,0,0,0,0,2,0

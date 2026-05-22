@@ -83,7 +83,7 @@
 | `indra/newview/RRInterface.cpp` | render.pipeline | 6996 | 0 | 0 | 0 | 14 | 9 | 15 | 0 |
 | `indra/llui/llview.cpp` | render.opengl_touching | 2959 | 0 | 0 | 0 | 14 | 0 | 0 | 0 |
 | `indra/llrender/llrendertarget.cpp` | render.legacy_low_level | 675 | 0 | 0 | 0 | 12 | 29 | 0 | 42 |
-| `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2092 | 0 | 0 | 0 | 11 | 196 | 0 | 2 |
+| `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2093 | 0 | 0 | 0 | 11 | 292 | 0 | 2 |
 | `indra/newview/lldrawpoolmaterials.cpp` | render.draw_pool | 291 | 0 | 0 | 0 | 11 | 8 | 0 | 0 |
 | `indra/newview/llprogressview.cpp` | assets.texture | 713 | 0 | 0 | 0 | 11 | 1 | 0 | 0 |
 | `indra/llui/llbadge.cpp` | render.opengl_touching | 390 | 0 | 0 | 0 | 10 | 0 | 0 | 0 |
