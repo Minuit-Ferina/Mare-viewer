@@ -632,10 +632,10 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Add a focused task for `LLGLSLShader` program binding containment before
       source edits.
-- [ ] Route `LLGLSLShader` program bind/unbind through `llglcontainment.*`.
-- [ ] Verify the `LLGLSLShader` program binding containment packet with
+- [x] Route `LLGLSLShader` program bind/unbind through `llglcontainment.*`.
+- [x] Verify the `LLGLSLShader` program binding containment packet with
       `llrender/fast`.
-- [ ] Regenerate the generated source inventory after the `LLGLSLShader`
+- [x] Regenerate the generated source inventory after the `LLGLSLShader`
       program binding source packet.
 - [ ] Add a summary for the `LLGLSLShader` program binding containment packet.
 

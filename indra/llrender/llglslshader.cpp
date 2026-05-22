@@ -1063,7 +1063,7 @@ void LLGLSLShader::bind()
             sCurBoundShaderPtr->readProfileQuery();
         }
         LLVertexBuffer::unbind();
-        glUseProgram(mProgramObject);
+        LLGLContainment::useProgram(mProgramObject);
         sCurBoundShader = mProgramObject;
         sCurBoundShaderPtr = this;
         placeProfileQuery();
@@ -1111,7 +1111,7 @@ void LLGLSLShader::unbind(void)
         sCurBoundShaderPtr->readProfileQuery();
     }
 
-    glUseProgram(0);
+    LLGLContainment::useProgram(0);
     sCurBoundShader = 0;
     sCurBoundShaderPtr = NULL;
 }

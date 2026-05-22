@@ -294,6 +294,11 @@ void bindUniformBlock(LLGLuint program, LLGLuint block_index, LLGLuint binding)
     glUniformBlockBinding(program, block_index, binding);
 }
 
+void useProgram(LLGLuint program)
+{
+    glUseProgram(program);
+}
+
 void setUniformInteger(LLGLint location, LLGLint value)
 {
     glUniform1i(location, value);
