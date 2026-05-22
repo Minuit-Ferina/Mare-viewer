@@ -1094,6 +1094,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the dynamic texture target-validation packet with targeted
       `lldynamictexture.cpp.o` and both GL guardrails.
 - [x] Add `docs/architecture/225-dynamic-texture-target-validation-summary.md`.
+- [x] Extract the dynamic texture order-range loop into a local helper while
+      preserving preview/bake ordering and final return semantics.
+- [x] Verify the dynamic texture range-update packet with targeted
+      `lldynamictexture.cpp.o` and both GL guardrails.
+- [x] Add `docs/architecture/226-dynamic-texture-range-update-summary.md`.
 
 ## Phase 1 Inventory
 

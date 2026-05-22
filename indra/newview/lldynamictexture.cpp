@@ -224,7 +224,6 @@ bool LLViewerDynamicTexture::updateAllInstances()
     LLGLSLShader::unbind();
     LLVertexBuffer::unbind();
 
-    bool ret = false ;
     auto update_dynamic_texture = [&](LLViewerDynamicTexture* dynamicTexture,
                                       LLRenderTarget& renderTarget,
                                       S32 width,
@@ -255,40 +254,46 @@ bool LLViewerDynamicTexture::updateAllInstances()
             return result;
         };
 
-    // ORDER_FIRST is unused, ORDER_MIDDLE is various ui preview
-    for(S32 order = 0; order < ORDER_LAST; ++order)
-    {
-        for (LLViewerDynamicTexture* dynamicTexture : LLViewerDynamicTexture::sInstances[order])
+    auto update_dynamic_texture_range = [&](S32 begin_order,
+                                            S32 end_order,
+                                            LLRenderTarget& renderTarget,
+                                            S32 width,
+                                            S32 height) -> bool
         {
-            if (update_dynamic_texture(dynamicTexture,
-                                       preview_target,
-                                       LLPipeline::MAX_PREVIEW_WIDTH,
-                                       LLPipeline::MAX_PREVIEW_WIDTH))
+            bool rendered = false;
+            for(S32 order = begin_order; order < end_order; ++order)
             {
-                ret = true;
+                for (LLViewerDynamicTexture* dynamicTexture : LLViewerDynamicTexture::sInstances[order])
+                {
+                    if (update_dynamic_texture(dynamicTexture,
+                                               renderTarget,
+                                               width,
+                                               height))
+                    {
+                        rendered = true;
+                    }
+                }
             }
-        }
-    }
+            return rendered;
+        };
+
+    // ORDER_FIRST is unused, ORDER_MIDDLE is various ui preview
+    bool ret = update_dynamic_texture_range(0,
+                                            ORDER_LAST,
+                                            preview_target,
+                                            LLPipeline::MAX_PREVIEW_WIDTH,
+                                            LLPipeline::MAX_PREVIEW_WIDTH);
     preview_target.flush();
 
     // ORDER_LAST is baked skin preview, ORDER_RESET resets appearance parameters and does not render.
     bake_target.bindTarget();
     bake_target.clear();
 
-    ret = false;
-    for (S32 order = ORDER_LAST; order < ORDER_COUNT; ++order)
-    {
-        for (LLViewerDynamicTexture* dynamicTexture : LLViewerDynamicTexture::sInstances[order])
-        {
-            if (update_dynamic_texture(dynamicTexture,
+    ret = update_dynamic_texture_range(ORDER_LAST,
+                                       ORDER_COUNT,
                                        bake_target,
                                        LLAvatarAppearanceDefines::SCRATCH_TEX_WIDTH,
-                                       LLAvatarAppearanceDefines::SCRATCH_TEX_HEIGHT))
-            {
-                ret = true;
-            }
-        }
-    }
+                                       LLAvatarAppearanceDefines::SCRATCH_TEX_HEIGHT);
     bake_target.flush();
 
     gGL.flush();
