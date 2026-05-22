@@ -694,6 +694,16 @@ without an explicit task, and do not start a direct Vulkan port.
       source packet.
 - [x] Add a summary for the `LLSpatialPartition` debug/fixed-function
       containment packet.
+- [x] Add a focused task for `LLModelPreview` debug/fixed-function containment
+      before source edits.
+- [ ] Route `LLModelPreview` debug/fixed-function OpenGL calls through
+      `llglcontainment.*`.
+- [ ] Verify the `LLModelPreview` containment packet with a targeted or
+      incremental newview build.
+- [ ] Regenerate the generated source inventory after the `LLModelPreview`
+      source packet.
+- [ ] Add a summary for the `LLModelPreview` debug/fixed-function containment
+      packet.
 
 ## Phase 1 Inventory
 
