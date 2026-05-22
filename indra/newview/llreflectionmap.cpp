@@ -28,6 +28,7 @@
 
 #include "llreflectionmap.h"
 #include "pipeline.h"
+#include "llglcontainment.h"
 #include "llviewerwindow.h"
 #include "llviewerregion.h"
 #include "llworld.h"
@@ -45,7 +46,7 @@ LLReflectionMap::~LLReflectionMap()
 {
     if (mOcclusionQuery)
     {
-        glDeleteQueries(1, &mOcclusionQuery);
+        LLGLContainment::deleteQueries(1, &mOcclusionQuery);
     }
 }
 
@@ -340,21 +341,21 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
 
     if (mOcclusionQuery == 0)
     { // no query was previously issued, allocate one and issue
-        LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - glGenQueries");
-        glGenQueries(1, &mOcclusionQuery);
+        LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - generate queries");
+        LLGLContainment::generateQueries(1, &mOcclusionQuery);
         do_query = true;
     }
     else
     { // query was previously issued, check it and only issue a new query
         // if previous query is available
-        LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - glGetQueryObject");
+        LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - get query object");
         GLuint result = 0;
-        glGetQueryObjectuiv(mOcclusionQuery, GL_QUERY_RESULT_AVAILABLE, &result);
+        LLGLContainment::getQueryObjectUnsignedInteger(mOcclusionQuery, GL_QUERY_RESULT_AVAILABLE, &result);
 
         if (result > 0)
         {
             do_query = true;
-            glGetQueryObjectuiv(mOcclusionQuery, GL_QUERY_RESULT, &result);
+            LLGLContainment::getQueryObjectUnsignedInteger(mOcclusionQuery, GL_QUERY_RESULT, &result);
             mOccluded = result == 0;
             mOcclusionPendingFrames = 0;
         }
@@ -367,7 +368,7 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
     if (do_query)
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - push query");
-        glBeginQuery(GL_ANY_SAMPLES_PASSED, mOcclusionQuery);
+        LLGLContainment::beginQuery(GL_ANY_SAMPLES_PASSED, mOcclusionQuery);
 
         LLGLSLShader* shader = LLGLSLShader::sCurBoundShaderPtr;
 
@@ -376,7 +377,7 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
 
         gPipeline.mCubeVB->drawRange(LLRender::TRIANGLE_FAN, 0, 7, 8, get_box_fan_indices(LLViewerCamera::getInstance(), mOrigin));
 
-        glEndQuery(GL_ANY_SAMPLES_PASSED);
+        LLGLContainment::endQuery(GL_ANY_SAMPLES_PASSED);
     }
 #endif
 }

@@ -740,11 +740,11 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Add a summary for the debug-overlay fixed-function containment packet.
 - [x] Add a focused task for occlusion query containment before source edits.
-- [ ] Route reflection-map and octree occlusion query calls through
+- [x] Route reflection-map and octree occlusion query calls through
       `llglcontainment.*`.
-- [ ] Verify the occlusion query containment packet with targeted or
+- [x] Verify the occlusion query containment packet with targeted or
       incremental newview builds.
-- [ ] Regenerate the generated source inventory after the occlusion query
+- [x] Regenerate the generated source inventory after the occlusion query
       source packet.
 - [ ] Add a summary for the occlusion query containment packet.
 

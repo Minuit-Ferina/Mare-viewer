@@ -55,6 +55,7 @@ void generateQueries(S32 count, LLGLuint* queries);
 void deleteQueries(S32 count, const LLGLuint* queries);
 void beginQuery(LLGLenum target, LLGLuint query);
 void endQuery(LLGLenum target);
+void getQueryObjectUnsignedInteger(LLGLuint query, LLGLenum parameter, LLGLuint* value);
 void getQueryObjectUnsignedInteger64(LLGLuint query, LLGLenum parameter, U64* value);
 void enableVertexAttributeArray(LLGLuint location);
 void disableVertexAttributeArray(LLGLuint location);

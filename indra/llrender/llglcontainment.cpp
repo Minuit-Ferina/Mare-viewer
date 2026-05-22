@@ -146,6 +146,11 @@ void endQuery(LLGLenum target)
     glEndQuery(target);
 }
 
+void getQueryObjectUnsignedInteger(LLGLuint query, LLGLenum parameter, LLGLuint* value)
+{
+    glGetQueryObjectuiv(query, parameter, value);
+}
+
 void getQueryObjectUnsignedInteger64(LLGLuint query, LLGLenum parameter, U64* value)
 {
     GLuint64 result = 0;

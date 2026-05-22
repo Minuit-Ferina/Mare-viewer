@@ -2,7 +2,7 @@
 
 | file | category | lines | gl_calls | gl_raw_refs | gl_known_false_refs | gGL | LLGL | LLPipeline | LLRenderTarget |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 889 | 127 | 127 | 0 | 0 | 254 | 0 | 0 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 894 | 128 | 128 | 0 | 0 | 257 | 0 | 0 |
 | `indra/newview/pipeline.cpp` | render.pipeline | 12046 | 81 | 83 | 0 | 340 | 158 | 564 | 60 |
 | `indra/newview/marefsr2upscaler.cpp` | render.opengl_touching | 379 | 81 | 81 | 0 | 3 | 3 | 0 | 4 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
@@ -14,9 +14,7 @@
 | `indra/newview/llscenemonitor.cpp` | render.pipeline | 757 | 11 | 11 | 0 | 26 | 3 | 10 | 8 |
 | `indra/newview/llface.cpp` | render.pipeline | 2638 | 9 | 9 | 0 | 15 | 13 | 5 | 0 |
 | `indra/newview/gltf/asset.cpp` | assets.texture | 1470 | 8 | 8 | 0 | 0 | 5 | 0 | 0 |
-| `indra/newview/llreflectionmap.cpp` | render.pipeline | 383 | 6 | 8 | 0 | 0 | 3 | 1 | 0 |
 | `indra/newview/llvoavatar.cpp` | render.pipeline | 12711 | 6 | 6 | 0 | 96 | 8 | 23 | 0 |
-| `indra/newview/llvieweroctree.cpp` | render.pipeline | 1551 | 5 | 7 | 0 | 0 | 4 | 7 | 0 |
 | `indra/newview/gltf/animation.cpp` | render.opengl_touching | 490 | 5 | 5 | 0 | 0 | 0 | 0 | 0 |
 | `indra/newview/llappviewer.cpp` | render.pipeline | 6743 | 4 | 4 | 0 | 0 | 1 | 6 | 4 |
 | `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2841 | 3 | 16 | 0 | 32 | 81 | 0 | 0 |
@@ -102,3 +100,5 @@
 | `indra/newview/llbox.cpp` | render.opengl_touching | 133 | 0 | 0 | 0 | 16 | 0 | 0 | 0 |
 | `indra/newview/qtoolalign.cpp` | render.opengl_touching | 572 | 0 | 0 | 0 | 15 | 4 | 0 | 0 |
 | `indra/llui/llview.cpp` | render.opengl_touching | 2959 | 0 | 0 | 0 | 14 | 0 | 0 | 0 |
+| `indra/llrender/llrendertarget.cpp` | render.legacy_low_level | 675 | 0 | 0 | 0 | 12 | 29 | 0 | 42 |
+| `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2092 | 0 | 0 | 0 | 11 | 196 | 0 | 2 |
