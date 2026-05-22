@@ -1076,6 +1076,8 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the UI scissor helper packet with `llui`, targeted `newview`
       consumer object compiles, and both GL guardrails.
 - [x] Add `docs/architecture/221-ui-clip-rect-scissor-summary.md`.
+- [x] Add `docs/architecture/222-phase3-source-checkpoint.md` after the first
+      post-checkpoint source patch.
 
 ## Phase 1 Inventory
 
