@@ -832,7 +832,7 @@ without an explicit task, and do not start a direct Vulkan port.
       builds.
 - [x] Regenerate the generated source inventory after the small inventory
       remainder packet.
-- [ ] Add a summary for the small inventory remainder packet.
+- [x] Add a summary for the small inventory remainder packet.
 
 ## Phase 1 Inventory
 
