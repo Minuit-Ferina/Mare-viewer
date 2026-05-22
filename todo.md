@@ -814,6 +814,16 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the `LLViewerWindow`
       source packet.
 - [x] Add a summary for the `LLViewerWindow` containment packet.
+- [x] Add a focused task for small render-file containment before source
+      edits.
+- [ ] Add small missing containment helpers for readback, fixed-function
+      matrix stack, and byte color calls.
+- [ ] Route small render/UI/viewer files through `llglcontainment.*`.
+- [ ] Verify the small render-file containment packet with targeted or
+      incremental builds.
+- [ ] Regenerate the generated source inventory after the small render-file
+      source packet.
+- [ ] Add a summary for the small render-file containment packet.
 
 ## Phase 1 Inventory
 
