@@ -1040,6 +1040,8 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add
       `docs/architecture/206-ui-render-boundaries-post-containment.md` to
       record the post-containment UI/render boundary candidates.
+- [x] Add `docs/architecture/207-dynamic-texture-update-flow.md` before any
+      dynamic texture source changes.
 
 ## Phase 1 Inventory
 
