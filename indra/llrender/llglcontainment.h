@@ -30,6 +30,7 @@ namespace LLGLContainment
 const char* getPhaseOneScope();
 
 void bindReadWriteFramebuffer(U32 framebuffer_name);
+void bindFramebuffer(LLGLenum target, U32 framebuffer_name);
 U32 getDrawFramebufferStatus();
 void setReadWriteFramebufferTexture2D(
     LLGLenum attachment,

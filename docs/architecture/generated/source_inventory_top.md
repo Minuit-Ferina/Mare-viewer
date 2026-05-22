@@ -2,7 +2,7 @@
 
 | file | category | lines | gl_calls | gl_raw_refs | gl_known_false_refs | gGL | LLGL | LLPipeline | LLRenderTarget |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 909 | 131 | 131 | 0 | 0 | 264 | 0 | 0 |
+| `indra/llrender/llglcontainment.cpp` | render.legacy_low_level | 914 | 132 | 132 | 0 | 0 | 265 | 0 | 0 |
 | `indra/newview/pipeline.cpp` | render.pipeline | 12046 | 81 | 83 | 0 | 340 | 158 | 564 | 60 |
 | `indra/newview/marefsr2upscaler.cpp` | render.opengl_touching | 379 | 81 | 81 | 0 | 3 | 3 | 0 | 4 |
 | `indra/llrender/llgl.cpp` | render.legacy_low_level | 2949 | 79 | 2213 | 0 | 31 | 79 | 0 | 0 |
@@ -10,7 +10,6 @@
 | `indra/newview/llviewerdisplay.cpp` | render.pipeline | 1953 | 19 | 19 | 0 | 129 | 37 | 63 | 1 |
 | `indra/newview/llviewerwindow.cpp` | render.pipeline | 6504 | 12 | 14 | 0 | 44 | 7 | 63 | 2 |
 | `indra/llwindow/llwindowsdl.cpp` | assets.texture | 2757 | 11 | 12 | 0 | 0 | 0 | 0 | 0 |
-| `indra/newview/llscenemonitor.cpp` | render.pipeline | 757 | 11 | 11 | 0 | 26 | 3 | 10 | 8 |
 | `indra/newview/llface.cpp` | render.pipeline | 2638 | 9 | 9 | 0 | 15 | 13 | 5 | 0 |
 | `indra/newview/gltf/asset.cpp` | assets.texture | 1470 | 8 | 8 | 0 | 0 | 5 | 0 | 0 |
 | `indra/newview/llvoavatar.cpp` | render.pipeline | 12711 | 6 | 6 | 0 | 96 | 8 | 23 | 0 |
@@ -89,6 +88,7 @@
 | `indra/newview/llmediactrl.cpp` | render.opengl_touching | 1312 | 0 | 0 | 0 | 30 | 0 | 0 | 0 |
 | `indra/llappearance/llavatarjoint.cpp` | world.avatar | 317 | 0 | 0 | 0 | 30 | 0 | 0 | 0 |
 | `indra/newview/llsceneview.cpp` | render.opengl_touching | 436 | 0 | 0 | 0 | 29 | 0 | 0 | 0 |
+| `indra/newview/llscenemonitor.cpp` | render.pipeline | 765 | 0 | 0 | 0 | 26 | 14 | 10 | 8 |
 | `indra/llui/llfloater.cpp` | ui | 3796 | 0 | 0 | 0 | 23 | 1 | 0 | 0 |
 | `indra/newview/lltoolbrush.cpp` | render.opengl_touching | 722 | 0 | 0 | 0 | 22 | 1 | 0 | 0 |
 | `indra/llrender/llfontgl.cpp` | render.legacy_low_level | 1424 | 0 | 0 | 0 | 21 | 0 | 0 | 0 |

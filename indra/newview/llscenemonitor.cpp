@@ -27,6 +27,7 @@
 #include "llviewerprecompiledheaders.h"
 #include "llrendertarget.h"
 #include "llscenemonitor.h"
+#include "llglcontainment.h"
 #include "llviewerwindow.h"
 #include "llviewerdisplay.h"
 #include "llviewercontrol.h"
@@ -314,13 +315,21 @@ void LLSceneMonitor::capture()
         U32 old_FBO = LLRenderTarget::sCurFBO;
 
         gGL.getTexUnit(0)->bind(&cur_target);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0); //point to the main frame buffer.
+        LLGLContainment::bindFramebuffer(GL_READ_FRAMEBUFFER, 0); //point to the main frame buffer.
 
-        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, cur_target.getWidth(), cur_target.getHeight()); //copy the content
+        LLGLContainment::copyTextureSubImage2D(
+            GL_TEXTURE_2D,
+            0,
+            0,
+            0,
+            0,
+            0,
+            cur_target.getWidth(),
+            cur_target.getHeight()); //copy the content
 
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBindFramebuffer(GL_FRAMEBUFFER, old_FBO);
+        LLGLContainment::bindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        LLGLContainment::bindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        LLGLContainment::bindFramebuffer(GL_FRAMEBUFFER, old_FBO);
 
         mDiffState = NEED_DIFF;
     }
@@ -433,7 +442,7 @@ void LLSceneMonitor::calcDiffAggregate()
     LLGLDepthTest depth(true, false, GL_ALWAYS);
     if(!mDebugViewerVisible)
     {
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        LLGLContainment::setColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     }
 
     LLGLSLShader* cur_shader = NULL;
@@ -444,14 +453,14 @@ void LLSceneMonitor::calcDiffAggregate()
 
     if(mDiffState == EXECUTE_DIFF)
     {
-        glBeginQuery(GL_SAMPLES_PASSED, mQueryObject);
+        LLGLContainment::beginQuery(GL_SAMPLES_PASSED, mQueryObject);
     }
 
     gl_draw_scaled_target(0, 0, S32(mDiff->getWidth() * mDiffPixelRatio), S32(mDiff->getHeight() * mDiffPixelRatio), mDiff);
 
     if(mDiffState == EXECUTE_DIFF)
     {
-        glEndQuery(GL_SAMPLES_PASSED);
+        LLGLContainment::endQuery(GL_SAMPLES_PASSED);
         mDiffState = WAIT_ON_RESULT;
     }
 
@@ -464,7 +473,7 @@ void LLSceneMonitor::calcDiffAggregate()
 
     if(!mDebugViewerVisible)
     {
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        LLGLContainment::setColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     }
 #endif
 }
@@ -482,11 +491,11 @@ void LLSceneMonitor::fetchQueryResult()
         mDiffState = WAITING_FOR_NEXT_DIFF;
 
         GLuint available = 0;
-        glGetQueryObjectuiv(mQueryObject, GL_QUERY_RESULT_AVAILABLE, &available);
+        LLGLContainment::getQueryObjectUnsignedInteger(mQueryObject, GL_QUERY_RESULT_AVAILABLE, &available);
         if(available)
         {
             GLuint count = 0;
-            glGetQueryObjectuiv(mQueryObject, GL_QUERY_RESULT, &count);
+            LLGLContainment::getQueryObjectUnsignedInteger(mQueryObject, GL_QUERY_RESULT, &count);
 
             mDiffResult = sqrtf(count * 0.5f / (mDiff->getWidth() * mDiff->getHeight() * mDiffPixelRatio * mDiffPixelRatio)); //0.5 -> (front face + back face)
 
@@ -753,4 +762,3 @@ void LLSceneMonitorView::draw()
 
     LLView::draw();
 }
-
