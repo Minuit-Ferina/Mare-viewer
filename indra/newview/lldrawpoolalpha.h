@@ -80,6 +80,8 @@ private:
     LLGLSLShader* pbr_shader = nullptr;
 
     void drawEmissive(LLDrawInfo* draw);
+    void renderLegacyEmissiveDraw(LLDrawInfo* draw);
+    void renderPbrEmissiveDraw(LLDrawInfo* draw);
     void renderEmissives(std::vector<LLDrawInfo*>& emissives);
     void renderRiggedEmissives(std::vector<LLDrawInfo*>& emissives);
     void renderPbrEmissives(std::vector<LLDrawInfo*>& emissives);

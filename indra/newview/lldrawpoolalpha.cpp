@@ -938,6 +938,21 @@ void LLDrawPoolAlpha::drawEmissive(LLDrawInfo* draw)
     draw->mVertexBuffer->drawRange(LLRender::TRIANGLES, draw->mStart, draw->mEnd, draw->mCount, draw->mOffset);
 }
 
+void LLDrawPoolAlpha::renderLegacyEmissiveDraw(LLDrawInfo* draw)
+{
+    bool tex_setup = TexSetup(draw, false);
+    drawEmissive(draw);
+    RestoreTexSetup(tex_setup);
+}
+
+void LLDrawPoolAlpha::renderPbrEmissiveDraw(LLDrawInfo* draw)
+{
+    llassert(draw->mGLTFMaterial);
+    LLGLDisable cull_face(draw->mGLTFMaterial->mDoubleSided ? GL_CULL_FACE : 0);
+    draw->mGLTFMaterial->bind(draw->mTexture);
+    draw->mVertexBuffer->setBuffer();
+    draw->mVertexBuffer->drawRange(LLRender::TRIANGLES, draw->mStart, draw->mEnd, draw->mCount, draw->mOffset);
+}
 
 void LLDrawPoolAlpha::renderEmissives(std::vector<LLDrawInfo*>& emissives)
 {
@@ -946,9 +961,7 @@ void LLDrawPoolAlpha::renderEmissives(std::vector<LLDrawInfo*>& emissives)
 
     for (LLDrawInfo* draw : emissives)
     {
-        bool tex_setup = TexSetup(draw, false);
-        drawEmissive(draw);
-        RestoreTexSetup(tex_setup);
+        renderLegacyEmissiveDraw(draw);
     }
 }
 
@@ -958,11 +971,7 @@ void LLDrawPoolAlpha::renderPbrEmissives(std::vector<LLDrawInfo*>& emissives)
 
     for (LLDrawInfo* draw : emissives)
     {
-        llassert(draw->mGLTFMaterial);
-        LLGLDisable cull_face(draw->mGLTFMaterial->mDoubleSided ? GL_CULL_FACE : 0);
-        draw->mGLTFMaterial->bind(draw->mTexture);
-        draw->mVertexBuffer->setBuffer();
-        draw->mVertexBuffer->drawRange(LLRender::TRIANGLES, draw->mStart, draw->mEnd, draw->mCount, draw->mOffset);
+        renderPbrEmissiveDraw(draw);
     }
 }
 
@@ -983,9 +992,7 @@ void LLDrawPoolAlpha::renderRiggedEmissives(std::vector<LLDrawInfo*>& emissives)
 
         if (uploadMatrixPalette(draw->mAvatar, draw->mSkinInfo, lastAvatar, lastMeshId, skipLastSkin))
         {
-            bool tex_setup = TexSetup(draw, false);
-            drawEmissive(draw);
-            RestoreTexSetup(tex_setup);
+            renderLegacyEmissiveDraw(draw);
         }
     }
 }
@@ -1006,10 +1013,7 @@ void LLDrawPoolAlpha::renderRiggedPbrEmissives(std::vector<LLDrawInfo*>& emissiv
             continue;
         }
 
-        LLGLDisable cull_face(draw->mGLTFMaterial->mDoubleSided ? GL_CULL_FACE : 0);
-        draw->mGLTFMaterial->bind(draw->mTexture);
-        draw->mVertexBuffer->setBuffer();
-        draw->mVertexBuffer->drawRange(LLRender::TRIANGLES, draw->mStart, draw->mEnd, draw->mCount, draw->mOffset);
+        renderPbrEmissiveDraw(draw);
     }
 }
 

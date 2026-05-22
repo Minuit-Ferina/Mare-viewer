@@ -1250,7 +1250,16 @@ not start a direct Vulkan port.
 - [x] Verify the post-deferred alpha packet with targeted
       `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
       inventory.
-- [ ] Decide the next larger phase 4 packet after the post-deferred alpha
+- [x] Decide to extract duplicated alpha emissive per-draw behavior as the next
+      larger phase 4 packet.
+- [x] Add
+      `docs/architecture/249-drawpool-alpha-emissive-draw-packet.md`.
+- [x] Extract owner-local legacy and PBR emissive draw helpers in
+      `LLDrawPoolAlpha`.
+- [x] Verify the alpha emissive draw packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [ ] Decide the next larger phase 4 packet after the alpha emissive draw
       helpers.
 
 ## Phase 1 Inventory
