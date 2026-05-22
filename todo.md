@@ -876,6 +876,7 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the `llgl` boundary packet with targeted `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `llgl` boundary
       packet.
+- [x] Add a summary for the `llgl` boundary packet.
 
 ## Phase 1 Inventory
 
