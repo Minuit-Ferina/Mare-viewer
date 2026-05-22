@@ -720,7 +720,7 @@ without an explicit task, and do not start a direct Vulkan port.
       incremental newview build.
 - [x] Regenerate the generated source inventory after the `LLDrawPoolMaterials`
       source packet.
-- [ ] Add a summary for the `LLDrawPoolMaterials` uniform containment packet.
+- [x] Add a summary for the `LLDrawPoolMaterials` uniform containment packet.
 
 ## Phase 1 Inventory
 
