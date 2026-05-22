@@ -664,7 +664,7 @@ without an explicit task, and do not start a direct Vulkan port.
       `llrender/fast`.
 - [x] Regenerate the generated source inventory after the disabled
       `LLGLSLShader` debug include source packet.
-- [ ] Add a summary for the disabled `LLGLSLShader` debug include containment
+- [x] Add a summary for the disabled `LLGLSLShader` debug include containment
       packet.
 
 ## Phase 1 Inventory
