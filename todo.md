@@ -757,6 +757,14 @@ without an explicit task, and do not start a direct Vulkan port.
       source packet.
 - [x] Add a summary for the disabled `LLManipTranslate` stencil containment
       packet.
+- [x] Add a focused task for `LLSceneMonitor` containment before source edits.
+- [ ] Route `LLSceneMonitor` framebuffer/copy/query calls through
+      `llglcontainment.*`.
+- [ ] Verify the `LLSceneMonitor` containment packet with a targeted or
+      incremental newview build.
+- [ ] Regenerate the generated source inventory after the `LLSceneMonitor`
+      source packet.
+- [ ] Add a summary for the `LLSceneMonitor` containment packet.
 
 ## Phase 1 Inventory
 
