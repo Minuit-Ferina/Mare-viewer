@@ -617,26 +617,22 @@ static void render_alpha_batch(
     }
 }
 
-void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
+static U32 get_alpha_vertex_data_mask()
 {
-    LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
+    return (U32)LLDrawPoolAlpha::VERTEX_DATA_MASK |
+           LLVertexBuffer::MAP_TEXTURE_INDEX |
+           LLVertexBuffer::MAP_TANGENT |
+           LLVertexBuffer::MAP_TEXCOORD1 |
+           LLVertexBuffer::MAP_TEXCOORD2;
+}
 
-    if (LLPipeline::isWaterClip() && getType() == LLDrawPool::POOL_ALPHA_PRE_WATER)
-    { // don't render alpha objects on the other side of the water plane if water is opaque
-        return;
-    }
-
-    F32 water_sign = get_alpha_water_sign(getType());
-
-    // prepare shaders
-    llassert(LLPipeline::sRenderDeferred);
-
+void LLDrawPoolAlpha::prepareDeferredAlphaShaders(F32 water_sign)
+{
     emissive_shader = &gDeferredEmissiveProgram;
     prepare_alpha_shader(emissive_shader, false, water_sign);
 
     pbr_emissive_shader = &gPBRGlowProgram;
     prepare_alpha_shader(pbr_emissive_shader, false, water_sign);
-
 
     fullbright_shader   =
         (LLPipeline::sImpostorRender) ? &gDeferredFullbrightAlphaMaskProgram :
@@ -662,6 +658,41 @@ void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
         &gDeferredPBRAlphaProgram;
 
     prepare_alpha_shader(pbr_shader, true, water_sign);
+}
+
+void LLDrawPoolAlpha::renderDepthOfFieldAlphaPass()
+{
+    //update depth buffer sampler
+    simple_shader = fullbright_shader = &gDeferredFullbrightAlphaMaskProgram;
+
+    simple_shader->bind();
+    simple_shader->setMinimumAlpha(0.33f);
+
+    // mask off color buffer writes as we're only writing to depth buffer
+    gGL.setColorMask(false, false);
+
+    // If the face is more than 90% transparent, then don't update the Depth buffer for Dof
+    // We don't want the nearly invisible objects to cause of DoF effects
+    renderAlpha(get_alpha_vertex_data_mask(), true); // <--- discard mostly transparent faces
+
+    gGL.setColorMask(true, false);
+}
+
+void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
+{
+    LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
+
+    if (LLPipeline::isWaterClip() && getType() == LLDrawPool::POOL_ALPHA_PRE_WATER)
+    { // don't render alpha objects on the other side of the water plane if water is opaque
+        return;
+    }
+
+    F32 water_sign = get_alpha_water_sign(getType());
+
+    // prepare shaders
+    llassert(LLPipeline::sRenderDeferred);
+
+    prepareDeferredAlphaShaders(water_sign);
 
     // explicitly unbind here so render loop doesn't make assumptions about the last shader
     // already being setup for rendering
@@ -679,21 +710,7 @@ void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
     // final pass, render to depth for depth of field effects
     if (should_render_alpha_depth_of_field_pass(getType()))
     {
-        //update depth buffer sampler
-        simple_shader = fullbright_shader = &gDeferredFullbrightAlphaMaskProgram;
-
-        simple_shader->bind();
-        simple_shader->setMinimumAlpha(0.33f);
-
-        // mask off color buffer writes as we're only writing to depth buffer
-        gGL.setColorMask(false, false);
-
-        // If the face is more than 90% transparent, then don't update the Depth buffer for Dof
-        // We don't want the nearly invisible objects to cause of DoF effects
-        renderAlpha(getVertexDataMask() | LLVertexBuffer::MAP_TEXTURE_INDEX | LLVertexBuffer::MAP_TANGENT | LLVertexBuffer::MAP_TEXCOORD1 | LLVertexBuffer::MAP_TEXCOORD2,
-            true); // <--- discard mostly transparent faces
-
-        gGL.setColorMask(true, false);
+        renderDepthOfFieldAlphaPass();
     }
 }
 
@@ -722,7 +739,7 @@ void LLDrawPoolAlpha::forwardRender(bool rigged)
 
     // If the face is more than 90% transparent, then don't update the Depth buffer for Dof
     // We don't want the nearly invisible objects to cause of DoF effects
-    renderAlpha(getVertexDataMask() | LLVertexBuffer::MAP_TEXTURE_INDEX | LLVertexBuffer::MAP_TANGENT | LLVertexBuffer::MAP_TEXCOORD1 | LLVertexBuffer::MAP_TEXCOORD2, false, rigged);
+    renderAlpha(get_alpha_vertex_data_mask(), false, rigged);
 
     gGL.setColorMask(true, false);
 

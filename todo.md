@@ -1242,7 +1242,16 @@ not start a direct Vulkan port.
 - [x] Verify the alpha texture setup packet with targeted
       `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
       inventory.
-- [ ] Decide the next larger phase 4 packet after the texture setup helpers.
+- [x] Decide to extract post-deferred alpha shader preparation, DOf pass, and
+      shared alpha vertex mask as the next larger phase 4 packet.
+- [x] Add
+      `docs/architecture/248-drawpool-alpha-post-deferred-packet.md`.
+- [x] Extract owner-local post-deferred alpha helpers in `LLDrawPoolAlpha`.
+- [x] Verify the post-deferred alpha packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [ ] Decide the next larger phase 4 packet after the post-deferred alpha
+      helpers.
 
 ## Phase 1 Inventory
 

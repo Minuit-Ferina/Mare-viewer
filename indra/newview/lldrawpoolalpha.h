@@ -97,6 +97,8 @@ private:
     bool SetupLegacyTextures(LLDrawInfo* draw, bool use_material);
     bool TexSetup(LLDrawInfo* draw, bool use_material);
     void RestoreTexSetup(bool tex_setup);
+    void prepareDeferredAlphaShaders(F32 water_sign);
+    void renderDepthOfFieldAlphaPass();
 
     // our 'normal' alpha blend function for this pass
     LLRender::eBlendFactor mColorSFactor;
