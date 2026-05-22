@@ -666,6 +666,14 @@ without an explicit task, and do not start a direct Vulkan port.
       `LLGLSLShader` debug include source packet.
 - [x] Add a summary for the disabled `LLGLSLShader` debug include containment
       packet.
+- [x] Add a focused task for `LLShaderMgr` OpenGL containment before source
+      edits.
+- [ ] Route active `LLShaderMgr` direct OpenGL calls through
+      `llglcontainment.*`.
+- [ ] Verify the `LLShaderMgr` containment packet with `llrender/fast`.
+- [ ] Regenerate the generated source inventory after the `LLShaderMgr`
+      source packet.
+- [ ] Add a summary for the `LLShaderMgr` containment packet.
 
 ## Phase 1 Inventory
 
