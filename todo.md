@@ -1310,8 +1310,14 @@ not start a direct Vulkan port.
 - [x] Verify the alpha pass context packet with targeted
       `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
       inventory.
-- [ ] Decide the next larger phase 4 packet after the alpha pass context
-      helper.
+- [x] Add
+      `docs/architecture/256-drawpool-alpha-phase4-checkpoint.md`.
+- [x] Summarize the completed `LLDrawPoolAlpha` phase 4 cleanup block for
+      review.
+- [ ] Run one non-clean integration build checkpoint before declaring the
+      `LLDrawPoolAlpha` phase 4 block complete.
+- [ ] Decide whether phase 4 closes after the `LLDrawPoolAlpha` checkpoint or
+      continues with another owner map.
 
 ## Phase 1 Inventory
 
