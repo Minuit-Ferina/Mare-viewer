@@ -738,7 +738,7 @@ without an explicit task, and do not start a direct Vulkan port.
       newview builds.
 - [x] Regenerate the generated source inventory after the debug-overlay source
       packet.
-- [ ] Add a summary for the debug-overlay fixed-function containment packet.
+- [x] Add a summary for the debug-overlay fixed-function containment packet.
 
 ## Phase 1 Inventory
 
