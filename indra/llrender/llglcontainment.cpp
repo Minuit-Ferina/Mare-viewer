@@ -180,6 +180,11 @@ void updateBufferObjectSubData(LLGLenum target, U32 offset, U32 size, const void
     glBufferSubData(target, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), data);
 }
 
+void getBufferObjectParameterInteger(LLGLenum target, LLGLenum parameter, LLGLint* value)
+{
+    glGetBufferParameteriv(target, parameter, value);
+}
+
 void generateQueries(S32 count, LLGLuint* queries)
 {
     glGenQueries(static_cast<GLsizei>(count), queries);
@@ -326,9 +331,19 @@ void setPixelStoreInteger(LLGLenum parameter, LLGLint value)
     glPixelStorei(parameter, value);
 }
 
+void getBoolean(LLGLenum parameter, LLGLboolean* value)
+{
+    glGetBooleanv(parameter, value);
+}
+
 void getFloat(LLGLenum parameter, LLGLfloat* value)
 {
     glGetFloatv(parameter, value);
+}
+
+void setHint(LLGLenum target, LLGLenum mode)
+{
+    glHint(target, mode);
 }
 
 void setMatrixMode(LLGLenum mode)
@@ -959,6 +974,11 @@ void clientWaitSyncObject(LLGLsync sync)
     glClientWaitSync(static_cast<GLsync>(sync), 0, GL_TIMEOUT_IGNORED);
 }
 
+LLGLenum clientWaitSyncObjectStatus(LLGLsync sync, U64 timeout)
+{
+    return glClientWaitSync(static_cast<GLsync>(sync), 0, timeout);
+}
+
 void waitSyncObject(LLGLsync sync)
 {
     glWaitSync(static_cast<GLsync>(sync), 0, GL_TIMEOUT_IGNORED);
@@ -1014,6 +1034,11 @@ const char* getString(LLGLenum parameter)
     return reinterpret_cast<const char*>(glGetString(parameter));
 }
 
+const char* getStringIndexed(LLGLenum parameter, LLGLuint index)
+{
+    return reinterpret_cast<const char*>(glGetStringi(parameter, index));
+}
+
 LLGLenum getError()
 {
     return glGetError();
@@ -1032,6 +1057,21 @@ void disableCapability(LLGLenum capability)
 bool isCapabilityEnabled(LLGLenum capability)
 {
     return glIsEnabled(capability) == GL_TRUE;
+}
+
+void setClientActiveTexture(LLGLenum texture)
+{
+    glClientActiveTexture(texture);
+}
+
+void setDepthFunction(LLGLenum function)
+{
+    glDepthFunc(function);
+}
+
+void setDepthMask(LLGLboolean enabled)
+{
+    glDepthMask(static_cast<GLboolean>(enabled));
 }
 
 void setCullFace(LLGLenum mode)

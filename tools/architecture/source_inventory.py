@@ -53,6 +53,26 @@ KNOWN_GL_FALSE_POSITIVE_NAMES = {
 INCLUDE_RE = re.compile(r'^\s*#\s*include\s+[<"]([^>"]+)[>"]', re.MULTILINE)
 
 
+def is_non_runtime_gl_call_line(line: str) -> bool:
+    stripped = line.strip()
+    if stripped.startswith("//"):
+        return True
+    if stripped.startswith("extern ") and GL_CALL_EXPR_RE.search(stripped):
+        return True
+    if stripped.startswith("typedef ") and "(*" in stripped:
+        return True
+    return False
+
+
+def find_runtime_gl_call_names(text: str) -> list[str]:
+    names: list[str] = []
+    for line in text.splitlines():
+        if is_non_runtime_gl_call_line(line):
+            continue
+        names.extend(GL_CALL_EXPR_RE.findall(line))
+    return names
+
+
 def should_skip(path: Path) -> bool:
     parts = set(path.parts)
     return any(part in SKIP_DIRS for part in parts)
@@ -111,7 +131,7 @@ def main() -> None:
         includes = INCLUDE_RE.findall(text)
 
         gl_raw_names = GL_RAW_REF_RE.findall(text)
-        gl_call_names = GL_CALL_EXPR_RE.findall(text)
+        gl_call_names = find_runtime_gl_call_names(text)
 
         counts = {
             "gl_calls": sum(

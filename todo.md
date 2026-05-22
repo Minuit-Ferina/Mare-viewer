@@ -867,6 +867,15 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Regenerate the generated source inventory after the remaining GL
       boundary packet.
 - [x] Add a summary for the remaining GL boundary packet.
+- [x] Add a focused task for `llgl.cpp` and `llglheaders.h` boundary
+      containment.
+- [x] Route executable `llgl.cpp` OpenGL probing, state, error, and sync
+      callsites through `llglcontainment.*`.
+- [x] Keep `llglheaders.h` symbol declarations unchanged while excluding
+      prototypes from runtime `gl_calls` inventory counts.
+- [x] Verify the `llgl` boundary packet with targeted `llrender/fast`.
+- [x] Regenerate the generated source inventory after the `llgl` boundary
+      packet.
 
 ## Phase 1 Inventory
 
