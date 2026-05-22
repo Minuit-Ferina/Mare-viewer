@@ -853,6 +853,11 @@ void setStencilOperation(LLGLenum stencil_fail, LLGLenum depth_fail, LLGLenum de
     glStencilOp(stencil_fail, depth_fail, depth_pass);
 }
 
+const char* getString(LLGLenum parameter)
+{
+    return reinterpret_cast<const char*>(glGetString(parameter));
+}
+
 LLGLenum getError()
 {
     return glGetError();

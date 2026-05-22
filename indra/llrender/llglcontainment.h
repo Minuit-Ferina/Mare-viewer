@@ -279,6 +279,7 @@ void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);
 void setStencilFunction(LLGLenum function, LLGLint reference, LLGLuint mask);
 void setStencilMask(LLGLuint mask);
 void setStencilOperation(LLGLenum stencil_fail, LLGLenum depth_fail, LLGLenum depth_pass);
+const char* getString(LLGLenum parameter);
 LLGLenum getError();
 void enableCapability(LLGLenum capability);
 void disableCapability(LLGLenum capability);

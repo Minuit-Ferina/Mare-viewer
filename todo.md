@@ -797,12 +797,12 @@ without an explicit task, and do not start a direct Vulkan port.
       packet.
 - [x] Add a summary for the `LLVOAvatar` containment packet.
 - [x] Add a focused task for `LLAppViewer` containment before source edits.
-- [ ] Add the `getString` containment helper for viewer information strings.
-- [ ] Route `LLAppViewer` viewer info and driver-crash OpenGL calls through
+- [x] Add the `getString` containment helper for viewer information strings.
+- [x] Route `LLAppViewer` viewer info and driver-crash OpenGL calls through
       `llglcontainment.*`.
-- [ ] Verify the `LLAppViewer` containment packet with targeted or incremental
+- [x] Verify the `LLAppViewer` containment packet with targeted or incremental
       builds.
-- [ ] Regenerate the generated source inventory after the `LLAppViewer`
+- [x] Regenerate the generated source inventory after the `LLAppViewer`
       source packet.
 - [ ] Add a summary for the `LLAppViewer` containment packet.
 
