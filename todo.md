@@ -896,8 +896,10 @@ without an explicit task, and do not start a direct Vulkan port.
 - [ ] If the Unix Makefiles app becomes a regular runtime path, add a Darwin
       non-Xcode CMake `POST_BUILD` step to compile `Kokua.xib` into
       `Kokua.nib` after `viewer_manifest.py`.
-- [ ] Optionally perform a minimal manual smoke after the final pipeline
-      containment packet: launch, login, load one scene, resize, quit.
+- [x] Defer the final optional manual smoke after phase 3 closure because the
+      final source repair only made implementation includes explicit and
+      previous phase 3 user checks already covered login, scene load, and
+      resize.
 - [x] Write a renderer containment contract for what `LLGLContainment` may own
       versus what remains owned by renderer classes.
 - [x] Add an executable GL containment guardrail that fails on new runtime
@@ -1172,6 +1174,10 @@ without an explicit task, and do not start a direct Vulkan port.
       regenerated source inventory.
 - [x] Add
       `docs/architecture/237-llappearance-stop-glerror-include-summary.md`.
+- [x] Add
+      `docs/architecture/238-phase3-final-review-summary.md`.
+- [x] Treat `phase3` as complete and ready for stacked review on top of
+      `phase2`.
 
 ## Phase 1 Inventory
 
@@ -1212,8 +1218,8 @@ No open items in this section right now.
 - [ ] Keep FSR2 disabled on Darwin unless a compatible non-compute fallback is explicitly designed.
 - [ ] Do not run a clean full viewer build after each small source-side
       containment step; reserve clean builds for explicit checkpoints.
-- [ ] Run a local incremental `mare-viewer` Release arm64 build before
-      important source-side milestones on this machine.
+- [x] Run a final non-clean `mare-viewer` Makefile build checkpoint before
+      closing phase 3.
 - [ ] Keep universal macOS build investigation separate from this machine's local arm64 dev shortcut.
 - [ ] Delay signing, notarization, and DMG packaging until runtime smoke tests pass.
 
