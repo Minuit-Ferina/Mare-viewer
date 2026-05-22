@@ -746,7 +746,7 @@ without an explicit task, and do not start a direct Vulkan port.
       incremental newview builds.
 - [x] Regenerate the generated source inventory after the occlusion query
       source packet.
-- [ ] Add a summary for the occlusion query containment packet.
+- [x] Add a summary for the occlusion query containment packet.
 
 ## Phase 1 Inventory
 
