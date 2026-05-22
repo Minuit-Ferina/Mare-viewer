@@ -225,6 +225,21 @@ void setVertexPointer(LLGLint size, LLGLenum type, S32 stride, const void* point
     glVertexPointer(size, type, static_cast<GLsizei>(stride), pointer);
 }
 
+void enableClientState(LLGLenum array)
+{
+    glEnableClientState(array);
+}
+
+void disableClientState(LLGLenum array)
+{
+    glDisableClientState(array);
+}
+
+void setTextureCoordinatePointer(LLGLint size, LLGLenum type, S32 stride, const void* pointer)
+{
+    glTexCoordPointer(size, type, static_cast<GLsizei>(stride), pointer);
+}
+
 void drawVertexBufferRange(
     LLGLenum mode,
     LLGLuint start,

@@ -41,6 +41,7 @@
 #include "lldrawpoolavatar.h"
 #include "lldrawpoolbump.h"
 #include "llgl.h"
+#include "llglcontainment.h"
 #include "llrender.h"
 #include "lllightconstants.h"
 #include "llsky.h"
@@ -549,19 +550,23 @@ void LLFace::renderSelected(LLViewerTexture *imagep, const LLColor4& color)
                 {
                     // called when selecting a face during edit of a mesh object
                     LLGLEnable offset(GL_POLYGON_OFFSET_FILL);
-                    glPolygonOffset(-1.f, -1.f);
+                    LLGLContainment::setPolygonOffset(-1.f, -1.f);
                     gGL.multMatrix((F32*) volume->getRelativeXform().mMatrix);
                     const LLVolumeFace& vol_face = rigged->getVolumeFace(getTEOffset());
                     LLVertexBuffer::unbind();
-                    glVertexPointer(3, GL_FLOAT, 16, vol_face.mPositions);
+                    LLGLContainment::setVertexPointer(3, GL_FLOAT, 16, vol_face.mPositions);
                     if (vol_face.mTexCoords)
                     {
-                        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-                        glTexCoordPointer(2, GL_FLOAT, 8, vol_face.mTexCoords);
+                        LLGLContainment::enableClientState(GL_TEXTURE_COORD_ARRAY);
+                        LLGLContainment::setTextureCoordinatePointer(2, GL_FLOAT, 8, vol_face.mTexCoords);
                     }
                     gGL.syncMatrices();
-                    glDrawElements(GL_TRIANGLES, vol_face.mNumIndices, GL_UNSIGNED_SHORT, vol_face.mIndices);
-                    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+                    LLGLContainment::drawElements(
+                        GL_TRIANGLES,
+                        vol_face.mNumIndices,
+                        GL_UNSIGNED_SHORT,
+                        vol_face.mIndices);
+                    LLGLContainment::disableClientState(GL_TEXTURE_COORD_ARRAY);
                 }
             }
 #endif
@@ -649,9 +654,9 @@ void LLFace::renderOneWireframe(const LLColor4 &color, F32 fogCfx, bool wirefram
         LLGLDisable depth(wireframe_selection ? 0 : GL_BLEND);
 
         LLGLEnable offset(GL_POLYGON_OFFSET_LINE);
-        glPolygonOffset(3.f, 3.f);
-        glLineWidth(5.f);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        LLGLContainment::setPolygonOffset(3.f, 3.f);
+        LLGLContainment::setLineWidth(5.f);
+        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         renderFace(mDrawablep, this);
     }
 }

@@ -81,6 +81,9 @@ void setVertexAttribute4(
     LLGLfloat fourth);
 void setVertexAttributeVector4(LLGLuint location, const LLGLfloat* values);
 void setVertexPointer(LLGLint size, LLGLenum type, S32 stride, const void* pointer);
+void enableClientState(LLGLenum array);
+void disableClientState(LLGLenum array);
+void setTextureCoordinatePointer(LLGLint size, LLGLenum type, S32 stride, const void* pointer);
 void drawVertexBufferRange(
     LLGLenum mode,
     LLGLuint start,
