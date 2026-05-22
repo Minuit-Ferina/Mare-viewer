@@ -673,7 +673,7 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the `LLShaderMgr` containment packet with `llrender/fast`.
 - [x] Regenerate the generated source inventory after the `LLShaderMgr`
       source packet.
-- [ ] Add a summary for the `LLShaderMgr` containment packet.
+- [x] Add a summary for the `LLShaderMgr` containment packet.
 
 ## Phase 1 Inventory
 
