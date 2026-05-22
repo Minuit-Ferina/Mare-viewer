@@ -1119,6 +1119,13 @@ without an explicit task, and do not start a direct Vulkan port.
       inventory.
 - [x] Add
       `docs/architecture/229-drawpool-alpha-pass-decision-summary.md`.
+- [x] Extract local `LLDrawPoolAlpha` group filtering and alpha draw-map
+      selection helpers without changing per-face render order.
+- [x] Verify the alpha group-filter packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [x] Add
+      `docs/architecture/230-drawpool-alpha-group-filter-summary.md`.
 
 ## Phase 1 Inventory
 

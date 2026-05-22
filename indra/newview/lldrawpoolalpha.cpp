@@ -77,6 +77,39 @@ static bool is_particle_or_hud_particle_group(LLSpatialGroup* group)
            partition_type == LLViewerRegion::PARTITION_HUD_PARTICLE;
 }
 
+static bool is_renderable_alpha_group(LLSpatialGroup* group)
+{
+    return group->getSpatialPartition()->mRenderByGroup &&
+           !group->isDead();
+}
+
+static bool is_alpha_group_on_rendered_side_of_water(LLSpatialGroup* group,
+                                                     bool above_water,
+                                                     F32 water_height)
+{
+    if (LLPipeline::sRenderingHUDs)
+    {
+        return true;
+    }
+
+    LLSpatialBridge* bridge = group->getSpatialPartition()->asBridge();
+    const LLVector4a* ext = bridge ? bridge->getSpatialExtents() : group->getExtents();
+
+    if (above_water)
+    { // reject any spatial groups that have no part above water
+        return ext[1].getF32ptr()[2] >= water_height;
+    }
+
+    // reject any spatial groups that have no part below water
+    return ext[0].getF32ptr()[2] <= water_height;
+}
+
+static LLSpatialGroup::drawmap_elem_t& get_alpha_draw_info(LLSpatialGroup* group, bool rigged)
+{
+    return rigged ? group->mDrawMap[LLRenderPass::PASS_ALPHA_RIGGED] :
+                    group->mDrawMap[LLRenderPass::PASS_ALPHA];
+}
+
 LLDrawPoolAlpha::LLDrawPoolAlpha(U32 type) :
         LLRenderPass(type), target_shader(NULL),
         mColorSFactor(LLRender::BF_UNDEF), mColorDFactor(LLRender::BF_UNDEF),
@@ -655,29 +688,11 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
         llassert(group);
         llassert(group->getSpatialPartition());
 
-        if (group->getSpatialPartition()->mRenderByGroup &&
-            !group->isDead())
+        if (is_renderable_alpha_group(group))
         {
-
-            LLSpatialBridge* bridge = group->getSpatialPartition()->asBridge();
-            const LLVector4a* ext = bridge ? bridge->getSpatialExtents() : group->getExtents();
-
-            if (!LLPipeline::sRenderingHUDs) // ignore above/below water for HUD render
+            if (!is_alpha_group_on_rendered_side_of_water(group, above_water, water_height))
             {
-                if (above_water)
-                { // reject any spatial groups that have no part above water
-                    if (ext[1].getF32ptr()[2] < water_height)
-                    {
-                        continue;
-                    }
-                }
-                else
-                { // reject any spatial groups that he no part below water
-                    if (ext[0].getF32ptr()[2] > water_height)
-                    {
-                        continue;
-                    }
-                }
+                continue;
             }
 
             static std::vector<LLDrawInfo*> emissives;
@@ -693,7 +708,7 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
             const bool disable_cull = is_particle_or_hud_particle_group(group);
             LLGLDisable cull(disable_cull ? GL_CULL_FACE : 0);
 
-            LLSpatialGroup::drawmap_elem_t& draw_info = rigged ? group->mDrawMap[LLRenderPass::PASS_ALPHA_RIGGED] : group->mDrawMap[LLRenderPass::PASS_ALPHA];
+            LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_draw_info(group, rigged);
 
             for (LLSpatialGroup::drawmap_elem_t::iterator k = draw_info.begin(); k != draw_info.end(); ++k)
             {
