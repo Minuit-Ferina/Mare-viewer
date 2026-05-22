@@ -90,6 +90,14 @@ private:
         bool light_enabled = true;
     };
 
+    struct AlphaPassContext
+    {
+        bool rigged = false;
+        bool depth_only = false;
+        bool above_water = false;
+        F32 water_height = 0.f;
+    };
+
     LLGLSLShader* target_shader;
 
     // setup by beginFooPass, [0] is static variant, [1] is rigged variant
@@ -112,10 +120,7 @@ private:
                          AlphaRenderState& state,
                          AlphaEmissiveQueues& queues);
     void renderAlphaGroup(LLSpatialGroup* group,
-                          bool rigged,
-                          bool depth_only,
-                          bool above_water,
-                          F32 water_height,
+                          const AlphaPassContext& context,
                           AlphaRenderState& state);
     bool SetupTextureMatrix(LLDrawInfo* draw);
     bool SetupGltfTextures(LLDrawInfo* draw);

@@ -1200,10 +1200,7 @@ void LLDrawPoolAlpha::renderAlphaDraw(
 
 void LLDrawPoolAlpha::renderAlphaGroup(
     LLSpatialGroup* group,
-    bool rigged,
-    bool depth_only,
-    bool above_water,
-    F32 water_height,
+    const AlphaPassContext& context,
     AlphaRenderState& state)
 {
     LL_PROFILE_ZONE_NAMED_CATEGORY_DRAWPOOL("renderAlpha - group");
@@ -1215,7 +1212,10 @@ void LLDrawPoolAlpha::renderAlphaGroup(
         return;
     }
 
-    if (!is_alpha_group_on_rendered_side_of_water(group, above_water, water_height))
+    if (!is_alpha_group_on_rendered_side_of_water(
+            group,
+            context.above_water,
+            context.water_height))
     {
         return;
     }
@@ -1226,12 +1226,12 @@ void LLDrawPoolAlpha::renderAlphaGroup(
     const bool disable_cull = is_particle_or_hud_particle_group(group);
     LLGLDisable cull(disable_cull ? GL_CULL_FACE : 0);
 
-    LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_draw_info(group, rigged);
+    LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_draw_info(group, context.rigged);
 
     for (LLSpatialGroup::drawmap_elem_t::iterator k = draw_info.begin(); k != draw_info.end(); ++k)
     {
         LLDrawInfo& params = **k;
-        if (!is_alpha_draw_info_for_pass(params, rigged))
+        if (!is_alpha_draw_info_for_pass(params, context.rigged))
         {
             continue;
         }
@@ -1242,7 +1242,7 @@ void LLDrawPoolAlpha::renderAlphaGroup(
     }
 
     // render emissive faces into alpha channel for bloom effects
-    if (!depth_only)
+    if (!context.depth_only)
     {
         renderAlphaEmissiveSubpass(emissive_queues, state.light_enabled);
     }
@@ -1257,9 +1257,13 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
     LLCullResult::sg_iterator end = end_alpha_groups(rigged);
 
     LLEnvironment& env = LLEnvironment::instance();
-    F32 water_height = env.getWaterHeight();
-
-    const bool above_water = is_above_water_alpha_pool(getType());
+    const AlphaPassContext context =
+    {
+        rigged,
+        depth_only,
+        is_above_water_alpha_pool(getType()),
+        env.getWaterHeight()
+    };
 
 
 //MK
@@ -1278,10 +1282,7 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
     for (LLCullResult::sg_iterator i = begin; i != end; ++i)
     {
         renderAlphaGroup(*i,
-                         rigged,
-                         depth_only,
-                         above_water,
-                         water_height,
+                         context,
                          state);
     }
 

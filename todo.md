@@ -1301,7 +1301,17 @@ not start a direct Vulkan port.
       pipeline.
 - [x] Verify the alpha pass state packet with targeted `lldrawpoolalpha.cpp.o`,
       both GL guardrails, and regenerated source inventory.
-- [ ] Decide the next larger phase 4 packet after the alpha pass state helper.
+- [x] Decide to consolidate pass-level alpha parameters as the next larger
+      phase 4 packet.
+- [x] Add
+      `docs/architecture/255-drawpool-alpha-pass-context-packet.md`.
+- [x] Add owner-local `AlphaPassContext` and thread it through alpha group
+      rendering.
+- [x] Verify the alpha pass context packet with targeted
+      `lldrawpoolalpha.cpp.o`, both GL guardrails, and regenerated source
+      inventory.
+- [ ] Decide the next larger phase 4 packet after the alpha pass context
+      helper.
 
 ## Phase 1 Inventory
 
