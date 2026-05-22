@@ -26,6 +26,8 @@
 #include "linden_common.h"
 #include "llgltexture.h"
 
+#include "llimagegl.h"
+
 
 LLGLTexture::LLGLTexture(bool usemipmaps)
 {

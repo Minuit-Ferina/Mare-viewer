@@ -29,8 +29,12 @@
 #define LL_GL_TEXTURE_H
 
 #include "lltexture.h"
-#include "llgl.h"
+#include "llgltypes.h"
+#include "llpointer.h"
+#include "llrender.h"
+#include "llunits.h"
 
+class LLImageGL;
 class LLImageRaw;
 
 //
@@ -198,4 +202,3 @@ protected:
 };
 
 #endif // LL_GL_TEXTURE_H
-

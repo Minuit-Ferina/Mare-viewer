@@ -958,6 +958,13 @@ without an explicit task, and do not start a direct Vulkan port.
       containment guardrail, and regenerated source inventory.
 - [x] Add
       `docs/architecture/192-postprocess-sphere-header-boundary-summary.md`.
+- [x] Narrow `llgltexture.h` so it no longer includes `llgl.h` directly.
+- [x] Make the `LLGLTexture` implementation dependency on `LLImageGL`
+      explicit in `llgltexture.cpp`.
+- [x] Verify the `LLGLTexture` header boundary packet with `llrender/fast`,
+      `llui`, targeted viewer texture `newview` object compiles, the
+      containment guardrail, and regenerated source inventory.
+- [x] Add `docs/architecture/193-llgltexture-header-boundary-summary.md`.
 - [ ] Review old guardrails that mention avoiding `pipeline.cpp` now that the
       final pipeline containment packet is complete.
 - [ ] Continue reducing header-level OpenGL ABI exposure in small packets,
