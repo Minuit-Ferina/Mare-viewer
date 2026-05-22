@@ -1084,6 +1084,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the dynamic texture helper-shape packet with `llrender/fast`,
       targeted `lldynamictexture.cpp.o`, and both GL guardrails.
 - [x] Add `docs/architecture/223-dynamic-texture-render-scope-summary.md`.
+- [x] Extract the `LLDrawPoolAlpha` particle/HUD-particle cull-disable
+      predicate without changing alpha render state.
+- [x] Verify the alpha predicate packet with targeted `lldrawpoolalpha.cpp.o`
+      and both GL guardrails.
+- [x] Add `docs/architecture/224-drawpool-alpha-particle-cull-summary.md`.
 
 ## Phase 1 Inventory
 

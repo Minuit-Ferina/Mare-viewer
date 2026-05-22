@@ -70,6 +70,13 @@ static const F32 MINIMUM_ALPHA = 0.004f; // ~ 1/255
 // minimum alpha before discarding a fragment when rendering impostors
 static const F32 MINIMUM_IMPOSTOR_ALPHA = 0.1f;
 
+static bool is_particle_or_hud_particle_group(LLSpatialGroup* group)
+{
+    const U32 partition_type = group->getSpatialPartition()->mPartitionType;
+    return partition_type == LLViewerRegion::PARTITION_PARTICLE ||
+           partition_type == LLViewerRegion::PARTITION_HUD_PARTICLE;
+}
+
 LLDrawPoolAlpha::LLDrawPoolAlpha(U32 type) :
         LLRenderPass(type), target_shader(NULL),
         mColorSFactor(LLRender::BF_UNDEF), mColorDFactor(LLRender::BF_UNDEF),
@@ -656,10 +663,7 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
             pbr_emissives.resize(0);
             pbr_rigged_emissives.resize(0);
 
-            bool is_particle_or_hud_particle = group->getSpatialPartition()->mPartitionType == LLViewerRegion::PARTITION_PARTICLE
-                                                      || group->getSpatialPartition()->mPartitionType == LLViewerRegion::PARTITION_HUD_PARTICLE;
-
-            bool disable_cull = is_particle_or_hud_particle;
+            const bool disable_cull = is_particle_or_hud_particle_group(group);
             LLGLDisable cull(disable_cull ? GL_CULL_FACE : 0);
 
             LLSpatialGroup::drawmap_elem_t& draw_info = rigged ? group->mDrawMap[LLRenderPass::PASS_ALPHA_RIGGED] : group->mDrawMap[LLRenderPass::PASS_ALPHA];
