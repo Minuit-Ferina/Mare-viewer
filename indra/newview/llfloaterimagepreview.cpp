@@ -1014,11 +1014,7 @@ bool LLImagePreviewSculpted::render()
     gGL.pushMatrix();
     gGL.loadIdentity();
 
-    gGL.color4f(0.15f, 0.2f, 0.3f, 1.f);
-
-    gUIProgram.bind();
-
-    gl_rect_2d_simple( mFullWidth, mFullHeight );
+    drawPreviewBackground();
 
     gGL.matrixMode(LLRender::MM_PROJECTION);
     gGL.popMatrix();
@@ -1027,7 +1023,23 @@ bool LLImagePreviewSculpted::render()
     gGL.popMatrix();
 
     LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
+    applyPreviewCamera();
+    renderSculptedVolume();
 
+    return true;
+}
+
+void LLImagePreviewSculpted::drawPreviewBackground()
+{
+    gGL.color4f(0.15f, 0.2f, 0.3f, 1.f);
+
+    gUIProgram.bind();
+
+    gl_rect_2d_simple( mFullWidth, mFullHeight );
+}
+
+void LLImagePreviewSculpted::applyPreviewCamera()
+{
     LLVector3 target_pos(0, 0, 0);
 
     LLQuaternion camera_rot = LLQuaternion(mCameraPitch, LLVector3::y_axis) *
@@ -1044,7 +1056,10 @@ bool LLImagePreviewSculpted::render()
     LLViewerCamera::getInstance()->setAspect((F32) mFullWidth / mFullHeight);
     LLViewerCamera::getInstance()->setView(LLViewerCamera::getInstance()->getDefaultFOV() / mCameraZoom);
     LLViewerCamera::getInstance()->setPerspective(false, mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight, false);
+}
 
+void LLImagePreviewSculpted::renderSculptedVolume()
+{
     const LLVolumeFace &vf = mVolume->getVolumeFace(0);
     U32 num_indices = vf.mNumIndices;
 
@@ -1065,8 +1080,6 @@ bool LLImagePreviewSculpted::render()
     gGL.popMatrix();
 
     gObjectPreviewProgram.unbind();
-
-    return true;
 }
 
 //-----------------------------------------------------------------------------

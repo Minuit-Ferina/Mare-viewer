@@ -1531,8 +1531,14 @@ not start a direct Vulkan port.
       `llfloaterimagepreview.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/310-image-preview-avatar-render-summary.md`.
-- [ ] Map `LLImagePreviewSculpted` before deciding whether to continue in the
+- [x] Map `LLImagePreviewSculpted` before deciding whether to continue in the
       same source file.
+- [x] Add `docs/architecture/311-image-preview-sculpted-map.md`.
+- [x] Add `docs/architecture/312-image-preview-sculpted-render-task.md`.
+- [x] Verify the `LLImagePreviewSculpted::render()` helper split with targeted
+      `llfloaterimagepreview.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/313-image-preview-sculpted-render-summary.md`.
 - [ ] Prefer another discrete `LLViewerDynamicTexture` preview user over broad
       `llui` or `pipeline` work.
 

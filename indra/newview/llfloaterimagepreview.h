@@ -60,6 +60,11 @@ protected:
     void pan(F32 right, F32 up);
     virtual bool needsRender() override { return mNeedsUpdate; }
 
+private:
+    void drawPreviewBackground();
+    void applyPreviewCamera();
+    void renderSculptedVolume();
+
  protected:
     bool        mNeedsUpdate;
     U32         mTextureName;

@@ -37,7 +37,7 @@ indra/newview/llworldmapview.cpp,render.opengl_touching,1983,31,0,0,0,0,88,2,8,0
 indra/llappearance/lltexlayer.cpp,render.opengl_touching,1991,18,0,0,0,0,85,20,17,0,0,11,0,0,0
 indra/newview/llmanipscale.cpp,render.opengl_touching,2080,32,0,0,0,0,78,13,7,0,0,0,0,0,0
 indra/newview/llfasttimerview.cpp,render.opengl_touching,1669,27,0,0,0,0,75,7,12,0,0,1,0,0,0
-indra/newview/llfloaterimagepreview.cpp,render.draw_pool,1103,39,0,0,0,0,72,8,11,0,2,0,0,0,0
+indra/newview/llfloaterimagepreview.cpp,render.draw_pool,1116,39,0,0,0,0,72,8,11,0,2,0,0,0,0
 indra/newview/llmaniprotate.cpp,render.opengl_touching,1976,33,0,0,0,0,70,13,6,0,0,0,0,0,1
 indra/newview/llreflectionmapmanager.cpp,render.pipeline,1637,16,0,0,0,0,69,17,3,13,0,1,3,0,0
 indra/newview/llsnapshotlivepreview.cpp,assets.texture,1105,30,0,0,0,0,64,3,3,0,0,0,0,3,0
@@ -356,7 +356,7 @@ indra/newview/llagentbenefits.cpp,assets.texture,314,3,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/lloutfitgallery.h,assets.texture,304,7,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/llfloatercolorpicker.h,ui,203,5,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/app_settings/shaders/class1/deferred/pbropaqueF.glsl,assets.texture,168,0,0,0,0,0,0,0,0,0,0,0,0,1,0
-indra/newview/llfloaterimagepreview.h,ui,154,4,0,0,0,0,0,0,0,0,0,0,0,1,0
+indra/newview/llfloaterimagepreview.h,ui,159,4,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/llfloaterreporter.h,ui,154,4,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/llfloaterinspect.h,ui,110,3,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/llfloaterauction.h,ui,87,4,0,0,0,0,0,0,0,0,0,0,0,1,0
