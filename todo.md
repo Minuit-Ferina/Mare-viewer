@@ -1378,7 +1378,12 @@ not start a direct Vulkan port.
       with targeted `llviewertexlayer.cpp.o`, regenerated source inventory,
       both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/267-viewer-texlayer-needs-render-summary.md`.
-- [ ] Decide whether to map `LLTexLayerSetBuffer::renderTexLayerSet(...)` or
+- [x] Decide to map `LLTexLayerSetBuffer::renderTexLayerSet(...)` before
+      touching appearance-side avatar bake rendering.
+- [x] Add `docs/architecture/268-texlayer-render-contract-map.md`.
+- [ ] Confirm the targeted build path for `indra/llappearance/lltexlayer.cpp`
+      before source changes there.
+- [ ] Decide whether to map `LLTexLayerSet::render(...)` or
       switch to map UI rendering as the next phase 5 owner.
 
 ## Phase 1 Inventory
