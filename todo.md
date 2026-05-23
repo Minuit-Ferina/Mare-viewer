@@ -1429,9 +1429,9 @@ not start a direct Vulkan port.
 - [x] Add `docs/architecture/281-texlayer-alpha-cache-eviction-summary.md`.
 - [x] Decide that phase 5 can close after a final checkpoint instead of
       opening another UI rendering owner in the same phase.
-- [ ] Run the final phase 5 guardrails and integration checkpoint.
-- [ ] Add `docs/architecture/282-phase5-completion-summary.md`.
-- [ ] Close phase 5.
+- [x] Run the final phase 5 guardrails and integration checkpoint.
+- [x] Add `docs/architecture/282-phase5-completion-summary.md`.
+- [x] Close phase 5.
 
 ## Phase 1 Inventory
 
