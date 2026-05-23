@@ -1511,9 +1511,20 @@ not start a direct Vulkan port.
       `lltoolmorph.cpp.o`, regenerated source inventory, both GL guardrails,
       and `git diff --check`.
 - [x] Add `docs/architecture/305-visual-param-reset-summary.md`.
-- [ ] Keep `pipeline.cpp`, broad `llui`, app lifecycle, SDL, Vulkan, Metal,
+- [x] Keep `pipeline.cpp`, broad `llui`, app lifecycle, SDL, Vulkan, Metal,
       multi-window, and multi-login work out of phase 7 unless explicitly
       selected later.
+- [x] Run the final phase 7 integration checkpoint.
+- [x] Add `docs/architecture/306-phase7-completion-summary.md`.
+- [x] Close phase 7.
+
+## Phase 8 Candidate Backlog
+
+- [ ] Start phase 8 with a docs-first plan before any source edits.
+- [ ] Choose the next narrow dynamic texture or UI/render owner from the
+      existing maps before touching source.
+- [ ] Prefer another discrete `LLViewerDynamicTexture` preview user over broad
+      `llui` or `pipeline` work.
 
 ## Phase 1 Inventory
 

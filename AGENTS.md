@@ -15,12 +15,13 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
-- Phase 7 is active on branch `phase7`.
-- Goal: finish the remaining small `lltoolmorph` appearance preview
-  UI-facing draw/reset boundaries before moving to a new renderer owner.
+- Phase 7 is complete on branch `phase7`.
+- Next phase is not started yet.
+- Phase 7 finished the remaining small `lltoolmorph` appearance preview
+  UI-facing draw/reset boundaries.
 - Phase 6 separated appearance-editor visual-parameter preview dynamic texture
   ownership with small owner-local helper extractions in `LLVisualParamHint`.
-- Phase 7 started with `docs/architecture/299-phase7-plan.md`.
+- Start phase 8 with a docs-first plan before any new source edits.
 - Keep using the completed OpenGL containment boundary as a guardrail.
 - Start new work with contracts and maps. Source changes are allowed only after
   a task-specific document names the exact owner, ordering, state, risk, and
