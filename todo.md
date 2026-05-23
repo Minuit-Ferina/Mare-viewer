@@ -1368,8 +1368,11 @@ not start a direct Vulkan port.
       `llgltfmaterialpreviewmgr.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/264-gltf-preview-state-summary.md`.
-- [ ] Choose the next phase 5 owner map, likely `LLViewerTexLayerSetBuffer`
+- [x] Choose `LLViewerTexLayerSetBuffer` as the next phase 5 owner map
       unless map UI rendering is preferred first.
+- [x] Add `docs/architecture/265-viewer-texlayer-buffer-owner-map.md`.
+- [ ] Decide whether to split `LLViewerTexLayerSetBuffer::needsRender()` into
+      owner-local predicate helpers.
 
 ## Phase 1 Inventory
 
