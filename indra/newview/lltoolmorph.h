@@ -96,6 +96,8 @@ private:
                                               const LLVector3& target_joint_pos) const;
     void                    drawHintBackground();
     void                    renderAvatarImpostor();
+    void                    restorePreviewVisualParamState();
+    void                    finalizeHintRender();
 
 protected:
     bool                    mNeedsUpdate;       // does this texture need to be re-rendered?

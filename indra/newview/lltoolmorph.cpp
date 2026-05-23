@@ -245,17 +245,8 @@ bool LLVisualParamHint::render()
 
     renderAvatarImpostor();
 
-    gAgentAvatarp->setVisualParamWeight(mVisualParam->getID(), mLastParamWeight);
-    mWearablePtr->setVisualParamWeight(mVisualParam->getID(), mLastParamWeight);
-    LLViewerWearable* wearable = (LLViewerWearable*)mWearablePtr;
-    if (wearable)
-    {
-        wearable->setVolatile(false);
-    }
-
-    gAgentAvatarp->updateVisualParams();
-    gGL.color4f(1,1,1,1);
-    mGLTexturep->setGLTextureCreated(true);
+    restorePreviewVisualParamState();
+    finalizeHintRender();
     gGL.popUIMatrix();
 
     return true;
@@ -333,6 +324,25 @@ void LLVisualParamHint::renderAvatarImpostor()
         gGL.setSceneBlendType(LLRender::BT_ALPHA);
         gGL.flush();
     }
+}
+
+void LLVisualParamHint::restorePreviewVisualParamState()
+{
+    gAgentAvatarp->setVisualParamWeight(mVisualParam->getID(), mLastParamWeight);
+    mWearablePtr->setVisualParamWeight(mVisualParam->getID(), mLastParamWeight);
+    LLViewerWearable* wearable = (LLViewerWearable*)mWearablePtr;
+    if (wearable)
+    {
+        wearable->setVolatile(false);
+    }
+
+    gAgentAvatarp->updateVisualParams();
+}
+
+void LLVisualParamHint::finalizeHintRender()
+{
+    gGL.color4f(1,1,1,1);
+    mGLTexturep->setGLTextureCreated(true);
 }
 
 
