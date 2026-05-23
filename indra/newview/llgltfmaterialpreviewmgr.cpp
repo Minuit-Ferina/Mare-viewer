@@ -418,7 +418,116 @@ struct SetTemporarily
     }
 };
 
+LLVector4 get_preview_light_direction()
+{
+    LLVector3 light_dir3(1.0f, 1.0f, 1.0f);
+    light_dir3.normalize();
+    return LLVector4(light_dir3, 0);
+}
+
+LLVector4 get_transformed_light_direction(const LLVector4& light_dir)
+{
+    glm::mat4 mat = get_current_modelview();
+    glm::vec4 transformed_light_dir(light_dir);
+    transformed_light_dir = mat * transformed_light_dir;
+    return LLVector4(transformed_light_dir);
+}
+
+void setup_preview_light(const LLVector4& light_dir)
+{
+    LLLightState* light = gGL.getLight(0);
+    light->setPosition(light_dir);
+    constexpr bool sun_up = true;
+    light->setSunPrimary(sun_up);
+}
+
+void render_alpha_preview_sphere(LLRenderTarget& screen, PreviewSphere& preview_sphere)
+{
+    // Alpha blend rendering
+    screen.bindTarget();
+    LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    LLGLSLShader& shader = gDeferredPBRAlphaProgram;
+
+    gPipeline.bindDeferredShader(shader);
+    fixup_shader_constants(shader);
+
+    for (PreviewSpherePart& part : preview_sphere)
+    {
+        LLRenderPass::pushGLTFBatch(*part->mDrawInfo);
+    }
+
+    gPipeline.unbindDeferredShader(shader);
+
+    screen.flush();
+}
+
+void run_preview_post_processing(LLRenderTarget& screen)
+{
+    // *HACK: Hide mExposureMap from generateExposure
+    gPipeline.mExposureMap.swapFBORefs(gPipeline.mLastExposure);
+
+    gPipeline.copyScreenSpaceReflections(&screen, &gPipeline.mSceneMap);
+    gPipeline.generateLuminance(&screen, &gPipeline.mLuminanceMap);
+    gPipeline.generateExposure(&gPipeline.mLuminanceMap, &gPipeline.mExposureMap, /*use_history = */ false);
+    gPipeline.gammaCorrect(&screen, &gPipeline.mPostPingMap);
+    LLVertexBuffer::unbind();
+    gPipeline.generateGlow(&gPipeline.mPostPingMap);
+    gPipeline.combineGlow(&gPipeline.mPostPingMap, &screen);
+    gPipeline.renderDoF(&screen, &gPipeline.mPostPingMap);
+    gPipeline.applyFXAA(&gPipeline.mPostPingMap, &screen);
+
+    // *HACK: Restore mExposureMap (it will be consumed by generateExposure next frame)
+    gPipeline.mExposureMap.swapFBORefs(gPipeline.mLastExposure);
+}
+
 }; // namespace
+
+void LLGLTFPreviewTexture::setupPreviewCamera(LLViewerCamera& camera, LLMatrix4& object_transform) const
+{
+    // Calculate the object distance at which the object of a given radius will
+    // span the partial width of the screen given by fill_ratio.
+    // Assume the primitive has a scale of 1 (this is the default).
+    constexpr F32 fill_ratio = 0.8f;
+    constexpr F32 object_radius = 0.5f;
+    const F32 object_distance = (object_radius / fill_ratio) * tan(camera.getDefaultFOV());
+    // Negative coordinate shows the textures on the sphere right-side up, when
+    // combined with the UV hacks in create_preview_sphere
+    const LLVector3 object_position(0.0, -object_distance, 0.0);
+    object_transform.translate(object_position);
+
+    // Set up camera and viewport
+    const LLVector3 origin(0.0, 0.0, 0.0);
+    camera.lookAt(origin, object_position);
+    camera.setAspect((F32)(mFullWidth / mFullHeight));
+    const LLRect texture_rect(0, mFullHeight, mFullWidth, 0);
+    camera.setPerspective(NOT_FOR_SELECTION,
+                          texture_rect.mLeft,
+                          texture_rect.mBottom,
+                          texture_rect.getWidth(),
+                          texture_rect.getHeight(),
+                          false,
+                          camera.getNear(),
+                          MAX_FAR_CLIP*2.f);
+}
+
+void LLGLTFPreviewTexture::renderFinalPreview(LLRenderTarget& screen)
+{
+    // Final render
+    gDeferredPostNoDoFProgram.bind();
+
+    // From LLPipeline::renderFinalize: "Whatever is last in the above post processing chain should _always_ be rendered directly here.  If not, expect problems."
+    gDeferredPostNoDoFProgram.bindTexture(LLShaderMgr::DEFERRED_DIFFUSE, &screen);
+    gDeferredPostNoDoFProgram.bindTexture(LLShaderMgr::DEFERRED_DEPTH, mBoundTarget, true);
+
+    {
+        LLGLDepthTest depth_test(GL_TRUE, GL_TRUE, GL_ALWAYS);
+        gPipeline.mScreenTriangleVB->setBuffer();
+        gPipeline.mScreenTriangleVB->drawArrays(LLRender::TRIANGLES, 0, 3);
+    }
+
+    gDeferredPostNoDoFProgram.unbind();
+}
 
 bool LLGLTFPreviewTexture::render()
 {
@@ -438,52 +547,25 @@ bool LLGLTFPreviewTexture::render()
     SetTemporarily<U32> no_aa(&LLPipeline::RenderFSAAType, U32(0));
     SetTemporarily<LLPipeline::RenderTargetPack*> use_auxiliary_render_target(&gPipeline.mRT, &gPipeline.mAuxillaryRT);
 
-    LLVector3 light_dir3(1.0f, 1.0f, 1.0f);
-    light_dir3.normalize();
-    const LLVector4 light_dir = LLVector4(light_dir3, 0);
+    const LLVector4 light_dir = get_preview_light_direction();
     const S32 old_local_light_count = gSavedSettings.get<S32>("RenderLocalLightCount");
     gSavedSettings.set<S32>("RenderLocalLightCount", 0);
 
     gPipeline.mReflectionMapManager.forceDefaultProbeAndUpdateUniforms();
 
     LLViewerCamera camera;
-
-    // Calculate the object distance at which the object of a given radius will
-    // span the partial width of the screen given by fill_ratio.
-    // Assume the primitive has a scale of 1 (this is the default).
-    constexpr F32 fill_ratio = 0.8f;
-    constexpr F32 object_radius = 0.5f;
-    const F32 object_distance = (object_radius / fill_ratio) * tan(camera.getDefaultFOV());
-    // Negative coordinate shows the textures on the sphere right-side up, when
-    // combined with the UV hacks in create_preview_sphere
-    const LLVector3 object_position(0.0, -object_distance, 0.0);
     LLMatrix4 object_transform;
-    object_transform.translate(object_position);
-
-    // Set up camera and viewport
-    const LLVector3 origin(0.0, 0.0, 0.0);
-    camera.lookAt(origin, object_position);
-    camera.setAspect((F32)(mFullWidth / mFullHeight));
-    const LLRect texture_rect(0, mFullHeight, mFullWidth, 0);
-    camera.setPerspective(NOT_FOR_SELECTION, texture_rect.mLeft, texture_rect.mBottom, texture_rect.getWidth(), texture_rect.getHeight(), false, camera.getNear(), MAX_FAR_CLIP*2.f);
+    setupPreviewCamera(camera, object_transform);
 
     // Generate sphere object on-the-fly. Discard afterwards. (Vertex buffer is
     // discarded, but the sphere should be cached in LLVolumeMgr.)
     PreviewSphere& preview_sphere = get_preview_sphere(mGLTFMaterial, object_transform);
 
     gPipeline.setupHWLights();
-    glm::mat4 mat = get_current_modelview();
-    glm::vec4 transformed_light_dir(light_dir);
-    transformed_light_dir = mat * transformed_light_dir;
-    SetTemporarily<LLVector4> force_sun_direction_high_graphics(&gPipeline.mTransformedSunDir, LLVector4(transformed_light_dir));
+    SetTemporarily<LLVector4> force_sun_direction_high_graphics(&gPipeline.mTransformedSunDir, get_transformed_light_direction(light_dir));
     // Override lights to ensure the sun is always shining from a certain direction (low graphics)
     // See also force_sun_direction_high_graphics and fixup_shader_constants
-    {
-        LLLightState* light = gGL.getLight(0);
-        light->setPosition(light_dir);
-        constexpr bool sun_up = true;
-        light->setSunPrimary(sun_up);
-    }
+    setup_preview_light(light_dir);
 
     LLRenderTarget& screen = gPipeline.mAuxillaryRT.screen;
 
@@ -498,57 +580,11 @@ bool LLGLTFPreviewTexture::render()
     else
 #endif
     {
-        // Alpha blend rendering
-
-        screen.bindTarget();
-        LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        LLGLSLShader& shader = gDeferredPBRAlphaProgram;
-
-        gPipeline.bindDeferredShader(shader);
-        fixup_shader_constants(shader);
-
-        for (PreviewSpherePart& part : preview_sphere)
-        {
-            LLRenderPass::pushGLTFBatch(*part->mDrawInfo);
-        }
-
-        gPipeline.unbindDeferredShader(shader);
-
-        screen.flush();
+        render_alpha_preview_sphere(screen, preview_sphere);
     }
 
-    // *HACK: Hide mExposureMap from generateExposure
-    gPipeline.mExposureMap.swapFBORefs(gPipeline.mLastExposure);
-
-    gPipeline.copyScreenSpaceReflections(&screen, &gPipeline.mSceneMap);
-    gPipeline.generateLuminance(&screen, &gPipeline.mLuminanceMap);
-    gPipeline.generateExposure(&gPipeline.mLuminanceMap, &gPipeline.mExposureMap, /*use_history = */ false);
-    gPipeline.gammaCorrect(&screen, &gPipeline.mPostPingMap);
-    LLVertexBuffer::unbind();
-    gPipeline.generateGlow(&gPipeline.mPostPingMap);
-    gPipeline.combineGlow(&gPipeline.mPostPingMap, &screen);
-    gPipeline.renderDoF(&screen, &gPipeline.mPostPingMap);
-    gPipeline.applyFXAA(&gPipeline.mPostPingMap, &screen);
-
-    // *HACK: Restore mExposureMap (it will be consumed by generateExposure next frame)
-    gPipeline.mExposureMap.swapFBORefs(gPipeline.mLastExposure);
-
-    // Final render
-
-    gDeferredPostNoDoFProgram.bind();
-
-    // From LLPipeline::renderFinalize: "Whatever is last in the above post processing chain should _always_ be rendered directly here.  If not, expect problems."
-    gDeferredPostNoDoFProgram.bindTexture(LLShaderMgr::DEFERRED_DIFFUSE, &screen);
-    gDeferredPostNoDoFProgram.bindTexture(LLShaderMgr::DEFERRED_DEPTH, mBoundTarget, true);
-
-    {
-        LLGLDepthTest depth_test(GL_TRUE, GL_TRUE, GL_ALWAYS);
-        gPipeline.mScreenTriangleVB->setBuffer();
-        gPipeline.mScreenTriangleVB->drawArrays(LLRender::TRIANGLES, 0, 3);
-    }
-
-    gDeferredPostNoDoFProgram.unbind();
+    run_preview_post_processing(screen);
+    renderFinalPreview(screen);
 
     // Clean up
     gPipeline.setupHWLights();

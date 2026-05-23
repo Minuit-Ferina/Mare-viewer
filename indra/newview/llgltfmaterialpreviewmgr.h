@@ -31,6 +31,10 @@
 #include "llsingleton.h"
 #include "lltexture.h"
 
+class LLMatrix4;
+class LLRenderTarget;
+class LLViewerCamera;
+
 class LLGLTFPreviewTexture : public LLViewerDynamicTexture
 {
 protected:
@@ -62,6 +66,9 @@ public:
     };
 
 private:
+    void setupPreviewCamera(LLViewerCamera& camera, LLMatrix4& object_transform) const;
+    void renderFinalPreview(LLRenderTarget& screen);
+
     LLPointer<LLFetchedGLTFMaterial> mGLTFMaterial;
     bool mShouldRender = true;
     MaterialLoadLevels mBestLoad;

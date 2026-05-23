@@ -1351,9 +1351,18 @@ not start a direct Vulkan port.
 - [x] Keep phase 5 focused on owner contracts and behavior-preserving changes,
       not a Vulkan, Metal, SDL, app-lifecycle, multi-window, or multi-login
       implementation.
-- [ ] Decide whether to apply the owner-local
+- [x] Decide to apply the owner-local
       `LLGLTFPreviewTexture::render()` helper split as the first phase 5 source
       packet.
+- [x] Split `LLGLTFPreviewTexture::render()` into owner-local camera, lighting,
+      sphere draw, post-processing, and final-pass helpers without changing
+      behavior.
+- [x] Verify the GLTF preview helper split with targeted
+      `llgltfmaterialpreviewmgr.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/262-gltf-preview-render-split-summary.md`.
+- [ ] Decide whether to add an owner-local preview render state object or move
+      to the next phase 5 owner map.
 
 ## Phase 1 Inventory
 
