@@ -1342,13 +1342,18 @@ not start a direct Vulkan port.
 
 ## Phase 5 Candidate Backlog
 
-- [ ] Create a phase 5 plan before any new source edits.
-- [ ] Choose one next owner explicitly: `LLViewerTexLayerSetBuffer`,
-      `LLGLTFPreviewTexture`, map UI rendering, core `llui` clipping, shader
-      manager lifecycle, or build-system guardrails.
-- [ ] Keep phase 5 focused on owner contracts and behavior-preserving changes,
+- [x] Create branch `phase5` from completed `phase4`.
+- [x] Create a phase 5 plan before any new source edits.
+- [x] Choose `LLGLTFPreviewTexture` as the first phase 5 owner before touching
+      source.
+- [x] Add `docs/architecture/260-phase5-plan.md`.
+- [x] Add `docs/architecture/261-gltf-preview-owner-map.md`.
+- [x] Keep phase 5 focused on owner contracts and behavior-preserving changes,
       not a Vulkan, Metal, SDL, app-lifecycle, multi-window, or multi-login
       implementation.
+- [ ] Decide whether to apply the owner-local
+      `LLGLTFPreviewTexture::render()` helper split as the first phase 5 source
+      packet.
 
 ## Phase 1 Inventory
 

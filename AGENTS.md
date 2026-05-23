@@ -15,9 +15,9 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
-- Phase 4 is complete on branch `phase4`.
-- Next phase is not started yet. Create a phase 5 plan before any new source
-  edits.
+- Phase 5 is active on branch `phase5`.
+- Goal: split UI/render ownership around dynamic preview users and adjacent UI
+  render bridges with small reviewable owner-local steps.
 - Keep using the completed OpenGL containment boundary as a guardrail.
 - Start new work with contracts and maps. Source changes are allowed only after
   a task-specific document names the exact owner, ordering, state, risk, and
