@@ -131,6 +131,9 @@ public:
     /*virtual*/ S8 getType() const ;
 
     static bool sDirty;
+
+private:
+    void resetAvatarAppearanceState();
 };
 
 #endif

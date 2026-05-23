@@ -412,11 +412,16 @@ bool LLVisualParamReset::render()
 {
     if (sDirty)
     {
-        gAgentAvatarp->updateComposites();
-        gAgentAvatarp->updateVisualParams();
-        gAgentAvatarp->updateGeometry(gAgentAvatarp->mDrawable);
+        resetAvatarAppearanceState();
         sDirty = false;
     }
 
     return false;
+}
+
+void LLVisualParamReset::resetAvatarAppearanceState()
+{
+    gAgentAvatarp->updateComposites();
+    gAgentAvatarp->updateVisualParams();
+    gAgentAvatarp->updateGeometry(gAgentAvatarp->mDrawable);
 }

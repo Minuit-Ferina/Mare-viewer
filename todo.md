@@ -1503,8 +1503,14 @@ not start a direct Vulkan port.
       `lltoolmorph.cpp.o`, regenerated source inventory, both GL guardrails,
       and `git diff --check`.
 - [x] Add `docs/architecture/302-visual-param-hint-draw-summary.md`.
-- [ ] Decide whether the next owner should be `LLVisualParamReset::render()`
-      or another narrow `LLViewerDynamicTexture` preview user.
+- [x] Decide that the next owner should be `LLVisualParamReset::render()`
+      before another narrow `LLViewerDynamicTexture` preview user.
+- [x] Add `docs/architecture/303-visual-param-reset-map.md`.
+- [x] Add `docs/architecture/304-visual-param-reset-task.md`.
+- [x] Verify the `LLVisualParamReset::render()` helper split with targeted
+      `lltoolmorph.cpp.o`, regenerated source inventory, both GL guardrails,
+      and `git diff --check`.
+- [x] Add `docs/architecture/305-visual-param-reset-summary.md`.
 - [ ] Keep `pipeline.cpp`, broad `llui`, app lifecycle, SDL, Vulkan, Metal,
       multi-window, and multi-login work out of phase 7 unless explicitly
       selected later.
