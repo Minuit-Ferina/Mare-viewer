@@ -1400,7 +1400,17 @@ not start a direct Vulkan port.
       `llappearance` `lltexlayer.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/273-texlayer-set-render-helper-summary.md`.
-- [ ] Decide whether to continue into `LLTexLayer::render(...)` or
+- [x] Decide to continue into `LLTexLayer::render(...)` before switching to UI
+      rendering as the next phase 5 owner.
+- [x] Add `docs/architecture/274-texlayer-render-map.md`.
+- [x] Decide to split only the `LLTexLayer::render(...)` texture/color draw
+      tails before touching morph-mask or readback paths.
+- [x] Add `docs/architecture/275-texlayer-render-draw-helper-task.md`.
+- [x] Verify the `LLTexLayer::render(...)` draw helper split with targeted
+      `llappearance` `lltexlayer.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/276-texlayer-render-draw-helper-summary.md`.
+- [ ] Decide whether to map `LLTexLayer::renderMorphMasks(...)` or
       switch to map UI rendering as the next phase 5 owner.
 
 ## Phase 1 Inventory

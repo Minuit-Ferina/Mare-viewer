@@ -171,6 +171,11 @@ public:
     /*virtual*/ void        asLLSD(LLSD& sd) const;
 
     static void             calculateTexLayerColor(const param_color_list_t &param_list, LLColor4 &net_color);
+private:
+    void                    renderLocalTexture(S32 width, S32 height);
+    bool                    renderStaticImage(S32 width, S32 height);
+    bool                    shouldRenderColorFill(bool color_specified) const;
+    void                    renderColorFill(const LLColor4& net_color, S32 width, S32 height);
 protected:
     LLUUID                  getUUID() const;
     typedef std::map<U32, U8*> alpha_cache_t;

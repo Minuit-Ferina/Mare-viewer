@@ -1136,80 +1136,17 @@ bool LLTexLayer::render(S32 x, S32 y, S32 width, S32 height, LLRenderTarget* bou
 
     if( (getInfo()->mLocalTexture != -1) && !getInfo()->mUseLocalTextureAlphaOnly )
     {
-        {
-            LLGLTexture* tex = NULL;
-            if (mLocalTextureObject && mLocalTextureObject->getImage())
-            {
-                tex = mLocalTextureObject->getImage();
-                if (mLocalTextureObject->getID() == IMG_DEFAULT_AVATAR)
-                {
-                    tex = NULL;
-                }
-            }
-            else
-            {
-                LL_INFOS() << "lto not defined or image not defined: " << getInfo()->getLocalTexture() << " lto: " << mLocalTextureObject << LL_ENDL;
-            }
-//          if( mTexLayerSet->getAvatarAppearance()->getLocalTextureGL((ETextureIndex)getInfo()->mLocalTexture, &image_gl ) )
-            {
-                if( tex )
-                {
-                    bool no_alpha_test = getInfo()->mWriteAllChannels;
-                    if (no_alpha_test)
-                    {
-                        gAlphaMaskProgram.setMinimumAlpha(0.f);
-                    }
-
-                    LLTexUnit::eTextureAddressMode old_mode = tex->getAddressMode();
-
-                    gGL.getTexUnit(0)->bind(tex, true);
-                    gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
-
-                    gl_rect_2d_simple_tex( width, height );
-
-                    gGL.getTexUnit(0)->setTextureAddressMode(old_mode);
-                    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-                    if (no_alpha_test)
-                    {
-                        gAlphaMaskProgram.setMinimumAlpha(0.004f);
-                    }
-                }
-            }
-//          else
-//          {
-//              success = false;
-//          }
-        }
+        renderLocalTexture(width, height);
     }
 
     if( !getInfo()->mStaticImageFileName.empty() )
     {
-        {
-            LLGLTexture* tex = LLTexLayerStaticImageList::getInstance()->getTexture(getInfo()->mStaticImageFileName, getInfo()->mStaticImageIsMask);
-            if( tex )
-            {
-                gGL.getTexUnit(0)->bind(tex, true);
-                gl_rect_2d_simple_tex( width, height );
-                gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-            }
-            else
-            {
-                success = false;
-            }
-        }
+        success &= renderStaticImage(width, height);
     }
 
-    if(((-1 == getInfo()->mLocalTexture) ||
-         getInfo()->mUseLocalTextureAlphaOnly) &&
-        getInfo()->mStaticImageFileName.empty() &&
-        color_specified )
+    if(shouldRenderColorFill(color_specified))
     {
-        gAlphaMaskProgram.setMinimumAlpha(0.000f);
-
-        gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-        gGL.color4fv( net_color.mV );
-        gl_rect_2d_simple( width, height );
-        gAlphaMaskProgram.setMinimumAlpha(0.004f);
+        renderColorFill(net_color, width, height);
     }
 
     if( alpha_mask_specified || getInfo()->mWriteAllChannels )
@@ -1225,6 +1162,78 @@ bool LLTexLayer::render(S32 x, S32 y, S32 width, S32 height, LLRenderTarget* bou
         LL_INFOS() << "LLTexLayer::render() partial: " << getInfo()->mName << LL_ENDL;
     }
     return success;
+}
+
+void LLTexLayer::renderLocalTexture(S32 width, S32 height)
+{
+    LLGLTexture* tex = NULL;
+    if (mLocalTextureObject && mLocalTextureObject->getImage())
+    {
+        tex = mLocalTextureObject->getImage();
+        if (mLocalTextureObject->getID() == IMG_DEFAULT_AVATAR)
+        {
+            tex = NULL;
+        }
+    }
+    else
+    {
+        LL_INFOS() << "lto not defined or image not defined: " << getInfo()->getLocalTexture() << " lto: " << mLocalTextureObject << LL_ENDL;
+    }
+
+    if( tex )
+    {
+        bool no_alpha_test = getInfo()->mWriteAllChannels;
+        if (no_alpha_test)
+        {
+            gAlphaMaskProgram.setMinimumAlpha(0.f);
+        }
+
+        LLTexUnit::eTextureAddressMode old_mode = tex->getAddressMode();
+
+        gGL.getTexUnit(0)->bind(tex, true);
+        gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
+
+        gl_rect_2d_simple_tex( width, height );
+
+        gGL.getTexUnit(0)->setTextureAddressMode(old_mode);
+        gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+        if (no_alpha_test)
+        {
+            gAlphaMaskProgram.setMinimumAlpha(0.004f);
+        }
+    }
+}
+
+bool LLTexLayer::renderStaticImage(S32 width, S32 height)
+{
+    LLGLTexture* tex = LLTexLayerStaticImageList::getInstance()->getTexture(getInfo()->mStaticImageFileName, getInfo()->mStaticImageIsMask);
+    if( tex )
+    {
+        gGL.getTexUnit(0)->bind(tex, true);
+        gl_rect_2d_simple_tex( width, height );
+        gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+        return true;
+    }
+
+    return false;
+}
+
+bool LLTexLayer::shouldRenderColorFill(bool color_specified) const
+{
+    return (((-1 == getInfo()->mLocalTexture) ||
+             getInfo()->mUseLocalTextureAlphaOnly) &&
+            getInfo()->mStaticImageFileName.empty() &&
+            color_specified);
+}
+
+void LLTexLayer::renderColorFill(const LLColor4& net_color, S32 width, S32 height)
+{
+    gAlphaMaskProgram.setMinimumAlpha(0.000f);
+
+    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+    gGL.color4fv( net_color.mV );
+    gl_rect_2d_simple( width, height );
+    gAlphaMaskProgram.setMinimumAlpha(0.004f);
 }
 
 const U8*   LLTexLayer::getAlphaData() const
