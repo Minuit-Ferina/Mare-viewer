@@ -57,6 +57,11 @@ public:
 
     LLVOAvatar* getDummyAvatar() { return mDummyAvatar; }
 
+private:
+    void drawPreviewBackground();
+    void applyPreviewCamera(LLVOAvatar* avatarp);
+    void renderPreviewAvatar(LLVOAvatar* avatarp);
+
 protected:
     bool                mNeedsUpdate;
     F32                 mCameraDistance;

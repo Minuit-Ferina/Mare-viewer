@@ -1111,10 +1111,7 @@ bool    LLPreviewAnimation::render()
     gUIProgram.bind();
 
     LLGLSUIDefault def;
-    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-    gGL.color4f(0.15f, 0.2f, 0.3f, 1.f);
-
-    gl_rect_2d_simple( mFullWidth, mFullHeight );
+    drawPreviewBackground();
 
     gGL.matrixMode(LLRender::MM_PROJECTION);
     gGL.popMatrix();
@@ -1123,9 +1120,24 @@ bool    LLPreviewAnimation::render()
     gGL.popMatrix();
 
     gGL.flush();
+    applyPreviewCamera(avatarp);
+    renderPreviewAvatar(avatarp);
 
+    gGL.color4f(1,1,1,1);
+    return true;
+}
+
+void LLPreviewAnimation::drawPreviewBackground()
+{
+    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+    gGL.color4f(0.15f, 0.2f, 0.3f, 1.f);
+
+    gl_rect_2d_simple( mFullWidth, mFullHeight );
+}
+
+void LLPreviewAnimation::applyPreviewCamera(LLVOAvatar* avatarp)
+{
     LLVector3 target_pos = avatarp->mRoot->getWorldPosition();
-
     LLQuaternion camera_rot = LLQuaternion(mCameraPitch, LLVector3::y_axis) *
         LLQuaternion(mCameraYaw, LLVector3::z_axis);
 
@@ -1140,7 +1152,10 @@ bool    LLPreviewAnimation::render()
     camera->setViewNoBroadcast(LLViewerCamera::getInstance()->getDefaultFOV() / mCameraZoom);
     camera->setAspect((F32) mFullWidth / (F32) mFullHeight);
     camera->setPerspective(false, mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight, false);
+}
 
+void LLPreviewAnimation::renderPreviewAvatar(LLVOAvatar* avatarp)
+{
     //SJB: Animation is updated in LLVOAvatar::updateCharacter
 
     if (avatarp->mDrawable.notNull())
@@ -1159,9 +1174,6 @@ bool    LLPreviewAnimation::render()
             avatarPoolp->renderAvatars(avatarp);  // renders only one avatar
         }
     }
-
-    gGL.color4f(1,1,1,1);
-    return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -1206,6 +1218,5 @@ void LLPreviewAnimation::pan(F32 right, F32 up)
     mCameraOffset.mV[VY] = llclamp(mCameraOffset.mV[VY] + right * mCameraDistance / mCameraZoom, -1.f, 1.f);
     mCameraOffset.mV[VZ] = llclamp(mCameraOffset.mV[VZ] + up * mCameraDistance / mCameraZoom, -1.f, 1.f);
 }
-
 
 

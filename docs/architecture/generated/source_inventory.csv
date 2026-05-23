@@ -51,7 +51,7 @@ indra/newview/lltracker.cpp,render.opengl_touching,928,33,0,0,0,0,39,3,3,0,0,0,0
 indra/newview/lltoolmorph.cpp,render.opengl_touching,428,28,0,0,0,0,37,4,7,0,0,0,0,0,0
 indra/newview/lldrawpoolwlsky.cpp,render.pipeline,523,18,0,0,0,0,36,11,8,5,19,0,1,12,0
 indra/newview/llvoicevisualizer.cpp,render.opengl_touching,616,12,0,0,0,0,36,4,4,0,0,0,0,0,0
-indra/newview/llfloaterbvhpreview.cpp,render.draw_pool,1212,37,0,0,0,0,32,2,5,0,2,0,0,0,0
+indra/newview/llfloaterbvhpreview.cpp,render.draw_pool,1223,37,0,0,0,0,32,2,5,0,2,0,0,0,0
 indra/newview/lljoystickbutton.cpp,render.opengl_touching,1129,13,0,0,0,0,32,2,2,0,0,0,0,0,0
 indra/newview/llmanip.cpp,render.opengl_touching,663,27,0,0,0,0,31,1,5,0,0,0,0,0,0
 indra/newview/llmediactrl.cpp,render.opengl_touching,1312,33,0,0,0,0,30,0,1,0,0,0,0,0,0
@@ -1733,6 +1733,7 @@ indra/newview/app_settings/shaders/class1/deferred/avatarV.glsl,world.avatar,140
 indra/newview/app_settings/shaders/class1/deferred/alphaV.glsl,viewer.misc,140,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterfixedenvironment.h,ui,139,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpathfindingmanager.h,viewer.misc,139,10,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaterbvhpreview.h,ui,139,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lldebugview.cpp,viewer.misc,139,13,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpathfindingpathtool.h,viewer.misc,139,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llcofwearables.h,viewer.misc,139,4,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1772,7 +1773,6 @@ indra/llappearance/llwearabletype.cpp,unknown,135,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/lltrans.h,unknown,135,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llagentpicksinfo.cpp,viewer.misc,134,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llhudeffect.cpp,viewer.misc,134,8,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaterbvhpreview.h,ui,134,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llxml/llxmlparser.h,unknown,134,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/tests/llsecapi_test.cpp,viewer.misc,134,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/environment/srgbF.glsl,viewer.misc,134,0,0,0,0,0,0,0,0,0,0,0,0,0,0

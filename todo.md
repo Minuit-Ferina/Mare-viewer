@@ -3,7 +3,7 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 8 is complete on branch `phase8`. Preserve the completed
+Current rule: phase 9 is active on branch `phase9`. Preserve the completed
 OpenGL containment and header guardrails, then prepare the next renderer
 boundaries with docs-first, small, reviewable packets. Do not move source
 files, do not change runtime behavior without an explicit task, and do not
@@ -1547,9 +1547,17 @@ start a direct Vulkan port.
 
 ## Phase 9 Candidate Backlog
 
-- [ ] Start phase 9 with a docs-first plan before any source edits.
-- [ ] Choose between `LLPreviewAnimation` and another narrow preview owner
+- [x] Create branch `phase9` from completed `phase8`.
+- [x] Start phase 9 with a docs-first plan before any source edits.
+- [x] Add `docs/architecture/315-phase9-plan.md`.
+- [x] Choose between `LLPreviewAnimation` and another narrow preview owner
       before touching source.
+- [x] Add `docs/architecture/316-preview-animation-map.md`.
+- [x] Add `docs/architecture/317-preview-animation-render-task.md`.
+- [x] Verify the `LLPreviewAnimation::render()` helper split with targeted
+      `llfloaterbvhpreview.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/318-preview-animation-render-summary.md`.
 - [ ] Defer `LLModelPreview` until a dedicated map names its render, upload,
       material, camera, and LOD risks.
 - [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,

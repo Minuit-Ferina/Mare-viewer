@@ -15,10 +15,11 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
-- Phase 8 is complete on branch `phase8`.
-- Next phase is not started.
+- Phase 9 is active on branch `phase9`.
 - Goal: keep narrowing discrete preview/render owners before broad `llui` or
   `pipeline` work.
+- Phase 9 starts with the BVH animation preview owner in
+  `indra/newview/llfloaterbvhpreview.*`.
 - Phase 8 split image upload preview owners in
   `indra/newview/llfloaterimagepreview.*`.
 - Phase 7 finished the remaining small `lltoolmorph` appearance preview
@@ -27,6 +28,7 @@ Current phase:
   ownership with small owner-local helper extractions in `LLVisualParamHint`.
 - Phase 8 is summarized in
   `docs/architecture/314-phase8-completion-summary.md`.
+- Phase 9 starts with `docs/architecture/315-phase9-plan.md`.
 - Keep using the completed OpenGL containment boundary as a guardrail.
 - Start new work with contracts and maps. Source changes are allowed only after
   a task-specific document names the exact owner, ordering, state, risk, and
