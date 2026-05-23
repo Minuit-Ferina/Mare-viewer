@@ -247,31 +247,10 @@ bool LLVisualParamHint::render()
     mNeedsUpdate = false;
     mIsVisible = true;
 
-    LLQuaternion avatar_rotation;
-    LLJoint* root_joint = gAgentAvatarp->getRootJoint();
-    if( root_joint )
-    {
-        avatar_rotation = root_joint->getWorldRotation();
-    }
-
-    LLVector3 target_joint_pos = mCamTargetJoint->getWorldPosition();
-
-    LLVector3 target_offset( 0, 0, mVisualParam->getCameraElevation() );
-    LLVector3 target_pos = target_joint_pos + (target_offset * avatar_rotation);
-
-    F32 cam_angle_radians = mVisualParam->getCameraAngle() * DEG_TO_RAD;
-
-    static LLCachedControl<bool> auto_camera_position(gSavedSettings, "AppearanceCameraMovement");
-    if (!auto_camera_position)
-    {
-        cam_angle_radians += F_PI;
-    }
-
-    LLVector3 camera_snapshot_offset(
-        mVisualParam->getCameraDistance() * cosf( cam_angle_radians ),
-        mVisualParam->getCameraDistance() * sinf( cam_angle_radians ),
-        mVisualParam->getCameraElevation() );
-    LLVector3 camera_pos = target_joint_pos + (camera_snapshot_offset * avatar_rotation);
+    const LLQuaternion avatar_rotation = getAvatarRenderRotation();
+    const LLVector3 target_joint_pos = mCamTargetJoint->getWorldPosition();
+    const LLVector3 target_pos = getCameraTargetPosition(avatar_rotation, target_joint_pos);
+    const LLVector3 camera_pos = getCameraPosition(avatar_rotation, target_joint_pos);
 
     gGL.flush();
 
@@ -307,6 +286,43 @@ bool LLVisualParamHint::render()
     gGL.popUIMatrix();
 
     return true;
+}
+
+LLQuaternion LLVisualParamHint::getAvatarRenderRotation() const
+{
+    LLQuaternion avatar_rotation;
+    LLJoint* root_joint = gAgentAvatarp->getRootJoint();
+    if( root_joint )
+    {
+        avatar_rotation = root_joint->getWorldRotation();
+    }
+
+    return avatar_rotation;
+}
+
+LLVector3 LLVisualParamHint::getCameraTargetPosition(const LLQuaternion& avatar_rotation,
+                                                     const LLVector3& target_joint_pos) const
+{
+    LLVector3 target_offset( 0, 0, mVisualParam->getCameraElevation() );
+    return target_joint_pos + (target_offset * avatar_rotation);
+}
+
+LLVector3 LLVisualParamHint::getCameraPosition(const LLQuaternion& avatar_rotation,
+                                               const LLVector3& target_joint_pos) const
+{
+    F32 cam_angle_radians = mVisualParam->getCameraAngle() * DEG_TO_RAD;
+
+    static LLCachedControl<bool> auto_camera_position(gSavedSettings, "AppearanceCameraMovement");
+    if (!auto_camera_position)
+    {
+        cam_angle_radians += F_PI;
+    }
+
+    LLVector3 camera_snapshot_offset(
+        mVisualParam->getCameraDistance() * cosf( cam_angle_radians ),
+        mVisualParam->getCameraDistance() * sinf( cam_angle_radians ),
+        mVisualParam->getCameraElevation() );
+    return target_joint_pos + (camera_snapshot_offset * avatar_rotation);
 }
 
 

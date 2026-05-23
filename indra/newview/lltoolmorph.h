@@ -89,6 +89,11 @@ private:
     void                    setWearableVolatile(bool is_volatile);
     void                    applyPreviewVisualParamWeight();
     void                    updatePreviewAvatarGeometry();
+    LLQuaternion            getAvatarRenderRotation() const;
+    LLVector3               getCameraTargetPosition(const LLQuaternion& avatar_rotation,
+                                                    const LLVector3& target_joint_pos) const;
+    LLVector3               getCameraPosition(const LLQuaternion& avatar_rotation,
+                                              const LLVector3& target_joint_pos) const;
 
 protected:
     bool                    mNeedsUpdate;       // does this texture need to be re-rendered?

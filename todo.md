@@ -1455,8 +1455,18 @@ not start a direct Vulkan port.
       targeted `lltoolmorph.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/288-visual-param-hint-prerender-summary.md`.
-- [ ] Decide whether to map `LLVisualParamHint::render()` before source cleanup
+- [x] Decide to map `LLVisualParamHint::render()` before source cleanup
       there.
+- [x] Add `docs/architecture/289-visual-param-hint-render-map.md`.
+- [x] Decide to split pure camera math helpers before touching render
+      matrix/camera/impostor ordering.
+- [x] Add `docs/architecture/290-visual-param-hint-camera-task.md`.
+- [x] Verify the `LLVisualParamHint::render()` camera helper split with
+      targeted `lltoolmorph.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/291-visual-param-hint-camera-summary.md`.
+- [ ] Decide whether to split `LLVisualParamHint::render()` background matrix
+      work into a scoped helper.
 
 ## Phase 1 Inventory
 
