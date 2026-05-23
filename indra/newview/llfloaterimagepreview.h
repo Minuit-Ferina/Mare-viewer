@@ -94,6 +94,11 @@ public:
     void    pan(F32 right, F32 up);
     virtual bool needsRender() override { return mNeedsUpdate; }
 
+private:
+    void drawPreviewBackground();
+    void applyPreviewCamera(LLVOAvatar* avatarp);
+    void renderPreviewAvatar(LLVOAvatar* avatarp);
+
 protected:
     bool        mNeedsUpdate;
     LLJoint*    mTargetJoint;

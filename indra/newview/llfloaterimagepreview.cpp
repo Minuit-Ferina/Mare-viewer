@@ -797,13 +797,8 @@ bool LLImagePreviewAvatar::render()
     gGL.pushMatrix();
     gGL.loadIdentity();
 
-
     LLGLSUIDefault def;
-    gGL.color4f(0.15f, 0.2f, 0.3f, 1.f);
-
-    gUIProgram.bind();
-
-    gl_rect_2d_simple( mFullWidth, mFullHeight );
+    drawPreviewBackground();
 
     gGL.matrixMode(LLRender::MM_PROJECTION);
     gGL.popMatrix();
@@ -812,6 +807,25 @@ bool LLImagePreviewAvatar::render()
     gGL.popMatrix();
 
     gGL.flush();
+    applyPreviewCamera(avatarp);
+    renderPreviewAvatar(avatarp);
+
+    gGL.popUIMatrix();
+    gGL.color4f(1,1,1,1);
+    return true;
+}
+
+void LLImagePreviewAvatar::drawPreviewBackground()
+{
+    gGL.color4f(0.15f, 0.2f, 0.3f, 1.f);
+
+    gUIProgram.bind();
+
+    gl_rect_2d_simple( mFullWidth, mFullHeight );
+}
+
+void LLImagePreviewAvatar::applyPreviewCamera(LLVOAvatar* avatarp)
+{
     LLVector3 target_pos = mTargetJoint->getWorldPosition();
 
     LLQuaternion camera_rot = LLQuaternion(mCameraPitch, LLVector3::y_axis) *
@@ -828,7 +842,10 @@ bool LLImagePreviewAvatar::render()
     LLViewerCamera::getInstance()->setAspect((F32)mFullWidth / mFullHeight);
     LLViewerCamera::getInstance()->setView(LLViewerCamera::getInstance()->getDefaultFOV() / mCameraZoom);
     LLViewerCamera::getInstance()->setPerspective(false, mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight, false);
+}
 
+void LLImagePreviewAvatar::renderPreviewAvatar(LLVOAvatar* avatarp)
+{
     LLVertexBuffer::unbind();
     avatarp->updateLOD();
 
@@ -846,10 +863,6 @@ bool LLImagePreviewAvatar::render()
             avatarPoolp->renderAvatars(avatarp);  // renders only one avatar
         }
     }
-
-    gGL.popUIMatrix();
-    gGL.color4f(1,1,1,1);
-    return true;
 }
 
 //-----------------------------------------------------------------------------

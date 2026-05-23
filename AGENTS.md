@@ -15,13 +15,16 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
-- Phase 7 is complete on branch `phase7`.
-- Next phase is not started yet.
+- Phase 8 is active on branch `phase8`.
+- Goal: continue with narrow `LLViewerDynamicTexture` preview owners before
+  broad `llui` or `pipeline` work.
+- Phase 8 started with image upload preview owners in
+  `indra/newview/llfloaterimagepreview.*`.
 - Phase 7 finished the remaining small `lltoolmorph` appearance preview
   UI-facing draw/reset boundaries.
 - Phase 6 separated appearance-editor visual-parameter preview dynamic texture
   ownership with small owner-local helper extractions in `LLVisualParamHint`.
-- Start phase 8 with a docs-first plan before any new source edits.
+- Phase 8 started with `docs/architecture/307-phase8-plan.md`.
 - Keep using the completed OpenGL containment boundary as a guardrail.
 - Start new work with contracts and maps. Source changes are allowed only after
   a task-specific document names the exact owner, ordering, state, risk, and

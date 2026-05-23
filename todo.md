@@ -1520,9 +1520,19 @@ not start a direct Vulkan port.
 
 ## Phase 8 Candidate Backlog
 
-- [ ] Start phase 8 with a docs-first plan before any source edits.
-- [ ] Choose the next narrow dynamic texture or UI/render owner from the
-      existing maps before touching source.
+- [x] Create branch `phase8` from completed `phase7`.
+- [x] Start phase 8 with a docs-first plan before any source edits.
+- [x] Add `docs/architecture/307-phase8-plan.md`.
+- [x] Choose `LLImagePreviewAvatar` as the next narrow dynamic texture owner
+      before touching source.
+- [x] Add `docs/architecture/308-image-preview-avatar-map.md`.
+- [x] Add `docs/architecture/309-image-preview-avatar-render-task.md`.
+- [x] Verify the `LLImagePreviewAvatar::render()` helper split with targeted
+      `llfloaterimagepreview.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/310-image-preview-avatar-render-summary.md`.
+- [ ] Map `LLImagePreviewSculpted` before deciding whether to continue in the
+      same source file.
 - [ ] Prefer another discrete `LLViewerDynamicTexture` preview user over broad
       `llui` or `pipeline` work.
 
