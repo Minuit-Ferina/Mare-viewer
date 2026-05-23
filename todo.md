@@ -1486,6 +1486,19 @@ not start a direct Vulkan port.
       targeted `lltoolmorph.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/297-visual-param-hint-finalize-summary.md`.
+- [x] Run the final phase 6 integration checkpoint.
+- [x] Add `docs/architecture/298-phase6-completion-summary.md`.
+- [x] Close phase 6.
+
+## Phase 7 Candidate Backlog
+
+- [ ] Start phase 7 with a docs-first plan before any source edits.
+- [ ] Decide whether the next owner should be `LLVisualParamHint::draw(...)`,
+      `LLVisualParamReset::render()`, or another narrow
+      `LLViewerDynamicTexture` preview user.
+- [ ] Keep `pipeline.cpp`, broad `llui`, app lifecycle, SDL, Vulkan, Metal,
+      multi-window, and multi-login work out of phase 7 unless explicitly
+      selected later.
 
 ## Phase 1 Inventory
 

@@ -15,11 +15,11 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
-- Phase 6 is active on branch `phase6`.
-- Goal: continue separating UI/render ownership around appearance-editor
-  preview dynamic textures with small reviewable owner-local steps.
-- Start source edits only after a phase 6 task-specific map names the exact
-  owner, ordering, state, risk, and verification plan.
+- Phase 6 is complete on branch `phase6`.
+- Next phase is not started yet.
+- Phase 6 separated appearance-editor visual-parameter preview dynamic texture
+  ownership with small owner-local helper extractions in `LLVisualParamHint`.
+- Start phase 7 with a docs-first plan before any new source edits.
 - Keep using the completed OpenGL containment boundary as a guardrail.
 - Start new work with contracts and maps. Source changes are allowed only after
   a task-specific document names the exact owner, ordering, state, risk, and
