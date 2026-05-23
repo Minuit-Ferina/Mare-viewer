@@ -3,11 +3,11 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 4 is active on branch `phase4`. Preserve the completed
-phase 3 OpenGL containment and header guardrails, then prepare the next
-renderer boundaries with docs-first, small, reviewable packets. Do not move
-source files, do not change runtime behavior without an explicit task, and do
-not start a direct Vulkan port.
+Current rule: phase 8 is complete on branch `phase8`. Preserve the completed
+OpenGL containment and header guardrails, then prepare the next renderer
+boundaries with docs-first, small, reviewable packets. Do not move source
+files, do not change runtime behavior without an explicit task, and do not
+start a direct Vulkan port.
 
 ## Done
 
@@ -1539,8 +1539,22 @@ not start a direct Vulkan port.
       `llfloaterimagepreview.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/313-image-preview-sculpted-render-summary.md`.
-- [ ] Prefer another discrete `LLViewerDynamicTexture` preview user over broad
+- [x] Prefer another discrete `LLViewerDynamicTexture` preview user over broad
       `llui` or `pipeline` work.
+- [x] Run the final phase 8 integration checkpoint.
+- [x] Add `docs/architecture/314-phase8-completion-summary.md`.
+- [x] Close phase 8.
+
+## Phase 9 Candidate Backlog
+
+- [ ] Start phase 9 with a docs-first plan before any source edits.
+- [ ] Choose between `LLPreviewAnimation` and another narrow preview owner
+      before touching source.
+- [ ] Defer `LLModelPreview` until a dedicated map names its render, upload,
+      material, camera, and LOD risks.
+- [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
+      multi-window, and multi-login work out of phase 9 unless explicitly
+      selected later.
 
 ## Phase 1 Inventory
 
