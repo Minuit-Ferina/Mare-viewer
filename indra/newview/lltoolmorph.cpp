@@ -351,8 +351,21 @@ void LLVisualParamHint::finalizeHintRender()
 //-----------------------------------------------------------------------------
 void LLVisualParamHint::draw(F32 alpha)
 {
-    if (!mIsVisible) return;
+    if (!isHintVisibleForDraw())
+    {
+        return;
+    }
 
+    drawHintTexture(alpha);
+}
+
+bool LLVisualParamHint::isHintVisibleForDraw() const
+{
+    return mIsVisible;
+}
+
+void LLVisualParamHint::drawHintTexture(F32 alpha)
+{
     gGL.getTexUnit(0)->bind(this);
 
     gGL.color4f(1.f, 1.f, 1.f, alpha);

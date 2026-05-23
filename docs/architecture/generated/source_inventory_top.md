@@ -51,7 +51,7 @@
 | `indra/newview/llviewerwindow.cpp` | render.pipeline | 6505 | 0 | 0 | 0 | 44 | 18 | 63 | 2 |
 | `indra/llrender/llrender.cpp` | render.legacy_low_level | 2174 | 0 | 0 | 0 | 39 | 111 | 0 | 2 |
 | `indra/newview/lltracker.cpp` | render.opengl_touching | 928 | 0 | 0 | 0 | 39 | 3 | 0 | 0 |
-| `indra/newview/lltoolmorph.cpp` | render.opengl_touching | 410 | 0 | 0 | 0 | 37 | 4 | 0 | 0 |
+| `indra/newview/lltoolmorph.cpp` | render.opengl_touching | 423 | 0 | 0 | 0 | 37 | 4 | 0 | 0 |
 | `indra/newview/lldrawpoolwlsky.cpp` | render.pipeline | 523 | 0 | 0 | 0 | 36 | 11 | 5 | 0 |
 | `indra/newview/llvoicevisualizer.cpp` | render.opengl_touching | 616 | 0 | 0 | 0 | 36 | 4 | 0 | 0 |
 | `indra/newview/llfloaterbvhpreview.cpp` | render.draw_pool | 1212 | 0 | 0 | 0 | 32 | 2 | 0 | 0 |

@@ -1492,10 +1492,19 @@ not start a direct Vulkan port.
 
 ## Phase 7 Candidate Backlog
 
-- [ ] Start phase 7 with a docs-first plan before any source edits.
-- [ ] Decide whether the next owner should be `LLVisualParamHint::draw(...)`,
-      `LLVisualParamReset::render()`, or another narrow
-      `LLViewerDynamicTexture` preview user.
+- [x] Create branch `phase7` from completed `phase6`.
+- [x] Start phase 7 with a docs-first plan before any source edits.
+- [x] Add `docs/architecture/299-phase7-plan.md`.
+- [x] Decide that the next owner should be `LLVisualParamHint::draw(...)`
+      before `LLVisualParamReset::render()` or another preview user.
+- [x] Add `docs/architecture/300-visual-param-hint-draw-map.md`.
+- [x] Add `docs/architecture/301-visual-param-hint-draw-task.md`.
+- [x] Verify the `LLVisualParamHint::draw(...)` helper split with targeted
+      `lltoolmorph.cpp.o`, regenerated source inventory, both GL guardrails,
+      and `git diff --check`.
+- [x] Add `docs/architecture/302-visual-param-hint-draw-summary.md`.
+- [ ] Decide whether the next owner should be `LLVisualParamReset::render()`
+      or another narrow `LLViewerDynamicTexture` preview user.
 - [ ] Keep `pipeline.cpp`, broad `llui`, app lifecycle, SDL, Vulkan, Metal,
       multi-window, and multi-login work out of phase 7 unless explicitly
       selected later.

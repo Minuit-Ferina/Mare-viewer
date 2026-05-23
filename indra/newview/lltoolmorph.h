@@ -98,6 +98,8 @@ private:
     void                    renderAvatarImpostor();
     void                    restorePreviewVisualParamState();
     void                    finalizeHintRender();
+    bool                    isHintVisibleForDraw() const;
+    void                    drawHintTexture(F32 alpha);
 
 protected:
     bool                    mNeedsUpdate;       // does this texture need to be re-rendered?
