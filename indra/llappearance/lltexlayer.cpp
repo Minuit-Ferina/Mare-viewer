@@ -1236,7 +1236,7 @@ void LLTexLayer::renderColorFill(const LLColor4& net_color, S32 width, S32 heigh
     gAlphaMaskProgram.setMinimumAlpha(0.004f);
 }
 
-const U8*   LLTexLayer::getAlphaData() const
+U32 LLTexLayer::getAlphaMaskCacheKey() const
 {
     LLCRC alpha_mask_crc;
     const LLUUID& uuid = getUUID();
@@ -1249,7 +1249,12 @@ const U8*   LLTexLayer::getAlphaData() const
         alpha_mask_crc.update((U8*)&param_weight, sizeof(F32));
     }
 
-    U32 cache_index = alpha_mask_crc.getCRC();
+    return alpha_mask_crc.getCRC();
+}
+
+const U8*   LLTexLayer::getAlphaData() const
+{
+    U32 cache_index = getAlphaMaskCacheKey();
 
     alpha_cache_t::const_iterator iter2 = mAlphaCache.find(cache_index);
     return (iter2 == mAlphaCache.end()) ? 0 : iter2->second;
@@ -1444,17 +1449,7 @@ void LLTexLayer::renderMorphMasks(S32 x, S32 y, S32 width, S32 height, const LLC
 
     if (hasMorph() && success)
     {
-        LLCRC alpha_mask_crc;
-        const LLUUID& uuid = getUUID();
-        alpha_mask_crc.update((U8*)(&uuid.mData), UUID_BYTES);
-
-        for (const LLTexLayerParamAlpha* param : mParamAlphaList)
-        {
-            F32 param_weight = param->getWeight();
-            alpha_mask_crc.update((U8*)&param_weight, sizeof(F32));
-        }
-
-        U32 cache_index = alpha_mask_crc.getCRC();
+        U32 cache_index = getAlphaMaskCacheKey();
         U8* alpha_data = NULL;
                 // We believe we need to generate morph masks, do not assume that the cached version is accurate.
                 // We can get bad morph masks during login, on minimize, and occasional gl errors.

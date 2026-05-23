@@ -1413,7 +1413,14 @@ not start a direct Vulkan port.
 - [x] Decide to map `LLTexLayer::renderMorphMasks(...)` before switching to UI
       rendering as the next phase 5 owner.
 - [x] Add `docs/architecture/277-texlayer-morph-mask-map.md`.
-- [ ] Decide whether to extract the alpha-cache key helper or
+- [x] Decide to extract the alpha-cache key helper before switching to UI
+      rendering as the next phase 5 owner.
+- [x] Add `docs/architecture/278-texlayer-alpha-cache-key-task.md`.
+- [x] Verify the `LLTexLayer` alpha-cache key helper with targeted
+      `llappearance` `lltexlayer.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/279-texlayer-alpha-cache-key-summary.md`.
+- [ ] Decide whether to continue morph-mask non-GL helpers or
       switch to map UI rendering as the next phase 5 owner.
 
 ## Phase 1 Inventory
