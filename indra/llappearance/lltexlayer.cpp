@@ -384,71 +384,91 @@ void LLTexLayerSet::deleteCaches()
 bool LLTexLayerSet::render( S32 x, S32 y, S32 width, S32 height, LLRenderTarget* bound_target )
 {
     bool success = true;
-    mIsVisible = true;
-
-    if (mMaskLayerList.size() > 0)
-    {
-        for (LLTexLayerInterface* layer : mMaskLayerList)
-        {
-            if (layer->isInvisibleAlphaMask())
-            {
-                mIsVisible = false;
-            }
-        }
-    }
+    mIsVisible = !hasInvisibleAlphaMask();
 
     LLGLSUIDefault gls_ui;
     LLGLDepthTest gls_depth(GL_FALSE, GL_FALSE);
     gGL.setColorMask(true, true);
 
-    // clear buffer area to ensure we don't pick up UI elements
-    {
-        gGL.flush();
-        gAlphaMaskProgram.setMinimumAlpha(0.0f);
-        gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-        gGL.color4f( 0.f, 0.f, 0.f, 1.f );
-
-        gl_rect_2d_simple( width, height );
-
-        gGL.flush();
-        gAlphaMaskProgram.setMinimumAlpha(0.004f);
-    }
+    clearCompositeBuffer(width, height);
 
     if (mIsVisible)
     {
-        // composite color layers
-        for(LLTexLayerInterface* layer : mLayerList)
-        {
-            if (layer->getRenderPass() == LLTexLayer::RP_COLOR)
-            {
-                gGL.flush();
-                success &= layer->render(x, y, width, height, bound_target);
-                gGL.flush();
-            }
-        }
-
+        success &= renderColorLayers(x, y, width, height, bound_target);
         renderAlphaMaskTextures(x, y, width, height, bound_target, false);
 
         stop_glerror();
     }
     else
     {
-        gGL.flush();
-
-        gGL.setSceneBlendType(LLRender::BT_REPLACE);
-        gAlphaMaskProgram.setMinimumAlpha(0.f);
-
-        gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-        gGL.color4f( 0.f, 0.f, 0.f, 0.f );
-
-        gl_rect_2d_simple( width, height );
-        gGL.setSceneBlendType(LLRender::BT_ALPHA);
-
-        gGL.flush();
-        gAlphaMaskProgram.setMinimumAlpha(0.004f);
+        clearInvisibleComposite(width, height);
     }
 
     return success;
+}
+
+bool LLTexLayerSet::hasInvisibleAlphaMask() const
+{
+    bool has_invisible_alpha_mask = false;
+
+    for (LLTexLayerInterface* layer : mMaskLayerList)
+    {
+        if (layer->isInvisibleAlphaMask())
+        {
+            has_invisible_alpha_mask = true;
+        }
+    }
+
+    return has_invisible_alpha_mask;
+}
+
+void LLTexLayerSet::clearCompositeBuffer(S32 width, S32 height)
+{
+    // clear buffer area to ensure we don't pick up UI elements
+    gGL.flush();
+    gAlphaMaskProgram.setMinimumAlpha(0.0f);
+    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+    gGL.color4f( 0.f, 0.f, 0.f, 1.f );
+
+    gl_rect_2d_simple( width, height );
+
+    gGL.flush();
+    gAlphaMaskProgram.setMinimumAlpha(0.004f);
+}
+
+bool LLTexLayerSet::renderColorLayers(S32 x, S32 y, S32 width, S32 height, LLRenderTarget* bound_target)
+{
+    bool success = true;
+
+    // composite color layers
+    for(LLTexLayerInterface* layer : mLayerList)
+    {
+        if (layer->getRenderPass() == LLTexLayer::RP_COLOR)
+        {
+            gGL.flush();
+            success &= layer->render(x, y, width, height, bound_target);
+            gGL.flush();
+        }
+    }
+
+    return success;
+}
+
+void LLTexLayerSet::clearInvisibleComposite(S32 width, S32 height)
+{
+    gGL.flush();
+
+    gGL.setSceneBlendType(LLRender::BT_REPLACE);
+    gAlphaMaskProgram.setMinimumAlpha(0.f);
+
+    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+    gGL.color4f( 0.f, 0.f, 0.f, 0.f );
+
+    gl_rect_2d_simple( width, height );
+    gGL.setSceneBlendType(LLRender::BT_ALPHA);
+
+    gGL.flush();
+    gAlphaMaskProgram.setMinimumAlpha(0.004f);
 }
 
 

@@ -1390,7 +1390,17 @@ not start a direct Vulkan port.
       `llappearance` `lltexlayer.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/270-texlayer-projection-scope-summary.md`.
-- [ ] Decide whether to map `LLTexLayerSet::render(...)` or
+- [x] Decide to map `LLTexLayerSet::render(...)` before switching to UI
+      rendering as the next phase 5 owner.
+- [x] Add `docs/architecture/271-texlayer-set-render-map.md`.
+- [x] Decide to split `LLTexLayerSet::render(...)` into private owner-local
+      helpers.
+- [x] Add `docs/architecture/272-texlayer-set-render-helper-task.md`.
+- [x] Verify the `LLTexLayerSet::render(...)` helper split with targeted
+      `llappearance` `lltexlayer.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/273-texlayer-set-render-helper-summary.md`.
+- [ ] Decide whether to continue into `LLTexLayer::render(...)` or
       switch to map UI rendering as the next phase 5 owner.
 
 ## Phase 1 Inventory

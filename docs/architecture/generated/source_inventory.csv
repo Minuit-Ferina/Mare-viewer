@@ -34,7 +34,7 @@ indra/newview/llglsandbox.cpp,render.pipeline,1131,33,0,0,0,0,129,24,16,1,0,2,3,
 indra/newview/llvoavatar.cpp,render.pipeline,12712,91,0,0,0,0,96,14,6,23,11,0,4,18,0
 indra/newview/llnetmap.cpp,assets.texture,1805,38,0,0,0,0,92,1,5,0,0,0,0,1,0
 indra/newview/llworldmapview.cpp,render.opengl_touching,1983,31,0,0,0,0,88,2,8,0,0,0,0,0,0
-indra/llappearance/lltexlayer.cpp,render.opengl_touching,1957,18,0,0,0,0,85,20,17,0,0,10,0,0,0
+indra/llappearance/lltexlayer.cpp,render.opengl_touching,1977,18,0,0,0,0,85,20,17,0,0,11,0,0,0
 indra/newview/llmanipscale.cpp,render.opengl_touching,2080,32,0,0,0,0,78,13,7,0,0,0,0,0,0
 indra/newview/llfasttimerview.cpp,render.opengl_touching,1669,27,0,0,0,0,75,7,12,0,0,1,0,0,0
 indra/newview/llfloaterimagepreview.cpp,render.draw_pool,1090,39,0,0,0,0,72,8,11,0,2,0,0,0,0
@@ -234,7 +234,7 @@ indra/newview/llvowlsky.cpp,render.pipeline,582,9,0,0,0,0,0,2,3,3,9,0,0,0,0
 indra/newview/llvoavatar.h,render.pipeline,1307,24,0,0,0,0,0,2,0,2,0,1,0,8,0
 indra/newview/lldrawpool.h,render.pipeline,488,4,0,0,0,0,0,2,0,2,12,0,0,7,0
 indra/newview/llstartup.cpp,render.pipeline,4530,180,0,0,0,0,0,2,0,2,1,0,0,1,0
-indra/llappearance/lltexlayer.h,render.opengl_touching,320,6,0,0,0,0,0,2,0,0,0,12,0,0,0
+indra/llappearance/lltexlayer.h,render.opengl_touching,326,6,0,0,0,0,0,2,0,0,0,13,0,0,0
 indra/newview/llviewerparcelmgr.cpp,assets.texture,2808,41,0,0,0,0,0,2,0,0,0,0,0,4,0
 indra/newview/llviewerregion.h,assets.texture,723,14,0,0,0,0,0,2,0,0,0,0,0,2,0
 indra/newview/lldrawpoolavatar.h,render.draw_pool,152,4,0,0,0,0,0,2,0,0,4,0,0,1,0

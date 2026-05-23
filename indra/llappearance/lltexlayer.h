@@ -221,6 +221,12 @@ public:
 
     static bool                 sHasCaches;
 
+private:
+    bool                        hasInvisibleAlphaMask() const;
+    void                        clearCompositeBuffer(S32 width, S32 height);
+    bool                        renderColorLayers(S32 x, S32 y, S32 width, S32 height, LLRenderTarget* bound_target);
+    void                        clearInvisibleComposite(S32 width, S32 height);
+
 protected:
     typedef std::vector<LLTexLayerInterface *> layer_list_t;
     layer_list_t                mLayerList;
