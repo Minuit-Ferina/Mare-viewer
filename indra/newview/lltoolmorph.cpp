@@ -171,11 +171,24 @@ bool LLVisualParamHint::canRenderHint() const
 
 void LLVisualParamHint::preRender(bool clear_depth)
 {
+    setWearableVolatile(true);
+    applyPreviewVisualParamWeight();
+    updatePreviewAvatarGeometry();
+
+    LLViewerDynamicTexture::preRender(clear_depth);
+}
+
+void LLVisualParamHint::setWearableVolatile(bool is_volatile)
+{
     LLViewerWearable* wearable = (LLViewerWearable*)mWearablePtr;
     if (wearable)
     {
-        wearable->setVolatile(true);
+        wearable->setVolatile(is_volatile);
     }
+}
+
+void LLVisualParamHint::applyPreviewVisualParamWeight()
+{
     mLastParamWeight = mVisualParam->getWeight();
     mWearablePtr->setVisualParamWeight(mVisualParam->getID(), mVisualParamWeight);
     gAgentAvatarp->setVisualParamWeight(mVisualParam->getID(), mVisualParamWeight);
@@ -185,7 +198,10 @@ void LLVisualParamHint::preRender(bool clear_depth)
     // Calling LLCharacter version, as we don't want position/height changes to cause the avatar to jump
     // up and down when we're doing preview renders. -Nyx
     gAgentAvatarp->LLCharacter::updateVisualParams();
+}
 
+void LLVisualParamHint::updatePreviewAvatarGeometry()
+{
     if (gAgentAvatarp->mDrawable.notNull())
     {
         gAgentAvatarp->updateGeometry(gAgentAvatarp->mDrawable);
@@ -195,8 +211,6 @@ void LLVisualParamHint::preRender(bool clear_depth)
     {
         LL_WARNS() << "Attempting to update avatar's geometry, but drawable doesn't exist yet" << LL_ENDL;
     }
-
-    LLViewerDynamicTexture::preRender(clear_depth);
 }
 
 //-----------------------------------------------------------------------------

@@ -86,6 +86,9 @@ private:
     bool                    isUpdateDelayElapsed();
     bool                    isAppearanceAnimationBlocked() const;
     bool                    canRenderHint() const;
+    void                    setWearableVolatile(bool is_volatile);
+    void                    applyPreviewVisualParamWeight();
+    void                    updatePreviewAvatarGeometry();
 
 protected:
     bool                    mNeedsUpdate;       // does this texture need to be re-rendered?
