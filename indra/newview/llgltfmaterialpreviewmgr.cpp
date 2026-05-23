@@ -418,6 +418,53 @@ struct SetTemporarily
     }
 };
 
+struct GLTFPreviewRenderState
+{
+    LLGLDepthTest mDepthTest;
+    LLGLDisable mStencil;
+    LLGLDisable mScissor;
+    SetTemporarily<bool> mNoDof;
+    SetTemporarily<bool> mNoGlow;
+    SetTemporarily<bool> mNoSsr;
+    SetTemporarily<U32> mNoAa;
+    SetTemporarily<LLPipeline::RenderTargetPack*> mUseAuxiliaryRenderTarget;
+    S32 mOldLocalLightCount;
+    bool mRestored = false;
+
+    GLTFPreviewRenderState()
+    : mDepthTest(GL_FALSE)
+    , mStencil(GL_STENCIL_TEST)
+    , mScissor(GL_SCISSOR_TEST)
+    , mNoDof(&LLPipeline::RenderDepthOfField, false)
+    , mNoGlow(&LLPipeline::sRenderGlow, false)
+    , mNoSsr(&LLPipeline::RenderScreenSpaceReflections, false)
+    , mNoAa(&LLPipeline::RenderFSAAType, U32(0))
+    , mUseAuxiliaryRenderTarget(&gPipeline.mRT, &gPipeline.mAuxillaryRT)
+    , mOldLocalLightCount(gSavedSettings.get<S32>("RenderLocalLightCount"))
+    {
+        gSavedSettings.set<S32>("RenderLocalLightCount", 0);
+        gPipeline.mReflectionMapManager.forceDefaultProbeAndUpdateUniforms();
+    }
+
+    ~GLTFPreviewRenderState()
+    {
+        restore();
+    }
+
+    void restore()
+    {
+        if (mRestored)
+        {
+            return;
+        }
+
+        gPipeline.setupHWLights();
+        gPipeline.mReflectionMapManager.forceDefaultProbeAndUpdateUniforms(false);
+        gSavedSettings.set<S32>("RenderLocalLightCount", mOldLocalLightCount);
+        mRestored = true;
+    }
+};
+
 LLVector4 get_preview_light_direction()
 {
     LLVector3 light_dir3(1.0f, 1.0f, 1.0f);
@@ -538,20 +585,9 @@ bool LLGLTFPreviewTexture::render()
     LLGLContainment::setClearColor(0, 0, 0, 0);
     LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    LLGLDepthTest(GL_FALSE);
-    LLGLDisable stencil(GL_STENCIL_TEST);
-    LLGLDisable scissor(GL_SCISSOR_TEST);
-    SetTemporarily<bool> no_dof(&LLPipeline::RenderDepthOfField, false);
-    SetTemporarily<bool> no_glow(&LLPipeline::sRenderGlow, false);
-    SetTemporarily<bool> no_ssr(&LLPipeline::RenderScreenSpaceReflections, false);
-    SetTemporarily<U32> no_aa(&LLPipeline::RenderFSAAType, U32(0));
-    SetTemporarily<LLPipeline::RenderTargetPack*> use_auxiliary_render_target(&gPipeline.mRT, &gPipeline.mAuxillaryRT);
+    GLTFPreviewRenderState preview_state;
 
     const LLVector4 light_dir = get_preview_light_direction();
-    const S32 old_local_light_count = gSavedSettings.get<S32>("RenderLocalLightCount");
-    gSavedSettings.set<S32>("RenderLocalLightCount", 0);
-
-    gPipeline.mReflectionMapManager.forceDefaultProbeAndUpdateUniforms();
 
     LLViewerCamera camera;
     LLMatrix4 object_transform;
@@ -585,11 +621,7 @@ bool LLGLTFPreviewTexture::render()
 
     run_preview_post_processing(screen);
     renderFinalPreview(screen);
-
-    // Clean up
-    gPipeline.setupHWLights();
-    gPipeline.mReflectionMapManager.forceDefaultProbeAndUpdateUniforms(false);
-    gSavedSettings.set<S32>("RenderLocalLightCount", old_local_light_count);
+    preview_state.restore();
 
     return true;
 }

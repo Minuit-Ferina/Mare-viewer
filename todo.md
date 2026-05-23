@@ -1361,8 +1361,15 @@ not start a direct Vulkan port.
       `llgltfmaterialpreviewmgr.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/262-gltf-preview-render-split-summary.md`.
-- [ ] Decide whether to add an owner-local preview render state object or move
+- [x] Decide to add an owner-local preview render state object before moving
       to the next phase 5 owner map.
+- [x] Add `docs/architecture/263-gltf-preview-state-task.md`.
+- [x] Verify the GLTF preview render state object with targeted
+      `llgltfmaterialpreviewmgr.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/264-gltf-preview-state-summary.md`.
+- [ ] Choose the next phase 5 owner map, likely `LLViewerTexLayerSetBuffer`
+      unless map UI rendering is preferred first.
 
 ## Phase 1 Inventory
 
