@@ -1319,8 +1319,14 @@ not start a direct Vulkan port.
 - [x] Record that the non-clean Makefile `mare-viewer` checkpoint reached
       `[100%] Built target mare-viewer` after the `LLDrawPoolAlpha` phase 4
       block.
-- [ ] Decide whether phase 4 closes after the `LLDrawPoolAlpha` checkpoint or
-      continues with another owner map.
+- [x] Decide that phase 4 continues after the `LLDrawPoolAlpha` checkpoint with
+      a dynamic texture / UI preview owner map.
+- [x] Inspect the existing dynamic texture flow, user table, override map, and
+      UI render-boundary notes before choosing the next owner.
+- [x] Add
+      `docs/architecture/257-dynamic-texture-ui-preview-owner-map.md`.
+- [ ] Decide whether to apply the owner-local preview/bake pass split in
+      `LLViewerDynamicTexture` as the next phase 4 source packet.
 
 ## Phase 1 Inventory
 
