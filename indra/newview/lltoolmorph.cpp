@@ -243,15 +243,7 @@ bool LLVisualParamHint::render()
 
     LLViewerCamera::getInstance()->setPerspective(false, mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight, false);
 
-    if (gAgentAvatarp->mDrawable.notNull())
-    {
-        LLGLDepthTest gls_depth(GL_TRUE, GL_TRUE);
-        gGL.flush();
-        gGL.setSceneBlendType(LLRender::BT_REPLACE);
-        gPipeline.generateImpostor(gAgentAvatarp, true);
-        gGL.setSceneBlendType(LLRender::BT_ALPHA);
-        gGL.flush();
-    }
+    renderAvatarImpostor();
 
     gAgentAvatarp->setVisualParamWeight(mVisualParam->getID(), mLastParamWeight);
     mWearablePtr->setVisualParamWeight(mVisualParam->getID(), mLastParamWeight);
@@ -328,6 +320,19 @@ void LLVisualParamHint::drawHintBackground()
 
     gGL.matrixMode(LLRender::MM_MODELVIEW);
     gGL.popMatrix();
+}
+
+void LLVisualParamHint::renderAvatarImpostor()
+{
+    if (gAgentAvatarp->mDrawable.notNull())
+    {
+        LLGLDepthTest gls_depth(GL_TRUE, GL_TRUE);
+        gGL.flush();
+        gGL.setSceneBlendType(LLRender::BT_REPLACE);
+        gPipeline.generateImpostor(gAgentAvatarp, true);
+        gGL.setSceneBlendType(LLRender::BT_ALPHA);
+        gGL.flush();
+    }
 }
 
 
