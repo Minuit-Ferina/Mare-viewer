@@ -1381,8 +1381,15 @@ not start a direct Vulkan port.
 - [x] Decide to map `LLTexLayerSetBuffer::renderTexLayerSet(...)` before
       touching appearance-side avatar bake rendering.
 - [x] Add `docs/architecture/268-texlayer-render-contract-map.md`.
-- [ ] Confirm the targeted build path for `indra/llappearance/lltexlayer.cpp`
+- [x] Confirm the targeted build path for `indra/llappearance/lltexlayer.cpp`
       before source changes there.
+- [x] Decide to add an owner-local projection scope in `LLTexLayerSetBuffer`
+      before mapping deeper `LLTexLayerSet::render(...)` behavior.
+- [x] Add `docs/architecture/269-texlayer-projection-scope-task.md`.
+- [x] Verify the `LLTexLayerSetBuffer` projection scope with targeted
+      `llappearance` `lltexlayer.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/270-texlayer-projection-scope-summary.md`.
 - [ ] Decide whether to map `LLTexLayerSet::render(...)` or
       switch to map UI rendering as the next phase 5 owner.
 

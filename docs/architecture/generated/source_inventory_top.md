@@ -37,7 +37,7 @@
 | `indra/newview/llvoavatar.cpp` | render.pipeline | 12712 | 0 | 0 | 0 | 96 | 14 | 23 | 0 |
 | `indra/newview/llnetmap.cpp` | assets.texture | 1805 | 0 | 0 | 0 | 92 | 1 | 0 | 0 |
 | `indra/newview/llworldmapview.cpp` | render.opengl_touching | 1983 | 0 | 0 | 0 | 88 | 2 | 0 | 0 |
-| `indra/llappearance/lltexlayer.cpp` | render.opengl_touching | 1932 | 0 | 0 | 0 | 85 | 20 | 0 | 10 |
+| `indra/llappearance/lltexlayer.cpp` | render.opengl_touching | 1957 | 0 | 0 | 0 | 85 | 20 | 0 | 10 |
 | `indra/newview/llmanipscale.cpp` | render.opengl_touching | 2080 | 0 | 0 | 0 | 78 | 13 | 0 | 0 |
 | `indra/newview/llfasttimerview.cpp` | render.opengl_touching | 1669 | 0 | 0 | 0 | 75 | 7 | 0 | 1 |
 | `indra/newview/llfloaterimagepreview.cpp` | render.draw_pool | 1090 | 0 | 0 | 0 | 72 | 8 | 0 | 0 |

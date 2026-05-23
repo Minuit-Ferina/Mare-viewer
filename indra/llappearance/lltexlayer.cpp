@@ -99,6 +99,22 @@ LLTexLayerSetBuffer::LLTexLayerSetBuffer(LLTexLayerSet* const owner) :
 {
 }
 
+struct LLTexLayerSetBuffer::ProjectionScope
+{
+    ProjectionScope(const LLTexLayerSetBuffer& buffer)
+    : mBuffer(buffer)
+    {
+        mBuffer.pushProjection();
+    }
+
+    ~ProjectionScope()
+    {
+        mBuffer.popProjection();
+    }
+
+    const LLTexLayerSetBuffer& mBuffer;
+};
+
 LLTexLayerSetBuffer::~LLTexLayerSetBuffer()
 {
 }
@@ -128,13 +144,22 @@ void LLTexLayerSetBuffer::popProjection() const
 void LLTexLayerSetBuffer::preRenderTexLayerSet()
 {
     // Set up an ortho projection
-    pushProjection();
+    llassert(!mProjectionScope);
+    mProjectionScope = std::make_unique<ProjectionScope>(*this);
 }
 
 // virtual
 void LLTexLayerSetBuffer::postRenderTexLayerSet(bool success)
 {
-    popProjection();
+    if (mProjectionScope)
+    {
+        mProjectionScope.reset();
+    }
+    else
+    {
+        llassert(false);
+        popProjection();
+    }
 }
 
 bool LLTexLayerSetBuffer::renderTexLayerSet(LLRenderTarget* bound_target)

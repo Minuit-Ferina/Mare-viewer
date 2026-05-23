@@ -28,6 +28,7 @@
 #define LL_LLTEXLAYER_H
 
 #include <deque>
+#include <memory>
 #include "llglslshader.h"
 #include "llgltexture.h"
 #include "llavatarappearancedefines.h"
@@ -282,6 +283,11 @@ protected:
     virtual S32             getCompositeHeight() const = 0;
     bool                    renderTexLayerSet(LLRenderTarget* bound_target);
 
+private:
+    struct ProjectionScope;
+    std::unique_ptr<ProjectionScope> mProjectionScope;
+
+protected:
     LLTexLayerSet* const    mTexLayerSet;
 };
 
