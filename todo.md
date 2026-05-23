@@ -1558,6 +1558,11 @@ start a direct Vulkan port.
       `llfloaterbvhpreview.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/318-preview-animation-render-summary.md`.
+- [x] Map `LLPreviewAnimation` refresh semantics before considering a
+      `needsRender()` override.
+- [x] Add `docs/architecture/319-preview-animation-refresh-contract.md`.
+- [ ] Decide whether a `needsRender()` override is a safe behavior-preserving
+      follow-up or a deferred runtime behavior change.
 - [ ] Defer `LLModelPreview` until a dedicated map names its render, upload,
       material, camera, and LOD risks.
 - [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
