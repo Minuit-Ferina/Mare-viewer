@@ -1410,7 +1410,10 @@ not start a direct Vulkan port.
       `llappearance` `lltexlayer.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/276-texlayer-render-draw-helper-summary.md`.
-- [ ] Decide whether to map `LLTexLayer::renderMorphMasks(...)` or
+- [x] Decide to map `LLTexLayer::renderMorphMasks(...)` before switching to UI
+      rendering as the next phase 5 owner.
+- [x] Add `docs/architecture/277-texlayer-morph-mask-map.md`.
+- [ ] Decide whether to extract the alpha-cache key helper or
       switch to map UI rendering as the next phase 5 owner.
 
 ## Phase 1 Inventory
