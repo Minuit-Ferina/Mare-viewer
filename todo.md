@@ -1325,8 +1325,30 @@ not start a direct Vulkan port.
       UI render-boundary notes before choosing the next owner.
 - [x] Add
       `docs/architecture/257-dynamic-texture-ui-preview-owner-map.md`.
-- [ ] Decide whether to apply the owner-local preview/bake pass split in
+- [x] Decide to apply the owner-local preview/bake pass split in
       `LLViewerDynamicTexture` as the next phase 4 source packet.
+- [x] Split `LLViewerDynamicTexture` preview-target and bake-target passes into
+      private owner-local helpers without changing behavior.
+- [x] Verify the dynamic texture pass split with targeted
+      `lldynamictexture.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Run a final non-clean `mare-viewer` Makefile integration checkpoint for
+      phase 4.
+- [x] Add
+      `docs/architecture/258-dynamic-texture-pass-split-summary.md`.
+- [x] Add
+      `docs/architecture/259-phase4-completion-summary.md`.
+- [x] Close phase 4.
+
+## Phase 5 Candidate Backlog
+
+- [ ] Create a phase 5 plan before any new source edits.
+- [ ] Choose one next owner explicitly: `LLViewerTexLayerSetBuffer`,
+      `LLGLTFPreviewTexture`, map UI rendering, core `llui` clipping, shader
+      manager lifecycle, or build-system guardrails.
+- [ ] Keep phase 5 focused on owner contracts and behavior-preserving changes,
+      not a Vulkan, Metal, SDL, app-lifecycle, multi-window, or multi-login
+      implementation.
 
 ## Phase 1 Inventory
 

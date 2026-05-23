@@ -104,7 +104,7 @@ indra/newview/llviewercamera.cpp,render.opengl_touching,995,25,0,0,0,0,5,6,2,0,0
 indra/newview/lldrawpoolwater.cpp,render.pipeline,339,22,0,0,0,0,5,4,1,1,19,3,0,3,0
 indra/llui/lltextbase.cpp,render.opengl_touching,4485,20,0,0,0,0,5,0,0,0,0,0,0,0,0
 indra/newview/lltoolselectrect.cpp,render.opengl_touching,207,12,0,0,0,0,5,0,0,0,0,0,0,0,0
-indra/newview/lldynamictexture.cpp,render.pipeline,339,15,0,0,0,0,4,8,0,4,0,6,0,3,0
+indra/newview/lldynamictexture.cpp,render.pipeline,350,15,0,0,0,0,4,8,0,4,0,8,0,3,0
 indra/llui/llbutton.cpp,render.opengl_touching,1434,23,0,0,0,0,4,0,5,0,0,0,0,0,0
 indra/llui/llscrollbar.cpp,render.opengl_touching,667,14,0,0,0,0,4,0,4,0,0,0,0,0,0
 indra/newview/marefsr2upscaler.cpp,render.opengl_touching,401,14,0,0,0,0,3,76,1,0,0,4,0,0,0
@@ -217,7 +217,7 @@ indra/newview/tests/llworldmipmap_test.cpp,render.opengl_touching,166,5,0,0,0,0,
 indra/llappearance/lllocaltextureobject.h,assets.texture,85,2,0,0,0,0,0,4,0,0,0,0,0,0,0
 indra/newview/lltextureview.h,assets.texture,80,1,0,0,0,0,0,4,0,0,0,0,0,0,0
 indra/newview/llheroprobemanager.h,render.pipeline,151,6,0,0,0,0,0,3,0,1,0,2,0,0,0
-indra/newview/lldynamictexture.h,assets.texture,118,5,0,0,0,0,0,3,0,0,0,7,0,3,0
+indra/newview/lldynamictexture.h,assets.texture,120,5,0,0,0,0,0,3,0,0,0,9,0,3,0
 indra/llrender/llrender2dutils.h,render.legacy_low_level,183,5,0,0,0,0,0,3,0,0,0,3,0,0,0
 indra/newview/lldrawpoolbump.h,render.draw_pool,165,5,0,0,0,0,0,3,0,0,4,1,0,4,0
 indra/newview/lldrawpoolwlsky.h,render.draw_pool,77,1,0,0,0,0,0,3,0,0,6,0,0,3,0

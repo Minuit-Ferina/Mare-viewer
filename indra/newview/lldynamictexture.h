@@ -101,6 +101,8 @@ private:
                                           LLRenderTarget& render_target,
                                           S32 width,
                                           S32 height);
+    static bool updatePreviewDynamicTextures(LLRenderTarget& preview_target);
+    static bool updateBakeDynamicTextures(LLRenderTarget& bake_target);
 
 protected:
     bool mClamp;

@@ -117,6 +117,39 @@ bool LLViewerDynamicTexture::updateDynamicTextureRange(S32 begin_order,
     return rendered;
 }
 
+bool LLViewerDynamicTexture::updatePreviewDynamicTextures(LLRenderTarget& preview_target)
+{
+    preview_target.bindTarget();
+    preview_target.clear();
+
+    LLGLSLShader::unbind();
+    LLVertexBuffer::unbind();
+
+    // ORDER_FIRST is unused, ORDER_MIDDLE is various ui preview
+    bool rendered = updateDynamicTextureRange(0,
+                                              ORDER_LAST,
+                                              preview_target,
+                                              LLPipeline::MAX_PREVIEW_WIDTH,
+                                              LLPipeline::MAX_PREVIEW_WIDTH);
+    preview_target.flush();
+    return rendered;
+}
+
+bool LLViewerDynamicTexture::updateBakeDynamicTextures(LLRenderTarget& bake_target)
+{
+    bake_target.bindTarget();
+    bake_target.clear();
+
+    // ORDER_LAST is baked skin preview, ORDER_RESET resets appearance parameters and does not render.
+    bool rendered = updateDynamicTextureRange(ORDER_LAST,
+                                              ORDER_COUNT,
+                                              bake_target,
+                                              LLAvatarAppearanceDefines::SCRATCH_TEX_WIDTH,
+                                              LLAvatarAppearanceDefines::SCRATCH_TEX_HEIGHT);
+    bake_target.flush();
+    return rendered;
+}
+
 //-----------------------------------------------------------------------------
 // LLViewerDynamicTexture()
 //-----------------------------------------------------------------------------
@@ -268,30 +301,8 @@ bool LLViewerDynamicTexture::updateAllInstances()
         return false;
     }
 
-    preview_target.bindTarget();
-    preview_target.clear();
-
-    LLGLSLShader::unbind();
-    LLVertexBuffer::unbind();
-
-    // ORDER_FIRST is unused, ORDER_MIDDLE is various ui preview
-    bool ret = updateDynamicTextureRange(0,
-                                         ORDER_LAST,
-                                         preview_target,
-                                         LLPipeline::MAX_PREVIEW_WIDTH,
-                                         LLPipeline::MAX_PREVIEW_WIDTH);
-    preview_target.flush();
-
-    // ORDER_LAST is baked skin preview, ORDER_RESET resets appearance parameters and does not render.
-    bake_target.bindTarget();
-    bake_target.clear();
-
-    ret = updateDynamicTextureRange(ORDER_LAST,
-                                    ORDER_COUNT,
-                                    bake_target,
-                                    LLAvatarAppearanceDefines::SCRATCH_TEX_WIDTH,
-                                    LLAvatarAppearanceDefines::SCRATCH_TEX_HEIGHT);
-    bake_target.flush();
+    bool ret = updatePreviewDynamicTextures(preview_target);
+    ret = updateBakeDynamicTextures(bake_target);
 
     gGL.flush();
 

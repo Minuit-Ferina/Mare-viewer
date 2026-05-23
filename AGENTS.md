@@ -15,12 +15,12 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
-- Phase 4 is active on branch `phase4`.
-- Goal: use the completed OpenGL containment boundary as a guardrail, then
-  document and prepare the next renderer boundaries with small reviewable
-  steps.
-- Start with contracts and maps. Source changes are allowed only after a
-  task-specific document names the exact owner, ordering, state, risk, and
+- Phase 4 is complete on branch `phase4`.
+- Next phase is not started yet. Create a phase 5 plan before any new source
+  edits.
+- Keep using the completed OpenGL containment boundary as a guardrail.
+- Start new work with contracts and maps. Source changes are allowed only after
+  a task-specific document names the exact owner, ordering, state, risk, and
   verification plan.
 
 Areas allowed at the beginning:
