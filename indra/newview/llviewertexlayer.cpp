@@ -109,35 +109,53 @@ void LLViewerTexLayerSetBuffer::restartUpdateTimer()
     mNeedsUpdateTimer.start();
 }
 
+bool LLViewerTexLayerSetBuffer::hasReadyUpdate() const
+{
+    return mNeedsUpdate && isReadyToUpdate();
+}
+
+bool LLViewerTexLayerSetBuffer::isAppearanceAnimationBlocked() const
+{
+    return gAgentAvatarp->getIsAppearanceAnimating();
+}
+
+bool LLViewerTexLayerSetBuffer::isSkirtBakeBlocked() const
+{
+    return gAgentAvatarp->getBakedTE(getViewerTexLayerSet()) == LLAvatarAppearanceDefines::TEX_SKIRT_BAKED &&
+        !gAgentAvatarp->isWearingWearableType(LLWearableType::WT_SKIRT);
+}
+
+bool LLViewerTexLayerSetBuffer::hasRenderableLocalTextureData() const
+{
+    return getViewerTexLayerSet()->isLocalTextureDataAvailable();
+}
+
 // virtual
 bool LLViewerTexLayerSetBuffer::needsRender()
 {
     llassert(mTexLayerSet->getAvatarAppearance() == gAgentAvatarp);
     if (!isAgentAvatarValid()) return false;
 
-    const bool update_now = mNeedsUpdate && isReadyToUpdate();
-
     // Don't render if we don't want to (or aren't ready to) update.
-    if (!update_now)
+    if (!hasReadyUpdate())
     {
         return false;
     }
 
     // Don't render if we're animating our appearance.
-    if (gAgentAvatarp->getIsAppearanceAnimating())
+    if (isAppearanceAnimationBlocked())
     {
         return false;
     }
 
     // Don't render if we are trying to create a skirt texture but aren't wearing a skirt.
-    if (gAgentAvatarp->getBakedTE(getViewerTexLayerSet()) == LLAvatarAppearanceDefines::TEX_SKIRT_BAKED &&
-        !gAgentAvatarp->isWearingWearableType(LLWearableType::WT_SKIRT))
+    if (isSkirtBakeBlocked())
     {
         return false;
     }
 
     // Render if we have at least minimal level of detail for each local texture.
-    return getViewerTexLayerSet()->isLocalTextureDataAvailable();
+    return hasRenderableLocalTextureData();
 }
 
 // virtual

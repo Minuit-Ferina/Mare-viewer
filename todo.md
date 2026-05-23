@@ -1371,8 +1371,15 @@ not start a direct Vulkan port.
 - [x] Choose `LLViewerTexLayerSetBuffer` as the next phase 5 owner map
       unless map UI rendering is preferred first.
 - [x] Add `docs/architecture/265-viewer-texlayer-buffer-owner-map.md`.
-- [ ] Decide whether to split `LLViewerTexLayerSetBuffer::needsRender()` into
+- [x] Decide to split `LLViewerTexLayerSetBuffer::needsRender()` into
       owner-local predicate helpers.
+- [x] Add `docs/architecture/266-viewer-texlayer-needs-render-task.md`.
+- [x] Verify the `LLViewerTexLayerSetBuffer::needsRender()` predicate split
+      with targeted `llviewertexlayer.cpp.o`, regenerated source inventory,
+      both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/267-viewer-texlayer-needs-render-summary.md`.
+- [ ] Decide whether to map `LLTexLayerSetBuffer::renderTexLayerSet(...)` or
+      switch to map UI rendering as the next phase 5 owner.
 
 ## Phase 1 Inventory
 

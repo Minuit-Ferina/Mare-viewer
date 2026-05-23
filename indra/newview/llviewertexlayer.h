@@ -89,6 +89,10 @@ private:
         { return dynamic_cast<LLViewerTexLayerSet*> (mTexLayerSet); }
     const LLViewerTexLayerSet*  getViewerTexLayerSet() const
         { return dynamic_cast<const LLViewerTexLayerSet*> (mTexLayerSet); }
+    bool                    hasReadyUpdate() const;
+    bool                    isAppearanceAnimationBlocked() const;
+    bool                    isSkirtBakeBlocked() const;
+    bool                    hasRenderableLocalTextureData() const;
     static S32              sGLByteCount;
 
     //--------------------------------------------------------------------
@@ -130,4 +134,3 @@ private:
 };
 
 #endif  // LL_VIEWER_TEXLAYER_H
-
