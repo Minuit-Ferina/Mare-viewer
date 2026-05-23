@@ -15,10 +15,11 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
-- Phase 5 is complete on branch `phase5`.
-- Goal completed: split UI/render ownership around dynamic preview users and
-  adjacent UI render bridges with small reviewable owner-local steps.
-- Start any next phase with a new plan before source edits.
+- Phase 6 is active on branch `phase6`.
+- Goal: continue separating UI/render ownership around appearance-editor
+  preview dynamic textures with small reviewable owner-local steps.
+- Start source edits only after a phase 6 task-specific map names the exact
+  owner, ordering, state, risk, and verification plan.
 - Keep using the completed OpenGL containment boundary as a guardrail.
 - Start new work with contracts and maps. Source changes are allowed only after
   a task-specific document names the exact owner, ordering, state, risk, and

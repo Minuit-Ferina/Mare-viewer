@@ -143,7 +143,30 @@ void LLVisualParamHint::requestHintUpdates( LLVisualParamHint* exception1, LLVis
 
 bool LLVisualParamHint::needsRender()
 {
-    return mNeedsUpdate && mDelayFrames-- <= 0 && !gAgentAvatarp->getIsAppearanceAnimating() && mAllowsUpdates;
+    return hasPendingUpdate() &&
+           isUpdateDelayElapsed() &&
+           !isAppearanceAnimationBlocked() &&
+           canRenderHint();
+}
+
+bool LLVisualParamHint::hasPendingUpdate() const
+{
+    return mNeedsUpdate;
+}
+
+bool LLVisualParamHint::isUpdateDelayElapsed()
+{
+    return mDelayFrames-- <= 0;
+}
+
+bool LLVisualParamHint::isAppearanceAnimationBlocked() const
+{
+    return gAgentAvatarp->getIsAppearanceAnimating();
+}
+
+bool LLVisualParamHint::canRenderHint() const
+{
+    return mAllowsUpdates;
 }
 
 void LLVisualParamHint::preRender(bool clear_depth)

@@ -81,6 +81,12 @@ public:
     // Requests updates for all instances (excluding two possible exceptions)  Grungy but efficient.
     static void             requestHintUpdates( LLVisualParamHint* exception1 = NULL, LLVisualParamHint* exception2 = NULL );
 
+private:
+    bool                    hasPendingUpdate() const;
+    bool                    isUpdateDelayElapsed();
+    bool                    isAppearanceAnimationBlocked() const;
+    bool                    canRenderHint() const;
+
 protected:
     bool                    mNeedsUpdate;       // does this texture need to be re-rendered?
     bool                    mIsVisible;         // is this distortion hint visible?
@@ -114,4 +120,3 @@ public:
 };
 
 #endif
-

@@ -1433,6 +1433,24 @@ not start a direct Vulkan port.
 - [x] Add `docs/architecture/282-phase5-completion-summary.md`.
 - [x] Close phase 5.
 
+## Phase 6 Candidate Backlog
+
+- [x] Create branch `phase6` from completed `phase5`.
+- [x] Create a phase 6 plan before any new source edits.
+- [x] Choose `LLVisualParamHint` / `LLVisualParamReset` as the first phase 6
+      owner before touching source.
+- [x] Add `docs/architecture/283-phase6-plan.md`.
+- [x] Add `docs/architecture/284-visual-param-hint-owner-map.md`.
+- [x] Decide to split `LLVisualParamHint::needsRender()` into owner-local
+      predicate helpers.
+- [x] Add `docs/architecture/285-visual-param-hint-needs-render-task.md`.
+- [x] Verify the `LLVisualParamHint::needsRender()` predicate split with
+      targeted `lltoolmorph.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/286-visual-param-hint-needs-render-summary.md`.
+- [ ] Decide whether to split `LLVisualParamHint::preRender(...)` avatar-state
+      setup before touching render matrix/camera/impostor ordering.
+
 ## Phase 1 Inventory
 
 No open items in this section right now.
