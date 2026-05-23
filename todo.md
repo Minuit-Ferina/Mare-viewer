@@ -1420,8 +1420,18 @@ not start a direct Vulkan port.
       `llappearance` `lltexlayer.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/279-texlayer-alpha-cache-key-summary.md`.
-- [ ] Decide whether to continue morph-mask non-GL helpers or
-      switch to map UI rendering as the next phase 5 owner.
+- [x] Decide to continue with morph-mask non-GL cache eviction helpers before
+      switching to UI rendering as the next phase 5 owner.
+- [x] Add `docs/architecture/280-texlayer-alpha-cache-eviction-task.md`.
+- [x] Verify the `LLTexLayer` alpha-cache eviction helper with targeted
+      `llappearance` `lltexlayer.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/281-texlayer-alpha-cache-eviction-summary.md`.
+- [x] Decide that phase 5 can close after a final checkpoint instead of
+      opening another UI rendering owner in the same phase.
+- [ ] Run the final phase 5 guardrails and integration checkpoint.
+- [ ] Add `docs/architecture/282-phase5-completion-summary.md`.
+- [ ] Close phase 5.
 
 ## Phase 1 Inventory
 

@@ -1260,6 +1260,23 @@ const U8*   LLTexLayer::getAlphaData() const
     return (iter2 == mAlphaCache.end()) ? 0 : iter2->second;
 }
 
+S32 LLTexLayer::getMaxAlphaMaskCacheEntries() const
+{
+    return getTexLayerSet()->getAvatarAppearance()->isSelf() ? 4 : 1;
+}
+
+void LLTexLayer::evictAlphaMaskCacheEntries()
+{
+    const S32 max_cache_entries = getMaxAlphaMaskCacheEntries();
+    while ((S32)mAlphaCache.size() >= max_cache_entries)
+    {
+        alpha_cache_t::iterator iter2 = mAlphaCache.begin(); // arbitrarily grab the first entry
+        U8* alpha_data = iter2->second;
+        ll_aligned_free_32(alpha_data);
+        mAlphaCache.erase(iter2);
+    }
+}
+
 bool LLTexLayer::findNetColor(LLColor4* net_color) const
 {
     // Color is either:
@@ -1457,14 +1474,7 @@ void LLTexLayer::renderMorphMasks(S32 x, S32 y, S32 width, S32 height, const LLC
         {
             LL_DEBUGS("Morph") << "gl alpha cache of morph mask not found, doing readback: " << getName() << LL_ENDL;
             // clear out a slot if we have filled our cache
-            S32 max_cache_entries = getTexLayerSet()->getAvatarAppearance()->isSelf() ? 4 : 1;
-            while ((S32)mAlphaCache.size() >= max_cache_entries)
-            {
-                alpha_cache_t::iterator iter2 = mAlphaCache.begin(); // arbitrarily grab the first entry
-                alpha_data = iter2->second;
-                ll_aligned_free_32(alpha_data);
-                mAlphaCache.erase(iter2);
-            }
+            evictAlphaMaskCacheEntries();
 
             // GPUs tend to be very uptight about memory alignment as the DMA used to convey
             // said data to the card works better when well-aligned so plain old default-aligned heap mem is a no-no

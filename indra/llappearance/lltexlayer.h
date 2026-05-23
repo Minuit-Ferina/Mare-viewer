@@ -177,6 +177,8 @@ private:
     bool                    shouldRenderColorFill(bool color_specified) const;
     void                    renderColorFill(const LLColor4& net_color, S32 width, S32 height);
     U32                     getAlphaMaskCacheKey() const;
+    S32                     getMaxAlphaMaskCacheEntries() const;
+    void                    evictAlphaMaskCacheEntries();
 protected:
     LLUUID                  getUUID() const;
     typedef std::map<U32, U8*> alpha_cache_t;
