@@ -223,26 +223,7 @@ bool LLVisualParamHint::render()
     gGL.pushUIMatrix();
     gGL.loadUIIdentity();
 
-    gGL.matrixMode(LLRender::MM_PROJECTION);
-    gGL.pushMatrix();
-    gGL.loadIdentity();
-    gGL.ortho(0.0f, (F32)mFullWidth, 0.0f, (F32)mFullHeight, -1.0f, 1.0f);
-
-    gGL.matrixMode(LLRender::MM_MODELVIEW);
-    gGL.pushMatrix();
-    gGL.loadIdentity();
-
-    gUIProgram.bind();
-
-    LLGLSUIDefault gls_ui;
-    //LLGLState::verify(true);
-    mBackgroundp->draw(0, 0, mFullWidth, mFullHeight);
-
-    gGL.matrixMode(LLRender::MM_PROJECTION);
-    gGL.popMatrix();
-
-    gGL.matrixMode(LLRender::MM_MODELVIEW);
-    gGL.popMatrix();
+    drawHintBackground();
 
     mNeedsUpdate = false;
     mIsVisible = true;
@@ -323,6 +304,30 @@ LLVector3 LLVisualParamHint::getCameraPosition(const LLQuaternion& avatar_rotati
         mVisualParam->getCameraDistance() * sinf( cam_angle_radians ),
         mVisualParam->getCameraElevation() );
     return target_joint_pos + (camera_snapshot_offset * avatar_rotation);
+}
+
+void LLVisualParamHint::drawHintBackground()
+{
+    gGL.matrixMode(LLRender::MM_PROJECTION);
+    gGL.pushMatrix();
+    gGL.loadIdentity();
+    gGL.ortho(0.0f, (F32)mFullWidth, 0.0f, (F32)mFullHeight, -1.0f, 1.0f);
+
+    gGL.matrixMode(LLRender::MM_MODELVIEW);
+    gGL.pushMatrix();
+    gGL.loadIdentity();
+
+    gUIProgram.bind();
+
+    LLGLSUIDefault gls_ui;
+    //LLGLState::verify(true);
+    mBackgroundp->draw(0, 0, mFullWidth, mFullHeight);
+
+    gGL.matrixMode(LLRender::MM_PROJECTION);
+    gGL.popMatrix();
+
+    gGL.matrixMode(LLRender::MM_MODELVIEW);
+    gGL.popMatrix();
 }
 
 

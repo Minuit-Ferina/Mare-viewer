@@ -1465,8 +1465,15 @@ not start a direct Vulkan port.
       targeted `lltoolmorph.cpp.o`, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/291-visual-param-hint-camera-summary.md`.
-- [ ] Decide whether to split `LLVisualParamHint::render()` background matrix
+- [x] Decide to split `LLVisualParamHint::render()` background matrix
       work into a scoped helper.
+- [x] Add `docs/architecture/292-visual-param-hint-background-task.md`.
+- [x] Verify the `LLVisualParamHint::render()` background helper split with
+      targeted `lltoolmorph.cpp.o`, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/293-visual-param-hint-background-summary.md`.
+- [ ] Decide whether to split `LLVisualParamHint::render()` impostor generation
+      into a private helper.
 
 ## Phase 1 Inventory
 

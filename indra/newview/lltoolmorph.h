@@ -94,6 +94,7 @@ private:
                                                     const LLVector3& target_joint_pos) const;
     LLVector3               getCameraPosition(const LLQuaternion& avatar_rotation,
                                               const LLVector3& target_joint_pos) const;
+    void                    drawHintBackground();
 
 protected:
     bool                    mNeedsUpdate;       // does this texture need to be re-rendered?
