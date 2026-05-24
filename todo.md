@@ -1930,7 +1930,17 @@ No open items in this section right now.
 - [x] Verify the non-floater sweep with targeted object builds, regenerated
       source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/403-non-floater-ui-helper-sweep-summary.md`.
-- [ ] Decide whether `indra/llui` toolkit files need a separate phase.
+- [x] Decide to handle `indra/llui` toolkit files in a separate phase.
+
+## Phase 16 LLUI Toolkit
+
+- [x] Create branch `phase16` from completed phase 15 source packet.
+- [x] Add `docs/architecture/404-phase16-llui-toolkit-plan.md`.
+- [ ] Sweep `indra/llui/*.cpp` for active-code direct `getChild<T>()` and
+      `getChildView()` callsites.
+- [ ] Verify the `llui` toolkit sweep with targeted builds, regenerated source
+      inventory, both GL guardrails, and `git diff --check`.
+- [ ] Add a summary document for the phase 16 `llui` toolkit sweep.
 
 ## Post-Phase2 Guardrails
 
