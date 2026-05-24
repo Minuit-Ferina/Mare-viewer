@@ -15,10 +15,11 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
-- Phase 11 is active on branch `phase11`.
-- Goal: start a behavior-preserving UI/render separation boundary for model
-  upload preview without moving source files.
-- Phase 11 starts with `LLModelPreview` and `LLFloaterModelPreview` in
+- Phase 11 is complete on branch `phase11`.
+- No new phase is active yet.
+- Phase 11 started a behavior-preserving UI/render separation boundary for
+  model upload preview without moving source files.
+- Phase 11 touched `LLModelPreview` and `LLFloaterModelPreview` in
   `indra/newview/llmodelpreview.*` and
   `indra/newview/llfloatermodelpreview.*`.
 - Phase 10 is complete on branch `phase10`.
@@ -38,11 +39,15 @@ Current phase:
   `docs/architecture/320-phase9-completion-summary.md`.
 - Phase 10 is summarized in
   `docs/architecture/335-phase10-completion-summary.md`.
-- Phase 11 starts with `docs/architecture/336-phase11-plan.md`.
+- Phase 11 is summarized in
+  `docs/architecture/346-phase11-completion-summary.md`.
 - Keep using the completed OpenGL containment boundary as a guardrail.
 - Start new work with contracts and maps. Source changes are allowed only after
   a task-specific document names the exact owner, ordering, state, risk, and
   verification plan.
+- Avoid broad `mare-viewer` integration rebuilds by default during exploratory
+  ownership packets. Prefer targeted object builds and guardrails; run a broad
+  integration build only when explicitly selected for a branch checkpoint.
 
 Areas allowed at the beginning:
 - docs/architecture/

@@ -3,11 +3,12 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 11 is active on branch `phase11`. Preserve the completed
-OpenGL containment and header guardrails. Move UI control mutation toward
-`LLFloaterModelPreview` while keeping model/render state in `LLModelPreview`.
-Do not move source files, do not change runtime behavior without an explicit
-task, and do not start a direct Vulkan port.
+Current rule: phase 11 is complete on branch `phase11`. Preserve the completed
+OpenGL containment and header guardrails. Prefer targeted object builds and
+guardrails during small ownership packets; do not run broad `mare-viewer`
+integration rebuilds unless explicitly selected for a branch checkpoint. Do not
+move source files, do not change runtime behavior without an explicit task, and
+do not start a direct Vulkan port.
 
 ## Done
 
@@ -1661,10 +1662,26 @@ task, and do not start a direct Vulkan port.
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/345-model-preview-texture-quad-summary.md`.
-- [ ] Do not start another helper-only phase unless it directly supports that
+- [x] Defer the broad `mare-viewer` integration checkpoint for phase 11 to avoid
+      repeated large rebuilds; targeted builds and guardrails passed for all
+      source packets.
+- [x] Add `docs/architecture/346-phase11-completion-summary.md`.
+- [x] Close phase 11.
+- [x] Do not start another helper-only phase unless it directly supports that
       separation.
-- [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
+- [x] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
       multi-window, and multi-login work out unless explicitly selected.
+
+## Phase 12 Candidate Backlog
+
+- [ ] Start phase 12 with a docs-first plan before any source edits.
+- [ ] Decide whether to continue with model preview UI/render boundaries or
+      move to another preview owner.
+- [ ] Prefer source packets that remove actual cross-owner coupling, not
+      helper-only extraction.
+- [ ] Use targeted object builds and guardrails by default.
+- [ ] Run broad `mare-viewer` integration builds only when explicitly selected
+      for a branch checkpoint.
 
 ## Phase 1 Inventory
 
