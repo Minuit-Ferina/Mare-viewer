@@ -3940,23 +3940,8 @@ void LLModelPreview::setPreviewLOD(S32 lod)
     {
         mPreviewLOD = lod;
 
-        LLComboBox* combo_box = mFMP->getChild<LLComboBox>("preview_lod_combo");
-        combo_box->setCurrentByIndex((NUM_LOD - 1) - mPreviewLOD); // combo box list of lods is in reverse order
         LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
-        fmp->setModelPreviewLODFile(mPreviewLOD, mLODFile[mPreviewLOD]);
-
-        LLColor4 highlight_color = LLUIColorTable::instance().getColor("MeshImportTableHighlightColor");
-        LLColor4 normal_color = LLUIColorTable::instance().getColor("MeshImportTableNormalColor");
-
-        for (S32 i = 0; i <= LLModel::LOD_HIGH; ++i)
-        {
-            const LLColor4& color = (i == lod) ? highlight_color : normal_color;
-
-            mFMP->childSetColor(lod_status_name[i], color);
-            mFMP->childSetColor(lod_label_name[i], color);
-            mFMP->childSetColor(lod_triangles_name[i], color);
-            mFMP->childSetColor(lod_vertices_name[i], color);
-        }
+        fmp->syncModelPreviewSelectedLOD(mPreviewLOD, mLODFile[mPreviewLOD]);
 
         if (fmp)
         {

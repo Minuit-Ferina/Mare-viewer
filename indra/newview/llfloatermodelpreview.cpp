@@ -666,6 +666,26 @@ void LLFloaterModelPreview::setModelPreviewPhysicsFile(const std::string& filena
     childSetValue("physics_file", filename);
 }
 
+void LLFloaterModelPreview::syncModelPreviewSelectedLOD(S32 lod, const std::string& filename)
+{
+    LLComboBox* combo_box = getChild<LLComboBox>("preview_lod_combo");
+    combo_box->setCurrentByIndex((NUM_LOD - 1) - lod); // combo box list of lods is in reverse order
+    setModelPreviewLODFile(lod, filename);
+
+    LLColor4 highlight_color = LLUIColorTable::instance().getColor("MeshImportTableHighlightColor");
+    LLColor4 normal_color = LLUIColorTable::instance().getColor("MeshImportTableNormalColor");
+
+    for (S32 i = 0; i <= LLModel::LOD_HIGH; ++i)
+    {
+        const LLColor4& color = (i == lod) ? highlight_color : normal_color;
+
+        childSetColor(lod_status_name[i], color);
+        childSetColor(lod_label_name[i], color);
+        childSetColor(lod_triangles_name[i], color);
+        childSetColor(lod_vertices_name[i], color);
+    }
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)
