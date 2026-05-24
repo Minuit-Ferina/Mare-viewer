@@ -404,7 +404,7 @@ indra/newview/llpanelobject.cpp,ui,2374,42,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llprimitive/llmodel.cpp,unknown,2368,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfavoritesbar.cpp,viewer.misc,2330,28,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lltexturecache.cpp,assets.texture,2322,10,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloatermodelpreview.cpp,ui,2274,37,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloatermodelpreview.cpp,ui,2279,37,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/fsareasearch.cpp,viewer.misc,2262,36,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llimprocessing.cpp,viewer.misc,2257,37,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llinventory/llsettingssky.cpp,render.draw_pool,2254,7,0,0,0,0,0,0,0,0,1,0,0,0,0
@@ -1209,8 +1209,8 @@ indra/newview/llfloatersidepanelcontainer.cpp,ui,260,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelsnapshot.cpp,ui,260,12,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelenvironment.h,ui,260,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpaneloutfitedit.h,ui,260,9,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloatermodelpreview.h,ui,259,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llchatentry.cpp,unknown,259,3,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloatermodelpreview.h,ui,258,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lltoast.h,viewer.misc,257,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lltexturecache.h,assets.texture,256,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpatchvertexarray.cpp,viewer.misc,256,3,0,0,0,0,0,0,0,0,0,0,0,0,0

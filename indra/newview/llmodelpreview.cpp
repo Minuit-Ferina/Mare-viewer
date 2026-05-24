@@ -874,8 +874,8 @@ void LLModelPreview::loadModel(std::string filename, S32 lod, bool force_disable
 
     if (getLoadState() >= LLModelLoader::ERROR_PARSING)
     {
-        mFMP->childDisable("ok_btn");
         LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->setModelPreviewUploadButtonEnabled(false);
         fmp->setModelPreviewCalculateButtonEnabled(false);
     }
 
@@ -2537,14 +2537,14 @@ void LLModelPreview::updateStatusMessages()
 
     if (!mModelNoErrors || mHasDegenerate)
     {
-        mFMP->childDisable("ok_btn");
         LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->setModelPreviewUploadButtonEnabled(false);
         fmp->setModelPreviewCalculateButtonEnabled(false);
     }
     else
     {
-        mFMP->childEnable("ok_btn");
         LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->setModelPreviewUploadButtonEnabled(true);
         fmp->setModelPreviewCalculateButtonEnabled(true);
     }
 

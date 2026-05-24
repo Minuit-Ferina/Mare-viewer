@@ -537,6 +537,11 @@ void LLFloaterModelPreview::setModelPreviewCalculateButtonEnabled(bool enabled)
     childSetEnabled("calculate_btn", enabled);
 }
 
+void LLFloaterModelPreview::setModelPreviewUploadButtonEnabled(bool enabled)
+{
+    childSetEnabled("ok_btn", enabled);
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

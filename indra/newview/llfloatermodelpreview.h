@@ -153,6 +153,7 @@ protected:
     void        syncModelPreviewImportScaleLimit(F32 max_import_scale, F32 current_scale);
     void        setModelPreviewDefaultRequestedName(const std::string& model_name);
     void        setModelPreviewCalculateButtonEnabled(bool enabled);
+    void        setModelPreviewUploadButtonEnabled(bool enabled);
     void        syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
 
     void        onDescriptionKeystroke(LLUICtrl*);
