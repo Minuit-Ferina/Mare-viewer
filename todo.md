@@ -3,13 +3,13 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 14 is active on branch `phase14`. Preserve the completed
-OpenGL containment and header guardrails. Apply the preview/UI ownership pattern
-across the remaining floater surface, using targeted object builds and
-guardrails; do not run broad `mare-viewer` integration rebuilds unless
-explicitly selected for a branch checkpoint. Do not move source files, do not
-change runtime behavior without an explicit task, and do not start a direct
-Vulkan port.
+Current rule: phase 15 is active on branch `phase15`. Preserve the completed
+OpenGL containment, header guardrails, and phase 14 floater boundary. Apply the
+UI ownership helper pattern across application-level non-floater `.cpp` files
+under `indra/newview`, using targeted object builds and guardrails; do not run
+broad `mare-viewer` integration rebuilds unless explicitly selected for a branch
+checkpoint. Do not move source files, do not change runtime behavior without an
+explicit task, and do not start a direct Vulkan port.
 
 ## Done
 
@@ -1917,6 +1917,18 @@ No open items in this section right now.
 - [x] Close phase 14 at the floater boundary and move non-floater
       `LLPanel`/`LLView` UI ownership helpers into phase 15.
 - [x] Add `docs/architecture/401-phase14-completion-summary.md`.
+
+## Phase 15 Non-Floater UI Owners
+
+- [x] Create branch `phase15` from completed `phase14`.
+- [x] Add `docs/architecture/402-phase15-plan.md`.
+- [ ] Sweep application-level `indra/newview/*.cpp` files outside
+      `llfloater*.cpp` for active-code direct `getChild<T>()` and
+      `getChildView()` callsites.
+- [ ] Verify the non-floater sweep with targeted object builds, regenerated
+      source inventory, both GL guardrails, and `git diff --check`.
+- [ ] Add a summary document for the phase 15 non-floater UI owner sweep.
+- [ ] Decide whether `indra/llui` toolkit files need a separate phase.
 
 ## Post-Phase2 Guardrails
 
