@@ -15,8 +15,12 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
+- Phase 12 is active on branch `phase12`.
+- Goal: continue behavior-preserving model preview UI/render separation with
+  targeted object builds only.
+- Phase 12 starts by moving model preview texture-size/render-target knowledge
+  out of `LLFloaterModelPreview`.
 - Phase 11 is complete on branch `phase11`.
-- No new phase is active yet.
 - Phase 11 started a behavior-preserving UI/render separation boundary for
   model upload preview without moving source files.
 - Phase 11 touched `LLModelPreview` and `LLFloaterModelPreview` in
@@ -41,6 +45,7 @@ Current phase:
   `docs/architecture/335-phase10-completion-summary.md`.
 - Phase 11 is summarized in
   `docs/architecture/346-phase11-completion-summary.md`.
+- Phase 12 starts with `docs/architecture/347-phase12-plan.md`.
 - Keep using the completed OpenGL containment boundary as a guardrail.
 - Start new work with contracts and maps. Source changes are allowed only after
   a task-specific document names the exact owner, ordering, state, risk, and

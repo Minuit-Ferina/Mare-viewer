@@ -3,7 +3,7 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 11 is complete on branch `phase11`. Preserve the completed
+Current rule: phase 12 is active on branch `phase12`. Preserve the completed
 OpenGL containment and header guardrails. Prefer targeted object builds and
 guardrails during small ownership packets; do not run broad `mare-viewer`
 integration rebuilds unless explicitly selected for a branch checkpoint. Do not
@@ -1674,9 +1674,20 @@ do not start a direct Vulkan port.
 
 ## Phase 12 Candidate Backlog
 
-- [ ] Start phase 12 with a docs-first plan before any source edits.
-- [ ] Decide whether to continue with model preview UI/render boundaries or
+- [x] Create branch `phase12` from completed `phase11`.
+- [x] Start phase 12 with a docs-first plan before any source edits.
+- [x] Add `docs/architecture/347-phase12-plan.md`.
+- [x] Decide whether to continue with model preview UI/render boundaries or
       move to another preview owner.
+- [x] Continue with model preview because `LLFloaterModelPreview` still depends
+      on render-target sizing via `pipeline.h`.
+- [x] Add `docs/architecture/348-model-preview-texture-size-task.md`.
+- [ ] Move model preview texture-size/render-target sizing ownership from
+      `LLFloaterModelPreview` to `LLModelPreview`.
+- [ ] Verify the texture-size ownership packet with targeted
+      `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [ ] Add `docs/architecture/349-model-preview-texture-size-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.
