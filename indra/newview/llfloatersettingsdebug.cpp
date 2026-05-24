@@ -62,6 +62,18 @@ bool LLFloaterSettingsDebug::postBuild()
 {
     enableResizeCtrls(true, false, true);
 
+    setupControls();
+    setupCallbacks();
+
+    updateList();
+
+    gSavedSettings.getControl("DebugSettingsHideDefault")->getCommitSignal()->connect(boost::bind(&LLFloaterSettingsDebug::updateList, this, false));
+
+    return true;
+}
+
+void LLFloaterSettingsDebug::setupControls()
+{
     mValSpinner1 = getChild<LLSpinCtrl>("val_spinner_1");
     mValSpinner2 = getChild<LLSpinCtrl>("val_spinner_2");
     mValSpinner3 = getChild<LLSpinCtrl>("val_spinner_3");
@@ -76,25 +88,22 @@ bool LLFloaterSettingsDebug::postBuild()
 
     mComment = getChild<LLTextEditor>("comment_text");
 
+    mSettingList = getChild<LLScrollListCtrl>("setting_list");
+}
+
+void LLFloaterSettingsDebug::setupCallbacks()
+{
     getChild<LLFilterEditor>("filter_input")->setCommitCallback(boost::bind(&LLFloaterSettingsDebug::setSearchFilter, this, _2));
 
-    mSettingList = getChild<LLScrollListCtrl>("setting_list");
     mSettingList->setCommitOnSelectionChange(true);
     mSettingList->setCommitCallback(boost::bind(&LLFloaterSettingsDebug::onSettingSelect, this));
-
-    updateList();
-
-    gSavedSettings.getControl("DebugSettingsHideDefault")->getCommitSignal()->connect(boost::bind(&LLFloaterSettingsDebug::updateList, this, false));
-
-    return true;
 }
 
 void LLFloaterSettingsDebug::draw()
 {
-    LLScrollListItem* first_selected = mSettingList->getFirstSelected();
-    if (first_selected)
+    LLControlVariable* controlp = getSelectedControl();
+    if (controlp)
     {
-        LLControlVariable* controlp = (LLControlVariable*)first_selected->getUserdata();
         updateControl(controlp);
     }
 
@@ -103,13 +112,7 @@ void LLFloaterSettingsDebug::draw()
 
 void LLFloaterSettingsDebug::onCommitSettings()
 {
-    LLScrollListItem* first_selected = mSettingList->getFirstSelected();
-    if (!first_selected)
-    {
-        return;
-    }
-    LLControlVariable* controlp = (LLControlVariable*)first_selected->getUserdata();
-
+    LLControlVariable* controlp = getSelectedControl();
     if (!controlp)
     {
         return;
@@ -152,7 +155,7 @@ void LLFloaterSettingsDebug::onCommitSettings()
 #if RLV_ALWAYS_ON
     if (gRRenabled && controlp->getName() == "RestrainedLove")
     {
-        getChild<LLUICtrl>("boolean_combo")->setValue(true);
+        mBooleanCombo->setValue(true);
         return;
     }
 #endif
@@ -233,16 +236,12 @@ void LLFloaterSettingsDebug::onClickDefault()
         return;
     }
 //mk
-    LLScrollListItem* first_selected = mSettingList->getFirstSelected();
-    if (first_selected)
+    LLControlVariable* controlp = getSelectedControl();
+    if (controlp)
     {
-        LLControlVariable* controlp = (LLControlVariable*)first_selected->getUserdata();
-        if (controlp)
-        {
-            controlp->resetToDefault(true);
-            updateDefaultColumn(controlp);
-            updateControl(controlp);
-        }
+        controlp->resetToDefault(true);
+        updateDefaultColumn(controlp);
+        updateControl(controlp);
     }
 }
 
@@ -262,8 +261,8 @@ void LLFloaterSettingsDebug::updateControl(LLControlVariable* controlp)
         mSettingNameText->setText(controlp->getName());
         mSettingNameText->setToolTip(controlp->getName());
         mComment->setVisible(true);
-        getChildView("copy_btn")->setVisible(TRUE);
-        getChildView("sanity_warning_btn")->setVisible(!controlp->isSane());
+        setActionButtonVisible("copy_btn", true);
+        setActionButtonVisible("sanity_warning_btn", !controlp->isSane());
 
         std::string new_text = controlp->getComment();
         // Don't setText if not nessesary, it will reset scroll
@@ -622,56 +621,51 @@ void LLFloaterSettingsDebug::updateList(bool skip_selection)
 
 void LLFloaterSettingsDebug::onSanityCheck()
 {
-    LLScrollListItem* first_selected = mSettingList->getFirstSelected();
-    if (first_selected)
+    LLControlVariable* controlp = getSelectedControl();
+    if (controlp)
     {
-        LLControlVariable* controlp = (LLControlVariable*)first_selected->getUserdata();
-        if (controlp)
-        {
-            SanityCheck::instance().onSanity(controlp);
-        }
+        SanityCheck::instance().onSanity(controlp);
     }
 }
 
 void LLFloaterSettingsDebug::onClickSanityWarning()
 {
-    LLScrollListItem* first_selected = mSettingList->getFirstSelected();
-    if (first_selected)
+    LLControlVariable* controlp = getSelectedControl();
+    if (controlp)
     {
-        LLControlVariable* controlp = (LLControlVariable*)first_selected->getUserdata();
-        if (controlp)
-        {
-            // pass "true" to tell the sanity checker to pop up the warning, even when
-            // it was shown before and would be suppressed otherwise
-            SanityCheck::instance().onSanity(controlp, true);
-        }
+        // pass "true" to tell the sanity checker to pop up the warning, even when
+        // it was shown before and would be suppressed otherwise
+        SanityCheck::instance().onSanity(controlp, true);
     }
 }
 void LLFloaterSettingsDebug::onCopyToClipboard()
 {
-    LLScrollListItem* first_selected = mSettingList->getFirstSelected();
-    if (first_selected)
+    LLControlVariable* controlp = getSelectedControl();
+    if (controlp)
     {
-        LLControlVariable* controlp = (LLControlVariable*)first_selected->getUserdata();
-        if (controlp)
-        {
-            getWindow()->copyTextToClipboard(utf8str_to_wstring(controlp->getName()));
-            LLNotificationsUtil::add("ControlNameCopiedToClipboard");
-        }
+        getWindow()->copyTextToClipboard(utf8str_to_wstring(controlp->getName()));
+        LLNotificationsUtil::add("ControlNameCopiedToClipboard");
     }
 }
 
 void LLFloaterSettingsDebug::onSettingSelect()
 {
-    LLScrollListItem* first_selected = mSettingList->getFirstSelected();
-    if (first_selected)
+    LLControlVariable* controlp = getSelectedControl();
+    if (controlp)
     {
-        LLControlVariable* controlp = (LLControlVariable*)first_selected->getUserdata();
-        if (controlp)
-        {
-            updateControl(controlp);
-        }
+        updateControl(controlp);
     }
+}
+
+LLControlVariable* LLFloaterSettingsDebug::getSelectedControl()
+{
+    LLScrollListItem* first_selected = mSettingList->getFirstSelected();
+    return first_selected ? (LLControlVariable*)first_selected->getUserdata() : nullptr;
+}
+
+void LLFloaterSettingsDebug::setActionButtonVisible(const std::string& name, bool visible)
+{
+    getChildView(name)->setVisible(visible);
 }
 
 void LLFloaterSettingsDebug::setSearchFilter(const std::string& filter)
@@ -732,8 +726,7 @@ void LLFloaterSettingsDebug::hideUIControls()
     mDefaultButton->setVisible(false);
     mBooleanCombo->setVisible(false);
     mSettingNameText->setVisible(false);
-    getChildView("copy_btn")->setVisible(false);
-    getChildView("sanity_warning_btn")->setVisible(false);
+    setActionButtonVisible("copy_btn", false);
+    setActionButtonVisible("sanity_warning_btn", false);
     mComment->setVisible(false);
 }
-

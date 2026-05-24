@@ -111,6 +111,15 @@ private:
     bool selectedListIsFirst();
     bool selectedListIsLast();
 
+    void setupSettingsSnapshot();
+    void setupControls();
+    void setupCallbacks();
+    void syncInitialUI();
+    void setListActionControlsEnabled(bool enabled);
+    void setReplacementListEnabled(bool enabled);
+    void setReplacementEntryControlsEnabled(bool enabled);
+    bool getAutoReplaceEnabled();
+
     void cleanUp();
 
     void loadListFromFile(const std::vector<std::string>& filenames);

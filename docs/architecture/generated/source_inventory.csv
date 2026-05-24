@@ -625,10 +625,11 @@ indra/newview/llfloaterimnearbychathandler.cpp,ui,750,16,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llview.h,unknown,749,18,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llgroupactions.cpp,viewer.misc,748,18,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/v4color.cpp,unknown,742,7,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloatersettingsdebug.cpp,ui,740,16,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/media_plugins/libvlc/media_plugin_libvlc.cpp,unknown,738,10,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaterautoreplacesettings.cpp,ui,736,37,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llscrolllistcell.cpp,unknown,735,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llcommandlineparser.cpp,viewer.misc,734,17,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloatersettingsdebug.cpp,ui,733,16,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llavatarpropertiesprocessor.cpp,world.avatar,731,13,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/lltracerecording.h,core,727,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/tests/mathmisc_test.cpp,unknown,724,9,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -636,7 +637,6 @@ indra/llfilesystem/tests/lldir_test.cpp,unknown,721,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelgroupnotices.cpp,ui,716,27,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llstl.h,core,714,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llcontrolavatar.cpp,world.avatar,711,10,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaterautoreplacesettings.cpp,ui,710,37,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/lltreeiterators.h,core,706,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/lliosocket.cpp,network,703,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llplugin/llpluginprocesschild.cpp,unknown,703,11,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1793,6 +1793,7 @@ indra/newview/tests/llversioninfo_test.cpp,viewer.misc,132,5,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/materialV.glsl,viewer.misc,132,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llrender/llfontvertexbuffer.h,render.legacy_low_level,131,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloatergroupactions.cpp,ui,131,15,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaterautoreplacesettings.h,ui,130,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llestateinfomodel.h,viewer.misc,130,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llviewerassetstorage.h,viewer.misc,130,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelplaceinfo.h,ui,130,4,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1878,7 +1879,6 @@ indra/llcommon/llcriticaldamp.cpp,core,122,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/tests/llframetimer_test.cpp,core,122,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/lliopipe.cpp,network,121,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llplugin/llpluginprocesschild.h,unknown,121,6,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaterautoreplacesettings.h,ui,121,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelpulldown.cpp,ui,121,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llviewerjoystick.h,viewer.misc,121,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloateravatarpicker.h,ui,121,4,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2068,6 +2068,7 @@ indra/newview/llregioninfomodel.h,viewer.misc,101,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llremoteparcelrequest.h,viewer.misc,101,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/fsscrolllistctrl.h,viewer.misc,101,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llnotificationgrouphandler.cpp,viewer.misc,101,8,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloatersettingsdebug.h,ui,101,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llindexedvector.h,core,101,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/llcalc.h,unknown,101,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/fullbrightF.glsl,viewer.misc,101,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2094,7 +2095,6 @@ indra/llui/llflashtimer.cpp,unknown,99,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/lluseroperation.h,network,98,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/test/hexdump.h,unknown,98,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llgiveinventory.h,viewer.misc,98,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloatersettingsdebug.h,ui,98,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llinventory/llpermissionsflags.h,unknown,98,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llimage/llpngwrapper.h,unknown,98,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llfixedbuffer.cpp,core,98,2,0,0,0,0,0,0,0,0,0,0,0,0,0

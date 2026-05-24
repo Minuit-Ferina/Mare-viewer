@@ -1895,8 +1895,13 @@ No open items in this section right now.
 - [x] Verify settings utility dialog objects with targeted builds, regenerated
       source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/397-settings-utility-dialog-helpers-summary.md`.
-- [ ] Continue with larger settings/admin dialogs such as `llfloatersettingsdebug.cpp`
+- [x] Continue with larger settings/admin dialogs such as `llfloatersettingsdebug.cpp`
       and `llfloaterautoreplacesettings.cpp`.
+- [x] Move simple UI ownership helpers across settings debug and AutoReplace dialogs.
+- [x] Verify settings debug/AutoReplace dialog objects with targeted builds,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/398-settings-debug-autoreplace-dialog-helpers-summary.md`.
+- [ ] Continue with land/region/admin dialogs or another high-count floater family.
 
 ## Post-Phase2 Guardrails
 

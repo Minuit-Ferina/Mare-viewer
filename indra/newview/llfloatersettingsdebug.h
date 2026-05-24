@@ -71,6 +71,10 @@ private:
     void onSettingSelect();
     void setSearchFilter(const std::string& filter);
 
+    void setupControls();
+    void setupCallbacks();
+    LLControlVariable* getSelectedControl();
+    void setActionButtonVisible(const std::string& name, bool visible);
     void updateDefaultColumn(LLControlVariable* control);
     void hideUIControls();
 
@@ -94,4 +98,3 @@ protected:
 };
 
 #endif //LLFLOATERDEBUGSETTINGS_H
-

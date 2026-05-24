@@ -84,58 +84,68 @@ void LLFloaterAutoReplaceSettings::onClose(bool app_quitting)
 
 bool LLFloaterAutoReplaceSettings::postBuild(void)
 {
-    // get copies of the current settings that we will operate on
+    setupSettingsSnapshot();
+    setupControls();
+    setupCallbacks();
+
+    center();
+    syncInitialUI();
+
+    return true;
+}
+
+void LLFloaterAutoReplaceSettings::setupSettingsSnapshot()
+{
     mEnabled  = gSavedSettings.getBOOL("AutoReplace");
     LL_DEBUGS("AutoReplace") << ( mEnabled ? "enabled" : "disabled") << LL_ENDL;
 
     mSettings = LLAutoReplace::getInstance()->getSettings();
+}
 
+void LLFloaterAutoReplaceSettings::setupControls()
+{
     // global checkbox for whether or not autoreplace is active
     LLUICtrl* enabledCheckbox = getChild<LLUICtrl>("autoreplace_enable");
-    enabledCheckbox->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onAutoReplaceToggled, this));
     enabledCheckbox->setValue(LLSD(mEnabled));
 
-    // top row list creation and deletion
+    mListNames = getChild<LLScrollListCtrl>("autoreplace_list_name");
+    mKeyword     = getChild<LLLineEditor>("autoreplace_keyword");
+    mReplacement = getChild<LLLineEditor>("autoreplace_replacement");
+    mReplacementsList = getChild<LLScrollListCtrl>("autoreplace_list_replacements");
+}
+
+void LLFloaterAutoReplaceSettings::setupCallbacks()
+{
+    getChild<LLUICtrl>("autoreplace_enable")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onAutoReplaceToggled, this));
+
     getChild<LLUICtrl>("autoreplace_import_list")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onImportList,this));
     getChild<LLUICtrl>("autoreplace_export_list")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onExportList,this));
     getChild<LLUICtrl>("autoreplace_new_list")->setCommitCallback(   boost::bind(&LLFloaterAutoReplaceSettings::onNewList,this));
     getChild<LLUICtrl>("autoreplace_delete_list")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onDeleteList,this));
 
-    // the list of keyword->replacement lists
-    mListNames = getChild<LLScrollListCtrl>("autoreplace_list_name");
     mListNames->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onSelectList, this));
     mListNames->setCommitOnSelectionChange(true);
 
-    // list ordering
     getChild<LLUICtrl>("autoreplace_list_up")->setCommitCallback(  boost::bind(&LLFloaterAutoReplaceSettings::onListUp,this));
     getChild<LLUICtrl>("autoreplace_list_down")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onListDown,this));
 
-    // keyword->replacement entry add / delete
     getChild<LLUICtrl>("autoreplace_add_entry")->setCommitCallback(   boost::bind(&LLFloaterAutoReplaceSettings::onAddEntry,this));
     getChild<LLUICtrl>("autoreplace_delete_entry")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onDeleteEntry,this));
-
-    // entry edits
-    mKeyword     = getChild<LLLineEditor>("autoreplace_keyword");
-    mReplacement = getChild<LLLineEditor>("autoreplace_replacement");
     getChild<LLUICtrl>("autoreplace_save_entry")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onSaveEntry, this));
 
-    // dialog termination ( Save Changes / Cancel )
     getChild<LLUICtrl>("autoreplace_save_changes")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onSaveChanges, this));
     getChild<LLUICtrl>("autoreplace_cancel")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onCancel, this));
 
-    // the list of keyword->replacement pairs
-    mReplacementsList = getChild<LLScrollListCtrl>("autoreplace_list_replacements");
     mReplacementsList->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onSelectEntry, this));
     mReplacementsList->setCommitOnSelectionChange(true);
+}
 
-    center();
-
+void LLFloaterAutoReplaceSettings::syncInitialUI()
+{
     mSelectedListName.clear();
     updateListNames();
     updateListNamesControls();
     updateReplacementsList();
-
-    return true;
 }
 
 
@@ -167,18 +177,14 @@ void LLFloaterAutoReplaceSettings::updateListNamesControls()
         // There is no selected list
 
         // Disable all controls that operate on the selected list
-        getChild<LLButton>("autoreplace_export_list")->setEnabled(false);
-        getChild<LLButton>("autoreplace_delete_list")->setEnabled(false);
-        getChild<LLButton>("autoreplace_list_up")->setEnabled(false);
-        getChild<LLButton>("autoreplace_list_down")->setEnabled(false);
+        setListActionControlsEnabled(false);
 
         mReplacementsList->deleteAllItems();
     }
     else
     {
         // Enable the controls that operate on the selected list
-        getChild<LLButton>("autoreplace_export_list")->setEnabled(true);
-        getChild<LLButton>("autoreplace_delete_list")->setEnabled(true);
+        setListActionControlsEnabled(true);
         getChild<LLButton>("autoreplace_list_up")->setEnabled(!selectedListIsFirst());
         getChild<LLButton>("autoreplace_list_down")->setEnabled(!selectedListIsLast());
     }
@@ -236,7 +242,7 @@ void LLFloaterAutoReplaceSettings::updateReplacementsList()
 
     if ( mSelectedListName.empty() )
     {
-        mReplacementsList->setEnabled(false);
+        setReplacementListEnabled(false);
         getChild<LLButton>("autoreplace_add_entry")->setEnabled(false);
         disableReplacementEntry();
     }
@@ -260,7 +266,7 @@ void LLFloaterAutoReplaceSettings::updateReplacementsList()
         }
 
         mReplacementsList->deselectAllItems(false /* don't call commit */);
-        mReplacementsList->setEnabled(true);
+        setReplacementListEnabled(true);
 
         getChild<LLButton>("autoreplace_add_entry")->setEnabled(true);
         disableReplacementEntry();
@@ -270,10 +276,7 @@ void LLFloaterAutoReplaceSettings::updateReplacementsList()
 void LLFloaterAutoReplaceSettings::enableReplacementEntry()
 {
     LL_DEBUGS("AutoReplace")<<LL_ENDL;
-    mKeyword->setEnabled(true);
-    mReplacement->setEnabled(true);
-    getChild<LLButton>("autoreplace_save_entry")->setEnabled(true);
-    getChild<LLButton>("autoreplace_delete_entry")->setEnabled(true);
+    setReplacementEntryControlsEnabled(true);
 }
 
 void LLFloaterAutoReplaceSettings::disableReplacementEntry()
@@ -281,19 +284,42 @@ void LLFloaterAutoReplaceSettings::disableReplacementEntry()
     LL_DEBUGS("AutoReplace")<<LL_ENDL;
     mPreviousKeyword.clear();
     mKeyword->clear();
-    mKeyword->setEnabled(false);
     mReplacement->clear();
-    mReplacement->setEnabled(false);
-    getChild<LLButton>("autoreplace_save_entry")->setEnabled(false);
-    getChild<LLButton>("autoreplace_delete_entry")->setEnabled(false);
+    setReplacementEntryControlsEnabled(false);
 }
 
 // called when the global settings checkbox is changed
 void LLFloaterAutoReplaceSettings::onAutoReplaceToggled()
 {
     // set our local copy of the flag, copied to the global preference in onOk
-    mEnabled = childGetValue("autoreplace_enable").asBoolean();
+    mEnabled = getAutoReplaceEnabled();
     LL_DEBUGS("AutoReplace")<< "autoreplace_enable " << ( mEnabled ? "on" : "off" ) << LL_ENDL;
+}
+
+void LLFloaterAutoReplaceSettings::setListActionControlsEnabled(bool enabled)
+{
+    getChild<LLButton>("autoreplace_export_list")->setEnabled(enabled);
+    getChild<LLButton>("autoreplace_delete_list")->setEnabled(enabled);
+    getChild<LLButton>("autoreplace_list_up")->setEnabled(enabled);
+    getChild<LLButton>("autoreplace_list_down")->setEnabled(enabled);
+}
+
+void LLFloaterAutoReplaceSettings::setReplacementListEnabled(bool enabled)
+{
+    mReplacementsList->setEnabled(enabled);
+}
+
+void LLFloaterAutoReplaceSettings::setReplacementEntryControlsEnabled(bool enabled)
+{
+    mKeyword->setEnabled(enabled);
+    mReplacement->setEnabled(enabled);
+    getChild<LLButton>("autoreplace_save_entry")->setEnabled(enabled);
+    getChild<LLButton>("autoreplace_delete_entry")->setEnabled(enabled);
+}
+
+bool LLFloaterAutoReplaceSettings::getAutoReplaceEnabled()
+{
+    return childGetValue("autoreplace_enable").asBoolean();
 }
 
 // called when the List Up button is pressed
