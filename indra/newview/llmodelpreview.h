@@ -241,6 +241,7 @@ private:
     PreviewCameraState setupPreviewCamera(bool show_skin_weight, S32 width, S32 height);
     void        renderNonSkinnedModels(bool show_textures, bool show_edges);
     void        renderPhysicsPreview(F32 physics_explode);
+    void        renderSkinnedPreview(LLFloaterModelPreview* fmp, PreviewCameraState& camera_state, bool show_joint_overrides, bool show_joint_positions, bool show_textures, bool show_edges);
     LLVector3   mGroundPlane[4];
     void        renderGroundPlane(float z_offset = 0.0f);
     /// Indicates whether we should warn of high-lod meshes that do not have a corresponding physics mesh.

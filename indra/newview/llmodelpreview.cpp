@@ -3343,134 +3343,7 @@ bool LLModelPreview::render()
         }
         else
         {
-            camera_state.target_pos = getPreviewAvatar()->getPositionAgent();
-            getPreviewAvatar()->clearAttachmentOverrides(); // removes pelvis fixup
-            LLUUID fake_mesh_id;
-            fake_mesh_id.generate();
-            getPreviewAvatar()->addPelvisFixup(mPelvisZOffset, fake_mesh_id);
-            bool pelvis_recalc = false;
-
-            LLViewerCamera::getInstance()->setOriginAndLookAt(
-                camera_state.target_pos + ((LLVector3(camera_state.camera_distance, 0.f, 0.f) + camera_state.offset) * camera_state.av_rot),        // camera
-                LLVector3::z_axis,                                                                  // up
-                camera_state.target_pos);                                            // point of interest
-
-            for (LLModelLoader::scene::iterator iter = mScene[mPreviewLOD].begin(); iter != mScene[mPreviewLOD].end(); ++iter)
-            {
-                for (LLModelLoader::model_instance_list::iterator model_iter = iter->second.begin(); model_iter != iter->second.end(); ++model_iter)
-                {
-                    LLModelInstance& instance = *model_iter;
-                    LLModel* model = instance.mModel;
-
-                    if (!model->mSkinWeights.empty())
-                    {
-                        const LLMeshSkinInfo *skin = &model->mSkinInfo;
-                        LLSkinningUtil::initJointNums(&model->mSkinInfo, getPreviewAvatar());// inits skin->mJointNums if nessesary
-                        U32 joint_count = LLSkinningUtil::getMeshJointCount(skin);
-                        auto bind_count = skin->mAlternateBindMatrix.size();
-
-                        if (show_joint_overrides
-                            && bind_count > 0
-                            && joint_count == bind_count)
-                        {
-                            // mesh_id is used to determine which mesh gets to
-                            // set the joint offset, in the event of a conflict. Since
-                            // we don't know the mesh id yet, we can't guarantee that
-                            // joint offsets will be applied with the same priority as
-                            // in the uploaded model. If the file contains multiple
-                            // meshes with conflicting joint offsets, preview may be
-                            // incorrect.
-                            LLUUID fake_mesh_id;
-                            fake_mesh_id.generate();
-                            for (U32 j = 0; j < joint_count; ++j)
-                            {
-                                LLJoint *joint = getPreviewAvatar()->getJoint(skin->mJointNums[j]);
-                                if (joint)
-                                {
-                                    const LLVector3& jointPos = LLVector3(skin->mAlternateBindMatrix[j].getTranslation());
-                                    if (joint->aboveJointPosThreshold(jointPos))
-                                    {
-                                        bool override_changed;
-                                        joint->addAttachmentPosOverride(jointPos, fake_mesh_id, "model", override_changed);
-
-                                        if (override_changed)
-                                        {
-                                            //If joint is a pelvis then handle old/new pelvis to foot values
-                                            if (joint->getName() == "mPelvis")// or skin->mJointNames[j]
-                                            {
-                                                pelvis_recalc = true;
-                                            }
-                                        }
-                                        if (skin->mLockScaleIfJointPosition)
-                                        {
-                                            // Note that unlike positions, there's no threshold check here,
-                                            // just a lock at the default value.
-                                            joint->addAttachmentScaleOverride(joint->getDefaultScale(), fake_mesh_id, "model");
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        std::size_t size = mVertexBuffer[mPreviewLOD][model].size();
-                        for (U32 i = 0; i < size; ++i)
-                        {
-                            model->mSkinInfo.updateHash();
-                            LLRenderPass::uploadMatrixPalette(mPreviewAvatar, &model->mSkinInfo);
-
-                            gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-                            applyPreviewMaterial(instance, i, show_textures);
-
-                            // Zero this variable for an obligatory buffer initialization
-                            // See https://github.com/secondlife/viewer/issues/912
-                            LLVertexBuffer::sGLRenderBuffer = 0;
-                            LLVertexBuffer* buffer = mVertexBuffer[mPreviewLOD][model][i];
-                            buffer->setBuffer();
-                            buffer->draw(LLRender::TRIANGLES, buffer->getNumIndices(), 0);
-
-                            if (show_edges)
-                            {
-                                gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-                                gGL.diffuseColor4fv(PREVIEW_EDGE_COL.mV);
-                                LLGLContainment::setLineWidth(PREVIEW_EDGE_WIDTH);
-                                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                                buffer->draw(LLRender::TRIANGLES, buffer->getNumIndices(), 0);
-                                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                                LLGLContainment::setLineWidth(1.f);
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (show_joint_positions)
-            {
-                LLGLSLShader* shader = LLGLSLShader::sCurBoundShaderPtr;
-                if (shader)
-                {
-                    gDebugProgram.bind();
-                }
-                getPreviewAvatar()->renderCollisionVolumes();
-                if (fmp->mTabContainer->getCurrentPanelIndex() == fmp->mAvatarTabIndex)
-                {
-                    getPreviewAvatar()->renderBones(fmp->mSelectedJointName);
-                }
-                else
-                {
-                    getPreviewAvatar()->renderBones();
-                }
-                renderGroundPlane(mPelvisZOffset);
-                if (shader)
-                {
-                    shader->bind();
-                }
-            }
-
-            if (pelvis_recalc)
-            {
-                // size/scale recalculation
-                getPreviewAvatar()->postPelvisSetRecalc();
-            }
+            renderSkinnedPreview(fmp, camera_state, show_joint_overrides, show_joint_positions, show_textures, show_edges);
         }
     }
 
@@ -3993,6 +3866,138 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
             gPipeline.enableLightsPreview();
             gGL.setSceneBlendType(LLRender::BT_ALPHA);
         }
+    }
+}
+
+void LLModelPreview::renderSkinnedPreview(LLFloaterModelPreview* fmp, PreviewCameraState& camera_state, bool show_joint_overrides, bool show_joint_positions, bool show_textures, bool show_edges)
+{
+    camera_state.target_pos = getPreviewAvatar()->getPositionAgent();
+    getPreviewAvatar()->clearAttachmentOverrides(); // removes pelvis fixup
+    LLUUID fake_mesh_id;
+    fake_mesh_id.generate();
+    getPreviewAvatar()->addPelvisFixup(mPelvisZOffset, fake_mesh_id);
+    bool pelvis_recalc = false;
+
+    LLViewerCamera::getInstance()->setOriginAndLookAt(
+        camera_state.target_pos + ((LLVector3(camera_state.camera_distance, 0.f, 0.f) + camera_state.offset) * camera_state.av_rot),        // camera
+        LLVector3::z_axis,                                                                  // up
+        camera_state.target_pos);                                            // point of interest
+
+    for (LLModelLoader::scene::iterator iter = mScene[mPreviewLOD].begin(); iter != mScene[mPreviewLOD].end(); ++iter)
+    {
+        for (LLModelLoader::model_instance_list::iterator model_iter = iter->second.begin(); model_iter != iter->second.end(); ++model_iter)
+        {
+            LLModelInstance& instance = *model_iter;
+            LLModel* model = instance.mModel;
+
+            if (!model->mSkinWeights.empty())
+            {
+                const LLMeshSkinInfo *skin = &model->mSkinInfo;
+                LLSkinningUtil::initJointNums(&model->mSkinInfo, getPreviewAvatar());// inits skin->mJointNums if nessesary
+                U32 joint_count = LLSkinningUtil::getMeshJointCount(skin);
+                auto bind_count = skin->mAlternateBindMatrix.size();
+
+                if (show_joint_overrides
+                    && bind_count > 0
+                    && joint_count == bind_count)
+                {
+                    // mesh_id is used to determine which mesh gets to
+                    // set the joint offset, in the event of a conflict. Since
+                    // we don't know the mesh id yet, we can't guarantee that
+                    // joint offsets will be applied with the same priority as
+                    // in the uploaded model. If the file contains multiple
+                    // meshes with conflicting joint offsets, preview may be
+                    // incorrect.
+                    LLUUID fake_mesh_id;
+                    fake_mesh_id.generate();
+                    for (U32 j = 0; j < joint_count; ++j)
+                    {
+                        LLJoint *joint = getPreviewAvatar()->getJoint(skin->mJointNums[j]);
+                        if (joint)
+                        {
+                            const LLVector3& jointPos = LLVector3(skin->mAlternateBindMatrix[j].getTranslation());
+                            if (joint->aboveJointPosThreshold(jointPos))
+                            {
+                                bool override_changed;
+                                joint->addAttachmentPosOverride(jointPos, fake_mesh_id, "model", override_changed);
+
+                                if (override_changed)
+                                {
+                                    //If joint is a pelvis then handle old/new pelvis to foot values
+                                    if (joint->getName() == "mPelvis")// or skin->mJointNames[j]
+                                    {
+                                        pelvis_recalc = true;
+                                    }
+                                }
+                                if (skin->mLockScaleIfJointPosition)
+                                {
+                                    // Note that unlike positions, there's no threshold check here,
+                                    // just a lock at the default value.
+                                    joint->addAttachmentScaleOverride(joint->getDefaultScale(), fake_mesh_id, "model");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                std::size_t size = mVertexBuffer[mPreviewLOD][model].size();
+                for (U32 i = 0; i < size; ++i)
+                {
+                    model->mSkinInfo.updateHash();
+                    LLRenderPass::uploadMatrixPalette(mPreviewAvatar, &model->mSkinInfo);
+
+                    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+                    applyPreviewMaterial(instance, i, show_textures);
+
+                    // Zero this variable for an obligatory buffer initialization
+                    // See https://github.com/secondlife/viewer/issues/912
+                    LLVertexBuffer::sGLRenderBuffer = 0;
+                    LLVertexBuffer* buffer = mVertexBuffer[mPreviewLOD][model][i];
+                    buffer->setBuffer();
+                    buffer->draw(LLRender::TRIANGLES, buffer->getNumIndices(), 0);
+
+                    if (show_edges)
+                    {
+                        gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+                        gGL.diffuseColor4fv(PREVIEW_EDGE_COL.mV);
+                        LLGLContainment::setLineWidth(PREVIEW_EDGE_WIDTH);
+                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                        buffer->draw(LLRender::TRIANGLES, buffer->getNumIndices(), 0);
+                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                        LLGLContainment::setLineWidth(1.f);
+                    }
+                }
+            }
+        }
+    }
+
+    if (show_joint_positions)
+    {
+        LLGLSLShader* shader = LLGLSLShader::sCurBoundShaderPtr;
+        if (shader)
+        {
+            gDebugProgram.bind();
+        }
+        getPreviewAvatar()->renderCollisionVolumes();
+        if (fmp->mTabContainer->getCurrentPanelIndex() == fmp->mAvatarTabIndex)
+        {
+            getPreviewAvatar()->renderBones(fmp->mSelectedJointName);
+        }
+        else
+        {
+            getPreviewAvatar()->renderBones();
+        }
+        renderGroundPlane(mPelvisZOffset);
+        if (shader)
+        {
+            shader->bind();
+        }
+    }
+
+    if (pelvis_recalc)
+    {
+        // size/scale recalculation
+        getPreviewAvatar()->postPelvisSetRecalc();
     }
 }
 
