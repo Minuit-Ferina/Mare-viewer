@@ -523,6 +523,15 @@ void LLFloaterModelPreview::syncModelPreviewImportScaleLimit(F32 max_import_scal
     }
 }
 
+void LLFloaterModelPreview::setModelPreviewDefaultRequestedName(const std::string& model_name)
+{
+    LLLineEditor* description_form = getChild<LLLineEditor>("description_form");
+    if (description_form->getText().empty())
+    {
+        description_form->setText(model_name);
+    }
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

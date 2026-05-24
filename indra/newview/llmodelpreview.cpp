@@ -1275,11 +1275,8 @@ void LLModelPreview::loadModelCallback(S32 loaded_lod)
         if (!mBaseModel.empty())
         {
             std::string model_name = mBaseModel.front()->getName();
-            LLLineEditor* description_form = mFMP->getChild<LLLineEditor>("description_form");
-            if (description_form->getText().empty())
-            {
-                description_form->setText(model_name);
-            }
+            LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+            fmp->setModelPreviewDefaultRequestedName(model_name);
             // Add info to log that loading is complete (purpose: separator between loading and other logs)
             LLSD args;
             args["MODEL_NAME"] = model_name; // Teoretically shouldn't be empty, but might be better idea to add filename here

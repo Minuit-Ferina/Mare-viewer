@@ -1737,6 +1737,14 @@ do not start a direct Vulkan port.
       targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
       both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/361-model-preview-upload-data-scale-summary.md`.
+- [x] Map model preview default description UI mutation before moving it.
+- [x] Add `docs/architecture/362-model-preview-default-description-task.md`.
+- [x] Move default description UI mutation behind a `LLFloaterModelPreview`
+      owner method without changing timing.
+- [x] Verify the default description packet with targeted
+      `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/363-model-preview-default-description-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.
