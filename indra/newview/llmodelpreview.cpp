@@ -91,6 +91,7 @@ static const LLColor4 PREVIEW_DEG_FILL_COL(1.f, 0.f, 0.f, 0.5f);
 static const F32 PREVIEW_DEG_EDGE_WIDTH(3.f);
 static const F32 PREVIEW_DEG_POINT_SIZE(8.f);
 static const F32 PREVIEW_ZOOM_LIMIT(10.f);
+static const S32 PREVIEW_RENDER_SIZE = 1024;
 static const std::string DEFAULT_PHYSICS_MESH_NAME = "default_physics_shape";
 
 const F32 SKIN_WEIGHT_CAMERA_DISTANCE = 16.f;
@@ -4111,6 +4112,25 @@ bool LLModelPreview::lodQueryCallback()
     }
     // nothing to process
     return true;
+}
+
+// static
+void LLModelPreview::getPreviewTextureSize(S32& tex_width, S32& tex_height)
+{
+    tex_width = 512;
+    tex_height = 512;
+
+    S32 max_width = llmin(PREVIEW_RENDER_SIZE, (S32)gPipeline.mRT->width);
+    S32 max_height = llmin(PREVIEW_RENDER_SIZE, (S32)gPipeline.mRT->height);
+
+    while ((tex_width << 1) < max_width)
+    {
+        tex_width <<= 1;
+    }
+    while ((tex_height << 1) < max_height)
+    {
+        tex_height <<= 1;
+    }
 }
 
 void LLModelPreview::onLODMeshOptimizerParamCommit(S32 requested_lod, bool enforce_tri_limit, S32 mode)

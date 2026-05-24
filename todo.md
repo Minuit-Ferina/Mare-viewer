@@ -1682,12 +1682,12 @@ do not start a direct Vulkan port.
 - [x] Continue with model preview because `LLFloaterModelPreview` still depends
       on render-target sizing via `pipeline.h`.
 - [x] Add `docs/architecture/348-model-preview-texture-size-task.md`.
-- [ ] Move model preview texture-size/render-target sizing ownership from
+- [x] Move model preview texture-size/render-target sizing ownership from
       `LLFloaterModelPreview` to `LLModelPreview`.
-- [ ] Verify the texture-size ownership packet with targeted
+- [x] Verify the texture-size ownership packet with targeted
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
-- [ ] Add `docs/architecture/349-model-preview-texture-size-summary.md`.
+- [x] Add `docs/architecture/349-model-preview-texture-size-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

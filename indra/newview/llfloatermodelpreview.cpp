@@ -38,6 +38,7 @@
 #include "llimagepng.h"
 
 #include "llagent.h"
+#include "llappviewer.h"
 #include "llbutton.h"
 #include "llcombobox.h"
 #include "llfloaterreg.h"
@@ -50,7 +51,6 @@
 #include "lltoolmgr.h"
 #include "llui.h"
 #include "llviewerwindow.h"
-#include "pipeline.h"
 #include "llviewercontrol.h"
 #include "llviewermenufile.h" //LLFilePickerThread
 #include "llstring.h"
@@ -83,7 +83,6 @@ constexpr double RETAIN_COEFFICIENT = 100;
 // should be represented by Smooth combobox with only 10 values.
 // So this const is used as a size of Smooth combobox list.
 constexpr S32 SMOOTH_VALUES_NUMBER = 10;
-constexpr S32 PREVIEW_RENDER_SIZE = 1024;
 constexpr F32 PREVIEW_CAMERA_DISTANCE = 16.f;
 
 class LLMeshFilePicker : public LLFilePickerThread
@@ -328,20 +327,9 @@ void LLFloaterModelPreview::initModelPreview()
         delete mModelPreview;
     }
 
-    S32 tex_width = 512;
-    S32 tex_height = 512;
-
-    S32 max_width = llmin(PREVIEW_RENDER_SIZE, (S32)gPipeline.mRT->width);
-    S32 max_height = llmin(PREVIEW_RENDER_SIZE, (S32)gPipeline.mRT->height);
-
-    while ((tex_width << 1) < max_width)
-    {
-        tex_width <<= 1;
-    }
-    while ((tex_height << 1) < max_height)
-    {
-        tex_height <<= 1;
-    }
+    S32 tex_width;
+    S32 tex_height;
+    LLModelPreview::getPreviewTextureSize(tex_width, tex_height);
 
     mModelPreview = new LLModelPreview(tex_width, tex_height, this);
     mModelPreview->setPreviewTarget(PREVIEW_CAMERA_DISTANCE);

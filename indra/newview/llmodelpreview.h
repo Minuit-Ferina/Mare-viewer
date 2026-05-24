@@ -194,6 +194,7 @@ public:
 
     static void textureLoadedCallback(bool success, LLViewerFetchedTexture *src_vi, LLImageRaw* src, LLImageRaw* src_aux, S32 discard_level, bool final, void* userdata);
     static bool lodQueryCallback();
+    static void getPreviewTextureSize(S32& tex_width, S32& tex_height);
 
     boost::signals2::connection setDetailsCallback(const details_signal_t::slot_type& cb){ return mDetailsSignal.connect(cb); }
     boost::signals2::connection setModelLoadedCallback(const model_loaded_signal_t::slot_type& cb){ return mModelLoadedSignal.connect(cb); }
