@@ -3,7 +3,7 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 9 is active on branch `phase9`. Preserve the completed
+Current rule: phase 9 is complete on branch `phase9`. Preserve the completed
 OpenGL containment and header guardrails, then prepare the next renderer
 boundaries with docs-first, small, reviewable packets. Do not move source
 files, do not change runtime behavior without an explicit task, and do not
@@ -1563,10 +1563,24 @@ start a direct Vulkan port.
 - [x] Add `docs/architecture/319-preview-animation-refresh-contract.md`.
 - [ ] Decide whether a `needsRender()` override is a safe behavior-preserving
       follow-up or a deferred runtime behavior change.
-- [ ] Defer `LLModelPreview` until a dedicated map names its render, upload,
+- [x] Defer `LLModelPreview` until a dedicated map names its render, upload,
       material, camera, and LOD risks.
-- [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
+- [x] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
       multi-window, and multi-login work out of phase 9 unless explicitly
+      selected later.
+- [x] Run the final phase 9 integration checkpoint.
+- [x] Add `docs/architecture/320-phase9-completion-summary.md`.
+- [x] Close phase 9.
+
+## Phase 10 Candidate Backlog
+
+- [ ] Start phase 10 with a docs-first plan before any source edits.
+- [ ] Choose between mapping `LLGLTFPreviewTexture`, mapping
+      `LLModelPreview`, or investigating `LLPreviewAnimation::needsRender()`
+      as an explicit behavior task.
+- [ ] Keep any `needsRender()` override out of wrapper-only packets.
+- [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
+      multi-window, and multi-login work out of phase 10 unless explicitly
       selected later.
 
 ## Phase 1 Inventory
