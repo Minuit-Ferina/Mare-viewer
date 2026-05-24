@@ -46,6 +46,31 @@
 #include "llviewerparcelmgr.h"
 #include "llviewerregion.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //----------------------------------------------------------------------------
 // Aux types and methods
 //----------------------------------------------------------------------------
@@ -74,14 +99,14 @@ bool LLPanelLandmarkInfo::postBuild()
 {
     LLPanelPlaceInfo::postBuild();
 
-    mOwner = getChild<LLTextBox>("owner");
-    mCreator = getChild<LLTextBox>("creator");
-    mCreated = getChild<LLTextBox>("created");
+    mOwner = get_owner_child<LLTextBox>(this, "owner");
+    mCreator = get_owner_child<LLTextBox>(this, "creator");
+    mCreated = get_owner_child<LLTextBox>(this, "created");
 
-    mLandmarkTitle = getChild<LLLineEditor>("title_value");
-    mLandmarkTitleEditor = getChild<LLLineEditor>("title_editor");
-    mNotesEditor = getChild<LLTextEditor>("notes_editor");
-    mFolderCombo = getChild<LLComboBox>("folder_combo");
+    mLandmarkTitle = get_owner_child<LLLineEditor>(this, "title_value");
+    mLandmarkTitleEditor = get_owner_child<LLLineEditor>(this, "title_editor");
+    mNotesEditor = get_owner_child<LLTextEditor>(this, "notes_editor");
+    mFolderCombo = get_owner_child<LLComboBox>(this, "folder_combo");
 
     icon_pg = getString("icon_PG");
     icon_m = getString("icon_M");
@@ -119,14 +144,14 @@ void LLPanelLandmarkInfo::setInfoAndCreateLandmark(const LLUUID& folder_id)
 
 void LLPanelLandmarkInfo::setInfoType(EInfoType type, const LLUUID &folder_id)
 {
-    LLPanel* landmark_info_panel = getChild<LLPanel>("landmark_info_panel");
+    LLPanel* landmark_info_panel = get_owner_child<LLPanel>(this, "landmark_info_panel");
 
     bool is_info_type_create_landmark = type == CREATE_LANDMARK;
 
     landmark_info_panel->setVisible(type == LANDMARK);
 
-    getChild<LLTextBox>("folder_label")->setVisible(is_info_type_create_landmark);
-    getChild<LLButton>("edit_btn")->setVisible(!is_info_type_create_landmark);
+    get_owner_child<LLTextBox>(this, "folder_label")->setVisible(is_info_type_create_landmark);
+    get_owner_child<LLButton>(this, "edit_btn")->setVisible(!is_info_type_create_landmark);
     mFolderCombo->setVisible(is_info_type_create_landmark);
 
     switch(type)
@@ -361,8 +386,8 @@ void LLPanelLandmarkInfo::toggleLandmarkEditMode(bool enabled)
         mLandmarkTitleEditor->setVisible(enabled);
         mNotesEditor->setReadOnly(!enabled);
         mFolderCombo->setVisible(enabled);
-        getChild<LLTextBox>("folder_label")->setVisible(enabled);
-        getChild<LLButton>("edit_btn")->setVisible(!enabled);
+        get_owner_child<LLTextBox>(this, "folder_label")->setVisible(enabled);
+        get_owner_child<LLButton>(this, "edit_btn")->setVisible(!enabled);
 
         // HACK: To change the text color in a text editor
         // when it was enabled/disabled we set the text once again.
@@ -375,7 +400,7 @@ void LLPanelLandmarkInfo::toggleLandmarkEditMode(bool enabled)
 
 void LLPanelLandmarkInfo::setCanEdit(bool enabled)
 {
-    getChild<LLButton>("edit_btn")->setEnabled(enabled);
+    get_owner_child<LLButton>(this, "edit_btn")->setEnabled(enabled);
 }
 
 const std::string& LLPanelLandmarkInfo::getLandmarkTitle() const

@@ -73,6 +73,31 @@
 #include "llweb.h"
 #include "llresmgr.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLPanelOutfitEdit> t_outfit_edit("panel_outfit_edit");
 
 const U64 WEARABLE_MASK = (1LL << LLInventoryType::IT_WEARABLE);
@@ -188,8 +213,8 @@ private:
     // Populate the menu with items like "New Skin", "New Pants", etc.
     static void populateCreateWearableSubmenus(LLMenuGL* menu)
     {
-        LLView* menu_clothes    = gMenuHolder->getChildView("COF.Gear.New_Clothes", false);
-        LLView* menu_bp         = gMenuHolder->getChildView("COF.Gear.New_Body_Parts", false);
+        LLView* menu_clothes    = get_owner_view(gMenuHolder, "COF.Gear.New_Clothes", false);
+        LLView* menu_bp         = get_owner_view(gMenuHolder, "COF.Gear.New_Body_Parts", false);
         LLWearableType * wearable_type_inst = LLWearableType::getInstance();
 
         for (U8 i = LLWearableType::WT_SHAPE; i != (U8) LLWearableType::WT_COUNT; ++i)
@@ -479,13 +504,13 @@ bool LLPanelOutfitEdit::postBuild()
     mListViewItemTypes.push_back(new LLFilterItem(LLTrans::getString("physics"), new LLFindActualWearablesOfType(LLWearableType::WT_PHYSICS)));
     mListViewItemTypes.push_back(new LLFilterItem(LLTrans::getString("universal"), new LLFindActualWearablesOfType(LLWearableType::WT_UNIVERSAL)));
 
-    mCurrentOutfitName = getChild<LLTextBox>("curr_outfit_name");
-    mStatus = getChild<LLTextBox>("status");
+    mCurrentOutfitName = get_owner_child<LLTextBox>(this, "curr_outfit_name");
+    mStatus = get_owner_child<LLTextBox>(this, "status");
 
-    mFolderViewBtn = getChild<LLButton>("folder_view_btn");
-    mListViewBtn = getChild<LLButton>("list_view_btn");
-    mFilterPanel = getChild<LLView>("filter_panel");
-    mFilterBtn = getChild<LLButton>("filter_button");
+    mFolderViewBtn = get_owner_child<LLButton>(this, "folder_view_btn");
+    mListViewBtn = get_owner_child<LLButton>(this, "list_view_btn");
+    mFilterPanel = get_owner_child<LLView>(this, "filter_panel");
+    mFilterBtn = get_owner_child<LLButton>(this, "filter_button");
     mFilterBtn->setCommitCallback(boost::bind(&LLPanelOutfitEdit::showWearablesFilter, this));
 
     childSetCommitCallback("folder_view_btn", boost::bind(&LLPanelOutfitEdit::showWearablesFolderView, this), NULL);
@@ -497,8 +522,8 @@ bool LLPanelOutfitEdit::postBuild()
 
     setVisibleCallback(boost::bind(&LLPanelOutfitEdit::onVisibilityChanged, this, _2));
 
-    mWearablesGearMenuBtn = getChild<LLMenuButton>("wearables_gear_menu_btn");
-    mGearMenuBtn = getChild<LLMenuButton>("gear_menu_btn");
+    mWearablesGearMenuBtn = get_owner_child<LLMenuButton>(this, "wearables_gear_menu_btn");
+    mGearMenuBtn = get_owner_child<LLMenuButton>(this, "gear_menu_btn");
 
     mCOFWearables = findChild<LLCOFWearables>("cof_wearables_list");
     mCOFWearables->setCommitCallback(boost::bind(&LLPanelOutfitEdit::filterWearablesBySelectedItem, this));
@@ -509,9 +534,9 @@ bool LLPanelOutfitEdit::postBuild()
     mCOFWearables->getCOFCallbacks().mMoveWearableCloser = boost::bind(&LLPanelOutfitEdit::moveWearable, this, true);
     mCOFWearables->getCOFCallbacks().mMoveWearableFurther = boost::bind(&LLPanelOutfitEdit::moveWearable, this, false);
 
-    mAddWearablesPanel = getChild<LLPanel>("add_wearables_panel");
+    mAddWearablesPanel = get_owner_child<LLPanel>(this, "add_wearables_panel");
 
-    mInventoryItemsPanel = getChild<LLInventoryPanel>("folder_view");
+    mInventoryItemsPanel = get_owner_child<LLInventoryPanel>(this, "folder_view");
     mInventoryItemsPanel->setFilterTypes(ALL_ITEMS_MASK);
     mInventoryItemsPanel->setShowFolderState(LLInventoryFilter::SHOW_NON_EMPTY_FOLDERS);
     mInventoryItemsPanel->setSelectCallback(boost::bind(&LLPanelOutfitEdit::updatePlusButton, this));
@@ -519,7 +544,7 @@ bool LLPanelOutfitEdit::postBuild()
 
     mCOFDragAndDropObserver = new LLCOFDragAndDropObserver(mInventoryItemsPanel->getModel());
 
-    mFolderViewFilterCmbBox = getChild<LLComboBox>("folder_view_filter_combobox");
+    mFolderViewFilterCmbBox = get_owner_child<LLComboBox>(this, "folder_view_filter_combobox");
     mFolderViewFilterCmbBox->setCommitCallback(boost::bind(&LLPanelOutfitEdit::onFolderViewFilterCommitted, this, _1));
     mFolderViewFilterCmbBox->removeall();
     for (U32 i = 0; i < mFolderViewItemTypes.size(); ++i)
@@ -528,7 +553,7 @@ bool LLPanelOutfitEdit::postBuild()
     }
     mFolderViewFilterCmbBox->setCurrentByIndex(FVIT_ALL);
 
-    mListViewFilterCmbBox = getChild<LLComboBox>("list_view_filter_combobox");
+    mListViewFilterCmbBox = get_owner_child<LLComboBox>(this, "list_view_filter_combobox");
     mListViewFilterCmbBox->setCommitCallback(boost::bind(&LLPanelOutfitEdit::onListViewFilterCommitted, this, _1));
     mListViewFilterCmbBox->removeall();
     for (U32 i = 0; i < mListViewItemTypes.size(); ++i)
@@ -537,19 +562,19 @@ bool LLPanelOutfitEdit::postBuild()
     }
     mListViewFilterCmbBox->setCurrentByIndex(LVIT_ALL);
 
-    mSearchFilter = getChild<LLFilterEditor>("look_item_filter");
+    mSearchFilter = get_owner_child<LLFilterEditor>(this, "look_item_filter");
     mSearchFilter->setCommitCallback(boost::bind(&LLPanelOutfitEdit::onSearchEdit, this, _2));
 
-    mShowAddWearablesBtn = getChild<LLButton>("show_add_wearables_btn");
+    mShowAddWearablesBtn = get_owner_child<LLButton>(this, "show_add_wearables_btn");
     mShowAddWearablesBtn->setClickedCallback(boost::bind(&LLPanelOutfitEdit::onAddMoreButtonClicked, this));
 
-    mPlusBtn = getChild<LLButton>("plus_btn");
+    mPlusBtn = get_owner_child<LLButton>(this, "plus_btn");
     mPlusBtn->setClickedCallback(boost::bind(&LLPanelOutfitEdit::onPlusBtnClicked, this));
 
     childSetAction(REVERT_BTN, boost::bind(&LLAppearanceMgr::wearBaseOutfit, LLAppearanceMgr::getInstance()));
 
-    mNoAddWearablesButtonBar = getChild<LLUICtrl>("no_add_wearables_button_bar");
-    mAddWearablesButtonBar = getChild<LLUICtrl>("add_wearables_button_bar");
+    mNoAddWearablesButtonBar = get_owner_child<LLUICtrl>(this, "no_add_wearables_button_bar");
+    mAddWearablesButtonBar = get_owner_child<LLUICtrl>(this, "add_wearables_button_bar");
 
     /*
      * By default AT_CLOTHING are sorted by (in in MY OUTFITS):
@@ -563,8 +588,8 @@ bool LLPanelOutfitEdit::postBuild()
     mWearableListViewItemsComparator = new LLWearableItemTypeNameComparator();
     mWearableListViewItemsComparator->setOrder(LLAssetType::AT_CLOTHING, LLWearableItemTypeNameComparator::ORDER_RANK_1, false, true);
 
-    mWearablesListViewPanel = getChild<LLPanel>("filtered_wearables_panel");
-    mWearableItemsList = getChild<LLWearableItemsList>("list_view");
+    mWearablesListViewPanel = get_owner_child<LLPanel>(this, "filtered_wearables_panel");
+    mWearableItemsList = get_owner_child<LLWearableItemsList>(this, "list_view");
     mWearableItemsList->setCommitOnSelectionChange(true);
     mWearableItemsList->setCommitCallback(boost::bind(&LLPanelOutfitEdit::updatePlusButton, this));
     mWearableItemsList->setDoubleClickCallback(boost::bind(&LLPanelOutfitEdit::onPlusBtnClicked, this));
@@ -578,14 +603,14 @@ bool LLPanelOutfitEdit::postBuild()
     mGearMenu = LLPanelOutfitEditGearMenu::create();
     mGearMenuBtn->setMenu(mGearMenu);
 
-    getChild<LLButton>(SAVE_BTN)->setCommitCallback(boost::bind(&LLPanelOutfitEdit::saveOutfit, this, false));
-    getChild<LLButton>(SAVE_AS_BTN)->setCommitCallback(boost::bind(&LLPanelOutfitEdit::saveOutfit, this, true));
+    get_owner_child<LLButton>(this, SAVE_BTN)->setCommitCallback(boost::bind(&LLPanelOutfitEdit::saveOutfit, this, false));
+    get_owner_child<LLButton>(this, SAVE_AS_BTN)->setCommitCallback(boost::bind(&LLPanelOutfitEdit::saveOutfit, this, true));
 
     // <FS:Ansariel> Show avatar complexity in appearance floater
-    mAvatarComplexityLabel = getChild<LLTextBox>("avatar_complexity_label");
-    mAvatarComplexityAddingLabel = getChild<LLTextBox>("avatar_complexity_adding_label");
-    mLoadingIndicator = getChild<LLLoadingIndicator>("edit_outfit_loading_indicator");
-    mOutfitNameStatusPanel = getChild<LLPanel>("outfit_name_and_status");
+    mAvatarComplexityLabel = get_owner_child<LLTextBox>(this, "avatar_complexity_label");
+    mAvatarComplexityAddingLabel = get_owner_child<LLTextBox>(this, "avatar_complexity_adding_label");
+    mLoadingIndicator = get_owner_child<LLLoadingIndicator>(this, "edit_outfit_loading_indicator");
+    mOutfitNameStatusPanel = get_owner_child<LLPanel>(this, "outfit_name_and_status");
     onOutfitChanging(gAgentWearables.isCOFChangeInProgress());
 
     return true;
@@ -1277,8 +1302,8 @@ void LLPanelOutfitEdit::updateVerbs()
     bool outfit_locked = LLAppearanceMgr::getInstance()->isOutfitLocked();
     bool has_baseoutfit = LLAppearanceMgr::getInstance()->getBaseOutfitUUID().notNull();
 
-    getChildView(SAVE_BTN)->setEnabled(!outfit_locked && outfit_is_dirty);
-    getChildView(REVERT_BTN)->setEnabled(outfit_is_dirty && has_baseoutfit);
+    get_owner_view(this, SAVE_BTN)->setEnabled(!outfit_locked && outfit_is_dirty);
+    get_owner_view(this, REVERT_BTN)->setEnabled(outfit_is_dirty && has_baseoutfit);
 
     mStatus->setText(outfit_is_dirty ? getString("unsaved_changes") : getString("now_editing"));
 

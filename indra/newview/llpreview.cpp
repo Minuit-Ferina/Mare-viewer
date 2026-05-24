@@ -56,6 +56,31 @@
 #include "llpreviewnotecard.h"
 #include "llpreviewscript.h"
 #include "llscripteditor.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 // [/SL:KB]
 // Constants
 
@@ -161,12 +186,12 @@ void LLPreview::onCommit()
         }
 
         LLPointer<LLViewerInventoryItem> new_item = new LLViewerInventoryItem(item);
-        new_item->setDescription(getChild<LLUICtrl>("desc")->getValue().asString());
+        new_item->setDescription(get_owner_child<LLUICtrl>(this, "desc")->getValue().asString());
 
-        std::string new_name = getChild<LLUICtrl>("name")->getValue().asString();
+        std::string new_name = get_owner_child<LLUICtrl>(this, "name")->getValue().asString();
         if ( (new_item->getName() != new_name) && !new_name.empty())
         {
-            new_item->rename(getChild<LLUICtrl>("name")->getValue().asString());
+            new_item->rename(get_owner_child<LLUICtrl>(this, "name")->getValue().asString());
         }
 
         if(mObjectUUID.notNull())
@@ -198,7 +223,7 @@ void LLPreview::onCommit()
                     {
                         LLSelectMgr::getInstance()->deselectAll();
                         LLSelectMgr::getInstance()->addAsIndividual( obj, SELECT_ALL_TES, false );
-                        LLSelectMgr::getInstance()->selectionSetObjectDescription( getChild<LLUICtrl>("desc")->getValue().asString() );
+                        LLSelectMgr::getInstance()->selectionSetObjectDescription( get_owner_child<LLUICtrl>(this, "desc")->getValue().asString() );
 
                         LLSelectMgr::getInstance()->deselectAll();
                     }

@@ -40,6 +40,31 @@
 #include "llviewercontrol.h"
 #include "llviewermessage.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //-----------------------------------------------------------------------------
 // Constants
 //-----------------------------------------------------------------------------
@@ -70,11 +95,11 @@ bool LLPanelDirLand::postBuild()
         childSetValue("priceedit", gStatusBar->getBalance());
     }
     childSetEnabled("priceedit", gSavedSettings.getBOOL("FindLandPrice"));
-    LLLineEditor* priceedit = getChild<LLLineEditor>("priceedit");
+    LLLineEditor* priceedit = get_owner_child<LLLineEditor>(this, "priceedit");
     priceedit->setPrevalidateInput(LLTextValidate::validateNonNegativeS32);
 
     childSetEnabled("areaedit", gSavedSettings.getBOOL("FindLandArea"));
-    LLLineEditor* areaedit = getChild<LLLineEditor>("areaedit");
+    LLLineEditor* areaedit = get_owner_child<LLLineEditor>(this, "areaedit");
     areaedit->setPrevalidateInput(LLTextValidate::validateNonNegativeS32);
 
     childSetAction("Search", onClickSearchCore, this);
@@ -82,7 +107,7 @@ bool LLPanelDirLand::postBuild()
 
     mCurrentSortColumn = "per_meter";
 
-    LLScrollListCtrl* results = getChild<LLScrollListCtrl>("results");
+    LLScrollListCtrl* results = get_owner_child<LLScrollListCtrl>(this, "results");
     if (results)
     {
         results->setSortChangedCallback(boost::bind(&LLPanelDirLand::onClickSort, this));
@@ -179,7 +204,7 @@ void LLPanelDirLand::performQuery()
         query_flags |= DFQ_MATURE_SIMS_ONLY;
     }
 
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("results");
+    LLScrollListCtrl* list = get_owner_child<LLScrollListCtrl>(this, "results");
     if (list)
     {
         std::string sort_name = list->getSortColumnName();

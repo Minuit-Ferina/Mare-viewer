@@ -31,6 +31,31 @@
 #include "llnotifications.h"
 #include "llviewercontrol.h" // for gSavedSettings
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 LLPanelGenericTip::LLPanelGenericTip(
         const LLNotificationPtr& notification) :
@@ -38,10 +63,10 @@ LLPanelGenericTip::LLPanelGenericTip(
 {
     buildFromFile( "panel_generic_tip.xml");
 
-    getChild<LLUICtrl>("message")->setValue(notification->getMessage());
+    get_owner_child<LLUICtrl>(this, "message")->setValue(notification->getMessage());
 
 
     S32 max_line_count =  gSavedSettings.getS32("TipToastMessageLineCount");
-    snapToMessageHeight(getChild<LLTextBox> ("message"), max_line_count);
+    snapToMessageHeight(get_owner_child<LLTextBox>(this, "message"), max_line_count);
 }
 

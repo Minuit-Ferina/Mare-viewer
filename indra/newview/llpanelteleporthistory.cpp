@@ -48,6 +48,31 @@
 #include "llclipboard.h"
 #include "lltrans.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // Maximum number of items that can be added to a list in one pass.
 // Used to limit time spent for items list update per frame.
 static const U32 ADD_LIMIT = 50;
@@ -151,11 +176,11 @@ LLTeleportHistoryFlatItem::~LLTeleportHistoryFlatItem()
 //virtual
 bool LLTeleportHistoryFlatItem::postBuild()
 {
-    mTitle = getChild<LLTextBox>("region");
+    mTitle = get_owner_child<LLTextBox>(this, "region");
 
-    mTimeTextBox = getChild<LLTextBox>("timestamp");
+    mTimeTextBox = get_owner_child<LLTextBox>(this, "timestamp");
 
-    mProfileBtn = getChild<LLButton>("profile_btn");
+    mProfileBtn = get_owner_child<LLButton>(this, "profile_btn");
 
     mProfileBtn->setClickedCallback(boost::bind(&LLTeleportHistoryFlatItem::onProfileBtnClick, this));
 
@@ -182,7 +207,7 @@ void LLTeleportHistoryFlatItem::setValue(const LLSD& value)
 {
     if (!value.isMap()) return;;
     if (!value.has("selected")) return;
-    getChildView("selected_icon")->setVisible( value["selected"]);
+    get_owner_view(this, "selected_icon")->setVisible( value["selected"]);
 }
 
 void LLTeleportHistoryFlatItem::setHighlightedText(const std::string& text)
@@ -261,7 +286,7 @@ void LLTeleportHistoryFlatItem::updateTimestamp()
 
 void LLTeleportHistoryFlatItem::onMouseEnter(S32 x, S32 y, MASK mask)
 {
-    getChildView("hovered_icon")->setVisible( true);
+    get_owner_view(this, "hovered_icon")->setVisible( true);
     mProfileBtn->setVisible(true);
 
     LLPanel::onMouseEnter(x, y, mask);
@@ -269,7 +294,7 @@ void LLTeleportHistoryFlatItem::onMouseEnter(S32 x, S32 y, MASK mask)
 
 void LLTeleportHistoryFlatItem::onMouseLeave(S32 x, S32 y, MASK mask)
 {
-    getChildView("hovered_icon")->setVisible( false);
+    get_owner_view(this, "hovered_icon")->setVisible( false);
     mProfileBtn->setVisible(false);
 
     LLPanel::onMouseLeave(x, y, mask);
@@ -427,7 +452,7 @@ bool LLTeleportHistoryPanel::postBuild()
         mTeleportHistoryChangedConnection = mTeleportHistory->setHistoryChangedCallback(boost::bind(&LLTeleportHistoryPanel::onTeleportHistoryChange, this, _1));
     }
 
-    mHistoryAccordion = getChild<LLAccordionCtrl>("history_accordion");
+    mHistoryAccordion = get_owner_child<LLAccordionCtrl>(this, "history_accordion");
 
     if (mHistoryAccordion)
     {

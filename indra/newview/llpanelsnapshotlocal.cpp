@@ -37,6 +37,31 @@
 #include "llviewercontrol.h" // gSavedSettings
 #include "llviewerwindow.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 /**
  * The panel provides UI for saving snapshot to a local folder.
  */
@@ -81,9 +106,9 @@ LLPanelSnapshotLocal::LLPanelSnapshotLocal()
 // virtual
 bool LLPanelSnapshotLocal::postBuild()
 {
-    getChild<LLUICtrl>("image_quality_slider")->setCommitCallback(boost::bind(&LLPanelSnapshotLocal::onQualitySliderCommit, this, _1));
-    getChild<LLUICtrl>("local_format_combo")->setCommitCallback(boost::bind(&LLPanelSnapshotLocal::onFormatComboCommit, this, _1));
-    getChild<LLUICtrl>("save_btn")->setCommitCallback(boost::bind(&LLPanelSnapshotLocal::onSaveFlyoutCommit, this, _1));
+    get_owner_child<LLUICtrl>(this, "image_quality_slider")->setCommitCallback(boost::bind(&LLPanelSnapshotLocal::onQualitySliderCommit, this, _1));
+    get_owner_child<LLUICtrl>(this, "local_format_combo")->setCommitCallback(boost::bind(&LLPanelSnapshotLocal::onFormatComboCommit, this, _1));
+    get_owner_child<LLUICtrl>(this, "save_btn")->setCommitCallback(boost::bind(&LLPanelSnapshotLocal::onSaveFlyoutCommit, this, _1));
 
     return LLPanelSnapshot::postBuild();
 }
@@ -93,7 +118,7 @@ void LLPanelSnapshotLocal::onOpen(const LLSD& key)
 {
     if(gSavedSettings.getS32("SnapshotFormat") != mLocalFormat)
     {
-        getChild<LLComboBox>("local_format_combo")->selectNthItem(mLocalFormat);
+        get_owner_child<LLComboBox>(this, "local_format_combo")->selectNthItem(mLocalFormat);
     }
     LLPanelSnapshot::onOpen(key);
 }
@@ -103,7 +128,7 @@ LLSnapshotModel::ESnapshotFormat LLPanelSnapshotLocal::getImageFormat() const
 {
     LLSnapshotModel::ESnapshotFormat fmt = LLSnapshotModel::SNAPSHOT_FORMAT_PNG;
 
-    LLComboBox* local_format_combo = getChild<LLComboBox>("local_format_combo");
+    LLComboBox* local_format_combo = get_owner_child<LLComboBox>(this, "local_format_combo");
     const std::string id  = local_format_combo->getValue().asString();
     if (id == "PNG")
     {
@@ -126,17 +151,17 @@ void LLPanelSnapshotLocal::updateControls(const LLSD& info)
 {
     LLSnapshotModel::ESnapshotFormat fmt =
         (LLSnapshotModel::ESnapshotFormat) gSavedSettings.getS32("SnapshotFormat");
-    getChild<LLComboBox>("local_format_combo")->selectNthItem((S32) fmt);
+    get_owner_child<LLComboBox>(this, "local_format_combo")->selectNthItem((S32) fmt);
 
     const bool show_quality_ctrls = (fmt == LLSnapshotModel::SNAPSHOT_FORMAT_JPEG);
-    getChild<LLUICtrl>("image_quality_slider")->setVisible(show_quality_ctrls);
-    getChild<LLUICtrl>("image_quality_level")->setVisible(show_quality_ctrls);
+    get_owner_child<LLUICtrl>(this, "image_quality_slider")->setVisible(show_quality_ctrls);
+    get_owner_child<LLUICtrl>(this, "image_quality_level")->setVisible(show_quality_ctrls);
 
-    getChild<LLUICtrl>("image_quality_slider")->setValue(gSavedSettings.getS32("SnapshotQuality"));
+    get_owner_child<LLUICtrl>(this, "image_quality_slider")->setValue(gSavedSettings.getS32("SnapshotQuality"));
     updateImageQualityLevel();
 
     const bool have_snapshot = info.has("have-snapshot") ? info["have-snapshot"].asBoolean() : true;
-    getChild<LLUICtrl>("save_btn")->setEnabled(have_snapshot);
+    get_owner_child<LLUICtrl>(this, "save_btn")->setEnabled(have_snapshot);
 }
 
 void LLPanelSnapshotLocal::onFormatComboCommit(LLUICtrl* ctrl)

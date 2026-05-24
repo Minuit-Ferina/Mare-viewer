@@ -45,6 +45,31 @@
 #include "llpanelprofile.h"
 #include "llsidetraypanelcontainer.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //MK
 static LLPanelInjector<LLPanelProfileView> t_panel_target_profile("panel_profile_view");
 //mk
@@ -110,10 +135,10 @@ void LLPanelProfileView::onOpen(const LLSD& key)
         setAvatarId(id);
 
         // clear name fields, which might have old data
-        getChild<LLUICtrl>("complete_name")->setValue( LLSD() );
-        getChild<LLUICtrl>("display_name")->setValue( LLSD() );
-        getChild<LLUICtrl>("user_name")->setValue( LLSD() );
-        getChild<LLUICtrl>("user_key")->setValue( LLSD() );
+        get_owner_child<LLUICtrl>(this, "complete_name")->setValue( LLSD() );
+        get_owner_child<LLUICtrl>(this, "display_name")->setValue( LLSD() );
+        get_owner_child<LLUICtrl>(this, "user_name")->setValue( LLSD() );
+        get_owner_child<LLUICtrl>(this, "user_key")->setValue( LLSD() );
     }
 
     // Update the avatar name.
@@ -134,10 +159,10 @@ BOOL LLPanelProfileView::postBuild()
     getTabContainer()[PANEL_FIRST] = findChild<LLPanelAvatarFirst>(PANEL_FIRST);
 
     //*TODO remove this, according to style guide we don't use status combobox
-    getTabContainer()[PANEL_PROFILE]->getChildView("online_me_status_text")->setVisible( FALSE);
-    getTabContainer()[PANEL_PROFILE]->getChildView("status_combo")->setVisible( FALSE);
+    get_owner_view(getTabContainer()[PANEL_PROFILE], "online_me_status_text")->setVisible( FALSE);
+    get_owner_view(getTabContainer()[PANEL_PROFILE], "status_combo")->setVisible( FALSE);
 
-    mStatusText = getChild<LLTextBox>("status");
+    mStatusText = get_owner_child<LLTextBox>(this, "status");
     mStatusText->setVisible(false);
 
     // set up callback for copy URI button
@@ -195,7 +220,7 @@ void LLPanelProfileView::onBackBtnClick()
 
 void LLPanelProfileView::onCopyToClipboard()
 {
-    std::string name = getChild<LLUICtrl>("display_name")->getValue().asString() + " (" + getChild<LLUICtrl>("user_slid")->getValue().asString() + ")";
+    std::string name = get_owner_child<LLUICtrl>(this, "display_name")->getValue().asString() + " (" + get_owner_child<LLUICtrl>(this, "user_slid")->getValue().asString() + ")";
     LLClipboard::instance().copyToClipboard (utf8str_to_wstring(name), 0, name.size());
 }
 
@@ -250,47 +275,47 @@ void LLPanelProfileView::processOnlineStatus(bool online)
 void LLPanelProfileView::onAvatarNameCache(const LLUUID& agent_id,
                                            const LLAvatarName& av_name)
 {
-    getChild<LLUICtrl>("complete_name")->setValue( av_name.getCompleteName() );
-    getChild<LLUICtrl>("display_name")->setValue( av_name.mDisplayName );
-    getChild<LLUICtrl>("user_name")->setValue( av_name.mUsername );
-    getChild<LLUICtrl>("user_key")->setValue( agent_id.asString() );
-    getChild<LLUICtrl>("copy_uri")->setEnabled( true );
+    get_owner_child<LLUICtrl>(this, "complete_name")->setValue( av_name.getCompleteName() );
+    get_owner_child<LLUICtrl>(this, "display_name")->setValue( av_name.mDisplayName );
+    get_owner_child<LLUICtrl>(this, "user_name")->setValue( av_name.mUsername );
+    get_owner_child<LLUICtrl>(this, "user_key")->setValue( agent_id.asString() );
+    get_owner_child<LLUICtrl>(this, "copy_uri")->setEnabled( true );
 
 #if 1
-    getChild<LLUICtrl>("user_name")->setValue( av_name.mDisplayName );
-    getChild<LLUICtrl>("user_name_small")->setValue( av_name.mDisplayName );
-    getChild<LLUICtrl>("user_slid")->setValue( av_name.mUsername );
+    get_owner_child<LLUICtrl>(this, "user_name")->setValue( av_name.mDisplayName );
+    get_owner_child<LLUICtrl>(this, "user_name_small")->setValue( av_name.mDisplayName );
+    get_owner_child<LLUICtrl>(this, "user_slid")->setValue( av_name.mUsername );
 
     // show smaller display name if too long to display in regular size
-    if (getChild<LLTextBox>("user_name")->getTextPixelWidth() > getChild<LLTextBox>("user_name")->getRect().getWidth())
+    if (get_owner_child<LLTextBox>(this, "user_name")->getTextPixelWidth() > get_owner_child<LLTextBox>(this, "user_name")->getRect().getWidth())
     {
-        getChild<LLUICtrl>("user_name_small")->setVisible( true );
-        getChild<LLUICtrl>("user_name")->setVisible( false );
+        get_owner_child<LLUICtrl>(this, "user_name_small")->setVisible( true );
+        get_owner_child<LLUICtrl>(this, "user_name")->setVisible( false );
     }
     else
     {
-        getChild<LLUICtrl>("user_name_small")->setVisible( false );
-        getChild<LLUICtrl>("user_name")->setVisible( true );
+        get_owner_child<LLUICtrl>(this, "user_name_small")->setVisible( false );
+        get_owner_child<LLUICtrl>(this, "user_name")->setVisible( true );
     }
 #endif
 
     if (LLAvatarName::useDisplayNames())
     {
-        getChild<LLUICtrl>("user_label")->setVisible( true );
-        getChild<LLUICtrl>("user_name")->setVisible( true );
-        getChild<LLUICtrl>("display_name_label")->setVisible( true );
-        getChild<LLUICtrl>("copy_to_clipboard")->setVisible( true );
-        getChild<LLUICtrl>("copy_to_clipboard")->setEnabled( true );
-        getChild<LLUICtrl>("solo_username_label")->setVisible( false );
+        get_owner_child<LLUICtrl>(this, "user_label")->setVisible( true );
+        get_owner_child<LLUICtrl>(this, "user_name")->setVisible( true );
+        get_owner_child<LLUICtrl>(this, "display_name_label")->setVisible( true );
+        get_owner_child<LLUICtrl>(this, "copy_to_clipboard")->setVisible( true );
+        get_owner_child<LLUICtrl>(this, "copy_to_clipboard")->setEnabled( true );
+        get_owner_child<LLUICtrl>(this, "solo_username_label")->setVisible( false );
     }
     else
     {
-        getChild<LLUICtrl>("user_label")->setVisible( false );
-        getChild<LLUICtrl>("user_name")->setVisible( false );
-        getChild<LLUICtrl>("display_name_label")->setVisible( false );
-        getChild<LLUICtrl>("copy_to_clipboard")->setVisible( false );
-        getChild<LLUICtrl>("copy_to_clipboard")->setEnabled( false );
-        getChild<LLUICtrl>("solo_username_label")->setVisible( true );
+        get_owner_child<LLUICtrl>(this, "user_label")->setVisible( false );
+        get_owner_child<LLUICtrl>(this, "user_name")->setVisible( false );
+        get_owner_child<LLUICtrl>(this, "display_name_label")->setVisible( false );
+        get_owner_child<LLUICtrl>(this, "copy_to_clipboard")->setVisible( false );
+        get_owner_child<LLUICtrl>(this, "copy_to_clipboard")->setEnabled( false );
+        get_owner_child<LLUICtrl>(this, "solo_username_label")->setVisible( true );
     }
 
     LLFloater* pParentView = dynamic_cast<LLFloater*>(getParent());
@@ -301,7 +326,7 @@ void LLPanelProfileView::onAvatarNameCache(const LLUUID& agent_id,
 // Copy URI button callback
 void LLPanelProfileView::onCopyURI()
 {
-    std::string name = "secondlife:///app/agent/"+getChild<LLUICtrl>("user_key")->getValue().asString()+"/about";
+    std::string name = "secondlife:///app/agent/"+get_owner_child<LLUICtrl>(this, "user_key")->getValue().asString()+"/about";
     LLClipboard::instance().copyToClipboard (utf8str_to_wstring(name), 0, name.size());
 }
 

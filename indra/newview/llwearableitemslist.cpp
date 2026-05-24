@@ -43,6 +43,31 @@
 // [/SL:KB]
 #include "llvoavatarself.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 bool LLFindOutfitItems::operator()(LLInventoryCategory* cat,
                                    LLInventoryItem* item)
 {
@@ -101,8 +126,8 @@ bool LLPanelWearableOutfitItem::postBuild()
 {
     if (mShowWidgets)
     {
-        mAddWearableBtn = getChild<LLButton>("add_wearable");
-        mRemoveWearableBtn = getChild<LLButton>("remove_wearable");
+        mAddWearableBtn = get_owner_child<LLButton>(this, "add_wearable");
+        mRemoveWearableBtn = get_owner_child<LLButton>(this, "remove_wearable");
     }
 
     LLPanelWearableListItem::postBuild();
@@ -423,7 +448,7 @@ bool LLPanelDeletableWearableListItem::postBuild()
 
     addWidgetToLeftSide("btn_delete");
 
-    LLButton* delete_btn = getChild<LLButton>("btn_delete");
+    LLButton* delete_btn = get_owner_child<LLButton>(this, "btn_delete");
     // Reserve space for 'delete' button event if it is invisible.
     setLeftWidgetsWidth(delete_btn->getRect().mRight);
 
@@ -499,7 +524,7 @@ bool LLPanelDummyClothingListItem::postBuild()
     updateItem(wearableTypeToString(mWearableType), false);
 
     // Make it look loke clothing item - reserve space for 'delete' button
-    setLeftWidgetsWidth(getChildView("item_icon")->getRect().mLeft);
+    setLeftWidgetsWidth(get_owner_view(this, "item_icon")->getRect().mLeft);
 
     setWidgetsVisible(false);
     reshapeWidgets();
@@ -905,7 +930,7 @@ void LLWearableItemsList::ContextMenu::show(LLView* spawning_view, LLWearableTyp
     setMenuItemVisible(menup, "wearable_attach_to_hud", false);
 
     std::string new_label = LLTrans::getString("create_new_" + LLWearableType::getInstance()->getTypeName(w_type));
-    LLMenuItemGL* menu_item = menup->getChild<LLMenuItemGL>("create_new");
+    LLMenuItemGL* menu_item = get_owner_child<LLMenuItemGL>(menup, "create_new");
     menu_item->setLabel(new_label);
 
     mMenuHandle = menup->getHandle();
@@ -1124,7 +1149,7 @@ void LLWearableItemsList::ContextMenu::updateItemsLabels(LLContextMenu* menu)
     LLWearableType::EType w_type = item->getWearableType();
     std::string new_label = LLTrans::getString("create_new_" + LLWearableType::getInstance()->getTypeName(w_type));
 
-    LLMenuItemGL* menu_item = menu->getChild<LLMenuItemGL>("create_new");
+    LLMenuItemGL* menu_item = get_owner_child<LLMenuItemGL>(menu, "create_new");
     menu_item->setLabel(new_label);
 }
 

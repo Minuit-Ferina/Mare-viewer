@@ -41,6 +41,31 @@
 #include "llviewercontrol.h"
 #include <boost/regex.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 LLNotificationListItem::LLNotificationListItem(const Params& p) : LLPanel(p),
     mParams(p),
     mTitleBox(NULL),
@@ -60,16 +85,16 @@ LLNotificationListItem::LLNotificationListItem(const Params& p) : LLPanel(p),
 bool LLNotificationListItem::postBuild()
 {
     bool rv = LLPanel::postBuild();
-    mTitleBox = getChild<LLTextBox>("notification_title");
-    mTitleBoxExp = getChild<LLTextBox>("notification_title_exp");
-    mNoticeTextExp = getChild<LLChatEntry>("notification_text_exp");
+    mTitleBox = get_owner_child<LLTextBox>(this, "notification_title");
+    mTitleBoxExp = get_owner_child<LLTextBox>(this, "notification_title_exp");
+    mNoticeTextExp = get_owner_child<LLChatEntry>(this, "notification_text_exp");
 
-    mTimeBox = getChild<LLTextBox>("notification_time");
-    mTimeBoxExp = getChild<LLTextBox>("notification_time_exp");
-    mExpandBtn = getChild<LLButton>("expand_btn");
-    mCondenseBtn = getChild<LLButton>("condense_btn");
-    mCloseBtn = getChild<LLButton>("close_btn");
-    mCloseBtnExp = getChild<LLButton>("close_expanded_btn");
+    mTimeBox = get_owner_child<LLTextBox>(this, "notification_time");
+    mTimeBoxExp = get_owner_child<LLTextBox>(this, "notification_time_exp");
+    mExpandBtn = get_owner_child<LLButton>(this, "expand_btn");
+    mCondenseBtn = get_owner_child<LLButton>(this, "condense_btn");
+    mCloseBtn = get_owner_child<LLButton>(this, "close_btn");
+    mCloseBtnExp = get_owner_child<LLButton>(this, "close_expanded_btn");
 
     mTitleBox->setValue(mParams.title);
     mTitleBoxExp->setValue(mParams.title);
@@ -91,8 +116,8 @@ bool LLNotificationListItem::postBuild()
     mCloseBtn->setClickedCallback(boost::bind(&LLNotificationListItem::onClickCloseBtn,this));
     mCloseBtnExp->setClickedCallback(boost::bind(&LLNotificationListItem::onClickCloseBtn,this));
 
-    mCondensedViewPanel = getChild<LLPanel>("layout_panel_condensed_view");
-    mExpandedViewPanel = getChild<LLPanel>("layout_panel_expanded_view");
+    mCondensedViewPanel = get_owner_child<LLPanel>(this, "layout_panel_condensed_view");
+    mExpandedViewPanel = get_owner_child<LLPanel>(this, "layout_panel_expanded_view");
 
     std::string expanded_height_str = getString("item_expanded_height");
     std::string condensed_height_str = getString("item_condensed_height");
@@ -295,11 +320,11 @@ bool LLGroupInviteNotificationListItem::postBuild()
 {
     bool rv = LLGroupNotificationListItem::postBuild();
     setFee(mParams.fee);
-    mInviteButtonPanel = getChild<LLPanel>("button_panel");
+    mInviteButtonPanel = get_owner_child<LLPanel>(this, "button_panel");
     mInviteButtonPanel->setVisible(true);
-    mJoinBtn = getChild<LLButton>("join_btn");
-    mDeclineBtn = getChild<LLButton>("decline_btn");
-    mInfoBtn = getChild<LLButton>("info_btn");
+    mJoinBtn = get_owner_child<LLButton>(this, "join_btn");
+    mDeclineBtn = get_owner_child<LLButton>(this, "decline_btn");
+    mInfoBtn = get_owner_child<LLButton>(this, "info_btn");
 
     //invitation with any non-default group role, doesn't have newline characters at the end unlike simple invitations
     std::string invitation_desc = mNoticeTextExp->getValue().asString();
@@ -380,10 +405,10 @@ bool LLGroupNoticeNotificationListItem::postBuild()
 {
     bool rv = LLGroupNotificationListItem::postBuild();
 
-    mAttachmentTextBox = getChild<LLTextBox>("attachment_text");
-    mAttachmentIcon = getChild<LLIconCtrl>("attachment_icon");
-    mAttachmentIconExp = getChild<LLIconCtrl>("attachment_icon_exp");
-    mAttachmentPanel = getChild<LLPanel>("attachment_panel");
+    mAttachmentTextBox = get_owner_child<LLTextBox>(this, "attachment_text");
+    mAttachmentIcon = get_owner_child<LLIconCtrl>(this, "attachment_icon");
+    mAttachmentIconExp = get_owner_child<LLIconCtrl>(this, "attachment_icon_exp");
+    mAttachmentPanel = get_owner_child<LLPanel>(this, "attachment_panel");
     mAttachmentPanel->setVisible(false);
 
 
@@ -427,9 +452,9 @@ bool LLGroupNotificationListItem::postBuild()
 {
     bool rv = LLNotificationListItem::postBuild();
 
-    mGroupIcon = getChild<LLGroupIconCtrl>("group_icon");
-    mGroupIconExp = getChild<LLGroupIconCtrl>("group_icon_exp");
-    mGroupNameBoxExp = getChild<LLTextBox>("group_name_exp");
+    mGroupIcon = get_owner_child<LLGroupIconCtrl>(this, "group_icon");
+    mGroupIconExp = get_owner_child<LLGroupIconCtrl>(this, "group_icon_exp");
+    mGroupNameBoxExp = get_owner_child<LLTextBox>(this, "group_name_exp");
 
     mGroupIcon->setValue(mParams.group_id);
     mGroupIconExp->setValue(mParams.group_id);
@@ -439,8 +464,8 @@ bool LLGroupNotificationListItem::postBuild()
 
     mGroupId = mParams.group_id;
 
-    mSenderOrFeeBox = getChild<LLTextBox>("sender_or_fee_box");
-    mSenderOrFeeBoxExp = getChild<LLTextBox>("sender_or_fee_box_exp");
+    mSenderOrFeeBox = get_owner_child<LLTextBox>(this, "sender_or_fee_box");
+    mSenderOrFeeBoxExp = get_owner_child<LLTextBox>(this, "sender_or_fee_box_exp");
 
     LLSD value(mParams.group_id);
     setGroupId(value);
@@ -575,8 +600,8 @@ LLTransactionNotificationListItem::LLTransactionNotificationListItem(const Param
 bool LLTransactionNotificationListItem::postBuild()
 {
     bool rv = LLNotificationListItem::postBuild();
-    mAvatarIcon = getChild<LLAvatarIconCtrl>("avatar_icon");
-    mAvatarIconExp = getChild<LLAvatarIconCtrl>("avatar_icon_exp");
+    mAvatarIcon = get_owner_child<LLAvatarIconCtrl>(this, "avatar_icon");
+    mAvatarIconExp = get_owner_child<LLAvatarIconCtrl>(this, "avatar_icon_exp");
     mAvatarIcon->setValue("System_Notification");
     mAvatarIconExp->setValue("System_Notification");
 
@@ -622,8 +647,8 @@ LLSystemNotificationListItem::LLSystemNotificationListItem(const Params& p)
 bool LLSystemNotificationListItem::postBuild()
 {
     bool rv = LLNotificationListItem::postBuild();
-    mSystemNotificationIcon = getChild<LLIconCtrl>("system_notification_icon");
-    mSystemNotificationIconExp = getChild<LLIconCtrl>("system_notification_icon_exp");
+    mSystemNotificationIcon = get_owner_child<LLIconCtrl>(this, "system_notification_icon");
+    mSystemNotificationIconExp = get_owner_child<LLIconCtrl>(this, "system_notification_icon_exp");
     if (mSystemNotificationIcon)
         mSystemNotificationIcon->setVisible(true);
     if (mSystemNotificationIconExp)

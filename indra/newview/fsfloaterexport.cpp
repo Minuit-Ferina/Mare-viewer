@@ -70,6 +70,31 @@
 
 #include <boost/algorithm/string_regex.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const F32 MAX_TEXTURE_WAIT_TIME = 30.0f;
 const F32 MAX_INVENTORY_WAIT_TIME = 30.0f;
 const F32 MAX_ASSET_WAIT_TIME = 60.0f;
@@ -217,8 +242,8 @@ FSFloaterObjectExport::~FSFloaterObjectExport()
 
 bool FSFloaterObjectExport::postBuild()
 {
-    mObjectList = getChild<LLScrollListCtrl>("selected_objects");
-    mTexturePanel = getChild<LLPanel>("textures_panel");
+    mObjectList = get_owner_child<LLScrollListCtrl>(this, "selected_objects");
+    mTexturePanel = get_owner_child<LLPanel>(this, "textures_panel");
     childSetAction("export_btn", boost::bind(&FSFloaterObjectExport::onClickExport, this));
 
     LLSelectMgr::getInstance()->mUpdateSignal.connect(boost::bind(&FSFloaterObjectExport::updateSelection, this));

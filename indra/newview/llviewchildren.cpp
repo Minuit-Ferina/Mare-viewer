@@ -38,6 +38,31 @@
 #include "llpanel.h"
 #include "llviewercontrol.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 // *NOTE: Do not use mParent reference in the constructor, since it is
 // potentially not fully constructud.
@@ -49,18 +74,18 @@ LLViewChildren::LLViewChildren(LLPanel& parent)
 
 void LLViewChildren::show(const std::string& id, bool visible)
 {
-    mParent.getChildView(id)->setVisible(visible);
+    get_owner_view(&mParent, id)->setVisible(visible);
 }
 
 void LLViewChildren::enable(const std::string& id, bool enabled)
 {
-    mParent.getChildView(id)->setEnabled(enabled);
+    get_owner_view(&mParent, id)->setEnabled(enabled);
 }
 
 void LLViewChildren::setText(
     const std::string& id, const std::string& text, bool visible)
 {
-    LLTextBox* child = mParent.getChild<LLTextBox>(id);
+    LLTextBox* child = get_owner_child<LLTextBox>(&mParent, id);
     if (child)
     {
         child->setVisible(visible);
@@ -70,7 +95,7 @@ void LLViewChildren::setText(
 
 void LLViewChildren::setBadge(const std::string& id, Badge badge, bool visible)
 {
-    LLIconCtrl* child = mParent.getChild<LLIconCtrl>(id);
+    LLIconCtrl* child = get_owner_child<LLIconCtrl>(&mParent, id);
     if (child)
     {
         child->setVisible(visible);
@@ -89,7 +114,7 @@ void LLViewChildren::setBadge(const std::string& id, Badge badge, bool visible)
 void LLViewChildren::setAction(const std::string& id,
     void(*function)(void*), void* value)
 {
-    LLButton* button = mParent.getChild<LLButton>(id);
+    LLButton* button = get_owner_child<LLButton>(&mParent, id);
     if (button)
     {
         button->setClickedCallback(function, value);

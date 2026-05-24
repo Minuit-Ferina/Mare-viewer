@@ -39,6 +39,31 @@
 #include "llviewborder.h"
 #include "llvoavatarself.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // Constants for LLPanelVisualParam
 const F32 LLScrollingPanelParam::PARAM_STEP_TIME_THRESHOLD = 0.25f;
 
@@ -53,12 +78,12 @@ LLScrollingPanelParam::LLScrollingPanelParam( const LLPanel::Params& panel_param
                           LLViewerJointMesh* mesh, LLViewerVisualParam* param, bool allow_modify, LLWearable* wearable, LLJoint* jointp, bool use_hints )
     : LLScrollingPanelParamBase( panel_params, mesh, param, allow_modify, wearable, jointp, use_hints)
 {
-    mLessBtn = getChild<LLButton>("less");
-    mMoreBtn = getChild<LLButton>("more");
-    mLeftBorder = getChild<LLViewBorder>("left_border");
-    mRightBorder = getChild<LLViewBorder>("right_border");
-    mMinParamText = getChild<LLUICtrl>("min param text");
-    mMaxParamText = getChild<LLUICtrl>("max param text");
+    mLessBtn = get_owner_child<LLButton>(this, "less");
+    mMoreBtn = get_owner_child<LLButton>(this, "more");
+    mLeftBorder = get_owner_child<LLViewBorder>(this, "left_border");
+    mRightBorder = get_owner_child<LLViewBorder>(this, "right_border");
+    mMinParamText = get_owner_child<LLUICtrl>(this, "min param text");
+    mMaxParamText = get_owner_child<LLUICtrl>(this, "max param text");
 
     // *HACK To avoid hard coding texture position, lets use border's position for texture.
     static LLUICachedControl<S32> slider_ctrl_height ("UISliderctrlHeight", 0);
@@ -255,7 +280,7 @@ void LLScrollingPanelParam::onHintHeldDown( LLVisualParamHint* hint )
         // Make sure we're not taking the slider out of bounds
         // (this is where some simple UI limits are stored)
         F32 new_percent = weightToPercent(new_weight);
-        LLSliderCtrl* slider = getChild<LLSliderCtrl>("param slider");
+        LLSliderCtrl* slider = get_owner_child<LLSliderCtrl>(this, "param slider");
         if (slider)
         {
             if (slider->getMinValue() < new_percent
@@ -288,7 +313,7 @@ void LLScrollingPanelParam::onHintMinMouseUp( void* userdata )
         // step a fraction in the negative directiona
         F32 new_weight = current_weight - (range / 10.f);
         F32 new_percent = self->weightToPercent(new_weight);
-        LLSliderCtrl* slider = self->getChild<LLSliderCtrl>("param slider");
+        LLSliderCtrl* slider = get_owner_child<LLSliderCtrl>(self, "param slider");
         if (slider)
         {
             if (slider->getMinValue() < new_percent
@@ -322,7 +347,7 @@ void LLScrollingPanelParam::onHintMaxMouseUp( void* userdata )
             // step a fraction in the negative direction
             F32 new_weight = current_weight + (range / 10.f);
             F32 new_percent = self->weightToPercent(new_weight);
-            LLSliderCtrl* slider = self->getChild<LLSliderCtrl>("param slider");
+            LLSliderCtrl* slider = get_owner_child<LLSliderCtrl>(self, "param slider");
             if (slider)
             {
                 if (slider->getMinValue() < new_percent

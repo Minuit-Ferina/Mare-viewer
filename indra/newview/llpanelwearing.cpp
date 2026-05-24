@@ -50,6 +50,31 @@
 #include "lltextbox.h"
 #include "llresmgr.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // Context menu and Gear menu helper.
 static void edit_outfit()
 {
@@ -267,20 +292,20 @@ LLPanelWearing::~LLPanelWearing()
 
 bool LLPanelWearing::postBuild()
 {
-    mAccordionCtrl = getChild<LLAccordionCtrl>("wearables_accordion");
-    mWearablesTab = getChild<LLAccordionCtrlTab>("tab_wearables");
+    mAccordionCtrl = get_owner_child<LLAccordionCtrl>(this, "wearables_accordion");
+    mWearablesTab = get_owner_child<LLAccordionCtrlTab>(this, "tab_wearables");
     mWearablesTab->setIgnoreResizeNotification(true);
-    mAttachmentsTab = getChild<LLAccordionCtrlTab>("tab_temp_attachments");
+    mAttachmentsTab = get_owner_child<LLAccordionCtrlTab>(this, "tab_temp_attachments");
     mAttachmentsTab->setDropDownStateChangedCallback(boost::bind(&LLPanelWearing::onAccordionTabStateChanged, this));
 
-    mCOFItemsList = getChild<LLWearableItemsList>("cof_items_list");
+    mCOFItemsList = get_owner_child<LLWearableItemsList>(this, "cof_items_list");
     mCOFItemsList->setRightMouseDownCallback(boost::bind(&LLPanelWearing::onWearableItemsListRightClick, this, _1, _2, _3));
 
-    mTempItemsList = getChild<LLScrollListCtrl>("temp_attachments_list");
+    mTempItemsList = get_owner_child<LLScrollListCtrl>(this, "temp_attachments_list");
     mTempItemsList->setFgUnselectedColor(LLColor4::white);
     mTempItemsList->setRightMouseDownCallback(boost::bind(&LLPanelWearing::onTempAttachmentsListRightClick, this, _1, _2, _3));
     // <FS:Ansariel> Show avatar complexity in appearance floater
-    mAvatarComplexityLabel = getChild<LLTextBox>("avatar_complexity_label");
+    mAvatarComplexityLabel = get_owner_child<LLTextBox>(this, "avatar_complexity_label");
 
     return true;
 }

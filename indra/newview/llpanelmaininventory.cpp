@@ -63,6 +63,31 @@
 #include "llenvironment.h"
 #include "llweb.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const std::string FILTERS_FILENAME("filters.xml");
 
 const std::string ALL_ITEMS("All Items");
@@ -181,15 +206,15 @@ bool LLPanelMainInventory::postBuild()
 {
     gInventory.addObserver(this);
 
-    mFilterTabs = getChild<LLTabContainer>("inventory filter tabs");
+    mFilterTabs = get_owner_child<LLTabContainer>(this, "inventory filter tabs");
     mFilterTabs->setCommitCallback(boost::bind(&LLPanelMainInventory::onFilterSelected, this));
 
-    mCounterCtrl = getChild<LLUICtrl>("ItemcountText");
+    mCounterCtrl = get_owner_child<LLUICtrl>(this, "ItemcountText");
 
     //panel->getFilter().markDefault();
 
     // Set up the default inv. panel/filter settings.
-    mAllItemsPanel = getChild<LLInventoryPanel>(ALL_ITEMS);
+    mAllItemsPanel = get_owner_child<LLInventoryPanel>(this, ALL_ITEMS);
     if (mAllItemsPanel)
     {
         // "All Items" is the previous only view, so it gets the InventorySortOrder
@@ -201,7 +226,7 @@ bool LLPanelMainInventory::postBuild()
     }
     mActivePanel = mAllItemsPanel;
 
-    mRecentPanel = getChild<LLInventoryPanel>(RECENT_ITEMS);
+    mRecentPanel = get_owner_child<LLInventoryPanel>(this, RECENT_ITEMS);
     if (mRecentPanel)
     {
         // assign default values until we will be sure that we have setting to restore
@@ -215,7 +240,7 @@ bool LLPanelMainInventory::postBuild()
         mRecentPanel->setSelectCallback(boost::bind(&LLPanelMainInventory::onSelectionChange, this, mRecentPanel, _1, _2));
     }
 
-    mWornItemsPanel = getChild<LLInventoryPanel>("Worn Items");
+    mWornItemsPanel = get_owner_child<LLInventoryPanel>(this, "Worn Items");
     if (mWornItemsPanel)
     {
         U32 filter_types = 0x0;
@@ -232,7 +257,7 @@ bool LLPanelMainInventory::postBuild()
         mWornItemsPanel->setSelectCallback(boost::bind(&LLPanelMainInventory::onSelectionChange, this, mWornItemsPanel, _1, _2));
     }
 
-    LLInventoryPanel* favorites_panel = getChild<LLInventoryPanel>(FAVORITES);
+    LLInventoryPanel* favorites_panel = get_owner_child<LLInventoryPanel>(this, FAVORITES);
     if (favorites_panel)
     {
         favorites_panel->setSortOrder(gSavedSettings.getU32(LLInventoryPanel::DEFAULT_SORT_ORDER));
@@ -242,7 +267,7 @@ bool LLPanelMainInventory::postBuild()
         favorites_panel->setSelectCallback(boost::bind(&LLPanelMainInventory::onSelectionChange, this, favorites_panel, _1, _2));
     }
 
-    mSearchTypeCombo  = getChild<LLComboBox>("search_type");
+    mSearchTypeCombo  = get_owner_child<LLComboBox>(this, "search_type");
     if(mSearchTypeCombo)
     {
         mSearchTypeCombo->setCommitCallback(boost::bind(&LLPanelMainInventory::onSelectSearchType, this));
@@ -286,36 +311,36 @@ bool LLPanelMainInventory::postBuild()
 
     }
 
-    mFilterEditor = getChild<LLFilterEditor>("inventory search editor");
+    mFilterEditor = get_owner_child<LLFilterEditor>(this, "inventory search editor");
     if (mFilterEditor)
     {
         mFilterEditor->setCommitCallback(boost::bind(&LLPanelMainInventory::onFilterEdit, this, _2));
     }
 
-    mGearMenuButton = getChild<LLMenuButton>("options_gear_btn");
-    mVisibilityMenuButton = getChild<LLMenuButton>("options_visibility_btn");
-    mViewMenuButton = getChild<LLMenuButton>("view_btn");
+    mGearMenuButton = get_owner_child<LLMenuButton>(this, "options_gear_btn");
+    mVisibilityMenuButton = get_owner_child<LLMenuButton>(this, "options_visibility_btn");
+    mViewMenuButton = get_owner_child<LLMenuButton>(this, "view_btn");
 
-    mBackBtn = getChild<LLButton>("back_btn");
-    mForwardBtn = getChild<LLButton>("forward_btn");
-    mUpBtn = getChild<LLButton>("up_btn");
-    mViewModeBtn = getChild<LLButton>("view_mode_btn");
-    mNavigationBtnsPanel = getChild<LLLayoutPanel>("nav_buttons");
+    mBackBtn = get_owner_child<LLButton>(this, "back_btn");
+    mForwardBtn = get_owner_child<LLButton>(this, "forward_btn");
+    mUpBtn = get_owner_child<LLButton>(this, "up_btn");
+    mViewModeBtn = get_owner_child<LLButton>(this, "view_mode_btn");
+    mNavigationBtnsPanel = get_owner_child<LLLayoutPanel>(this, "nav_buttons");
 
-    mDefaultViewPanel = getChild<LLPanel>("default_inventory_panel");
-    mCombinationViewPanel = getChild<LLPanel>("combination_view_inventory");
-    mCombinationGalleryLayoutPanel = getChild<LLLayoutPanel>("comb_gallery_layout");
-    mCombinationListLayoutPanel = getChild<LLLayoutPanel>("comb_inventory_layout");
-    mCombinationLayoutStack = getChild<LLLayoutStack>("combination_view_stack");
+    mDefaultViewPanel = get_owner_child<LLPanel>(this, "default_inventory_panel");
+    mCombinationViewPanel = get_owner_child<LLPanel>(this, "combination_view_inventory");
+    mCombinationGalleryLayoutPanel = get_owner_child<LLLayoutPanel>(this, "comb_gallery_layout");
+    mCombinationListLayoutPanel = get_owner_child<LLLayoutPanel>(this, "comb_inventory_layout");
+    mCombinationLayoutStack = get_owner_child<LLLayoutStack>(this, "combination_view_stack");
 
-    mCombinationInventoryPanel = getChild<LLInventorySingleFolderPanel>("comb_single_folder_inv");
+    mCombinationInventoryPanel = get_owner_child<LLInventorySingleFolderPanel>(this, "comb_single_folder_inv");
     LLInventoryFilter& comb_inv_filter = mCombinationInventoryPanel->getFilter();
     comb_inv_filter.setFilterThumbnails(LLInventoryFilter::FILTER_EXCLUDE_THUMBNAILS);
     comb_inv_filter.markDefault();
     mCombinationInventoryPanel->setSelectCallback(boost::bind(&LLPanelMainInventory::onCombinationInventorySelectionChanged, this, _1, _2));
     mListViewRootUpdatedConnection = mCombinationInventoryPanel->setRootChangedCallback(boost::bind(&LLPanelMainInventory::onCombinationRootChanged, this, false));
 
-    mCombinationGalleryPanel = getChild<LLInventoryGallery>("comb_gallery_view_inv");
+    mCombinationGalleryPanel = get_owner_child<LLInventoryGallery>(this, "comb_gallery_view_inv");
     mCombinationGalleryPanel->setSortOrder(mCombinationInventoryPanel->getSortOrder());
     LLInventoryFilter& comb_gallery_filter = mCombinationGalleryPanel->getFilter();
     comb_gallery_filter.setFilterThumbnails(LLInventoryFilter::FILTER_ONLY_THUMBNAILS);
@@ -331,8 +356,8 @@ bool LLPanelMainInventory::postBuild()
     LLMenuGL* menu = (LLMenuGL*)mMenuAddHandle.get();
     if (menu)
     {
-        menu->getChild<LLMenuItemGL>("Upload Sound")->setLabelArg("[COST]", sound_upload_cost_str);
-        menu->getChild<LLMenuItemGL>("Upload Animation")->setLabelArg("[COST]", animation_upload_cost_str);
+        get_owner_child<LLMenuItemGL>(menu, "Upload Sound")->setLabelArg("[COST]", sound_upload_cost_str);
+        get_owner_child<LLMenuItemGL>(menu, "Upload Animation")->setLabelArg("[COST]", animation_upload_cost_str);
     }
 
     // Trigger callback for focus received so we can deselect items in inbox/outbox
@@ -1261,34 +1286,34 @@ bool LLFloaterInventoryFinder::postBuild()
     childSetAction("All", [this](LLUICtrl*, const LLSD&) { selectAllTypes(); });
     childSetAction("None", [this](LLUICtrl*, const LLSD&) { selectNoTypes(); });
 
-    mSpinSinceHours = getChild<LLSpinCtrl>("spin_hours_ago");
+    mSpinSinceHours = get_owner_child<LLSpinCtrl>(this, "spin_hours_ago");
     mSpinSinceHours->setCommitCallback([this](LLUICtrl*, const LLSD&) { onTimeAgo(); });
 
-    mSpinSinceDays = getChild<LLSpinCtrl>("spin_days_ago");
+    mSpinSinceDays = get_owner_child<LLSpinCtrl>(this, "spin_days_ago");
     mSpinSinceDays->setCommitCallback([this](LLUICtrl*, const LLSD&) { onTimeAgo(); });
 
-    mCreatorSelf = getChild<LLCheckBoxCtrl>("check_created_by_me");
-    mCreatorOthers = getChild<LLCheckBoxCtrl>("check_created_by_others");
+    mCreatorSelf = get_owner_child<LLCheckBoxCtrl>(this, "check_created_by_me");
+    mCreatorOthers = get_owner_child<LLCheckBoxCtrl>(this, "check_created_by_others");
     mCreatorSelf->setCommitCallback(boost::bind(&LLFloaterInventoryFinder::onCreatorSelfFilterCommit, this));
     mCreatorOthers->setCommitCallback(boost::bind(&LLFloaterInventoryFinder::onCreatorOtherFilterCommit, this));
 
-    mCheckAnimation = getChild<LLCheckBoxCtrl>("check_animation");
-    mCheckCallingCard = getChild<LLCheckBoxCtrl>("check_calling_card");
-    mCheckClothing = getChild<LLCheckBoxCtrl>("check_clothing");
-    mCheckGesture = getChild<LLCheckBoxCtrl>("check_gesture");
-    mCheckLandmark = getChild<LLCheckBoxCtrl>("check_landmark");
-    mCheckMaterial = getChild<LLCheckBoxCtrl>("check_material");
-    mCheckNotecard = getChild<LLCheckBoxCtrl>("check_notecard");
-    mCheckObject = getChild<LLCheckBoxCtrl>("check_object");
-    mCheckScript = getChild<LLCheckBoxCtrl>("check_script");
-    mCheckSounds = getChild<LLCheckBoxCtrl>("check_sound");
-    mCheckTexture = getChild<LLCheckBoxCtrl>("check_texture");
-    mCheckSnapshot = getChild<LLCheckBoxCtrl>("check_snapshot");
-    mCheckSettings = getChild<LLCheckBoxCtrl>("check_settings");
-    mCheckShowEmpty = getChild<LLCheckBoxCtrl>("check_show_empty");
-    mCheckSinceLogoff = getChild<LLCheckBoxCtrl>("check_since_logoff");
+    mCheckAnimation = get_owner_child<LLCheckBoxCtrl>(this, "check_animation");
+    mCheckCallingCard = get_owner_child<LLCheckBoxCtrl>(this, "check_calling_card");
+    mCheckClothing = get_owner_child<LLCheckBoxCtrl>(this, "check_clothing");
+    mCheckGesture = get_owner_child<LLCheckBoxCtrl>(this, "check_gesture");
+    mCheckLandmark = get_owner_child<LLCheckBoxCtrl>(this, "check_landmark");
+    mCheckMaterial = get_owner_child<LLCheckBoxCtrl>(this, "check_material");
+    mCheckNotecard = get_owner_child<LLCheckBoxCtrl>(this, "check_notecard");
+    mCheckObject = get_owner_child<LLCheckBoxCtrl>(this, "check_object");
+    mCheckScript = get_owner_child<LLCheckBoxCtrl>(this, "check_script");
+    mCheckSounds = get_owner_child<LLCheckBoxCtrl>(this, "check_sound");
+    mCheckTexture = get_owner_child<LLCheckBoxCtrl>(this, "check_texture");
+    mCheckSnapshot = get_owner_child<LLCheckBoxCtrl>(this, "check_snapshot");
+    mCheckSettings = get_owner_child<LLCheckBoxCtrl>(this, "check_settings");
+    mCheckShowEmpty = get_owner_child<LLCheckBoxCtrl>(this, "check_show_empty");
+    mCheckSinceLogoff = get_owner_child<LLCheckBoxCtrl>(this, "check_since_logoff");
 
-    mRadioDateSearchDirection = getChild<LLRadioGroup>("date_search_direction");
+    mRadioDateSearchDirection = get_owner_child<LLRadioGroup>(this, "date_search_direction");
 
     childSetAction("Close", [this](LLUICtrl*, const LLSD&) { onCloseBtn(); });
 
@@ -1366,7 +1391,7 @@ void LLFloaterInventoryFinder::updateElementsFromFilter()
     mCheckTexture->setValue((S32) (filter_types & 0x1 << LLInventoryType::IT_TEXTURE));
     mCheckSnapshot->setValue((S32) (filter_types & 0x1 << LLInventoryType::IT_SNAPSHOT));
     mCheckSettings->setValue((S32)(filter_types & 0x1 << LLInventoryType::IT_SETTINGS));
-    getChild<LLUICtrl>("check_transferrable")->setValue(mFilter->isTransferrable());
+    get_owner_child<LLUICtrl>(this, "check_transferrable")->setValue(mFilter->isTransferrable());
     mCheckShowEmpty->setValue(show_folders == LLInventoryFilter::SHOW_ALL_FOLDERS);
 
     mCreatorSelf->setValue(show_created_by_me);
@@ -1591,7 +1616,7 @@ bool LLFloaterInventoryFinder::getCheckSinceLogoff()
 }
 bool LLFloaterInventoryFinder::getCheckTransferrable()
 {
-    return getChild<LLUICtrl>("check_transferrable")->getValue();
+    return get_owner_child<LLUICtrl>(this, "check_transferrable")->getValue();
 }
 U32 LLFloaterInventoryFinder::getDateSearchDirection()
 {
@@ -1644,7 +1669,7 @@ void LLPanelMainInventory::initListCommandsHandlers()
 {
     childSetAction("trash_btn", boost::bind(&LLPanelMainInventory::onTrashButtonClick, this));
     childSetAction("add_btn", boost::bind(&LLPanelMainInventory::onAddButtonClick, this));
-    mTrashButton = getChild<LLDragAndDropButton>("trash_btn");
+    mTrashButton = get_owner_child<LLDragAndDropButton>(this, "trash_btn");
     mTrashButton->setDragAndDropHandler(boost::bind(&LLPanelMainInventory::handleDragAndDropToTrash, this
             ,   _4 // BOOL drop
             ,   _5 // EDragAndDropType cargo_type
@@ -1903,7 +1928,7 @@ void LLPanelMainInventory::showActionMenu(LLMenuGL* menu, std::string spawning_v
     {
         menu->buildDrawLabels();
         menu->updateParent(LLMenuGL::sMenuContainer);
-        LLView* spawning_view = getChild<LLView> (spawning_view_name);
+        LLView* spawning_view = get_owner_child<LLView>(this, spawning_view_name);
         S32 menu_x, menu_y;
         //show menu in co-ordinates of panel
         spawning_view->localPointToOtherView(0, 0, &menu_x, &menu_y, this);
@@ -2516,8 +2541,8 @@ void LLPanelMainInventory::setUploadCostIfNeeded()
         const std::string sound_upload_cost_str = std::to_string(LLAgentBenefitsMgr::current().getSoundUploadCost());
         const std::string animation_upload_cost_str = std::to_string(LLAgentBenefitsMgr::current().getAnimationUploadCost());
 
-        menu->getChild<LLView>("Upload Sound")->setLabelArg("[COST]", sound_upload_cost_str);
-        menu->getChild<LLView>("Upload Animation")->setLabelArg("[COST]", animation_upload_cost_str);
+        get_owner_child<LLView>(menu, "Upload Sound")->setLabelArg("[COST]", sound_upload_cost_str);
+        get_owner_child<LLView>(menu, "Upload Animation")->setLabelArg("[COST]", animation_upload_cost_str);
     }
 }
 
@@ -2560,10 +2585,10 @@ void LLPanelMainInventory::disableAddIfNeeded()
     {
         bool enable = !mSingleFolderMode || is_add_allowed(getCurrentSFVRoot());
 
-        menu->getChild<LLMenuItemGL>("New Folder")->setEnabled(enable && !isRecentItemsPanelSelected());
-        menu->getChild<LLMenuItemGL>("New Script")->setEnabled(enable);
-        menu->getChild<LLMenuItemGL>("New Note")->setEnabled(enable);
-        menu->getChild<LLMenuItemGL>("New Gesture")->setEnabled(enable);
+        get_owner_child<LLMenuItemGL>(menu, "New Folder")->setEnabled(enable && !isRecentItemsPanelSelected());
+        get_owner_child<LLMenuItemGL>(menu, "New Script")->setEnabled(enable);
+        get_owner_child<LLMenuItemGL>(menu, "New Note")->setEnabled(enable);
+        get_owner_child<LLMenuItemGL>(menu, "New Gesture")->setEnabled(enable);
         menu->setItemEnabled("New Clothes", enable);
         menu->setItemEnabled("New Body Parts", enable);
         menu->setItemEnabled("New Settings", enable);

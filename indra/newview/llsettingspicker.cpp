@@ -43,6 +43,31 @@
 #include "llviewercontrol.h"
 #include "llagent.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //=========================================================================
 namespace
 {
@@ -97,10 +122,10 @@ bool LLFloaterSettingsPicker::postBuild()
     std::string label = getString(STR_TITLE_SETTINGS);
     setTitle(prefix + " " + label);
 
-    mFilterEdit = getChild<LLFilterEditor>(FLT_INVENTORY_SEARCH);
+    mFilterEdit = get_owner_child<LLFilterEditor>(this, FLT_INVENTORY_SEARCH);
     mFilterEdit->setCommitCallback([this](LLUICtrl*, const LLSD& param) { onFilterEdit(param.asString()); });
 
-    mInventoryPanel = getChild<LLInventoryPanel>(PNL_INVENTORY);
+    mInventoryPanel = get_owner_child<LLInventoryPanel>(this, PNL_INVENTORY);
     if (mInventoryPanel)
     {
         U32 filter_types = 0x0;
@@ -124,7 +149,7 @@ bool LLFloaterSettingsPicker::postBuild()
             //todo: this is bad idea
             mInventoryPanel->setSelection(mSettingItemID, TAKE_FOCUS_NO);
         }
-        getChild<LLView>(BTN_SELECT)->setEnabled(mSettingItemID.notNull());
+        get_owner_child<LLView>(this, BTN_SELECT)->setEnabled(mSettingItemID.notNull());
     }
 
     mNoCopySettingsSelected = false;
@@ -132,7 +157,7 @@ bool LLFloaterSettingsPicker::postBuild()
     childSetAction(BTN_CANCEL, [this](LLUICtrl*, const LLSD& param){ onButtonCancel(); });
     childSetAction(BTN_SELECT, [this](LLUICtrl*, const LLSD& param){ onButtonSelect(); });
 
-    getChild<LLPanel>(PNL_COMBO)->setVisible(mTrackMode != TRACK_NONE);
+    get_owner_child<LLPanel>(this, PNL_COMBO)->setVisible(mTrackMode != TRACK_NONE);
 
     // update permission filter once UI is fully initialized
     mSavedFolderState.setApply(false);
@@ -183,7 +208,7 @@ void LLFloaterSettingsPicker::setSettingsFilter(LLSettingsType::type_e type)
 void LLFloaterSettingsPicker::setTrackMode(ETrackMode mode)
 {
     mTrackMode = mode;
-    getChild<LLPanel>(PNL_COMBO)->setVisible(mode != TRACK_NONE);
+    get_owner_child<LLPanel>(this, PNL_COMBO)->setVisible(mode != TRACK_NONE);
 
     std::string prefix = getString(STR_TITLE_PREFIX);
     std::string label;
@@ -274,8 +299,8 @@ void LLFloaterSettingsPicker::onSelectionChange(const LLFloaterSettingsPicker::i
 
     bool track_picker_enabled = mTrackMode != TRACK_NONE;
 
-    getChild<LLView>(CMB_TRACK_SELECTION)->setEnabled(is_item && track_picker_enabled && mSettingAssetID == asset_id);
-    getChild<LLView>(BTN_SELECT)->setEnabled(is_item && (!track_picker_enabled || mSettingAssetID == asset_id));
+    get_owner_child<LLView>(this, CMB_TRACK_SELECTION)->setEnabled(is_item && track_picker_enabled && mSettingAssetID == asset_id);
+    get_owner_child<LLView>(this, BTN_SELECT)->setEnabled(is_item && (!track_picker_enabled || mSettingAssetID == asset_id));
     if (track_picker_enabled && asset_id.notNull() && mSettingAssetID != asset_id)
     {
         LLUUID item_id = mSettingItemID;
@@ -304,7 +329,7 @@ void LLFloaterSettingsPicker::onAssetLoadedCb(LLHandle<LLFloater> handle, LLUUID
 
 void LLFloaterSettingsPicker::onAssetLoaded(LLUUID asset_id, LLSettingsBase::ptr_t settings)
 {
-    LLComboBox* track_selection = getChild<LLComboBox>(CMB_TRACK_SELECTION);
+    LLComboBox* track_selection = get_owner_child<LLComboBox>(this, CMB_TRACK_SELECTION);
     track_selection->clear();
     track_selection->removeall();
 
@@ -343,7 +368,7 @@ void LLFloaterSettingsPicker::onAssetLoaded(LLUUID asset_id, LLSettingsBase::ptr
     mSettingAssetID = asset_id;
     track_selection->setEnabled(true);
     track_selection->selectFirstItem();
-    getChild<LLView>(BTN_SELECT)->setEnabled(true);
+    get_owner_child<LLView>(this, BTN_SELECT)->setEnabled(true);
 }
 
 void LLFloaterSettingsPicker::onButtonCancel()
@@ -362,7 +387,7 @@ void LLFloaterSettingsPicker::applySelectedItemAndCloseFloater()
     {
         LLSD res;
         res["ItemId"] = mSettingItemID;
-        res["Track"] = getChild<LLComboBox>(CMB_TRACK_SELECTION)->getValue();
+        res["Track"] = get_owner_child<LLComboBox>(this, CMB_TRACK_SELECTION)->getValue();
         (*mCommitSignal)(this, res);
     }
     closeFloater();

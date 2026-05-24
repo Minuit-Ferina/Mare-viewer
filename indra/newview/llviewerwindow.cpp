@@ -211,6 +211,31 @@
 #include "llviewerwindowlistener.h"
 #include "llcleanup.h"
 #include "utilitybar.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 #if LL_WINDOWS
 #include <tchar.h> // For Unicode conversion methods
 #include "llwindowwin32.h" // For AltGr handling
@@ -2158,17 +2183,17 @@ void LLViewerWindow::initBase()
     getRootView()->addChild(main_view);
 
     // placeholder widget that controls where "world" is rendered
-    mWorldViewPlaceholder = main_view->getChildView("world_view_rect")->getHandle();
-    mPopupView = main_view->getChild<LLPopupView>("popup_holder");
-    mHintHolder = main_view->getChild<LLView>("hint_holder")->getHandle();
-    mLoginPanelHolder = main_view->getChild<LLView>("login_panel_holder")->getHandle();
-    mStatusBarContainer = main_view->getChild<LLPanel>("status_bar_container");
-    mNavBarContainer = mStatusBarContainer->getChild<LLView>("nav_bar_container");
-    mTopInfoContainer = main_view->getChild<LLPanel>("topinfo_bar_container");
+    mWorldViewPlaceholder = get_owner_view(main_view, "world_view_rect")->getHandle();
+    mPopupView = get_owner_child<LLPopupView>(main_view, "popup_holder");
+    mHintHolder = get_owner_child<LLView>(main_view, "hint_holder")->getHandle();
+    mLoginPanelHolder = get_owner_child<LLView>(main_view, "login_panel_holder")->getHandle();
+    mStatusBarContainer = get_owner_child<LLPanel>(main_view, "status_bar_container");
+    mNavBarContainer = get_owner_child<LLView>(mStatusBarContainer, "nav_bar_container");
+    mTopInfoContainer = get_owner_child<LLPanel>(main_view, "topinfo_bar_container");
 
     // Create the toolbar view
     // Get a pointer to the toolbar view holder
-    LLPanel* panel_holder = main_view->getChild<LLPanel>("toolbar_view_holder");
+    LLPanel* panel_holder = get_owner_child<LLPanel>(main_view, "toolbar_view_holder");
     // Load the toolbar view from file
     gToolBarView = LLUICtrlFactory::getInstance()->createFromFile<LLToolBarView>("panel_toolbar_view.xml", panel_holder, LLDefaultChildRegistry::instance());
     if (!gToolBarView)
@@ -2180,10 +2205,10 @@ void LLViewerWindow::initBase()
     // Hide the toolbars for the moment: we'll make them visible after logging in world (see LLViewerWindow::initWorldUI())
     gToolBarView->setVisible(false);
 
-    mFloaterSnapRegion = gToolBarView->getChild<LLView>("floater_snap_region");
-    mChicletContainer = gToolBarView->getChild<LLPanel>("chiclet_container");
+    mFloaterSnapRegion = get_owner_child<LLView>(gToolBarView, "floater_snap_region");
+    mChicletContainer = get_owner_child<LLPanel>(gToolBarView, "chiclet_container");
     // Constrain floaters to inside the menu and status bar regions.
-    gFloaterView = main_view->getChild<LLFloaterView>("Floater View");
+    gFloaterView = get_owner_child<LLFloaterView>(main_view, "Floater View");
     for (S32 i = 0; i < LLToolBarEnums::TOOLBAR_COUNT; ++i)
     {
         LLToolBar * toolbarp = gToolBarView->getToolbar((LLToolBarEnums::EToolBarLocation)i);
@@ -2193,7 +2218,7 @@ void LLViewerWindow::initBase()
         }
     }
     gFloaterView->setFloaterSnapView(mFloaterSnapRegion->getHandle());
-    gSnapshotFloaterView = main_view->getChild<LLSnapshotFloaterView>("Snapshot Floater View");
+    gSnapshotFloaterView = get_owner_child<LLSnapshotFloaterView>(main_view, "Snapshot Floater View");
 
     const F32 CHAT_PERSIST_TIME = 20.f;
 
@@ -2220,9 +2245,9 @@ void LLViewerWindow::initBase()
     }
 #endif
 
-    gDebugView = getRootView()->getChild<LLDebugView>("DebugView");
+    gDebugView = get_owner_child<LLDebugView>(getRootView(), "DebugView");
     gDebugView->init();
-    gToolTipView = getRootView()->getChild<LLToolTipView>("tooltip view");
+    gToolTipView = get_owner_child<LLToolTipView>(getRootView(), "tooltip view");
 
     // Initialize do not disturb response message when logged in
     LLAppViewer::instance()->setOnLoginCompletedCallback(boost::bind(&LLFloaterPreference::initDoNotDisturbResponse));
@@ -2232,7 +2257,7 @@ void LLViewerWindow::initBase()
     setShowProgress(false);
     setProgressCancelButtonVisible(false);
 
-    gMenuHolder = getRootView()->getChild<LLViewerMenuHolderGL>("Menu Holder");
+    gMenuHolder = get_owner_child<LLViewerMenuHolderGL>(getRootView(), "Menu Holder");
     LLMenuGL::sMenuContainer = gMenuHolder;
 }
 
@@ -2356,7 +2381,7 @@ void LLViewerWindow::initWorldUI()
         getRootView()->sendChildToBack(gHUDView);
     }
 
-    LLPanel* panel_ssf_container = gToolBarView->getChild<LLPanel>("state_management_buttons_container");
+    LLPanel* panel_ssf_container = get_owner_child<LLPanel>(gToolBarView, "state_management_buttons_container");
 
     LLPanelStandStopFlying* panel_stand_stop_flying = LLPanelStandStopFlying::getInstance();
     panel_ssf_container->addChild(panel_stand_stop_flying);

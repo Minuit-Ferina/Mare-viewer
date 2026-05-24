@@ -40,6 +40,31 @@
 #include "llmenugl.h"
 #include "lltrans.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // static
 void LLViewerAttachMenu::populateMenus(const std::string& attach_to_menu_name, const std::string& attach_to_hud_menu_name)
 {
@@ -48,8 +73,8 @@ void LLViewerAttachMenu::populateMenus(const std::string& attach_to_menu_name, c
 
     if (attach_to_menu_name.empty() || attach_to_hud_menu_name.empty() || !isAgentAvatarValid()) return;
 
-    LLContextMenu* attach_menu = gMenuHolder->getChild<LLContextMenu>(attach_to_menu_name);
-    LLContextMenu* attach_hud_menu = gMenuHolder->getChild<LLContextMenu>(attach_to_hud_menu_name);
+    LLContextMenu* attach_menu = get_owner_child<LLContextMenu>(gMenuHolder, attach_to_menu_name);
+    LLContextMenu* attach_hud_menu = get_owner_child<LLContextMenu>(gMenuHolder, attach_to_hud_menu_name);
 
     if (!attach_menu || attach_menu->getChildCount() != 0 ||
         !attach_hud_menu || attach_hud_menu->getChildCount() != 0)

@@ -33,6 +33,31 @@
 #include "v4color.h"
 #include "lluicolortable.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //---------------------------------------------------------------------------------
 LLSysWellItem::LLSysWellItem(const Params& p) : LLPanel(p),
                                                 mTitle(NULL),
@@ -40,8 +65,8 @@ LLSysWellItem::LLSysWellItem(const Params& p) : LLPanel(p),
 {
     buildFromFile( "panel_sys_well_item.xml");
 
-    mTitle = getChild<LLTextBox>("title");
-    mCloseBtn = getChild<LLButton>("close_btn");
+    mTitle = get_owner_child<LLTextBox>(this, "title");
+    mCloseBtn = get_owner_child<LLButton>(this, "close_btn");
 
     mTitle->setContentTrusted(false);
     mTitle->setValue(p.title);

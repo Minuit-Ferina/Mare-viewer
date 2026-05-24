@@ -41,6 +41,31 @@
 #include "llfloaterpreference.h"
 #include "llsliderctrl.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 ///----------------------------------------------------------------------------
 /// Class LLPanelVolumePulldown
 ///----------------------------------------------------------------------------
@@ -72,8 +97,8 @@ void LLPanelVolumePulldown::onAdvancedButtonClick(const LLSD& user_data)
     {
         // grab the 'audio' panel from the preferences floater and
         // bring it the front!
-        LLTabContainer* tabcontainer = prefsfloater->getChild<LLTabContainer>("pref core");
-        LLPanel* audiopanel = prefsfloater->getChild<LLPanel>("audio");
+        LLTabContainer* tabcontainer = get_owner_child<LLTabContainer>(prefsfloater, "pref core");
+        LLPanel* audiopanel = get_owner_child<LLPanel>(prefsfloater, "audio");
         if (tabcontainer && audiopanel)
         {
             tabcontainer->selectTabPanel(audiopanel);
@@ -101,10 +126,10 @@ void LLPanelVolumePulldown::updateCheckbox(LLUICtrl* ctrl, const LLSD& user_data
         // "Streaming Music" and "Media" are unchecked. STORM-513.
         if ((name == "enable_music") || (name == "enable_media"))
         {
-            bool music_enabled = getChild<LLCheckBoxCtrl>("enable_music")->get();
-            bool media_enabled = getChild<LLCheckBoxCtrl>("enable_media")->get();
+            bool music_enabled = get_owner_child<LLCheckBoxCtrl>(this, "enable_music")->get();
+            bool media_enabled = get_owner_child<LLCheckBoxCtrl>(this, "enable_media")->get();
 
-            getChild<LLCheckBoxCtrl>("media_auto_play_combo")->setEnabled(music_enabled || media_enabled);
+            get_owner_child<LLCheckBoxCtrl>(this, "media_auto_play_combo")->setEnabled(music_enabled || media_enabled);
         }
     }
 }
@@ -113,5 +138,5 @@ void LLPanelVolumePulldown::onClickSetSounds()
 {
     // Disable Enable gesture sounds checkbox if the master sound is disabled
     // or if sound effects are disabled.
-    getChild<LLCheckBoxCtrl>("gesture_audio_play_btn")->setEnabled(!gSavedSettings.getBOOL("MuteSounds"));
+    get_owner_child<LLCheckBoxCtrl>(this, "gesture_audio_play_btn")->setEnabled(!gSavedSettings.getBOOL("MuteSounds"));
 }

@@ -48,6 +48,31 @@
 #include "llsidetraypanelcontainer.h"
 #include "llviewercontrol.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //static LLPanelInjector<LLPanelBlockedList> t_panel_blocked_list("panel_block_list_sidetray");
 
 //
@@ -269,8 +294,8 @@ LLFloaterGetBlockedObjectName::~LLFloaterGetBlockedObjectName()
 
 bool LLFloaterGetBlockedObjectName::postBuild()
 {
-    getChild<LLButton>("OK")->      setCommitCallback(boost::bind(&LLFloaterGetBlockedObjectName::applyBlocking, this));
-    getChild<LLButton>("Cancel")->  setCommitCallback(boost::bind(&LLFloaterGetBlockedObjectName::cancelBlocking, this));
+    get_owner_child<LLButton>(this, "OK")->      setCommitCallback(boost::bind(&LLFloaterGetBlockedObjectName::applyBlocking, this));
+    get_owner_child<LLButton>(this, "Cancel")->  setCommitCallback(boost::bind(&LLFloaterGetBlockedObjectName::cancelBlocking, this));
     center();
 
     return LLFloater::postBuild();
@@ -312,7 +337,7 @@ void LLFloaterGetBlockedObjectName::applyBlocking()
 {
     if (mGetObjectNameCallback)
     {
-        const std::string& text = getChild<LLUICtrl>("object_name")->getValue().asString();
+        const std::string& text = get_owner_child<LLUICtrl>(this, "object_name")->getValue().asString();
         mGetObjectNameCallback(text);
     }
     closeFloater();

@@ -46,6 +46,31 @@
 #include "llviewerparcelmgr.h"
 #include "llviewerregion.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 class LLPanelTopInfoBar::LLParcelChangeObserver : public LLParcelObserver
 {
 public:
@@ -94,13 +119,13 @@ LLPanelTopInfoBar::~LLPanelTopInfoBar()
 
 void LLPanelTopInfoBar::initParcelIcons()
 {
-    mParcelIcon[VOICE_ICON] = getChild<LLIconCtrl>("voice_icon");
-    mParcelIcon[FLY_ICON] = getChild<LLIconCtrl>("fly_icon");
-    mParcelIcon[PUSH_ICON] = getChild<LLIconCtrl>("push_icon");
-    mParcelIcon[BUILD_ICON] = getChild<LLIconCtrl>("build_icon");
-    mParcelIcon[SCRIPTS_ICON] = getChild<LLIconCtrl>("scripts_icon");
-    mParcelIcon[DAMAGE_ICON] = getChild<LLIconCtrl>("damage_icon");
-    mParcelIcon[SEE_AVATARS_ICON] = getChild<LLIconCtrl>("see_avatars_icon");
+    mParcelIcon[VOICE_ICON] = get_owner_child<LLIconCtrl>(this, "voice_icon");
+    mParcelIcon[FLY_ICON] = get_owner_child<LLIconCtrl>(this, "fly_icon");
+    mParcelIcon[PUSH_ICON] = get_owner_child<LLIconCtrl>(this, "push_icon");
+    mParcelIcon[BUILD_ICON] = get_owner_child<LLIconCtrl>(this, "build_icon");
+    mParcelIcon[SCRIPTS_ICON] = get_owner_child<LLIconCtrl>(this, "scripts_icon");
+    mParcelIcon[DAMAGE_ICON] = get_owner_child<LLIconCtrl>(this, "damage_icon");
+    mParcelIcon[SEE_AVATARS_ICON] = get_owner_child<LLIconCtrl>(this, "see_avatars_icon");
 
     mParcelIcon[VOICE_ICON]->setToolTip(LLTrans::getString("LocationCtrlVoiceTooltip"));
     mParcelIcon[FLY_ICON]->setToolTip(LLTrans::getString("LocationCtrlFlyTooltip"));
@@ -141,12 +166,12 @@ bool LLPanelTopInfoBar::handleRightMouseDown(S32 x, S32 y, MASK mask)
 
 bool LLPanelTopInfoBar::postBuild()
 {
-    mInfoBtn = getChild<LLButton>("place_info_btn");
+    mInfoBtn = get_owner_child<LLButton>(this, "place_info_btn");
     mInfoBtn->setClickedCallback(boost::bind(&LLPanelTopInfoBar::onInfoButtonClicked, this));
     mInfoBtn->setToolTip(LLTrans::getString("LocationCtrlInfoBtnTooltip"));
 
-    mParcelInfoText = getChild<LLTextBox>("parcel_info_text");
-    mDamageText = getChild<LLTextBox>("damage_text");
+    mParcelInfoText = get_owner_child<LLTextBox>(this, "parcel_info_text");
+    mDamageText = get_owner_child<LLTextBox>(this, "damage_text");
 
     initParcelIcons();
 

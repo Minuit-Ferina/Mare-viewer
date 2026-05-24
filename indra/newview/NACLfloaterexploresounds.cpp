@@ -17,6 +17,31 @@
 #include "llmutelist.h"
 #include "llvoavatarself.h"         // for gAgentAvatarp
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static const size_t num_collision_sounds = 28;
 const LLUUID collision_sounds[num_collision_sounds] =
 {
@@ -61,21 +86,21 @@ NACLFloaterExploreSounds::~NACLFloaterExploreSounds()
 
 bool NACLFloaterExploreSounds::postBuild()
 {
-    getChild<LLButton>("play_locally_btn")->setClickedCallback(boost::bind(&NACLFloaterExploreSounds::handlePlayLocally, this));
-    getChild<LLButton>("look_at_btn")->setClickedCallback(boost::bind(&NACLFloaterExploreSounds::handleLookAt, this));
-    getChild<LLButton>("stop_btn")->setClickedCallback(boost::bind(&NACLFloaterExploreSounds::handleStop, this));
-    getChild<LLButton>("bl_btn")->setClickedCallback(boost::bind(&NACLFloaterExploreSounds::blockSound, this));
+    get_owner_child<LLButton>(this, "play_locally_btn")->setClickedCallback(boost::bind(&NACLFloaterExploreSounds::handlePlayLocally, this));
+    get_owner_child<LLButton>(this, "look_at_btn")->setClickedCallback(boost::bind(&NACLFloaterExploreSounds::handleLookAt, this));
+    get_owner_child<LLButton>(this, "stop_btn")->setClickedCallback(boost::bind(&NACLFloaterExploreSounds::handleStop, this));
+    get_owner_child<LLButton>(this, "bl_btn")->setClickedCallback(boost::bind(&NACLFloaterExploreSounds::blockSound, this));
 
-    mHistoryScroller = getChild<LLScrollListCtrl>("sound_list");
+    mHistoryScroller = get_owner_child<LLScrollListCtrl>(this, "sound_list");
     mHistoryScroller->setCommitCallback(boost::bind(&NACLFloaterExploreSounds::handleSelection, this));
     mHistoryScroller->setDoubleClickCallback(boost::bind(&NACLFloaterExploreSounds::handlePlayLocally, this));
     mHistoryScroller->sortByColumn("playing", TRUE);
 
-    mCollisionSounds = getChild<LLCheckBoxCtrl>("collision_chk");
-    mRepeatedAssets = getChild<LLCheckBoxCtrl>("repeated_asset_chk");
-    mAvatarSounds = getChild<LLCheckBoxCtrl>("avatars_chk");
-    mObjectSounds = getChild<LLCheckBoxCtrl>("objects_chk");
-    mPaused = getChild<LLCheckBoxCtrl>("pause_chk");
+    mCollisionSounds = get_owner_child<LLCheckBoxCtrl>(this, "collision_chk");
+    mRepeatedAssets = get_owner_child<LLCheckBoxCtrl>(this, "repeated_asset_chk");
+    mAvatarSounds = get_owner_child<LLCheckBoxCtrl>(this, "avatars_chk");
+    mObjectSounds = get_owner_child<LLCheckBoxCtrl>(this, "objects_chk");
+    mPaused = get_owner_child<LLCheckBoxCtrl>(this, "pause_chk");
 
     return true;
 }

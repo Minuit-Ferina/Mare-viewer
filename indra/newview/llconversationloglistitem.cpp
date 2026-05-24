@@ -39,6 +39,31 @@
 #include "llgroupiconctrl.h"
 #include "llinventoryicon.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 LLConversationLogListItem::LLConversationLogListItem(const LLConversation* conversation)
 :   LLPanel(),
     mConversation(conversation),
@@ -70,14 +95,14 @@ bool LLConversationLogListItem::postBuild()
     initIcons();
 
     // set conversation name
-    mConversationName = getChild<LLTextBox>("conversation_name");
+    mConversationName = get_owner_child<LLTextBox>(this, "conversation_name");
     mConversationName->setValue(mConversation->getConversationName());
 
     // set conversation date and time
-    mConversationDate = getChild<LLTextBox>("date_time");
+    mConversationDate = get_owner_child<LLTextBox>(this, "date_time");
     mConversationDate->setValue(mConversation->getTimestamp());
 
-    getChild<LLButton>("delete_btn")->setClickedCallback(boost::bind(&LLConversationLogListItem::onRemoveBtnClicked, this));
+    get_owner_child<LLButton>(this, "delete_btn")->setClickedCallback(boost::bind(&LLConversationLogListItem::onRemoveBtnClicked, this));
     setDoubleClickCallback(boost::bind(&LLConversationLogListItem::onDoubleClick, this));
 
     return true;
@@ -90,14 +115,14 @@ void LLConversationLogListItem::initIcons()
         case LLIMModel::LLIMSession::P2P_SESSION:
         case LLIMModel::LLIMSession::ADHOC_SESSION:
         {
-            LLAvatarIconCtrl* avatar_icon = getChild<LLAvatarIconCtrl>("avatar_icon");
+            LLAvatarIconCtrl* avatar_icon = get_owner_child<LLAvatarIconCtrl>(this, "avatar_icon");
             avatar_icon->setVisible(true);
             avatar_icon->setValue(mConversation->getParticipantID());
             break;
         }
         case LLIMModel::LLIMSession::GROUP_SESSION:
         {
-            LLGroupIconCtrl* group_icon = getChild<LLGroupIconCtrl>("group_icon");
+            LLGroupIconCtrl* group_icon = get_owner_child<LLGroupIconCtrl>(this, "group_icon");
             group_icon->setVisible(true);
             group_icon->setValue(mConversation->getSessionID());
             break;
@@ -108,7 +133,7 @@ void LLConversationLogListItem::initIcons()
 
     if (mConversation->hasOfflineMessages())
     {
-            getChild<LLIconCtrl>("unread_ims_icon")->setVisible(true);
+            get_owner_child<LLIconCtrl>(this, "unread_ims_icon")->setVisible(true);
     }
 }
 
@@ -124,18 +149,18 @@ void LLConversationLogListItem::updateName()
 
 void LLConversationLogListItem::updateOfflineIMs()
 {
-    getChild<LLIconCtrl>("unread_ims_icon")->setVisible(mConversation->hasOfflineMessages());
+    get_owner_child<LLIconCtrl>(this, "unread_ims_icon")->setVisible(mConversation->hasOfflineMessages());
 }
 
 void LLConversationLogListItem::onMouseEnter(S32 x, S32 y, MASK mask)
 {
-    getChildView("hovered_icon")->setVisible(true);
+    get_owner_view(this, "hovered_icon")->setVisible(true);
     LLPanel::onMouseEnter(x, y, mask);
 }
 
 void LLConversationLogListItem::onMouseLeave(S32 x, S32 y, MASK mask)
 {
-    getChildView("hovered_icon")->setVisible(false);
+    get_owner_view(this, "hovered_icon")->setVisible(false);
     LLPanel::onMouseLeave(x, y, mask);
 }
 
@@ -146,14 +171,14 @@ void LLConversationLogListItem::setValue(const LLSD& value)
         return;
     }
 
-    getChildView("selected_icon")->setVisible(value["selected"]);
+    get_owner_view(this, "selected_icon")->setVisible(value["selected"]);
 }
 
 void LLConversationLogListItem::onIMFloaterShown(const LLUUID& session_id)
 {
     if (mConversation->getSessionID() == session_id)
     {
-        getChild<LLIconCtrl>("unread_ims_icon")->setVisible(false);
+        get_owner_child<LLIconCtrl>(this, "unread_ims_icon")->setVisible(false);
     }
 }
 

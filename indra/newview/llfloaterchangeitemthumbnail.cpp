@@ -53,13 +53,13 @@
 namespace
 {
 template <typename T>
-[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = true)
 {
     return owner->getChild<T>(name, recurse);
 }
 
 template <typename T>
-[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = true)
 {
     return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
 }

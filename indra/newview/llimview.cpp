@@ -80,6 +80,31 @@
 
 #include <array>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const static std::string ADHOC_NAME_SUFFIX(" Conference");
 
 const static std::string NEARBY_P2P_BY_OTHER("nearby_P2P_by_other");
@@ -2658,8 +2683,8 @@ void LLCallDialog::setIcon(const LLSD& session_id, const LLSD& participant_id)
 
     bool is_group = participant_is_avatar && gAgent.isInGroup(session_id, true);
 
-    LLAvatarIconCtrl* avatar_icon = getChild<LLAvatarIconCtrl>("avatar_icon");
-    LLGroupIconCtrl* group_icon = getChild<LLGroupIconCtrl>("group_icon");
+    LLAvatarIconCtrl* avatar_icon = get_owner_child<LLAvatarIconCtrl>(this, "avatar_icon");
+    LLGroupIconCtrl* group_icon = get_owner_child<LLGroupIconCtrl>(this, "group_icon");
 
     avatar_icon->setVisible(!is_group);
     group_icon->setVisible(is_group);
@@ -2721,27 +2746,27 @@ void LLOutgoingCallDialog::show(const LLSD& key)
     {
         std::string old_caller_name = mPayload["old_channel_name"].asString();
 
-        getChild<LLUICtrl>("leaving")->setTextArg("[CURRENT_CHAT]", old_caller_name);
+        get_owner_child<LLUICtrl>(this, "leaving")->setTextArg("[CURRENT_CHAT]", old_caller_name);
         show_oldchannel = true;
     }
     else
     {
-        getChild<LLUICtrl>("leaving")->setTextArg("[CURRENT_CHAT]", getString("localchat"));
+        get_owner_child<LLUICtrl>(this, "leaving")->setTextArg("[CURRENT_CHAT]", getString("localchat"));
     }
 
     if (!mPayload["disconnected_channel_name"].asString().empty())
     {
         std::string channel_name = mPayload["disconnected_channel_name"].asString();
-        getChild<LLUICtrl>("nearby")->setTextArg("[VOICE_CHANNEL_NAME]", channel_name);
+        get_owner_child<LLUICtrl>(this, "nearby")->setTextArg("[VOICE_CHANNEL_NAME]", channel_name);
 
         // skipping "You will now be reconnected to nearby" in notification when call is ended by disabling voice,
         // so no reconnection to nearby chat happens (EXT-4397)
         bool voice_works = LLVoiceClient::getInstance()->voiceEnabled() && LLVoiceClient::getInstance()->isVoiceWorking();
         std::string reconnect_nearby = voice_works ? LLTrans::getString("reconnect_nearby") : std::string();
-        getChild<LLUICtrl>("nearby")->setTextArg("[RECONNECT_NEARBY]", reconnect_nearby);
+        get_owner_child<LLUICtrl>(this, "nearby")->setTextArg("[RECONNECT_NEARBY]", reconnect_nearby);
 
         const std::string& nearby_str = mPayload["ended_by_agent"] ? NEARBY_P2P_BY_AGENT : NEARBY_P2P_BY_OTHER;
-        getChild<LLUICtrl>(nearby_str)->setTextArg("[RECONNECT_NEARBY]", reconnect_nearby);
+        get_owner_child<LLUICtrl>(this, nearby_str)->setTextArg("[RECONNECT_NEARBY]", reconnect_nearby);
     }
 
     std::string callee_name = mPayload["session_name"].asString();
@@ -2764,8 +2789,8 @@ void LLOutgoingCallDialog::show(const LLSD& key)
             title = av_name.getCompleteName();
         }
     }
-    getChild<LLUICtrl>("calling")->setTextArg("[CALLEE_NAME]", final_callee_name);
-    getChild<LLUICtrl>("connecting")->setTextArg("[CALLEE_NAME]", final_callee_name);
+    get_owner_child<LLUICtrl>(this, "calling")->setTextArg("[CALLEE_NAME]", final_callee_name);
+    get_owner_child<LLUICtrl>(this, "connecting")->setTextArg("[CALLEE_NAME]", final_callee_name);
 
     setTitle(title);
 
@@ -2779,11 +2804,11 @@ void LLOutgoingCallDialog::show(const LLSD& key)
     switch(mPayload["state"].asInteger())
     {
     case LLVoiceChannel::STATE_CALL_STARTED :
-        getChild<LLTextBox>("calling")->setVisible(true);
-        getChild<LLButton>("Cancel")->setVisible(true);
+        get_owner_child<LLTextBox>(this, "calling")->setVisible(true);
+        get_owner_child<LLButton>(this, "Cancel")->setVisible(true);
         if(show_oldchannel)
         {
-            getChild<LLTextBox>("leaving")->setVisible(true);
+            get_owner_child<LLTextBox>(this, "leaving")->setVisible(true);
         }
         break;
     // STATE_READY is here to show appropriate text for ad-hoc and group calls when floater is shown(EXT-6893)
@@ -2791,13 +2816,13 @@ void LLOutgoingCallDialog::show(const LLSD& key)
     case LLVoiceChannel::STATE_RINGING :
         if(show_oldchannel)
         {
-            getChild<LLTextBox>("leaving")->setVisible(true);
+            get_owner_child<LLTextBox>(this, "leaving")->setVisible(true);
         }
-        getChild<LLTextBox>("connecting")->setVisible(true);
+        get_owner_child<LLTextBox>(this, "connecting")->setVisible(true);
         break;
     case LLVoiceChannel::STATE_ERROR :
-        getChild<LLTextBox>("noanswer")->setVisible(true);
-        getChild<LLButton>("Cancel")->setVisible(false);
+        get_owner_child<LLTextBox>(this, "noanswer")->setVisible(true);
+        get_owner_child<LLButton>(this, "Cancel")->setVisible(false);
         setCanClose(true);
         mLifetimeTimer.start();
         break;
@@ -2805,13 +2830,13 @@ void LLOutgoingCallDialog::show(const LLSD& key)
         if (mPayload["session_type"].asInteger() == LLIMModel::LLIMSession::P2P_SESSION)
         {
             const std::string& nearby_str = mPayload["ended_by_agent"] ? NEARBY_P2P_BY_AGENT : NEARBY_P2P_BY_OTHER;
-            getChild<LLTextBox>(nearby_str)->setVisible(true);
+            get_owner_child<LLTextBox>(this, nearby_str)->setVisible(true);
         }
         else
         {
-            getChild<LLTextBox>("nearby")->setVisible(true);
+            get_owner_child<LLTextBox>(this, "nearby")->setVisible(true);
         }
-        getChild<LLButton>("Cancel")->setVisible(false);
+        get_owner_child<LLButton>(this, "Cancel")->setVisible(false);
         setCanClose(true);
         mLifetimeTimer.start();
     }
@@ -2821,13 +2846,13 @@ void LLOutgoingCallDialog::show(const LLSD& key)
 
 void LLOutgoingCallDialog::hideAllText()
 {
-    getChild<LLTextBox>("calling")->setVisible(false);
-    getChild<LLTextBox>("leaving")->setVisible(false);
-    getChild<LLTextBox>("connecting")->setVisible(false);
-    getChild<LLTextBox>("nearby_P2P_by_other")->setVisible(false);
-    getChild<LLTextBox>("nearby_P2P_by_agent")->setVisible(false);
-    getChild<LLTextBox>("nearby")->setVisible(false);
-    getChild<LLTextBox>("noanswer")->setVisible(false);
+    get_owner_child<LLTextBox>(this, "calling")->setVisible(false);
+    get_owner_child<LLTextBox>(this, "leaving")->setVisible(false);
+    get_owner_child<LLTextBox>(this, "connecting")->setVisible(false);
+    get_owner_child<LLTextBox>(this, "nearby_P2P_by_other")->setVisible(false);
+    get_owner_child<LLTextBox>(this, "nearby_P2P_by_agent")->setVisible(false);
+    get_owner_child<LLTextBox>(this, "nearby")->setVisible(false);
+    get_owner_child<LLTextBox>(this, "noanswer")->setVisible(false);
 }
 
 //static
@@ -2983,7 +3008,7 @@ bool LLIncomingCallDialog::postBuild()
 
     //it's not possible to connect to existing Ad-Hoc/Group chat through incoming ad-hoc call
     bool is_avatar = LLVoiceClient::getInstance()->isParticipantAvatar(session_id);
-    getChildView("Start IM")->setVisible( is_avatar && notify_box_type != "VoiceInviteAdHoc" && notify_box_type != "VoiceInviteGroup");
+    get_owner_view(this, "Start IM")->setVisible( is_avatar && notify_box_type != "VoiceInviteAdHoc" && notify_box_type != "VoiceInviteGroup");
 
     setCanDrag(false);
     return true;
@@ -2995,7 +3020,7 @@ void LLIncomingCallDialog::setCallerName(const std::string& ui_title,
 {
 
     // call_type may be a string like " is calling."
-    LLUICtrl* caller_name_widget = getChild<LLUICtrl>("caller name");
+    LLUICtrl* caller_name_widget = get_owner_child<LLUICtrl>(this, "caller name");
     caller_name_widget->setValue(ui_label + " " + call_type);
 }
 

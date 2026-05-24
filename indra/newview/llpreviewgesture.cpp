@@ -53,6 +53,31 @@
 #include "llviewerstats.h"
 #include "llviewerassetupload.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 std::string NONE_LABEL;
 std::string SHIFT_LABEL;
 std::string CTRL_LABEL;
@@ -347,21 +372,21 @@ bool LLPreviewGesture::postBuild()
     LLTextBox* text;
     LLCheckBoxCtrl* check;
 
-    edit = getChild<LLLineEditor>("desc");
+    edit = get_owner_child<LLLineEditor>(this, "desc");
     edit->setKeystrokeCallback(onKeystrokeCommit, this);
 
-    edit = getChild<LLLineEditor>("trigger_editor");
+    edit = get_owner_child<LLLineEditor>(this, "trigger_editor");
     edit->setKeystrokeCallback(onKeystrokeCommit, this);
     edit->setCommitCallback(onCommitSetDirty, this);
     edit->setCommitOnFocusLost(true);
     edit->setIgnoreTab(true);
     mTriggerEditor = edit;
 
-    text = getChild<LLTextBox>("replace_text");
+    text = get_owner_child<LLTextBox>(this, "replace_text");
     text->setEnabled(false);
     mReplaceText = text;
 
-    edit = getChild<LLLineEditor>("replace_editor");
+    edit = get_owner_child<LLLineEditor>(this, "replace_editor");
     edit->setEnabled(false);
     edit->setKeystrokeCallback(onKeystrokeCommit, this);
     edit->setCommitCallback(onCommitSetDirty, this);
@@ -369,76 +394,76 @@ bool LLPreviewGesture::postBuild()
     edit->setIgnoreTab(true);
     mReplaceEditor = edit;
 
-    combo = getChild<LLComboBox>( "modifier_combo");
+    combo = get_owner_child<LLComboBox>(this,  "modifier_combo");
     combo->setCommitCallback(boost::bind(&LLPreviewGesture::onCommitKeyorModifier, this));
     mModifierCombo = combo;
 
-    combo = getChild<LLComboBox>( "key_combo");
+    combo = get_owner_child<LLComboBox>(this,  "key_combo");
     combo->setCommitCallback(boost::bind(&LLPreviewGesture::onCommitKeyorModifier, this));
     mKeyCombo = combo;
 
-    list = getChild<LLScrollListCtrl>("library_list");
+    list = get_owner_child<LLScrollListCtrl>(this, "library_list");
     list->setCommitCallback(onCommitLibrary, this);
     list->setDoubleClickCallback(onClickAdd, this);
     mLibraryList = list;
 
-    btn = getChild<LLButton>( "add_btn");
+    btn = get_owner_child<LLButton>(this,  "add_btn");
     btn->setClickedCallback(onClickAdd, this);
     mAddBtn = btn;
 
-    btn = getChild<LLButton>( "up_btn");
+    btn = get_owner_child<LLButton>(this,  "up_btn");
     btn->setClickedCallback(onClickUp, this);
     mUpBtn = btn;
 
-    btn = getChild<LLButton>( "down_btn");
+    btn = get_owner_child<LLButton>(this,  "down_btn");
     btn->setClickedCallback(onClickDown, this);
     mDownBtn = btn;
 
-    btn = getChild<LLButton>( "delete_btn");
+    btn = get_owner_child<LLButton>(this,  "delete_btn");
     btn->setClickedCallback(onClickDelete, this);
     mDeleteBtn = btn;
     setStepEditButtonsEnabled(false);
 
-    list = getChild<LLScrollListCtrl>("step_list");
+    list = get_owner_child<LLScrollListCtrl>(this, "step_list");
     list->setCommitCallback(onCommitStep, this);
     mStepList = list;
 
     // Options
-    mOptionsText = getChild<LLTextBox>("options_text");
+    mOptionsText = get_owner_child<LLTextBox>(this, "options_text");
 
-    combo = getChild<LLComboBox>( "animation_list");
+    combo = get_owner_child<LLComboBox>(this,  "animation_list");
     combo->setCommitCallback(onCommitAnimation, this);
     mAnimationCombo = combo;
 
     LLRadioGroup* group;
-    group = getChild<LLRadioGroup>("animation_trigger_type");
+    group = get_owner_child<LLRadioGroup>(this, "animation_trigger_type");
     group->setCommitCallback(onCommitAnimationTrigger, this);
     mAnimationRadio = group;
 
-    combo = getChild<LLComboBox>( "sound_list");
+    combo = get_owner_child<LLComboBox>(this,  "sound_list");
     combo->setCommitCallback(onCommitSound, this);
     mSoundCombo = combo;
 
-    edit = getChild<LLLineEditor>("chat_editor");
+    edit = get_owner_child<LLLineEditor>(this, "chat_editor");
     edit->setCommitCallback(onCommitChat, this);
     //edit->setKeystrokeCallback(onKeystrokeCommit, this);
     edit->setCommitOnFocusLost(true);
     edit->setIgnoreTab(true);
     mChatEditor = edit;
 
-    check = getChild<LLCheckBoxCtrl>( "wait_key_release_check");
+    check = get_owner_child<LLCheckBoxCtrl>(this,  "wait_key_release_check");
     check->setCommitCallback(onCommitWait, this);
     mWaitKeyReleaseCheck = check;
 
-    check = getChild<LLCheckBoxCtrl>( "wait_anim_check");
+    check = get_owner_child<LLCheckBoxCtrl>(this,  "wait_anim_check");
     check->setCommitCallback(onCommitWait, this);
     mWaitAnimCheck = check;
 
-    check = getChild<LLCheckBoxCtrl>( "wait_time_check");
+    check = get_owner_child<LLCheckBoxCtrl>(this,  "wait_time_check");
     check->setCommitCallback(onCommitWait, this);
     mWaitTimeCheck = check;
 
-    edit = getChild<LLLineEditor>("wait_time_editor");
+    edit = get_owner_child<LLLineEditor>(this, "wait_time_editor");
     edit->setEnabled(false);
     edit->setPrevalidate(LLTextValidate::validateFloat);
 //  edit->setKeystrokeCallback(onKeystrokeCommit, this);
@@ -449,15 +474,15 @@ bool LLPreviewGesture::postBuild()
     hideStepOptionControls();
 
     // Buttons at the bottom
-    check = getChild<LLCheckBoxCtrl>( "active_check");
+    check = get_owner_child<LLCheckBoxCtrl>(this,  "active_check");
     check->setCommitCallback(onCommitActive, this);
     mActiveCheck = check;
 
-    btn = getChild<LLButton>( "save_btn");
+    btn = get_owner_child<LLButton>(this,  "save_btn");
     btn->setClickedCallback(onClickSave, this);
     mSaveBtn = btn;
 
-    btn = getChild<LLButton>( "preview_btn");
+    btn = get_owner_child<LLButton>(this,  "preview_btn");
     btn->setClickedCallback(onClickPreview, this);
     mPreviewBtn = btn;
 
@@ -478,8 +503,8 @@ void LLPreviewGesture::setupDescriptionField(const LLInventoryItem* item)
 {
     if (item)
     {
-        getChild<LLUICtrl>("desc")->setValue(item->getDescription());
-        getChild<LLLineEditor>("desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
+        get_owner_child<LLUICtrl>(this, "desc")->setValue(item->getDescription());
+        get_owner_child<LLLineEditor>(this, "desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
     }
 }
 
@@ -637,7 +662,7 @@ void LLPreviewGesture::refresh()
     if (mPreviewGesture || !is_complete)
     {
 
-        getChildView("desc")->setEnabled(false);
+        get_owner_view(this, "desc")->setEnabled(false);
         //mDescEditor->setEnabled(false);
         mTriggerEditor->setEnabled(false);
         mReplaceText->setEnabled(false);
@@ -669,7 +694,7 @@ void LLPreviewGesture::refresh()
 
     bool modifiable = item->getPermissions().allowModifyBy(gAgent.getID());
 
-    getChildView("desc")->setEnabled(modifiable);
+    get_owner_view(this, "desc")->setEnabled(modifiable);
     mTriggerEditor->setEnabled(true);
     mLibraryList->setEnabled(modifiable);
     mStepList->setEnabled(modifiable);
@@ -1163,7 +1188,7 @@ void LLPreviewGesture::saveIfNeeded()
             S32 size = dp.getCurrentSize();
             file.write((U8*)buffer, size);
 
-            LLLineEditor* descEditor = getChild<LLLineEditor>("desc");
+            LLLineEditor* descEditor = get_owner_child<LLLineEditor>(this, "desc");
             LLSaveInfo* info = new LLSaveInfo(mItemUUID, mObjectUUID, descEditor->getText(), tid);
             gAssetStorage->storeAssetData(tid, LLAssetType::AT_GESTURE, onSaveComplete, info, false);
         }
@@ -1694,7 +1719,7 @@ std::string LLPreviewGesture::getLabel(std::vector<std::string> labels)
     }
     else if ("until animations are done" == action)
     {
-        action = LLFloaterReg::getInstance("preview_gesture")->getChild<LLCheckBoxCtrl>("wait_anim_check")->getLabel();
+        action = get_owner_child<LLCheckBoxCtrl>(LLFloaterReg::getInstance("preview_gesture"), "wait_anim_check")->getLabel();
     }
     result.append(action);
     return result;

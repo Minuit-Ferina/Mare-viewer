@@ -38,6 +38,31 @@
 #include "llfloaternotificationstabbed.h"
 #include "llviewermenu.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLDefaultChildRegistry::Register<LLChicletPanel> t1("chiclet_panel");
 static LLDefaultChildRegistry::Register<LLNotificationChiclet> t2("chiclet_notification");
 static LLDefaultChildRegistry::Register<LLScriptChiclet> t6("chiclet_script");
@@ -342,7 +367,7 @@ LLIMChiclet::~LLIMChiclet()
 /* virtual*/
 bool LLIMChiclet::postBuild()
 {
-    mChicletButton = getChild<LLButton>("chiclet_button");
+    mChicletButton = get_owner_child<LLButton>(this, "chiclet_button");
     mChicletButton->setCommitCallback(boost::bind(&LLIMChiclet::onMouseDown, this));
     mChicletButton->setDoubleClickCallback(boost::bind(&LLIMChiclet::onMouseDown, this));
     return true;
@@ -514,13 +539,13 @@ bool LLChicletPanel::postBuild()
     LLIMChiclet::sFindChicletsSignal.connect(boost::bind(&LLChicletPanel::findChiclet<LLChiclet>, this, _1));
     mVoiceChannelChanged = LLVoiceChannel::setCurrentVoiceChannelChangedCallback(boost::bind(&LLChicletPanel::onCurrentVoiceChannelChanged, this, _1));
 
-    mLeftScrollButton=getChild<LLButton>("chicklet_left_scroll_button");
+    mLeftScrollButton=get_owner_child<LLButton>(this, "chicklet_left_scroll_button");
     LLTransientFloaterMgr::getInstance()->addControlView(mLeftScrollButton);
     mLeftScrollButton->setMouseDownCallback(boost::bind(&LLChicletPanel::onLeftScrollClick,this));
     mLeftScrollButton->setHeldDownCallback(boost::bind(&LLChicletPanel::onLeftScrollHeldDown,this));
     mLeftScrollButton->setEnabled(false);
 
-    mRightScrollButton=getChild<LLButton>("chicklet_right_scroll_button");
+    mRightScrollButton=get_owner_child<LLButton>(this, "chicklet_right_scroll_button");
     LLTransientFloaterMgr::getInstance()->addControlView(mRightScrollButton);
     mRightScrollButton->setMouseDownCallback(boost::bind(&LLChicletPanel::onRightScrollClick,this));
     mRightScrollButton->setHeldDownCallback(boost::bind(&LLChicletPanel::onRightScrollHeldDown,this));

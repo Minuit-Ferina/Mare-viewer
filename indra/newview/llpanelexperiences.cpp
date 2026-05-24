@@ -37,6 +37,31 @@
 #include "llslurl.h"
 #include "lllayoutstack.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 
 static LLPanelInjector<LLPanelExperiences> register_experiences_panel("experiences_panel");
@@ -53,7 +78,7 @@ LLPanelExperiences::LLPanelExperiences(  )
 
 bool LLPanelExperiences::postBuild( void )
 {
-    mExperiencesList = getChild<LLFlatListView>("experiences_list");
+    mExperiencesList = get_owner_child<LLFlatListView>(this, "experiences_list");
     if (hasString("loading_experiences"))
     {
         mExperiencesList->setNoItemsCommentText(getString("loading_experiences"));
@@ -156,12 +181,12 @@ void LLPanelExperiences::setButtonAction(const std::string& label, const commit_
 {
     if(label.empty())
     {
-        getChild<LLLayoutPanel>("button_panel")->setVisible(false);
+        get_owner_child<LLLayoutPanel>(this, "button_panel")->setVisible(false);
     }
     else
     {
-        getChild<LLLayoutPanel>("button_panel")->setVisible(true);
-        LLButton* child = getChild<LLButton>("btn_action");
+        get_owner_child<LLLayoutPanel>(this, "button_panel")->setVisible(true);
+        LLButton* child = get_owner_child<LLButton>(this, "btn_action");
         child->setCommitCallback(cb);
         child->setLabel(getString(label));
     }
@@ -169,7 +194,7 @@ void LLPanelExperiences::setButtonAction(const std::string& label, const commit_
 
 void LLPanelExperiences::enableButton( bool enable )
 {
-    getChild<LLButton>("btn_action")->setEnabled(enable);
+    get_owner_child<LLButton>(this, "btn_action")->setEnabled(enable);
 }
 
 
@@ -181,7 +206,7 @@ LLExperienceItem::LLExperienceItem()
 
 void LLExperienceItem::init( const LLUUID& id)
 {
-    mName = getChild<LLUICtrl>("experience_name");
+    mName = get_owner_child<LLUICtrl>(this, "experience_name");
     mName->setValue(LLSLURL("experience", id, "profile").getSLURLString());
 }
 
@@ -208,7 +233,7 @@ void LLPanelSearchExperiences::doSearch()
 LLPanelSearchExperiences* LLPanelSearchExperiences::create( const std::string& name )
 {
     LLPanelSearchExperiences* panel= new LLPanelSearchExperiences();
-    panel->getChild<LLPanel>("results")->addChild(LLPanelExperiences::create(name));
+    get_owner_child<LLPanel>(panel, "results")->addChild(LLPanelExperiences::create(name));
     return panel;
 }
 

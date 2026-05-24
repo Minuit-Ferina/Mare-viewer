@@ -56,6 +56,31 @@
 
 #include "roles_constants.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLPanelGroupRoles> t_panel_group_roles("panel_group_roles");
 
 bool agentCanRemoveFromRole(const LLUUID& group_id,
@@ -131,7 +156,7 @@ bool LLPanelGroupRoles::postBuild()
 {
     LL_DEBUGS() << "LLPanelGroupRoles::postBuild()" << LL_ENDL;
 
-    mSubTabContainer = getChild<LLTabContainer>("roles_tab_container");
+    mSubTabContainer = get_owner_child<LLTabContainer>(this, "roles_tab_container");
 
     if (!mSubTabContainer) return false;
 
@@ -413,7 +438,7 @@ void LLPanelGroupRoles::setGroupID(const LLUUID& id)
     if(group_actions_tab) group_actions_tab->setGroupID(id);
     if(group_ban_tab) group_ban_tab->setGroupID(id);
 
-    LLButton* button = getChild<LLButton>("member_invite");
+    LLButton* button = get_owner_child<LLButton>(this, "member_invite");
     if ( button )
         button->setEnabled(gAgent.hasPowerInGroup(mGroupID, GP_MEMBER_INVITE));
 
@@ -817,10 +842,10 @@ bool LLPanelGroupMembersSubTab::postBuildSubTab(LLView* root)
     mHeader = root->findChild<LLPanel>("members_header");
     mFooter = root->findChild<LLPanel>("members_footer");
 
-    mMembersList = root->getChild<LLNameListCtrl>("member_list");
-    mAssignedRolesList = root->getChild<LLScrollListCtrl>("member_assigned_roles");
-    mAllowedActionsList = root->getChild<LLScrollListCtrl>("member_allowed_actions");
-    mActionDescription = root->getChild<LLTextEditor>("member_action_description");
+    mMembersList = get_owner_child<LLNameListCtrl>(root, "member_list");
+    mAssignedRolesList = get_owner_child<LLScrollListCtrl>(root, "member_assigned_roles");
+    mAllowedActionsList = get_owner_child<LLScrollListCtrl>(root, "member_allowed_actions");
+    mActionDescription = get_owner_child<LLTextEditor>(root, "member_action_description");
 
     mAllowedActionsList->setCommitOnSelectionChange(true);
     mAllowedActionsList->setCommitCallback(boost::bind(&LLPanelGroupMembersSubTab::updateActionDescription, this));
@@ -844,15 +869,15 @@ bool LLPanelGroupMembersSubTab::postBuildSubTab(LLView* root)
         mMembersList->sortByColumn(order_by, true);
     }
 
-    LLButton* button = root->getChild<LLButton>("member_invite");
+    LLButton* button = get_owner_child<LLButton>(root, "member_invite");
     button->setClickedCallback(onInviteMember, this);
     button->setEnabled(gAgent.hasPowerInGroup(mGroupID, GP_MEMBER_INVITE));
 
-    mEjectBtn = root->getChild<LLButton>("member_eject");
+    mEjectBtn = get_owner_child<LLButton>(root, "member_eject");
     mEjectBtn->setClickedCallback(onEjectMembers, this);
     mEjectBtn->setEnabled(false);
 
-    mBanBtn = root->getChild<LLButton>("member_ban");
+    mBanBtn = get_owner_child<LLButton>(root, "member_ban");
     mBanBtn->setClickedCallback(onBanMember, this);
     mBanBtn->setEnabled(false);
 
@@ -1966,28 +1991,28 @@ bool LLPanelGroupRolesSubTab::postBuildSubTab(LLView* root)
     mHeader = parent->findChild<LLPanel>("roles_header");
     mFooter = parent->findChild<LLPanel>("roles_footer");
 
-    mRolesList = parent->getChild<LLScrollListCtrl>("role_list");
-    mAssignedMembersList = parent->getChild<LLNameListCtrl>("role_assigned_members");
-    mAllowedActionsList = parent->getChild<LLScrollListCtrl>("role_allowed_actions");
-    mActionDescription  = parent->getChild<LLTextEditor>("role_action_description");
+    mRolesList = get_owner_child<LLScrollListCtrl>(parent, "role_list");
+    mAssignedMembersList = get_owner_child<LLNameListCtrl>(parent, "role_assigned_members");
+    mAllowedActionsList = get_owner_child<LLScrollListCtrl>(parent, "role_allowed_actions");
+    mActionDescription  = get_owner_child<LLTextEditor>(parent, "role_action_description");
 
-    mRoleName = parent->getChild<LLLineEditor>("role_name");
-    mRoleTitle = parent->getChild<LLLineEditor>("role_title");
-    mRoleDescription = parent->getChild<LLTextEditor>("role_description");
+    mRoleName = get_owner_child<LLLineEditor>(parent, "role_name");
+    mRoleTitle = get_owner_child<LLLineEditor>(parent, "role_title");
+    mRoleDescription = get_owner_child<LLTextEditor>(parent, "role_description");
 
-    mMemberVisibleCheck = parent->getChild<LLCheckBoxCtrl>("role_visible_in_list");
+    mMemberVisibleCheck = get_owner_child<LLCheckBoxCtrl>(parent, "role_visible_in_list");
 
     mRemoveEveryoneTxt = getString("cant_delete_role");
 
-    mCreateRoleButton = parent->getChild<LLButton>("role_create");
+    mCreateRoleButton = get_owner_child<LLButton>(parent, "role_create");
     mCreateRoleButton->setClickedCallback(onCreateRole, this);
     mCreateRoleButton->setEnabled(false);
 
-    mCopyRoleButton = parent->getChild<LLButton>("role_copy");
+    mCopyRoleButton = get_owner_child<LLButton>(parent, "role_copy");
     mCopyRoleButton->setClickedCallback(onCopyRole, this);
     mCopyRoleButton->setEnabled(false);
 
-    mDeleteRoleButton = parent->getChild<LLButton>("role_delete");
+    mDeleteRoleButton = get_owner_child<LLButton>(parent, "role_delete");
     mDeleteRoleButton->setClickedCallback(onDeleteRole, this);
     mDeleteRoleButton->setEnabled(false);
 
@@ -2816,11 +2841,11 @@ bool LLPanelGroupActionsSubTab::postBuildSubTab(LLView* root)
     mHeader = parent->findChild<LLPanel>("actions_header", recurse);
     mFooter = parent->findChild<LLPanel>("actions_footer", recurse);
 
-    mActionDescription = parent->getChild<LLTextEditor>("action_description", recurse);
+    mActionDescription = get_owner_child<LLTextEditor>(parent, "action_description", recurse);
 
-    mActionList = parent->getChild<LLScrollListCtrl>("action_list",recurse);
-    mActionRoles = parent->getChild<LLScrollListCtrl>("action_roles",recurse);
-    mActionMembers  = parent->getChild<LLNameListCtrl>("action_members",recurse);
+    mActionList = get_owner_child<LLScrollListCtrl>(parent, "action_list",recurse);
+    mActionRoles = get_owner_child<LLScrollListCtrl>(parent, "action_roles",recurse);
+    mActionMembers  = get_owner_child<LLNameListCtrl>(parent, "action_members",recurse);
 
     if (!mActionList || !mActionDescription || !mActionRoles || !mActionMembers) return false;
 
@@ -3015,12 +3040,12 @@ bool LLPanelGroupBanListSubTab::postBuildSubTab(LLView* root)
     mHeader = parent->findChild<LLPanel>("banlist_header", recurse);
     mFooter = parent->findChild<LLPanel>("banlist_footer", recurse);
 
-    mBanList = parent->getChild<LLNameListCtrl>("ban_list", recurse);
+    mBanList = get_owner_child<LLNameListCtrl>(parent, "ban_list", recurse);
 
-    mCreateBanButton        = parent->getChild<LLButton>("ban_create", recurse);
-    mDeleteBanButton        = parent->getChild<LLButton>("ban_delete", recurse);
-    mRefreshBanListButton   = parent->getChild<LLButton>("ban_refresh", recurse);
-    mBanCountText           = parent->getChild<LLTextBase>("ban_count", recurse);
+    mCreateBanButton        = get_owner_child<LLButton>(parent, "ban_create", recurse);
+    mDeleteBanButton        = get_owner_child<LLButton>(parent, "ban_delete", recurse);
+    mRefreshBanListButton   = get_owner_child<LLButton>(parent, "ban_refresh", recurse);
+    mBanCountText           = get_owner_child<LLTextBase>(parent, "ban_count", recurse);
 
     if(!mBanList || !mCreateBanButton || !mDeleteBanButton || !mRefreshBanListButton || !mBanCountText)
         return false;

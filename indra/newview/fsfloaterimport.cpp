@@ -68,6 +68,31 @@
 #include "llcoproceduremanager.h"
 #include "llsdutil.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 struct FSResourceData
 {
@@ -130,10 +155,10 @@ bool FSFloaterImport::postBuild()
     if (LLAgentBenefitsMgr::current().getTextureUploadCost() == 0
         || gAgent.getRegion()->getCentralBakeVersion() > 0)
     {
-        getChild<LLCheckBoxCtrl>("temp_asset")->setVisible(FALSE);
-        getChild<LLCheckBoxCtrl>("temp_asset")->set(FALSE);
+        get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->setVisible(FALSE);
+        get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->set(FALSE);
     }
-    getChild<LLButton>("import_btn")->setCommitCallback(boost::bind(&FSFloaterImport::onClickBtnImport, this));
+    get_owner_child<LLButton>(this, "import_btn")->setCommitCallback(boost::bind(&FSFloaterImport::onClickBtnImport, this));
     loadFile();
     populateBackupInfo();
 
@@ -286,32 +311,32 @@ void FSFloaterImport::loadFile()
             stats.setArg("[SOUNDS]", llformat("%u", mSoundsTotal));
             stats.setArg("[ANIMATIONS]", llformat("%u", mAnimsTotal));
             stats.setArg("[ASSETS]", llformat("%u", mAssetsTotal));
-            getChild<LLTextBox>("file_status_text")->setText(stats.getString());
+            get_owner_child<LLTextBox>(this, "file_status_text")->setText(stats.getString());
         }
         else
         {
-            getChild<LLTextBox>("file_status_text")->setText(getString("file_version_error"));
+            get_owner_child<LLTextBox>(this, "file_status_text")->setText(getString("file_version_error"));
         }
     }
     else
     {
-        getChild<LLTextBox>("file_status_text")->setText(getString("file_status_error"));
+        get_owner_child<LLTextBox>(this, "file_status_text")->setText(getString("file_status_error"));
     }
 
     LL_DEBUGS("import") << "Linkset size is " << mLinksetSize << LL_ENDL;
     if (mLinksetSize != 0)
     {
-        getChild<LLButton>("import_btn")->setEnabled(TRUE);
-        getChild<LLCheckBoxCtrl>("do_not_attach")->setEnabled(TRUE);
-        getChild<LLCheckBoxCtrl>("region_position")->setEnabled(TRUE);
-        getChild<LLCheckBoxCtrl>("upload_asset")->setEnabled(TRUE);
+        get_owner_child<LLButton>(this, "import_btn")->setEnabled(TRUE);
+        get_owner_child<LLCheckBoxCtrl>(this, "do_not_attach")->setEnabled(TRUE);
+        get_owner_child<LLCheckBoxCtrl>(this, "region_position")->setEnabled(TRUE);
+        get_owner_child<LLCheckBoxCtrl>(this, "upload_asset")->setEnabled(TRUE);
     }
     else
     {
-        getChild<LLButton>("import_btn")->setEnabled(FALSE);
-        getChild<LLCheckBoxCtrl>("do_not_attach")->setEnabled(FALSE);
-        getChild<LLCheckBoxCtrl>("region_position")->setEnabled(FALSE);
-        getChild<LLCheckBoxCtrl>("upload_asset")->setEnabled(FALSE);
+        get_owner_child<LLButton>(this, "import_btn")->setEnabled(FALSE);
+        get_owner_child<LLCheckBoxCtrl>(this, "do_not_attach")->setEnabled(FALSE);
+        get_owner_child<LLCheckBoxCtrl>(this, "region_position")->setEnabled(FALSE);
+        get_owner_child<LLCheckBoxCtrl>(this, "upload_asset")->setEnabled(FALSE);
     }
 }
 
@@ -509,18 +534,18 @@ void FSFloaterImport::onClickBtnImport()
     LL_DEBUGS("import") << "mStartPosition is " << mStartPosition << LL_ENDL;
 
     // don't allow change during a long upload/import
-    getChild<LLButton>("import_btn")->setEnabled(FALSE);
-    getChild<LLCheckBoxCtrl>("do_not_attach")->setEnabled(FALSE);
-    getChild<LLCheckBoxCtrl>("region_position")->setEnabled(FALSE);
-    getChild<LLCheckBoxCtrl>("upload_asset")->setEnabled(FALSE);
-    getChild<LLCheckBoxCtrl>("temp_asset")->setEnabled(FALSE);
+    get_owner_child<LLButton>(this, "import_btn")->setEnabled(FALSE);
+    get_owner_child<LLCheckBoxCtrl>(this, "do_not_attach")->setEnabled(FALSE);
+    get_owner_child<LLCheckBoxCtrl>(this, "region_position")->setEnabled(FALSE);
+    get_owner_child<LLCheckBoxCtrl>(this, "upload_asset")->setEnabled(FALSE);
+    get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->setEnabled(FALSE);
 
-    if (((mTexturesTotal + mSoundsTotal + mAnimsTotal + mAssetsTotal) != 0) && getChild<LLCheckBoxCtrl>("upload_asset")->get())
+    if (((mTexturesTotal + mSoundsTotal + mAnimsTotal + mAssetsTotal) != 0) && get_owner_child<LLCheckBoxCtrl>(this, "upload_asset")->get())
     {
         // do not pop up preview floaters when creating new inventory items.
         gSavedSettings.setBOOL("ShowNewInventory", false);
 
-        if (!getChild<LLCheckBoxCtrl>("temp_asset")->get())
+        if (!get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->get())
         {
             U32 expected_upload_cost = mTexturesTotal * (U32)LLAgentBenefitsMgr::current().getTextureUploadCost();
             if(!(can_afford_transaction(expected_upload_cost)))
@@ -530,11 +555,11 @@ void FSFloaterImport::onClickBtnImport()
                 LLBuyCurrencyHTML::openCurrencyFloater(LLTrans::getString("UploadingCosts", args), expected_upload_cost);
 
                 // re-enable the controls
-                getChild<LLButton>("import_btn")->setEnabled(TRUE);
-                getChild<LLCheckBoxCtrl>("do_not_attach")->setEnabled(TRUE);
-                getChild<LLCheckBoxCtrl>("region_position")->setEnabled(TRUE);
-                getChild<LLCheckBoxCtrl>("upload_asset")->setEnabled(TRUE);
-                getChild<LLCheckBoxCtrl>("temp_asset")->setEnabled(getChild<LLCheckBoxCtrl>("upload_asset")->get());
+                get_owner_child<LLButton>(this, "import_btn")->setEnabled(TRUE);
+                get_owner_child<LLCheckBoxCtrl>(this, "do_not_attach")->setEnabled(TRUE);
+                get_owner_child<LLCheckBoxCtrl>(this, "region_position")->setEnabled(TRUE);
+                get_owner_child<LLCheckBoxCtrl>(this, "upload_asset")->setEnabled(TRUE);
+                get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->setEnabled(get_owner_child<LLCheckBoxCtrl>(this, "upload_asset")->get());
                 return;
             }
         }
@@ -543,7 +568,7 @@ void FSFloaterImport::onClickBtnImport()
             LLUIString status = getString("texture_uploading");
             status.setArg("[TEXTURE]", llformat("%u", mTexturesTotal - (U32)mTextureQueue.size() + 1));
             status.setArg("[TEXTURETOTAL]", llformat("%u", mTexturesTotal));
-            getChild<LLTextBox>("file_status_text")->setText(status.getString());
+            get_owner_child<LLTextBox>(this, "file_status_text")->setText(status.getString());
             uploadAsset(mTextureQueue.front());
             return;
         }
@@ -552,7 +577,7 @@ void FSFloaterImport::onClickBtnImport()
             LLUIString status = getString("sound_uploading");
             status.setArg("[SOUND]", llformat("%u", mSoundsTotal - (U32)mSoundQueue.size() + 1));
             status.setArg("[SOUNDTOTAL]", llformat("%u", mSoundsTotal));
-            getChild<LLTextBox>("file_status_text")->setText(status.getString());
+            get_owner_child<LLTextBox>(this, "file_status_text")->setText(status.getString());
             uploadAsset(mSoundQueue.front());
             return;
         }
@@ -561,7 +586,7 @@ void FSFloaterImport::onClickBtnImport()
             LLUIString status = getString("animation_uploading");
             status.setArg("[ANIMATION]", llformat("%u", mAnimsTotal - (U32)mAnimQueue.size() + 1));
             status.setArg("[ANIMATIONTOTAL]", llformat("%u", mAnimsTotal));
-            getChild<LLTextBox>("file_status_text")->setText(status.getString());
+            get_owner_child<LLTextBox>(this, "file_status_text")->setText(status.getString());
             uploadAsset(mAnimQueue.front());
             return;
         }
@@ -570,7 +595,7 @@ void FSFloaterImport::onClickBtnImport()
             LLUIString status = getString("asset_uploading");
             status.setArg("[ASSET]", llformat("%u", mAssetsTotal - (U32)mAssetQueue.size() + 1));
             status.setArg("[ASSETTOTAL]", llformat("%u", mAssetsTotal));
-            getChild<LLTextBox>("file_status_text")->setText(status.getString());
+            get_owner_child<LLTextBox>(this, "file_status_text")->setText(status.getString());
             uploadAsset(mAssetQueue.front());
             return;
         }
@@ -588,35 +613,35 @@ void FSFloaterImport::onClickBtnImport()
 
 void FSFloaterImport::onClickCheckBoxUploadAsset()
 {
-    if (getChild<LLCheckBoxCtrl>("upload_asset")->get())
+    if (get_owner_child<LLCheckBoxCtrl>(this, "upload_asset")->get())
     {
-        getChild<LLCheckBoxCtrl>("temp_asset")->setEnabled(TRUE);
+        get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->setEnabled(TRUE);
         LLUIString stats = getString("upload_cost");
         stats.setArg("[COST]", llformat("%u", ((mTexturesTotal * LLAgentBenefitsMgr::current().getTextureUploadCost()) +  (mSoundsTotal * LLAgentBenefitsMgr::current().getSoundUploadCost()) + (mAnimsTotal * LLAgentBenefitsMgr::current().getAnimationUploadCost())) ));
-        getChild<LLTextBox>("file_status_text")->setText(stats.getString());
+        get_owner_child<LLTextBox>(this, "file_status_text")->setText(stats.getString());
     }
     else
     {
-        getChild<LLCheckBoxCtrl>("temp_asset")->set(FALSE);
-        getChild<LLCheckBoxCtrl>("temp_asset")->setEnabled(FALSE);
+        get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->set(FALSE);
+        get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->setEnabled(FALSE);
         std::string text;
-        getChild<LLTextBox>("file_status_text")->setText(text);
+        get_owner_child<LLTextBox>(this, "file_status_text")->setText(text);
     }
 }
 
 void FSFloaterImport::onClickCheckBoxTempAsset()
 {
-    if (getChild<LLCheckBoxCtrl>("temp_asset")->get())
+    if (get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->get())
     {
         LLUIString stats = getString("upload_cost");
         stats.setArg("[COST]", llformat("%u", 0));
-        getChild<LLTextBox>("file_status_text")->setText(stats.getString());
+        get_owner_child<LLTextBox>(this, "file_status_text")->setText(stats.getString());
     }
     else
     {
         LLUIString stats = getString("upload_cost");
         stats.setArg("[COST]", llformat("%u", ((mTexturesTotal * LLAgentBenefitsMgr::current().getTextureUploadCost()) +  (mSoundsTotal * LLAgentBenefitsMgr::current().getSoundUploadCost()) + (mAnimsTotal * LLAgentBenefitsMgr::current().getAnimationUploadCost())) ));
-        getChild<LLTextBox>("file_status_text")->setText(stats.getString());
+        get_owner_child<LLTextBox>(this, "file_status_text")->setText(stats.getString());
     }
 }
 
@@ -651,7 +676,7 @@ void FSFloaterImport::createPrim()
     status.setArg("[LINKSETS]", llformat("%u", mLinksetSize));
     status.setArg("[PRIM]", llformat("%u", mObject + 1));
     status.setArg("[PRIMS]", llformat("%u", mObjectSize));
-    getChild<LLTextBox>("file_status_text")->setText(status.getString());
+    get_owner_child<LLTextBox>(this, "file_status_text")->setText(status.getString());
 
     LLUUID prim_uuid = mManifest["linkset"][mLinkset][mObject].asUUID();
     LL_DEBUGS("import") << "Creating prim from " << prim_uuid.asString() << LL_ENDL;
@@ -1096,7 +1121,7 @@ void FSFloaterImport::postLink()
 
     LLUUID root_prim_uuid = mManifest["linkset"][mLinkset][0].asUUID();
     LLSD& root_prim = mManifest["prim"][root_prim_uuid.asString()];
-    if (root_prim.has("attachment_point") && !getChild<LLCheckBoxCtrl>("do_not_attach")->get())
+    if (root_prim.has("attachment_point") && !get_owner_child<LLCheckBoxCtrl>(this, "do_not_attach")->get())
     {
         LL_DEBUGS("import") << "Attaching to " << root_prim["attachment_point"].asInteger() << LL_ENDL;
         LLSelectMgr::getInstance()->sendAttach((U8)root_prim["attachment_point"].asInteger(), false);
@@ -1106,7 +1131,7 @@ void FSFloaterImport::postLink()
         setPrimPosition(UPD_POSITION|UPD_LINKED_SETS, root_object, LLVector3(root_prim["position"]));
     }
 
-    if (getChild<LLCheckBoxCtrl>("region_position")->get())
+    if (get_owner_child<LLCheckBoxCtrl>(this, "region_position")->get())
     {
         if (root_prim.has("attachment_point"))
         {
@@ -1128,7 +1153,7 @@ void FSFloaterImport::postLink()
         mCreatingActive = false;
         LL_DEBUGS("import") << "Finished with " << mLinkset << " linksets and " << mObject << " prims in last linkset" << LL_ENDL;
         mObjectSelection = NULL;
-        getChild<LLTextBox>("file_status_text")->setText(getString("file_status_done"));
+        get_owner_child<LLTextBox>(this, "file_status_text")->setText(getString("file_status_done"));
     }
     else
     {
@@ -1213,7 +1238,7 @@ void FSFloaterImport::uploadAsset(LLUUID asset_id, LLUUID inventory_item)
     case LLAssetType::AT_TEXTURE:
     {
         perms_prefix = "Uploads";
-        temporary = getChild<LLCheckBoxCtrl>("temp_asset")->get();
+        temporary = get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->get();
         if (temporary)
         {
             url = gAgent.getRegion()->getCapability("UploadBakedTexture");
@@ -1230,7 +1255,7 @@ void FSFloaterImport::uploadAsset(LLUUID asset_id, LLUUID inventory_item)
     case LLAssetType::AT_SOUND:
     {
         perms_prefix = "Uploads";
-        temporary = getChild<LLCheckBoxCtrl>("temp_asset")->get();
+        temporary = get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->get();
         if (temporary)
         {
             // skip upload due to no temp support for sound
@@ -1257,7 +1282,7 @@ void FSFloaterImport::uploadAsset(LLUUID asset_id, LLUUID inventory_item)
         S32 end = static_cast<S32>(asset.find("\n", position));
         wearable_type = (LLWearableType::EType)boost::lexical_cast<S32>(asset.substr(position + 5, (end - (position + 5))));
 
-        if (getChild<LLCheckBoxCtrl>("temp_asset")->get())
+        if (get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->get())
         {
             // wearables don't support using temp textures.
             break;
@@ -1351,7 +1376,7 @@ void FSFloaterImport::uploadAsset(LLUUID asset_id, LLUUID inventory_item)
     case LLAssetType::AT_ANIMATION:
     {
         perms_prefix = "Uploads";
-        temporary = getChild<LLCheckBoxCtrl>("temp_asset")->get();
+        temporary = get_owner_child<LLCheckBoxCtrl>(this, "temp_asset")->get();
         if (temporary)
         {
             // no temp support, skip
@@ -1789,7 +1814,7 @@ void FSFloaterImport::popNextAsset()
         LLUIString status = getString("texture_uploading");
         status.setArg("[TEXTURE]", llformat("%u", mTexturesTotal - (U32)mTextureQueue.size() + 1));
         status.setArg("[TEXTURETOTAL]", llformat("%u", mTexturesTotal));
-        getChild<LLTextBox>("file_status_text")->setText(status.getString());
+        get_owner_child<LLTextBox>(this, "file_status_text")->setText(status.getString());
         uploadAsset(mTextureQueue.front());
         return;
     }
@@ -1798,7 +1823,7 @@ void FSFloaterImport::popNextAsset()
         LLUIString status = getString("sound_uploading");
         status.setArg("[SOUND]", llformat("%u", mSoundsTotal - (U32)mSoundQueue.size() + 1));
         status.setArg("[SOUNDTOTAL]", llformat("%u", mSoundsTotal));
-        getChild<LLTextBox>("file_status_text")->setText(status.getString());
+        get_owner_child<LLTextBox>(this, "file_status_text")->setText(status.getString());
         uploadAsset(mSoundQueue.front());
         return;
     }
@@ -1807,7 +1832,7 @@ void FSFloaterImport::popNextAsset()
         LLUIString status = getString("animation_uploading");
         status.setArg("[ANIMATION]", llformat("%u", mAnimsTotal - (U32)mAnimQueue.size() + 1));
         status.setArg("[ANIMATIONTOTAL]", llformat("%u", mAnimsTotal));
-        getChild<LLTextBox>("file_status_text")->setText(status.getString());
+        get_owner_child<LLTextBox>(this, "file_status_text")->setText(status.getString());
         uploadAsset(mAnimQueue.front());
         return;
     }
@@ -1816,7 +1841,7 @@ void FSFloaterImport::popNextAsset()
         LLUIString status = getString("asset_uploading");
         status.setArg("[ASSET]", llformat("%u", mAssetsTotal - (U32)mAssetQueue.size() + 1));
         status.setArg("[ASSETTOTAL]", llformat("%u", mAssetsTotal));
-        getChild<LLTextBox>("file_status_text")->setText(status.getString());
+        get_owner_child<LLTextBox>(this, "file_status_text")->setText(status.getString());
         uploadAsset(mAssetQueue.front());
         return;
     }

@@ -36,6 +36,31 @@
 
 namespace
 {
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
+namespace
+{
     const std::string   FIELD_WATER_FOG_COLOR("water_fog_color");
     const std::string   FIELD_WATER_FOG_DENSITY("water_fog_density");
     const std::string   FIELD_WATER_UNDERWATER_MOD("water_underwater_mod");
@@ -78,31 +103,31 @@ LLPanelSettingsWaterMainTab::LLPanelSettingsWaterMainTab():
 
 bool LLPanelSettingsWaterMainTab::postBuild()
 {
-    mClrFogColor = getChild<LLColorSwatchCtrl>(FIELD_WATER_FOG_COLOR);
-    mTxtNormalMap = getChild<LLTextureCtrl>(FIELD_WATER_NORMAL_MAP);
+    mClrFogColor = get_owner_child<LLColorSwatchCtrl>(this, FIELD_WATER_FOG_COLOR);
+    mTxtNormalMap = get_owner_child<LLTextureCtrl>(this, FIELD_WATER_NORMAL_MAP);
 
-    getChild<LLXYVector>(FIELD_WATER_WAVE1_XY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onLargeWaveChanged(); });
+    get_owner_child<LLXYVector>(this, FIELD_WATER_WAVE1_XY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onLargeWaveChanged(); });
 
     mClrFogColor->setCommitCallback([this](LLUICtrl *, const LLSD &) { onFogColorChanged(); });
-    getChild<LLUICtrl>(FIELD_WATER_FOG_DENSITY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onFogDensityChanged(); });
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_FOG_DENSITY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onFogDensityChanged(); });
 //    getChild<LLUICtrl>(FIELD_WATER_FOG_DENSITY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onFogDensityChanged(getChild<LLUICtrl>(FIELD_WATER_FOG_DENSITY)->getValue().asReal()); });
-    getChild<LLUICtrl>(FIELD_WATER_UNDERWATER_MOD)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onFogUnderWaterChanged(); });
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_UNDERWATER_MOD)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onFogUnderWaterChanged(); });
 
     mTxtNormalMap->setDefaultImageAssetID(LLSettingsWater::GetDefaultWaterNormalAssetId());
     mTxtNormalMap->setBlankImageAssetID(BLANK_OBJECT_NORMAL);
     mTxtNormalMap->setCommitCallback([this](LLUICtrl *, const LLSD &) { onNormalMapChanged(); });
 
-    getChild<LLUICtrl>(FIELD_WATER_WAVE2_XY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSmallWaveChanged(); });
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_WAVE2_XY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSmallWaveChanged(); });
 
-    getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_X)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onNormalScaleChanged(); });
-    getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_Y)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onNormalScaleChanged(); });
-    getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_Z)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onNormalScaleChanged(); });
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_X)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onNormalScaleChanged(); });
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_Y)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onNormalScaleChanged(); });
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_Z)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onNormalScaleChanged(); });
 
-    getChild<LLUICtrl>(FIELD_WATER_FRESNEL_SCALE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onFresnelScaleChanged(); });
-    getChild<LLUICtrl>(FIELD_WATER_FRESNEL_OFFSET)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onFresnelOffsetChanged(); });
-    getChild<LLUICtrl>(FIELD_WATER_SCALE_ABOVE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onScaleAboveChanged(); });
-    getChild<LLUICtrl>(FIELD_WATER_SCALE_BELOW)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onScaleBelowChanged(); });
-    getChild<LLUICtrl>(FIELD_WATER_BLUR_MULTIP)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onBlurMultipChanged(); });
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_FRESNEL_SCALE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onFresnelScaleChanged(); });
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_FRESNEL_OFFSET)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onFresnelOffsetChanged(); });
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_SCALE_ABOVE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onScaleAboveChanged(); });
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_SCALE_BELOW)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onScaleBelowChanged(); });
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_BLUR_MULTIP)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onBlurMultipChanged(); });
 
     refresh();
 
@@ -113,18 +138,18 @@ bool LLPanelSettingsWaterMainTab::postBuild()
 void LLPanelSettingsWaterMainTab::setEnabled(bool enabled)
 {
     LLPanelSettingsWater::setEnabled(enabled);
-    getChild<LLUICtrl>(FIELD_WATER_FOG_DENSITY)->setEnabled(enabled);
-    getChild<LLUICtrl>(FIELD_WATER_UNDERWATER_MOD)->setEnabled(enabled);
-    getChild<LLUICtrl>(FIELD_WATER_FRESNEL_SCALE)->setEnabled(enabled);
-    getChild<LLUICtrl>(FIELD_WATER_FRESNEL_OFFSET)->setEnabled(enabled);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_FOG_DENSITY)->setEnabled(enabled);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_UNDERWATER_MOD)->setEnabled(enabled);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_FRESNEL_SCALE)->setEnabled(enabled);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_FRESNEL_OFFSET)->setEnabled(enabled);
 
-    getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_X)->setEnabled(enabled);
-    getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_Y)->setEnabled(enabled);
-    getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_Z)->setEnabled(enabled);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_X)->setEnabled(enabled);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_Y)->setEnabled(enabled);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_Z)->setEnabled(enabled);
 
-    getChild<LLUICtrl>(FIELD_WATER_SCALE_ABOVE)->setEnabled(enabled);
-    getChild<LLUICtrl>(FIELD_WATER_SCALE_BELOW)->setEnabled(enabled);
-    getChild<LLUICtrl>(FIELD_WATER_BLUR_MULTIP)->setEnabled(enabled);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_SCALE_ABOVE)->setEnabled(enabled);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_SCALE_BELOW)->setEnabled(enabled);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_BLUR_MULTIP)->setEnabled(enabled);
 }
 
 //==========================================================================
@@ -140,22 +165,22 @@ void LLPanelSettingsWaterMainTab::refresh()
     setEnabled(getCanChangeSettings());
     setAllChildrenEnabled(getCanChangeSettings());
     mClrFogColor->set(mWaterSettings->getWaterFogColor());
-    getChild<LLUICtrl>(FIELD_WATER_FOG_DENSITY)->setValue(mWaterSettings->getWaterFogDensity());
-    getChild<LLUICtrl>(FIELD_WATER_UNDERWATER_MOD)->setValue(mWaterSettings->getFogMod());
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_FOG_DENSITY)->setValue(mWaterSettings->getWaterFogDensity());
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_UNDERWATER_MOD)->setValue(mWaterSettings->getFogMod());
     mTxtNormalMap->setValue(mWaterSettings->getNormalMapID());
     LLVector2 vect2 = mWaterSettings->getWave1Dir() * -1.0; // Flip so that north and east are +
-    getChild<LLUICtrl>(FIELD_WATER_WAVE1_XY)->setValue(vect2.getValue());
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_WAVE1_XY)->setValue(vect2.getValue());
     vect2 = mWaterSettings->getWave2Dir() * -1.0; // Flip so that north and east are +
-    getChild<LLUICtrl>(FIELD_WATER_WAVE2_XY)->setValue(vect2.getValue());
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_WAVE2_XY)->setValue(vect2.getValue());
     LLVector3 vect3 = mWaterSettings->getNormalScale();
-    getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_X)->setValue(vect3[0]);
-    getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_Y)->setValue(vect3[1]);
-    getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_Z)->setValue(vect3[2]);
-    getChild<LLUICtrl>(FIELD_WATER_FRESNEL_SCALE)->setValue(mWaterSettings->getFresnelScale());
-    getChild<LLUICtrl>(FIELD_WATER_FRESNEL_OFFSET)->setValue(mWaterSettings->getFresnelOffset());
-    getChild<LLUICtrl>(FIELD_WATER_SCALE_ABOVE)->setValue(mWaterSettings->getScaleAbove());
-    getChild<LLUICtrl>(FIELD_WATER_SCALE_BELOW)->setValue(mWaterSettings->getScaleBelow());
-    getChild<LLUICtrl>(FIELD_WATER_BLUR_MULTIP)->setValue(mWaterSettings->getBlurMultiplier());
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_X)->setValue(vect3[0]);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_Y)->setValue(vect3[1]);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_Z)->setValue(vect3[2]);
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_FRESNEL_SCALE)->setValue(mWaterSettings->getFresnelScale());
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_FRESNEL_OFFSET)->setValue(mWaterSettings->getFresnelOffset());
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_SCALE_ABOVE)->setValue(mWaterSettings->getScaleAbove());
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_SCALE_BELOW)->setValue(mWaterSettings->getScaleBelow());
+    get_owner_child<LLUICtrl>(this, FIELD_WATER_BLUR_MULTIP)->setValue(mWaterSettings->getBlurMultiplier());
 }
 
 //==========================================================================
@@ -170,14 +195,14 @@ void LLPanelSettingsWaterMainTab::onFogColorChanged()
 void LLPanelSettingsWaterMainTab::onFogDensityChanged()
 {
     if (!mWaterSettings) return;
-    mWaterSettings->setWaterFogDensity((F32)getChild<LLUICtrl>(FIELD_WATER_FOG_DENSITY)->getValue().asReal());
+    mWaterSettings->setWaterFogDensity((F32)get_owner_child<LLUICtrl>(this, FIELD_WATER_FOG_DENSITY)->getValue().asReal());
     setIsDirty();
 }
 
 void LLPanelSettingsWaterMainTab::onFogUnderWaterChanged()
 {
     if (!mWaterSettings) return;
-    mWaterSettings->setFogMod((F32)getChild<LLUICtrl>(FIELD_WATER_UNDERWATER_MOD)->getValue().asReal());
+    mWaterSettings->setFogMod((F32)get_owner_child<LLUICtrl>(this, FIELD_WATER_UNDERWATER_MOD)->getValue().asReal());
     setIsDirty();
 }
 
@@ -191,7 +216,7 @@ void LLPanelSettingsWaterMainTab::onNormalMapChanged()
 void LLPanelSettingsWaterMainTab::onLargeWaveChanged()
 {
     if (!mWaterSettings) return;
-    LLVector2 vect(getChild<LLUICtrl>(FIELD_WATER_WAVE1_XY)->getValue());
+    LLVector2 vect(get_owner_child<LLUICtrl>(this, FIELD_WATER_WAVE1_XY)->getValue());
     vect *= -1.0; // Flip so that north and east are -
     mWaterSettings->setWave1Dir(vect);
     setIsDirty();
@@ -200,7 +225,7 @@ void LLPanelSettingsWaterMainTab::onLargeWaveChanged()
 void LLPanelSettingsWaterMainTab::onSmallWaveChanged()
 {
     if (!mWaterSettings) return;
-    LLVector2 vect(getChild<LLUICtrl>(FIELD_WATER_WAVE2_XY)->getValue());
+    LLVector2 vect(get_owner_child<LLUICtrl>(this, FIELD_WATER_WAVE2_XY)->getValue());
     vect *= -1.0; // Flip so that north and east are -
     mWaterSettings->setWave2Dir(vect);
     setIsDirty();
@@ -210,7 +235,7 @@ void LLPanelSettingsWaterMainTab::onSmallWaveChanged()
 void LLPanelSettingsWaterMainTab::onNormalScaleChanged()
 {
     if (!mWaterSettings) return;
-    LLVector3 vect((F32)getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_X)->getValue().asReal(), (F32)getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_Y)->getValue().asReal(), (F32)getChild<LLUICtrl>(FIELD_WATER_NORMAL_SCALE_Z)->getValue().asReal());
+    LLVector3 vect((F32)get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_X)->getValue().asReal(), (F32)get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_Y)->getValue().asReal(), (F32)get_owner_child<LLUICtrl>(this, FIELD_WATER_NORMAL_SCALE_Z)->getValue().asReal());
     mWaterSettings->setNormalScale(vect);
     setIsDirty();
 }
@@ -218,34 +243,34 @@ void LLPanelSettingsWaterMainTab::onNormalScaleChanged()
 void LLPanelSettingsWaterMainTab::onFresnelScaleChanged()
 {
     if (!mWaterSettings) return;
-    mWaterSettings->setFresnelScale((F32)getChild<LLUICtrl>(FIELD_WATER_FRESNEL_SCALE)->getValue().asReal());
+    mWaterSettings->setFresnelScale((F32)get_owner_child<LLUICtrl>(this, FIELD_WATER_FRESNEL_SCALE)->getValue().asReal());
     setIsDirty();
 }
 
 void LLPanelSettingsWaterMainTab::onFresnelOffsetChanged()
 {
     if (!mWaterSettings) return;
-    mWaterSettings->setFresnelOffset((F32)getChild<LLUICtrl>(FIELD_WATER_FRESNEL_OFFSET)->getValue().asReal());
+    mWaterSettings->setFresnelOffset((F32)get_owner_child<LLUICtrl>(this, FIELD_WATER_FRESNEL_OFFSET)->getValue().asReal());
     setIsDirty();
 }
 
 void LLPanelSettingsWaterMainTab::onScaleAboveChanged()
 {
     if (!mWaterSettings) return;
-    mWaterSettings->setScaleAbove((F32)getChild<LLUICtrl>(FIELD_WATER_SCALE_ABOVE)->getValue().asReal());
+    mWaterSettings->setScaleAbove((F32)get_owner_child<LLUICtrl>(this, FIELD_WATER_SCALE_ABOVE)->getValue().asReal());
     setIsDirty();
 }
 
 void LLPanelSettingsWaterMainTab::onScaleBelowChanged()
 {
     if (!mWaterSettings) return;
-    mWaterSettings->setScaleBelow((F32)getChild<LLUICtrl>(FIELD_WATER_SCALE_BELOW)->getValue().asReal());
+    mWaterSettings->setScaleBelow((F32)get_owner_child<LLUICtrl>(this, FIELD_WATER_SCALE_BELOW)->getValue().asReal());
     setIsDirty();
 }
 
 void LLPanelSettingsWaterMainTab::onBlurMultipChanged()
 {
     if (!mWaterSettings) return;
-    mWaterSettings->setBlurMultiplier((F32)getChild<LLUICtrl>(FIELD_WATER_BLUR_MULTIP)->getValue().asReal());
+    mWaterSettings->setBlurMultiplier((F32)get_owner_child<LLUICtrl>(this, FIELD_WATER_BLUR_MULTIP)->getValue().asReal());
     setIsDirty();
 }

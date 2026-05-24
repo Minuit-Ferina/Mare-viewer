@@ -37,6 +37,31 @@
 #include "llvoiceclient.h"
 #include "llweb.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLPanelVoiceEffect> t_panel_voice_effect("panel_voice_effect");
 
 LLPanelVoiceEffect::LLPanelVoiceEffect()
@@ -47,7 +72,7 @@ LLPanelVoiceEffect::LLPanelVoiceEffect()
 
 LLPanelVoiceEffect::~LLPanelVoiceEffect()
 {
-    LLView* combo_list_view = mVoiceEffectCombo->getChildView("ComboBox");
+    LLView* combo_list_view = get_owner_view(mVoiceEffectCombo, "ComboBox");
     LLTransientFloaterMgr::getInstance()->removeControlView(combo_list_view);
 
     if(LLVoiceClient::instanceExists())
@@ -63,11 +88,11 @@ LLPanelVoiceEffect::~LLPanelVoiceEffect()
 // virtual
 bool LLPanelVoiceEffect::postBuild()
 {
-    mVoiceEffectCombo = getChild<LLComboBox>("voice_effect");
+    mVoiceEffectCombo = get_owner_child<LLComboBox>(this, "voice_effect");
 
     // Need to tell LLTransientFloaterMgr about the combo list, otherwise it can't
     // be clicked while in a docked floater as it extends outside the floater area.
-    LLView* combo_list_view = mVoiceEffectCombo->getChildView("ComboBox");
+    LLView* combo_list_view = get_owner_view(mVoiceEffectCombo, "ComboBox");
     LLTransientFloaterMgr::getInstance()->addControlView(combo_list_view);
 
     LLVoiceEffectInterface* effect_interface = LLVoiceClient::instance().getVoiceEffectInterface();

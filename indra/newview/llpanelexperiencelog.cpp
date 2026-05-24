@@ -39,6 +39,31 @@
 #include "llfloaterreporter.h"
 #include "llinventoryfunctions.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 #define BTN_PROFILE_XP "btn_profile_xp"
 #define BTN_REPORT_XP "btn_report_xp"
@@ -57,25 +82,25 @@ LLPanelExperienceLog::LLPanelExperienceLog(  )
 bool LLPanelExperienceLog::postBuild()
 {
     LLExperienceLog* log = LLExperienceLog::getInstance();
-    mEventList = getChild<LLScrollListCtrl>("experience_log_list");
+    mEventList = get_owner_child<LLScrollListCtrl>(this, "experience_log_list");
     mEventList->setCommitCallback(boost::bind(&LLPanelExperienceLog::onSelectionChanged, this));
     mEventList->setDoubleClickCallback( boost::bind(&LLPanelExperienceLog::onProfileExperience, this));
 
-    getChild<LLButton>("btn_clear")->setCommitCallback(boost::bind(&LLExperienceLog::clear, log));
-    getChild<LLButton>("btn_clear")->setCommitCallback(boost::bind(&LLPanelExperienceLog::refresh, this));
+    get_owner_child<LLButton>(this, "btn_clear")->setCommitCallback(boost::bind(&LLExperienceLog::clear, log));
+    get_owner_child<LLButton>(this, "btn_clear")->setCommitCallback(boost::bind(&LLPanelExperienceLog::refresh, this));
 
-    getChild<LLButton>(BTN_PROFILE_XP)->setCommitCallback(boost::bind(&LLPanelExperienceLog::onProfileExperience, this));
-    getChild<LLButton>(BTN_REPORT_XP )->setCommitCallback(boost::bind(&LLPanelExperienceLog::onReportExperience, this));
-    getChild<LLButton>("btn_notify"  )->setCommitCallback(boost::bind(&LLPanelExperienceLog::onNotify, this));
-    getChild<LLButton>("btn_next"    )->setCommitCallback(boost::bind(&LLPanelExperienceLog::onNext, this));
-    getChild<LLButton>("btn_prev"    )->setCommitCallback(boost::bind(&LLPanelExperienceLog::onPrev, this));
+    get_owner_child<LLButton>(this, BTN_PROFILE_XP)->setCommitCallback(boost::bind(&LLPanelExperienceLog::onProfileExperience, this));
+    get_owner_child<LLButton>(this, BTN_REPORT_XP )->setCommitCallback(boost::bind(&LLPanelExperienceLog::onReportExperience, this));
+    get_owner_child<LLButton>(this, "btn_notify"  )->setCommitCallback(boost::bind(&LLPanelExperienceLog::onNotify, this));
+    get_owner_child<LLButton>(this, "btn_next"    )->setCommitCallback(boost::bind(&LLPanelExperienceLog::onNext, this));
+    get_owner_child<LLButton>(this, "btn_prev"    )->setCommitCallback(boost::bind(&LLPanelExperienceLog::onPrev, this));
 
-    LLCheckBoxCtrl* check = getChild<LLCheckBoxCtrl>("notify_all");
+    LLCheckBoxCtrl* check = get_owner_child<LLCheckBoxCtrl>(this, "notify_all");
     check->set(log->getNotifyNewEvent());
     check->setCommitCallback(boost::bind(&LLPanelExperienceLog::notifyChanged, this));
 
 
-    LLSpinCtrl* spin = getChild<LLSpinCtrl>("logsizespinner");
+    LLSpinCtrl* spin = get_owner_child<LLSpinCtrl>(this, "logsizespinner");
     spin->set((F32)log->getMaxDays());
     spin->setCommitCallback(boost::bind(&LLPanelExperienceLog::logSizeChanged, this));
 
@@ -182,9 +207,9 @@ void LLPanelExperienceLog::refresh()
         setAllChildrenEnabled(true);
 
         mEventList->setEnabled(true);
-        getChild<LLButton>("btn_next")->setEnabled(moreItems);
-        getChild<LLButton>("btn_prev")->setEnabled(mCurrentPage>0);
-        getChild<LLButton>("btn_clear")->setEnabled(mEventList->getItemCount()>0);
+        get_owner_child<LLButton>(this, "btn_next")->setEnabled(moreItems);
+        get_owner_child<LLButton>(this, "btn_prev")->setEnabled(mCurrentPage>0);
+        get_owner_child<LLButton>(this, "btn_clear")->setEnabled(mEventList->getItemCount()>0);
         if(selected<0)
         {
             selected = 0;
@@ -238,12 +263,12 @@ void LLPanelExperienceLog::onPrev()
 
 void LLPanelExperienceLog::notifyChanged()
 {
-    LLExperienceLog::instance().setNotifyNewEvent(getChild<LLCheckBoxCtrl>("notify_all")->get());
+    LLExperienceLog::instance().setNotifyNewEvent(get_owner_child<LLCheckBoxCtrl>(this, "notify_all")->get());
 }
 
 void LLPanelExperienceLog::logSizeChanged()
 {
-    int value = (int)(getChild<LLSpinCtrl>("logsizespinner")->get());
+    int value = (int)(get_owner_child<LLSpinCtrl>(this, "logsizespinner")->get());
     LLExperienceLog::instance().setMaxDays(value);
     refresh();
 }
@@ -251,9 +276,9 @@ void LLPanelExperienceLog::logSizeChanged()
 void LLPanelExperienceLog::onSelectionChanged()
 {
     bool enabled = (1 == mEventList->getNumSelected());
-    getChild<LLButton>(BTN_REPORT_XP)->setEnabled(enabled);
-    getChild<LLButton>(BTN_PROFILE_XP)->setEnabled(enabled);
-    getChild<LLButton>("btn_notify")->setEnabled(enabled);
+    get_owner_child<LLButton>(this, BTN_REPORT_XP)->setEnabled(enabled);
+    get_owner_child<LLButton>(this, BTN_PROFILE_XP)->setEnabled(enabled);
+    get_owner_child<LLButton>(this, "btn_notify")->setEnabled(enabled);
 }
 
 LLSD LLPanelExperienceLog::getSelectedEvent()

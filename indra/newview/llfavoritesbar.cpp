@@ -55,6 +55,31 @@
 #include "lltooldraganddrop.h"
 #include "llsdserialize.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLDefaultChildRegistry::Register<LLFavoritesBarCtrl> r("favorites_bar");
 
 const S32 DROP_DOWN_MENU_WIDTH = 250;
@@ -1324,12 +1349,12 @@ void LLFavoritesBarCtrl::positionAndShowOverflowMenu()
 
     // the menu should be offset of the right edge of the window
     // so it's no covered by buttons in the right-side toolbar.
-    LLToolBar* right_toolbar = gToolBarView->getChild<LLToolBar>("toolbar_right");
+    LLToolBar* right_toolbar = get_owner_child<LLToolBar>(gToolBarView, "toolbar_right");
     if (right_toolbar && right_toolbar->hasButtons())
     {
         S32 toolbar_top = 0;
 
-        if (LLView* top_border_panel = right_toolbar->getChild<LLView>("button_panel"))
+        if (LLView* top_border_panel = get_owner_child<LLView>(right_toolbar, "button_panel"))
         {
             toolbar_top = top_border_panel->calcScreenRect().mTop;
         }

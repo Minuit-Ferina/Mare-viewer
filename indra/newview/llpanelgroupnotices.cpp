@@ -59,6 +59,31 @@
 #include "llnotificationsutil.h"
 #include "llgiveinventory.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLPanelGroupNotices> t_panel_group_notices("panel_group_notices");
 
 
@@ -248,16 +273,16 @@ bool LLPanelGroupNotices::postBuild()
 {
     constexpr bool recurse = true;
 
-    mNoticesList = getChild<LLScrollListCtrl>("notice_list",recurse);
+    mNoticesList = get_owner_child<LLScrollListCtrl>(this, "notice_list",recurse);
     mNoticesList->setCommitOnSelectionChange(true);
     mNoticesList->setCommitCallback(onSelectNotice, this);
     mNoticesList->sortByColumn("date", false);
 
-    mBtnNewMessage = getChild<LLButton>("create_new_notice",recurse);
+    mBtnNewMessage = get_owner_child<LLButton>(this, "create_new_notice",recurse);
     mBtnNewMessage->setClickedCallback(onClickNewMessage, this);
     mBtnNewMessage->setEnabled(gAgent.hasPowerInGroup(mGroupID, GP_NOTICES_SEND));
 
-    mBtnGetPastNotices = getChild<LLButton>("refresh_notices",recurse);
+    mBtnGetPastNotices = get_owner_child<LLButton>(this, "refresh_notices",recurse);
     mBtnGetPastNotices->setClickedCallback(onClickRefreshNotices, this);
 
 //  // Create
@@ -279,23 +304,23 @@ bool LLPanelGroupNotices::postBuild()
 //  mBtnRemoveAttachment->setEnabled(FALSE);
 
     // View
-    mViewSubject = getChild<LLLineEditor>("view_subject",recurse);
-    mViewMessage = getChild<LLTextEditor>("view_message",recurse);
+    mViewSubject = get_owner_child<LLLineEditor>(this, "view_subject",recurse);
+    mViewMessage = get_owner_child<LLTextEditor>(this, "view_message",recurse);
 
-    mViewInventoryName =  getChild<LLLineEditor>("view_inventory_name",recurse);
+    mViewInventoryName =  get_owner_child<LLLineEditor>(this, "view_inventory_name",recurse);
     mViewInventoryName->setTabStop(false);
     mViewInventoryName->setEnabled(false);
 
-    mViewInventoryIcon = getChild<LLIconCtrl>("view_inv_icon",recurse);
+    mViewInventoryIcon = get_owner_child<LLIconCtrl>(this, "view_inv_icon",recurse);
     mViewInventoryIcon->setVisible(false);
 
-    mBtnOpenAttachment = getChild<LLButton>("open_attachment",recurse);
+    mBtnOpenAttachment = get_owner_child<LLButton>(this, "open_attachment",recurse);
     mBtnOpenAttachment->setClickedCallback(onClickOpenAttachment, this);
 
     mNoNoticesStr = getString("no_notices_text");
 
 //  mPanelCreateNotice = getChild<LLPanel>("panel_create_new_notice",recurse);
-    mPanelViewNotice = getChild<LLPanel>("panel_view_past_notice",recurse);
+    mPanelViewNotice = get_owner_child<LLPanel>(this, "panel_view_past_notice",recurse);
 
 //  LLGroupDropTarget* target = getChild<LLGroupDropTarget> ("drop_target");
 //  target->setPanel (this);

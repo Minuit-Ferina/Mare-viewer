@@ -60,6 +60,31 @@
 
 #include "llglheaders.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // # Constants
 static constexpr F32 MAP_DEFAULT_SCALE = 128.f;
 static constexpr F32 MAP_ITERP_TIME_CONSTANT = 0.75f;
@@ -199,14 +224,14 @@ LLWorldMapView::LLWorldMapView() :
 
 bool LLWorldMapView::postBuild()
 {
-    mTextBoxNorth = getChild<LLTextBox> ("floater_map_north");
-    mTextBoxEast = getChild<LLTextBox> ("floater_map_east");
-    mTextBoxWest = getChild<LLTextBox> ("floater_map_west");
-    mTextBoxSouth = getChild<LLTextBox> ("floater_map_south");
-    mTextBoxSouthEast = getChild<LLTextBox> ("floater_map_southeast");
-    mTextBoxNorthEast = getChild<LLTextBox> ("floater_map_northeast");
-    mTextBoxSouthWest = getChild<LLTextBox> ("floater_map_southwest");
-    mTextBoxNorthWest = getChild<LLTextBox> ("floater_map_northwest");
+    mTextBoxNorth = get_owner_child<LLTextBox>(this, "floater_map_north");
+    mTextBoxEast = get_owner_child<LLTextBox>(this, "floater_map_east");
+    mTextBoxWest = get_owner_child<LLTextBox>(this, "floater_map_west");
+    mTextBoxSouth = get_owner_child<LLTextBox>(this, "floater_map_south");
+    mTextBoxSouthEast = get_owner_child<LLTextBox>(this, "floater_map_southeast");
+    mTextBoxNorthEast = get_owner_child<LLTextBox>(this, "floater_map_northeast");
+    mTextBoxSouthWest = get_owner_child<LLTextBox>(this, "floater_map_southwest");
+    mTextBoxNorthWest = get_owner_child<LLTextBox>(this, "floater_map_northwest");
 
     mTextBoxNorth->setText(getString("world_map_north"));
     mTextBoxEast->setText(getString ("world_map_east"));

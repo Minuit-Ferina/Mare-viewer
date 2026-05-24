@@ -65,6 +65,31 @@
 
 #include <stringize.h>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 extern LLControlGroup gSavedSettings;
 
 static const LLUUID PARCEL_MEDIA_LIST_ITEM_UUID = LLUUID("CAB5920F-E484-4233-8621-384CF373A321");
@@ -149,23 +174,23 @@ bool LLPanelNearByMedia::postBuild()
     resize_handle_p.corner(LLResizeHandle::LEFT_BOTTOM);
     addChild(LLUICtrlFactory::create<LLResizeHandle>(resize_handle_p));
 
-    mNearbyMediaPanel = getChild<LLUICtrl>("nearby_media_panel");
-    mMediaList = getChild<LLScrollListCtrl>("media_list");
-    mEnableAllCtrl = getChild<LLUICtrl>("all_nearby_media_enable_btn");
-    mDisableAllCtrl = getChild<LLUICtrl>("all_nearby_media_disable_btn");
-    mShowCtrl = getChild<LLComboBox>("show_combo");
+    mNearbyMediaPanel = get_owner_child<LLUICtrl>(this, "nearby_media_panel");
+    mMediaList = get_owner_child<LLScrollListCtrl>(this, "media_list");
+    mEnableAllCtrl = get_owner_child<LLUICtrl>(this, "all_nearby_media_enable_btn");
+    mDisableAllCtrl = get_owner_child<LLUICtrl>(this, "all_nearby_media_disable_btn");
+    mShowCtrl = get_owner_child<LLComboBox>(this, "show_combo");
 
     // Dynamic (selection-dependent) controls
-    mStopCtrl = getChild<LLUICtrl>("stop");
-    mPlayCtrl = getChild<LLUICtrl>("play");
-    mPauseCtrl = getChild<LLUICtrl>("pause");
-    mMuteCtrl = getChild<LLUICtrl>("mute");
-    mVolumeSliderCtrl = getChild<LLUICtrl>("volume_slider_ctrl");
-    mZoomCtrl = getChild<LLUICtrl>("zoom");
-    mUnzoomCtrl = getChild<LLUICtrl>("unzoom");
-    mVolumeSlider = getChild<LLSlider>("volume_slider");
-    mMuteBtn = getChild<LLButton>("mute_btn");
-    mMoreLessBtn = getChild<LLButton>("more_btn");
+    mStopCtrl = get_owner_child<LLUICtrl>(this, "stop");
+    mPlayCtrl = get_owner_child<LLUICtrl>(this, "play");
+    mPauseCtrl = get_owner_child<LLUICtrl>(this, "pause");
+    mMuteCtrl = get_owner_child<LLUICtrl>(this, "mute");
+    mVolumeSliderCtrl = get_owner_child<LLUICtrl>(this, "volume_slider_ctrl");
+    mZoomCtrl = get_owner_child<LLUICtrl>(this, "zoom");
+    mUnzoomCtrl = get_owner_child<LLUICtrl>(this, "unzoom");
+    mVolumeSlider = get_owner_child<LLSlider>(this, "volume_slider");
+    mMuteBtn = get_owner_child<LLButton>(this, "mute_btn");
+    mMoreLessBtn = get_owner_child<LLButton>(this, "more_btn");
 
     mEmptyNameString = getString("empty_item_text");
     mParcelMediaName = getString("parcel_media_name");
@@ -180,7 +205,7 @@ bool LLPanelNearByMedia::postBuild()
     updateControls();
     updateColumns();
 
-    LLView* minimized_controls = getChildView("minimized_controls");
+    LLView* minimized_controls = get_owner_view(this, "minimized_controls");
     mMoreRect = getRect();
     mLessRect = getRect();
     mLessRect.mBottom = minimized_controls->getRect().mBottom;
@@ -982,8 +1007,8 @@ void LLPanelNearByMedia::onAdvancedButtonClick()
     {
         // grab the 'audio' panel from the preferences floater and
         // bring it the front!
-        LLTabContainer* tabcontainer = prefsfloater->getChild<LLTabContainer>("pref core");
-        LLPanel* audiopanel = prefsfloater->getChild<LLPanel>("audio");
+        LLTabContainer* tabcontainer = get_owner_child<LLTabContainer>(prefsfloater, "pref core");
+        LLPanel* audiopanel = get_owner_child<LLPanel>(prefsfloater, "audio");
         if (tabcontainer && audiopanel)
         {
             tabcontainer->selectTabPanel(audiopanel);
@@ -997,7 +1022,7 @@ void LLPanelNearByMedia::onMoreLess()
     mNearbyMediaPanel->setVisible(is_more);
 
     // enable resizing when expanded
-    getChildView("resizebar_bottom")->setEnabled(is_more);
+    get_owner_view(this, "resizebar_bottom")->setEnabled(is_more);
 
     LLRect new_rect = is_more ? mMoreRect : mLessRect;
     new_rect.translate(getRect().mRight - new_rect.mRight, getRect().mTop - new_rect.mTop);

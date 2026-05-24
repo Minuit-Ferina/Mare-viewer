@@ -83,6 +83,31 @@
 #include "llvoiceclient.h"
 #include "llweb.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 static LLPanelInjector<LLPanelProfileSecondLife> t_panel_profile_secondlife("panel_profile_secondlife");
 static LLPanelInjector<LLPanelProfileWeb> t_panel_web("panel_profile_web");
@@ -514,12 +539,12 @@ LLFloaterProfilePermissions::~LLFloaterProfilePermissions()
 
 bool LLFloaterProfilePermissions::postBuild()
 {
-    mDescription = getChild<LLTextBase>("perm_description");
-    mOnlineStatus = getChild<LLCheckBoxCtrl>("online_check");
-    mMapRights = getChild<LLCheckBoxCtrl>("map_check");
-    mEditObjectRights = getChild<LLCheckBoxCtrl>("objects_check");
-    mOkBtn = getChild<LLButton>("perms_btn_ok");
-    mCancelBtn = getChild<LLButton>("perms_btn_cancel");
+    mDescription = get_owner_child<LLTextBase>(this, "perm_description");
+    mOnlineStatus = get_owner_child<LLCheckBoxCtrl>(this, "online_check");
+    mMapRights = get_owner_child<LLCheckBoxCtrl>(this, "map_check");
+    mEditObjectRights = get_owner_child<LLCheckBoxCtrl>(this, "objects_check");
+    mOkBtn = get_owner_child<LLButton>(this, "perms_btn_ok");
+    mCancelBtn = get_owner_child<LLButton>(this, "perms_btn_cancel");
 
     mOnlineStatus->setCommitCallback([this](LLUICtrl*, void*) { onCommitSeeOnlineRights(); }, nullptr);
     mMapRights->setCommitCallback([this](LLUICtrl*, void*) { mHasUnsavedPermChanges = true; }, nullptr);
@@ -731,21 +756,21 @@ LLPanelProfileSecondLife::~LLPanelProfileSecondLife()
 
 bool LLPanelProfileSecondLife::postBuild()
 {
-    mGroupList              = getChild<LLGroupList>("group_list");
-    mShowInSearchCombo      = getChild<LLComboBox>("show_in_search");
-    mHideAgeCombo           = getChild<LLComboBox>("hide_age");
-    mSecondLifePic          = getChild<LLProfileImageCtrl>("2nd_life_pic");
-    mSecondLifePicLayout    = getChild<LLPanel>("image_panel");
-    mDescriptionEdit        = getChild<LLTextEditor>("sl_description_edit");
-    mAgentActionMenuButton  = getChild<LLMenuButton>("agent_actions_menu");
-    mSaveDescriptionChanges = getChild<LLButton>("save_description_changes");
-    mDiscardDescriptionChanges = getChild<LLButton>("discard_description_changes");
-    mCanSeeOnlineIcon       = getChild<LLIconCtrl>("can_see_online");
-    mCantSeeOnlineIcon      = getChild<LLIconCtrl>("cant_see_online");
-    mCanSeeOnMapIcon        = getChild<LLIconCtrl>("can_see_on_map");
-    mCantSeeOnMapIcon       = getChild<LLIconCtrl>("cant_see_on_map");
-    mCanEditObjectsIcon     = getChild<LLIconCtrl>("can_edit_objects");
-    mCantEditObjectsIcon    = getChild<LLIconCtrl>("cant_edit_objects");
+    mGroupList              = get_owner_child<LLGroupList>(this, "group_list");
+    mShowInSearchCombo      = get_owner_child<LLComboBox>(this, "show_in_search");
+    mHideAgeCombo           = get_owner_child<LLComboBox>(this, "hide_age");
+    mSecondLifePic          = get_owner_child<LLProfileImageCtrl>(this, "2nd_life_pic");
+    mSecondLifePicLayout    = get_owner_child<LLPanel>(this, "image_panel");
+    mDescriptionEdit        = get_owner_child<LLTextEditor>(this, "sl_description_edit");
+    mAgentActionMenuButton  = get_owner_child<LLMenuButton>(this, "agent_actions_menu");
+    mSaveDescriptionChanges = get_owner_child<LLButton>(this, "save_description_changes");
+    mDiscardDescriptionChanges = get_owner_child<LLButton>(this, "discard_description_changes");
+    mCanSeeOnlineIcon       = get_owner_child<LLIconCtrl>(this, "can_see_online");
+    mCantSeeOnlineIcon      = get_owner_child<LLIconCtrl>(this, "cant_see_online");
+    mCanSeeOnMapIcon        = get_owner_child<LLIconCtrl>(this, "can_see_on_map");
+    mCantSeeOnMapIcon       = get_owner_child<LLIconCtrl>(this, "cant_see_on_map");
+    mCanEditObjectsIcon     = get_owner_child<LLIconCtrl>(this, "can_edit_objects");
+    mCantEditObjectsIcon    = get_owner_child<LLIconCtrl>(this, "cant_edit_objects");
 
     mShowInSearchCombo->setCommitCallback([this](LLUICtrl*, void*) { onShowInSearchCallback(); }, nullptr);
     mHideAgeCombo->setCommitCallback([this](LLUICtrl*, void*) { onHideAgeCallback(); }, nullptr);
@@ -981,13 +1006,13 @@ void LLPanelProfileSecondLife::openGroupProfile()
 void LLPanelProfileSecondLife::onAvatarNameCache(const LLUUID& agent_id, const LLAvatarName& av_name)
 {
     mAvatarNameCacheConnection.disconnect();
-    getChild<LLUICtrl>("display_name")->setValue(av_name.getDisplayName());
-    getChild<LLUICtrl>("user_name")->setValue(av_name.getAccountName());
+    get_owner_child<LLUICtrl>(this, "display_name")->setValue(av_name.getDisplayName());
+    get_owner_child<LLUICtrl>(this, "user_name")->setValue(av_name.getAccountName());
 }
 
 void LLPanelProfileSecondLife::setProfileImageUploading(bool loading)
 {
-    LLLoadingIndicator* indicator = getChild<LLLoadingIndicator>("image_upload_indicator");
+    LLLoadingIndicator* indicator = get_owner_child<LLLoadingIndicator>(this, "image_upload_indicator");
     indicator->setVisible(loading);
     if (loading)
     {
@@ -1067,7 +1092,7 @@ void LLPanelProfileSecondLife::fillCommonData(const LLAvatarData* avatar_data)
 
 void LLPanelProfileSecondLife::fillPartnerData(const LLAvatarData* avatar_data)
 {
-    LLTextBox* partner_text_ctrl = getChild<LLTextBox>("partner_link");
+    LLTextBox* partner_text_ctrl = get_owner_child<LLTextBox>(this, "partner_link");
     if (avatar_data->partner_id.notNull())
     {
         childSetVisible("partner_layout", true);
@@ -1089,7 +1114,7 @@ void LLPanelProfileSecondLife::fillAccountStatus(const LLAvatarData* avatar_data
     args["[PAYMENTINFO]"] = LLAvatarPropertiesProcessor::paymentInfo(avatar_data);
 
     std::string caption_text = getString("CaptionTextAcctInfo", args);
-    getChild<LLUICtrl>("account_info")->setValue(caption_text);
+    get_owner_child<LLUICtrl>(this, "account_info")->setValue(caption_text);
 
     constexpr S32 LINDEN_EMPLOYEE_INDEX = 3;
     LLDate sl_release;
@@ -1098,43 +1123,43 @@ void LLPanelProfileSecondLife::fillAccountStatus(const LLAvatarData* avatar_data
     LLStringUtil::toLower(customer_lower);
     if (avatar_data->caption_index == LINDEN_EMPLOYEE_INDEX)
     {
-        getChild<LLUICtrl>("badge_icon")->setValue("Profile_Badge_Linden");
-        getChild<LLUICtrl>("badge_text")->setValue(getString("BadgeLinden"));
+        get_owner_child<LLUICtrl>(this, "badge_icon")->setValue("Profile_Badge_Linden");
+        get_owner_child<LLUICtrl>(this, "badge_text")->setValue(getString("BadgeLinden"));
         childSetVisible("badge_layout", true);
         childSetVisible("partner_spacer_layout", false);
     }
     else if (avatar_data->born_on < sl_release)
     {
-        getChild<LLUICtrl>("badge_icon")->setValue("Profile_Badge_Beta");
-        getChild<LLUICtrl>("badge_text")->setValue(getString("BadgeBeta"));
+        get_owner_child<LLUICtrl>(this, "badge_icon")->setValue("Profile_Badge_Beta");
+        get_owner_child<LLUICtrl>(this, "badge_text")->setValue(getString("BadgeBeta"));
         childSetVisible("badge_layout", true);
         childSetVisible("partner_spacer_layout", false);
     }
     else if (customer_lower == "beta_lifetime")
     {
-        getChild<LLUICtrl>("badge_icon")->setValue("Profile_Badge_Beta_Lifetime");
-        getChild<LLUICtrl>("badge_text")->setValue(getString("BadgeBetaLifetime"));
+        get_owner_child<LLUICtrl>(this, "badge_icon")->setValue("Profile_Badge_Beta_Lifetime");
+        get_owner_child<LLUICtrl>(this, "badge_text")->setValue(getString("BadgeBetaLifetime"));
         childSetVisible("badge_layout", true);
         childSetVisible("partner_spacer_layout", false);
     }
     else if (customer_lower == "lifetime")
     {
-        getChild<LLUICtrl>("badge_icon")->setValue("Profile_Badge_Lifetime");
-        getChild<LLUICtrl>("badge_text")->setValue(getString("BadgeLifetime"));
+        get_owner_child<LLUICtrl>(this, "badge_icon")->setValue("Profile_Badge_Lifetime");
+        get_owner_child<LLUICtrl>(this, "badge_text")->setValue(getString("BadgeLifetime"));
         childSetVisible("badge_layout", true);
         childSetVisible("partner_spacer_layout", false);
     }
     else if (customer_lower == "secondlifetime_premium")
     {
-        getChild<LLUICtrl>("badge_icon")->setValue("Profile_Badge_Premium_Lifetime");
-        getChild<LLUICtrl>("badge_text")->setValue(getString("BadgePremiumLifetime"));
+        get_owner_child<LLUICtrl>(this, "badge_icon")->setValue("Profile_Badge_Premium_Lifetime");
+        get_owner_child<LLUICtrl>(this, "badge_text")->setValue(getString("BadgePremiumLifetime"));
         childSetVisible("badge_layout", true);
         childSetVisible("partner_spacer_layout", false);
     }
     else if (customer_lower == "secondlifetime_premium_plus")
     {
-        getChild<LLUICtrl>("badge_icon")->setValue("Profile_Badge_Pplus_Lifetime");
-        getChild<LLUICtrl>("badge_text")->setValue(getString("BadgePremiumPlusLifetime"));
+        get_owner_child<LLUICtrl>(this, "badge_icon")->setValue("Profile_Badge_Pplus_Lifetime");
+        get_owner_child<LLUICtrl>(this, "badge_text")->setValue(getString("BadgePremiumPlusLifetime"));
         childSetVisible("badge_layout", true);
         childSetVisible("partner_spacer_layout", false);
     }
@@ -1195,9 +1220,9 @@ void LLPanelProfileSecondLife::fillAgeData(const LLAvatarData* avatar_data)
     LLSD args_name;
     args_name["datetime"] = (S32)avatar_data->born_on.secondsSinceEpoch();
     LLStringUtil::format(name_and_date, args_name);
-    getChild<LLUICtrl>("sl_birth_date")->setValue(name_and_date);
+    get_owner_child<LLUICtrl>(this, "sl_birth_date")->setValue(name_and_date);
 
-    LLUICtrl* userAgeCtrl = getChild<LLUICtrl>("user_age");
+    LLUICtrl* userAgeCtrl = get_owner_child<LLUICtrl>(this, "user_age");
     if (hide_age)
     {
         userAgeCtrl->setVisible(false);
@@ -1903,7 +1928,7 @@ void LLPanelProfileWeb::onOpen(const LLSD& key)
 
 bool LLPanelProfileWeb::postBuild()
 {
-    mWebBrowser = getChild<LLMediaCtrl>("profile_html");
+    mWebBrowser = get_owner_child<LLMediaCtrl>(this, "profile_html");
     mWebBrowser->addObserver(this);
     mWebBrowser->setHomePageUrl("about:blank");
 
@@ -2030,14 +2055,14 @@ LLPanelProfileFirstLife::~LLPanelProfileFirstLife()
 
 bool LLPanelProfileFirstLife::postBuild()
 {
-    mDescriptionEdit = getChild<LLTextEditor>("fl_description_edit");
-    mPicture = getChild<LLProfileImageCtrl>("real_world_pic");
+    mDescriptionEdit = get_owner_child<LLTextEditor>(this, "fl_description_edit");
+    mPicture = get_owner_child<LLProfileImageCtrl>(this, "real_world_pic");
 
-    mUploadPhoto = getChild<LLButton>("fl_upload_image");
-    mChangePhoto = getChild<LLButton>("fl_change_image");
-    mRemovePhoto = getChild<LLButton>("fl_remove_image");
-    mSaveChanges = getChild<LLButton>("fl_save_changes");
-    mDiscardChanges = getChild<LLButton>("fl_discard_changes");
+    mUploadPhoto = get_owner_child<LLButton>(this, "fl_upload_image");
+    mChangePhoto = get_owner_child<LLButton>(this, "fl_change_image");
+    mRemovePhoto = get_owner_child<LLButton>(this, "fl_remove_image");
+    mSaveChanges = get_owner_child<LLButton>(this, "fl_save_changes");
+    mDiscardChanges = get_owner_child<LLButton>(this, "fl_discard_changes");
 
     mUploadPhoto->setCommitCallback([this](LLUICtrl*, void*) { onUploadPhoto(); }, nullptr);
     mChangePhoto->setCommitCallback([this](LLUICtrl*, void*) { onChangePhoto(); }, nullptr);
@@ -2068,7 +2093,7 @@ void LLPanelProfileFirstLife::setProfileImageUploading(bool loading)
     mChangePhoto->setEnabled(!loading);
     mRemovePhoto->setEnabled(!loading && mPicture->getImageAssetId().notNull());
 
-    LLLoadingIndicator* indicator = getChild<LLLoadingIndicator>("image_upload_indicator");
+    LLLoadingIndicator* indicator = get_owner_child<LLLoadingIndicator>(this, "image_upload_indicator");
     indicator->setVisible(loading);
     if (loading)
     {
@@ -2283,9 +2308,9 @@ void LLPanelProfileNotes::commitUnsavedChanges()
 
 bool LLPanelProfileNotes::postBuild()
 {
-    mNotesEditor = getChild<LLTextEditor>("notes_edit");
-    mSaveChanges = getChild<LLButton>("notes_save_changes");
-    mDiscardChanges = getChild<LLButton>("notes_discard_changes");
+    mNotesEditor = get_owner_child<LLTextEditor>(this, "notes_edit");
+    mSaveChanges = get_owner_child<LLButton>(this, "notes_save_changes");
+    mDiscardChanges = get_owner_child<LLButton>(this, "notes_discard_changes");
 
     mSaveChanges->setCommitCallback([this](LLUICtrl*, void*) { onSaveNotesChanges(); }, nullptr);
     mDiscardChanges->setCommitCallback([this](LLUICtrl*, void*) { onDiscardNotesChanges(); }, nullptr);
@@ -2397,7 +2422,7 @@ void LLPanelProfile::onOpen(const LLSD& key)
 
     LLPanelProfileTab::onOpen(avatar_id);
 
-    mTabContainer       = getChild<LLTabContainer>("panel_profile_tabs");
+    mTabContainer       = get_owner_child<LLTabContainer>(this, "panel_profile_tabs");
     mPanelSecondlife    = findChild<LLPanelProfileSecondLife>(PANEL_SECONDLIFE);
     mPanelWeb           = findChild<LLPanelProfileWeb>(PANEL_WEB);
     mPanelPicks         = findChild<LLPanelProfilePicks>(PANEL_PICKS);

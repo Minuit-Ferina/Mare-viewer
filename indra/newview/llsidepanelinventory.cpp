@@ -61,6 +61,31 @@
 
 #include "llfiltereditor.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLSidepanelInventory> t_inventory("sidepanel_inventory");
 
 //
@@ -169,12 +194,12 @@ bool LLSidepanelInventory::postBuild()
 {
     // UI elements from inventory panel
     {
-        mInventoryPanel = getChild<LLPanel>("sidepanel_inventory_panel");
+        mInventoryPanel = get_owner_child<LLPanel>(this, "sidepanel_inventory_panel");
 
-        mPanelMainInventory = mInventoryPanel->getChild<LLPanelMainInventory>("panel_main_inventory");
+        mPanelMainInventory = get_owner_child<LLPanelMainInventory>(mInventoryPanel, "panel_main_inventory");
         mPanelMainInventory->setSelectCallback(boost::bind(&LLSidepanelInventory::onSelectionChange, this, _1, _2));
         mPanelMainInventory->setParentSidepanel(this);
-        mPanelMainInventory->setInboxPanel(getChild<LLPanelMarketplaceInbox>("marketplace_inbox"));
+        mPanelMainInventory->setInboxPanel(get_owner_child<LLPanelMarketplaceInbox>(this, "marketplace_inbox"));
         //LLTabContainer* tabs = mPanelMainInventory->getChild<LLTabContainer>("inventory filter tabs");
         //tabs->setCommitCallback(boost::bind(&LLSidepanelInventory::updateVerbs, this));
 
@@ -199,7 +224,7 @@ bool LLSidepanelInventory::postBuild()
             // </FS:Ansariel>
 
             // Set up button states and callbacks
-            LLButton * inbox_button = getChild<LLButton>(INBOX_BUTTON_NAME);
+            LLButton * inbox_button = get_owner_child<LLButton>(this, INBOX_BUTTON_NAME);
 
             inbox_button->setCommitCallback(boost::bind(&LLSidepanelInventory::onToggleInboxBtn, this));
 
@@ -208,7 +233,7 @@ bool LLSidepanelInventory::postBuild()
             bool is_inbox_collapsed = !inbox_button->getToggleState() || sLoginCompleted;
 
             // Restore the collapsed inbox panel state
-            mInboxLayoutPanel = getChild<LLLayoutPanel>(INBOX_LAYOUT_PANEL_NAME);
+            mInboxLayoutPanel = get_owner_child<LLLayoutPanel>(this, INBOX_LAYOUT_PANEL_NAME);
             inv_stack->collapsePanel(mInboxLayoutPanel, is_inbox_collapsed);
             if (!is_inbox_collapsed)
             {
@@ -332,7 +357,7 @@ void LLSidepanelInventory::observeInboxModifications(const LLUUID& inboxID)
     // Set up the inbox inventory view
     //
 
-    LLPanelMarketplaceInbox * inbox = getChild<LLPanelMarketplaceInbox>(MARKETPLACE_INBOX_PANEL);
+    LLPanelMarketplaceInbox * inbox = get_owner_child<LLPanelMarketplaceInbox>(this, MARKETPLACE_INBOX_PANEL);
     LLInventoryPanel* inventory_panel = inbox->setupInventoryPanel();
     mInventoryPanelInbox = inventory_panel->getInventoryPanelHandle();
 }
@@ -366,7 +391,7 @@ void LLSidepanelInventory::openInbox()
 {
     if (mInboxEnabled)
     {
-        getChild<LLButton>(INBOX_BUTTON_NAME)->setToggleState(true);
+        get_owner_child<LLButton>(this, INBOX_BUTTON_NAME)->setToggleState(true);
         onToggleInboxBtn();
     }
 }
@@ -380,7 +405,7 @@ void LLSidepanelInventory::onInboxChanged(const LLUUID& inbox_id)
     // Expand the inbox since we have fresh items
     if (mInboxEnabled)
     {
-        getChild<LLButton>(INBOX_BUTTON_NAME)->setToggleState(true);
+        get_owner_child<LLButton>(this, INBOX_BUTTON_NAME)->setToggleState(true);
         onToggleInboxBtn();
     }
 #endif
@@ -388,8 +413,8 @@ void LLSidepanelInventory::onInboxChanged(const LLUUID& inbox_id)
 
 void LLSidepanelInventory::onToggleInboxBtn()
 {
-    LLButton* inboxButton = getChild<LLButton>(INBOX_BUTTON_NAME);
-    LLLayoutStack* inv_stack = getChild<LLLayoutStack>(INVENTORY_LAYOUT_STACK_NAME);
+    LLButton* inboxButton = get_owner_child<LLButton>(this, INBOX_BUTTON_NAME);
+    LLLayoutStack* inv_stack = get_owner_child<LLLayoutStack>(this, INVENTORY_LAYOUT_STACK_NAME);
 
     const bool inbox_expanded = inboxButton->getToggleState();
 
@@ -420,11 +445,11 @@ void LLSidepanelInventory::onOpen(const LLSD& key)
     LLPanelMarketplaceInbox * inbox = findChild<LLPanelMarketplaceInbox>(MARKETPLACE_INBOX_PANEL);
     if (inbox && (inbox->getFreshItemCount() > 0))
     {
-        getChild<LLButton>(INBOX_BUTTON_NAME)->setToggleState(true);
+        get_owner_child<LLButton>(this, INBOX_BUTTON_NAME)->setToggleState(true);
         onToggleInboxBtn();
     }
 #else
-    if (mInboxEnabled && getChild<LLButton>(INBOX_BUTTON_NAME)->getToggleState())
+    if (mInboxEnabled && get_owner_child<LLButton>(this, INBOX_BUTTON_NAME)->getToggleState())
     {
         gSavedPerAccountSettings.setU32("LastInventoryInboxActivity", (U32)time_corrected());
     }

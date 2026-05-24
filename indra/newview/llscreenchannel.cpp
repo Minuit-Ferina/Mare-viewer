@@ -45,6 +45,31 @@
 
 #include <algorithm>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 using namespace LLNotificationsUI;
 
 bool LLScreenChannel::mWasStartUpToastShown = false;
@@ -900,8 +925,8 @@ void LLScreenChannel::createStartUpToast(S32 notif_num, F32 timer)
 
     mStartUpToastPanel->setOnFadeCallback(boost::bind(&LLScreenChannel::onStartUpToastHide, this));
 
-    LLPanel* wrapper_panel = mStartUpToastPanel->getChild<LLPanel>("wrapper_panel");
-    LLTextBox* text_box = mStartUpToastPanel->getChild<LLTextBox>("toast_text");
+    LLPanel* wrapper_panel = get_owner_child<LLPanel>(mStartUpToastPanel, "wrapper_panel");
+    LLTextBox* text_box = get_owner_child<LLTextBox>(mStartUpToastPanel, "toast_text");
 
     std::string text = LLTrans::getString("StartUpNotifications");
 

@@ -65,6 +65,31 @@
 #include "lluictrlfactory.h"
 #include "lluiusage.h"
 #include "chatbar_as_cmdline.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 //
 // Globals
 //
@@ -112,14 +137,14 @@ LLChatBar::~LLChatBar()
 
 bool LLChatBar::postBuild()
 {
-    getChild<LLUICtrl>("Say")->setCommitCallback(boost::bind(&LLChatBar::onClickSay, this, _1));
+    get_owner_child<LLUICtrl>(this, "Say")->setCommitCallback(boost::bind(&LLChatBar::onClickSay, this, _1));
 
     // * NOTE: mantipov: getChild with default parameters returns dummy widget.
     // Seems this class will be completle removed
     // attempt to bind to an existing combo box named gesture
     setGestureCombo(findChild<LLComboBox>( "Gesture"));
 
-    mInputEditor = getChild<LLLineEditor>("Chat Editor");
+    mInputEditor = get_owner_child<LLLineEditor>(this, "Chat Editor");
     mInputEditor->setKeystrokeCallback(&onInputEditorKeystroke, this);
     mInputEditor->setFocusLostCallback(boost::bind(&LLChatBar::onInputEditorFocusLost));
     mInputEditor->setFocusReceivedCallback(boost::bind(&LLChatBar::onInputEditorGainFocus));
@@ -196,7 +221,7 @@ void LLChatBar::refresh()
         gAgent.stopTyping();
     }
 
-    getChildView("Say")->setEnabled(mInputEditor->getText().size() > 0);
+    get_owner_view(this, "Say")->setEnabled(mInputEditor->getText().size() > 0);
 
 }
 
@@ -473,7 +498,7 @@ void LLChatBar::sendChat( EChatType type )
         }
     }
 
-    getChild<LLUICtrl>("Chat Editor")->setValue(LLStringUtil::null);
+    get_owner_child<LLUICtrl>(this, "Chat Editor")->setValue(LLStringUtil::null);
 
     gAgent.stopTyping();
 

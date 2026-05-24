@@ -71,6 +71,31 @@
 
 #include <boost/regex.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //-- LLTeleportHistoryMenuItem -----------------------------------------------
 
 /**
@@ -297,17 +322,17 @@ LLNavigationBar::~LLNavigationBar()
 
 bool LLNavigationBar::postBuild()
 {
-    mBtnBack    = getChild<LLPullButton>("back_btn");
-    mBtnForward = getChild<LLPullButton>("forward_btn");
-    mBtnHome    = getChild<LLButton>("home_btn");
-    mBtnLandmarks = getChild<LLButton>("landmarks_btn");
+    mBtnBack    = get_owner_child<LLPullButton>(this, "back_btn");
+    mBtnForward = get_owner_child<LLPullButton>(this, "forward_btn");
+    mBtnHome    = get_owner_child<LLButton>(this, "home_btn");
+    mBtnLandmarks = get_owner_child<LLButton>(this, "landmarks_btn");
 
 //MK
-    mAvatarHeightOffsetResetBtn = getChild<LLButton>("avatar_z_offset_reset_btn");
+    mAvatarHeightOffsetResetBtn = get_owner_child<LLButton>(this, "avatar_z_offset_reset_btn");
     mAvatarHeightOffsetResetBtn->setClickedCallback(boost::bind(&LLNavigationBar::onAvatarHeightOffsetResetButtonClicked, this));
 //mk
 
-    mCmbLocation= getChild<LLLocationInputCtrl>("location_combo");
+    mCmbLocation= get_owner_child<LLLocationInputCtrl>(this, "location_combo");
 
     mBtnBack->setEnabled(false);
     mBtnBack->setClickedCallback(boost::bind(&LLNavigationBar::onBackButtonClicked, this));
@@ -332,7 +357,7 @@ bool LLNavigationBar::postBuild()
         setTeleportFailedCallback(boost::bind(&LLNavigationBar::onTeleportFailed, this));
 
     mDefaultNbRect = getRect();
-    mDefaultFpRect = getChild<LLFavoritesBarCtrl>("favorite")->getRect();
+    mDefaultFpRect = get_owner_child<LLFavoritesBarCtrl>(this, "favorite")->getRect();
 
     // we'll be notified on teleport history changes
     LLTeleportHistory::getInstance()->setHistoryChangedCallback(
@@ -340,8 +365,8 @@ bool LLNavigationBar::postBuild()
 
     LLHints::getInstance()->registerHintTarget("nav_bar", getHandle());
 
-    mNavigationPanel = getChild<LLLayoutPanel>("navigation_layout_panel");
-    mFavoritePanel = getChild<LLLayoutPanel>("favorites_layout_panel");
+    mNavigationPanel = get_owner_child<LLLayoutPanel>(this, "navigation_layout_panel");
+    mFavoritePanel = get_owner_child<LLLayoutPanel>(this, "favorites_layout_panel");
     mNavigationPanel->getResizeBar()->setResizeListener(boost::bind(&LLNavigationBar::onNavbarResized, this));
     mFavoritePanel->getResizeBar()->setResizeListener(boost::bind(&LLNavigationBar::onNavbarResized, this));
 

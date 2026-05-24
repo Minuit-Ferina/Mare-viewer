@@ -53,6 +53,31 @@
 
 #include "llinventorymodel.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //=========================================================================
 namespace
 {
@@ -158,43 +183,43 @@ LLPanelEnvironmentInfo::~LLPanelEnvironmentInfo()
 
 bool LLPanelEnvironmentInfo::postBuild()
 {
-    mIconGround = getChild<LLIconCtrl>(ICN_GROUND);
-    mIconWater = getChild<LLIconCtrl>(ICN_WATER);
+    mIconGround = get_owner_child<LLIconCtrl>(this, ICN_GROUND);
+    mIconWater = get_owner_child<LLIconCtrl>(this, ICN_WATER);
 
-    mPanelEnvAltitudes = getChild<LLUICtrl>(PNL_ENVIRONMENT_ALTITUDES);
-    mPanelEnvConfig = getChild<LLUICtrl>(PNL_SETTINGS);
+    mPanelEnvAltitudes = get_owner_child<LLUICtrl>(this, PNL_ENVIRONMENT_ALTITUDES);
+    mPanelEnvConfig = get_owner_child<LLUICtrl>(this, PNL_SETTINGS);
     mPanelEnvButtons = getChild <LLUICtrl>(PNL_BUTTONS);
-    mPanelEnvDisabled = getChild<LLUICtrl>(PNL_DISABLED);
-    mPanelEnvRegionMsg = getChild<LLUICtrl>(PNL_REGION_MSG);
+    mPanelEnvDisabled = get_owner_child<LLUICtrl>(this, PNL_DISABLED);
+    mPanelEnvRegionMsg = get_owner_child<LLUICtrl>(this, PNL_REGION_MSG);
 
-    mEnvironmentDisabledText = getChild<LLTextBox>(TXT_DISABLED);
-    mLabelApparentTime = getChild<LLTextBox>(LBL_TIMEOFDAY);
+    mEnvironmentDisabledText = get_owner_child<LLTextBox>(this, TXT_DISABLED);
+    mLabelApparentTime = get_owner_child<LLTextBox>(this, LBL_TIMEOFDAY);
 
-    mBtnUseDefault = getChild<LLButton>(BTN_USEDEFAULT);
+    mBtnUseDefault = get_owner_child<LLButton>(this, BTN_USEDEFAULT);
     mBtnUseDefault->setCommitCallback([this](LLUICtrl *, const LLSD &){ onBtnDefault(); });
 
-    mBtnSelectInv = getChild<LLButton>(BTN_SELECTINV);
+    mBtnSelectInv = get_owner_child<LLButton>(this, BTN_SELECTINV);
     mBtnSelectInv->setCommitCallback([this](LLUICtrl *, const LLSD &){ onBtnSelect(); });
 
-    mBtnEdit = getChild<LLButton>(BTN_EDIT);
+    mBtnEdit = get_owner_child<LLButton>(this, BTN_EDIT);
     mBtnEdit->setCommitCallback([this](LLUICtrl *, const LLSD &){ onBtnEdit(); });
 
-    mBtnResetAltitudes = getChild<LLButton>(BTN_RST_ALTITUDES);
+    mBtnResetAltitudes = get_owner_child<LLButton>(this, BTN_RST_ALTITUDES);
     mBtnResetAltitudes->setCommitCallback([this](LLUICtrl *, const LLSD &){ onBtnRstAltitudes(); });
 
-    mCheckAllowOverride = getChild<LLCheckBoxCtrl>(CHK_ALLOWOVERRIDE);
+    mCheckAllowOverride = get_owner_child<LLCheckBoxCtrl>(this, CHK_ALLOWOVERRIDE);
 
-    mSliderDayLength = getChild<LLSliderCtrl>(SLD_DAYLENGTH);
+    mSliderDayLength = get_owner_child<LLSliderCtrl>(this, SLD_DAYLENGTH);
     mSliderDayLength->setCommitCallback([this](LLUICtrl *, const LLSD &value) { onSldDayLengthChanged((F32)value.asReal()); });
     mSliderDayLength->setSliderMouseUpCallback([this](LLUICtrl *, const LLSD &) { onDayLenOffsetMouseUp(); });
     mSliderDayLength->setSliderEditorCommitCallback([this](LLUICtrl *, const LLSD &) { onDayLenOffsetMouseUp(); });
 
-    mSliderDayOffset = getChild<LLSliderCtrl>(SLD_DAYOFFSET);
+    mSliderDayOffset = get_owner_child<LLSliderCtrl>(this, SLD_DAYOFFSET);
     mSliderDayOffset->setCommitCallback([this](LLUICtrl *, const LLSD &value) { onSldDayOffsetChanged((F32)value.asReal()); });
     mSliderDayOffset->setSliderMouseUpCallback([this](LLUICtrl *, const LLSD &) { onDayLenOffsetMouseUp(); });
     mSliderDayOffset->setSliderEditorCommitCallback([this](LLUICtrl *, const LLSD &) { onDayLenOffsetMouseUp(); });
 
-    mMultiSliderAltitudes = getChild<LLMultiSliderCtrl>(SLD_ALTITUDES);
+    mMultiSliderAltitudes = get_owner_child<LLMultiSliderCtrl>(this, SLD_ALTITUDES);
     mMultiSliderAltitudes->setCommitCallback([this](LLUICtrl *cntrl, const LLSD &value) { onAltSliderCallback(cntrl, value); });
     mMultiSliderAltitudes->setSliderMouseUpCallback([this](LLUICtrl *, const LLSD &) { onAltSliderMouseUp(); });
 

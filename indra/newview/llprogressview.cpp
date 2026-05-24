@@ -53,6 +53,31 @@
 #include "lluictrlfactory.h"
 #include "llpanellogin.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 LLProgressView* LLProgressView::sInstance = NULL;
 
 S32 gStartImageWidth = 1;
@@ -79,36 +104,36 @@ LLProgressView::LLProgressView()
 
 bool LLProgressView::postBuild()
 {
-    mProgressBar = getChild<LLProgressBar>("login_progress_bar");
+    mProgressBar = get_owner_child<LLProgressBar>(this, "login_progress_bar");
 
-    mLogosLabel = getChild<LLTextBox>("logos_lbl");
+    mLogosLabel = get_owner_child<LLTextBox>(this, "logos_lbl");
 
-    mProgressText = getChild<LLTextBox>("progress_text");
-    mMessageText = getChild<LLTextBox>("message_text");
+    mProgressText = get_owner_child<LLTextBox>(this, "progress_text");
+    mMessageText = get_owner_child<LLTextBox>(this, "message_text");
     mMessageTextRectInitial = mMessageText->getRect(); // auto resizes, save initial size
 
     // media control that is used to play intro video
-    mMediaCtrl = getChild<LLMediaCtrl>("login_media_panel");
+    mMediaCtrl = get_owner_child<LLMediaCtrl>(this, "login_media_panel");
     mMediaCtrl->setVisible( false );        // hidden initially
     mMediaCtrl->addObserver( this );        // watch events
 
     LLViewerMedia::getInstance()->setOnlyAudibleMediaTextureID(mMediaCtrl->getTextureID());
 
-    mCancelBtn = getChild<LLButton>("cancel_btn");
+    mCancelBtn = get_owner_child<LLButton>(this, "cancel_btn");
     mCancelBtn->setClickedCallback(  LLProgressView::onCancelButtonClicked, NULL );
 
-    mLayoutPanel4 = getChild<LLView>("panel4");
+    mLayoutPanel4 = get_owner_child<LLView>(this, "panel4");
     mLayoutPanel4RectInitial = mLayoutPanel4->getRect();
 
-    mLayoutMOTD = getChild<LLView>("panel_motd");
+    mLayoutMOTD = get_owner_child<LLView>(this, "panel_motd");
     mLayoutMOTDRectInitial = mLayoutMOTD->getRect();
 
-    getChild<LLTextBox>("title_text")->setText(LLStringExplicit(
+    get_owner_child<LLTextBox>(this, "title_text")->setText(LLStringExplicit(
         LLAppViewer::instance()->getSecondLifeTitle() + " " +
         LLVersionInfo::instance().getShortVersion()
     ));
 
-    getChild<LLTextBox>("message_text")->setClickedCallback(onClickMessage, this);
+    get_owner_child<LLTextBox>(this, "message_text")->setClickedCallback(onClickMessage, this);
 
     // hidden initially, until we need it
     setVisible(false);
@@ -159,7 +184,7 @@ void LLProgressView::revealIntroPanel()
             !gSavedSettings.getBOOL("PostFirstLoginIntroViewed"))
     {
         // hide the progress bar
-        getChild<LLView>("stack1")->setVisible(false);
+        get_owner_child<LLView>(this, "stack1")->setVisible(false);
 
         // navigate to intro URL and reveal widget
         mMediaCtrl->navigateTo( intro_url );
@@ -688,7 +713,7 @@ void LLProgressView::handleMediaEvent(LLPluginClassMedia* self, EMediaEvent even
             }
 
             // show the progress bar
-            getChild<LLView>("stack1")->setVisible(true);
+            get_owner_child<LLView>(this, "stack1")->setVisible(true);
         }
     }
 }

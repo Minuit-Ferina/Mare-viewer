@@ -47,6 +47,31 @@
 #include "llpanel.h"
 #include "stringize.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 const F64 CURRENCY_ESTIMATE_FREQUENCY = 2.0;
     // how long of a pause in typing a currency buy amount before an
@@ -411,8 +436,8 @@ void LLCurrencyUIManager::Impl::currencyKey(S32 value)
         //cannot just simply refresh the whole UI, as the edit field will
         // get reset and the cursor will change...
 
-        mPanel.getChildView("currency_est")->setVisible(false);
-        mPanel.getChildView("getting_data")->setVisible(true);
+        get_owner_view(&mPanel, "currency_est")->setVisible(false);
+        get_owner_view(&mPanel, "getting_data")->setVisible(true);
     }
 
     mCurrencyChanged = true;
@@ -428,7 +453,7 @@ void LLCurrencyUIManager::Impl::onCurrencyKey(LLLineEditor* caller, void* data)
 
 void LLCurrencyUIManager::Impl::prepare()
 {
-    LLLineEditor* lindenAmount = mPanel.getChild<LLLineEditor>("currency_amt");
+    LLLineEditor* lindenAmount = get_owner_child<LLLineEditor>(&mPanel, "currency_amt");
     if (lindenAmount)
     {
         lindenAmount->setPrevalidate(LLTextValidate::validateNonNegativeS32);
@@ -440,15 +465,15 @@ void LLCurrencyUIManager::Impl::updateUI()
 {
     if (mHidden)
     {
-        mPanel.getChildView("currency_action")->setVisible(false);
-        mPanel.getChildView("currency_amt")->setVisible(false);
-        mPanel.getChildView("currency_est")->setVisible(false);
+        get_owner_view(&mPanel, "currency_action")->setVisible(false);
+        get_owner_view(&mPanel, "currency_amt")->setVisible(false);
+        get_owner_view(&mPanel, "currency_est")->setVisible(false);
         return;
     }
 
-    mPanel.getChildView("currency_action")->setVisible(true);
+    get_owner_view(&mPanel, "currency_action")->setVisible(true);
 
-    LLLineEditor* lindenAmount = mPanel.getChild<LLLineEditor>("currency_amt");
+    LLLineEditor* lindenAmount = get_owner_child<LLLineEditor>(&mPanel, "currency_amt");
     if (lindenAmount)
     {
         lindenAmount->setVisible(true);
@@ -470,17 +495,17 @@ void LLCurrencyUIManager::Impl::updateUI()
     }
 
     std::string estimated = (mUserCurrencyBuy == 0) ? mPanel.getString("estimated_zero") : getLocalEstimate();
-    mPanel.getChild<LLUICtrl>("currency_est")->setTextArg("[LOCALAMOUNT]", estimated);
-    mPanel.getChildView("currency_est")->setVisible( hasEstimate() || mUserCurrencyBuy == 0);
+    get_owner_child<LLUICtrl>(&mPanel, "currency_est")->setTextArg("[LOCALAMOUNT]", estimated);
+    get_owner_view(&mPanel, "currency_est")->setVisible( hasEstimate() || mUserCurrencyBuy == 0);
 
-    mPanel.getChildView("currency_links")->setVisible( mSupportsInternationalBilling);
-    mPanel.getChildView("exchange_rate_note")->setVisible( mSupportsInternationalBilling);
+    get_owner_view(&mPanel, "currency_links")->setVisible( mSupportsInternationalBilling);
+    get_owner_view(&mPanel, "exchange_rate_note")->setVisible( mSupportsInternationalBilling);
 
-    if (mPanel.getChildView("buy_btn")->getEnabled()
-        ||mPanel.getChildView("currency_est")->getVisible()
-        || mPanel.getChildView("error_web")->getVisible())
+    if (get_owner_view(&mPanel, "buy_btn")->getEnabled()
+        ||get_owner_view(&mPanel, "currency_est")->getVisible()
+        || get_owner_view(&mPanel, "error_web")->getVisible())
     {
-        mPanel.getChildView("getting_data")->setVisible(false);
+        get_owner_view(&mPanel, "getting_data")->setVisible(false);
     }
 }
 

@@ -66,6 +66,31 @@
 
 #include <stack>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLDefaultChildRegistry::Register<LLViewerTextEditor> r("text_editor");
 
 ///-----------------------------------------------------------------------
@@ -1281,7 +1306,7 @@ void LLViewerTextEditor::openEmbeddedTexture( LLInventoryItem* item, llwchar wc 
             LLUIString title = preview->getString("Title", args);
             preview->setTitle(title.getString());
         }
-        preview->getChild<LLUICtrl>("desc")->setValue(item->getDescription());
+        get_owner_child<LLUICtrl>(preview, "desc")->setValue(item->getDescription());
     }
 }
 

@@ -56,6 +56,31 @@
 #include "llmetricperformancetester.h"
 #include "llviewerstats.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 using namespace LLTrace;
@@ -115,13 +140,13 @@ void LLFastTimerView::setPauseState(bool pause_state)
     if (!pause_state)
     {
 
-        getChild<LLButton>("pause_btn")->setLabel(getString("pause"));
+        get_owner_child<LLButton>(this, "pause_btn")->setLabel(getString("pause"));
     }
     else
     {
         mScrollIndex = 0;
 
-        getChild<LLButton>("pause_btn")->setLabel(getString("run"));
+        get_owner_child<LLButton>(this, "pause_btn")->setLabel(getString("run"));
     }
 
     mPauseHistory = pause_state;
@@ -130,7 +155,7 @@ void LLFastTimerView::setPauseState(bool pause_state)
 bool LLFastTimerView::postBuild()
 {
     LLButton& pause_btn = getChildRef<LLButton>("pause_btn");
-    mScrollBar = getChild<LLScrollbar>("scroll_vert");
+    mScrollBar = get_owner_child<LLScrollbar>(this, "scroll_vert");
 
     pause_btn.setCommitCallback(boost::bind(&LLFastTimerView::onPause, this));
     return true;
@@ -386,21 +411,21 @@ void LLFastTimerView::draw()
         mTimerBarRows.push_front(TimerBarRow());
     }
 
-    mDisplayMode = llclamp(getChild<LLComboBox>("time_scale_combo")->getCurrentIndex(), 0, 3);
-    mDisplayType = (EDisplayType)llclamp(getChild<LLComboBox>("metric_combo")->getCurrentIndex(), 0, 2);
+    mDisplayMode = llclamp(get_owner_child<LLComboBox>(this, "time_scale_combo")->getCurrentIndex(), 0, 3);
+    mDisplayType = (EDisplayType)llclamp(get_owner_child<LLComboBox>(this, "metric_combo")->getCurrentIndex(), 0, 2);
 
     generateUniqueColors();
 
     LLView::drawChildren();
     //getChild<LLLayoutStack>("timer_bars_stack")->updateLayout();
     //getChild<LLLayoutStack>("legend_stack")->updateLayout();
-    LLView* bars_panel = getChildView("bars_panel");
+    LLView* bars_panel = get_owner_view(this, "bars_panel");
     bars_panel->localRectToOtherView(bars_panel->getLocalRect(), &mBarRect, this);
 
-    LLView* lines_panel = getChildView("lines_panel");
+    LLView* lines_panel = get_owner_view(this, "lines_panel");
     lines_panel->localRectToOtherView(lines_panel->getLocalRect(), &mGraphRect, this);
 
-    LLView* legend_panel = getChildView("legend");
+    LLView* legend_panel = get_owner_view(this, "legend");
     legend_panel->localRectToOtherView(legend_panel->getLocalRect(), &mLegendRect, this);
 
     // Draw the window background

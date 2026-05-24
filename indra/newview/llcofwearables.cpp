@@ -46,6 +46,31 @@
 
 //MK
 #include "llagent.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 //mk
 
 static LLPanelInjector<LLCOFWearables> t_cof_wearables("cof_wearables");
@@ -67,7 +92,7 @@ protected:
 
     void updateCreateWearableLabel(LLMenuGL* menu, const LLUUID& item_id)
     {
-        LLMenuItemGL* menu_item = menu->getChild<LLMenuItemGL>("create_new");
+        LLMenuItemGL* menu_item = get_owner_child<LLMenuItemGL>(menu, "create_new");
         LLWearableType::EType w_type = getWearableType(item_id);
 
         // Hide the "Create new <WEARABLE_TYPE>" if it's irrelevant.
@@ -313,9 +338,9 @@ LLCOFWearables::~LLCOFWearables()
 // virtual
 bool LLCOFWearables::postBuild()
 {
-    mAttachments = getChild<LLFlatListView>("list_attachments");
-    mClothing = getChild<LLFlatListView>("list_clothing");
-    mBodyParts = getChild<LLFlatListView>("list_body_parts");
+    mAttachments = get_owner_child<LLFlatListView>(this, "list_attachments");
+    mClothing = get_owner_child<LLFlatListView>(this, "list_clothing");
+    mBodyParts = get_owner_child<LLFlatListView>(this, "list_body_parts");
 
     mClothing->setRightMouseDownCallback(boost::bind(&LLCOFWearables::onListRightClick, this, _1, _2, _3, mClothingMenu));
     mAttachments->setRightMouseDownCallback(boost::bind(&LLCOFWearables::onListRightClick, this, _1, _2, _3, mAttachmentMenu));
@@ -334,20 +359,20 @@ bool LLCOFWearables::postBuild()
     mAttachments->setComparator(&WEARABLE_NAME_COMPARATOR);
     mBodyParts->setComparator(&WEARABLE_NAME_COMPARATOR);
 
-    mClothingTab = getChild<LLAccordionCtrlTab>("tab_clothing");
+    mClothingTab = get_owner_child<LLAccordionCtrlTab>(this, "tab_clothing");
     mClothingTab->setDropDownStateChangedCallback(boost::bind(&LLCOFWearables::onAccordionTabStateChanged, this, _1, _2));
 
-    mAttachmentsTab = getChild<LLAccordionCtrlTab>("tab_attachments");
+    mAttachmentsTab = get_owner_child<LLAccordionCtrlTab>(this, "tab_attachments");
     mAttachmentsTab->setDropDownStateChangedCallback(boost::bind(&LLCOFWearables::onAccordionTabStateChanged, this, _1, _2));
 
-    mBodyPartsTab = getChild<LLAccordionCtrlTab>("tab_body_parts");
+    mBodyPartsTab = get_owner_child<LLAccordionCtrlTab>(this, "tab_body_parts");
     mBodyPartsTab->setDropDownStateChangedCallback(boost::bind(&LLCOFWearables::onAccordionTabStateChanged, this, _1, _2));
 
     mTab2AssetType[mClothingTab] = LLAssetType::AT_CLOTHING;
     mTab2AssetType[mAttachmentsTab] = LLAssetType::AT_OBJECT;
     mTab2AssetType[mBodyPartsTab] = LLAssetType::AT_BODYPART;
 
-    mAccordionCtrl = getChild<LLAccordionCtrl>("cof_wearables_accordion");
+    mAccordionCtrl = get_owner_child<LLAccordionCtrl>(this, "cof_wearables_accordion");
 
     return LLPanel::postBuild();
 }

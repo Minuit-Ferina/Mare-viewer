@@ -40,6 +40,31 @@
 #include "lluictrlfactory.h"
 #include "lldatapacker.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 extern LLAgent gAgent;
 const S32 ADVANCED_VPAD = 3;
 
@@ -61,13 +86,13 @@ bool LLPreviewAnim::postBuild()
 void LLPreviewAnim::setupDescriptionField()
 {
     childSetCommitCallback("desc", LLPreview::onText, this);
-    getChild<LLLineEditor>("desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
+    get_owner_child<LLLineEditor>(this, "desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
 }
 
 void LLPreviewAnim::setupAdvancedStats()
 {
-    getChild<LLTextBox>("adv_trigger")->setClickedCallback(boost::bind(&LLPreviewAnim::showAdvanced, this));
-    pAdvancedStatsTextBox = getChild<LLTextBox>("AdvancedStats");
+    get_owner_child<LLTextBox>(this, "adv_trigger")->setClickedCallback(boost::bind(&LLPreviewAnim::showAdvanced, this));
+    pAdvancedStatsTextBox = get_owner_child<LLTextBox>(this, "AdvancedStats");
 
     // Assume that advanced stats start visible (for XUI preview tool's purposes)
     setAdvancedStatsVisible(false);
@@ -76,7 +101,7 @@ void LLPreviewAnim::setupAdvancedStats()
 
 LLButton* LLPreviewAnim::getPlaybackButton(const std::string& button_name)
 {
-    return getChild<LLButton>(button_name);
+    return get_owner_child<LLButton>(this, button_name);
 }
 
 void LLPreviewAnim::togglePlaybackButton(const std::string& button_name)
@@ -89,7 +114,7 @@ void LLPreviewAnim::togglePlaybackButton(const std::string& button_name)
 
 bool LLPreviewAnim::isPlaybackButtonChecked(const std::string& button_name)
 {
-    return getChild<LLUICtrl>(button_name)->getValue().asBoolean();
+    return get_owner_child<LLUICtrl>(this, button_name)->getValue().asBoolean();
 }
 
 void LLPreviewAnim::setPlaybackButtonEnabled(const std::string& button_name, bool enabled)
@@ -102,8 +127,8 @@ void LLPreviewAnim::setPlaybackButtonEnabled(const std::string& button_name, boo
 
 void LLPreviewAnim::resetPlaybackButtons()
 {
-    getChild<LLUICtrl>("Inworld")->setValue(false);
-    getChild<LLUICtrl>("Locally")->setValue(false);
+    get_owner_child<LLUICtrl>(this, "Inworld")->setValue(false);
+    get_owner_child<LLUICtrl>(this, "Locally")->setValue(false);
     setPlaybackButtonEnabled("Inworld", true);
     setPlaybackButtonEnabled("Locally", true);
 }

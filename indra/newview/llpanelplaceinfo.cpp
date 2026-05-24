@@ -49,6 +49,31 @@
 #include "llviewerregion.h"
 #include "llhttpconstants.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 LLPanelPlaceInfo::LLPanelPlaceInfo()
 :   LLPanel(),
     mParcelID(),
@@ -74,20 +99,20 @@ LLPanelPlaceInfo::~LLPanelPlaceInfo()
 //virtual
 bool LLPanelPlaceInfo::postBuild()
 {
-    mTitle = getChild<LLTextBox>("title");
+    mTitle = get_owner_child<LLTextBox>(this, "title");
     mCurrentTitle = mTitle->getText();
 
-    mSnapshotCtrl = getChild<LLTextureCtrl>("logo");
-    mRegionName = getChild<LLTextBox>("region_title");
-    mParcelName = getChild<LLTextBox>("parcel_title");
-    mParcelOwner = getChild<LLTextBox>("parcel_owner");
-    mDescEditor = getChild<LLExpandableTextBox>("description");
+    mSnapshotCtrl = get_owner_child<LLTextureCtrl>(this, "logo");
+    mRegionName = get_owner_child<LLTextBox>(this, "region_title");
+    mParcelName = get_owner_child<LLTextBox>(this, "parcel_title");
+    mParcelOwner = get_owner_child<LLTextBox>(this, "parcel_owner");
+    mDescEditor = get_owner_child<LLExpandableTextBox>(this, "description");
 
-    mMaturityRatingIcon = getChild<LLIconCtrl>("maturity_icon");
-    mMaturityRatingText = getChild<LLTextBox>("maturity_value");
+    mMaturityRatingIcon = get_owner_child<LLIconCtrl>(this, "maturity_icon");
+    mMaturityRatingText = get_owner_child<LLTextBox>(this, "maturity_value");
 
-    mScrollingPanel = getChild<LLPanel>("scrolling_panel");
-    mScrollContainer = getChild<LLScrollContainer>("place_scroll");
+    mScrollingPanel = get_owner_child<LLPanel>(this, "scrolling_panel");
+    mScrollContainer = get_owner_child<LLScrollContainer>(this, "place_scroll");
 
     mScrollingPanelMinHeight = mScrollContainer->getScrolledViewRect().getHeight();
     mScrollingPanelWidth = mScrollingPanel->getRect().getWidth();
@@ -194,7 +219,7 @@ void LLPanelPlaceInfo::setErrorStatus(S32 status, const std::string& reason)
     mRegionTitle.clear();
 
     // Enable "Back" button that was disabled when parcel request was sent.
-    getChild<LLButton>("back_btn")->setEnabled(true);
+    get_owner_child<LLButton>(this, "back_btn")->setEnabled(true);
 }
 
 // virtual

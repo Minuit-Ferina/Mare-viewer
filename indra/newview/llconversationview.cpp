@@ -47,6 +47,31 @@
 #include "lggcontactsets.h"
 #include "llnetmap.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //
 // Implementation of conversations list session widgets
 //
@@ -238,11 +263,11 @@ bool LLConversationViewSession::postBuild()
     mItemPanel = LLUICtrlFactory::getInstance()->createFromFile<LLPanel>("panel_conversation_list_item.xml", NULL, LLPanel::child_registry_t::instance());
     addChild(mItemPanel);
 
-    mCallIconLayoutPanel = mItemPanel->getChild<LLPanel>("call_icon_panel");
-    mSessionTitle = mItemPanel->getChild<LLTextBox>("conversation_title");
+    mCallIconLayoutPanel = get_owner_child<LLPanel>(mItemPanel, "call_icon_panel");
+    mSessionTitle = get_owner_child<LLTextBox>(mItemPanel, "conversation_title");
 
     mActiveVoiceChannelConnection = LLVoiceChannel::setCurrentVoiceChannelChangedCallback(boost::bind(&LLConversationViewSession::onCurrentVoiceSessionChanged, this, _1));
-    mSpeakingIndicator = getChild<LLOutputMonitorCtrl>("speaking_indicator");
+    mSpeakingIndicator = get_owner_child<LLOutputMonitorCtrl>(this, "speaking_indicator");
 
     LLConversationItem* vmi = dynamic_cast<LLConversationItem*>(getViewModelItem());
     if (vmi)
@@ -255,7 +280,7 @@ bool LLConversationViewSession::postBuild()
             LLIMModel::LLIMSession* session=  LLIMModel::instance().findIMSession(vmi->getUUID());
             if (session)
             {
-                LLAvatarIconCtrl* icon = mItemPanel->getChild<LLAvatarIconCtrl>("avatar_icon");
+                LLAvatarIconCtrl* icon = get_owner_child<LLAvatarIconCtrl>(mItemPanel, "avatar_icon");
                 icon->setVisible(true);
                 icon->setValue(session->mOtherParticipantID);
                 mSpeakingIndicator->setSpeakerId(session->mOtherParticipantID, session->mSessionID, true);
@@ -265,14 +290,14 @@ bool LLConversationViewSession::postBuild()
         }
         case LLConversationItem::CONV_SESSION_AD_HOC:
         {
-            LLGroupIconCtrl* icon = mItemPanel->getChild<LLGroupIconCtrl>("group_icon");
+            LLGroupIconCtrl* icon = get_owner_child<LLGroupIconCtrl>(mItemPanel, "group_icon");
             icon->setVisible(true);
             mSpeakingIndicator->setSpeakerId(gAgentID, vmi->getUUID(), true);
             break;
         }
         case LLConversationItem::CONV_SESSION_GROUP:
         {
-            LLGroupIconCtrl* icon = mItemPanel->getChild<LLGroupIconCtrl>("group_icon");
+            LLGroupIconCtrl* icon = get_owner_child<LLGroupIconCtrl>(mItemPanel, "group_icon");
             icon->setVisible(true);
             icon->setValue(vmi->getUUID());
             mSpeakingIndicator->setSpeakerId(gAgentID, vmi->getUUID(), true);
@@ -280,7 +305,7 @@ bool LLConversationViewSession::postBuild()
         }
         case LLConversationItem::CONV_SESSION_NEARBY:
         {
-            LLIconCtrl* icon = mItemPanel->getChild<LLIconCtrl>("nearby_chat_icon");
+            LLIconCtrl* icon = get_owner_child<LLIconCtrl>(mItemPanel, "nearby_chat_icon");
             icon->setVisible(true);
             mSpeakingIndicator->setSpeakerId(gAgentID, LLUUID::null, true);
             mIsInActiveVoiceChannel = true;
@@ -464,7 +489,7 @@ void LLConversationViewSession::toggleCollapsedMode(bool is_collapsed)
 
     // hide the layout stack which contains all item's child widgets
     // except for the icon which we display in minimized mode
-    getChild<LLView>("conversation_item_stack")->setVisible(!mCollapsedMode);
+    get_owner_child<LLView>(this, "conversation_item_stack")->setVisible(!mCollapsedMode);
 
     S32 h_pad = mHasArrow ? getIndentation() + mArrowSize : getIndentation();
 
@@ -660,13 +685,13 @@ void LLConversationViewParticipant::initFromParams(const LLConversationViewParti
 
 bool LLConversationViewParticipant::postBuild()
 {
-    mAvatarIcon = getChild<LLAvatarIconCtrl>("avatar_icon");
+    mAvatarIcon = get_owner_child<LLAvatarIconCtrl>(this, "avatar_icon");
 
-    mInfoBtn = getChild<LLButton>("info_btn");
+    mInfoBtn = get_owner_child<LLButton>(this, "info_btn");
     mInfoBtn->setClickedCallback(boost::bind(&LLConversationViewParticipant::onInfoBtnClick, this));
     mInfoBtn->setVisible(false);
 
-    mSpeakingIndicator = getChild<LLOutputMonitorCtrl>("speaking_indicator");
+    mSpeakingIndicator = get_owner_child<LLOutputMonitorCtrl>(this, "speaking_indicator");
 
     if (!sStaticInitialized)
     {

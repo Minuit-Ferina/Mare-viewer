@@ -31,6 +31,31 @@
 #include "llradiogroup.h"
 #include "llviewercontrol.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 //=========================================================================
 namespace
@@ -86,7 +111,7 @@ void LLFloaterTrackPicker::showPicker(const LLSD &args)
     {
         S32 track_id = (*iter)["id"].asInteger();
         bool can_enable = (*iter)["enabled"].asBoolean();
-        LLCheckBoxCtrl *view = getChild<LLCheckBoxCtrl>(RDO_TRACK_PREFIX + llformat("%d", track_id), true);
+        LLCheckBoxCtrl *view = get_owner_child<LLCheckBoxCtrl>(this, RDO_TRACK_PREFIX + llformat("%d", track_id), true);
         view->setEnabled(can_enable);
         view->setLabelArg("[ALT]", (*iter).has("altitude") ? ((*iter)["altitude"].asString() + "m") : " ");
 
@@ -94,7 +119,7 @@ void LLFloaterTrackPicker::showPicker(const LLSD &args)
         if (can_enable && select_item)
         {
             select_item = false;
-            getChild<LLRadioGroup>(RDO_TRACK_SELECTION, true)->setSelectedByValue(LLSD(track_id), true);
+            get_owner_child<LLRadioGroup>(this, RDO_TRACK_SELECTION, true)->setSelectedByValue(LLSD(track_id), true);
         }
     }
 
@@ -120,7 +145,7 @@ void LLFloaterTrackPicker::onButtonSelect()
 {
     if (mCommitSignal)
     {
-        (*mCommitSignal)(this, getChild<LLRadioGroup>(RDO_TRACK_SELECTION, true)->getSelectedValue());
+        (*mCommitSignal)(this, get_owner_child<LLRadioGroup>(this, RDO_TRACK_SELECTION, true)->getSelectedValue());
     }
     closeFloater();
 }

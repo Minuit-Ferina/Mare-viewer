@@ -66,6 +66,31 @@
 // [FS:CR] FIRE-10986
 #include "llfilepicker.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // register panel with appropriate XML
 static LLPanelInjector<LLPanelEditWearable> t_edit_wearable("panel_edit_wearable");
 
@@ -564,7 +589,7 @@ void for_each_picker_ctrl_entry(LLPanel* panel, LLWearableType::EType type, func
 // The helper functions for pickers management
 static void init_color_swatch_ctrl(LLPanelEditWearable* self, LLPanel* panel, const LLEditWearableDictionary::PickerControlEntry* entry)
 {
-        LLColorSwatchCtrl* color_swatch_ctrl = panel->getChild<LLColorSwatchCtrl>(entry->mControlName);
+        LLColorSwatchCtrl* color_swatch_ctrl = get_owner_child<LLColorSwatchCtrl>(panel, entry->mControlName);
         if (color_swatch_ctrl)
         {
                 // Can't get the color from the wearable here, since the wearable may not be set when this is called.
@@ -574,7 +599,7 @@ static void init_color_swatch_ctrl(LLPanelEditWearable* self, LLPanel* panel, co
 
 static void init_texture_ctrl(LLPanelEditWearable* self, LLPanel* panel, const LLEditWearableDictionary::PickerControlEntry* entry)
 {
-        LLTextureCtrl* texture_ctrl = panel->getChild<LLTextureCtrl>(entry->mControlName);
+        LLTextureCtrl* texture_ctrl = get_owner_child<LLTextureCtrl>(panel, entry->mControlName);
         if (texture_ctrl)
         {
                 texture_ctrl->setDefaultImageAssetID(entry->mDefaultImageId);
@@ -587,7 +612,7 @@ static void init_texture_ctrl(LLPanelEditWearable* self, LLPanel* panel, const L
 
 static void update_color_swatch_ctrl(LLPanelEditWearable* self, LLPanel* panel, const LLEditWearableDictionary::PickerControlEntry* entry)
 {
-        LLColorSwatchCtrl* color_swatch_ctrl = panel->getChild<LLColorSwatchCtrl>(entry->mControlName);
+        LLColorSwatchCtrl* color_swatch_ctrl = get_owner_child<LLColorSwatchCtrl>(panel, entry->mControlName);
         if (color_swatch_ctrl)
         {
                 color_swatch_ctrl->set(self->getWearable()->getClothesColor(entry->mTextureIndex));
@@ -597,7 +622,7 @@ static void update_color_swatch_ctrl(LLPanelEditWearable* self, LLPanel* panel, 
 
 static void update_texture_ctrl(LLPanelEditWearable* self, LLPanel* panel, const LLEditWearableDictionary::PickerControlEntry* entry)
 {
-        LLTextureCtrl* texture_ctrl = panel->getChild<LLTextureCtrl>(entry->mControlName);
+        LLTextureCtrl* texture_ctrl = get_owner_child<LLTextureCtrl>(panel, entry->mControlName);
         if (texture_ctrl)
         {
                 LLUUID new_id;
@@ -622,7 +647,7 @@ static void update_texture_ctrl(LLPanelEditWearable* self, LLPanel* panel, const
 
 static void set_enabled_color_swatch_ctrl(bool enabled, LLPanel* panel, const LLEditWearableDictionary::PickerControlEntry* entry)
 {
-        LLColorSwatchCtrl* color_swatch_ctrl = panel->getChild<LLColorSwatchCtrl>(entry->mControlName);
+        LLColorSwatchCtrl* color_swatch_ctrl = get_owner_child<LLColorSwatchCtrl>(panel, entry->mControlName);
         if (color_swatch_ctrl)
         {
                 color_swatch_ctrl->setEnabled(enabled);
@@ -631,7 +656,7 @@ static void set_enabled_color_swatch_ctrl(bool enabled, LLPanel* panel, const LL
 
 static void set_enabled_texture_ctrl(bool enabled, LLPanel* panel, const LLEditWearableDictionary::PickerControlEntry* entry)
 {
-        LLTextureCtrl* texture_ctrl = panel->getChild<LLTextureCtrl>(entry->mControlName);
+        LLTextureCtrl* texture_ctrl = get_owner_child<LLTextureCtrl>(panel, entry->mControlName);
         if (texture_ctrl)
         {
                 texture_ctrl->setEnabled(enabled);
@@ -695,7 +720,7 @@ void LLPanelEditWearable::setWearablePanelVisibilityChangeCallback(LLPanel* body
 {
         if (bodypart_panel != NULL)
         {
-                LLAccordionCtrl* accordion_ctrl = bodypart_panel->getChild<LLAccordionCtrl>("wearable_accordion");
+                LLAccordionCtrl* accordion_ctrl = get_owner_child<LLAccordionCtrl>(bodypart_panel, "wearable_accordion");
 
                 if (accordion_ctrl != NULL)
                 {
@@ -717,10 +742,10 @@ void LLPanelEditWearable::setWearablePanelVisibilityChangeCallback(LLPanel* body
 bool LLPanelEditWearable::postBuild()
 {
         // buttons
-        mBtnRevert = getChild<LLButton>("revert_button");
+        mBtnRevert = get_owner_child<LLButton>(this, "revert_button");
         mBtnRevert->setClickedCallback(boost::bind(&LLPanelEditWearable::onRevertButtonClicked, this));
 
-        mBtnBack = getChild<LLButton>("back_btn");
+        mBtnBack = get_owner_child<LLButton>(this, "back_btn");
         mBackBtnLabel = mBtnBack->getLabelUnselected();
         mBtnBack->setLabel(LLStringUtil::null);
 
@@ -728,26 +753,26 @@ bool LLPanelEditWearable::postBuild()
 
         mBtnBack->setClickedCallback(boost::bind(&LLPanelEditWearable::onBackButtonClicked, this));
 
-        mNameEditor = getChild<LLLineEditor>("description");
+        mNameEditor = get_owner_child<LLLineEditor>(this, "description");
 
-        mPanelTitle = getChild<LLTextBox>("edit_wearable_title");
-        mDescTitle = getChild<LLTextBox>("description_text");
+        mPanelTitle = get_owner_child<LLTextBox>(this, "edit_wearable_title");
+        mDescTitle = get_owner_child<LLTextBox>(this, "description_text");
 
-        mSexRadio = getChild<LLRadioGroup>("sex_radio");
+        mSexRadio = get_owner_child<LLRadioGroup>(this, "sex_radio");
         mSexRadio->setCommitCallback(boost::bind(&LLPanelEditWearable::onCommitSexChange, this));
 
-        mMaleIcon = getChild<LLIconCtrl>("male_icon");
-        mFemaleIcon = getChild<LLIconCtrl>("female_icon");
+        mMaleIcon = get_owner_child<LLIconCtrl>(this, "male_icon");
+        mFemaleIcon = get_owner_child<LLIconCtrl>(this, "female_icon");
 
-        mBtnSaveAs = getChild<LLButton>("save_as_button");
+        mBtnSaveAs = get_owner_child<LLButton>(this, "save_as_button");
         mBtnSaveAs->setCommitCallback(boost::bind(&LLPanelEditWearable::onSaveAsButtonClicked, this));
 
         // The following panels will be shown/hidden based on what wearable we're editing
         // body parts
-        mPanelShape = getChild<LLPanel>("edit_shape_panel");
-        mPanelSkin = getChild<LLPanel>("edit_skin_panel");
-        mPanelEyes = getChild<LLPanel>("edit_eyes_panel");
-        mPanelHair = getChild<LLPanel>("edit_hair_panel");
+        mPanelShape = get_owner_child<LLPanel>(this, "edit_shape_panel");
+        mPanelSkin = get_owner_child<LLPanel>(this, "edit_skin_panel");
+        mPanelEyes = get_owner_child<LLPanel>(this, "edit_eyes_panel");
+        mPanelHair = get_owner_child<LLPanel>(this, "edit_hair_panel");
 
         // Setting the visibility callback is applied only to the bodyparts panel
         // because currently they are the only ones whose 'wearable_accordion' has
@@ -758,21 +783,21 @@ bool LLPanelEditWearable::postBuild()
         setWearablePanelVisibilityChangeCallback(mPanelHair);
 
         //clothes
-        mPanelShirt = getChild<LLPanel>("edit_shirt_panel");
-        mPanelPants = getChild<LLPanel>("edit_pants_panel");
-        mPanelShoes = getChild<LLPanel>("edit_shoes_panel");
-        mPanelSocks = getChild<LLPanel>("edit_socks_panel");
-        mPanelJacket = getChild<LLPanel>("edit_jacket_panel");
-        mPanelGloves = getChild<LLPanel>("edit_gloves_panel");
-        mPanelUndershirt = getChild<LLPanel>("edit_undershirt_panel");
-        mPanelUnderpants = getChild<LLPanel>("edit_underpants_panel");
-        mPanelSkirt = getChild<LLPanel>("edit_skirt_panel");
-        mPanelAlpha = getChild<LLPanel>("edit_alpha_panel");
-        mPanelTattoo = getChild<LLPanel>("edit_tattoo_panel");
-        mPanelUniversal = getChild<LLPanel>("edit_universal_panel");
-        mPanelPhysics = getChild<LLPanel>("edit_physics_panel");
+        mPanelShirt = get_owner_child<LLPanel>(this, "edit_shirt_panel");
+        mPanelPants = get_owner_child<LLPanel>(this, "edit_pants_panel");
+        mPanelShoes = get_owner_child<LLPanel>(this, "edit_shoes_panel");
+        mPanelSocks = get_owner_child<LLPanel>(this, "edit_socks_panel");
+        mPanelJacket = get_owner_child<LLPanel>(this, "edit_jacket_panel");
+        mPanelGloves = get_owner_child<LLPanel>(this, "edit_gloves_panel");
+        mPanelUndershirt = get_owner_child<LLPanel>(this, "edit_undershirt_panel");
+        mPanelUnderpants = get_owner_child<LLPanel>(this, "edit_underpants_panel");
+        mPanelSkirt = get_owner_child<LLPanel>(this, "edit_skirt_panel");
+        mPanelAlpha = get_owner_child<LLPanel>(this, "edit_alpha_panel");
+        mPanelTattoo = get_owner_child<LLPanel>(this, "edit_tattoo_panel");
+        mPanelUniversal = get_owner_child<LLPanel>(this, "edit_universal_panel");
+        mPanelPhysics = get_owner_child<LLPanel>(this, "edit_physics_panel");
 
-        mTxtAvatarHeight = mPanelShape->getChild<LLTextBox>("avatar_height");
+        mTxtAvatarHeight = get_owner_child<LLTextBox>(mPanelShape, "avatar_height");
 
         mWearablePtr = NULL;
 
@@ -1607,7 +1632,7 @@ void LLPanelEditWearable::updateVerbs()
 
 void LLPanelEditWearable::configureAlphaCheckbox(LLAvatarAppearanceDefines::ETextureIndex te, const std::string& name)
 {
-        LLCheckBoxCtrl* checkbox = mPanelAlpha->getChild<LLCheckBoxCtrl>(name);
+        LLCheckBoxCtrl* checkbox = get_owner_child<LLCheckBoxCtrl>(mPanelAlpha, name);
         checkbox->setCommitCallback(boost::bind(&LLPanelEditWearable::onInvisibilityCommit, this, checkbox, te));
 
         mAlphaCheckbox2Index.push_back(std::make_pair(checkbox,te));

@@ -41,6 +41,31 @@
 #include "llscrolllistctrl.h"
 #include "lltrans.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 ///----------------------------------------------------------------------------
 /// Class LLPanelPresetsPulldown
 ///----------------------------------------------------------------------------
@@ -73,7 +98,7 @@ void LLPanelPresetsPulldown::populatePanel()
 {
     LLPresetsManager::getInstance()->loadPresetNamesFromDir(PRESETS_GRAPHIC, mPresetNames, DEFAULT_TOP);
 
-    LLScrollListCtrl* scroll = getChild<LLScrollListCtrl>("preset_list");
+    LLScrollListCtrl* scroll = get_owner_child<LLScrollListCtrl>(this, "preset_list");
 
     if (scroll && mPresetNames.begin() != mPresetNames.end())
     {
@@ -112,7 +137,7 @@ void LLPanelPresetsPulldown::populatePanel()
 
 void LLPanelPresetsPulldown::onRowClick(const LLSD& user_data)
 {
-    LLScrollListCtrl* scroll = getChild<LLScrollListCtrl>("preset_list");
+    LLScrollListCtrl* scroll = get_owner_child<LLScrollListCtrl>(this, "preset_list");
 
     if (scroll)
     {
@@ -151,8 +176,8 @@ void LLPanelPresetsPulldown::onGraphicsButtonClick(const LLSD& user_data)
     {
         // grab the 'graphics' panel from the preferences floater and
         // bring it the front!
-        LLTabContainer* tabcontainer = prefsfloater->getChild<LLTabContainer>("pref core");
-        LLPanel* graphicspanel = prefsfloater->getChild<LLPanel>("display");
+        LLTabContainer* tabcontainer = get_owner_child<LLTabContainer>(prefsfloater, "pref core");
+        LLPanel* graphicspanel = get_owner_child<LLPanel>(prefsfloater, "display");
         if (tabcontainer && graphicspanel)
         {
             tabcontainer->selectTabPanel(graphicspanel);

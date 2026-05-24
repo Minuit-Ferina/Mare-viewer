@@ -39,6 +39,31 @@
 
 #include "llviewerchat.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const S32 LLToastIMPanel::DEFAULT_MESSAGE_MAX_LINE_COUNT    = 6;
 
 //--------------------------------------------------------------------------
@@ -48,12 +73,12 @@ LLToastIMPanel::LLToastIMPanel(LLToastIMPanel::Params &p) : LLToastPanel(p.notif
 {
     buildFromFile( "panel_instant_message.xml");
 
-    mGroupIcon = getChild<LLGroupIconCtrl>("group_icon");
-    mAvatarIcon = getChild<LLAvatarIconCtrl>("avatar_icon");
-    mAdhocIcon = getChild<LLAvatarIconCtrl>("adhoc_icon");
-    mAvatarName = getChild<LLTextBox>("user_name");
-    mTime = getChild<LLTextBox>("time_box");
-    mMessage = getChild<LLTextBox>("message");
+    mGroupIcon = get_owner_child<LLGroupIconCtrl>(this, "group_icon");
+    mAvatarIcon = get_owner_child<LLAvatarIconCtrl>(this, "avatar_icon");
+    mAdhocIcon = get_owner_child<LLAvatarIconCtrl>(this, "adhoc_icon");
+    mAvatarName = get_owner_child<LLTextBox>(this, "user_name");
+    mTime = get_owner_child<LLTextBox>(this, "time_box");
+    mMessage = get_owner_child<LLTextBox>(this, "message");
     mMessage->setContentTrusted(false);
 
     LLStyle::Params style_params;

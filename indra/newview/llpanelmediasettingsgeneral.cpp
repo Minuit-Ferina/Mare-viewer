@@ -57,6 +57,31 @@
 #include "lltextbox.h"
 #include "llpanelmediasettingssecurity.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const char *CHECKERBOARD_DATA_URL = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%%22 height=%22100%%22 %3E%3Cdefs%3E%3Cpattern id=%22checker%22 patternUnits=%22userSpaceOnUse%22 x=%220%22 y=%220%22 width=%22128%22 height=%22128%22 viewBox=%220 0 128 128%22 %3E%3Crect x=%220%22 y=%220%22 width=%2264%22 height=%2264%22 fill=%22#ddddff%22 /%3E%3Crect x=%2264%22 y=%2264%22 width=%2264%22 height=%2264%22 fill=%22#ddddff%22 /%3E%3C/pattern%3E%3C/defs%3E%3Crect x=%220%22 y=%220%22 width=%22100%%22 height=%22100%%22 fill=%22url(#checker)%22 /%3E%3C/svg%3E";
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -83,17 +108,17 @@ LLPanelMediaSettingsGeneral::LLPanelMediaSettingsGeneral() :
 bool LLPanelMediaSettingsGeneral::postBuild()
 {
     // connect member vars with UI widgets
-    mAutoLoop = getChild< LLCheckBoxCtrl >( LLMediaEntry::AUTO_LOOP_KEY );
-    mAutoPlay = getChild< LLCheckBoxCtrl >( LLMediaEntry::AUTO_PLAY_KEY );
-    mAutoScale = getChild< LLCheckBoxCtrl >( LLMediaEntry::AUTO_SCALE_KEY );
-    mAutoZoom = getChild< LLCheckBoxCtrl >( LLMediaEntry::AUTO_ZOOM_KEY );
-    mCurrentURL = getChild< LLTextBox >( LLMediaEntry::CURRENT_URL_KEY );
-    mFirstClick = getChild< LLCheckBoxCtrl >( LLMediaEntry::FIRST_CLICK_INTERACT_KEY );
-    mHeightPixels = getChild< LLSpinCtrl >( LLMediaEntry::HEIGHT_PIXELS_KEY );
-    mHomeURL = getChild< LLLineEditor >( LLMediaEntry::HOME_URL_KEY );
-    mWidthPixels = getChild< LLSpinCtrl >( LLMediaEntry::WIDTH_PIXELS_KEY );
-    mPreviewMedia = getChild<LLMediaCtrl>("preview_media");
-    mFailWhiteListText = getChild<LLTextBox>( "home_fails_whitelist_label" );
+    mAutoLoop = get_owner_child< LLCheckBoxCtrl >(this,  LLMediaEntry::AUTO_LOOP_KEY );
+    mAutoPlay = get_owner_child< LLCheckBoxCtrl >(this,  LLMediaEntry::AUTO_PLAY_KEY );
+    mAutoScale = get_owner_child< LLCheckBoxCtrl >(this,  LLMediaEntry::AUTO_SCALE_KEY );
+    mAutoZoom = get_owner_child< LLCheckBoxCtrl >(this,  LLMediaEntry::AUTO_ZOOM_KEY );
+    mCurrentURL = get_owner_child< LLTextBox >(this,  LLMediaEntry::CURRENT_URL_KEY );
+    mFirstClick = get_owner_child< LLCheckBoxCtrl >(this,  LLMediaEntry::FIRST_CLICK_INTERACT_KEY );
+    mHeightPixels = get_owner_child< LLSpinCtrl >(this,  LLMediaEntry::HEIGHT_PIXELS_KEY );
+    mHomeURL = get_owner_child< LLLineEditor >(this,  LLMediaEntry::HOME_URL_KEY );
+    mWidthPixels = get_owner_child< LLSpinCtrl >(this,  LLMediaEntry::WIDTH_PIXELS_KEY );
+    mPreviewMedia = get_owner_child<LLMediaCtrl>(this, "preview_media");
+    mFailWhiteListText = get_owner_child<LLTextBox>(this,  "home_fails_whitelist_label" );
 
     // watch commit action for HOME URL
     childSetCommitCallback( LLMediaEntry::HOME_URL_KEY, onCommitHomeURL, this);
@@ -123,13 +148,13 @@ void LLPanelMediaSettingsGeneral::draw()
     // enable/disable pixel values image entry based on auto scale checkbox
     if (!mAutoScale->getValue().asBoolean())
     {
-        getChildView( LLMediaEntry::WIDTH_PIXELS_KEY )->setEnabled( true );
-        getChildView( LLMediaEntry::HEIGHT_PIXELS_KEY )->setEnabled( true );
+        get_owner_view(this,  LLMediaEntry::WIDTH_PIXELS_KEY )->setEnabled( true );
+        get_owner_view(this,  LLMediaEntry::HEIGHT_PIXELS_KEY )->setEnabled( true );
     }
     else
     {
-        getChildView( LLMediaEntry::WIDTH_PIXELS_KEY )->setEnabled( false );
-        getChildView( LLMediaEntry::HEIGHT_PIXELS_KEY )->setEnabled( false );
+        get_owner_view(this,  LLMediaEntry::WIDTH_PIXELS_KEY )->setEnabled( false );
+        get_owner_view(this,  LLMediaEntry::HEIGHT_PIXELS_KEY )->setEnabled( false );
     };
 
     // enable/disable UI based on type of media
@@ -148,17 +173,17 @@ void LLPanelMediaSettingsGeneral::draw()
             // because the information from plugins arrives assynchronously
             if (media_plugin->pluginSupportsMediaTime())
             {
-                getChildView( LLMediaEntry::CURRENT_URL_KEY )->setEnabled( false );
+                get_owner_view(this,  LLMediaEntry::CURRENT_URL_KEY )->setEnabled( false );
                 reset_button_is_active = false;
-                getChildView("current_url_label")->setEnabled(false );
-                getChildView( LLMediaEntry::AUTO_LOOP_KEY )->setEnabled( true );
+                get_owner_view(this, "current_url_label")->setEnabled(false );
+                get_owner_view(this,  LLMediaEntry::AUTO_LOOP_KEY )->setEnabled( true );
             }
             else
             {
-                getChildView( LLMediaEntry::CURRENT_URL_KEY )->setEnabled( true );
+                get_owner_view(this,  LLMediaEntry::CURRENT_URL_KEY )->setEnabled( true );
                 reset_button_is_active = true;
-                getChildView("current_url_label")->setEnabled(true );
-                getChildView( LLMediaEntry::AUTO_LOOP_KEY )->setEnabled( false );
+                get_owner_view(this, "current_url_label")->setEnabled(true );
+                get_owner_view(this,  LLMediaEntry::AUTO_LOOP_KEY )->setEnabled( false );
             };
         };
     };
@@ -175,18 +200,18 @@ void LLPanelMediaSettingsGeneral::draw()
         // user has perms to press reset button and it is active
         if ( user_can_press_reset )
         {
-            getChildView("current_url_reset_btn")->setEnabled(true );
+            get_owner_view(this, "current_url_reset_btn")->setEnabled(true );
         }
         // user does not has perms to press reset button and it is active
         else
         {
-            getChildView("current_url_reset_btn")->setEnabled(false );
+            get_owner_view(this, "current_url_reset_btn")->setEnabled(false );
         };
     }
     else
     // reset button is inactive so we just slam it to off - other states don't matter
     {
-        getChildView("current_url_reset_btn")->setEnabled(false );
+        get_owner_view(this, "current_url_reset_btn")->setEnabled(false );
     };
 }
 

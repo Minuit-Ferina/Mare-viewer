@@ -50,6 +50,31 @@
 #include "llnotificationsutil.h"
 #include "lluicolortable.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 const S32 MATURE_CONTENT = 1;
 const S32 NON_MATURE_CONTENT = 2;
@@ -70,20 +95,20 @@ bool LLPanelGroupCreate::postBuild()
 {
     childSetCommitCallback("back", boost::bind(&LLPanelGroupCreate::onBackBtnClick, this), NULL);
 
-    mComboMature = getChild<LLComboBox>("group_mature_check", true);
-    mCtrlOpenEnrollment = getChild<LLCheckBoxCtrl>("open_enrollement", true);
-    mCtrlEnrollmentFee = getChild<LLCheckBoxCtrl>("check_enrollment_fee", true);
-    mEditCharter = getChild<LLTextEditor>("charter", true);
-    mSpinEnrollmentFee = getChild<LLSpinCtrl>("spin_enrollment_fee", true);
-    mMembershipList = getChild<LLScrollListCtrl>("membership_list", true);
+    mComboMature = get_owner_child<LLComboBox>(this, "group_mature_check", true);
+    mCtrlOpenEnrollment = get_owner_child<LLCheckBoxCtrl>(this, "open_enrollement", true);
+    mCtrlEnrollmentFee = get_owner_child<LLCheckBoxCtrl>(this, "check_enrollment_fee", true);
+    mEditCharter = get_owner_child<LLTextEditor>(this, "charter", true);
+    mSpinEnrollmentFee = get_owner_child<LLSpinCtrl>(this, "spin_enrollment_fee", true);
+    mMembershipList = get_owner_child<LLScrollListCtrl>(this, "membership_list", true);
 
-    mCreateButton = getChild<LLButton>("btn_create", true);
+    mCreateButton = get_owner_child<LLButton>(this, "btn_create", true);
     mCreateButton->setCommitCallback(boost::bind(&LLPanelGroupCreate::onBtnCreate, this));
 
-    mGroupNameEditor = getChild<LLLineEditor>("group_name_editor", true);
+    mGroupNameEditor = get_owner_child<LLLineEditor>(this, "group_name_editor", true);
     mGroupNameEditor->setPrevalidate(LLTextValidate::validateASCIINoLeadingSpace);
 
-    mInsignia = getChild<LLTextureCtrl>("insignia", true);
+    mInsignia = get_owner_child<LLTextureCtrl>(this, "insignia", true);
     mInsignia->setAllowLocalTexture(false);
     mInsignia->setBakeTextureEnabled(false);
     mInsignia->setCanApplyImmediately(false);

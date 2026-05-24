@@ -65,6 +65,31 @@
 
 #include <glm/gtx/transform2.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // Functions pulled from llviewerdisplay.cpp
 bool get_hud_matrices(glm::mat4 &proj, glm::mat4 &model);
 
@@ -142,34 +167,34 @@ LLPanelPrimMediaControls::~LLPanelPrimMediaControls()
 
 bool LLPanelPrimMediaControls::postBuild()
 {
-    mMediaRegion            = getChild<LLView>("media_region");
-    mBackCtrl               = getChild<LLUICtrl>("back");
-    mFwdCtrl                = getChild<LLUICtrl>("fwd");
-    mReloadCtrl             = getChild<LLUICtrl>("reload");
-    mPlayCtrl               = getChild<LLUICtrl>("play");
-    mPauseCtrl              = getChild<LLUICtrl>("pause");
-    mStopCtrl               = getChild<LLUICtrl>("stop");
-    mMediaStopCtrl          = getChild<LLUICtrl>("media_stop");
-    mHomeCtrl               = getChild<LLUICtrl>("home");
-    mUnzoomCtrl             = getChild<LLUICtrl>("close"); // This is actually "unzoom"
-    mOpenCtrl               = getChild<LLUICtrl>("new_window");
-    mZoomCtrl               = getChild<LLUICtrl>("zoom_frame");
-    mMediaProgressPanel     = getChild<LLPanel>("media_progress_indicator");
-    mMediaProgressBar       = getChild<LLProgressBar>("media_progress_bar");
-    mMediaAddressCtrl       = getChild<LLUICtrl>("media_address");
-    mMediaAddress           = getChild<LLLineEditor>("media_address_url");
-    mMediaPlaySliderPanel   = getChild<LLUICtrl>("media_play_position");
-    mMediaPlaySliderCtrl    = getChild<LLUICtrl>("media_play_slider");
-    mSkipFwdCtrl            = getChild<LLUICtrl>("skip_forward");
-    mSkipBackCtrl           = getChild<LLUICtrl>("skip_back");
-    mVolumeCtrl             = getChild<LLUICtrl>("media_volume");
-    mMuteBtn                = getChild<LLButton>("media_mute_button");
-    mVolumeSliderCtrl       = getChild<LLSliderCtrl>("volume_slider");
-    mWhitelistIcon          = getChild<LLIconCtrl>("media_whitelist_flag");
-    mSecureLockIcon         = getChild<LLIconCtrl>("media_secure_lock_flag");
-    mMediaControlsStack     = getChild<LLLayoutStack>("media_controls");
-    mLeftBookend            = getChild<LLUICtrl>("left_bookend");
-    mRightBookend           = getChild<LLUICtrl>("right_bookend");
+    mMediaRegion            = get_owner_child<LLView>(this, "media_region");
+    mBackCtrl               = get_owner_child<LLUICtrl>(this, "back");
+    mFwdCtrl                = get_owner_child<LLUICtrl>(this, "fwd");
+    mReloadCtrl             = get_owner_child<LLUICtrl>(this, "reload");
+    mPlayCtrl               = get_owner_child<LLUICtrl>(this, "play");
+    mPauseCtrl              = get_owner_child<LLUICtrl>(this, "pause");
+    mStopCtrl               = get_owner_child<LLUICtrl>(this, "stop");
+    mMediaStopCtrl          = get_owner_child<LLUICtrl>(this, "media_stop");
+    mHomeCtrl               = get_owner_child<LLUICtrl>(this, "home");
+    mUnzoomCtrl             = get_owner_child<LLUICtrl>(this, "close"); // This is actually "unzoom"
+    mOpenCtrl               = get_owner_child<LLUICtrl>(this, "new_window");
+    mZoomCtrl               = get_owner_child<LLUICtrl>(this, "zoom_frame");
+    mMediaProgressPanel     = get_owner_child<LLPanel>(this, "media_progress_indicator");
+    mMediaProgressBar       = get_owner_child<LLProgressBar>(this, "media_progress_bar");
+    mMediaAddressCtrl       = get_owner_child<LLUICtrl>(this, "media_address");
+    mMediaAddress           = get_owner_child<LLLineEditor>(this, "media_address_url");
+    mMediaPlaySliderPanel   = get_owner_child<LLUICtrl>(this, "media_play_position");
+    mMediaPlaySliderCtrl    = get_owner_child<LLUICtrl>(this, "media_play_slider");
+    mSkipFwdCtrl            = get_owner_child<LLUICtrl>(this, "skip_forward");
+    mSkipBackCtrl           = get_owner_child<LLUICtrl>(this, "skip_back");
+    mVolumeCtrl             = get_owner_child<LLUICtrl>(this, "media_volume");
+    mMuteBtn                = get_owner_child<LLButton>(this, "media_mute_button");
+    mVolumeSliderCtrl       = get_owner_child<LLSliderCtrl>(this, "volume_slider");
+    mWhitelistIcon          = get_owner_child<LLIconCtrl>(this, "media_whitelist_flag");
+    mSecureLockIcon         = get_owner_child<LLIconCtrl>(this, "media_secure_lock_flag");
+    mMediaControlsStack     = get_owner_child<LLLayoutStack>(this, "media_controls");
+    mLeftBookend            = get_owner_child<LLUICtrl>(this, "left_bookend");
+    mRightBookend           = get_owner_child<LLUICtrl>(this, "right_bookend");
     mBackgroundImage        = LLUI::getUIImage(getString("control_background_image_name"));
     mVolumeSliderBackgroundImage        = LLUI::getUIImage(getString("control_background_image_name"));
     LLStringUtil::convertToF32(getString("skip_step"), mSkipStep);

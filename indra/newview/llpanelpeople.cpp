@@ -88,6 +88,31 @@
 #include "llcombobox.h"
 #include "lllayoutstack.h"
 #include "llstartup.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 //ca
 
 const F32 FRIEND_LIST_UPDATE_TIMEOUT =  0.5f;
@@ -650,30 +675,30 @@ bool LLPanelPeople::postBuild()
 {
     S32 max_premium = LLAgentBenefitsMgr::get("Premium").getGroupMembershipLimit();
 
-    LLPanel* group_tab = getChild<LLPanel>(GROUP_TAB_NAME);
-    mGroupDelBtn = group_tab->getChild<LLButton>("minus_btn");
-    mGroupCountText = group_tab->getChild<LLTextBox>("groupcount");
+    LLPanel* group_tab = get_owner_child<LLPanel>(this, GROUP_TAB_NAME);
+    mGroupDelBtn = get_owner_child<LLButton>(group_tab, "minus_btn");
+    mGroupCountText = get_owner_child<LLTextBox>(group_tab, "groupcount");
     if(LLAgentBenefitsMgr::current().getGroupMembershipLimit() < max_premium)
     {
         mGroupCountText->setText(getString("GroupCountWithInfo"));
         mGroupCountText->setURLClickedCallback(boost::bind(&LLPanelPeople::onGroupLimitInfo, this));
     }
 
-    mTabContainer = getChild<LLTabContainer>("tabs");
+    mTabContainer = get_owner_child<LLTabContainer>(this, "tabs");
     mTabContainer->setCommitCallback(boost::bind(&LLPanelPeople::onTabSelected, this, _2));
     mSavedFilters.resize(mTabContainer->getTabCount());
     mSavedOriginalFilters.resize(mTabContainer->getTabCount());
 
-    LLPanel* friends_tab = getChild<LLPanel>(FRIENDS_TAB_NAME);
+    LLPanel* friends_tab = get_owner_child<LLPanel>(this, FRIENDS_TAB_NAME);
     // updater is active only if panel is visible to user.
     friends_tab->setVisibleCallback(boost::bind(&Updater::setActive, mFriendListUpdater, _2));
     friends_tab->setVisibleCallback(boost::bind(&LLPanelPeople::removePicker, this));
 
-    mFriendsGearBtn = friends_tab->getChild<LLButton>("gear_btn");
-    mFriendsDelFriendBtn = friends_tab->getChild<LLUICtrl>("friends_del_btn");
+    mFriendsGearBtn = get_owner_child<LLButton>(friends_tab, "gear_btn");
+    mFriendsDelFriendBtn = get_owner_child<LLUICtrl>(friends_tab, "friends_del_btn");
 
-    mOnlineFriendList = friends_tab->getChild<LLAvatarList>("avatars_online");
-    mAllFriendList = friends_tab->getChild<LLAvatarList>("avatars_all");
+    mOnlineFriendList = get_owner_child<LLAvatarList>(friends_tab, "avatars_online");
+    mAllFriendList = get_owner_child<LLAvatarList>(friends_tab, "avatars_all");
     mOnlineFriendList->setNoItemsCommentText(getString("no_friends_online"));
     mOnlineFriendList->setShowIcons("FriendsListShowIcons");
     mOnlineFriendList->showPermissions(gSavedSettings.getBOOL("FriendsListShowPermissions"));
@@ -683,8 +708,8 @@ bool LLPanelPeople::postBuild()
     mAllFriendList->showPermissions(gSavedSettings.getBOOL("FriendsListShowPermissions"));
     mAllFriendList->setShowCompleteName(!gSavedSettings.getBOOL("FriendsListHideUsernames"));
 
-    LLPanel* nearby_tab = getChild<LLPanel>(NEARBY_TAB_NAME);
-    mNearbyList = nearby_tab->getChild<LLAvatarList>("avatar_list");
+    LLPanel* nearby_tab = get_owner_child<LLPanel>(this, NEARBY_TAB_NAME);
+    mNearbyList = get_owner_child<LLAvatarList>(nearby_tab, "avatar_list");
     mNearbyList->setNoItemsCommentText(getString("no_one_near"));
     mNearbyList->setNoItemsMsg(getString("no_one_near"));
     mNearbyList->setNoFilteredItemsMsg(getString("no_one_filtered_near"));
@@ -692,7 +717,7 @@ bool LLPanelPeople::postBuild()
     mNearbyList->setShowCompleteName(!gSavedSettings.getBOOL("NearbyListHideUsernames"));
     //colouring based on contact sets
     mNearbyList->setUseContactColors(true);
-    mMiniMap = nearby_tab->getChild<LLNetMap>("Net Map", true);
+    mMiniMap = get_owner_child<LLNetMap>(nearby_tab, "Net Map", true);
     mMiniMap->setToolTipMsg(getString("ToolTipMsg"));
     mMiniMap->setParcelNameMsg(getString("ParcelNameMsg"));
     mMiniMap->setParcelSalePriceMsg(getString("ParcelSalePriceMsg"));
@@ -715,28 +740,28 @@ bool LLPanelPeople::postBuild()
     //nearby_tab->setVisibleCallback(boost::bind(&Updater::setActive, mNearbyListUpdater, _2));
     mNearbyListUpdater->setActive(true); // AO: always keep radar active, for chat and channel integration
 //mk
-    mNearbyGearBtn = nearby_tab->getChild<LLButton>("gear_btn");
-    mNearbyAddFriendBtn = nearby_tab->getChild<LLButton>("add_friend_btn");
+    mNearbyGearBtn = get_owner_child<LLButton>(nearby_tab, "gear_btn");
+    mNearbyAddFriendBtn = get_owner_child<LLButton>(nearby_tab, "add_friend_btn");
     nearbyAvatarLimit = (LLWorld::EGetAvatarLimit)gSavedSettings.getU32("KokuaNearbyPeopleLimit"); // KKA-967
-    LLPanel* recent_tab = getChild<LLPanel>(RECENT_TAB_NAME);
-    mRecentList = recent_tab->getChild<LLAvatarList>("avatar_list");
+    LLPanel* recent_tab = get_owner_child<LLPanel>(this, RECENT_TAB_NAME);
+    mRecentList = get_owner_child<LLAvatarList>(recent_tab, "avatar_list");
     mRecentList->setNoItemsCommentText(getString("no_recent_people"));
     mRecentList->setNoItemsMsg(getString("no_recent_people"));
     mRecentList->setNoFilteredItemsMsg(getString("no_filtered_recent_people"));
     mRecentList->setShowIcons("RecentListShowIcons");
 
-    mRecentGearBtn = recent_tab->getChild<LLButton>("gear_btn");
-    mRecentAddFriendBtn = recent_tab->getChild<LLButton>("add_friend_btn");
+    mRecentGearBtn = get_owner_child<LLButton>(recent_tab, "gear_btn");
+    mRecentAddFriendBtn = get_owner_child<LLButton>(recent_tab, "add_friend_btn");
 
-    mGroupList = group_tab->getChild<LLGroupList>("group_list");
+    mGroupList = get_owner_child<LLGroupList>(group_tab, "group_list");
     mGroupList->setNoItemsCommentText(getString("no_groups_msg"));
     mGroupList->setNoItemsMsg(getString("no_groups_msg"));
     mGroupList->setNoFilteredItemsMsg(getString("no_filtered_groups_msg"));
 
-    mNearbyFilterCommitConnection = nearby_tab->getChild<LLFilterEditor>("nearby_filter_input")->setCommitCallback(boost::bind(&LLPanelPeople::onFilterEdit, this, _2));
-    mFriedsFilterCommitConnection = friends_tab->getChild<LLFilterEditor>("friends_filter_input")->setCommitCallback(boost::bind(&LLPanelPeople::onFilterEdit, this, _2));
-    mRecentFilterCommitConnection = recent_tab->getChild<LLFilterEditor>("recent_filter_input")->setCommitCallback(boost::bind(&LLPanelPeople::onFilterEdit, this, _2));
-    mGroupsFilterCommitConnection = group_tab->getChild<LLFilterEditor>("groups_filter_input")->setCommitCallback(boost::bind(&LLPanelPeople::onFilterEdit, this, _2));
+    mNearbyFilterCommitConnection = get_owner_child<LLFilterEditor>(nearby_tab, "nearby_filter_input")->setCommitCallback(boost::bind(&LLPanelPeople::onFilterEdit, this, _2));
+    mFriedsFilterCommitConnection = get_owner_child<LLFilterEditor>(friends_tab, "friends_filter_input")->setCommitCallback(boost::bind(&LLPanelPeople::onFilterEdit, this, _2));
+    mRecentFilterCommitConnection = get_owner_child<LLFilterEditor>(recent_tab, "recent_filter_input")->setCommitCallback(boost::bind(&LLPanelPeople::onFilterEdit, this, _2));
+    mGroupsFilterCommitConnection = get_owner_child<LLFilterEditor>(group_tab, "groups_filter_input")->setCommitCallback(boost::bind(&LLPanelPeople::onFilterEdit, this, _2));
 
     mNearbyList->setContextMenu(&LLPanelPeopleMenus::gNearbyPeopleContextMenu);
     mRecentList->setContextMenu(&LLPanelPeopleMenus::gPeopleContextMenu);
@@ -767,7 +792,7 @@ bool LLPanelPeople::postBuild()
     mGroupList->setCommitCallback(boost::bind(&LLPanelPeople::updateButtons, this));
     mGroupList->setReturnCallback(boost::bind(&LLPanelPeople::onChatButtonClicked, this));
 
-    LLMenuButton* groups_gear_btn = getChild<LLMenuButton>("groups_gear_btn");
+    LLMenuButton* groups_gear_btn = get_owner_child<LLMenuButton>(this, "groups_gear_btn");
 
     // Use the context menu of the Groups list for the Groups tab gear menu.
     LLToggleableMenu* groups_gear_menu = mGroupList->getContextMenu();
@@ -781,15 +806,15 @@ bool LLPanelPeople::postBuild()
     }
 
     // [FS:CR] Contact sets
-    mContactSetCombo = getChild<LLComboBox>("combo_sets");
+    mContactSetCombo = get_owner_child<LLComboBox>(this, "combo_sets");
     if (mContactSetCombo)
     {
         mContactSetCombo->setCommitCallback(boost::bind(&LLPanelPeople::generateCurrentContactList, this));
         refreshContactSets();
     }
-    mFriendsAccordion = friends_tab->getChild<LLAccordionCtrl>("friends_accordion");
+    mFriendsAccordion = get_owner_child<LLAccordionCtrl>(friends_tab, "friends_accordion");
 
-    mContactSetList = getChild<LLAvatarList>("contact_list");
+    mContactSetList = get_owner_child<LLAvatarList>(this, "contact_list");
     if (mContactSetList)
     {
         mContactSetList->setCommitCallback(boost::bind(&LLPanelPeople::updateButtons, this));
@@ -800,11 +825,11 @@ bool LLPanelPeople::postBuild()
     }
     // [/FS:CR]
 
-    mFriendsAllTab = mFriendsAccordion->getChild<LLAccordionCtrlTab>("tab_all");
+    mFriendsAllTab = get_owner_child<LLAccordionCtrlTab>(mFriendsAccordion, "tab_all");
     mFriendsAllTab->setDropDownStateChangedCallback(
         boost::bind(&LLPanelPeople::onFriendsAccordionExpandedCollapsed, this, _1, _2, mAllFriendList));
 
-    mFriendsOnlineTab = mFriendsAccordion->getChild<LLAccordionCtrlTab>("tab_online");
+    mFriendsOnlineTab = get_owner_child<LLAccordionCtrlTab>(mFriendsAccordion, "tab_online");
     mFriendsOnlineTab->setDropDownStateChangedCallback(
         boost::bind(&LLPanelPeople::onFriendsAccordionExpandedCollapsed, this, _1, _2, mOnlineFriendList));
 
@@ -842,7 +867,7 @@ void LLPanelPeople::onChange(EStatusType status, const LLSD& channelInfo, bool p
 void LLPanelPeople::updateFriendListHelpText()
 {
     // show special help text for just created account to help finding friends. EXT-4836
-    static LLTextBox* no_friends_text = getChild<LLTextBox>("no_friends_help_text");
+    static LLTextBox* no_friends_text = get_owner_child<LLTextBox>(this, "no_friends_help_text");
 
     // Seems sometimes all_friends can be empty because of issue with Inventory loading (clear cache, slow connection...)
     // So, lets check all lists to avoid overlapping the text with online list. See EXT-6448.
@@ -1172,7 +1197,7 @@ void LLPanelPeople::updateNearbyList()
 
     if (gRRenabled && (gAgent.mRRInterface.mContainsShownames || gAgent.mRRInterface.mContainsShownametags || gAgent.mRRInterface.mContainsShowNearby))
     {
-        LLPanel* nearby_tab = getChild<LLPanel>(NEARBY_TAB_NAME);
+        LLPanel* nearby_tab = get_owner_child<LLPanel>(this, NEARBY_TAB_NAME);
         if (nearby_tab && nearby_tab->getVisible())
         {
 //          nearby_tab->setVisible(FALSE);
@@ -1208,7 +1233,7 @@ void LLPanelPeople::updateRecentList()
 //MK
     if (gRRenabled && (gAgent.mRRInterface.mContainsShownames || gAgent.mRRInterface.mContainsShownametags || gAgent.mRRInterface.mContainsShowNearby))
     {
-        LLPanel* nearby_tab = getChild<LLPanel>(NEARBY_TAB_NAME);
+        LLPanel* nearby_tab = get_owner_child<LLPanel>(this, NEARBY_TAB_NAME);
         if (nearby_tab && nearby_tab->getVisible())
         {
 //          nearby_tab->setVisible(FALSE);
@@ -2128,7 +2153,7 @@ void LLPanelPeople::setAccordionCollapsedByUser(LLUICtrl* acc_tab, bool collapse
 
 void LLPanelPeople::setAccordionCollapsedByUser(const std::string& name, bool collapsed)
 {
-    setAccordionCollapsedByUser(getChild<LLUICtrl>(name), collapsed);
+    setAccordionCollapsedByUser(get_owner_child<LLUICtrl>(this, name), collapsed);
 }
 
 bool LLPanelPeople::isAccordionCollapsedByUser(LLUICtrl* acc_tab)
@@ -2149,7 +2174,7 @@ bool LLPanelPeople::isAccordionCollapsedByUser(LLUICtrl* acc_tab)
 
 bool LLPanelPeople::isAccordionCollapsedByUser(const std::string& name)
 {
-    return isAccordionCollapsedByUser(getChild<LLUICtrl>(name));
+    return isAccordionCollapsedByUser(get_owner_child<LLUICtrl>(this, name));
 }
 
 bool LLPanelPeople::updateNearbyArrivalTime()

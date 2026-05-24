@@ -45,6 +45,31 @@
 #include "llviewercontrol.h"
 #include "llviewerfoldertype.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static const std::string OUTFITS_TAB_NAME = "outfitslist_tab";
 static const std::string OUTFIT_GALLERY_TAB_NAME = "outfit_gallery_tab";
 static const std::string COF_TAB_NAME = "cof_tab";
@@ -113,8 +138,8 @@ bool LLPanelOutfitsInventory::postBuild()
         LLInventoryModelBackgroundFetch::instance().start(outfits_cat);
     }
 
-    getChild<LLButton>(SAVE_BTN)->setCommitCallback(boost::bind(&LLPanelOutfitsInventory::saveOutfit, this, false));
-    getChild<LLButton>(SAVE_AS_BTN)->setCommitCallback(boost::bind(&LLPanelOutfitsInventory::saveOutfit, this, true));
+    get_owner_child<LLButton>(this, SAVE_BTN)->setCommitCallback(boost::bind(&LLPanelOutfitsInventory::saveOutfit, this, false));
+    get_owner_child<LLButton>(this, SAVE_AS_BTN)->setCommitCallback(boost::bind(&LLPanelOutfitsInventory::saveOutfit, this, true));
 
     return true;
 }
@@ -320,8 +345,8 @@ void LLPanelOutfitsInventory::openApearanceTab(const std::string& tab_name)
 
 void LLPanelOutfitsInventory::initListCommandsHandlers()
 {
-    mListCommands = getChild<LLPanel>("bottom_panel");
-    mWearBtn = mListCommands->getChild<LLButton>("wear_btn");
+    mListCommands = get_owner_child<LLPanel>(this, "bottom_panel");
+    mWearBtn = get_owner_child<LLButton>(mListCommands, "wear_btn");
     mWearBtn->setCommitCallback(boost::bind(&LLPanelOutfitsInventory::onWearButtonClick, this));
     mMyOutfitsPanel->childSetAction("trash_btn", boost::bind(&LLPanelOutfitsInventory::onTrashButtonClick, this));
     mOutfitGalleryPanel->childSetAction("trash_btn", boost::bind(&LLPanelOutfitsInventory::onTrashButtonClick, this));
@@ -354,7 +379,7 @@ void LLPanelOutfitsInventory::updateListCommands()
     mOutfitGalleryPanel->childSetEnabled("trash_btn", trash_enabled);
     mWearBtn->setEnabled(wear_enabled);
     mWearBtn->setVisible(wear_visible);
-    getChild<LLButton>(SAVE_BTN)->setEnabled(make_outfit_enabled);
+    get_owner_child<LLButton>(this, SAVE_BTN)->setEnabled(make_outfit_enabled);
     mWearBtn->setToolTip(getString((!isOutfitsGalleryPanelActive() && mMyOutfitsPanel->hasItemSelected()) ? "wear_items_tooltip" : "wear_outfit_tooltip"));
 }
 
@@ -401,7 +426,7 @@ void LLPanelOutfitsInventory::initTabPanels()
     mOutfitGalleryPanel = findChild<LLOutfitGallery>(OUTFIT_GALLERY_TAB_NAME);
     mOutfitGalleryPanel->setSelectionChangeCallback(boost::bind(&LLPanelOutfitsInventory::updateVerbs, this));
 
-    mAppearanceTabs = getChild<LLTabContainer>("appearance_tabs");
+    mAppearanceTabs = get_owner_child<LLTabContainer>(this, "appearance_tabs");
     mAppearanceTabs->setCommitCallback(boost::bind(&LLPanelOutfitsInventory::onTabChange, this));
 }
 

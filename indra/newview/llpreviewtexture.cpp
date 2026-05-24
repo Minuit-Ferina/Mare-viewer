@@ -59,6 +59,31 @@
 
 #include <boost/lexical_cast.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const S32 CLIENT_RECT_VPAD = 4;
 
 const F32 SECONDS_TO_SHOW_FILE_SAVED_MSG = 8.f;
@@ -120,7 +145,7 @@ void LLPreviewTexture::populateRatioList()
     mRatiosList.push_back("2:1");
 
     // Now fill combo box with provided list
-    LLComboBox* combo = getChild<LLComboBox>("combo_aspect_ratio");
+    LLComboBox* combo = get_owner_child<LLComboBox>(this, "combo_aspect_ratio");
     combo->removeall();
 
     for (std::vector<std::string>::const_iterator it = mRatiosList.begin(); it != mRatiosList.end(); ++it)
@@ -140,14 +165,14 @@ bool LLPreviewTexture::postBuild()
     }
 //mk
 
-    mButtonsPanel = getChild<LLLayoutPanel>("buttons_panel");
-    mDimensionsText = getChild<LLUICtrl>("dimensions");
-    mAspectRatioText = getChild<LLUICtrl>("aspect_ratio");
+    mButtonsPanel = get_owner_child<LLLayoutPanel>(this, "buttons_panel");
+    mDimensionsText = get_owner_child<LLUICtrl>(this, "dimensions");
+    mAspectRatioText = get_owner_child<LLUICtrl>(this, "aspect_ratio");
 
     syncKeepDiscardControls();
 
     childSetAction("save_tex_btn", LLPreviewTexture::onSaveAsBtn, this);
-    getChildView("save_tex_btn")->setVisible( true);
+    get_owner_view(this, "save_tex_btn")->setVisible( true);
     syncSaveTextureButton();
 
     const LLInventoryItem* item = getItem();
@@ -166,7 +191,7 @@ bool LLPreviewTexture::postBuild()
 
     childSetCommitCallback("combo_aspect_ratio", onAspectRatioCommit, this);
 
-    LLComboBox* combo = getChild<LLComboBox>("combo_aspect_ratio");
+    LLComboBox* combo = get_owner_child<LLComboBox>(this, "combo_aspect_ratio");
     combo->setCurrentByIndex(0);
 
     return LLPreview::postBuild();
@@ -347,9 +372,9 @@ void LLPreviewTexture::syncKeepDiscardControls()
 {
     if (mCopyToInv)
     {
-        getChild<LLButton>("Keep")->setLabel(getString("Copy"));
+        get_owner_child<LLButton>(this, "Keep")->setLabel(getString("Copy"));
         childSetAction("Keep",LLPreview::onBtnCopyToInv,this);
-        getChildView("Discard")->setVisible( false);
+        get_owner_view(this, "Discard")->setVisible( false);
     }
     else if (mShowKeepDiscard)
     {
@@ -358,8 +383,8 @@ void LLPreviewTexture::syncKeepDiscardControls()
     }
     else
     {
-        getChildView("Keep")->setVisible( false);
-        getChildView("Discard")->setVisible( false);
+        get_owner_view(this, "Keep")->setVisible( false);
+        get_owner_view(this, "Discard")->setVisible( false);
     }
 }
 
@@ -371,23 +396,23 @@ void LLPreviewTexture::syncDescriptionField(const LLInventoryItem* item)
     }
 
     childSetCommitCallback("desc", LLPreview::onText, this);
-    getChild<LLUICtrl>("desc")->setValue(item->getDescription());
-    getChild<LLLineEditor>("desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
+    get_owner_child<LLUICtrl>(this, "desc")->setValue(item->getDescription());
+    get_owner_child<LLLineEditor>(this, "desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
 }
 
 void LLPreviewTexture::syncSaveTextureButton()
 {
-    getChildView("save_tex_btn")->setEnabled(canSaveAs());
+    get_owner_view(this, "save_tex_btn")->setEnabled(canSaveAs());
 }
 
 void LLPreviewTexture::setDiscardButtonEnabled(bool enabled)
 {
-    getChildView("Discard")->setEnabled(enabled);
+    get_owner_view(this, "Discard")->setEnabled(enabled);
 }
 
 void LLPreviewTexture::resetAspectRatioSelection()
 {
-    getChild<LLComboBox>("combo_aspect_ratio")->setCurrentByIndex(0); //unconstrained
+    get_owner_child<LLComboBox>(this, "combo_aspect_ratio")->setCurrentByIndex(0); //unconstrained
 }
 
 // virtual
@@ -456,9 +481,9 @@ void LLPreviewTexture::openToSave()
 
 void LLPreviewTexture::hideCtrlButtons()
 {
-    getChildView("desc txt")->setVisible(false);
-    getChildView("desc")->setVisible(false);
-    getChild<LLLayoutStack>("preview_stack")->collapsePanel(mButtonsPanel, true);
+    get_owner_view(this, "desc txt")->setVisible(false);
+    get_owner_view(this, "desc")->setVisible(false);
+    get_owner_child<LLLayoutStack>(this, "preview_stack")->collapsePanel(mButtonsPanel, true);
     mButtonsPanel->setVisible(false);
     resetAspectRatioSelection();
     reshape(getRect().getWidth(), getRect().getHeight());
@@ -706,7 +731,7 @@ void LLPreviewTexture::loadAsset()
     if (mObjectUUID.notNull())
     {
         // check that we can copy inworld items into inventory
-        getChildView("Keep")->setEnabled(mIsCopyable);
+        get_owner_view(this, "Keep")->setEnabled(mIsCopyable);
     }
     else
     {
@@ -748,7 +773,7 @@ void LLPreviewTexture::adjustAspectRatio()
     if (setAspectRatio((F32)num, (F32)denom))
     {
         // Select corresponding ratio entry in the combo list
-        LLComboBox* combo = getChild<LLComboBox>("combo_aspect_ratio");
+        LLComboBox* combo = get_owner_child<LLComboBox>(this, "combo_aspect_ratio");
         if (combo)
         {
             std::ostringstream ratio;
@@ -772,7 +797,7 @@ void LLPreviewTexture::adjustAspectRatio()
     else
     {
         // Aspect ratio was set to unconstrained or was clamped
-        LLComboBox* combo = getChild<LLComboBox>("combo_aspect_ratio");
+        LLComboBox* combo = get_owner_child<LLComboBox>(this, "combo_aspect_ratio");
         if (combo)
         {
             combo->setCurrentByIndex(0); //unconstrained

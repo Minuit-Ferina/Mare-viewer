@@ -45,6 +45,31 @@
 #include "lluictrlfactory.h"
 #include "llviewerwindow.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 class LLPanelGroupInvite::impl
 {
 public:
@@ -647,18 +672,18 @@ bool LLPanelGroupInvite::postBuild()
     constexpr bool recurse = true;
 
     mImplementation->mLoadingText = getString("loading");
-    mImplementation->mRoleNames = getChild<LLComboBox>("role_name",
+    mImplementation->mRoleNames = get_owner_child<LLComboBox>(this, "role_name",
                                                                recurse);
-    mImplementation->mGroupName = getChild<LLTextBox>("group_name_text", recurse);
+    mImplementation->mGroupName = get_owner_child<LLTextBox>(this, "group_name_text", recurse);
     mImplementation->mInvitees =
-        getChild<LLNameListCtrl>("invitee_list", recurse);
+        get_owner_child<LLNameListCtrl>(this, "invitee_list", recurse);
     if ( mImplementation->mInvitees )
     {
         mImplementation->mInvitees->setCommitOnSelectionChange(true);
         mImplementation->mInvitees->setCommitCallback(impl::callbackSelect, mImplementation);
     }
 
-    LLButton* button = getChild<LLButton>("add_button", recurse);
+    LLButton* button = get_owner_child<LLButton>(this, "add_button", recurse);
     if ( button )
     {
         // default to opening avatarpicker automatically
@@ -667,7 +692,7 @@ bool LLPanelGroupInvite::postBuild()
     }
 
     mImplementation->mRemoveButton =
-            getChild<LLButton>("remove_button", recurse);
+            get_owner_child<LLButton>(this, "remove_button", recurse);
     if ( mImplementation->mRemoveButton )
     {
         mImplementation->mRemoveButton->setClickedCallback(impl::callbackClickRemove, mImplementation);
@@ -675,14 +700,14 @@ bool LLPanelGroupInvite::postBuild()
     }
 
     mImplementation->mOKButton =
-        getChild<LLButton>("invite_button", recurse);
+        get_owner_child<LLButton>(this, "invite_button", recurse);
     if ( mImplementation->mOKButton )
     {
         mImplementation->mOKButton->setClickedCallback(impl::callbackClickOK, mImplementation);
         mImplementation->mOKButton->setEnabled(false);
     }
 
-    button = getChild<LLButton>("cancel_button", recurse);
+    button = get_owner_child<LLButton>(this, "cancel_button", recurse);
     if ( button )
     {
         button->setClickedCallback(impl::callbackClickCancel, mImplementation);

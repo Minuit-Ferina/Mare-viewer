@@ -63,6 +63,31 @@
 
 #include <boost/foreach.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // Marine doesn't export it so we need it here too
 #define EXTREMUM 1000000.f
 
@@ -515,7 +540,7 @@ KokuaFloaterRLVDebugOutput::KokuaFloaterRLVDebugOutput(const LLSD& object_id)
 bool KokuaFloaterRLVDebugOutput::postBuild()
 {
     LLFloater::postBuild();
-    mHistoryEditor = getChild<LLViewerTextEditor>("rlv_debug_output");
+    mHistoryEditor = get_owner_child<LLViewerTextEditor>(this, "rlv_debug_output");
     return true;
 }
 
@@ -580,13 +605,13 @@ KokuaFloaterRLVConsole::~KokuaFloaterRLVConsole()
 
 bool KokuaFloaterRLVConsole::postBuild()
 {
-    LLLineEditor* pInputEdit = getChild<LLLineEditor>("rlv_console_input");
+    LLLineEditor* pInputEdit = get_owner_child<LLLineEditor>(this, "rlv_console_input");
     pInputEdit->setEnableLineHistory(true);
     pInputEdit->setCommitCallback(boost::bind(&KokuaFloaterRLVConsole::onInput, this, _1, _2));
     pInputEdit->setFocus(true);
     pInputEdit->setCommitOnFocusLost(false);
 
-    m_pOutputText = getChild<LLTextEditor>("rlv_console_output");
+    m_pOutputText = get_owner_child<LLTextEditor>(this, "rlv_console_output");
     m_pOutputText->appendText(sRLVprompt, false);
 
     return true;
@@ -656,8 +681,8 @@ KokuaFloaterRLVStatus::~KokuaFloaterRLVStatus()
 
 bool KokuaFloaterRLVStatus::postBuild()
 {
-    getChild<LLUICtrl>("copy_btn")->setCommitCallback(boost::bind(&KokuaFloaterRLVStatus::onBtnCopyToClipboard, this));
-    mPauseUpdating = getChild<LLCheckBoxCtrl>( "pause_updating");
+    get_owner_child<LLUICtrl>(this, "copy_btn")->setCommitCallback(boost::bind(&KokuaFloaterRLVStatus::onBtnCopyToClipboard, this));
+    mPauseUpdating = get_owner_child<LLCheckBoxCtrl>(this,  "pause_updating");
     mPauseUpdating->setCommitCallback(boost::bind(&KokuaFloaterRLVStatus::onCommitPauseUpdating, this));
     return true;
 }
@@ -1036,7 +1061,7 @@ KokuaFloaterRLVWorn::~KokuaFloaterRLVWorn()
 
 bool KokuaFloaterRLVWorn::postBuild()
 {
-    getChild<LLUICtrl>("refresh_btn")->setCommitCallback(boost::bind(&KokuaFloaterRLVWorn::onBtnRefresh, this));
+    get_owner_child<LLUICtrl>(this, "refresh_btn")->setCommitCallback(boost::bind(&KokuaFloaterRLVWorn::onBtnRefresh, this));
     return true;
 }
 

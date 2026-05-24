@@ -44,6 +44,31 @@
 #include "llviewermenu.h"       // for gMenuHolder
 #include "llvoiceclient.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLDefaultChildRegistry::Register<LLGroupList> r("group_list");
 
 class LLGroupComparator : public LLFlatListView::ItemComparator
@@ -301,9 +326,9 @@ void LLGroupList::addNewItem(const LLUUID& id, const std::string& name, const LL
     item->setName(name, mNameFilter);
     item->setGroupIconID(icon_id);
 
-    item->getChildView("info_btn")->setVisible( false);
-    item->getChildView("profile_btn")->setVisible( false);
-    item->getChildView("notices_btn")->setVisible(false);
+    get_owner_view(item, "info_btn")->setVisible( false);
+    get_owner_view(item, "profile_btn")->setVisible( false);
+    get_owner_view(item, "notices_btn")->setVisible(false);
     item->setGroupIconVisible(mShowIcons);
     if (!mShowIcons)
     {
@@ -463,16 +488,16 @@ LLGroupListItem::~LLGroupListItem()
 //virtual
 bool  LLGroupListItem::postBuild()
 {
-    mGroupIcon = getChild<LLGroupIconCtrl>("group_icon");
-    mGroupNameBox = getChild<LLTextBox>("group_name");
+    mGroupIcon = get_owner_child<LLGroupIconCtrl>(this, "group_icon");
+    mGroupNameBox = get_owner_child<LLTextBox>(this, "group_name");
 
-    mInfoBtn = getChild<LLButton>("info_btn");
+    mInfoBtn = get_owner_child<LLButton>(this, "info_btn");
     mInfoBtn->setClickedCallback(boost::bind(&LLGroupListItem::onInfoBtnClick, this));
 
-    mProfileBtn = getChild<LLButton>("profile_btn");
+    mProfileBtn = get_owner_child<LLButton>(this, "profile_btn");
     mProfileBtn->setClickedCallback([this](LLUICtrl *, const LLSD &) { onProfileBtnClick(); });
 
-    mNoticesBtn = getChild<LLButton>("notices_btn");
+    mNoticesBtn = get_owner_child<LLButton>(this, "notices_btn");
     mNoticesBtn->setClickedCallback([this](LLUICtrl *, const LLSD &) { onNoticesBtnClick(); });
 
     mVisibilityHideBtn = findChild<LLButton>("visibility_hide_btn");
@@ -500,12 +525,12 @@ void LLGroupListItem::setValue( const LLSD& value )
 {
     if (!value.isMap()) return;
     if (!value.has("selected")) return;
-    getChildView("selected_icon")->setVisible( value["selected"]);
+    get_owner_view(this, "selected_icon")->setVisible( value["selected"]);
 }
 
 void LLGroupListItem::onMouseEnter(S32 x, S32 y, MASK mask)
 {
-    getChildView("hovered_icon")->setVisible( true);
+    get_owner_view(this, "hovered_icon")->setVisible( true);
     if (mGroupID.notNull()) // don't show the info button for the "none" group
     {
         mInfoBtn->setVisible(true);
@@ -530,7 +555,7 @@ void LLGroupListItem::onMouseEnter(S32 x, S32 y, MASK mask)
 
 void LLGroupListItem::onMouseLeave(S32 x, S32 y, MASK mask)
 {
-    getChildView("hovered_icon")->setVisible( false);
+    get_owner_view(this, "hovered_icon")->setVisible( false);
     mInfoBtn->setVisible(false);
     mProfileBtn->setVisible(false);
     mNoticesBtn->setVisible(false);

@@ -52,6 +52,31 @@
 #include "llvoavatar.h"
 #include "llvoavatarself.h"         // for gAgentAvatarp
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const S32 MAX_ANIMATIONS=100;
 
 // --------------------------------------------------------------------------
@@ -145,11 +170,11 @@ void AnimationExplorer::startMotion(const LLUUID& motionID)
 
 bool AnimationExplorer::postBuild()
 {
-    mAnimationScrollList = getChild<LLScrollListCtrl>("animation_list");
-    mStopButton = getChild<LLButton>("stop_btn");
-    mRevokeButton = getChild<LLButton>("revoke_btn");
-    mStopAndRevokeButton = getChild<LLButton>("stop_and_revoke_btn");
-    mNoOwnedAnimationsCheckBox = getChild<LLCheckBoxCtrl>("no_owned_animations_check");
+    mAnimationScrollList = get_owner_child<LLScrollListCtrl>(this, "animation_list");
+    mStopButton = get_owner_child<LLButton>(this, "stop_btn");
+    mRevokeButton = get_owner_child<LLButton>(this, "revoke_btn");
+    mStopAndRevokeButton = get_owner_child<LLButton>(this, "stop_and_revoke_btn");
+    mNoOwnedAnimationsCheckBox = get_owner_child<LLCheckBoxCtrl>(this, "no_owned_animations_check");
 
     mAnimationScrollList->setCommitCallback(boost::bind(&AnimationExplorer::onSelectAnimation, this));
     mStopButton->setCommitCallback(boost::bind(&AnimationExplorer::onStopPressed, this));

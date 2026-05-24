@@ -55,6 +55,31 @@
 #include "llviewerobjectlist.h"
 #include "llvoavatarself.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLInventoryGallery> t_inventory_gallery("inventory_gallery");
 
 const S32 GALLERY_ITEMS_PER_ROW_MIN = 2;
@@ -148,8 +173,8 @@ const LLInventoryGallery::Params& LLInventoryGallery::getDefaultParams()
 
 bool LLInventoryGallery::postBuild()
 {
-    mScrollPanel = getChild<LLScrollContainer>("gallery_scroll_panel");
-    mMessageTextBox = getChild<LLTextBox>("empty_txt");
+    mScrollPanel = get_owner_child<LLScrollContainer>(this, "gallery_scroll_panel");
+    mMessageTextBox = get_owner_child<LLTextBox>(this, "empty_txt");
     mInventoryGalleryMenu = new LLInventoryGalleryContextMenu(this);
     mRootGalleryMenu = new LLInventoryGalleryContextMenu(this);
     mRootGalleryMenu->setRootFolder(true);
@@ -2815,9 +2840,9 @@ LLInventoryGalleryItem::~LLInventoryGalleryItem()
 
 bool LLInventoryGalleryItem::postBuild()
 {
-    mNameText = getChild<LLTextBox>("item_name");
-    mTextBgPanel = getChild<LLPanel>("text_bg_panel");
-    mThumbnailCtrl = getChild<LLThumbnailCtrl>("preview_thumbnail");
+    mNameText = get_owner_child<LLTextBox>(this, "item_name");
+    mTextBgPanel = get_owner_child<LLPanel>(this, "text_bg_panel");
+    mThumbnailCtrl = get_owner_child<LLThumbnailCtrl>(this, "preview_thumbnail");
 
     return true;
 }
@@ -2884,13 +2909,13 @@ void LLInventoryGalleryItem::setType(LLAssetType::EType type, LLInventoryType::E
         }
     }
 
-    getChild<LLIconCtrl>("item_type")->setValue(icon_name);
-    getChild<LLIconCtrl>("link_overlay")->setVisible(is_link);
+    get_owner_child<LLIconCtrl>(this, "item_type")->setValue(icon_name);
+    get_owner_child<LLIconCtrl>(this, "link_overlay")->setVisible(is_link);
 }
 
 void LLInventoryGalleryItem::setFavorite(bool is_favorite)
 {
-    getChild<LLIconCtrl>("fav_icon")->setVisible(is_favorite);
+    get_owner_child<LLIconCtrl>(this, "fav_icon")->setVisible(is_favorite);
     static const LLUIColor text_color = LLUIColorTable::instance().getColor("LabelTextColor", LLColor4::white);
     static const LLUIColor favorite_color = LLUIColorTable::instance().getColor("InventoryFavoriteColor", LLColor4::white);
     mNameText->setReadOnlyColor(is_favorite ? favorite_color : text_color);

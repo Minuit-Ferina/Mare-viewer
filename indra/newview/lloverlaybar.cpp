@@ -57,6 +57,31 @@
 #include "llmediactrl.h"
 #include "llselectmgr.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //
 // Globals
 //
@@ -138,7 +163,7 @@ void LLOverlayBar::reshape(S32 width, S32 height, BOOL called_from_parent)
 
 void LLOverlayBar::layoutButtons()
 {
-    LLView* state_buttons_panel = getChildView("state_buttons");
+    LLView* state_buttons_panel = get_owner_view(this, "state_buttons");
 
     if (state_buttons_panel->getVisible())
     {
@@ -180,7 +205,7 @@ void LLOverlayBar::refresh()
     BOOL buttons_changed = FALSE;
 
     BOOL im_received = gIMMgr->getIMReceived();
-    LLButton* button = getChild<LLButton>("IM Received");
+    LLButton* button = get_owner_child<LLButton>(this, "IM Received");
     if (button && button->getVisible() != im_received)
     {
         button->setVisible(im_received);
@@ -190,7 +215,7 @@ void LLOverlayBar::refresh()
     }
 
     BOOL busy = gAgent.getBusy();
-    button = getChild<LLButton>("Set Not Busy");
+    button = get_owner_child<LLButton>(this, "Set Not Busy");
     if (button && button->getVisible() != busy)
     {
         button->setVisible(busy);
@@ -200,7 +225,7 @@ void LLOverlayBar::refresh()
     }
 
     BOOL flycam = LLViewerJoystick::getInstance()->getOverrideCamera();
-    button = getChild<LLButton>("Flycam");
+    button = get_owner_child<LLButton>(this, "Flycam");
     if (button && button->getVisible() != flycam)
     {
         button->setVisible(flycam);
@@ -212,7 +237,7 @@ void LLOverlayBar::refresh()
     BOOL mouselook_grabbed;
     mouselook_grabbed = gAgent.isControlGrabbed(CONTROL_ML_LBUTTON_DOWN_INDEX)
         || gAgent.isControlGrabbed(CONTROL_ML_LBUTTON_UP_INDEX);
-    button = getChild<LLButton>("Mouselook");
+    button = get_owner_child<LLButton>(this, "Mouselook");
 
     if (button && button->getVisible() != mouselook_grabbed)
     {
@@ -227,7 +252,7 @@ void LLOverlayBar::refresh()
     {
         sitting = gAgent.getAvatarObject()->isSitting();
     }
-    button = getChild<LLButton>("Stand Up");
+    button = get_owner_child<LLButton>(this, "Stand Up");
 
     if (button && button->getVisible() != sitting)
     {

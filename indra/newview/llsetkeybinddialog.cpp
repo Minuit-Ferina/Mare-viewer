@@ -36,6 +36,31 @@
 #include "llkeyconflict.h"
 #include "llviewercontrol.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 class LLSetKeyBindDialog::Updater : public LLEventTimer
 {
 public:
@@ -90,10 +115,10 @@ bool LLSetKeyBindDialog::postBuild()
     childSetAction("SetEmpty", onBlank, this);
     childSetAction("Default", onDefault, this);
     childSetAction("Cancel", onCancel, this);
-    getChild<LLUICtrl>("Cancel")->setFocus(true);
+    get_owner_child<LLUICtrl>(this, "Cancel")->setFocus(true);
 
-    pCheckBox = getChild<LLCheckBoxCtrl>("apply_all");
-    pDescription = getChild<LLTextBase>("description");
+    pCheckBox = get_owner_child<LLCheckBoxCtrl>(this, "apply_all");
+    pDescription = get_owner_child<LLTextBase>(this, "description");
 
     gFocusMgr.setKeystrokesOnly(true);
 

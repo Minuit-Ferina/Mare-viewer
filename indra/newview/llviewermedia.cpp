@@ -79,6 +79,31 @@
 #include <boost/bind.hpp>   // for SkinFolder listener
 #include <boost/signals2.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 extern bool gCubeSnapshot;
 
 // *TODO: Consider enabling mipmaps (they have been disabled for a long time). Likely has a significant performance impact for tiled/high texture repeat media. Mip generation in a shader may also be an option if necessary.
@@ -1377,7 +1402,7 @@ void LLViewerMedia::getOpenIDCookieCoro(std::string url)
                         LLFloater *floaterp = LLFloaterReg::findInstance(mci.floater_name);
                         if (floaterp)
                         {
-                            LLMediaCtrl* media_instance = floaterp->getChild<LLMediaCtrl>(mci.browser_name);
+                            LLMediaCtrl* media_instance = get_owner_child<LLMediaCtrl>(floaterp, mci.browser_name);
                             if (media_instance && media_instance->getMediaPlugin())
                             {
                                 media_instance->getMediaPlugin()->setCookie(cefUrl, cookie_name, cookie_value, cookie_host,

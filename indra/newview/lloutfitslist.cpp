@@ -58,6 +58,31 @@
 #include "lltextbox.h"
 //MK
 #include "llagent.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 //mk
 static bool is_tab_header_clicked(LLOutfitAccordionCtrlTab* tab, S32 y);
 
@@ -143,7 +168,7 @@ LLOutfitsList::~LLOutfitsList()
 
 bool LLOutfitsList::postBuild()
 {
-    mAccordion = getChild<LLAccordionCtrl>("outfits_accordion");
+    mAccordion = get_owner_child<LLAccordionCtrl>(this, "outfits_accordion");
     mAccordion->setComparator(&OUTFIT_TAB_NAME_COMPARATOR);
 
     initComparator();
@@ -220,7 +245,7 @@ void LLOutfitsList::updateAddedCategory(LLUUID cat_id)
     mAccordion->addCollapsibleCtrl(tab);
 
     // Start observing the new outfit category.
-    LLWearableItemsList* list = tab->getChild<LLWearableItemsList>("wearable_items_list");
+    LLWearableItemsList* list = get_owner_child<LLWearableItemsList>(tab, "wearable_items_list");
     if (!mCategoriesObserver->addCategory(cat_id, boost::bind(&LLWearableItemsList::updateList, list, cat_id)))
     {
         // Remove accordion tab if category could not be added to observer.
@@ -1232,7 +1257,7 @@ void LLOutfitListBase::ChangeOutfitSelection(LLWearableItemsList* list, const LL
 bool LLOutfitListBase::postBuild()
 {
     // <FS:Ansariel> Show avatar complexity in appearance floater
-    mAvatarComplexityLabel = getChild<LLTextBox>("avatar_complexity_label");
+    mAvatarComplexityLabel = get_owner_child<LLTextBox>(this, "avatar_complexity_label");
 
     return true;
 }

@@ -74,6 +74,31 @@
 
 #include <boost/algorithm/string.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 bool LLModelPreview::sIgnoreLoadedCallback = false;
 
 // Extra configurability, to be exposed later in xml (LLModelPreview probably
@@ -2350,7 +2375,7 @@ void LLModelPreview::updateStatusMessages()
 
     // flag degenerates here rather than deferring to a MAV error later
     mFMP->childSetVisible("physics_status_message_text", mHasDegenerate); //display or clear
-    auto degenerateIcon = mFMP->getChild<LLIconCtrl>("physics_status_message_icon");
+    auto degenerateIcon = get_owner_child<LLIconCtrl>(mFMP, "physics_status_message_icon");
     degenerateIcon->setVisible(mHasDegenerate);
     if (mHasDegenerate)
     {
@@ -2444,7 +2469,7 @@ void LLModelPreview::updateStatusMessages()
             }
         }
 
-        LLIconCtrl* icon = mFMP->getChild<LLIconCtrl>(lod_icon_name[lod]);
+        LLIconCtrl* icon = get_owner_child<LLIconCtrl>(mFMP, lod_icon_name[lod]);
         LLUIImagePtr img = LLUI::getUIImage(lod_status_image[upload_status[lod]]);
         icon->setVisible(true);
         icon->setImage(img);
@@ -2457,7 +2482,7 @@ void LLModelPreview::updateStatusMessages()
         if (lod == mPreviewLOD)
         {
             mFMP->childSetValue("lod_status_message_text", mFMP->getString(message));
-            icon = mFMP->getChild<LLIconCtrl>("lod_status_message_icon");
+            icon = get_owner_child<LLIconCtrl>(mFMP, "lod_status_message_icon");
             icon->setImage(img);
         }
 
@@ -2492,7 +2517,7 @@ void LLModelPreview::updateStatusMessages()
 
     if (!(has_physics_error & PhysicsError::DEGENERATE)){ // only update this field (incluides clearing it) if it is not already in use.
         mFMP->childSetVisible("physics_status_message_text", physExceededVertexLimit);
-        LLIconCtrl* physStatusIcon = mFMP->getChild<LLIconCtrl>("physics_status_message_icon");
+        LLIconCtrl* physStatusIcon = get_owner_child<LLIconCtrl>(mFMP, "physics_status_message_icon");
         physStatusIcon->setVisible(physExceededVertexLimit);
         if (physExceededVertexLimit)
         {

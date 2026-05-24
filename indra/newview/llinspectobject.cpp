@@ -54,6 +54,31 @@
 
 //MK
 #include "llagent.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 //mk
 
 class LLViewerObject;
@@ -157,31 +182,31 @@ bool LLInspectObject::postBuild(void)
 {
     // The XML file has sample data in it.  Clear that out so we don't
     // flicker when data arrives off network.
-    getChild<LLUICtrl>("object_name")->setValue("");
-    getChild<LLUICtrl>("object_creator")->setValue("");
-    getChild<LLUICtrl>("object_description")->setValue("");
-    getChild<LLUICtrl>("object_media_url")->setValue("");
+    get_owner_child<LLUICtrl>(this, "object_name")->setValue("");
+    get_owner_child<LLUICtrl>(this, "object_creator")->setValue("");
+    get_owner_child<LLUICtrl>(this, "object_description")->setValue("");
+    get_owner_child<LLUICtrl>(this, "object_media_url")->setValue("");
     // Set buttons invisible until we know what this object can do
     hideButtons();
 
     // Hide floater when name links clicked
-    LLTextBox* textbox = getChild<LLTextBox>("object_creator");
+    LLTextBox* textbox = get_owner_child<LLTextBox>(this, "object_creator");
     textbox->setURLClickedCallback(boost::bind(&LLInspectObject::closeFloater, this, false) );
 
     // Hook up functionality
-    getChild<LLUICtrl>("buy_btn")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "buy_btn")->setCommitCallback(
         boost::bind(&LLInspectObject::onClickBuy, this));
-    getChild<LLUICtrl>("pay_btn")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "pay_btn")->setCommitCallback(
         boost::bind(&LLInspectObject::onClickPay, this));
-    getChild<LLUICtrl>("take_free_copy_btn")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "take_free_copy_btn")->setCommitCallback(
         boost::bind(&LLInspectObject::onClickTakeFreeCopy, this));
-    getChild<LLUICtrl>("touch_btn")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "touch_btn")->setCommitCallback(
         boost::bind(&LLInspectObject::onClickTouch, this));
-    getChild<LLUICtrl>("sit_btn")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "sit_btn")->setCommitCallback(
         boost::bind(&LLInspectObject::onClickSit, this));
-    getChild<LLUICtrl>("open_btn")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "open_btn")->setCommitCallback(
         boost::bind(&LLInspectObject::onClickOpen, this));
-    getChild<LLUICtrl>("more_info_btn")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "more_info_btn")->setCommitCallback(
         boost::bind(&LLInspectObject::onClickMoreInfo, this));
 
     if (!mSelectionUpdateSlot.connected())
@@ -262,7 +287,7 @@ void LLInspectObject::onClose(bool app_quitting)
     mObjectSelection = NULL;
     mPreviousObjectID = mObjectID;
 
-    getChild<LLMenuButton>("gear_btn")->hideMenu();
+    get_owner_child<LLMenuButton>(this, "gear_btn")->hideMenu();
 }
 
 
@@ -318,12 +343,12 @@ void LLInspectObject::update()
 
 void LLInspectObject::hideButtons()
 {
-    getChild<LLUICtrl>("buy_btn")->setVisible(false);
-    getChild<LLUICtrl>("pay_btn")->setVisible(false);
-    getChild<LLUICtrl>("take_free_copy_btn")->setVisible(false);
-    getChild<LLUICtrl>("touch_btn")->setVisible(false);
-    getChild<LLUICtrl>("sit_btn")->setVisible(false);
-    getChild<LLUICtrl>("open_btn")->setVisible(false);
+    get_owner_child<LLUICtrl>(this, "buy_btn")->setVisible(false);
+    get_owner_child<LLUICtrl>(this, "pay_btn")->setVisible(false);
+    get_owner_child<LLUICtrl>(this, "take_free_copy_btn")->setVisible(false);
+    get_owner_child<LLUICtrl>(this, "touch_btn")->setVisible(false);
+    get_owner_child<LLUICtrl>(this, "sit_btn")->setVisible(false);
+    get_owner_child<LLUICtrl>(this, "open_btn")->setVisible(false);
 }
 
 // *TODO: Extract this method from lltoolpie.cpp and put somewhere shared
@@ -347,38 +372,38 @@ void LLInspectObject::updateButtons(LLSelectNode* nodep)
         || (for_sale && price == 0))
     {
         // Free copies have priority over other operations
-        getChild<LLUICtrl>("take_free_copy_btn")->setVisible(true);
+        get_owner_child<LLUICtrl>(this, "take_free_copy_btn")->setVisible(true);
     }
     else if (for_sale)
     {
-        getChild<LLUICtrl>("buy_btn")->setVisible(true);
+        get_owner_child<LLUICtrl>(this, "buy_btn")->setVisible(true);
     }
     else if ( enable_pay_object() )
     {
-        getChild<LLUICtrl>("pay_btn")->setVisible(true);
+        get_owner_child<LLUICtrl>(this, "pay_btn")->setVisible(true);
     }
     else if (click_action == CLICK_ACTION_SIT)
     {
         // Click-action sit must come before "open" because many objects on
         // which you can sit have scripts, and hence can be opened
-        getChild<LLUICtrl>("sit_btn")->setVisible(true);
+        get_owner_child<LLUICtrl>(this, "sit_btn")->setVisible(true);
         updateSitLabel(nodep);
     }
     else if (object->flagHandleTouch()
         || (parent && parent->flagHandleTouch()))
     {
-        getChild<LLUICtrl>("touch_btn")->setVisible(true);
+        get_owner_child<LLUICtrl>(this, "touch_btn")->setVisible(true);
         updateTouchLabel(nodep);
     }
     else if ( enable_object_open() )
     {
         // Open is last because anything with a script in it can be opened
-        getChild<LLUICtrl>("open_btn")->setVisible(true);
+        get_owner_child<LLUICtrl>(this, "open_btn")->setVisible(true);
     }
     else
     {
         // By default, we can sit on anything
-        getChild<LLUICtrl>("sit_btn")->setVisible(true);
+        get_owner_child<LLUICtrl>(this, "sit_btn")->setVisible(true);
         updateSitLabel(nodep);
     }
 
@@ -388,7 +413,7 @@ void LLInspectObject::updateButtons(LLSelectNode* nodep)
 
 void LLInspectObject::updateSitLabel(LLSelectNode* nodep)
 {
-    LLButton* sit_btn = getChild<LLButton>("sit_btn");
+    LLButton* sit_btn = get_owner_child<LLButton>(this, "sit_btn");
     if (!nodep->mSitName.empty())
     {
         sit_btn->setLabel( nodep->mSitName );
@@ -401,7 +426,7 @@ void LLInspectObject::updateSitLabel(LLSelectNode* nodep)
 
 void LLInspectObject::updateTouchLabel(LLSelectNode* nodep)
 {
-    LLButton* sit_btn = getChild<LLButton>("touch_btn");
+    LLButton* sit_btn = get_owner_child<LLButton>(this, "touch_btn");
     if (!nodep->mTouchName.empty())
     {
         sit_btn->setLabel( nodep->mTouchName );
@@ -423,7 +448,7 @@ void LLInspectObject::updateName(LLSelectNode* nodep)
     {
         name = LLTrans::getString("TooltipNoName");
     }
-    getChild<LLUICtrl>("object_name")->setValue(name);
+    get_owner_child<LLUICtrl>(this, "object_name")->setValue(name);
 }
 
 void LLInspectObject::updateDescription(LLSelectNode* nodep)
@@ -436,7 +461,7 @@ void LLInspectObject::updateDescription(LLSelectNode* nodep)
         desc = nodep->mDescription;
     }
 
-    LLTextBox* textbox = getChild<LLTextBox>("object_description");
+    LLTextBox* textbox = get_owner_child<LLTextBox>(this, "object_description");
     textbox->setValue(desc);
 }
 
@@ -444,7 +469,7 @@ void LLInspectObject::updateMediaCurrentURL()
 {
     if(!mMediaEntry)
         return;
-    LLTextBox* textbox = getChild<LLTextBox>("object_media_url");
+    LLTextBox* textbox = get_owner_child<LLTextBox>(this, "object_media_url");
     std::string media_url = "";
     textbox->setValue(media_url);
     textbox->setToolTip(media_url);
@@ -522,7 +547,7 @@ void LLInspectObject::updateCreator(LLSelectNode* nodep)
             text = getString("CreatorAndOwner", args);
         }
     }
-    getChild<LLUICtrl>("object_creator")->setValue(text);
+    get_owner_child<LLUICtrl>(this, "object_creator")->setValue(text);
 }
 
 void LLInspectObject::updatePrice(LLSelectNode* nodep)
@@ -547,8 +572,8 @@ void LLInspectObject::updatePrice(LLSelectNode* nodep)
         line = getString("Price", args);
         show_price_icon = true;
     }
-    getChild<LLUICtrl>("price_text")->setValue(line);
-    getChild<LLUICtrl>("price_icon")->setVisible(show_price_icon);
+    get_owner_child<LLUICtrl>(this, "price_text")->setValue(line);
+    get_owner_child<LLUICtrl>(this, "price_icon")->setVisible(show_price_icon);
 }
 
 void LLInspectObject::updateSecureBrowsing()
@@ -581,14 +606,14 @@ void LLInspectObject::updateSecureBrowsing()
             is_secure_browsing = true;
         }
     }
-    getChild<LLUICtrl>("secure_browsing")->setVisible(is_secure_browsing);
+    get_owner_child<LLUICtrl>(this, "secure_browsing")->setVisible(is_secure_browsing);
 }
 
 // For the object inspector, only unpause the fade timer
 // if the gear menu is not open
 void LLInspectObject::onMouseLeave(S32 x, S32 y, MASK mask)
 {
-    LLToggleableMenu* gear_menu = getChild<LLMenuButton>("gear_btn")->getMenu();
+    LLToggleableMenu* gear_menu = get_owner_child<LLMenuButton>(this, "gear_btn")->getMenu();
     if ( gear_menu && gear_menu->getVisible() )
     {
         return;

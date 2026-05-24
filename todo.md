@@ -1922,12 +1922,14 @@ No open items in this section right now.
 
 - [x] Create branch `phase15` from completed `phase14`.
 - [x] Add `docs/architecture/402-phase15-plan.md`.
-- [ ] Sweep application-level `indra/newview/*.cpp` files outside
+- [x] Sweep application-level `indra/newview/*.cpp` files outside
       `llfloater*.cpp` for active-code direct `getChild<T>()` and
       `getChildView()` callsites.
-- [ ] Verify the non-floater sweep with targeted object builds, regenerated
+- [x] Correct phase 14 and phase 15 child helper defaults to preserve
+      `LLView::getChild<T>()`'s default `recurse = true` behavior.
+- [x] Verify the non-floater sweep with targeted object builds, regenerated
       source inventory, both GL guardrails, and `git diff --check`.
-- [ ] Add a summary document for the phase 15 non-floater UI owner sweep.
+- [x] Add `docs/architecture/403-non-floater-ui-helper-sweep-summary.md`.
 - [ ] Decide whether `indra/llui` toolkit files need a separate phase.
 
 ## Post-Phase2 Guardrails

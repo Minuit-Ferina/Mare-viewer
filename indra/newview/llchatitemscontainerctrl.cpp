@@ -48,6 +48,31 @@
 
 //MK
 #include "llagent.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 //mk
 
 static constexpr S32 msg_left_offset = 10;
@@ -258,7 +283,7 @@ void LLFloaterIMNearbyChatToastPanel::init(LLSD& notification)
         case 2: messageFont = LLFontGL::getFontSansSerifBig();  break;
     }
 
-    mMsgText = getChild<LLChatMsgBox>("msg_text", false);
+    mMsgText = get_owner_child<LLChatMsgBox>(this, "msg_text", false);
     mMsgText->setContentTrusted(false);
     mMsgText->setIsFriendCallback(LLAvatarActions::isFriend);
 
@@ -409,7 +434,7 @@ bool    LLFloaterIMNearbyChatToastPanel::handleMouseUp  (S32 x, S32 y, MASK mask
 
 void    LLFloaterIMNearbyChatToastPanel::setHeaderVisibility(EShowItemHeader e)
 {
-    LLUICtrl* icon = getChild<LLUICtrl>("avatar_icon", false);
+    LLUICtrl* icon = get_owner_child<LLUICtrl>(this, "avatar_icon", false);
     if(icon)
         icon->setVisible(e == CHATITEMHEADER_SHOW_ONLY_ICON || e==CHATITEMHEADER_SHOW_BOTH);
 
@@ -425,7 +450,7 @@ bool    LLFloaterIMNearbyChatToastPanel::canAddText ()
 
 bool    LLFloaterIMNearbyChatToastPanel::handleRightMouseDown(S32 x, S32 y, MASK mask)
 {
-    LLUICtrl* avatar_icon = getChild<LLUICtrl>("avatar_icon", false);
+    LLUICtrl* avatar_icon = get_owner_child<LLUICtrl>(this, "avatar_icon", false);
 
     S32 local_x = x - avatar_icon->getRect().mLeft;
     S32 local_y = y - avatar_icon->getRect().mBottom;
@@ -441,7 +466,7 @@ void LLFloaterIMNearbyChatToastPanel::draw()
 
     if(mIsDirty)
     {
-        LLAvatarIconCtrl* icon = getChild<LLAvatarIconCtrl>("avatar_icon", false);
+        LLAvatarIconCtrl* icon = get_owner_child<LLAvatarIconCtrl>(this, "avatar_icon", false);
         if(icon)
         {
             icon->setDrawTooltip(mSourceType == CHAT_SOURCE_AGENT);

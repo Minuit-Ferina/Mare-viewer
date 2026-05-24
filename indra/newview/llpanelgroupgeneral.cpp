@@ -56,6 +56,31 @@
 #include "exogroupmutelist.h"
 #include "llwindow.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLPanelGroupGeneral> t_panel_group_general("panel_group_general");
 
 // consts
@@ -97,7 +122,7 @@ bool LLPanelGroupGeneral::postBuild()
 {
     constexpr bool recurse = true;
 
-    mEditCharter = getChild<LLTextEditor>("charter", recurse);
+    mEditCharter = get_owner_child<LLTextEditor>(this, "charter", recurse);
     if(mEditCharter)
     {
         mEditCharter->setCommitCallback(onCommitAny, this);
@@ -107,13 +132,13 @@ bool LLPanelGroupGeneral::postBuild()
     }
 
     // Options
-    mCtrlShowInGroupList = getChild<LLCheckBoxCtrl>("show_in_group_list", recurse);
+    mCtrlShowInGroupList = get_owner_child<LLCheckBoxCtrl>(this, "show_in_group_list", recurse);
     if (mCtrlShowInGroupList)
     {
         mCtrlShowInGroupList->setCommitCallback(onCommitAny, this);
     }
 
-    mComboMature = getChild<LLComboBox>("group_mature_check", recurse);
+    mComboMature = get_owner_child<LLComboBox>(this, "group_mature_check", recurse);
     if(mComboMature)
     {
         mComboMature->setCurrentByIndex(0);
@@ -125,19 +150,19 @@ bool LLPanelGroupGeneral::postBuild()
             mComboMature->setCurrentByIndex(NON_MATURE_CONTENT);
         }
     }
-    mCtrlOpenEnrollment = getChild<LLCheckBoxCtrl>("open_enrollement", recurse);
+    mCtrlOpenEnrollment = get_owner_child<LLCheckBoxCtrl>(this, "open_enrollement", recurse);
     if (mCtrlOpenEnrollment)
     {
         mCtrlOpenEnrollment->setCommitCallback(onCommitAny, this);
     }
 
-    mCtrlEnrollmentFee = getChild<LLCheckBoxCtrl>("check_enrollment_fee", recurse);
+    mCtrlEnrollmentFee = get_owner_child<LLCheckBoxCtrl>(this, "check_enrollment_fee", recurse);
     if (mCtrlEnrollmentFee)
     {
         mCtrlEnrollmentFee->setCommitCallback(onCommitEnrollment, this);
     }
 
-    mSpinEnrollmentFee = getChild<LLSpinCtrl>("spin_enrollment_fee", recurse);
+    mSpinEnrollmentFee = get_owner_child<LLSpinCtrl>(this, "spin_enrollment_fee", recurse);
     if (mSpinEnrollmentFee)
     {
         mSpinEnrollmentFee->setCommitCallback(onCommitAny, this);
@@ -153,7 +178,7 @@ bool LLPanelGroupGeneral::postBuild()
         accept_notices = data.mAcceptNotices;
         list_in_profile = data.mListInProfile;
     }
-    mCtrlReceiveNotices = getChild<LLCheckBoxCtrl>("receive_notices", recurse);
+    mCtrlReceiveNotices = get_owner_child<LLCheckBoxCtrl>(this, "receive_notices", recurse);
     if (mCtrlReceiveNotices)
     {
         mCtrlReceiveNotices->setCommitCallback(onCommitUserOnly, this);
@@ -161,7 +186,7 @@ bool LLPanelGroupGeneral::postBuild()
         mCtrlReceiveNotices->setEnabled(data.mID.notNull());
     }
     // <exodus>
-    mCtrlReceiveGroupChat = getChild<LLCheckBoxCtrl>("receive_chat", recurse);
+    mCtrlReceiveGroupChat = get_owner_child<LLCheckBoxCtrl>(this, "receive_chat", recurse);
     if(mCtrlReceiveGroupChat)
     {
         mCtrlReceiveGroupChat->setCommitCallback(onCommitUserOnly, this);
@@ -173,7 +198,7 @@ bool LLPanelGroupGeneral::postBuild()
     }
     // </exodus>
 
-    mCtrlListGroup = getChild<LLCheckBoxCtrl>("list_groups_in_profile", recurse);
+    mCtrlListGroup = get_owner_child<LLCheckBoxCtrl>(this, "list_groups_in_profile", recurse);
     if (mCtrlListGroup)
     {
         mCtrlListGroup->setCommitCallback(onCommitUserOnly, this);
@@ -182,22 +207,22 @@ bool LLPanelGroupGeneral::postBuild()
         mCtrlListGroup->resetDirty();
     }
 
-    mActiveTitleLabel = getChild<LLTextBox>("active_title_label", recurse);
+    mActiveTitleLabel = get_owner_child<LLTextBox>(this, "active_title_label", recurse);
 
-    mComboActiveTitle = getChild<LLComboBox>("active_title", recurse);
+    mComboActiveTitle = get_owner_child<LLComboBox>(this, "active_title", recurse);
     if (mComboActiveTitle)
     {
         mComboActiveTitle->setCommitCallback(onCommitAny, this);
     }
 
-    mGroupUUIDText = getChild<LLLineEditor>("group_uuid_text", recurse);
-    mBtnGroupUUIDCopy = getChild<LLButton>("group_uuid_copy", recurse);
+    mGroupUUIDText = get_owner_child<LLLineEditor>(this, "group_uuid_text", recurse);
+    mBtnGroupUUIDCopy = get_owner_child<LLButton>(this, "group_uuid_copy", recurse);
     if (mBtnGroupUUIDCopy) {
         mBtnGroupUUIDCopy->setEnabled(FALSE);
         mBtnGroupUUIDCopy->setClickedCallback(onCopyGroupUUID, this);
     }
 
-    mBtnGroupURICopy = getChild<LLButton>("group_uri_copy", recurse);
+    mBtnGroupURICopy = get_owner_child<LLButton>(this, "group_uri_copy", recurse);
     if (mBtnGroupURICopy) {
         mBtnGroupURICopy->setEnabled(FALSE);
         mBtnGroupURICopy->setClickedCallback(onCopyGroupURI, this);
@@ -223,17 +248,17 @@ bool LLPanelGroupGeneral::postBuild()
 
 void LLPanelGroupGeneral::setupCtrls(LLPanel* panel_group)
 {
-    mInsignia = getChild<LLTextureCtrl>("insignia");
+    mInsignia = get_owner_child<LLTextureCtrl>(this, "insignia");
     if (mInsignia)
     {
         mInsignia->setCommitCallback(onCommitAny, this);
         mInsignia->setAllowLocalTexture(false);
         mInsignia->setBakeTextureEnabled(false);
     }
-    mFounderName = getChild<LLTextBox>("founder_name");
+    mFounderName = get_owner_child<LLTextBox>(this, "founder_name");
 
 
-    mGroupNameEditor = panel_group->getChild<LLLineEditor>("group_name_editor");
+    mGroupNameEditor = get_owner_child<LLLineEditor>(panel_group, "group_name_editor");
     mGroupNameEditor->setPrevalidate( LLTextValidate::validateASCIINoLeadingSpace );
 
 
@@ -804,14 +829,14 @@ void LLPanelGroupGeneral::setGroupID(const LLUUID& id)
         accept_notices = data.mAcceptNotices;
         list_in_profile = data.mListInProfile;
     }
-    mCtrlReceiveNotices = getChild<LLCheckBoxCtrl>("receive_notices");
+    mCtrlReceiveNotices = get_owner_child<LLCheckBoxCtrl>(this, "receive_notices");
     if (mCtrlReceiveNotices)
     {
         mCtrlReceiveNotices->set(accept_notices);
         mCtrlReceiveNotices->setEnabled(data.mID.notNull());
     }
 
-    mCtrlListGroup = getChild<LLCheckBoxCtrl>("list_groups_in_profile");
+    mCtrlListGroup = get_owner_child<LLCheckBoxCtrl>(this, "list_groups_in_profile");
     if (mCtrlListGroup)
     {
         mCtrlListGroup->set(list_in_profile);
@@ -819,7 +844,7 @@ void LLPanelGroupGeneral::setGroupID(const LLUUID& id)
     }
 
     // <exodus>
-    mCtrlReceiveGroupChat = getChild<LLCheckBoxCtrl>("receive_chat");
+    mCtrlReceiveGroupChat = get_owner_child<LLCheckBoxCtrl>(this, "receive_chat");
     if (mCtrlReceiveGroupChat)
     {
         if(data.mID.notNull())
@@ -832,9 +857,9 @@ void LLPanelGroupGeneral::setGroupID(const LLUUID& id)
 
     mCtrlShowInGroupList->setEnabled(data.mID.notNull());
 
-    mActiveTitleLabel = getChild<LLTextBox>("active_title_label");
+    mActiveTitleLabel = get_owner_child<LLTextBox>(this, "active_title_label");
 
-    mComboActiveTitle = getChild<LLComboBox>("active_title");
+    mComboActiveTitle = get_owner_child<LLComboBox>(this, "active_title");
 
     mFounderName->setVisible(true);
 

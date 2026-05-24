@@ -35,6 +35,31 @@
 
 namespace
 {
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
+namespace
+{
     const std::string& PANEL_CHICLET_NAME   = "chiclet_list_panel";
 //gcc-4.9 defined but not used
 /*
@@ -53,8 +78,8 @@ LLChicletBar::LLChicletBar()
 
 bool LLChicletBar::postBuild()
 {
-    mToolbarStack = getChild<LLLayoutStack>("toolbar_stack");
-    mChicletPanel = getChild<LLChicletPanel>("chiclet_list");
+    mToolbarStack = get_owner_child<LLLayoutStack>(this, "toolbar_stack");
+    mChicletPanel = get_owner_child<LLChicletPanel>(this, "chiclet_list");
 
     showWellButton("notification_well", !LLFloaterNotificationsTabbed::getInstance()->isWindowEmpty());
 

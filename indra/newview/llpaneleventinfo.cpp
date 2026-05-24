@@ -37,6 +37,31 @@
 #include "llviewertexteditor.h"
 #include "llworldmap.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLPanelEventInfo> t_panel_event_info("panel_event_info");
 
 LLPanelEventInfo::LLPanelEventInfo()
@@ -54,25 +79,25 @@ LLPanelEventInfo::~LLPanelEventInfo()
 
 bool LLPanelEventInfo::postBuild()
 {
-    mTBName = getChild<LLTextBox>("event_name");
+    mTBName = get_owner_child<LLTextBox>(this, "event_name");
 
-    mTBCategory = getChild<LLTextBox>("event_category");
-    mTBDate = getChild<LLTextBox>("event_date");
-    mTBDuration = getChild<LLTextBox>("event_duration");
-    mTBDesc = getChild<LLTextEditor>("event_desc");
+    mTBCategory = get_owner_child<LLTextBox>(this, "event_category");
+    mTBDate = get_owner_child<LLTextBox>(this, "event_date");
+    mTBDuration = get_owner_child<LLTextBox>(this, "event_duration");
+    mTBDesc = get_owner_child<LLTextEditor>(this, "event_desc");
     mTBDesc->setWordWrap(true);
 
-    mTBRunBy = getChild<LLTextBox>("event_runby");
-    mTBLocation = getChild<LLTextBox>("event_location");
-    mTBCover = getChild<LLTextBox>("event_cover");
+    mTBRunBy = get_owner_child<LLTextBox>(this, "event_runby");
+    mTBLocation = get_owner_child<LLTextBox>(this, "event_location");
+    mTBCover = get_owner_child<LLTextBox>(this, "event_cover");
 
-    mTeleportBtn = getChild<LLButton>( "teleport_btn");
+    mTeleportBtn = get_owner_child<LLButton>(this,  "teleport_btn");
     mTeleportBtn->setClickedCallback(boost::bind(&LLPanelEventInfo::onClickTeleport, this));
 
-    mMapBtn = getChild<LLButton>( "map_btn");
+    mMapBtn = get_owner_child<LLButton>(this,  "map_btn");
     mMapBtn->setClickedCallback(boost::bind(&LLPanelEventInfo::onClickMap, this));
 
-    mNotifyBtn = getChild<LLButton>( "notify_btn");
+    mNotifyBtn = get_owner_child<LLButton>(this,  "notify_btn");
     mNotifyBtn->setClickedCallback(boost::bind(&LLPanelEventInfo::onClickNotify, this));
 
     mEventInfoConnection = gEventNotifier.setEventInfoCallback(boost::bind(&LLPanelEventInfo::processEventInfoReply, this, _1));

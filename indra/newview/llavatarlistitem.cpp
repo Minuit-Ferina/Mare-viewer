@@ -47,6 +47,31 @@
 
 #include "lggcontactsets.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 bool LLAvatarListItem::sStaticInitialized = false;
 S32 LLAvatarListItem::sLeftPadding = 0;
 S32 LLAvatarListItem::sNameRightPadding = 0;
@@ -130,38 +155,38 @@ LLAvatarListItem::~LLAvatarListItem()
 
 bool LLAvatarListItem::postBuild()
 {
-    mAvatarIcon = getChild<LLAvatarIconCtrl>("avatar_icon");
-    mAvatarName = getChild<LLTextBox>("avatar_name");
-    mLastInteractionTime = getChild<LLTextBox>("last_interaction");
+    mAvatarIcon = get_owner_child<LLAvatarIconCtrl>(this, "avatar_icon");
+    mAvatarName = get_owner_child<LLTextBox>(this, "avatar_name");
+    mLastInteractionTime = get_owner_child<LLTextBox>(this, "last_interaction");
 
-    mIconPermissionOnline = getChild<LLIconCtrl>("permission_online_icon");
-    mIconPermissionMap = getChild<LLIconCtrl>("permission_map_icon");
-    mIconPermissionEditMine = getChild<LLIconCtrl>("permission_edit_mine_icon");
-    mIconPermissionEditTheirs = getChild<LLIconCtrl>("permission_edit_theirs_icon");
+    mIconPermissionOnline = get_owner_child<LLIconCtrl>(this, "permission_online_icon");
+    mIconPermissionMap = get_owner_child<LLIconCtrl>(this, "permission_map_icon");
+    mIconPermissionEditMine = get_owner_child<LLIconCtrl>(this, "permission_edit_mine_icon");
+    mIconPermissionEditTheirs = get_owner_child<LLIconCtrl>(this, "permission_edit_theirs_icon");
     mIconPermissionOnline->setVisible(false);
     mIconPermissionMap->setVisible(false);
     mIconPermissionEditMine->setVisible(false);
     mIconPermissionEditTheirs->setVisible(false);
 
     // radar
-    mNearbyRange = getChild<LLTextBox>("radar_range");
+    mNearbyRange = get_owner_child<LLTextBox>(this, "radar_range");
     mNearbyRange->setValue("N/A");
     mNearbyRange->setVisible(false);
-    mFirstSeenDisplay = getChild<LLTextBox>("first_seen");
+    mFirstSeenDisplay = get_owner_child<LLTextBox>(this, "first_seen");
     mFirstSeenDisplay->setValue("");
     mFirstSeenDisplay->setVisible(false);
-    mAvatarAgeDisplay = getChild<LLTextBox>("avatar_age");
+    mAvatarAgeDisplay = get_owner_child<LLTextBox>(this, "avatar_age");
     mAvatarAgeDisplay->setVisible(false);
     mAvatarAgeDisplay->setValue("N/A");
-    mPaymentStatus = getChild<LLIconCtrl>("payment_info");
+    mPaymentStatus = get_owner_child<LLIconCtrl>(this, "payment_info");
     mPaymentStatus->setVisible(false);
 
     // TODO: Status flags
 
-    mSpeakingIndicator = getChild<LLOutputMonitorCtrl>("speaking_indicator");
+    mSpeakingIndicator = get_owner_child<LLOutputMonitorCtrl>(this, "speaking_indicator");
     mSpeakingIndicator->setChannelState(LLOutputMonitorCtrl::UNDEFINED_CHANNEL);
-    mInfoBtn = getChild<LLButton>("info_btn");
-    mProfileBtn = getChild<LLButton>("profile_btn");
+    mInfoBtn = get_owner_child<LLButton>(this, "info_btn");
+    mProfileBtn = get_owner_child<LLButton>(this, "profile_btn");
 
     mInfoBtn->setVisible(false);
     mInfoBtn->setClickedCallback(boost::bind(&LLAvatarListItem::onInfoBtnClick, this));
@@ -222,7 +247,7 @@ S32 LLAvatarListItem::notifyParent(const LLSD& info)
 
 void LLAvatarListItem::onMouseEnter(S32 x, S32 y, MASK mask)
 {
-    getChildView("hovered_icon")->setVisible( true);
+    get_owner_view(this, "hovered_icon")->setVisible( true);
     mInfoBtn->setVisible(mShowInfoBtn);
     mProfileBtn->setVisible(mShowProfileBtn);
 
@@ -235,7 +260,7 @@ void LLAvatarListItem::onMouseEnter(S32 x, S32 y, MASK mask)
 
 void LLAvatarListItem::onMouseLeave(S32 x, S32 y, MASK mask)
 {
-    getChildView("hovered_icon")->setVisible( false);
+    get_owner_view(this, "hovered_icon")->setVisible( false);
     mInfoBtn->setVisible(false);
     mProfileBtn->setVisible(false);
 
@@ -571,7 +596,7 @@ void LLAvatarListItem::setValue( const LLSD& value )
 {
     if (!value.isMap()) return;;
     if (!value.has("selected")) return;
-    getChildView("selected_icon")->setVisible( value["selected"]);
+    get_owner_view(this, "selected_icon")->setVisible( value["selected"]);
 }
 
 const LLUUID& LLAvatarListItem::getAvatarId() const

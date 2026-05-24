@@ -62,6 +62,31 @@
 #include "llviewermenu.h"
 #include "llviewerregion.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // Not yet implemented; need to remove buildPanel() from constructor when we switch
 //static LLRegisterPanelClassWrapper<LLLandmarksPanel> t_landmarks("panel_landmarks");
 
@@ -447,7 +472,7 @@ void LLLandmarksPanel::setErrorStatus(S32 status, const std::string& reason)
 
 void LLLandmarksPanel::initLandmarksInventoryPanel()
 {
-    mLandmarksInventoryPanel = getChild<LLPlacesInventoryPanel>("landmarks_list");
+    mLandmarksInventoryPanel = get_owner_child<LLPlacesInventoryPanel>(this, "landmarks_list");
 
     initLandmarksPanel(mLandmarksInventoryPanel);
 
@@ -1517,7 +1542,7 @@ bool LLFavoritesPanel::postBuild()
 
 void LLFavoritesPanel::initFavoritesInventoryPanel()
 {
-    mCurrentSelectedList = getChild<LLPlacesInventoryPanel>("favorites_list");
+    mCurrentSelectedList = get_owner_child<LLPlacesInventoryPanel>(this, "favorites_list");
 
     LLLandmarksPanel::initLandmarksPanel(mCurrentSelectedList);
     mCurrentSelectedList->getFilter().setEmptyLookupMessage("FavoritesNoMatchingItems");

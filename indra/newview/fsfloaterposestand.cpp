@@ -20,6 +20,31 @@
 #include "lltrans.h"
 #include "llviewercontrol.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 FSFloaterPoseStand::FSFloaterPoseStand(const LLSD& key)
 :   LLFloater(key),
@@ -35,7 +60,7 @@ FSFloaterPoseStand::~FSFloaterPoseStand()
 
 bool FSFloaterPoseStand::postBuild()
 {
-    mComboPose = getChild<LLComboBox>("pose_combo");
+    mComboPose = get_owner_child<LLComboBox>(this, "pose_combo");
     mComboPose->setCommitCallback(boost::bind(&FSFloaterPoseStand::onCommitCombo, this));
     loadPoses();
 

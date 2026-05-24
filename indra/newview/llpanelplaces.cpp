@@ -75,6 +75,31 @@
 #include "llviewerregion.h"
 #include "llviewerwindow.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // Constants
 static const F32 PLACE_INFO_UPDATE_INTERVAL = 3.0;
 static const std::string AGENT_INFO_TYPE            = "agent";
@@ -277,34 +302,34 @@ LLPanelPlaces::~LLPanelPlaces()
 
 bool LLPanelPlaces::postBuild()
 {
-    mTeleportBtn = getChild<LLButton>("teleport_btn");
+    mTeleportBtn = get_owner_child<LLButton>(this, "teleport_btn");
     mTeleportBtn->setClickedCallback(boost::bind(&LLPanelPlaces::onTeleportButtonClicked, this));
 
-    mShowOnMapBtn = getChild<LLButton>("map_btn");
+    mShowOnMapBtn = get_owner_child<LLButton>(this, "map_btn");
     mShowOnMapBtn->setClickedCallback(boost::bind(&LLPanelPlaces::onShowOnMapButtonClicked, this));
 
-    mSaveBtn = getChild<LLButton>("save_btn");
+    mSaveBtn = get_owner_child<LLButton>(this, "save_btn");
     mSaveBtn->setClickedCallback(boost::bind(&LLPanelPlaces::onSaveButtonClicked, this));
 
-    mCancelBtn = getChild<LLButton>("cancel_btn");
+    mCancelBtn = get_owner_child<LLButton>(this, "cancel_btn");
     mCancelBtn->setClickedCallback(boost::bind(&LLPanelPlaces::onCancelButtonClicked, this));
 
-    mCloseBtn = getChild<LLButton>("close_btn");
+    mCloseBtn = get_owner_child<LLButton>(this, "close_btn");
     mCloseBtn->setClickedCallback(boost::bind(&LLPanelPlaces::onBackButtonClicked, this));
 
-    mOverflowBtn = getChild<LLMenuButton>("overflow_btn");
+    mOverflowBtn = get_owner_child<LLMenuButton>(this, "overflow_btn");
     mOverflowBtn->setMouseDownCallback(boost::bind(&LLPanelPlaces::onOverflowButtonClicked, this));
 
-    mGearMenuButton = getChild<LLMenuButton>("options_gear_btn");
+    mGearMenuButton = get_owner_child<LLMenuButton>(this, "options_gear_btn");
     mGearMenuButton->setMouseDownCallback(boost::bind(&LLPanelPlaces::onGearMenuClick, this));
 
-    mSortingMenuButton = getChild<LLMenuButton>("sorting_menu_btn");
+    mSortingMenuButton = get_owner_child<LLMenuButton>(this, "sorting_menu_btn");
     mSortingMenuButton->setMouseDownCallback(boost::bind(&LLPanelPlaces::onSortingMenuClick, this));
 
-    mAddMenuButton = getChild<LLMenuButton>("add_menu_btn");
+    mAddMenuButton = get_owner_child<LLMenuButton>(this, "add_menu_btn");
     mAddMenuButton->setMouseDownCallback(boost::bind(&LLPanelPlaces::onAddMenuClick, this));
 
-    mRemoveSelectedBtn = getChild<LLButton>("trash_btn");
+    mRemoveSelectedBtn = get_owner_child<LLButton>(this, "trash_btn");
     mRemoveSelectedBtn->setClickedCallback(boost::bind(&LLPanelPlaces::onRemoveButtonClicked, this));
 
     LLDragAndDropButton* trash_btn = (LLDragAndDropButton*)mRemoveSelectedBtn;
@@ -336,17 +361,17 @@ bool LLPanelPlaces::postBuild()
         LL_WARNS() << "Error loading Landmark menu" << LL_ENDL;
     }
 
-    mTabContainer = getChild<LLTabContainer>("Places Tabs");
+    mTabContainer = get_owner_child<LLTabContainer>(this, "Places Tabs");
     if (mTabContainer)
     {
         mTabContainer->setCommitCallback(boost::bind(&LLPanelPlaces::onTabSelected, this));
     }
 
-    mButtonsContainer = getChild<LLPanel>("button_layout_panel");
+    mButtonsContainer = get_owner_child<LLPanel>(this, "button_layout_panel");
     mButtonsContainer->setVisible(false);
-    mFilterContainer = getChild<LLLayoutStack>("top_menu_panel");
+    mFilterContainer = get_owner_child<LLLayoutStack>(this, "top_menu_panel");
 
-    mFilterEditor = getChild<LLFilterEditor>("Filter");
+    mFilterEditor = get_owner_child<LLFilterEditor>(this, "Filter");
     if (mFilterEditor)
     {
         //when list item is being clicked the filter editor looses focus
@@ -362,21 +387,21 @@ bool LLPanelPlaces::postBuild()
     if (!mPlaceProfile || !mLandmarkInfo)
         return false;
 
-    mPlaceProfileBackBtn = mPlaceProfile->getChild<LLButton>("back_btn");
+    mPlaceProfileBackBtn = get_owner_child<LLButton>(mPlaceProfile, "back_btn");
     mPlaceProfileBackBtn->setClickedCallback(boost::bind(&LLPanelPlaces::onBackButtonClicked, this));
 
-    mLandmarkInfo->getChild<LLButton>("back_btn")->setClickedCallback(boost::bind(&LLPanelPlaces::onBackButtonClicked, this));
+    get_owner_child<LLButton>(mLandmarkInfo, "back_btn")->setClickedCallback(boost::bind(&LLPanelPlaces::onBackButtonClicked, this));
 
-    LLLineEditor* title_editor = mLandmarkInfo->getChild<LLLineEditor>("title_editor");
+    LLLineEditor* title_editor = get_owner_child<LLLineEditor>(mLandmarkInfo, "title_editor");
     title_editor->setKeystrokeCallback(boost::bind(&LLPanelPlaces::onEditButtonClicked, this), NULL);
 
-    LLTextEditor* notes_editor = mLandmarkInfo->getChild<LLTextEditor>("notes_editor");
+    LLTextEditor* notes_editor = get_owner_child<LLTextEditor>(mLandmarkInfo, "notes_editor");
     notes_editor->setKeystrokeCallback(boost::bind(&LLPanelPlaces::onEditButtonClicked, this));
 
-    LLComboBox* folder_combo = mLandmarkInfo->getChild<LLComboBox>("folder_combo");
+    LLComboBox* folder_combo = get_owner_child<LLComboBox>(mLandmarkInfo, "folder_combo");
     folder_combo->setCommitCallback(boost::bind(&LLPanelPlaces::onEditButtonClicked, this));
 
-    LLButton* edit_btn = mLandmarkInfo->getChild<LLButton>("edit_btn");
+    LLButton* edit_btn = get_owner_child<LLButton>(mLandmarkInfo, "edit_btn");
     edit_btn->setCommitCallback(boost::bind(&LLPanelPlaces::onEditButtonClicked, this));
 
     createTabs();
@@ -587,7 +612,7 @@ void LLPanelPlaces::setItem(LLInventoryItem* item)
             if (cat)
             {
                 std::string cat_fullname = LLPanelLandmarkInfo::getFullFolderName(cat);
-                LLComboBox* folderList = mLandmarkInfo->getChild<LLComboBox>("folder_combo");
+                LLComboBox* folderList = get_owner_child<LLComboBox>(mLandmarkInfo, "folder_combo");
                 folderList->add(cat_fullname, cat->getUUID(), ADD_TOP);
             }
         }
@@ -887,7 +912,7 @@ void LLPanelPlaces::onOverflowButtonClicked()
 
         // Enable adding a landmark only for agent current parcel and if
         // there is no landmark already pointing to that parcel in agent's inventory.
-        menu->getChild<LLMenuItemCallGL>("landmark")->setEnabled(landmark_item_enabled);
+        get_owner_child<LLMenuItemCallGL>(menu, "landmark")->setEnabled(landmark_item_enabled);
         // STORM-411
         // Creating landmarks for remote locations is impossible.
         // So hide menu item "Make a Landmark" in "Teleport History Profile" panel.
@@ -907,7 +932,7 @@ void LLPanelPlaces::onOverflowButtonClicked()
                                     !gInventory.isObjectDescendentOf(item_id, trash_id);
         }
 
-        menu->getChild<LLMenuItemCallGL>("delete")->setEnabled(is_landmark_removable);
+        get_owner_child<LLMenuItemCallGL>(menu, "delete")->setEnabled(is_landmark_removable);
     }
     else
     {
@@ -1291,8 +1316,8 @@ void LLPanelPlaces::updateVerbs()
 
     bool show_options_btn = is_place_info_visible && !is_create_landmark_visible && !isLandmarkEditModeOn;
     mOverflowBtn->setVisible(show_options_btn);
-    getChild<LLLayoutPanel>("lp_options")->setVisible(show_options_btn);
-    getChild<LLLayoutPanel>("lp2")->setVisible(!show_options_btn);
+    get_owner_child<LLLayoutPanel>(this, "lp_options")->setVisible(show_options_btn);
+    get_owner_child<LLLayoutPanel>(this, "lp2")->setVisible(!show_options_btn);
 
     if (is_place_info_visible)
     {

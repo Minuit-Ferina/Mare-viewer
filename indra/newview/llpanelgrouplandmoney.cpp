@@ -55,6 +55,31 @@
 #include "llfloaterworldmap.h"
 #include "llviewermessage.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLPanelGroupLandMoney> t_panel_group_money("panel_group_land_money");
 
 
@@ -366,7 +391,7 @@ void LLPanelGroupLandMoney::impl::setYourContributionTextField(int contrib)
 
 void LLPanelGroupLandMoney::impl::setYourMaxContributionTextBox(int max)
 {
-    mPanel.getChild<LLUICtrl>("your_contribution_max_value")->setTextArg("[AMOUNT]", llformat("%d", max));
+    get_owner_child<LLUICtrl>(&mPanel, "your_contribution_max_value")->setTextArg("[AMOUNT]", llformat("%d", max));
 }
 
 //static
@@ -444,11 +469,11 @@ void LLPanelGroupLandMoney::impl::processGroupLand(LLMessageSystem* msg)
 
             S32 total_contribution;
             msg->getS32("QueryData", "ActualArea", total_contribution, 0);
-            mPanel.getChild<LLUICtrl>("total_contributed_land_value")->setTextArg("[AREA]", llformat("%d", total_contribution));
+            get_owner_child<LLUICtrl>(&mPanel, "total_contributed_land_value")->setTextArg("[AREA]", llformat("%d", total_contribution));
 
-            mPanel.getChild<LLUICtrl>("total_land_in_use_value")->setTextArg("[AREA]", llformat("%d", committed));
+            get_owner_child<LLUICtrl>(&mPanel, "total_land_in_use_value")->setTextArg("[AREA]", llformat("%d", committed));
             S32 available = total_contribution - committed;
-            mPanel.getChild<LLUICtrl>("land_available_value")->setTextArg("[AREA]", llformat("%d", available));
+            get_owner_child<LLUICtrl>(&mPanel, "land_available_value")->setTextArg("[AREA]", llformat("%d", available));
 
 
             if ( mGroupOverLimitTextp && mGroupOverLimitIconp )
@@ -581,7 +606,7 @@ void LLPanelGroupLandMoney::activate()
     if ( !mImplementationp->mBeenActivated )
     {
         //select the first tab
-        LLTabContainer* tabp = getChild<LLTabContainer>("group_money_tab_container");
+        LLTabContainer* tabp = get_owner_child<LLTabContainer>(this, "group_money_tab_container");
 
         if ( tabp )
         {
@@ -622,7 +647,7 @@ void LLPanelGroupLandMoney::update(LLGroupChange gc)
 {
     if (gc != GC_ALL) return;  //Don't update if it's the wrong panel!
 
-    LLTabContainer* tabp = getChild<LLTabContainer>("group_money_tab_container");
+    LLTabContainer* tabp = get_owner_child<LLTabContainer>(this, "group_money_tab_container");
 
     if ( tabp )
     {
@@ -686,12 +711,12 @@ bool LLPanelGroupLandMoney::postBuild()
     bool can_view = gAgent.isInGroup(mGroupID);
 
     mImplementationp->mGroupOverLimitIconp =
-        getChild<LLIconCtrl>("group_over_limit_icon");
+        get_owner_child<LLIconCtrl>(this, "group_over_limit_icon");
     mImplementationp->mGroupOverLimitTextp =
-        getChild<LLTextBox>("group_over_limit_text");
+        get_owner_child<LLTextBox>(this, "group_over_limit_text");
 
     mImplementationp->mYourContributionEditorp
-        = getChild<LLLineEditor>("your_contribution_line_editor");
+        = get_owner_child<LLLineEditor>(this, "your_contribution_line_editor");
     if ( mImplementationp->mYourContributionEditorp )
     {
         LLLineEditor* editor = mImplementationp->mYourContributionEditorp;
@@ -700,10 +725,10 @@ bool LLPanelGroupLandMoney::postBuild()
         editor->setKeystrokeCallback(mImplementationp->contributionKeystrokeCallback, this);
     }
 
-    mImplementationp->mMapButtonp = getChild<LLButton>("map_button");
+    mImplementationp->mMapButtonp = get_owner_child<LLButton>(this, "map_button");
 
     mImplementationp->mGroupParcelsp =
-        getChild<LLScrollListCtrl>("group_parcel_list");
+        get_owner_child<LLScrollListCtrl>(this, "group_parcel_list");
 
     if ( mImplementationp->mGroupParcelsp )
     {
@@ -746,7 +771,7 @@ bool LLPanelGroupLandMoney::postBuild()
     LLTextEditor* textp;
     LLPanel* panelp;
 
-    LLTabContainer* tabcp = getChild<LLTabContainer>("group_money_tab_container");
+    LLTabContainer* tabcp = get_owner_child<LLTabContainer>(this, "group_money_tab_container");
 
     if ( !can_view )
     {
@@ -765,10 +790,10 @@ bool LLPanelGroupLandMoney::postBuild()
     std::string loading_text = getString("loading_txt");
 
     //pull out the widgets for the L$ details tab
-    earlierp = getChild<LLButton>("earlier_details_button", true);
-    laterp = getChild<LLButton>("later_details_button", true);
-    textp = getChild<LLTextEditor>("group_money_details_text", true);
-    panelp = getChild<LLPanel>("group_money_details_tab", true);
+    earlierp = get_owner_child<LLButton>(this, "earlier_details_button", true);
+    laterp = get_owner_child<LLButton>(this, "later_details_button", true);
+    textp = get_owner_child<LLTextEditor>(this, "group_money_details_text", true);
+    panelp = get_owner_child<LLPanel>(this, "group_money_details_tab", true);
 
     if ( !can_view )
     {
@@ -785,8 +810,8 @@ bool LLPanelGroupLandMoney::postBuild()
                                                    loading_text);
     }
 
-    textp = getChild<LLTextEditor>("group_money_planning_text", true);
-    panelp = getChild<LLPanel>("group_money_planning_tab", true);
+    textp = get_owner_child<LLTextEditor>(this, "group_money_planning_text", true);
+    panelp = get_owner_child<LLPanel>(this, "group_money_planning_tab", true);
 
     if ( !can_view )
     {
@@ -803,10 +828,10 @@ bool LLPanelGroupLandMoney::postBuild()
     }
 
     //pull out the widgets for the L$ sales tab
-    earlierp = getChild<LLButton>("earlier_sales_button", true);
-    laterp = getChild<LLButton>("later_sales_button", true);
-    textp = getChild<LLTextEditor>("group_money_sales_text", true);
-    panelp = getChild<LLPanel>("group_money_sales_tab", true);
+    earlierp = get_owner_child<LLButton>(this, "earlier_sales_button", true);
+    laterp = get_owner_child<LLButton>(this, "later_sales_button", true);
+    textp = get_owner_child<LLTextEditor>(this, "group_money_sales_text", true);
+    panelp = get_owner_child<LLPanel>(this, "group_money_sales_tab", true);
 
     if ( !can_view )
     {
@@ -1522,12 +1547,12 @@ void LLPanelGroupLandMoney::setGroupID(const LLUUID& id)
     bool can_view = gAgent.isInGroup(mGroupID);
 
     mImplementationp->mGroupOverLimitIconp =
-        getChild<LLIconCtrl>("group_over_limit_icon");
+        get_owner_child<LLIconCtrl>(this, "group_over_limit_icon");
     mImplementationp->mGroupOverLimitTextp =
-        getChild<LLTextBox>("group_over_limit_text");
+        get_owner_child<LLTextBox>(this, "group_over_limit_text");
 
     mImplementationp->mYourContributionEditorp
-        = getChild<LLLineEditor>("your_contribution_line_editor");
+        = get_owner_child<LLLineEditor>(this, "your_contribution_line_editor");
     if ( mImplementationp->mYourContributionEditorp )
     {
         LLLineEditor* editor = mImplementationp->mYourContributionEditorp;
@@ -1536,10 +1561,10 @@ void LLPanelGroupLandMoney::setGroupID(const LLUUID& id)
         editor->setKeystrokeCallback(mImplementationp->contributionKeystrokeCallback, this);
     }
 
-    mImplementationp->mMapButtonp = getChild<LLButton>("map_button");
+    mImplementationp->mMapButtonp = get_owner_child<LLButton>(this, "map_button");
 
     mImplementationp->mGroupParcelsp =
-        getChild<LLScrollListCtrl>("group_parcel_list");
+        get_owner_child<LLScrollListCtrl>(this, "group_parcel_list");
 
     if ( mImplementationp->mGroupParcelsp )
     {
@@ -1580,7 +1605,7 @@ void LLPanelGroupLandMoney::setGroupID(const LLUUID& id)
     LLTextEditor* textp;
     LLPanel* panelp;
 
-    LLTabContainer* tabcp = getChild<LLTabContainer>("group_money_tab_container");
+    LLTabContainer* tabcp = get_owner_child<LLTabContainer>(this, "group_money_tab_container");
 
     if ( tabcp )
     {
@@ -1596,10 +1621,10 @@ void LLPanelGroupLandMoney::setGroupID(const LLUUID& id)
     std::string loading_text = getString("loading_txt");
 
     //pull out the widgets for the L$ details tab
-    earlierp = getChild<LLButton>("earlier_details_button", true);
-    laterp = getChild<LLButton>("later_details_button", true);
-    textp = getChild<LLTextEditor>("group_money_details_text", true);
-    panelp = getChild<LLPanel>("group_money_details_tab", true);
+    earlierp = get_owner_child<LLButton>(this, "earlier_details_button", true);
+    laterp = get_owner_child<LLButton>(this, "later_details_button", true);
+    textp = get_owner_child<LLTextEditor>(this, "group_money_details_text", true);
+    panelp = get_owner_child<LLPanel>(this, "group_money_details_tab", true);
 
     if ( !can_view )
     {
@@ -1612,7 +1637,7 @@ void LLPanelGroupLandMoney::setGroupID(const LLUUID& id)
         mImplementationp->mMoneyDetailsTabEHp->setGroupID(mGroupID);
     }
 
-    textp = getChild<LLTextEditor>("group_money_planning_text", true);
+    textp = get_owner_child<LLTextEditor>(this, "group_money_planning_text", true);
 
 
     if ( !can_view )
@@ -1621,14 +1646,14 @@ void LLPanelGroupLandMoney::setGroupID(const LLUUID& id)
     }
     else
     {
-        panelp = getChild<LLPanel>("group_money_planning_tab", true);
+        panelp = get_owner_child<LLPanel>(this, "group_money_planning_tab", true);
         if(mImplementationp->mMoneyPlanningTabEHp == 0)
             mImplementationp->mMoneyPlanningTabEHp = new LLGroupMoneyPlanningTabEventHandler(textp,tabcp,panelp,loading_text);
         mImplementationp->mMoneyPlanningTabEHp->setGroupID(mGroupID);
     }
 
     //pull out the widgets for the L$ sales tab
-    textp = getChild<LLTextEditor>("group_money_sales_text", true);
+    textp = get_owner_child<LLTextEditor>(this, "group_money_sales_text", true);
 
 
     if ( !can_view )
@@ -1637,9 +1662,9 @@ void LLPanelGroupLandMoney::setGroupID(const LLUUID& id)
     }
     else
     {
-        earlierp = getChild<LLButton>("earlier_sales_button", true);
-        laterp = getChild<LLButton>("later_sales_button", true);
-        panelp = getChild<LLPanel>("group_money_sales_tab", true);
+        earlierp = get_owner_child<LLButton>(this, "earlier_sales_button", true);
+        laterp = get_owner_child<LLButton>(this, "later_sales_button", true);
+        panelp = get_owner_child<LLPanel>(this, "group_money_sales_tab", true);
         if(mImplementationp->mMoneySalesTabEHp == NULL)
             mImplementationp->mMoneySalesTabEHp = new LLGroupMoneySalesTabEventHandler(earlierp,laterp,textp,tabcp,panelp,loading_text);
         mImplementationp->mMoneySalesTabEHp->setGroupID(mGroupID);

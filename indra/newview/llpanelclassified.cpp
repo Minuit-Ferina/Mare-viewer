@@ -46,6 +46,31 @@
 #include "llscrollcontainer.h"
 #include "llcorehttputil.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //static
 LLPanelClassifiedInfo::panel_list_t LLPanelClassifiedInfo::sAllPanels;
 static LLPanelInjector<LLPanelClassifiedInfo> t_panel_panel_classified_info("panel_classified_info");
@@ -116,13 +141,13 @@ bool LLPanelClassifiedInfo::postBuild()
     childSetAction("show_on_map_btn", boost::bind(&LLPanelClassifiedInfo::onMapClick, this));
     childSetAction("teleport_btn", boost::bind(&LLPanelClassifiedInfo::onTeleportClick, this));
 
-    mScrollingPanel = getChild<LLPanel>("scroll_content_panel");
-    mScrollContainer = getChild<LLScrollContainer>("profile_scroll");
+    mScrollingPanel = get_owner_child<LLPanel>(this, "scroll_content_panel");
+    mScrollContainer = get_owner_child<LLScrollContainer>(this, "profile_scroll");
 
     mScrollingPanelMinHeight = mScrollContainer->getScrolledViewRect().getHeight();
     mScrollingPanelWidth = mScrollingPanel->getRect().getWidth();
 
-    mSnapshotCtrl = getChild<LLTextureCtrl>("classified_snapshot");
+    mSnapshotCtrl = get_owner_child<LLTextureCtrl>(this, "classified_snapshot");
     mSnapshotRect = getDefaultSnapshotRect();
 
     return true;
@@ -238,7 +263,7 @@ void LLPanelClassifiedInfo::processProperties(void* data, EAvatarProcessorType t
             setSimName(c_info->sim_name);
 
             setClassifiedLocation(createLocationText(c_info->parcel_name, c_info->sim_name, c_info->pos_global));
-            getChild<LLUICtrl>("category")->setValue(LLClassifiedInfo::sCategories[c_info->category]);
+            get_owner_child<LLUICtrl>(this, "category")->setValue(LLClassifiedInfo::sCategories[c_info->category]);
 
             static std::string mature_str = getString("type_mature");
             static std::string pg_str = getString("type_pg");
@@ -246,20 +271,20 @@ void LLPanelClassifiedInfo::processProperties(void* data, EAvatarProcessorType t
             static std::string date_fmt = getString("date_fmt");
 
             bool mature = is_cf_mature(c_info->flags);
-            getChild<LLUICtrl>("content_type")->setValue(mature ? mature_str : pg_str);
-            getChild<LLIconCtrl>("content_type_moderate")->setVisible(mature);
-            getChild<LLIconCtrl>("content_type_general")->setVisible(!mature);
+            get_owner_child<LLUICtrl>(this, "content_type")->setValue(mature ? mature_str : pg_str);
+            get_owner_child<LLIconCtrl>(this, "content_type_moderate")->setVisible(mature);
+            get_owner_child<LLIconCtrl>(this, "content_type_general")->setVisible(!mature);
 
             std::string auto_renew_str = is_cf_auto_renew(c_info->flags) ?
                 getString("auto_renew_on") : getString("auto_renew_off");
-            getChild<LLUICtrl>("auto_renew")->setValue(auto_renew_str);
+            get_owner_child<LLUICtrl>(this, "auto_renew")->setValue(auto_renew_str);
 
             price_str.setArg("[PRICE]", llformat("%d", c_info->price_for_listing));
-            getChild<LLUICtrl>("price_for_listing")->setValue(LLSD(price_str));
+            get_owner_child<LLUICtrl>(this, "price_for_listing")->setValue(LLSD(price_str));
 
             std::string date_str = date_fmt;
             LLStringUtil::format(date_str, LLSD().with("datetime", (S32) c_info->creation_date));
-            getChild<LLUICtrl>("creation_date")->setValue(date_str);
+            get_owner_child<LLUICtrl>(this, "creation_date")->setValue(date_str);
 
             setInfoLoaded(true);
 
@@ -297,55 +322,55 @@ void LLPanelClassifiedInfo::resetData()
     mMapClicksNew       = 0;
     mProfileClicksNew   = 0;
 
-    getChild<LLUICtrl>("category")->setValue(LLStringUtil::null);
-    getChild<LLUICtrl>("content_type")->setValue(LLStringUtil::null);
-    getChild<LLUICtrl>("click_through_text")->setValue(LLStringUtil::null);
-    getChild<LLUICtrl>("price_for_listing")->setValue(LLStringUtil::null);
-    getChild<LLUICtrl>("auto_renew")->setValue(LLStringUtil::null);
-    getChild<LLUICtrl>("creation_date")->setValue(LLStringUtil::null);
-    getChild<LLUICtrl>("click_through_text")->setValue(LLStringUtil::null);
-    getChild<LLIconCtrl>("content_type_moderate")->setVisible(false);
-    getChild<LLIconCtrl>("content_type_general")->setVisible(false);
+    get_owner_child<LLUICtrl>(this, "category")->setValue(LLStringUtil::null);
+    get_owner_child<LLUICtrl>(this, "content_type")->setValue(LLStringUtil::null);
+    get_owner_child<LLUICtrl>(this, "click_through_text")->setValue(LLStringUtil::null);
+    get_owner_child<LLUICtrl>(this, "price_for_listing")->setValue(LLStringUtil::null);
+    get_owner_child<LLUICtrl>(this, "auto_renew")->setValue(LLStringUtil::null);
+    get_owner_child<LLUICtrl>(this, "creation_date")->setValue(LLStringUtil::null);
+    get_owner_child<LLUICtrl>(this, "click_through_text")->setValue(LLStringUtil::null);
+    get_owner_child<LLIconCtrl>(this, "content_type_moderate")->setVisible(false);
+    get_owner_child<LLIconCtrl>(this, "content_type_general")->setVisible(false);
 }
 
 void LLPanelClassifiedInfo::resetControls()
 {
     bool is_self = getAvatarId() == gAgent.getID();
 
-    getChildView("edit_btn")->setEnabled(is_self);
-    getChildView("edit_btn")->setVisible( is_self);
-    getChildView("price_layout_panel")->setVisible( is_self);
-    getChildView("clickthrough_layout_panel")->setVisible( is_self);
+    get_owner_view(this, "edit_btn")->setEnabled(is_self);
+    get_owner_view(this, "edit_btn")->setVisible( is_self);
+    get_owner_view(this, "price_layout_panel")->setVisible( is_self);
+    get_owner_view(this, "clickthrough_layout_panel")->setVisible( is_self);
 }
 
 void LLPanelClassifiedInfo::setClassifiedName(const std::string& name)
 {
-    getChild<LLUICtrl>("classified_name")->setValue(name);
+    get_owner_child<LLUICtrl>(this, "classified_name")->setValue(name);
 }
 
 std::string LLPanelClassifiedInfo::getClassifiedName()
 {
-    return getChild<LLUICtrl>("classified_name")->getValue().asString();
+    return get_owner_child<LLUICtrl>(this, "classified_name")->getValue().asString();
 }
 
 void LLPanelClassifiedInfo::setDescription(const std::string& desc)
 {
-    getChild<LLUICtrl>("classified_desc")->setValue(desc);
+    get_owner_child<LLUICtrl>(this, "classified_desc")->setValue(desc);
 }
 
 std::string LLPanelClassifiedInfo::getDescription()
 {
-    return getChild<LLUICtrl>("classified_desc")->getValue().asString();
+    return get_owner_child<LLUICtrl>(this, "classified_desc")->getValue().asString();
 }
 
 void LLPanelClassifiedInfo::setClassifiedLocation(const std::string& location)
 {
-    getChild<LLUICtrl>("classified_location")->setValue(location);
+    get_owner_child<LLUICtrl>(this, "classified_location")->setValue(location);
 }
 
 std::string LLPanelClassifiedInfo::getClassifiedLocation()
 {
-    return getChild<LLUICtrl>("classified_location")->getValue().asString();
+    return get_owner_child<LLUICtrl>(this, "classified_location")->getValue().asString();
 }
 
 void LLPanelClassifiedInfo::setSnapshotId(const LLUUID& id)
@@ -368,7 +393,7 @@ void LLPanelClassifiedInfo::draw()
 
 LLUUID LLPanelClassifiedInfo::getSnapshotId()
 {
-    return getChild<LLUICtrl>("classified_snapshot")->getValue().asUUID();
+    return get_owner_child<LLUICtrl>(this, "classified_snapshot")->getValue().asUUID();
 }
 
 // static
@@ -423,9 +448,9 @@ void LLPanelClassifiedInfo::setClickThrough(
         ct_str.setArg("[MAP]",      llformat("%d", self->mMapClicksNew + self->mMapClicksOld));
         ct_str.setArg("[PROFILE]",  llformat("%d", self->mProfileClicksNew + self->mProfileClicksOld));
 
-        self->getChild<LLUICtrl>("click_through_text")->setValue(ct_str.getString());
+        get_owner_child<LLUICtrl>(self, "click_through_text")->setValue(ct_str.getString());
         // *HACK: remove this when there is enough room for click stats in the info panel
-        self->getChildView("click_through_text")->setToolTip(ct_str.getString());
+        get_owner_view(self, "click_through_text")->setToolTip(ct_str.getString());
 
         LL_INFOS() << "teleport: " << llformat("%d", self->mTeleportClicksNew + self->mTeleportClicksOld)
                 << ", map: "    << llformat("%d", self->mMapClicksNew + self->mMapClicksOld)
@@ -509,7 +534,7 @@ LLRect LLPanelClassifiedInfo::getDefaultSnapshotRect()
     // Using scroll container makes getting default rect a hard task
     // because rect in postBuild() and in first reshape() is not the same.
     // Using snapshot_panel makes it easier to reshape snapshot.
-    return getChild<LLUICtrl>("snapshot_panel")->getLocalRect();
+    return get_owner_child<LLUICtrl>(this, "snapshot_panel")->getLocalRect();
 }
 
 void LLPanelClassifiedInfo::scrollToTop()

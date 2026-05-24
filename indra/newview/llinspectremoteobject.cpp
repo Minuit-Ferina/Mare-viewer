@@ -41,6 +41,31 @@
 
 //MK
 #include "llagent.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 //mk
 //////////////////////////////////////////////////////////////////////////////
 // LLInspectRemoteObject
@@ -89,11 +114,11 @@ LLInspectRemoteObject::LLInspectRemoteObject(const LLSD& sd) :
 bool LLInspectRemoteObject::postBuild(void)
 {
     // hook up the inspector's buttons
-    getChild<LLUICtrl>("map_btn")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "map_btn")->setCommitCallback(
         boost::bind(&LLInspectRemoteObject::onClickMap, this));
-    getChild<LLUICtrl>("block_btn")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "block_btn")->setCommitCallback(
         boost::bind(&LLInspectRemoteObject::onClickBlock, this));
-    getChild<LLUICtrl>("close_btn")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "close_btn")->setCommitCallback(
         boost::bind(&LLInspectRemoteObject::onClickClose, this));
 
     return true;
@@ -154,7 +179,7 @@ void LLInspectRemoteObject::update()
 {
     // show the object name as the inspector's title
     // (don't hyperlink URLs in object names)
-    getChild<LLUICtrl>("object_name")->setValue("<nolink>" + mName + "</nolink>");
+    get_owner_child<LLUICtrl>(this, "object_name")->setValue("<nolink>" + mName + "</nolink>");
 
     // show the object's owner - click it to show profile
     std::string owner;
@@ -173,7 +198,7 @@ void LLInspectRemoteObject::update()
     {
         owner = LLTrans::getString("Unknown");
     }
-    getChild<LLUICtrl>("object_owner")->setValue(owner);
+    get_owner_child<LLUICtrl>(this, "object_owner")->setValue(owner);
 
     // display the object's SLurl - click it to teleport
     std::string url;
@@ -181,13 +206,13 @@ void LLInspectRemoteObject::update()
     {
         url = "secondlife:///app/teleport/" + mSLurl;
     }
-    getChild<LLUICtrl>("object_slurl")->setValue(url);
+    get_owner_child<LLUICtrl>(this, "object_slurl")->setValue(url);
 
     // disable the Map button if we don't have a SLurl
-    getChild<LLUICtrl>("map_btn")->setEnabled(! mSLurl.empty());
+    get_owner_child<LLUICtrl>(this, "map_btn")->setEnabled(! mSLurl.empty());
 
     // disable the Block button if we don't have the object ID (will this ever happen?)
-    getChild<LLUICtrl>("block_btn")->setEnabled(!mObjectID.isNull() && !LLMuteList::getInstance()->isMuted(mObjectID));
+    get_owner_child<LLUICtrl>(this, "block_btn")->setEnabled(!mObjectID.isNull() && !LLMuteList::getInstance()->isMuted(mObjectID));
 }
 
 //////////////////////////////////////////////////////////////////////////////

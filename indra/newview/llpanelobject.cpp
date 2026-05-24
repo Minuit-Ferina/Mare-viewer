@@ -77,6 +77,31 @@
 
 #include "lldrawpool.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //
 // Constants
 //
@@ -114,142 +139,142 @@ bool    LLPanelObject::postBuild()
     //--------------------------------------------------------
 
     // Lock checkbox
-    mCheckLock = getChild<LLCheckBoxCtrl>("checkbox locked");
+    mCheckLock = get_owner_child<LLCheckBoxCtrl>(this, "checkbox locked");
     childSetCommitCallback("checkbox locked",onCommitLock,this);
 
     // Physical checkbox
-    mCheckPhysics = getChild<LLCheckBoxCtrl>("Physical Checkbox Ctrl");
+    mCheckPhysics = get_owner_child<LLCheckBoxCtrl>(this, "Physical Checkbox Ctrl");
     childSetCommitCallback("Physical Checkbox Ctrl",onCommitPhysics,this);
 
     // Temporary checkbox
-    mCheckTemporary = getChild<LLCheckBoxCtrl>("Temporary Checkbox Ctrl");
+    mCheckTemporary = get_owner_child<LLCheckBoxCtrl>(this, "Temporary Checkbox Ctrl");
     childSetCommitCallback("Temporary Checkbox Ctrl",onCommitTemporary,this);
 
     // Phantom checkbox
-    mCheckPhantom = getChild<LLCheckBoxCtrl>("Phantom Checkbox Ctrl");
+    mCheckPhantom = get_owner_child<LLCheckBoxCtrl>(this, "Phantom Checkbox Ctrl");
     childSetCommitCallback("Phantom Checkbox Ctrl",onCommitPhantom,this);
 
     // Position
-    mMenuClipboardPos = getChild<LLMenuButton>("clipboard_pos_btn");
-    mLabelPosition = getChild<LLTextBox>("label position");
-    mCtrlPosX = getChild<LLSpinCtrl>("Pos X");
+    mMenuClipboardPos = get_owner_child<LLMenuButton>(this, "clipboard_pos_btn");
+    mLabelPosition = get_owner_child<LLTextBox>(this, "label position");
+    mCtrlPosX = get_owner_child<LLSpinCtrl>(this, "Pos X");
     childSetCommitCallback("Pos X",onCommitPosition,this);
-    mCtrlPosY = getChild<LLSpinCtrl>("Pos Y");
+    mCtrlPosY = get_owner_child<LLSpinCtrl>(this, "Pos Y");
     childSetCommitCallback("Pos Y",onCommitPosition,this);
-    mCtrlPosZ = getChild<LLSpinCtrl>("Pos Z");
+    mCtrlPosZ = get_owner_child<LLSpinCtrl>(this, "Pos Z");
     childSetCommitCallback("Pos Z",onCommitPosition,this);
 
     // Scale
-    mMenuClipboardSize = getChild<LLMenuButton>("clipboard_size_btn");
-    mLabelSize = getChild<LLTextBox>("label size");
-    mCtrlScaleX = getChild<LLSpinCtrl>("Scale X");
+    mMenuClipboardSize = get_owner_child<LLMenuButton>(this, "clipboard_size_btn");
+    mLabelSize = get_owner_child<LLTextBox>(this, "label size");
+    mCtrlScaleX = get_owner_child<LLSpinCtrl>(this, "Scale X");
     childSetCommitCallback("Scale X",onCommitScale,this);
 
     // Scale Y
-    mCtrlScaleY = getChild<LLSpinCtrl>("Scale Y");
+    mCtrlScaleY = get_owner_child<LLSpinCtrl>(this, "Scale Y");
     childSetCommitCallback("Scale Y",onCommitScale,this);
 
     // Scale Z
-    mCtrlScaleZ = getChild<LLSpinCtrl>("Scale Z");
+    mCtrlScaleZ = get_owner_child<LLSpinCtrl>(this, "Scale Z");
     childSetCommitCallback("Scale Z",onCommitScale,this);
 
     // Rotation
-    mMenuClipboardRot = getChild<LLMenuButton>("clipboard_rot_btn");
-    mLabelRotation = getChild<LLTextBox>("label rotation");
-    mCtrlRotX = getChild<LLSpinCtrl>("Rot X");
+    mMenuClipboardRot = get_owner_child<LLMenuButton>(this, "clipboard_rot_btn");
+    mLabelRotation = get_owner_child<LLTextBox>(this, "label rotation");
+    mCtrlRotX = get_owner_child<LLSpinCtrl>(this, "Rot X");
     childSetCommitCallback("Rot X",onCommitRotation,this);
-    mCtrlRotY = getChild<LLSpinCtrl>("Rot Y");
+    mCtrlRotY = get_owner_child<LLSpinCtrl>(this, "Rot Y");
     childSetCommitCallback("Rot Y",onCommitRotation,this);
-    mCtrlRotZ = getChild<LLSpinCtrl>("Rot Z");
+    mCtrlRotZ = get_owner_child<LLSpinCtrl>(this, "Rot Z");
     childSetCommitCallback("Rot Z",onCommitRotation,this);
 
     //--------------------------------------------------------
 
     // Base Type
-    mComboBaseType = getChild<LLComboBox>("comboBaseType");
+    mComboBaseType = get_owner_child<LLComboBox>(this, "comboBaseType");
     childSetCommitCallback("comboBaseType",onCommitParametric,this);
 
-    mMenuClipboardParams = getChild<LLMenuButton>("clipboard_obj_params_btn");
+    mMenuClipboardParams = get_owner_child<LLMenuButton>(this, "clipboard_obj_params_btn");
 
     // Cut
-    mLabelCut = getChild<LLTextBox>("text cut");
-    mSpinCutBegin = getChild<LLSpinCtrl>("cut begin");
+    mLabelCut = get_owner_child<LLTextBox>(this, "text cut");
+    mSpinCutBegin = get_owner_child<LLSpinCtrl>(this, "cut begin");
     childSetCommitCallback("cut begin",onCommitParametric,this);
     mSpinCutBegin->setValidateBeforeCommit( precommitValidate );
-    mSpinCutEnd = getChild<LLSpinCtrl>("cut end");
+    mSpinCutEnd = get_owner_child<LLSpinCtrl>(this, "cut end");
     childSetCommitCallback("cut end",onCommitParametric,this);
     mSpinCutEnd->setValidateBeforeCommit( &precommitValidate );
 
     // Hollow / Skew
-    mLabelHollow = getChild<LLTextBox>("text hollow");
-    mLabelSkew = getChild<LLTextBox>("text skew");
-    mSpinHollow = getChild<LLSpinCtrl>("Scale 1");
+    mLabelHollow = get_owner_child<LLTextBox>(this, "text hollow");
+    mLabelSkew = get_owner_child<LLTextBox>(this, "text skew");
+    mSpinHollow = get_owner_child<LLSpinCtrl>(this, "Scale 1");
     childSetCommitCallback("Scale 1",onCommitParametric,this);
     mSpinHollow->setValidateBeforeCommit( &precommitValidate );
-    mSpinSkew = getChild<LLSpinCtrl>("Skew");
+    mSpinSkew = get_owner_child<LLSpinCtrl>(this, "Skew");
     childSetCommitCallback("Skew",onCommitParametric,this);
     mSpinSkew->setValidateBeforeCommit( &precommitValidate );
-    mLabelHoleType = getChild<LLTextBox>("Hollow Shape");
+    mLabelHoleType = get_owner_child<LLTextBox>(this, "Hollow Shape");
 
     // Hole Type
-    mComboHoleType = getChild<LLComboBox>("hole");
+    mComboHoleType = get_owner_child<LLComboBox>(this, "hole");
     childSetCommitCallback("hole",onCommitParametric,this);
 
     // Twist
-    mLabelTwist = getChild<LLTextBox>("text twist");
-    mSpinTwistBegin = getChild<LLSpinCtrl>("Twist Begin");
+    mLabelTwist = get_owner_child<LLTextBox>(this, "text twist");
+    mSpinTwistBegin = get_owner_child<LLSpinCtrl>(this, "Twist Begin");
     childSetCommitCallback("Twist Begin",onCommitParametric,this);
     mSpinTwistBegin->setValidateBeforeCommit( precommitValidate );
-    mSpinTwist = getChild<LLSpinCtrl>("Twist End");
+    mSpinTwist = get_owner_child<LLSpinCtrl>(this, "Twist End");
     childSetCommitCallback("Twist End",onCommitParametric,this);
     mSpinTwist->setValidateBeforeCommit( &precommitValidate );
 
     // Scale
-    mSpinScaleX = getChild<LLSpinCtrl>("Taper Scale X");
+    mSpinScaleX = get_owner_child<LLSpinCtrl>(this, "Taper Scale X");
     childSetCommitCallback("Taper Scale X",onCommitParametric,this);
     mSpinScaleX->setValidateBeforeCommit( &precommitValidate );
-    mSpinScaleY = getChild<LLSpinCtrl>("Taper Scale Y");
+    mSpinScaleY = get_owner_child<LLSpinCtrl>(this, "Taper Scale Y");
     childSetCommitCallback("Taper Scale Y",onCommitParametric,this);
     mSpinScaleY->setValidateBeforeCommit( &precommitValidate );
 
     // Shear
-    mLabelShear = getChild<LLTextBox>("text topshear");
-    mSpinShearX = getChild<LLSpinCtrl>("Shear X");
+    mLabelShear = get_owner_child<LLTextBox>(this, "text topshear");
+    mSpinShearX = get_owner_child<LLSpinCtrl>(this, "Shear X");
     childSetCommitCallback("Shear X",onCommitParametric,this);
     mSpinShearX->setValidateBeforeCommit( &precommitValidate );
-    mSpinShearY = getChild<LLSpinCtrl>("Shear Y");
+    mSpinShearY = get_owner_child<LLSpinCtrl>(this, "Shear Y");
     childSetCommitCallback("Shear Y",onCommitParametric,this);
     mSpinShearY->setValidateBeforeCommit( &precommitValidate );
 
     // Path / Profile
-    mCtrlPathBegin = getChild<LLSpinCtrl>("Path Limit Begin");
+    mCtrlPathBegin = get_owner_child<LLSpinCtrl>(this, "Path Limit Begin");
     childSetCommitCallback("Path Limit Begin",onCommitParametric,this);
     mCtrlPathBegin->setValidateBeforeCommit( &precommitValidate );
-    mCtrlPathEnd = getChild<LLSpinCtrl>("Path Limit End");
+    mCtrlPathEnd = get_owner_child<LLSpinCtrl>(this, "Path Limit End");
     childSetCommitCallback("Path Limit End",onCommitParametric,this);
     mCtrlPathEnd->setValidateBeforeCommit( &precommitValidate );
 
     // Taper
-    mLabelTaper = getChild<LLTextBox>("text taper2");
-    mSpinTaperX = getChild<LLSpinCtrl>("Taper X");
+    mLabelTaper = get_owner_child<LLTextBox>(this, "text taper2");
+    mSpinTaperX = get_owner_child<LLSpinCtrl>(this, "Taper X");
     childSetCommitCallback("Taper X",onCommitParametric,this);
     mSpinTaperX->setValidateBeforeCommit( precommitValidate );
-    mSpinTaperY = getChild<LLSpinCtrl>("Taper Y");
+    mSpinTaperY = get_owner_child<LLSpinCtrl>(this, "Taper Y");
     childSetCommitCallback("Taper Y",onCommitParametric,this);
     mSpinTaperY->setValidateBeforeCommit( precommitValidate );
 
     // Radius Offset / Revolutions
-    mLabelRadiusOffset = getChild<LLTextBox>("text radius delta");
-    mLabelRevolutions = getChild<LLTextBox>("text revolutions");
-    mSpinRadiusOffset = getChild<LLSpinCtrl>("Radius Offset");
+    mLabelRadiusOffset = get_owner_child<LLTextBox>(this, "text radius delta");
+    mLabelRevolutions = get_owner_child<LLTextBox>(this, "text revolutions");
+    mSpinRadiusOffset = get_owner_child<LLSpinCtrl>(this, "Radius Offset");
     childSetCommitCallback("Radius Offset",onCommitParametric,this);
     mSpinRadiusOffset->setValidateBeforeCommit( &precommitValidate );
-    mSpinRevolutions = getChild<LLSpinCtrl>("Revolutions");
+    mSpinRevolutions = get_owner_child<LLSpinCtrl>(this, "Revolutions");
     childSetCommitCallback("Revolutions",onCommitParametric,this);
     mSpinRevolutions->setValidateBeforeCommit( &precommitValidate );
 
     // Sculpt
-    mCtrlSculptTexture = getChild<LLTextureCtrl>("sculpt texture control");
+    mCtrlSculptTexture = get_owner_child<LLTextureCtrl>(this, "sculpt texture control");
     if (mCtrlSculptTexture)
     {
         mCtrlSculptTexture->setDefaultImageAssetID(SCULPT_DEFAULT_TEXTURE);
@@ -277,12 +302,12 @@ bool    LLPanelObject::postBuild()
         }
     }
 
-    mLabelSculptType = getChild<LLTextBox>("label sculpt type");
-    mCtrlSculptType = getChild<LLComboBox>("sculpt type control");
+    mLabelSculptType = get_owner_child<LLTextBox>(this, "label sculpt type");
+    mCtrlSculptType = get_owner_child<LLComboBox>(this, "sculpt type control");
     childSetCommitCallback("sculpt type control", onCommitSculptType, this);
-    mCtrlSculptMirror = getChild<LLCheckBoxCtrl>("sculpt mirror control");
+    mCtrlSculptMirror = get_owner_child<LLCheckBoxCtrl>(this, "sculpt mirror control");
     childSetCommitCallback("sculpt mirror control", onCommitSculptType, this);
-    mCtrlSculptInvert = getChild<LLCheckBoxCtrl>("sculpt invert control");
+    mCtrlSculptInvert = get_owner_child<LLCheckBoxCtrl>(this, "sculpt invert control");
     childSetCommitCallback("sculpt invert control", onCommitSculptType, this);
 
     // Start with everyone disabled
@@ -1000,19 +1025,19 @@ void LLPanelObject::getState( )
     mLabelSkew      ->setEnabled( enabled );
     mSpinSkew       ->setEnabled( enabled );
 
-    getChildView("scale_hole")->setVisible( false);
-    getChildView("scale_taper")->setVisible( false);
+    get_owner_view(this, "scale_hole")->setVisible( false);
+    get_owner_view(this, "scale_taper")->setVisible( false);
     if (top_size_x_visible || top_size_y_visible)
     {
         if (size_is_hole)
         {
-            getChildView("scale_hole")->setVisible( true);
-            getChildView("scale_hole")->setEnabled(enabled);
+            get_owner_view(this, "scale_hole")->setVisible( true);
+            get_owner_view(this, "scale_hole")->setEnabled(enabled);
         }
         else
         {
-            getChildView("scale_taper")->setVisible( true);
-            getChildView("scale_taper")->setEnabled(enabled);
+            get_owner_view(this, "scale_taper")->setVisible( true);
+            get_owner_view(this, "scale_taper")->setEnabled(enabled);
         }
     }
 
@@ -1023,27 +1048,27 @@ void LLPanelObject::getState( )
     mSpinShearX     ->setEnabled( enabled );
     mSpinShearY     ->setEnabled( enabled );
 
-    getChildView("advanced_cut")->setVisible( false);
-    getChildView("advanced_dimple")->setVisible( false);
-    getChildView("advanced_slice")->setVisible( false);
+    get_owner_view(this, "advanced_cut")->setVisible( false);
+    get_owner_view(this, "advanced_dimple")->setVisible( false);
+    get_owner_view(this, "advanced_slice")->setVisible( false);
 
     if (advanced_cut_visible)
     {
         if (advanced_is_dimple)
         {
-            getChildView("advanced_dimple")->setVisible( true);
-            getChildView("advanced_dimple")->setEnabled(enabled);
+            get_owner_view(this, "advanced_dimple")->setVisible( true);
+            get_owner_view(this, "advanced_dimple")->setEnabled(enabled);
         }
 
         else if (advanced_is_slice)
         {
-            getChildView("advanced_slice")->setVisible( true);
-            getChildView("advanced_slice")->setEnabled(enabled);
+            get_owner_view(this, "advanced_slice")->setVisible( true);
+            get_owner_view(this, "advanced_slice")->setEnabled(enabled);
         }
         else
         {
-            getChildView("advanced_cut")->setVisible( true);
-            getChildView("advanced_cut")->setEnabled(enabled);
+            get_owner_view(this, "advanced_cut")->setVisible( true);
+            get_owner_view(this, "advanced_cut")->setEnabled(enabled);
         }
     }
 
@@ -1131,7 +1156,7 @@ void LLPanelObject::getState( )
             bool sculpt_mirror = sculpt_type & LL_SCULPT_FLAG_MIRROR;
             isMesh = (sculpt_stitching == LL_SCULPT_TYPE_MESH);
 
-            LLTextureCtrl*  mTextureCtrl = getChild<LLTextureCtrl>("sculpt texture control");
+            LLTextureCtrl*  mTextureCtrl = get_owner_child<LLTextureCtrl>(this, "sculpt texture control");
             if(mTextureCtrl)
             {
                 mTextureCtrl->setTentative(false);
@@ -1856,9 +1881,9 @@ void LLPanelObject::refresh()
 
     F32 max_scale = get_default_max_prim_scale(LLPickInfo::isFlora(mObject));
 
-    getChild<LLSpinCtrl>("Scale X")->setMaxValue(max_scale);
-    getChild<LLSpinCtrl>("Scale Y")->setMaxValue(max_scale);
-    getChild<LLSpinCtrl>("Scale Z")->setMaxValue(max_scale);
+    get_owner_child<LLSpinCtrl>(this, "Scale X")->setMaxValue(max_scale);
+    get_owner_child<LLSpinCtrl>(this, "Scale Y")->setMaxValue(max_scale);
+    get_owner_child<LLSpinCtrl>(this, "Scale Z")->setMaxValue(max_scale);
 }
 
 
@@ -1960,11 +1985,11 @@ void LLPanelObject::clearCtrls()
     mLabelRadiusOffset->setEnabled( false );
     mLabelRevolutions->setEnabled( false );
 
-    getChildView("scale_hole")->setEnabled(false);
-    getChildView("scale_taper")->setEnabled(false);
-    getChildView("advanced_cut")->setEnabled(false);
-    getChildView("advanced_dimple")->setEnabled(false);
-    getChildView("advanced_slice")->setVisible( false);
+    get_owner_view(this, "scale_hole")->setEnabled(false);
+    get_owner_view(this, "scale_taper")->setEnabled(false);
+    get_owner_view(this, "advanced_cut")->setEnabled(false);
+    get_owner_view(this, "advanced_dimple")->setEnabled(false);
+    get_owner_view(this, "advanced_slice")->setVisible( false);
 }
 
 //
@@ -2031,7 +2056,7 @@ void LLPanelObject::onCommitPhantom( LLUICtrl* ctrl, void* userdata )
 
 void LLPanelObject::onSelectSculpt(const LLSD& data)
 {
-    LLTextureCtrl* mTextureCtrl = getChild<LLTextureCtrl>("sculpt texture control");
+    LLTextureCtrl* mTextureCtrl = get_owner_child<LLTextureCtrl>(this, "sculpt texture control");
 
     if (mTextureCtrl)
     {
@@ -2049,7 +2074,7 @@ void LLPanelObject::onCommitSculpt( const LLSD& data )
 
 bool LLPanelObject::onDropSculpt(LLInventoryItem* item)
 {
-    LLTextureCtrl* mTextureCtrl = getChild<LLTextureCtrl>("sculpt texture control");
+    LLTextureCtrl* mTextureCtrl = get_owner_child<LLTextureCtrl>(this, "sculpt texture control");
 
     if (mTextureCtrl)
     {
@@ -2065,7 +2090,7 @@ bool LLPanelObject::onDropSculpt(LLInventoryItem* item)
 
 void LLPanelObject::onCancelSculpt(const LLSD& data)
 {
-    LLTextureCtrl* mTextureCtrl = getChild<LLTextureCtrl>("sculpt texture control");
+    LLTextureCtrl* mTextureCtrl = get_owner_child<LLTextureCtrl>(this, "sculpt texture control");
     if(!mTextureCtrl)
         return;
 

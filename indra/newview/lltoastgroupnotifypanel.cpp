@@ -48,6 +48,31 @@
 #include "llavatariconctrl.h"
 #include "llinventorytype.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const S32 LLToastGroupNotifyPanel::DEFAULT_MESSAGE_MAX_LINE_COUNT   = 7;
 
 LLToastGroupNotifyPanel::LLToastGroupNotifyPanel(const LLNotificationPtr& notification)
@@ -63,7 +88,7 @@ LLToastGroupNotifyPanel::LLToastGroupNotifyPanel(const LLNotificationPtr& notifi
     }
 
     //group icon
-    LLGroupIconCtrl* pGroupIcon = getChild<LLGroupIconCtrl>("group_icon", true);
+    LLGroupIconCtrl* pGroupIcon = get_owner_child<LLGroupIconCtrl>(this, "group_icon", true);
 
     // We should already have this data preloaded, so no sense in setting icon through setValue(group_id)
     pGroupIcon->setIconId(groupData.mInsigniaID);
@@ -74,7 +99,7 @@ LLToastGroupNotifyPanel::LLToastGroupNotifyPanel(const LLNotificationPtr& notifi
 
     std::stringstream from;
     from << from_name << "/" << groupData.mName;
-    LLTextBox* pTitleText = getChild<LLTextBox>("title");
+    LLTextBox* pTitleText = get_owner_child<LLTextBox>(this, "title");
     pTitleText->setValue(from.str());
     pTitleText->setToolTip(from.str());
 
@@ -108,7 +133,7 @@ LLToastGroupNotifyPanel::LLToastGroupNotifyPanel(const LLNotificationPtr& notifi
     substitution["datetime"] = (S32) notice_date.secondsSinceEpoch();
     LLStringUtil::format(timeStr, substitution);
 
-    LLViewerTextEditor* pMessageText = getChild<LLViewerTextEditor>("message");
+    LLViewerTextEditor* pMessageText = get_owner_child<LLViewerTextEditor>(this, "message");
     pMessageText->setContentTrusted(false);
     pMessageText->clear();
 
@@ -130,9 +155,9 @@ LLToastGroupNotifyPanel::LLToastGroupNotifyPanel(const LLNotificationPtr& notifi
     bool hasInventory = payload["inventory_offer"].isDefined();
 
     //attachment text
-    LLTextBox * pAttachLink = getChild<LLTextBox>("attachment");
+    LLTextBox * pAttachLink = get_owner_child<LLTextBox>(this, "attachment");
     //attachment icon
-    LLIconCtrl* pAttachIcon = getChild<LLIconCtrl>("attachment_icon", true);
+    LLIconCtrl* pAttachIcon = get_owner_child<LLIconCtrl>(this, "attachment_icon", true);
 
     //If attachment is empty let it be invisible and not take place at the panel
     pAttachLink->setVisible(hasInventory);
@@ -141,7 +166,7 @@ LLToastGroupNotifyPanel::LLToastGroupNotifyPanel(const LLNotificationPtr& notifi
         pAttachLink->setValue(payload["inventory_name"]);
 
         mInventoryOffer = new LLOfferInfo(payload["inventory_offer"]);
-        getChild<LLTextBox>("attachment")->setClickedCallback(boost::bind(
+        get_owner_child<LLTextBox>(this, "attachment")->setClickedCallback(boost::bind(
                 &LLToastGroupNotifyPanel::onClickAttachment, this));
 
         LLUIImagePtr attachIconImg = LLInventoryIcon::getIcon(mInventoryOffer->mType,
@@ -150,7 +175,7 @@ LLToastGroupNotifyPanel::LLToastGroupNotifyPanel(const LLNotificationPtr& notifi
     }
 
     //ok button
-    LLButton* pOkBtn = getChild<LLButton>("btn_ok");
+    LLButton* pOkBtn = get_owner_child<LLButton>(this, "btn_ok");
     pOkBtn->setClickedCallback((boost::bind(&LLToastGroupNotifyPanel::onClickOk, this)));
     setDefaultBtn(pOkBtn);
 
@@ -194,13 +219,13 @@ void LLToastGroupNotifyPanel::onClickAttachment()
     if (mInventoryOffer != NULL) {
         mInventoryOffer->forceResponse(IOR_ACCEPT);
 
-        LLTextBox * pAttachLink = getChild<LLTextBox> ("attachment");
+        LLTextBox * pAttachLink = get_owner_child<LLTextBox>(this, "attachment");
         static const LLUIColor textColor = LLUIColorTable::instance().getColor(
                 "GroupNotifyDimmedTextColor");
         pAttachLink->setColor(textColor);
 
         LLIconCtrl* pAttachIcon =
-                getChild<LLIconCtrl> ("attachment_icon", true);
+                get_owner_child<LLIconCtrl>(this, "attachment_icon", true);
         pAttachIcon->setEnabled(false);
 
         //if attachment isn't openable - notify about saving

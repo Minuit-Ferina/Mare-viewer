@@ -31,6 +31,31 @@
 #include "lltextbox.h"
 #include "streamtitledisplay.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static std::string last_artist_title;
 
 KokuaFloaterStreamInfo::KokuaFloaterStreamInfo(const LLSD& seed)
@@ -49,7 +74,7 @@ void KokuaFloaterStreamInfo::UpdateStreamInfo(const std::string artist_title)
         {
             last_artist_title = stream_floater->getString("KFSI_NoStream");
         }
-        LLTextBox* stream_status = stream_floater->getChild<LLTextBox>("stream_status");
+        LLTextBox* stream_status = get_owner_child<LLTextBox>(stream_floater, "stream_status");
         if (stream_status)
         {
             stream_status->setText(last_artist_title);
@@ -59,7 +84,7 @@ void KokuaFloaterStreamInfo::UpdateStreamInfo(const std::string artist_title)
 
 bool KokuaFloaterStreamInfo::postBuild()
 {
-    LLTextBox* stream_status = getChild<LLTextBox>("stream_status");
+    LLTextBox* stream_status = get_owner_child<LLTextBox>(this, "stream_status");
     if (stream_status)
     {
         if (last_artist_title.empty())

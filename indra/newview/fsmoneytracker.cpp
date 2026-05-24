@@ -36,6 +36,31 @@
 #include "lltrans.h"
 #include "llviewercontrol.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 FSMoneyTracker::FSMoneyTracker(const LLSD& key)
     : LLFloater(key),
     mAmountPaid(0),
@@ -45,8 +70,8 @@ FSMoneyTracker::FSMoneyTracker(const LLSD& key)
 
 bool FSMoneyTracker::postBuild()
 {
-    mSummary = getChild<LLTextBox>("summary");
-    mTransactionHistory = getChild<LLNameListCtrl>("payment_list");
+    mSummary = get_owner_child<LLTextBox>(this, "summary");
+    mTransactionHistory = get_owner_child<LLNameListCtrl>(this, "payment_list");
     mTransactionHistory->setContextMenu(&gFSMoneyTrackerListMenu);
     clear();
 
@@ -152,7 +177,7 @@ void FSMoneyTrackerListMenu::onContextMenuItemClick(const LLSD& userdata)
         if (floater)
         {
             std::string copy_text;
-            LLNameListCtrl* list = floater->getChild<LLNameListCtrl>("payment_list");
+            LLNameListCtrl* list = get_owner_child<LLNameListCtrl>(floater, "payment_list");
 
             std::vector<LLScrollListItem*> selected = list->getAllSelected();
             for (std::vector<LLScrollListItem*>::iterator it = selected.begin(); it != selected.end(); ++it)
@@ -176,7 +201,7 @@ void FSMoneyTrackerListMenu::onContextMenuItemClick(const LLSD& userdata)
         FSMoneyTracker* floater = LLFloaterReg::findTypedInstance<FSMoneyTracker>("money_tracker");
         if (floater)
         {
-            LLNameListCtrl* list = floater->getChild<LLNameListCtrl>("payment_list");
+            LLNameListCtrl* list = get_owner_child<LLNameListCtrl>(floater, "payment_list");
 
             list->operateOnSelection(LLCtrlListInterface::OP_DELETE);
         }
@@ -192,7 +217,7 @@ bool FSMoneyTrackerListMenu::onContextMenuItemEnable(const LLSD& userdata)
         FSMoneyTracker* floater = LLFloaterReg::findTypedInstance<FSMoneyTracker>("money_tracker");
         if (floater)
         {
-            LLNameListCtrl* list = floater->getChild<LLNameListCtrl>("payment_list");
+            LLNameListCtrl* list = get_owner_child<LLNameListCtrl>(floater, "payment_list");
             return (list->getNumSelected() > 0);
         }
     }

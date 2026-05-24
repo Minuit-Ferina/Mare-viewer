@@ -33,6 +33,31 @@
 #include "llnotifications.h"
 #include "llviewercontrol.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 using namespace LLNotificationsUI;
 std::list<LLToast*> LLToast::sModalToastsList;
 
@@ -123,7 +148,7 @@ LLToast::LLToast(const LLToast::Params& p)
 
     setCanDrag(false);
 
-    mWrapperPanel = getChild<LLPanel>("wrapper_panel");
+    mWrapperPanel = get_owner_child<LLPanel>(this, "wrapper_panel");
 
     setBackgroundOpaque(true); // *TODO: obsolete
     updateTransparency();
@@ -135,7 +160,7 @@ LLToast::LLToast(const LLToast::Params& p)
 
     if(mHideBtnEnabled)
     {
-        mHideBtn = getChild<LLButton>("hide_btn");
+        mHideBtn = get_owner_child<LLButton>(this, "hide_btn");
         mHideBtn->setClickedCallback(boost::bind(&LLToast::hide,this));
     }
 

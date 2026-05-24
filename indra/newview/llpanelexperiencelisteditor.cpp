@@ -41,6 +41,31 @@
 #include "lltrans.h"
 #include "llsdutil.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 static LLPanelInjector<LLPanelExperienceListEditor> t_panel_experience_list_editor("panel_experience_list_editor");
 
@@ -56,10 +81,10 @@ LLPanelExperienceListEditor::LLPanelExperienceListEditor()
 
 bool LLPanelExperienceListEditor::postBuild()
 {
-    mItems = getChild<LLNameListCtrl>("experience_list");
-    mAdd = getChild<LLButton>("btn_add");
-    mRemove = getChild<LLButton>("btn_remove");
-    mProfile = getChild<LLButton>("btn_profile");
+    mItems = get_owner_child<LLNameListCtrl>(this, "experience_list");
+    mAdd = get_owner_child<LLButton>(this, "btn_add");
+    mRemove = get_owner_child<LLButton>(this, "btn_remove");
+    mProfile = get_owner_child<LLButton>(this, "btn_profile");
 
     childSetAction("btn_add", boost::bind(&LLPanelExperienceListEditor::onAdd, this));
     childSetAction("btn_remove", boost::bind(&LLPanelExperienceListEditor::onRemove, this));
@@ -255,7 +280,7 @@ void LLPanelExperienceListEditor::refreshExperienceCounter()
         LLStringUtil::format_map_t args;
         args["[EXPERIENCES]"] = llformat("%d", mItems->getItemCount());
         args["[MAXEXPERIENCES]"] = llformat("%d", mMaxExperienceIDs);
-        getChild<LLTextBox>("text_count")->setText(LLTrans::getString("ExperiencesCounter", args));
+        get_owner_child<LLTextBox>(this, "text_count")->setText(LLTrans::getString("ExperiencesCounter", args));
     }
 }
 

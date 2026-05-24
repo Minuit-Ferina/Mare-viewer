@@ -47,6 +47,31 @@
 #include "lltextbox.h"
 #include "lltrans.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 class LLFetchAvatarData;
 
 extern const LLUUID AUDIO_STREAM_FROM;
@@ -183,10 +208,10 @@ LLInspectAvatar::~LLInspectAvatar()
 /*virtual*/
 bool LLInspectAvatar::postBuild(void)
 {
-    getChild<LLUICtrl>("mute_btn")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "mute_btn")->setCommitCallback(
         boost::bind(&LLInspectAvatar::onClickMuteVolume, this) );
 
-    getChild<LLUICtrl>("volume_slider")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "volume_slider")->setCommitCallback(
         boost::bind(&LLInspectAvatar::onVolumeChange, this, _2));
 
     return true;
@@ -213,7 +238,7 @@ void LLInspectAvatar::onOpen(const LLSD& data)
     LLInspect::repositionInspector(data);
 
     // Generate link to avatar profile.
-    LLTextBase* avatar_profile_link = getChild<LLTextBase>("avatar_profile_link");
+    LLTextBase* avatar_profile_link = get_owner_child<LLTextBase>(this, "avatar_profile_link");
     avatar_profile_link->setTextArg("[LINK]", LLSLURL("agent", mAvatarID, "about").getSLURLString());
     avatar_profile_link->setIsFriendCallback(LLAvatarActions::isFriend);
 
@@ -239,11 +264,11 @@ void LLInspectAvatar::requestUpdate()
     }
 
     // Clear out old data so it doesn't flash between old and new
-    getChild<LLUICtrl>("user_name")->setValue("");
-    getChild<LLUICtrl>("user_name_small")->setValue("");
-    getChild<LLUICtrl>("user_slid")->setValue("");
-    getChild<LLUICtrl>("user_subtitle")->setValue("");
-    getChild<LLUICtrl>("user_details")->setValue("");
+    get_owner_child<LLUICtrl>(this, "user_name")->setValue("");
+    get_owner_child<LLUICtrl>(this, "user_name_small")->setValue("");
+    get_owner_child<LLUICtrl>(this, "user_slid")->setValue("");
+    get_owner_child<LLUICtrl>(this, "user_subtitle")->setValue("");
+    get_owner_child<LLUICtrl>(this, "user_details")->setValue("");
 
     // Make a new request for properties
     delete mPropertiesRequest;
@@ -258,7 +283,7 @@ void LLInspectAvatar::requestUpdate()
     //remove avatar id from cache to get fresh info
     LLAvatarIconIDCache::getInstance()->remove(mAvatarID);
 
-    getChild<LLUICtrl>("avatar_icon")->setValue(LLSD(mAvatarID) );
+    get_owner_child<LLUICtrl>(this, "avatar_icon")->setValue(LLSD(mAvatarID) );
 
     if (mAvatarID == AUDIO_STREAM_FROM) {
         std::string from_name = LLTrans::getString("Audio Stream");
@@ -298,9 +323,9 @@ void LLInspectAvatar::processAvatarData(LLAvatarData* data)
     args["[COMMA]"] = (payment_info.empty() ? "" : ",");
 
     std::string subtitle = getString("Subtitle", args);
-    getChild<LLUICtrl>("user_subtitle")->setValue( LLSD(subtitle) );
+    get_owner_child<LLUICtrl>(this, "user_subtitle")->setValue( LLSD(subtitle) );
     std::string details = getString("Details", args);
-    getChild<LLUICtrl>("user_details")->setValue( LLSD(details) );
+    get_owner_child<LLUICtrl>(this, "user_details")->setValue( LLSD(details) );
 
     // Delete the request object as it has been satisfied
     delete mPropertiesRequest;
@@ -315,26 +340,26 @@ void LLInspectAvatar::updateVolumeSlider()
     // is ourself or we are not in a voice channel together
     if (!voice_enabled || (mAvatarID == gAgent.getID()))
     {
-        getChild<LLUICtrl>("mute_btn")->setVisible(false);
-        getChild<LLUICtrl>("volume_slider")->setVisible(false);
+        get_owner_child<LLUICtrl>(this, "mute_btn")->setVisible(false);
+        get_owner_child<LLUICtrl>(this, "volume_slider")->setVisible(false);
     }
 
     else
     {
-        getChild<LLUICtrl>("mute_btn")->setVisible(true);
-        getChild<LLUICtrl>("volume_slider")->setVisible(true);
+        get_owner_child<LLUICtrl>(this, "mute_btn")->setVisible(true);
+        get_owner_child<LLUICtrl>(this, "volume_slider")->setVisible(true);
 
         // By convention, we only display and toggle voice mutes, not all mutes
         bool is_muted = LLAvatarActions::isVoiceMuted(mAvatarID);
 
-        LLUICtrl* mute_btn = getChild<LLUICtrl>("mute_btn");
+        LLUICtrl* mute_btn = get_owner_child<LLUICtrl>(this, "mute_btn");
 
         bool is_linden = LLStringUtil::endsWith(mAvatarName.getDisplayName(), " Linden");
 
         mute_btn->setEnabled( !is_linden);
         mute_btn->setValue( is_muted );
 
-        LLUICtrl* volume_slider = getChild<LLUICtrl>("volume_slider");
+        LLUICtrl* volume_slider = get_owner_child<LLUICtrl>(this, "volume_slider");
         volume_slider->setEnabled( !is_muted );
 
         F32 volume;
@@ -387,21 +412,21 @@ void LLInspectAvatar::onAvatarNameCache(
 
     if (agent_id == mAvatarID)
     {
-        getChild<LLUICtrl>("user_name")->setValue(av_name.getDisplayName());
-        getChild<LLUICtrl>("user_name_small")->setValue(av_name.getDisplayName());
-        getChild<LLUICtrl>("user_slid")->setValue(av_name.getUserName());
+        get_owner_child<LLUICtrl>(this, "user_name")->setValue(av_name.getDisplayName());
+        get_owner_child<LLUICtrl>(this, "user_name_small")->setValue(av_name.getDisplayName());
+        get_owner_child<LLUICtrl>(this, "user_slid")->setValue(av_name.getUserName());
         mAvatarName = av_name;
 
         // show smaller display name if too long to display in regular size
-        if (getChild<LLTextBox>("user_name")->getTextPixelWidth() > getChild<LLTextBox>("user_name")->getRect().getWidth())
+        if (get_owner_child<LLTextBox>(this, "user_name")->getTextPixelWidth() > get_owner_child<LLTextBox>(this, "user_name")->getRect().getWidth())
         {
-            getChild<LLUICtrl>("user_name_small")->setVisible( true );
-            getChild<LLUICtrl>("user_name")->setVisible( false );
+            get_owner_child<LLUICtrl>(this, "user_name_small")->setVisible( true );
+            get_owner_child<LLUICtrl>(this, "user_name")->setVisible( false );
         }
         else
         {
-            getChild<LLUICtrl>("user_name_small")->setVisible( false );
-            getChild<LLUICtrl>("user_name")->setVisible( true );
+            get_owner_child<LLUICtrl>(this, "user_name_small")->setVisible( false );
+            get_owner_child<LLUICtrl>(this, "user_name")->setVisible( true );
 
         }
 

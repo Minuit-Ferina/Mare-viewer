@@ -103,6 +103,31 @@
 // system includes
 #include <iomanip>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //
 // Globals
 //
@@ -250,25 +275,25 @@ bool LLStatusBar::postBuild()
 {
     gMenuBarView->setRightMouseDownCallback(boost::bind(&show_navbar_context_menu, _1, _2, _3));
 
-    mTextTime = getChild<LLTextBox>("TimeText" );
-    mPurchasePanel = getChild<LLLayoutPanel>("balance_bg");
+    mTextTime = get_owner_child<LLTextBox>(this, "TimeText" );
+    mPurchasePanel = get_owner_child<LLLayoutPanel>(this, "balance_bg");
 
-    getChild<LLUICtrl>("buyL")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "buyL")->setCommitCallback(
         boost::bind(&LLStatusBar::onClickBuyCurrency, this));
 
-    getChild<LLUICtrl>("goShop")->setCommitCallback(
+    get_owner_child<LLUICtrl>(this, "goShop")->setCommitCallback(
         boost::bind(&LLStatusBar::onClickShop, this));
 
-    mBoxBalance = getChild<LLTextBox>("balance");
+    mBoxBalance = get_owner_child<LLTextBox>(this, "balance");
     mBoxBalance->setClickedCallback( &LLStatusBar::onClickBalance, this );
 
-    mIconPresetsCamera = getChild<LLIconCtrl>( "presets_icon_camera" );
+    mIconPresetsCamera = get_owner_child<LLIconCtrl>(this,  "presets_icon_camera" );
     mIconPresetsCamera->setMouseEnterCallback(boost::bind(&LLStatusBar::onMouseEnterPresetsCamera, this));
 
-    mIconPresetsGraphic = getChild<LLIconCtrl>( "presets_icon_graphic" );
+    mIconPresetsGraphic = get_owner_child<LLIconCtrl>(this,  "presets_icon_graphic" );
     mIconPresetsGraphic->setMouseEnterCallback(boost::bind(&LLStatusBar::onMouseEnterPresets, this));
 
-    mBtnVolume = getChild<LLButton>( "volume_btn" );
+    mBtnVolume = get_owner_child<LLButton>(this,  "volume_btn" );
     mBtnVolume->setClickedCallback( onClickVolume, this );
 
     if (gSavedSettings.getBOOL("ShowMediaPopupsOnRollover"))
@@ -278,11 +303,11 @@ bool LLStatusBar::postBuild()
     // </FS: KC> FIRE-19697: Add setting to disable status bar icon menu popup on mouseover
 
     // <FS:Zi> Media/Stream separation
-    mStreamToggle = getChild<LLButton>("stream_toggle_btn");
+    mStreamToggle = get_owner_child<LLButton>(this, "stream_toggle_btn");
     mStreamToggle->setClickedCallback(&LLStatusBar::onClickStreamToggle, this);
     // </FS:Zi> Media/Stream separation
 
-    mMediaToggle = getChild<LLButton>("media_toggle_btn");
+    mMediaToggle = get_owner_child<LLButton>(this, "media_toggle_btn");
     mMediaToggle->setClickedCallback( &LLStatusBar::onClickMediaToggle, this );
     // <FS: KC> FIRE-19697: Add setting to disable status bar icon menu popup on mouseover
     // mMediaToggle->setMouseEnterCallback(boost::bind(&LLStatusBar::onMouseEnterNearbyMedia, this));
@@ -292,7 +317,7 @@ bool LLStatusBar::postBuild()
     }
     // </FS: KC> FIRE-19697: Add setting to disable status bar icon menu popup on mouseover
 
-    LLHints::getInstance()->registerHintTarget("linden_balance", getChild<LLView>("balance_bg")->getHandle());
+    LLHints::getInstance()->registerHintTarget("linden_balance", get_owner_child<LLView>(this, "balance_bg")->getHandle());
 
     gSavedSettings.getControl("MuteAudio")->getSignal()->connect(boost::bind(&LLStatusBar::onVolumeChanged, this, _2));
     // <FS:Ansariel> FIRE-19697: Add setting to disable graphics preset menu popup on mouse over
@@ -305,44 +330,44 @@ bool LLStatusBar::postBuild()
         mBtnVolume->setImageUnselected(LLUI::getUIImage("VoiceMute_Off"));
     }
 
-    mSGBandwidth = getChild<LLStatGraph>("bandwidth_graph");
+    mSGBandwidth = get_owner_child<LLStatGraph>(this, "bandwidth_graph");
     if (mSGBandwidth) {
         mSGBandwidth->setStat(&LLStatViewer::ACTIVE_MESSAGE_DATA_RECEIVED);
         mSGBandwidth->setClickedCallback(boost::bind(&LLStatusBar::onClickStatistics, this));
     }
-    mSGPacketLoss = getChild<LLStatGraph>("packet_loss_graph");
+    mSGPacketLoss = get_owner_child<LLStatGraph>(this, "packet_loss_graph");
     if (mSGPacketLoss) {
         mSGPacketLoss->setStat(&LLStatViewer::PACKETS_LOST_PERCENT);
         mSGPacketLoss->setClickedCallback(boost::bind(&LLStatusBar::onClickStatistics, this));
     }
     // KKA-821 Add script percent run, script time and spare time. The cast is necessary to get from derived class SimMeasurement to its parent which llui understands
-    mSGScriptPctRun = getChild<LLStatGraph>("script_pct_run_graph");
+    mSGScriptPctRun = get_owner_child<LLStatGraph>(this, "script_pct_run_graph");
     if (mSGScriptPctRun) {
       //inverse, so the more bar is visible the worse (lower) the script percent run figure is
         mSGScriptPctRun->setStat((LLTrace::SampleStatHandle<LLUnit<F64, LLUnits::Percent> > *)&LLStatViewer::SIM_PERCENTAGE_SCRIPTS_RUN);
         mSGScriptPctRun->setClickedCallback(boost::bind(&LLStatusBar::onClickStatistics, this));
     }
-    mSGScriptTime = getChild<LLStatGraph>("script_time_graph");
+    mSGScriptTime = get_owner_child<LLStatGraph>(this, "script_time_graph");
     if (mSGScriptTime ) {
       // not inverse, so the more bar, the more time scripts are using
         mSGScriptTime->setStat((LLTrace::SampleStatHandle<F64Milliseconds > *)&LLStatViewer::SIM_SCRIPTS_TIME);
         mSGScriptTime->setClickedCallback(boost::bind(&LLStatusBar::onClickStatistics, this));
     }
-    mSGSpareTime = getChild<LLStatGraph>("spare_time_graph");
+    mSGSpareTime = get_owner_child<LLStatGraph>(this, "spare_time_graph");
     if (mSGSpareTime ) {
       // inverse, so no free frame time results in a full bar
         mSGSpareTime->setStat((LLTrace::SampleStatHandle<F64Milliseconds >  *)&LLStatViewer::SIM_SPARE_TIME);
         mSGSpareTime->setClickedCallback(boost::bind(&LLStatusBar::onClickStatistics, this));
     }
 
-    mFPSText = getChild<LLTextBox>("fps_text");
+    mFPSText = get_owner_child<LLTextBox>(this, "fps_text");
     if (mFPSText) {
         mFPSText->setClickedCallback(boost::bind(&LLStatusBar::onClickStatistics, this));
     }
 
-    mDrawDistancePanel = getChild<LLLayoutPanel>("draw_distance_panel");
-    mStatisticsPanel = getChild<LLLayoutPanel>("statistics_panel");
-    mFPSPanel = getChild<LLLayoutPanel>("fps_panel");
+    mDrawDistancePanel = get_owner_child<LLLayoutPanel>(this, "draw_distance_panel");
+    mStatisticsPanel = get_owner_child<LLLayoutPanel>(this, "statistics_panel");
+    mFPSPanel = get_owner_child<LLLayoutPanel>(this, "fps_panel");
 
     mPanelPresetsCameraPulldown = new LLPanelPresetsCameraPulldown();
     addChild(mPanelPresetsCameraPulldown);
@@ -364,19 +389,19 @@ bool LLStatusBar::postBuild()
     mPanelNearByMedia->setFollows(FOLLOWS_TOP|FOLLOWS_RIGHT);
     mPanelNearByMedia->setVisible(false);
 
-    mScriptOut = getChildView("scriptout");
+    mScriptOut = get_owner_view(this, "scriptout");
     updateBalancePanelPosition();
 
 //MK
-    mParcelInfoPanel = getChild<LLPanel>("parcel_info_panel");
-    mParcelInfoText = getChild<LLTextBox>("parcel_info_text");
-    mDamageText = getChild<LLTextBox>("damage_text");
+    mParcelInfoPanel = get_owner_child<LLPanel>(this, "parcel_info_panel");
+    mParcelInfoText = get_owner_child<LLTextBox>(this, "parcel_info_text");
+    mDamageText = get_owner_child<LLTextBox>(this, "damage_text");
 
-    mInfoBtn = getChild<LLButton>("place_info_btn");
+    mInfoBtn = get_owner_child<LLButton>(this, "place_info_btn");
     mInfoBtn->setClickedCallback(boost::bind(&LLStatusBar::onInfoButtonClicked, this));
     mInfoBtn->setToolTip(LLTrans::getString("LocationCtrlInfoBtnTooltip"));
 
-    mAvatarHeightOffsetResetBtn = getChild<LLButton>("avatar_z_offset_reset_btn");
+    mAvatarHeightOffsetResetBtn = get_owner_child<LLButton>(this, "avatar_z_offset_reset_btn");
     mAvatarHeightOffsetResetBtn->setClickedCallback(boost::bind(&LLStatusBar::onAvatarHeightOffsetResetButtonClicked, this));
 
     initParcelIcons();
@@ -403,8 +428,8 @@ bool LLStatusBar::postBuild()
 //mk
 
     // Hook up and init for filtering
-    mFilterEdit = getChild<LLSearchEditor>( "search_menu_edit" );
-    mSearchPanel = getChild<LLPanel>( "menu_search_panel" );
+    mFilterEdit = get_owner_child<LLSearchEditor>(this,  "search_menu_edit" );
+    mSearchPanel = get_owner_child<LLPanel>(this,  "menu_search_panel" );
 
     bool search_panel_visible = gSavedSettings.getBOOL("MenuSearch");
     mSearchPanel->setVisible(search_panel_visible);
@@ -758,8 +783,8 @@ void LLStatusBar::onClickShop()
 
 void LLStatusBar::onMouseEnterPresetsCamera()
 {
-    LLView* popup_holder = gViewerWindow->getRootView()->getChildView("popup_holder");
-    LLIconCtrl* icon =  getChild<LLIconCtrl>( "presets_icon_camera" );
+    LLView* popup_holder = get_owner_view(gViewerWindow->getRootView(), "popup_holder");
+    LLIconCtrl* icon =  get_owner_child<LLIconCtrl>(this,  "presets_icon_camera" );
     LLRect icon_rect = icon->getRect();
     LLRect pulldown_rect = mPanelPresetsCameraPulldown->getRect();
     pulldown_rect.setLeftTopAndSize(icon_rect.mLeft -
@@ -782,8 +807,8 @@ void LLStatusBar::onMouseEnterPresetsCamera()
 
 void LLStatusBar::onMouseEnterPresets()
 {
-    LLView* popup_holder = gViewerWindow->getRootView()->getChildView("popup_holder");
-    LLIconCtrl* icon =  getChild<LLIconCtrl>( "presets_icon_graphic" );
+    LLView* popup_holder = get_owner_view(gViewerWindow->getRootView(), "popup_holder");
+    LLIconCtrl* icon =  get_owner_child<LLIconCtrl>(this,  "presets_icon_graphic" );
     LLRect icon_rect = icon->getRect();
     LLRect pulldown_rect = mPanelPresetsPulldown->getRect();
     pulldown_rect.setLeftTopAndSize(icon_rect.mLeft -
@@ -805,8 +830,8 @@ void LLStatusBar::onMouseEnterPresets()
 
 void LLStatusBar::onMouseEnterVolume()
 {
-    LLView* popup_holder = gViewerWindow->getRootView()->getChildView("popup_holder");
-    LLButton* volbtn =  getChild<LLButton>( "volume_btn" );
+    LLView* popup_holder = get_owner_view(gViewerWindow->getRootView(), "popup_holder");
+    LLButton* volbtn =  get_owner_child<LLButton>(this,  "volume_btn" );
     LLRect volume_pulldown_rect = mPanelVolumePulldown->getRect();
     LLRect vol_btn_rect;
 
@@ -833,9 +858,9 @@ void LLStatusBar::onMouseEnterVolume()
 
 void LLStatusBar::onMouseEnterNearbyMedia()
 {
-    LLView* popup_holder = gViewerWindow->getRootView()->getChildView("popup_holder");
+    LLView* popup_holder = get_owner_view(gViewerWindow->getRootView(), "popup_holder");
     LLRect nearby_media_rect = mPanelNearByMedia->getRect();
-    LLButton* nearby_media_btn =  getChild<LLButton>( "media_toggle_btn" );
+    LLButton* nearby_media_btn =  get_owner_child<LLButton>(this,  "media_toggle_btn" );
     LLRect nearby_media_btn_rect;
 
     nearby_media_btn->localRectToOtherView(nearby_media_btn->getLocalRect(), &nearby_media_btn_rect, this);
@@ -1060,7 +1085,7 @@ void LLStatusBar::updateMenuSearchVisibility(const LLSD& data)
 void LLStatusBar::updateMenuSearchPosition()
 {
     const S32 HPAD = 12;
-    LLRect balanceRect = getChildView("balance_bg")->getRect();
+    LLRect balanceRect = get_owner_view(this, "balance_bg")->getRect();
     LLRect searchRect = mSearchPanel->getRect();
     S32 w = searchRect.getWidth();
     searchRect.mLeft = balanceRect.mLeft - w - HPAD;
@@ -1073,9 +1098,9 @@ void LLStatusBar::updateBalancePanelPosition()
     // Resize the L$ balance background to be wide enough for your balance plus the buy button
     const S32 HPAD = 24;
     LLRect balance_rect = mBoxBalance->getTextBoundingRect();
-    LLRect buy_rect = getChildView("buyL")->getRect();
-    LLRect shop_rect = getChildView("goShop")->getRect();
-    LLView* balance_bg_view = getChildView("balance_bg");
+    LLRect buy_rect = get_owner_view(this, "buyL")->getRect();
+    LLRect shop_rect = get_owner_view(this, "goShop")->getRect();
+    LLView* balance_bg_view = get_owner_view(this, "balance_bg");
     LLRect balance_bg_rect = balance_bg_view->getRect();
     balance_bg_rect.mLeft = balance_bg_rect.mRight - (buy_rect.getWidth() + shop_rect.getWidth() + balance_rect.getWidth() + HPAD);
     balance_bg_view->setShape(balance_bg_rect);
@@ -1110,12 +1135,12 @@ LLBalanceHandler gBalanceHandler;
 //MK
 void LLStatusBar::initParcelIcons()
 {
-    mParcelIcon[VOICE_ICON] = getChild<LLIconCtrl>("voice_icon");
-    mParcelIcon[FLY_ICON] = getChild<LLIconCtrl>("fly_icon");
-    mParcelIcon[PUSH_ICON] = getChild<LLIconCtrl>("push_icon");
-    mParcelIcon[BUILD_ICON] = getChild<LLIconCtrl>("build_icon");
-    mParcelIcon[SCRIPTS_ICON] = getChild<LLIconCtrl>("scripts_icon");
-    mParcelIcon[DAMAGE_ICON] = getChild<LLIconCtrl>("damage_icon");
+    mParcelIcon[VOICE_ICON] = get_owner_child<LLIconCtrl>(this, "voice_icon");
+    mParcelIcon[FLY_ICON] = get_owner_child<LLIconCtrl>(this, "fly_icon");
+    mParcelIcon[PUSH_ICON] = get_owner_child<LLIconCtrl>(this, "push_icon");
+    mParcelIcon[BUILD_ICON] = get_owner_child<LLIconCtrl>(this, "build_icon");
+    mParcelIcon[SCRIPTS_ICON] = get_owner_child<LLIconCtrl>(this, "scripts_icon");
+    mParcelIcon[DAMAGE_ICON] = get_owner_child<LLIconCtrl>(this, "damage_icon");
 
     mParcelIcon[VOICE_ICON]->setMouseDownCallback(boost::bind(&LLStatusBar::onParcelIconClick, this, VOICE_ICON));
     mParcelIcon[FLY_ICON]->setMouseDownCallback(boost::bind(&LLStatusBar::onParcelIconClick, this, FLY_ICON));
@@ -1422,8 +1447,8 @@ void LLStatusBar::onParcelWLClicked()
 void LLStatusBar::setBackgroundColor( const LLColor4& color )
 {
     LLPanel::setBackgroundColor(color);
-    getChild<LLPanel>("balance_bg")->setBackgroundColor(color);
-    getChild<LLPanel>("time_and_media_bg")->setBackgroundColor(color);
+    get_owner_child<LLPanel>(this, "balance_bg")->setBackgroundColor(color);
+    get_owner_child<LLPanel>(this, "time_and_media_bg")->setBackgroundColor(color);
 }
 
 //MK

@@ -74,6 +74,31 @@
 #include "llsdserialize.h"
 #include "kokuarlvmode.h" // for RLV_ALWAYS_ON
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 LLPanelLogin *LLPanelLogin::sInstance = NULL;
 bool LLPanelLogin::sCapslockDidNotification = false;
 bool LLPanelLogin::sCredentialSet = false;
@@ -215,24 +240,24 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 
     reshape(rect.getWidth(), rect.getHeight());
 
-    LLLineEditor* password_edit(getChild<LLLineEditor>("password_edit"));
+    LLLineEditor* password_edit(get_owner_child<LLLineEditor>(this, "password_edit"));
     password_edit->setKeystrokeCallback(onPassKey, this);
     // STEAM-14: When user presses Enter with this field in focus, initiate login
     password_edit->setCommitCallback(boost::bind(&LLPanelLogin::onClickConnect, false));
 
     // change z sort of clickable text to be behind buttons
-    sendChildToBack(getChildView("forgot_password_text"));
-    sendChildToBack(getChildView("sign_up_text"));
+    sendChildToBack(get_owner_view(this, "forgot_password_text"));
+    sendChildToBack(get_owner_view(this, "sign_up_text"));
 
     std::string current_grid = LLGridManager::getInstance()->getGrid();
     if (!mFirstLoginThisInstall)
     {
-        LLComboBox* favorites_combo = getChild<LLComboBox>("start_location_combo");
+        LLComboBox* favorites_combo = get_owner_child<LLComboBox>(this, "start_location_combo");
         updateLocationSelectorsVisibility(); // separate so that it can be called from preferences
         favorites_combo->setReturnCallback(boost::bind(&LLPanelLogin::onClickConnect, false));
         favorites_combo->setFocusLostCallback(boost::bind(&LLPanelLogin::onLocationSLURL, this));
 
-        LLComboBox* server_choice_combo = getChild<LLComboBox>("server_combo");
+        LLComboBox* server_choice_combo = get_owner_child<LLComboBox>(this, "server_combo");
         server_choice_combo->setCommitCallback(boost::bind(&LLPanelLogin::onSelectServer, this));
 
         // Load all of the grids, sorted, and then add a bar and the current grid at the top
@@ -298,26 +323,26 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
 
     childSetAction("connect_btn", onClickConnect, this);
 
-    LLButton* def_btn = getChild<LLButton>("connect_btn");
+    LLButton* def_btn = get_owner_child<LLButton>(this, "connect_btn");
     setDefaultBtn(def_btn);
 
     std::string channel = LLVersionInfo::instance().getChannel();
     std::string version = stringize(LLVersionInfo::instance().getShortVersion(), " (",
                                     LLVersionInfo::instance().getBuild(), ')');
 
-    LLTextBox* forgot_password_text = getChild<LLTextBox>("forgot_password_text");
+    LLTextBox* forgot_password_text = get_owner_child<LLTextBox>(this, "forgot_password_text");
     forgot_password_text->setClickedCallback(onClickForgotPassword, NULL);
 
-    LLTextBox* sign_up_text = getChild<LLTextBox>("sign_up_text");
+    LLTextBox* sign_up_text = get_owner_child<LLTextBox>(this, "sign_up_text");
     sign_up_text->setClickedCallback(onClickSignUp, NULL);
 
     // get the web browser control
-    LLMediaCtrl* web_browser = getChild<LLMediaCtrl>("login_html");
+    LLMediaCtrl* web_browser = get_owner_child<LLMediaCtrl>(this, "login_html");
     web_browser->addObserver(this);
 
     loadLoginPage();
 
-    LLComboBox* username_combo(getChild<LLComboBox>("username_combo"));
+    LLComboBox* username_combo(get_owner_child<LLComboBox>(this, "username_combo"));
     username_combo->setTextChangedCallback(boost::bind(&LLPanelLogin::onUserNameTextEnty, this));
     // STEAM-14: When user presses Enter with this field in focus, initiate login
     username_combo->setCommitCallback(boost::bind(&LLPanelLogin::onUserListCommit, this));
@@ -325,9 +350,9 @@ LLPanelLogin::LLPanelLogin(const LLRect &rect,
     username_combo->setKeystrokeOnEsc(true);
 
 
-    LLCheckBoxCtrl* remember_name = getChild<LLCheckBoxCtrl>("remember_name");
+    LLCheckBoxCtrl* remember_name = get_owner_child<LLCheckBoxCtrl>(this, "remember_name");
     remember_name->setCommitCallback(boost::bind(&LLPanelLogin::onRememberUserCheck, this));
-    getChild<LLCheckBoxCtrl>("remember_password")->setCommitCallback(boost::bind(&LLPanelLogin::onRememberPasswordCheck, this));
+    get_owner_child<LLCheckBoxCtrl>(this, "remember_password")->setCommitCallback(boost::bind(&LLPanelLogin::onRememberPasswordCheck, this));
 }
 
 void LLPanelLogin::addFavoritesToStartLocation()
@@ -335,14 +360,14 @@ void LLPanelLogin::addFavoritesToStartLocation()
     if (mFirstLoginThisInstall)
     {
         // first login panel has no favorites, just update name length and buttons
-        std::string user_defined_name = getChild<LLComboBox>("username_combo")->getSimple();
+        std::string user_defined_name = get_owner_child<LLComboBox>(this, "username_combo")->getSimple();
         mUsernameLength = static_cast<unsigned int>(user_defined_name.length());
         updateLoginButtons();
         return;
     }
 
     // Clear the combo.
-    LLComboBox* combo = getChild<LLComboBox>("start_location_combo");
+    LLComboBox* combo = get_owner_child<LLComboBox>(this, "start_location_combo");
     if (!combo) return;
     int num_items = combo->getItemCount();
     for (int i = num_items - 1; i > 1; i--)
@@ -351,7 +376,7 @@ void LLPanelLogin::addFavoritesToStartLocation()
     }
 
     // Load favorites into the combo.
-    std::string user_defined_name = getChild<LLComboBox>("username_combo")->getSimple();
+    std::string user_defined_name = get_owner_child<LLComboBox>(this, "username_combo")->getSimple();
     LLStringUtil::trim(user_defined_name);
     LLStringUtil::toLower(user_defined_name);
     std::string filename = gDirUtilp->getExpandedFilename(LL_PATH_USER_SETTINGS, "stored_favorites_" + LLGridManager::getInstance()->getGrid() + ".xml");
@@ -410,7 +435,7 @@ void LLPanelLogin::addFavoritesToStartLocation()
                 gSavedSettings.setBOOL("RememberPassword", save_password);
                 if (!save_password)
                 {
-                    getChild<LLButton>("connect_btn")->setEnabled(false);
+                    get_owner_child<LLButton>(this, "connect_btn")->setEnabled(false);
                 }
                 update_password_setting = false;
             }
@@ -473,8 +498,8 @@ void LLPanelLogin::giveFocus()
     if( sInstance )
     {
         // Grab focus and move cursor to first blank input field
-        std::string username = sInstance->getChild<LLUICtrl>("username_combo")->getValue().asString();
-        std::string pass = sInstance->getChild<LLUICtrl>("password_edit")->getValue().asString();
+        std::string username = get_owner_child<LLUICtrl>(sInstance, "username_combo")->getValue().asString();
+        std::string pass = get_owner_child<LLUICtrl>(sInstance, "password_edit")->getValue().asString();
 
         bool have_username = !username.empty();
         bool have_pass = !pass.empty();
@@ -485,12 +510,12 @@ void LLPanelLogin::giveFocus()
         {
             // User saved his name but not his password.  Move
             // focus to password field.
-            edit = sInstance->getChild<LLLineEditor>("password_edit");
+            edit = get_owner_child<LLLineEditor>(sInstance, "password_edit");
         }
         else
         {
             // User doesn't have a name, so start there.
-            combo = sInstance->getChild<LLComboBox>("username_combo");
+            combo = get_owner_child<LLComboBox>(sInstance, "username_combo");
         }
 
         if (edit)
@@ -544,8 +569,8 @@ void LLPanelLogin::populateFields(LLPointer<LLCredential> credential, bool remem
         return;
     }
 
-    sInstance->getChild<LLUICtrl>("remember_name")->setValue(remember_user);
-    LLUICtrl* remember_password = sInstance->getChild<LLUICtrl>("remember_password");
+    get_owner_child<LLUICtrl>(sInstance, "remember_name")->setValue(remember_user);
+    LLUICtrl* remember_password = get_owner_child<LLUICtrl>(sInstance, "remember_password");
     remember_password->setValue(remember_user && remember_psswrd);
     remember_password->setEnabled(remember_user);
     sInstance->populateUserList(credential);
@@ -597,18 +622,18 @@ void LLPanelLogin::setFields(LLPointer<LLCredential> credential)
             login_id += " ";
             login_id += lastname;
         }
-        sInstance->getChild<LLComboBox>("username_combo")->setLabel(login_id);
+        get_owner_child<LLComboBox>(sInstance, "username_combo")->setLabel(login_id);
         sInstance->mUsernameLength = static_cast<unsigned int>(login_id.length());
     }
     else if(identifier.has("type") && (std::string)identifier["type"] == "account")
     {
         std::string login_id = identifier["account_name"].asString();
-        sInstance->getChild<LLComboBox>("username_combo")->setLabel(login_id);
+        get_owner_child<LLComboBox>(sInstance, "username_combo")->setLabel(login_id);
         sInstance->mUsernameLength = static_cast<unsigned int>(login_id.length());
     }
     else
     {
-        sInstance->getChild<LLComboBox>("username_combo")->setLabel(std::string());
+        get_owner_child<LLComboBox>(sInstance, "username_combo")->setLabel(std::string());
         sInstance->mUsernameLength = 0;
     }
 
@@ -627,13 +652,13 @@ void LLPanelLogin::setFields(LLPointer<LLCredential> credential)
         // fill it with MAX_PASSWORD characters so we get a
         // nice row of asterisks.
         const std::string filler("123456789!123456");
-        sInstance->getChild<LLUICtrl>("password_edit")->setValue(filler);
+        get_owner_child<LLUICtrl>(sInstance, "password_edit")->setValue(filler);
         sInstance->mPasswordLength = static_cast<unsigned int>(filler.length());
         sInstance->updateLoginButtons();
     }
     else
     {
-        sInstance->getChild<LLUICtrl>("password_edit")->setValue(std::string());
+        get_owner_child<LLUICtrl>(sInstance, "password_edit")->setValue(std::string());
         sInstance->mPasswordLength = 0;
     }
 }
@@ -652,8 +677,8 @@ void LLPanelLogin::getFields(LLPointer<LLCredential>& credential,
     LLSD identifier = LLSD::emptyMap();
     LLSD authenticator = LLSD::emptyMap();
 
-    std::string username = sInstance->getChild<LLComboBox>("username_combo")->getSimple();
-    std::string password = sInstance->getChild<LLUICtrl>("password_edit")->getValue().asString();
+    std::string username = get_owner_child<LLComboBox>(sInstance, "username_combo")->getSimple();
+    std::string password = get_owner_child<LLUICtrl>(sInstance, "password_edit")->getValue().asString();
     LLStringUtil::trim(username);
 
     LL_INFOS("Credentials", "Authentication") << "retrieving username:" << username << LL_ENDL;
@@ -710,8 +735,8 @@ void LLPanelLogin::getFields(LLPointer<LLCredential>& credential,
     }
     credential = gSecAPIHandler->createCredential(LLGridManager::getInstance()->getGrid(), identifier, authenticator);
 
-    remember_psswrd = sInstance->getChild<LLUICtrl>("remember_password")->getValue();
-    remember_user = sInstance->getChild<LLUICtrl>("remember_name")->getValue();
+    remember_psswrd = get_owner_child<LLUICtrl>(sInstance, "remember_password")->getValue();
+    remember_user = get_owner_child<LLUICtrl>(sInstance, "remember_name")->getValue();
 }
 
 
@@ -724,12 +749,12 @@ bool LLPanelLogin::areCredentialFieldsDirty()
     }
     else
     {
-        LLComboBox* combo = sInstance->getChild<LLComboBox>("username_combo");
+        LLComboBox* combo = get_owner_child<LLComboBox>(sInstance, "username_combo");
         if (combo && combo->getCurrentIndex() == -1 && !combo->getValue().asString().empty())
         {
             return true;
         }
-        LLLineEditor* ctrl = sInstance->getChild<LLLineEditor>("password_edit");
+        LLLineEditor* ctrl = get_owner_child<LLLineEditor>(sInstance, "password_edit");
         if(ctrl && ctrl->isDirty())
         {
             return true;
@@ -745,7 +770,7 @@ void LLPanelLogin::updateLocationSelectorsVisibility()
     if (sInstance)
     {
         bool show_server = gSavedSettings.getBOOL("ForceShowGrid");
-        LLComboBox* server_combo = sInstance->getChild<LLComboBox>("server_combo");
+        LLComboBox* server_combo = get_owner_child<LLComboBox>(sInstance, "server_combo");
         if ( server_combo )
         {
             server_combo->setVisible(show_server);
@@ -760,7 +785,7 @@ void LLPanelLogin::onUpdateStartSLURL(const LLSLURL& new_start_slurl)
 
     LL_DEBUGS("AppInit")<<new_start_slurl.asString()<<LL_ENDL;
 
-    LLComboBox* location_combo = sInstance->getChild<LLComboBox>("start_location_combo");
+    LLComboBox* location_combo = get_owner_child<LLComboBox>(sInstance, "start_location_combo");
     /*
      * Determine whether or not the new_start_slurl modifies the grid.
      *
@@ -784,7 +809,7 @@ void LLPanelLogin::onUpdateStartSLURL(const LLSLURL& new_start_slurl)
                 LLGridManager::getInstance()->setGridChoice(slurl_grid);
 
                 // update the grid selector to match the slurl
-                LLComboBox* server_combo = sInstance->getChild<LLComboBox>("server_combo");
+                LLComboBox* server_combo = get_owner_child<LLComboBox>(sInstance, "server_combo");
                 std::string server_label(LLGridManager::getInstance()->getGridLabel(slurl_grid));
                 server_combo->setSimple(server_label);
 
@@ -861,7 +886,7 @@ void LLPanelLogin::setAlwaysRefresh(bool refresh)
 {
     if (sInstance && LLStartUp::getStartupState() < STATE_LOGIN_CLEANUP)
     {
-        LLMediaCtrl* web_browser = sInstance->getChild<LLMediaCtrl>("login_html");
+        LLMediaCtrl* web_browser = get_owner_child<LLMediaCtrl>(sInstance, "login_html");
 
         if (web_browser)
         {
@@ -922,7 +947,7 @@ void LLPanelLogin::loadLoginPage()
 
     gViewerWindow->setMenuBackgroundColor(false, !LLGridManager::getInstance()->isInProductionGrid());
 
-    LLMediaCtrl* web_browser = sInstance->getChild<LLMediaCtrl>("login_html");
+    LLMediaCtrl* web_browser = get_owner_child<LLMediaCtrl>(sInstance, "login_html");
     if (web_browser->getCurrentNavUrl() != login_uri.asString())
     {
         LL_DEBUGS("AppInit") << "loading:    " << login_uri << LL_ENDL;
@@ -965,7 +990,7 @@ void LLPanelLogin::onClickConnect(bool commit_fields)
             sInstance->setFocus(false);
         }
 
-        LLComboBox* combo = sInstance->getChild<LLComboBox>("server_combo");
+        LLComboBox* combo = get_owner_child<LLComboBox>(sInstance, "server_combo");
         LLSD combo_val = combo->getSelectedValue();
 
         // the grid definitions may come from a user-supplied grids.xml, so they may not be good
@@ -984,8 +1009,8 @@ void LLPanelLogin::onClickConnect(bool commit_fields)
 
         // The start location SLURL has already been sent to LLStartUp::setStartSLURL
 
-        std::string username = sInstance->getChild<LLUICtrl>("username_combo")->getValue().asString();
-        std::string password = sInstance->getChild<LLUICtrl>("password_edit")->getValue().asString();
+        std::string username = get_owner_child<LLUICtrl>(sInstance, "username_combo")->getValue().asString();
+        std::string password = get_owner_child<LLUICtrl>(sInstance, "password_edit")->getValue().asString();
 
         if(username.empty())
         {
@@ -1058,7 +1083,7 @@ void LLPanelLogin::onClickSignUp(void*)
 void LLPanelLogin::onUserNameTextEnty(void*)
 {
     sInstance->mPasswordModified = true;
-    sInstance->getChild<LLUICtrl>("password_edit")->setValue(std::string());
+    get_owner_child<LLUICtrl>(sInstance, "password_edit")->setValue(std::string());
     sInstance->mPasswordLength = 0;
     sInstance->addFavoritesToStartLocation(); //will call updateLoginButtons()
 }
@@ -1068,7 +1093,7 @@ void LLPanelLogin::onUserListCommit(void*)
 {
     if (sInstance)
     {
-        LLComboBox* username_combo(sInstance->getChild<LLComboBox>("username_combo"));
+        LLComboBox* username_combo(get_owner_child<LLComboBox>(sInstance, "username_combo"));
         static S32 ind = -1;
         if (ind != username_combo->getCurrentIndex())
         {
@@ -1079,7 +1104,7 @@ void LLPanelLogin::onUserListCommit(void*)
         }
         else
         {
-           std::string pass = sInstance->getChild<LLUICtrl>("password_edit")->getValue().asString();
+           std::string pass = get_owner_child<LLUICtrl>(sInstance, "password_edit")->getValue().asString();
            if (pass.empty())
            {
                sInstance->giveFocus();
@@ -1097,9 +1122,9 @@ void LLPanelLogin::onRememberUserCheck(void*)
 {
     if (sInstance)
     {
-        LLCheckBoxCtrl* remember_name(sInstance->getChild<LLCheckBoxCtrl>("remember_name"));
-        LLCheckBoxCtrl* remember_psswrd(sInstance->getChild<LLCheckBoxCtrl>("remember_password"));
-        LLComboBox* user_combo(sInstance->getChild<LLComboBox>("username_combo"));
+        LLCheckBoxCtrl* remember_name(get_owner_child<LLCheckBoxCtrl>(sInstance, "remember_name"));
+        LLCheckBoxCtrl* remember_psswrd(get_owner_child<LLCheckBoxCtrl>(sInstance, "remember_password"));
+        LLComboBox* user_combo(get_owner_child<LLComboBox>(sInstance, "username_combo"));
 
         bool remember = remember_name->getValue().asBoolean();
         if (!sInstance->mFirstLoginThisInstall
@@ -1144,7 +1169,7 @@ void LLPanelLogin::onPassKey(LLLineEditor* caller, void* user_data)
         sCapslockDidNotification = true;
     }
 
-    LLLineEditor* password_edit(self->getChild<LLLineEditor>("password_edit"));
+    LLLineEditor* password_edit(get_owner_child<LLLineEditor>(self, "password_edit"));
     self->mPasswordLength = static_cast<unsigned int>(password_edit->getText().length());
     self->updateLoginButtons();
 }
@@ -1165,8 +1190,8 @@ void LLPanelLogin::updateServer()
             if (sInstance->areCredentialFieldsDirty())
             {
                 // save modified creds
-                LLComboBox* user_combo = sInstance->getChild<LLComboBox>("username_combo");
-                LLLineEditor* pswd_edit = sInstance->getChild<LLLineEditor>("password_edit");
+                LLComboBox* user_combo = get_owner_child<LLComboBox>(sInstance, "username_combo");
+                LLLineEditor* pswd_edit = get_owner_child<LLLineEditor>(sInstance, "password_edit");
                 std::string username = user_combo->getSimple();
                 LLStringUtil::trim(username);
                 std::string password = pswd_edit->getValue().asString();
@@ -1195,8 +1220,8 @@ void LLPanelLogin::updateServer()
 
             // Want to vanish not only create_new_account_btn, but also the
             // title text over it, so turn on/off the whole layout_panel element.
-            sInstance->getChild<LLLayoutPanel>("links")->setVisible(system_grid);
-            sInstance->getChildView("forgot_password_text")->setVisible(system_grid);
+            get_owner_child<LLLayoutPanel>(sInstance, "links")->setVisible(system_grid);
+            get_owner_view(sInstance, "forgot_password_text")->setVisible(system_grid);
 
             // grid changed so show new splash screen (possibly)
             loadLoginPage();
@@ -1214,18 +1239,18 @@ void LLPanelLogin::updateServer()
 
 void LLPanelLogin::updateLoginButtons()
 {
-    LLButton* login_btn = getChild<LLButton>("connect_btn");
+    LLButton* login_btn = get_owner_child<LLButton>(this, "connect_btn");
 
     login_btn->setEnabled(mUsernameLength != 0 && mPasswordLength != 0);
 
     if (!mFirstLoginThisInstall)
     {
-        LLComboBox* user_combo = getChild<LLComboBox>("username_combo");
-        LLCheckBoxCtrl* remember_name = getChild<LLCheckBoxCtrl>("remember_name");
+        LLComboBox* user_combo = get_owner_child<LLComboBox>(this, "username_combo");
+        LLCheckBoxCtrl* remember_name = get_owner_child<LLCheckBoxCtrl>(this, "remember_name");
         if (user_combo->getCurrentIndex() != -1)
         {
             remember_name->setValue(true);
-            LLCheckBoxCtrl* remember_pass = getChild<LLCheckBoxCtrl>("remember_password");
+            LLCheckBoxCtrl* remember_pass = get_owner_child<LLCheckBoxCtrl>(this, "remember_password");
             remember_pass->setEnabled(true);
         } // Note: might be good idea to do "else remember_name->setValue(mRememberedState)" but it might behave 'weird' to user
     }
@@ -1233,11 +1258,11 @@ void LLPanelLogin::updateLoginButtons()
 
 void LLPanelLogin::populateUserList(LLPointer<LLCredential> credential)
 {
-    LLComboBox* user_combo = getChild<LLComboBox>("username_combo");
+    LLComboBox* user_combo = get_owner_child<LLComboBox>(this, "username_combo");
     user_combo->removeall();
     user_combo->clear();
     user_combo->setValue(std::string());
-    getChild<LLUICtrl>("password_edit")->setValue(std::string());
+    get_owner_child<LLUICtrl>(this, "password_edit")->setValue(std::string());
     mUsernameLength = 0;
     mPasswordLength = 0;
 
@@ -1296,7 +1321,7 @@ void LLPanelLogin::onSelectServer()
 {
     // The user twiddled with the grid choice ui.
     // apply the selection to the grid setting.
-    LLComboBox* server_combo = getChild<LLComboBox>("server_combo");
+    LLComboBox* server_combo = get_owner_child<LLComboBox>(this, "server_combo");
     LLSD server_combo_val = server_combo->getSelectedValue();
     LL_INFOS("AppInit") << "grid "<<server_combo_val.asString()<< LL_ENDL;
     LLGridManager::getInstance()->setGridChoice(server_combo_val.asString());
@@ -1312,7 +1337,7 @@ void LLPanelLogin::onSelectServer()
      * https://grid.example.com/region/Party%20Town/20/30/5 specify a particular
      * grid; in those cases we want to clear the location.
      */
-    LLComboBox* location_combo = getChild<LLComboBox>("start_location_combo");
+    LLComboBox* location_combo = get_owner_child<LLComboBox>(this, "start_location_combo");
     S32 index = location_combo->getCurrentIndex();
     switch (index)
     {
@@ -1345,7 +1370,7 @@ void LLPanelLogin::onSelectServer()
 
 void LLPanelLogin::onLocationSLURL()
 {
-    LLComboBox* location_combo = getChild<LLComboBox>("start_location_combo");
+    LLComboBox* location_combo = get_owner_child<LLComboBox>(this, "start_location_combo");
     std::string location = location_combo->getValue().asString();
     LL_DEBUGS("AppInit")<<location<<LL_ENDL;
 

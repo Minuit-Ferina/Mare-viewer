@@ -44,6 +44,31 @@
 #include "llfloaterimsession.h"
 #include "llavataractions.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const S32 BOTTOM_PAD = VPAD * 3;
 const S32 IGNORE_BTN_TOP_DELTA = 3*VPAD;//additional ignore_btn padding
 S32 BUTTON_WIDTH = 90;
@@ -274,9 +299,9 @@ void LLToastNotifyPanel::init( LLRect rect, bool show_images )
     {
         this->setShape(rect);
     }
-    mInfoPanel = getChild<LLPanel>("info_panel");
+    mInfoPanel = get_owner_child<LLPanel>(this, "info_panel");
 
-    mControlPanel = getChild<LLPanel>("control_panel");
+    mControlPanel = get_owner_child<LLPanel>(this, "control_panel");
     BUTTON_WIDTH = gSavedSettings.getS32("ToastButtonWidth");
     // customize panel's attributes
     // is it intended for displaying a tip?
@@ -314,12 +339,12 @@ void LLToastNotifyPanel::init( LLRect rect, bool show_images )
     std::string fontSize = (mIsScriptDialog && gSavedSettings.getBOOL("KokuaSmallScriptDialogTextFont")) ? "Small" : "Medium";
     if (mIsCaution && !mIsTip)
     {
-        mTextBox = getChild<LLTextBox>("caution_text_box");
+        mTextBox = get_owner_child<LLTextBox>(this, "caution_text_box");
         mTextBox->setFont(LLFontGL::getFont(LLFontDescriptor(mIsScriptDialog ? sFontScript : sFontDefault, fontSize, LLFontGL::BOLD)));
     }
     else
     {
-        mTextBox = getChild<LLTextEditor>("text_editor_box");
+        mTextBox = get_owner_child<LLTextEditor>(this, "text_editor_box");
         mTextBox->setFont(LLFontGL::getFont(LLFontDescriptor(mIsScriptDialog ? sFontScript : sFontDefault, fontSize, 0)));
     }
 

@@ -78,6 +78,31 @@
 
 #include "llavatarappearancedefines.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 //static
 bool get_is_predefined_texture(LLUUID asset_id)
@@ -568,20 +593,20 @@ bool LLFloaterTexturePicker::postBuild()
 
         setTitle(pick + mLabel);
     }
-    mTentativeLabel = getChild<LLTextBox>("Multiple");
+    mTentativeLabel = get_owner_child<LLTextBox>(this, "Multiple");
 
-    mResolutionLabel = getChild<LLTextBox>("size_lbl");
-    mResolutionWarning = getChild<LLTextBox>("over_limit_lbl");
+    mResolutionLabel = get_owner_child<LLTextBox>(this, "size_lbl");
+    mResolutionWarning = get_owner_child<LLTextBox>(this, "over_limit_lbl");
 
-    mPreviewWidget = getChild<LLView>("preview_widget");
+    mPreviewWidget = get_owner_child<LLView>(this, "preview_widget");
 
-    mDefaultBtn = getChild<LLButton>("Default");
-    mNoneBtn = getChild<LLButton>("None");
-    mBlankBtn = getChild<LLButton>("Blank");
-    mPipetteBtn = getChild<LLButton>("Pipette");
-    mSelectBtn = getChild<LLButton>("Select");
-    mCancelBtn = getChild<LLButton>("Cancel");
-    mTransBtn = getChild<LLButton>("Trans");
+    mDefaultBtn = get_owner_child<LLButton>(this, "Default");
+    mNoneBtn = get_owner_child<LLButton>(this, "None");
+    mBlankBtn = get_owner_child<LLButton>(this, "Blank");
+    mPipetteBtn = get_owner_child<LLButton>(this, "Pipette");
+    mSelectBtn = get_owner_child<LLButton>(this, "Select");
+    mCancelBtn = get_owner_child<LLButton>(this, "Cancel");
+    mTransBtn = get_owner_child<LLButton>(this, "Trans");
 
     mDefaultBtn->setClickedCallback(boost::bind(LLFloaterTexturePicker::onBtnSetToDefault,this));
     mNoneBtn->setClickedCallback(boost::bind(LLFloaterTexturePicker::onBtnNone, this));
@@ -591,12 +616,12 @@ bool LLFloaterTexturePicker::postBuild()
     mCancelBtn->setClickedCallback(boost::bind(LLFloaterTexturePicker::onBtnCancel, this));
     mTransBtn->setClickedCallback(boost::bind(LLFloaterTexturePicker::onBtnTrans, this));
 
-    mFilterEdit = getChild<LLFilterEditor>("inventory search editor");
+    mFilterEdit = get_owner_child<LLFilterEditor>(this, "inventory search editor");
     mFilterEdit->setCommitCallback(boost::bind(&LLFloaterTexturePicker::onFilterEdit, this, _2));
 
-    mInventoryPanel = getChild<LLInventoryPanel>("inventory panel");
+    mInventoryPanel = get_owner_child<LLInventoryPanel>(this, "inventory panel");
 
-    mModeSelector = getChild<LLComboBox>("mode_selection");
+    mModeSelector = get_owner_child<LLComboBox>(this, "mode_selection");
     mModeSelector->setCommitCallback(onModeSelect, this);
     mModeSelector->selectByValue(0);
 
@@ -652,7 +677,7 @@ bool LLFloaterTexturePicker::postBuild()
     childSetAction("l_rem_btn", LLFloaterTexturePicker::onBtnRemove, this);
     childSetAction("l_upl_btn", LLFloaterTexturePicker::onBtnUpload, this);
 
-    mLocalScrollCtrl = getChild<LLScrollListCtrl>("l_name_list");
+    mLocalScrollCtrl = get_owner_child<LLScrollListCtrl>(this, "l_name_list");
     mLocalScrollCtrl->setCommitCallback(onLocalScrollCommit, this);
     refreshLocalList();
 
@@ -661,7 +686,7 @@ bool LLFloaterTexturePicker::postBuild()
     syncApplyImmediatelyControl();
     childSetCommitCallback("apply_immediate_check", onApplyImmediateCheck, this);
 
-    getChild<LLUICtrl>("Pipette")->setCommitCallback( boost::bind(&LLFloaterTexturePicker::onBtnPipette, this));
+    get_owner_child<LLUICtrl>(this, "Pipette")->setCommitCallback( boost::bind(&LLFloaterTexturePicker::onBtnPipette, this));
     childSetAction("Cancel", LLFloaterTexturePicker::onBtnCancel,this);
     childSetAction("Select", LLFloaterTexturePicker::onBtnSelect,this);
 
@@ -669,7 +694,7 @@ bool LLFloaterTexturePicker::postBuild()
 
     LLToolPipette::getInstance()->setToolSelectCallback(boost::bind(&LLFloaterTexturePicker::onTextureSelect, this, _1));
 
-    getChild<LLComboBox>("l_bake_use_texture_combo_box")->setCommitCallback(onBakeTextureSelect, this);
+    get_owner_child<LLComboBox>(this, "l_bake_use_texture_combo_box")->setCommitCallback(onBakeTextureSelect, this);
 
     setBakeTextureEnabled(mInventoryPickType != PICK_MATERIAL);
     return true;
@@ -845,17 +870,17 @@ void LLFloaterTexturePicker::getPreviewWidgetDrawRects(LLRect& border, LLRect& i
 
 bool LLFloaterTexturePicker::isPipetteControlChecked() const
 {
-    return getChild<LLUICtrl>("Pipette")->getValue().asBoolean();
+    return get_owner_child<LLUICtrl>(this, "Pipette")->getValue().asBoolean();
 }
 
 void LLFloaterTexturePicker::setApplyImmediatelyControlValue(bool value)
 {
-    getChild<LLUICtrl>("apply_immediate_check")->setValue(value);
+    get_owner_child<LLUICtrl>(this, "apply_immediate_check")->setValue(value);
 }
 
 void LLFloaterTexturePicker::syncApplyImmediatelyControl()
 {
-    LLUICtrl* apply_checkbox = getChild<LLUICtrl>("apply_immediate_check");
+    LLUICtrl* apply_checkbox = get_owner_child<LLUICtrl>(this, "apply_immediate_check");
     apply_checkbox->setValue(mCanApplyImmediately && gSavedSettings.getBOOL("TextureLivePreview"));
     apply_checkbox->setEnabled(mCanApplyImmediately);
 }
@@ -1220,8 +1245,8 @@ void LLFloaterTexturePicker::onBtnRemove(void* userdata)
             }
         }
 
-        self->getChild<LLButton>("l_rem_btn")->setEnabled(false);
-        self->getChild<LLButton>("l_upl_btn")->setEnabled(false);
+        get_owner_child<LLButton>(self, "l_rem_btn")->setEnabled(false);
+        get_owner_child<LLButton>(self, "l_upl_btn")->setEnabled(false);
         self->refreshLocalList();
     }
 }
@@ -1271,8 +1296,8 @@ void LLFloaterTexturePicker::onLocalScrollCommit(LLUICtrl* ctrl, void* userdata)
     std::vector<LLScrollListItem*> selected_items = self->mLocalScrollCtrl->getAllSelected();
     bool has_selection = !selected_items.empty();
 
-    self->getChild<LLButton>("l_rem_btn")->setEnabled(has_selection);
-    self->getChild<LLButton>("l_upl_btn")->setEnabled(has_selection && (selected_items.size() < 2));
+    get_owner_child<LLButton>(self, "l_rem_btn")->setEnabled(has_selection);
+    get_owner_child<LLButton>(self, "l_upl_btn")->setEnabled(has_selection && (selected_items.size() < 2));
     /* since multiple-localbitmap upload is not implemented, upl button gets disabled if more than one is selected. */
 
     if (has_selection)
@@ -1457,13 +1482,13 @@ void LLFloaterTexturePicker::changeMode()
     mFilterEdit->setVisible(index == PICKER_INVENTORY);
     mInventoryPanel->setVisible(index == PICKER_INVENTORY);
 
-    getChild<LLButton>("l_add_btn")->setVisible(index == PICKER_LOCAL);
-    getChild<LLButton>("l_rem_btn")->setVisible(index == PICKER_LOCAL);
-    getChild<LLButton>("l_upl_btn")->setVisible(index == PICKER_LOCAL);
-    getChild<LLScrollListCtrl>("l_name_list")->setVisible(index == PICKER_LOCAL);
+    get_owner_child<LLButton>(this, "l_add_btn")->setVisible(index == PICKER_LOCAL);
+    get_owner_child<LLButton>(this, "l_rem_btn")->setVisible(index == PICKER_LOCAL);
+    get_owner_child<LLButton>(this, "l_upl_btn")->setVisible(index == PICKER_LOCAL);
+    get_owner_child<LLScrollListCtrl>(this, "l_name_list")->setVisible(index == PICKER_LOCAL);
 
-    getChild<LLComboBox>("l_bake_use_texture_combo_box")->setVisible(index == PICKER_BAKE);
-    getChild<LLCheckBoxCtrl>("hide_base_mesh_region")->setVisible(false);// index == 2);
+    get_owner_child<LLComboBox>(this, "l_bake_use_texture_combo_box")->setVisible(index == PICKER_BAKE);
+    get_owner_child<LLCheckBoxCtrl>(this, "hide_base_mesh_region")->setVisible(false);// index == 2);
 
     bool pipette_visible = (index == PICKER_INVENTORY)
         && (mInventoryPickType != PICK_MATERIAL);
@@ -1521,7 +1546,7 @@ void LLFloaterTexturePicker::changeMode()
             val = 10;
         }
 
-        getChild<LLComboBox>("l_bake_use_texture_combo_box")->setSelectedByValue(val, true);
+        get_owner_child<LLComboBox>(this, "l_bake_use_texture_combo_box")->setSelectedByValue(val, true);
     }
 }
 
@@ -1608,12 +1633,12 @@ void LLFloaterTexturePicker::setInventoryPickType(EPickInventoryType type)
 
     if (mInventoryPickType == PICK_MATERIAL)
     {
-        getChild<LLButton>("Pipette")->setVisible(false);
+        get_owner_child<LLButton>(this, "Pipette")->setVisible(false);
     }
     else
     {
         S32 index = mModeSelector->getValue().asInteger();
-        getChild<LLButton>("Pipette")->setVisible(index == 0);
+        get_owner_child<LLButton>(this, "Pipette")->setVisible(index == 0);
     }
 
     if (!mLabel.empty())

@@ -40,6 +40,31 @@
 
 //MK
 #include "llagent.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 //mk
 /**
  * Posts a snapshot to My Profile feed.
@@ -91,13 +116,13 @@ void LLPanelSnapshotProfile::onOpen(const LLSD& key)
 void LLPanelSnapshotProfile::updateControls(const LLSD& info)
 {
     const bool have_snapshot = info.has("have-snapshot") ? info["have-snapshot"].asBoolean() : true;
-    getChild<LLUICtrl>("post_btn")->setEnabled(have_snapshot);
+    get_owner_child<LLUICtrl>(this, "post_btn")->setEnabled(have_snapshot);
 }
 
 void LLPanelSnapshotProfile::onSend()
 {
-    std::string caption = getChild<LLUICtrl>("caption")->getValue().asString();
-    bool add_location = getChild<LLUICtrl>("add_location_cb")->getValue().asBoolean();
+    std::string caption = get_owner_child<LLUICtrl>(this, "caption")->getValue().asString();
+    bool add_location = get_owner_child<LLUICtrl>(this, "add_location_cb")->getValue().asBoolean();
 
 //MK
     if (gRRenabled && gAgent.mRRInterface.mContainsShowloc)

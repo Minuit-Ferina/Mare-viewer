@@ -46,6 +46,31 @@
 
 #include <boost/regex.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 /**
  * Sends postcard via email.
  */
@@ -95,11 +120,11 @@ LLPanelSnapshotPostcard::LLPanelSnapshotPostcard()
 bool LLPanelSnapshotPostcard::postBuild()
 {
     // For the first time a user focuses to .the msg box, all text will be selected.
-    getChild<LLUICtrl>("msg_form")->setFocusChangedCallback(boost::bind(&LLPanelSnapshotPostcard::onMsgFormFocusRecieved, this));
+    get_owner_child<LLUICtrl>(this, "msg_form")->setFocusChangedCallback(boost::bind(&LLPanelSnapshotPostcard::onMsgFormFocusRecieved, this));
 
-    getChild<LLUICtrl>("to_form")->setFocus(true);
+    get_owner_child<LLUICtrl>(this, "to_form")->setFocus(true);
 
-    getChild<LLUICtrl>("image_quality_slider")->setCommitCallback(boost::bind(&LLPanelSnapshotPostcard::onQualitySliderCommit, this, _1));
+    get_owner_child<LLUICtrl>(this, "image_quality_slider")->setCommitCallback(boost::bind(&LLPanelSnapshotPostcard::onQualitySliderCommit, this, _1));
 
     return LLPanelSnapshot::postBuild();
 }
@@ -107,12 +132,12 @@ bool LLPanelSnapshotPostcard::postBuild()
 // virtual
 void LLPanelSnapshotPostcard::onOpen(const LLSD& key)
 {
-    LLUICtrl* name_form = getChild<LLUICtrl>("name_form");
+    LLUICtrl* name_form = get_owner_child<LLUICtrl>(this, "name_form");
     if (name_form && name_form->getValue().asString().empty())
     {
         std::string name_string;
         LLAgentUI::buildFullname(name_string);
-        getChild<LLUICtrl>("name_form")->setValue(LLSD(name_string));
+        get_owner_child<LLUICtrl>(this, "name_form")->setValue(LLSD(name_string));
     }
 
     LLPanelSnapshot::onOpen(key);
@@ -121,11 +146,11 @@ void LLPanelSnapshotPostcard::onOpen(const LLSD& key)
 // virtual
 void LLPanelSnapshotPostcard::updateControls(const LLSD& info)
 {
-    getChild<LLUICtrl>("image_quality_slider")->setValue(gSavedSettings.getS32("SnapshotQuality"));
+    get_owner_child<LLUICtrl>(this, "image_quality_slider")->setValue(gSavedSettings.getS32("SnapshotQuality"));
     updateImageQualityLevel();
 
     const bool have_snapshot = info.has("have-snapshot") ? info["have-snapshot"].asBoolean() : true;
-    getChild<LLUICtrl>("send_btn")->setEnabled(have_snapshot);
+    get_owner_child<LLUICtrl>(this, "send_btn")->setEnabled(have_snapshot);
 }
 
 bool LLPanelSnapshotPostcard::missingSubjMsgAlertCallback(const LLSD& notification, const LLSD& response)
@@ -134,17 +159,17 @@ bool LLPanelSnapshotPostcard::missingSubjMsgAlertCallback(const LLSD& notificati
     if(0 == option)
     {
         // User clicked OK
-        if((getChild<LLUICtrl>("subject_form")->getValue().asString()).empty())
+        if((get_owner_child<LLUICtrl>(this, "subject_form")->getValue().asString()).empty())
         {
             // Stuff the subject back into the form.
-            getChild<LLUICtrl>("subject_form")->setValue(getString("default_subject"));
+            get_owner_child<LLUICtrl>(this, "subject_form")->setValue(getString("default_subject"));
         }
 
         if (!mHasFirstMsgFocus)
         {
             // The user never switched focus to the message window.
             // Using the default string.
-            getChild<LLUICtrl>("msg_form")->setValue(getString("default_message"));
+            get_owner_child<LLUICtrl>(this, "msg_form")->setValue(getString("default_message"));
         }
 
         sendPostcard();
@@ -172,10 +197,10 @@ void LLPanelSnapshotPostcard::sendPostcard()
     if (!url.empty())
     {
         LLResourceUploadInfo::ptr_t uploadInfo(std::make_shared<LLPostcardUploadInfo>(
-            getChild<LLUICtrl>("name_form")->getValue().asString(),
-            getChild<LLUICtrl>("to_form")->getValue().asString(),
-            getChild<LLUICtrl>("subject_form")->getValue().asString(),
-            getChild<LLUICtrl>("msg_form")->getValue().asString(),
+            get_owner_child<LLUICtrl>(this, "name_form")->getValue().asString(),
+            get_owner_child<LLUICtrl>(this, "to_form")->getValue().asString(),
+            get_owner_child<LLUICtrl>(this, "subject_form")->getValue().asString(),
+            get_owner_child<LLUICtrl>(this, "msg_form")->getValue().asString(),
             mSnapshotFloater->getPosTakenGlobal(),
             mSnapshotFloater->getImageData(),
             [](LLUUID, LLUUID, LLUUID, LLSD response) {
@@ -198,7 +223,7 @@ void LLPanelSnapshotPostcard::sendPostcard()
 
 void LLPanelSnapshotPostcard::onMsgFormFocusRecieved()
 {
-    LLTextEditor* msg_form = getChild<LLTextEditor>("msg_form");
+    LLTextEditor* msg_form = get_owner_child<LLTextEditor>(this, "msg_form");
     if (msg_form->hasFocus() && !mHasFirstMsgFocus)
     {
         mHasFirstMsgFocus = true;
@@ -226,7 +251,7 @@ void LLPanelSnapshotPostcard::onQualitySliderCommit(LLUICtrl* ctrl)
 void LLPanelSnapshotPostcard::onSend()
 {
     // Validate input.
-    std::string to(getChild<LLUICtrl>("to_form")->getValue().asString());
+    std::string to(get_owner_child<LLUICtrl>(this, "to_form")->getValue().asString());
 
     boost::regex email_format("[A-Za-z0-9.%+-_]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(,[ \t]*[A-Za-z0-9.%+-_]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})*");
 
@@ -236,7 +261,7 @@ void LLPanelSnapshotPostcard::onSend()
         return;
     }
 
-    std::string subject(getChild<LLUICtrl>("subject_form")->getValue().asString());
+    std::string subject(get_owner_child<LLUICtrl>(this, "subject_form")->getValue().asString());
     if(subject.empty() || !mHasFirstMsgFocus)
     {
         LLNotificationsUtil::add("PromptMissingSubjMsg", LLSD(), LLSD(), boost::bind(&LLPanelSnapshotPostcard::missingSubjMsgAlertCallback, this, _1, _2));

@@ -60,6 +60,31 @@
 #include "llpanelplaces.h"
 #include "llpaneleventinfo.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 std::map<LLUUID, LLPanelDirBrowser*> gDirBrowserInstances;
 
@@ -85,8 +110,8 @@ bool LLPanelDirBrowser::postBuild()
 {
     childSetCommitCallback("results", onCommitList, this);
 
-    mPrevPageBtn = getChild<LLButton>("prev_btn");
-    mNextPageBtn = getChild<LLButton>("next_btn");
+    mPrevPageBtn = get_owner_child<LLButton>(this, "prev_btn");
+    mNextPageBtn = get_owner_child<LLButton>(this, "next_btn");
 
     mPrevPageBtn->setClickedCallback([this](LLUICtrl*, const LLSD&){ prevPage(); });
     mPrevPageBtn->setVisible(false);
@@ -164,7 +189,7 @@ void LLPanelDirBrowser::resetSearchStart()
 // protected
 void LLPanelDirBrowser::updateResultCount()
 {
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("results");
+    LLScrollListCtrl* list = get_owner_child<LLScrollListCtrl>(this, "results");
 
     S32 result_count = list->getItemCount();
     std::string result_text;
@@ -1040,7 +1065,7 @@ LLSD LLPanelDirBrowser::createLandSale(const LLUUID& parcel_id, bool is_auction,
 
 void LLPanelDirBrowser::setupNewSearch()
 {
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("results");
+    LLScrollListCtrl* list = get_owner_child<LLScrollListCtrl>(this, "results");
 
     gDirBrowserInstances.erase(mSearchID);
     // Make a new query ID

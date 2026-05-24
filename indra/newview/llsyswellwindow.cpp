@@ -36,6 +36,31 @@
 #include "llspeakers.h"
 #include "lltoastpanel.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //---------------------------------------------------------------------------------
 LLSysWellWindow::LLSysWellWindow(const LLSD& key) : LLTransientDockableFloater(NULL, true,  key),
                                                     mChannel(NULL),
@@ -52,7 +77,7 @@ LLSysWellWindow::LLSysWellWindow(const LLSD& key) : LLTransientDockableFloater(N
 //---------------------------------------------------------------------------------
 bool LLSysWellWindow::postBuild()
 {
-    mMessageList = getChild<LLFlatListView>("notification_list");
+    mMessageList = get_owner_child<LLFlatListView>(this, "notification_list");
 
     // get a corresponding channel
     initChannel();
@@ -144,7 +169,7 @@ void LLSysWellWindow::setVisible(bool visible)
         if (NULL == getDockControl() && getDockTongue().notNull())
         {
             setDockControl(new LLDockControl(
-                LLChicletBar::getInstance()->getChild<LLView>(getAnchorViewName()), this,
+                get_owner_child<LLView>(LLChicletBar::getInstance(), getAnchorViewName()), this,
                 getDockTongue(), LLDockControl::BOTTOM));
         }
     }
@@ -228,10 +253,10 @@ LLIMWellWindow::ObjectRowPanel::ObjectRowPanel(const LLUUID& notification_id, bo
 
     initChiclet(notification_id);
 
-    LLTextBox* obj_name = getChild<LLTextBox>("object_name");
+    LLTextBox* obj_name = get_owner_child<LLTextBox>(this, "object_name");
     obj_name->setValue(LLScriptFloaterManager::getObjectName(notification_id));
 
-    mCloseBtn = getChild<LLButton>("hide_btn");
+    mCloseBtn = get_owner_child<LLButton>(this, "hide_btn");
     mCloseBtn->setCommitCallback(boost::bind(&LLIMWellWindow::ObjectRowPanel::onClosePanel, this));
 }
 
@@ -252,10 +277,10 @@ void LLIMWellWindow::ObjectRowPanel::initChiclet(const LLUUID& notification_id, 
     switch(LLScriptFloaterManager::getObjectType(notification_id))
     {
     case LLScriptFloaterManager::OBJ_GIVE_INVENTORY:
-        mChiclet = getChild<LLInvOfferChiclet>("inv_offer_chiclet");
+        mChiclet = get_owner_child<LLInvOfferChiclet>(this, "inv_offer_chiclet");
         break;
     default:
-        mChiclet = getChild<LLScriptChiclet>("object_chiclet");
+        mChiclet = get_owner_child<LLScriptChiclet>(this, "object_chiclet");
         break;
     }
 

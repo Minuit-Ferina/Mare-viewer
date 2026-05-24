@@ -51,6 +51,31 @@
 #include "llvoavatarself.h"
 #include "llviewerwearable.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLSidepanelAppearance> t_appearance("sidepanel_appearance");
 
 class LLCurrentlyWornFetchObserver : public LLInventoryFetchItemsObserver
@@ -97,26 +122,26 @@ LLSidepanelAppearance::~LLSidepanelAppearance()
 // virtual
 bool LLSidepanelAppearance::postBuild()
 {
-    mOpenOutfitBtn = getChild<LLButton>("openoutfit_btn");
+    mOpenOutfitBtn = get_owner_child<LLButton>(this, "openoutfit_btn");
     mOpenOutfitBtn->setClickedCallback(boost::bind(&LLSidepanelAppearance::onOpenOutfitButtonClicked, this));
 
-    mEditAppearanceBtn = getChild<LLButton>("editappearance_btn");
+    mEditAppearanceBtn = get_owner_child<LLButton>(this, "editappearance_btn");
     mEditAppearanceBtn->setClickedCallback(boost::bind(&LLSidepanelAppearance::onEditAppearanceButtonClicked, this));
 
     childSetAction("edit_outfit_btn", boost::bind(&LLSidepanelAppearance::showOutfitEditPanel, this));
 
-    mFilterEditor = getChild<LLFilterEditor>("Filter");
+    mFilterEditor = get_owner_child<LLFilterEditor>(this, "Filter");
     if (mFilterEditor)
     {
         mFilterEditor->setCommitCallback(boost::bind(&LLSidepanelAppearance::onFilterEdit, this, _2));
     }
 
-    mPanelOutfitsInventory = dynamic_cast<LLPanelOutfitsInventory *>(getChild<LLPanel>("panel_outfits_inventory"));
+    mPanelOutfitsInventory = dynamic_cast<LLPanelOutfitsInventory *>(get_owner_child<LLPanel>(this, "panel_outfits_inventory"));
 
-    mOutfitEdit = dynamic_cast<LLPanelOutfitEdit*>(getChild<LLPanel>("panel_outfit_edit"));
+    mOutfitEdit = dynamic_cast<LLPanelOutfitEdit*>(get_owner_child<LLPanel>(this, "panel_outfit_edit"));
     if (mOutfitEdit)
     {
-        LLButton* back_btn = mOutfitEdit->getChild<LLButton>("back_btn");
+        LLButton* back_btn = get_owner_child<LLButton>(mOutfitEdit, "back_btn");
         if (back_btn)
         {
             back_btn->setClickedCallback(boost::bind(&LLSidepanelAppearance::showOutfitsInventoryPanel, this));
@@ -124,35 +149,35 @@ bool LLSidepanelAppearance::postBuild()
 
     }
 
-    mEditWearable = dynamic_cast<LLPanelEditWearable*>(getChild<LLPanel>("panel_edit_wearable"));
+    mEditWearable = dynamic_cast<LLPanelEditWearable*>(get_owner_child<LLPanel>(this, "panel_edit_wearable"));
     if (mEditWearable)
     {
-        LLButton* edit_wearable_back_btn = mEditWearable->getChild<LLButton>("back_btn");
+        LLButton* edit_wearable_back_btn = get_owner_child<LLButton>(mEditWearable, "back_btn");
         if (edit_wearable_back_btn)
         {
             edit_wearable_back_btn->setClickedCallback(boost::bind(&LLSidepanelAppearance::showOutfitEditPanel, this));
         }
     }
 
-    mCurrentLookName = getChild<LLTextBox>("currentlook_name");
+    mCurrentLookName = get_owner_child<LLTextBox>(this, "currentlook_name");
 
-    mOutfitStatus = getChild<LLTextBox>("currentlook_status");
+    mOutfitStatus = get_owner_child<LLTextBox>(this, "currentlook_status");
 
-    mCurrOutfitPanel = getChild<LLPanel>("panel_currentlook");
+    mCurrOutfitPanel = get_owner_child<LLPanel>(this, "panel_currentlook");
 
-    mWearableLoadingIndicator = getChild<LLLoadingIndicator>("wearables_loading_indicator");
-    mEditOutfitBtn = getChild<LLButton>("edit_outfit_btn");
+    mWearableLoadingIndicator = get_owner_child<LLLoadingIndicator>(this, "wearables_loading_indicator");
+    mEditOutfitBtn = get_owner_child<LLButton>(this, "edit_outfit_btn");
 
     setVisibleCallback(boost::bind(&LLSidepanelAppearance::onVisibilityChanged,this,_2));
 
     setWearablesLoading(gAgentWearables.isCOFChangeInProgress());
 
 
-    LLMenuButton* menu_gear_btn = getChild<LLMenuButton>("options_gear_btn");
-    LLMenuButton* menu_sort_btn = getChild<LLMenuButton>("sorting_menu_btn");
-    LLButton* menu_trash_btn = getChild<LLButton>("trash_btn");
-    LLPanel* menu_sort_btn_panel = getChild<LLPanel>("options_sort_btn_panel");
-    LLPanel* menu_trash_btn_panel = getChild<LLPanel>("trash_btn_panel");
+    LLMenuButton* menu_gear_btn = get_owner_child<LLMenuButton>(this, "options_gear_btn");
+    LLMenuButton* menu_sort_btn = get_owner_child<LLMenuButton>(this, "sorting_menu_btn");
+    LLButton* menu_trash_btn = get_owner_child<LLButton>(this, "trash_btn");
+    LLPanel* menu_sort_btn_panel = get_owner_child<LLPanel>(this, "options_sort_btn_panel");
+    LLPanel* menu_trash_btn_panel = get_owner_child<LLPanel>(this, "trash_btn_panel");
     mPanelOutfitsInventory->setMenuButtons(menu_gear_btn, menu_sort_btn, menu_trash_btn, menu_sort_btn_panel, menu_trash_btn_panel);
 
     return true;

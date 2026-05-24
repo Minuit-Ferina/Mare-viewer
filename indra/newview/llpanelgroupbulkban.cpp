@@ -49,6 +49,31 @@
 #include "lluictrlfactory.h"
 #include "llviewerwindow.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 LLPanelGroupBulkBan::LLPanelGroupBulkBan(const LLUUID& group_id) : LLPanelGroupBulk(group_id)
 {
     // Pass on construction of this panel to the control factory.
@@ -60,15 +85,15 @@ bool LLPanelGroupBulkBan::postBuild()
     constexpr bool recurse = true;
 
     mImplementation->mLoadingText = getString("loading");
-    mImplementation->mGroupName = getChild<LLTextBox>("group_name_text", recurse);
-    mImplementation->mBulkAgentList = getChild<LLNameListCtrl>("banned_agent_list", recurse);
+    mImplementation->mGroupName = get_owner_child<LLTextBox>(this, "group_name_text", recurse);
+    mImplementation->mBulkAgentList = get_owner_child<LLNameListCtrl>(this, "banned_agent_list", recurse);
     if ( mImplementation->mBulkAgentList )
     {
         mImplementation->mBulkAgentList->setCommitOnSelectionChange(true);
         mImplementation->mBulkAgentList->setCommitCallback(LLPanelGroupBulkImpl::callbackSelect, mImplementation);
     }
 
-    mImplementation->mAddButton = getChild<LLButton>("add_button", recurse);
+    mImplementation->mAddButton = get_owner_child<LLButton>(this, "add_button", recurse);
     // default to opening avatarpicker automatically
     mImplementation->mAddButton->setClickedCallback(
         [this](LLUICtrl* ctrl, const LLSD& param)
@@ -77,16 +102,16 @@ bool LLPanelGroupBulkBan::postBuild()
     });
 
     mImplementation->mRemoveButton =
-        getChild<LLButton>("remove_button", recurse);
+        get_owner_child<LLButton>(this, "remove_button", recurse);
     mImplementation->mRemoveButton->setClickedCallback(LLPanelGroupBulkImpl::callbackClickRemove, mImplementation);
     mImplementation->mRemoveButton->setEnabled(false);
 
     mImplementation->mOKButton =
-        getChild<LLButton>("ban_button", recurse);
+        get_owner_child<LLButton>(this, "ban_button", recurse);
     mImplementation->mOKButton->setClickedCallback(LLPanelGroupBulkBan::callbackClickSubmit, this);
     mImplementation->mOKButton->setEnabled(false);
 
-    LLButton* button = getChild<LLButton>("cancel_button", recurse);
+    LLButton* button = get_owner_child<LLButton>(this, "cancel_button", recurse);
     button->setClickedCallback(LLPanelGroupBulkImpl::callbackClickCancel, mImplementation);
 
     mImplementation->mTooManySelected = getString("ban_selection_too_large");

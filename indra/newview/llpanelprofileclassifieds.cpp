@@ -60,6 +60,31 @@
 #include "llviewertexture.h"
 #include "llviewertexture.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 //*TODO: verify this limit
 const S32 MAX_AVATAR_CLASSIFIEDS = 100;
@@ -302,10 +327,10 @@ void LLPanelProfileClassifieds::createClassified()
 
 bool LLPanelProfileClassifieds::postBuild()
 {
-    mTabContainer = getChild<LLTabContainer>("tab_classifieds");
-    mNoItemsLabel = getChild<LLUICtrl>("classifieds_panel_text");
-    mNewButton = getChild<LLButton>("new_btn");
-    mDeleteButton = getChild<LLButton>("delete_btn");
+    mTabContainer = get_owner_child<LLTabContainer>(this, "tab_classifieds");
+    mNoItemsLabel = get_owner_child<LLUICtrl>(this, "classifieds_panel_text");
+    mNewButton = get_owner_child<LLButton>(this, "new_btn");
+    mDeleteButton = get_owner_child<LLButton>(this, "delete_btn");
 
     mNewButton->setCommitCallback(boost::bind(&LLPanelProfileClassifieds::onClickNewBtn, this));
     mDeleteButton->setCommitCallback(boost::bind(&LLPanelProfileClassifieds::onClickDelete, this));
@@ -607,45 +632,45 @@ LLPanelProfileClassified* LLPanelProfileClassified::create()
 
 bool LLPanelProfileClassified::postBuild()
 {
-    mScrollContainer    = getChild<LLScrollContainer>("profile_scroll");
-    mInfoPanel          = getChild<LLView>("info_panel");
-    mInfoScroll         = getChild<LLPanel>("info_scroll_content_panel");
-    mEditPanel          = getChild<LLPanel>("edit_panel");
+    mScrollContainer    = get_owner_child<LLScrollContainer>(this, "profile_scroll");
+    mInfoPanel          = get_owner_child<LLView>(this, "info_panel");
+    mInfoScroll         = get_owner_child<LLPanel>(this, "info_scroll_content_panel");
+    mEditPanel          = get_owner_child<LLPanel>(this, "edit_panel");
 
-    mSnapshotCtrl       = getChild<LLTextureCtrl>("classified_snapshot");
-    mEditIcon           = getChild<LLUICtrl>("edit_icon");
+    mSnapshotCtrl       = get_owner_child<LLTextureCtrl>(this, "classified_snapshot");
+    mEditIcon           = get_owner_child<LLUICtrl>(this, "edit_icon");
 
     //info
-    mClassifiedNameText = getChild<LLUICtrl>("classified_name");
-    mClassifiedDescText = getChild<LLTextEditor>("classified_desc");
-    mLocationText       = getChild<LLUICtrl>("classified_location");
-    mCategoryText       = getChild<LLUICtrl>("category");
-    mContentTypeText    = getChild<LLUICtrl>("content_type");
-    mContentTypeM       = getChild<LLIconCtrl>("content_type_moderate");
-    mContentTypeG       = getChild<LLIconCtrl>("content_type_general");
-    mPriceText          = getChild<LLUICtrl>("price_for_listing");
-    mAutoRenewText      = getChild<LLUICtrl>("auto_renew");
+    mClassifiedNameText = get_owner_child<LLUICtrl>(this, "classified_name");
+    mClassifiedDescText = get_owner_child<LLTextEditor>(this, "classified_desc");
+    mLocationText       = get_owner_child<LLUICtrl>(this, "classified_location");
+    mCategoryText       = get_owner_child<LLUICtrl>(this, "category");
+    mContentTypeText    = get_owner_child<LLUICtrl>(this, "content_type");
+    mContentTypeM       = get_owner_child<LLIconCtrl>(this, "content_type_moderate");
+    mContentTypeG       = get_owner_child<LLIconCtrl>(this, "content_type_general");
+    mPriceText          = get_owner_child<LLUICtrl>(this, "price_for_listing");
+    mAutoRenewText      = get_owner_child<LLUICtrl>(this, "auto_renew");
 
-    mMapButton          = getChild<LLButton>("show_on_map_btn");
-    mTeleportButton     = getChild<LLButton>("teleport_btn");
-    mEditButton         = getChild<LLButton>("edit_btn");
+    mMapButton          = get_owner_child<LLButton>(this, "show_on_map_btn");
+    mTeleportButton     = get_owner_child<LLButton>(this, "teleport_btn");
+    mEditButton         = get_owner_child<LLButton>(this, "edit_btn");
 
     //edit
-    mClassifiedNameEdit = getChild<LLLineEditor>("classified_name_edit");
-    mClassifiedDescEdit = getChild<LLTextEditor>("classified_desc_edit");
-    mLocationEdit       = getChild<LLUICtrl>("classified_location_edit");
-    mCategoryCombo      = getChild<LLComboBox>("category_edit");
-    mContentTypeCombo   = getChild<LLComboBox>("content_type_edit");
-    mAutoRenewEdit      = getChild<LLUICtrl>("auto_renew_edit");
+    mClassifiedNameEdit = get_owner_child<LLLineEditor>(this, "classified_name_edit");
+    mClassifiedDescEdit = get_owner_child<LLTextEditor>(this, "classified_desc_edit");
+    mLocationEdit       = get_owner_child<LLUICtrl>(this, "classified_location_edit");
+    mCategoryCombo      = get_owner_child<LLComboBox>(this, "category_edit");
+    mContentTypeCombo   = get_owner_child<LLComboBox>(this, "content_type_edit");
+    mAutoRenewEdit      = get_owner_child<LLUICtrl>(this, "auto_renew_edit");
 
-    mSaveButton         = getChild<LLButton>("save_changes_btn");
-    mSetLocationButton  = getChild<LLButton>("set_to_curr_location_btn");
-    mCancelButton       = getChild<LLButton>("cancel_btn");
+    mSaveButton         = get_owner_child<LLButton>(this, "save_changes_btn");
+    mSetLocationButton  = get_owner_child<LLButton>(this, "set_to_curr_location_btn");
+    mCancelButton       = get_owner_child<LLButton>(this, "cancel_btn");
 
-    mUtilityBtnCnt = getChild<LLPanel>("util_buttons_lp");
-    mPublishBtnsCnt = getChild<LLPanel>("publish_layout_panel");
-    mCancelBtnCnt = getChild<LLPanel>("cancel_btn_lp");
-    mSaveBtnCnt = getChild<LLPanel>("save_btn_lp");
+    mUtilityBtnCnt = get_owner_child<LLPanel>(this, "util_buttons_lp");
+    mPublishBtnsCnt = get_owner_child<LLPanel>(this, "publish_layout_panel");
+    mCancelBtnCnt = get_owner_child<LLPanel>(this, "cancel_btn_lp");
+    mSaveBtnCnt = get_owner_child<LLPanel>(this, "save_btn_lp");
 
     mSnapshotCtrl->setOnSelectCallback(boost::bind(&LLPanelProfileClassified::onTextureSelected, this));
     mSnapshotCtrl->setMouseEnterCallback(boost::bind(&LLPanelProfileClassified::onTexturePickerMouseEnter, this));
@@ -773,8 +798,8 @@ void LLPanelProfileClassified::onOpen(const LLSD& key)
 
 
     bool is_self = getSelfProfile();
-    getChildView("auto_renew_layout_panel")->setVisible(is_self);
-    getChildView("clickthrough_layout_panel")->setVisible(is_self);
+    get_owner_view(this, "auto_renew_layout_panel")->setVisible(is_self);
+    get_owner_view(this, "clickthrough_layout_panel")->setVisible(is_self);
 
     updateButtons();
 }
@@ -826,7 +851,7 @@ void LLPanelProfileClassified::processProperties(void* data, EAvatarProcessorTyp
         static std::string date_fmt = getString("date_fmt");
         std::string date_str = date_fmt;
         LLStringUtil::format(date_str, LLSD().with("datetime", (S32) c_info->creation_date));
-        getChild<LLUICtrl>("creation_date")->setValue(date_str);
+        get_owner_child<LLUICtrl>(this, "creation_date")->setValue(date_str);
 
         resetDirty();
         setInfoLoaded(true);
@@ -1029,9 +1054,9 @@ void LLPanelProfileClassified::resetData()
 
     mCategoryText->setValue(LLStringUtil::null);
     mContentTypeText->setValue(LLStringUtil::null);
-    getChild<LLUICtrl>("click_through_text")->setValue(LLStringUtil::null);
+    get_owner_child<LLUICtrl>(this, "click_through_text")->setValue(LLStringUtil::null);
     mEditButton->setValue(LLStringUtil::null);
-    getChild<LLUICtrl>("creation_date")->setValue(LLStringUtil::null);
+    get_owner_child<LLUICtrl>(this, "creation_date")->setValue(LLStringUtil::null);
     mContentTypeM->setVisible(false);
     mContentTypeG->setVisible(false);
 }
@@ -1133,9 +1158,9 @@ void LLPanelProfileClassified::setClickThrough(
         ct_str.setArg("[MAP]",      llformat("%d", self->mMapClicksNew + self->mMapClicksOld));
         ct_str.setArg("[PROFILE]",  llformat("%d", self->mProfileClicksNew + self->mProfileClicksOld));
 
-        self->getChild<LLUICtrl>("click_through_text")->setValue(ct_str.getString());
+        get_owner_child<LLUICtrl>(self, "click_through_text")->setValue(ct_str.getString());
         // *HACK: remove this when there is enough room for click stats in the info panel
-        self->getChildView("click_through_text")->setToolTip(ct_str.getString());
+        get_owner_view(self, "click_through_text")->setToolTip(ct_str.getString());
 
         LL_INFOS() << "teleport: " << llformat("%d", self->mTeleportClicksNew + self->mTeleportClicksOld)
                 << ", map: "    << llformat("%d", self->mMapClicksNew + self->mMapClicksOld)
@@ -1537,20 +1562,20 @@ bool LLPublishClassifiedFloater::postBuild()
 
 void LLPublishClassifiedFloater::setPrice(S32 price)
 {
-    getChild<LLUICtrl>("price_for_listing")->setValue(price);
+    get_owner_child<LLUICtrl>(this, "price_for_listing")->setValue(price);
 }
 
 S32 LLPublishClassifiedFloater::getPrice()
 {
-    return getChild<LLUICtrl>("price_for_listing")->getValue().asInteger();
+    return get_owner_child<LLUICtrl>(this, "price_for_listing")->getValue().asInteger();
 }
 
 void LLPublishClassifiedFloater::setPublishClickedCallback(const commit_signal_t::slot_type& cb)
 {
-    getChild<LLButton>("publish_btn")->setClickedCallback(cb);
+    get_owner_child<LLButton>(this, "publish_btn")->setClickedCallback(cb);
 }
 
 void LLPublishClassifiedFloater::setCancelClickedCallback(const commit_signal_t::slot_type& cb)
 {
-    getChild<LLButton>("cancel_btn")->setClickedCallback(cb);
+    get_owner_child<LLButton>(this, "cancel_btn")->setClickedCallback(cb);
 }

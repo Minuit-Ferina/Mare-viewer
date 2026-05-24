@@ -57,6 +57,31 @@
 #include "lltrans.h"
 // [SL:KB] - Patch: UI-GroupFloaters | Checked: 2013-07-08 (Catznip-3.4)
 #include "llviewercontrol.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 // [/SL:KB]
 
 static LLPanelInjector<LLPanelGroup> t_panel_group("panel_group_info_sidetray");
@@ -138,9 +163,9 @@ void LLPanelGroup::onOpen(const LLSD& key)
     {
         setGroupID(group_id);
 
-        LLAccordionCtrl *tab_ctrl = getChild<LLAccordionCtrl>("groups_accordion");
+        LLAccordionCtrl *tab_ctrl = get_owner_child<LLAccordionCtrl>(this, "groups_accordion");
         tab_ctrl->collapseAllTabs();
-        getChild<LLAccordionCtrlTab>("group_notices_tab")->setDisplayChildren(true);
+        get_owner_child<LLAccordionCtrlTab>(this, "group_notices_tab")->setDisplayChildren(true);
         tab_ctrl->arrange();
     }
 
@@ -148,7 +173,7 @@ void LLPanelGroup::onOpen(const LLSD& key)
     else if(str_action == "view_notices")
     {
         setGroupID(group_id);
-        getChild<LLAccordionCtrl>("groups_accordion")->expandTab("group_notices_tab");
+        get_owner_child<LLAccordionCtrl>(this, "groups_accordion")->expandTab("group_notices_tab");
         return;
     }
 // [/SL:KB]
@@ -156,26 +181,26 @@ void LLPanelGroup::onOpen(const LLSD& key)
 
 bool LLPanelGroup::postBuild()
 {
-    mGroupsAccordion = getChild<LLAccordionCtrl>("groups_accordion");
+    mGroupsAccordion = get_owner_child<LLAccordionCtrl>(this, "groups_accordion");
 
     mDefaultNeedsApplyMesg = getString("default_needs_apply_text");
     mWantApplyMesg = getString("want_apply_text");
 
-    mButtonApply = getChild<LLButton>("btn_apply");
+    mButtonApply = get_owner_child<LLButton>(this, "btn_apply");
     mButtonApply->setClickedCallback(onBtnApply, this);
     mButtonApply->setVisible(true);
     mButtonApply->setEnabled(false);
 
-    mButtonCall = getChild<LLButton>("btn_call");
+    mButtonCall = get_owner_child<LLButton>(this, "btn_call");
     mButtonCall->setClickedCallback(onBtnGroupCallClicked, this);
 
-    mButtonChat = getChild<LLButton>("btn_chat");
+    mButtonChat = get_owner_child<LLButton>(this, "btn_chat");
     mButtonChat->setClickedCallback(onBtnGroupChatClicked, this);
 
-    mButtonRefresh = getChild<LLButton>("btn_refresh");
+    mButtonRefresh = get_owner_child<LLButton>(this, "btn_refresh");
     mButtonRefresh->setClickedCallback(onBtnRefresh, this);
 
-    mGroupNameCtrl = getChild<LLUICtrl>("group_name");
+    mGroupNameCtrl = get_owner_child<LLUICtrl>(this, "group_name");
 
 //  childSetCommitCallback("back",boost::bind(&LLPanelGroup::onBackBtnClick,this),NULL);
 // [SL:KB] - Patch: UI-GroupFloaters | Checked: 2011-01-23 (Catznip-2.5)
@@ -190,7 +215,7 @@ bool LLPanelGroup::postBuild()
 
         childSetVisible("back", false);
 
-        LLUICtrl* pGroupNameCtrl = getChild<LLUICtrl>("group_name");
+        LLUICtrl* pGroupNameCtrl = get_owner_child<LLUICtrl>(this, "group_name");
         if (pGroupNameCtrl)
             pGroupNameCtrl->translate(10 - pGroupNameCtrl->getRect().mLeft, 0);
     }
@@ -211,14 +236,14 @@ bool LLPanelGroup::postBuild()
     if(panel_general)
     {
         panel_general->setupCtrls(this);
-        LLButton* button = panel_general->getChild<LLButton>("btn_join");
+        LLButton* button = get_owner_child<LLButton>(panel_general, "btn_join");
         button->setVisible(false);
         button->setEnabled(true);
 
         mButtonJoin = button;
         mButtonJoin->setCommitCallback(boost::bind(&LLPanelGroup::onBtnJoin,this));
 
-        mJoinText = panel_general->getChild<LLUICtrl>("join_cost_text");
+        mJoinText = get_owner_child<LLUICtrl>(panel_general, "join_cost_text");
     }
 
     LLVoiceClient::addObserver(this);
@@ -404,15 +429,15 @@ void LLPanelGroup::setGroupID(const LLUUID& group_id)
     if(mButtonChat)
             mButtonChat->setVisible(!is_null_group_id);
 
-    getChild<LLUICtrl>("prepend_founded_by")->setVisible(!is_null_group_id);
+    get_owner_child<LLUICtrl>(this, "prepend_founded_by")->setVisible(!is_null_group_id);
 
     mGroupsAccordion->reset();
 
-    LLAccordionCtrlTab* tab_general = getChild<LLAccordionCtrlTab>("group_general_tab");
-    LLAccordionCtrlTab* tab_roles = getChild<LLAccordionCtrlTab>("group_roles_tab");
-    LLAccordionCtrlTab* tab_notices = getChild<LLAccordionCtrlTab>("group_notices_tab");
-    LLAccordionCtrlTab* tab_land = getChild<LLAccordionCtrlTab>("group_land_tab");
-    LLAccordionCtrlTab* tab_experiences = getChild<LLAccordionCtrlTab>("group_experiences_tab");
+    LLAccordionCtrlTab* tab_general = get_owner_child<LLAccordionCtrlTab>(this, "group_general_tab");
+    LLAccordionCtrlTab* tab_roles = get_owner_child<LLAccordionCtrlTab>(this, "group_roles_tab");
+    LLAccordionCtrlTab* tab_notices = get_owner_child<LLAccordionCtrlTab>(this, "group_notices_tab");
+    LLAccordionCtrlTab* tab_land = get_owner_child<LLAccordionCtrlTab>(this, "group_land_tab");
+    LLAccordionCtrlTab* tab_experiences = get_owner_child<LLAccordionCtrlTab>(this, "group_experiences_tab");
 
     if(mButtonJoin)
         mButtonJoin->setVisible(false);
@@ -438,7 +463,7 @@ void LLPanelGroup::setGroupID(const LLUUID& group_id)
         tab_experiences->setVisible(false);
 
         mGroupNameCtrl->setVisible(false);
-        getChild<LLUICtrl>("group_name_editor")->setVisible(true);
+        get_owner_child<LLUICtrl>(this, "group_name_editor")->setVisible(true);
 
         if(mButtonCall)
             mButtonCall->setVisible(false);
@@ -470,7 +495,7 @@ void LLPanelGroup::setGroupID(const LLUUID& group_id)
         tab_experiences->setVisible(is_member);
 
         mGroupNameCtrl->setVisible(true);
-        getChild<LLUICtrl>("group_name_editor")->setVisible(false);
+        get_owner_child<LLUICtrl>(this, "group_name_editor")->setVisible(false);
 
         if(mButtonApply)
             mButtonApply->setVisible(is_member);

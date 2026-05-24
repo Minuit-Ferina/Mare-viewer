@@ -29,6 +29,31 @@
 #include "llnotifications.h"
 #include "lltoastscriptquestion.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const int LEFT_PAD = 10;
 const int BUTTON_HEIGHT = 27;
 const int MAX_LINES_COUNT = 50;
@@ -44,8 +69,8 @@ bool LLToastScriptQuestion::postBuild()
 {
     createButtons();
 
-    LLTextBox* mMessage = getChild<LLTextBox>("top_info_message");
-    LLTextBox* mFooter = getChild<LLTextBox>("bottom_info_message");
+    LLTextBox* mMessage = get_owner_child<LLTextBox>(this, "top_info_message");
+    LLTextBox* mFooter = get_owner_child<LLTextBox>(this, "bottom_info_message");
 
     mMessage->setValue(mNotification->getMessage());
     mFooter->setValue(mNotification->getFooter());
@@ -69,8 +94,8 @@ void LLToastScriptQuestion::setFocus(bool b)
 
 void LLToastScriptQuestion::snapToMessageHeight()
 {
-    LLTextBox* mMessage = getChild<LLTextBox>("top_info_message");
-    LLTextBox* mFooter = getChild<LLTextBox>("bottom_info_message");
+    LLTextBox* mMessage = get_owner_child<LLTextBox>(this, "top_info_message");
+    LLTextBox* mFooter = get_owner_child<LLTextBox>(this, "bottom_info_message");
     if (!mMessage || !mFooter)
     {
         return;
@@ -124,7 +149,7 @@ void LLToastScriptQuestion::createButtons()
 
             LLButton* button = LLUICtrlFactory::create<LLButton>(p);
             button->autoResize();
-            getChild<LLPanel>("buttons_panel")->addChild(button);
+            get_owner_child<LLPanel>(this, "buttons_panel")->addChild(button);
 
             LLRect rect = button->getRect();
             rect.setLeftTopAndSize(buttons_width, rect.mTop, rect.getWidth(), rect.getHeight());

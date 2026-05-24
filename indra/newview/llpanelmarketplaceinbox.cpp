@@ -37,6 +37,31 @@
 #include "llsidepanelinventory.h"
 #include "llviewercontrol.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 static LLPanelInjector<LLPanelMarketplaceInbox> t_panel_marketplace_inbox("panel_marketplace_inbox");
 
@@ -69,8 +94,8 @@ bool LLPanelMarketplaceInbox::postBuild()
 {
     LLFocusableElement::setFocusReceivedCallback(boost::bind(&LLPanelMarketplaceInbox::onFocusReceived, this));
 
-    mFreshCountCtrl = getChild<LLUICtrl>("inbox_fresh_new_count");
-    mInboxButton = getChild<LLButton>("inbox_btn");
+    mFreshCountCtrl = get_owner_child<LLUICtrl>(this, "inbox_fresh_new_count");
+    mInboxButton = get_owner_child<LLButton>(this, "inbox_btn");
 
     return true;
 }
@@ -82,7 +107,7 @@ void LLPanelMarketplaceInbox::onSelectionChange()
 
 LLInventoryPanel * LLPanelMarketplaceInbox::setupInventoryPanel()
 {
-    LLView * inbox_inventory_placeholder = getChild<LLView>("inbox_inventory_placeholder");
+    LLView * inbox_inventory_placeholder = get_owner_child<LLView>(this, "inbox_inventory_placeholder");
     LLView * inbox_inventory_parent = inbox_inventory_placeholder->getParent();
 
     mInventoryPanel =

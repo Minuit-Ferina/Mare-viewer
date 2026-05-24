@@ -32,6 +32,31 @@
 #include "llavatariconctrl.h"
 #include "lltextbox.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 LLPanelAvatarTag::LLPanelAvatarTag(const LLUUID& key, const std::string im_time)
     : LLPanel()
     , mAvatarId(LLUUID::null)
@@ -50,9 +75,9 @@ LLPanelAvatarTag::~LLPanelAvatarTag()
 
 bool LLPanelAvatarTag::postBuild()
 {
-    mIcon = getChild<LLAvatarIconCtrl>("avatar_tag_icon");
-    mName = getChild<LLTextBox>("sender_tag_name");
-    mTime = getChild<LLTextBox>("tag_time");
+    mIcon = get_owner_child<LLAvatarIconCtrl>(this, "avatar_tag_icon");
+    mName = get_owner_child<LLTextBox>(this, "sender_tag_name");
+    mTime = get_owner_child<LLTextBox>(this, "tag_time");
     return true;
 }
 

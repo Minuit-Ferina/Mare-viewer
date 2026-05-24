@@ -36,6 +36,31 @@
 #include "llviewercontrol.h"
 #include "llviewertexteditor.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const S32 LLToastScriptTextbox::DEFAULT_MESSAGE_MAX_LINE_COUNT= 14;
 const LLFontGL* LLToastScriptTextbox::sFont = NULL;
 const LLFontGL* LLToastScriptTextbox::sFontSmall = NULL;
@@ -53,20 +78,20 @@ LLToastScriptTextbox::LLToastScriptTextbox(const LLNotificationPtr& notification
         sFont = LLFontGL::getFontSansSerif();
         sFontSmall = LLFontGL::getFontSansSerifSmall();
     }
-    mInfoText = getChild<LLTextEditor>("text_editor_box");
+    mInfoText = get_owner_child<LLTextEditor>(this, "text_editor_box");
     mInfoText->setMaxTextLength(LLToastPanel::MAX_TEXT_LENGTH);
     if (gSavedSettings.getBOOL("KokuaSmallScriptDialogTextFont")) mInfoText->setFont(sFontSmall);
     else mInfoText->setFont(sFont);
     mInfoText->setValue(notification->getMessage());
 
-    getChild<LLButton>("ignore_btn")->setClickedCallback(boost::bind(&LLToastScriptTextbox::onClickIgnore, this));
+    get_owner_child<LLButton>(this, "ignore_btn")->setClickedCallback(boost::bind(&LLToastScriptTextbox::onClickIgnore, this));
 
     const LLSD& payload = notification->getPayload();
 
     //message body
     const std::string& message = payload["message"].asString();
 
-    LLViewerTextEditor* pMessageText = getChild<LLViewerTextEditor>("message");
+    LLViewerTextEditor* pMessageText = get_owner_child<LLViewerTextEditor>(this, "message");
     pMessageText->clear();
 
     LLStyle::Params style;
@@ -74,18 +99,18 @@ LLToastScriptTextbox::LLToastScriptTextbox(const LLNotificationPtr& notification
     pMessageText->appendText(message, true, style);
 
     //submit button
-    LLButton* pSubmitBtn = getChild<LLButton>("btn_submit");
+    LLButton* pSubmitBtn = get_owner_child<LLButton>(this, "btn_submit");
     pSubmitBtn->setClickedCallback((boost::bind(&LLToastScriptTextbox::onClickSubmit, this)));
     setDefaultBtn(pSubmitBtn);
 
     if (gSavedSettings.getBOOL("KokuaSmallScriptDialogButtonFont"))
     {
-        getChild<LLButton>("ignore_btn")->setFont(sFontSmall);
+        get_owner_child<LLButton>(this, "ignore_btn")->setFont(sFontSmall);
         pSubmitBtn->setFont(sFontSmall);
     }
     else
     {
-        getChild<LLButton>("ignore_btn")->setFont(sFont);
+        get_owner_child<LLButton>(this, "ignore_btn")->setFont(sFont);
         pSubmitBtn->setFont(sFont);
     }
 
@@ -104,7 +129,7 @@ void LLToastScriptTextbox::close()
 
 void LLToastScriptTextbox::onClickSubmit()
 {
-    LLViewerTextEditor* pMessageText = getChild<LLViewerTextEditor>("message");
+    LLViewerTextEditor* pMessageText = get_owner_child<LLViewerTextEditor>(this, "message");
 
     if (pMessageText)
     {
@@ -131,7 +156,7 @@ void LLToastScriptTextbox::onClickIgnore()
 
 void LLToastScriptTextbox::snapToMessageHeight()
 {
-    LLPanel* info_pan = getChild<LLPanel>("info_panel");
+    LLPanel* info_pan = get_owner_child<LLPanel>(this, "info_panel");
     if (!info_pan)
     {
         return;

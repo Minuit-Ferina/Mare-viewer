@@ -63,6 +63,31 @@
 
 // [SL:KB] - Patch: UI-FloaterSearchReplace | Checked: 2010-11-05 (Catznip-2.3.0a) | Added: Catznip-2.3.0a
 #include "llfloatersearchreplace.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 // [/SL:KB]
 ///----------------------------------------------------------------------------
 /// Class LLPreviewNotecard
@@ -111,30 +136,30 @@ bool LLPreviewNotecard::postBuild()
 
 void LLPreviewNotecard::setupEditor()
 {
-    mEditor = getChild<LLViewerTextEditor>("Notecard Editor");
+    mEditor = get_owner_child<LLViewerTextEditor>(this, "Notecard Editor");
     mEditor->setNotecardInfo(mItemUUID, mObjectID, getKey());
     mEditor->makePristine();
 }
 
 void LLPreviewNotecard::setupButtons()
 {
-    mSaveBtn = getChild<LLButton>("Save");
+    mSaveBtn = get_owner_child<LLButton>(this, "Save");
     mSaveBtn->setCommitCallback(boost::bind(&LLPreviewNotecard::saveIfNeeded, this, nullptr, true));
 
-    mLockBtn = getChild<LLUICtrl>("lock");
+    mLockBtn = get_owner_child<LLUICtrl>(this, "lock");
     mLockBtn->setVisible(false);
 
-    mDeleteBtn = getChild<LLButton>("Delete");
+    mDeleteBtn = get_owner_child<LLButton>(this, "Delete");
     mDeleteBtn->setCommitCallback(boost::bind(&LLPreviewNotecard::deleteNotecard, this));
     setDeleteButtonEnabled(false);
 
-    mEditBtn = getChild<LLButton>("Edit");
+    mEditBtn = get_owner_child<LLButton>(this, "Edit");
     mEditBtn->setCommitCallback(boost::bind(&LLPreviewNotecard::openInExternalEditor, this));
 }
 
 void LLPreviewNotecard::setupDescriptionField(const LLInventoryItem* item)
 {
-    mDescEditor = getChild<LLLineEditor>("desc");
+    mDescEditor = get_owner_child<LLLineEditor>(this, "desc");
     mDescEditor->setCommitCallback(boost::bind(&LLPreview::onText, mDescEditor, this));
     if (item)
     {
@@ -258,7 +283,7 @@ const LLInventoryItem* LLPreviewNotecard::getDragItem()
 // [SL:KB] - Patch: UI-FloaterSearchReplace | Checked: 2010-11-05 (Catznip-2.3.0a) | Added: Catznip-2.3.0a
 LLTextEditor* LLPreviewNotecard::getEditor()
 {
-    return getChild<LLViewerTextEditor>("Notecard Editor");
+    return get_owner_child<LLViewerTextEditor>(this, "Notecard Editor");
 }
 // [/SL:KB]
 

@@ -42,6 +42,31 @@
 #include "lluictrl.h"
 #include "llgroupiconctrl.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // LLInspectGroup
 //////////////////////////////////////////////////////////////////////////////
@@ -152,14 +177,14 @@ void LLInspectGroup::requestUpdate()
     }
 
     // Clear out old data so it doesn't flash between old and new
-    getChild<LLUICtrl>("group_name")->setValue("");
-    getChild<LLUICtrl>("group_subtitle")->setValue("");
-    getChild<LLUICtrl>("group_details")->setValue("");
-    getChild<LLUICtrl>("group_cost")->setValue("");
+    get_owner_child<LLUICtrl>(this, "group_name")->setValue("");
+    get_owner_child<LLUICtrl>(this, "group_subtitle")->setValue("");
+    get_owner_child<LLUICtrl>(this, "group_details")->setValue("");
+    get_owner_child<LLUICtrl>(this, "group_cost")->setValue("");
     // Must have a visible button so the inspector can take focus
-    getChild<LLUICtrl>("view_profile_btn")->setVisible(true);
-    getChild<LLUICtrl>("leave_btn")->setVisible(false);
-    getChild<LLUICtrl>("join_btn")->setVisible(false);
+    get_owner_child<LLUICtrl>(this, "view_profile_btn")->setVisible(true);
+    get_owner_child<LLUICtrl>(this, "leave_btn")->setVisible(false);
+    get_owner_child<LLUICtrl>(this, "join_btn")->setVisible(false);
 
     LLGroupMgrGroupData* gdatap = LLGroupMgr::getInstance()->getGroupData(mGroupID);
     if (!gdatap || !gdatap->isGroupPropertiesDataComplete() )
@@ -194,7 +219,7 @@ void LLInspectGroup::nameUpdatedCallback(
 {
     if (id == mGroupID)
     {
-        getChild<LLUICtrl>("group_name")->setValue(LLSD("<nolink>" + name + "</nolink>"));
+        get_owner_child<LLUICtrl>(this, "group_name")->setValue(LLSD("<nolink>" + name + "</nolink>"));
     }
 
     // Otherwise possibly a request for an older inspector, ignore it
@@ -219,11 +244,11 @@ void LLInspectGroup::processGroupData()
         std::string lang = LLUI::getLanguage();
         std::string members =
             LLTrans::getCountString(lang, "GroupMembers", data->mMemberCount);
-        getChild<LLUICtrl>("group_subtitle")->setValue( LLSD(members) );
+        get_owner_child<LLUICtrl>(this, "group_subtitle")->setValue( LLSD(members) );
 
-        getChild<LLUICtrl>("group_details")->setValue( LLSD(data->mCharter) );
+        get_owner_child<LLUICtrl>(this, "group_details")->setValue( LLSD(data->mCharter) );
 
-        getChild<LLGroupIconCtrl>("group_icon")->setIconId(data->mInsigniaID);
+        get_owner_child<LLGroupIconCtrl>(this, "group_icon")->setIconId(data->mInsigniaID);
 
         std::string cost;
         bool is_member = LLGroupActions::isInGroup(mGroupID);
@@ -251,14 +276,14 @@ void LLInspectGroup::processGroupData()
         {
             cost = getString("PrivateGroup");
         }
-        getChild<LLUICtrl>("group_cost")->setValue(cost);
+        get_owner_child<LLUICtrl>(this, "group_cost")->setValue(cost);
 
-        getChild<LLUICtrl>("join_btn")->setVisible(!is_member);
-        getChild<LLUICtrl>("leave_btn")->setVisible(is_member);
+        get_owner_child<LLUICtrl>(this, "join_btn")->setVisible(!is_member);
+        get_owner_child<LLUICtrl>(this, "leave_btn")->setVisible(is_member);
 
         // Only enable join button if you are allowed to join
         bool can_join = !is_member && data->mOpenEnrollment;
-        getChild<LLUICtrl>("join_btn")->setEnabled(can_join);
+        get_owner_child<LLUICtrl>(this, "join_btn")->setEnabled(can_join);
     }
 }
 

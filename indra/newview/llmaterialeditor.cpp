@@ -67,6 +67,31 @@
 #include <boost/iostreams/device/array.hpp>
 #include <boost/iostreams/stream.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const std::string MATERIAL_BASE_COLOR_DEFAULT_NAME = "Base Color";
 const std::string MATERIAL_NORMAL_DEFAULT_NAME = "Normal";
 const std::string MATERIAL_METALLIC_DEFAULT_NAME = "Metallic Roughness";
@@ -107,10 +132,10 @@ LLFloaterComboOptions::~LLFloaterComboOptions()
 
 bool LLFloaterComboOptions::postBuild()
 {
-    mConfirmButton = getChild<LLButton>("combo_ok", true);
-    mCancelButton = getChild<LLButton>("combo_cancel", true);
-    mComboOptions = getChild<LLComboBox>("combo_options", true);
-    mComboText = getChild<LLTextBox>("combo_text", true);
+    mConfirmButton = get_owner_child<LLButton>(this, "combo_ok", true);
+    mCancelButton = get_owner_child<LLButton>(this, "combo_cancel", true);
+    mComboOptions = get_owner_child<LLComboBox>(this, "combo_options", true);
+    mComboText = get_owner_child<LLTextBox>(this, "combo_text", true);
 
     mConfirmButton->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) {onConfirm(); });
     mCancelButton->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) {onCancel(); });
@@ -429,12 +454,12 @@ bool LLMaterialEditor::postBuild()
     // single instance and uses live overrides
     mIsOverride = getIsSingleInstance();
 
-    mBaseColorTextureCtrl = getChild<LLTextureCtrl>("base_color_texture");
-    mMetallicTextureCtrl = getChild<LLTextureCtrl>("metallic_roughness_texture");
-    mEmissiveTextureCtrl = getChild<LLTextureCtrl>("emissive_texture");
-    mNormalTextureCtrl = getChild<LLTextureCtrl>("normal_texture");
-    mBaseColorCtrl = getChild<LLColorSwatchCtrl>("base color");
-    mEmissiveColorCtrl = getChild<LLColorSwatchCtrl>("emissive color");
+    mBaseColorTextureCtrl = get_owner_child<LLTextureCtrl>(this, "base_color_texture");
+    mMetallicTextureCtrl = get_owner_child<LLTextureCtrl>(this, "metallic_roughness_texture");
+    mEmissiveTextureCtrl = get_owner_child<LLTextureCtrl>(this, "emissive_texture");
+    mNormalTextureCtrl = get_owner_child<LLTextureCtrl>(this, "normal_texture");
+    mBaseColorCtrl = get_owner_child<LLColorSwatchCtrl>(this, "base color");
+    mEmissiveColorCtrl = get_owner_child<LLColorSwatchCtrl>(this, "emissive color");
 
     if (!gAgent.isGodlike())
     {
@@ -542,7 +567,7 @@ bool LLMaterialEditor::postBuild()
         childSetVisible("unsaved_changes", mUnsavedChanges);
 
         // Doesn't exist in live editor
-        getChild<LLUICtrl>("total_upload_fee")->setTextArg("[FEE]", llformat("%d", 0));
+        get_owner_child<LLUICtrl>(this, "total_upload_fee")->setTextArg("[FEE]", llformat("%d", 0));
     }
 
     // Todo:
@@ -806,7 +831,7 @@ void LLMaterialEditor::resetUnsavedChanges()
         setCanSave(false);
 
         mExpectedUploadCost = 0;
-        getChild<LLUICtrl>("total_upload_fee")->setTextArg("[FEE]", llformat("%d", mExpectedUploadCost));
+        get_owner_child<LLUICtrl>(this, "total_upload_fee")->setTextArg("[FEE]", llformat("%d", mExpectedUploadCost));
     }
 }
 
@@ -817,28 +842,28 @@ void LLMaterialEditor::refreshUploadCost()
     {
         S32 upload_cost = LLAgentBenefitsMgr::current().getTextureUploadCost(mBaseColorFetched);
         mExpectedUploadCost += upload_cost;
-        getChild<LLUICtrl>("base_color_upload_fee")->setTextArg("[FEE]", llformat("%d", upload_cost));
+        get_owner_child<LLUICtrl>(this, "base_color_upload_fee")->setTextArg("[FEE]", llformat("%d", upload_cost));
     }
     if (mMetallicTextureUploadId.notNull() && mMetallicTextureUploadId == getMetallicRoughnessId() && mMetallicRoughnessFetched)
     {
         S32 upload_cost = LLAgentBenefitsMgr::current().getTextureUploadCost(mMetallicRoughnessFetched);
         mExpectedUploadCost += upload_cost;
-        getChild<LLUICtrl>("metallic_upload_fee")->setTextArg("[FEE]", llformat("%d", upload_cost));
+        get_owner_child<LLUICtrl>(this, "metallic_upload_fee")->setTextArg("[FEE]", llformat("%d", upload_cost));
     }
     if (mEmissiveTextureUploadId.notNull() && mEmissiveTextureUploadId == getEmissiveId() && mEmissiveFetched)
     {
         S32 upload_cost = LLAgentBenefitsMgr::current().getTextureUploadCost(mEmissiveFetched);
         mExpectedUploadCost += upload_cost;
-        getChild<LLUICtrl>("emissive_upload_fee")->setTextArg("[FEE]", llformat("%d", upload_cost));
+        get_owner_child<LLUICtrl>(this, "emissive_upload_fee")->setTextArg("[FEE]", llformat("%d", upload_cost));
     }
     if (mNormalTextureUploadId.notNull() && mNormalTextureUploadId == getNormalId() && mNormalFetched)
     {
         S32 upload_cost = LLAgentBenefitsMgr::current().getTextureUploadCost(mNormalFetched);
         mExpectedUploadCost += upload_cost;
-        getChild<LLUICtrl>("normal_upload_fee")->setTextArg("[FEE]", llformat("%d", upload_cost));
+        get_owner_child<LLUICtrl>(this, "normal_upload_fee")->setTextArg("[FEE]", llformat("%d", upload_cost));
     }
 
-    getChild<LLUICtrl>("total_upload_fee")->setTextArg("[FEE]", llformat("%d", mExpectedUploadCost));
+    get_owner_child<LLUICtrl>(this, "total_upload_fee")->setTextArg("[FEE]", llformat("%d", mExpectedUploadCost));
 }
 
 void LLMaterialEditor::markChangesUnsaved(U32 dirty_flag)

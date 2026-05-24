@@ -81,6 +81,31 @@
 #include "llfloaterreporter.h"
 #include "fskeywords.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLDefaultChildRegistry::Register<LLChatHistory> r("chat_history");
 
 const static std::string NEW_LINE(rawstr_to_utf8("\n"));
@@ -504,7 +529,7 @@ public:
             {
                 // From history. This might be empty or not full.
                 // See LLChatLogParser::parse
-                time_string = getChild<LLTextBox>("time_box")->getValue().asString();
+                time_string = get_owner_child<LLTextBox>(this, "time_box")->getValue().asString();
 
                 // Just add current date if not full.
                 // Should be fine since both times are supposed to be stl
@@ -825,7 +850,7 @@ public:
         //
         //  switch to the named tab in the floater
         //
-        LLPanel *tab = floater->getChild<LLPanel>(tab_name);
+        LLPanel *tab = get_owner_child<LLPanel>(floater, tab_name);
 
         if (tab) {
             LLTabContainer *container = dynamic_cast<LLTabContainer*>(tab->getParent());
@@ -848,8 +873,8 @@ public:
         setMouseEnterCallback(boost::bind(&LLChatHistoryHeader::showInfoCtrl, this));
         setMouseLeaveCallback(boost::bind(&LLChatHistoryHeader::hideInfoCtrl, this));
 
-        mUserNameTextBox = getChild<LLTextBox>("user_name");
-        mTimeBoxTextBox = getChild<LLTextBox>("time_box");
+        mUserNameTextBox = get_owner_child<LLTextBox>(this, "user_name");
+        mTimeBoxTextBox = get_owner_child<LLTextBox>(this, "time_box");
 
         mInfoCtrl = LLUICtrlFactory::getInstance()->createFromFile<LLUICtrl>("inspector_info_ctrl.xml", this, LLPanel::child_registry_t::instance());
         if (mInfoCtrl)
@@ -961,8 +986,8 @@ public:
         mUserNameFont = style_params.font();
         if (!mUserNameTextBox)
         {
-            mUserNameTextBox = getChild<LLTextBox>("user_name");
-            mTimeBoxTextBox = getChild<LLTextBox>("time_box");
+            mUserNameTextBox = get_owner_child<LLTextBox>(this, "user_name");
+            mTimeBoxTextBox = get_owner_child<LLTextBox>(this, "time_box");
         }
         LLTextBox* user_name = mUserNameTextBox;
         user_name->setReadOnlyColor(style_params.readonly_color());
@@ -1083,7 +1108,7 @@ public:
         setTimeField(chat);
 
         // Set up the icon.
-        LLAvatarIconCtrl* icon = getChild<LLAvatarIconCtrl>("avatar_icon");
+        LLAvatarIconCtrl* icon = get_owner_child<LLAvatarIconCtrl>(this, "avatar_icon");
 
         if (mSourceType != CHAT_SOURCE_AGENT || mAvatarID.isNull())
             icon->setDrawTooltip(false);
@@ -1158,8 +1183,8 @@ public:
 
     /*virtual*/ void draw()
     {
-        LLTextBox* user_name = mUserNameTextBox; //getChild<LLTextBox>("user_name");
-        LLTextBox* time_box = mTimeBoxTextBox; //getChild<LLTextBox>("time_box");
+        LLTextBox* user_name = mUserNameTextBox; //get_owner_child<LLTextBox>(this, "user_name");
+        LLTextBox* time_box = mTimeBoxTextBox; //get_owner_child<LLTextBox>(this, "time_box");
 
         LLRect user_name_rect = user_name->getRect();
         S32 user_name_width = user_name_rect.getWidth();
@@ -1181,7 +1206,7 @@ public:
     {
         if (mUserNameFont)
         {
-            LLTextBox* user_name = getChild<LLTextBox>("user_name");
+            LLTextBox* user_name = get_owner_child<LLTextBox>(this, "user_name");
             const LLWString& text = user_name->getWText();
             mMinUserNameWidth = mUserNameFont->getWidth(text.c_str()) + PADDING;
         }
@@ -1422,7 +1447,7 @@ private:
 
     void setTimeField(const LLChat& chat)
     {
-        LLTextBox* time_box = getChild<LLTextBox>("time_box");
+        LLTextBox* time_box = get_owner_child<LLTextBox>(this, "time_box");
 
         LLRect rect_before = time_box->getRect();
 
@@ -1438,7 +1463,7 @@ private:
         time_box->translate(delta_pos_x, delta_pos_y);
 
         //... & change width of the name control
-        LLView* user_name = getChild<LLView>("user_name");
+        LLView* user_name = get_owner_child<LLView>(this, "user_name");
         const LLRect& user_rect = user_name->getRect();
         user_name->reshape(user_rect.getWidth() + delta_pos_x, user_rect.getHeight());
     }
@@ -1462,7 +1487,7 @@ private:
 
         mFrom = av_name.getDisplayName();
 
-        LLTextBox* user_name = getChild<LLTextBox>("user_name");
+        LLTextBox* user_name = get_owner_child<LLTextBox>(this, "user_name");
         user_name->setValue(LLSD(av_name.getDisplayName()));
         user_name->setToolTip(av_name.getUserName());
 

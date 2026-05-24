@@ -53,6 +53,31 @@
 #include "llviewertexturelist.h"
 #include "llwearableitemslist.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLOutfitGallery> t_outfit_gallery("outfit_gallery");
 
 // The maximum resolution at which to load the outfit photo. If the given
@@ -121,8 +146,8 @@ const LLOutfitGallery::Params& LLOutfitGallery::getDefaultParams()
 bool LLOutfitGallery::postBuild()
 {
     bool rv = LLOutfitListBase::postBuild();
-    mScrollPanel = getChild<LLScrollContainer>("gallery_scroll_panel");
-    mMessageTextBox = getChild<LLTextBox>("no_outfits_txt");
+    mScrollPanel = get_owner_child<LLScrollContainer>(this, "gallery_scroll_panel");
+    mMessageTextBox = get_owner_child<LLTextBox>(this, "no_outfits_txt");
     mOutfitGalleryMenu = new LLOutfitGalleryContextMenu(this);
     return rv;
 }
@@ -1007,12 +1032,12 @@ LLOutfitGalleryItem::~LLOutfitGalleryItem()
 
 bool LLOutfitGalleryItem::postBuild()
 {
-    mPreviewIcon = getChild<LLIconCtrl>("preview_outfit");
+    mPreviewIcon = get_owner_child<LLIconCtrl>(this, "preview_outfit");
     setDefaultImage();
 
-    mOutfitNameText = getChild<LLTextBox>("outfit_name");
-    mOutfitWornText = getChild<LLTextBox>("outfit_worn_text");
-    mTextBgPanel = getChild<LLPanel>("text_bg_panel");
+    mOutfitNameText = get_owner_child<LLTextBox>(this, "outfit_name");
+    mOutfitWornText = get_owner_child<LLTextBox>(this, "outfit_worn_text");
+    mTextBgPanel = get_owner_child<LLPanel>(this, "text_bg_panel");
     setOutfitWorn(false);
     mHidden = false;
     return true;
@@ -1166,14 +1191,14 @@ void LLOutfitGalleryItem::onFocusReceived()
 
 bool LLOutfitGalleryItem::openOutfitsContent()
 {
-    LLTabContainer* appearence_tabs = LLPanelOutfitsInventory::findInstance()->getChild<LLTabContainer>("appearance_tabs");
+    LLTabContainer* appearence_tabs = get_owner_child<LLTabContainer>(LLPanelOutfitsInventory::findInstance(), "appearance_tabs");
     if (appearence_tabs && mUUID.notNull())
     {
         appearence_tabs->selectTabByName("outfitslist_tab");
         LLPanel* panel = appearence_tabs->getCurrentPanel();
         if (panel)
         {
-            LLAccordionCtrl* accordion = panel->getChild<LLAccordionCtrl>("outfits_accordion");
+            LLAccordionCtrl* accordion = get_owner_child<LLAccordionCtrl>(panel, "outfits_accordion");
             LLOutfitsList* outfit_list = dynamic_cast<LLOutfitsList*>(panel);
             if (accordion != NULL && outfit_list != NULL)
             {

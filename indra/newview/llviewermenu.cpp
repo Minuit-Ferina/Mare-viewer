@@ -186,6 +186,31 @@
 #include "fspose.h"
 #include "llmodel.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 using namespace LLAvatarAppearanceDefines;
 
 typedef LLPointer<LLViewerObject> LLViewerObjectPtr;
@@ -409,8 +434,8 @@ static LLUIListener sUIListener;
 
 LLMenuParcelObserver::LLMenuParcelObserver()
 {
-    mLandBuyHandle = gMenuLand->getChild<LLMenuItemCallGL>("Land Buy")->getHandle();
-    mLandBuyPassHandle = gMenuLand->getChild<LLMenuItemCallGL>("Land Buy Pass")->getHandle();
+    mLandBuyHandle = get_owner_child<LLMenuItemCallGL>(gMenuLand, "Land Buy")->getHandle();
+    mLandBuyPassHandle = get_owner_child<LLMenuItemCallGL>(gMenuLand, "Land Buy Pass")->getHandle();
     LLViewerParcelMgr::getInstance()->addObserver(this);
 }
 
@@ -472,7 +497,7 @@ static LLSLMMenuUpdater* gSLMMenuUpdater = NULL;
 
 LLSLMMenuUpdater::LLSLMMenuUpdater()
 {
-    mMarketplaceListingsItem = gMenuHolder->getChild<LLView>("MarketplaceListings")->getHandle();
+    mMarketplaceListingsItem = get_owner_child<LLView>(gMenuHolder, "MarketplaceListings")->getHandle();
 }
 void LLSLMMenuUpdater::setMerchantMenu()
 {
@@ -559,22 +584,22 @@ void init_menus()
     gMenuAvatarOther = LLUICtrlFactory::createFromFile<LLContextMenu>(
         "menu_avatar_other.xml", gMenuHolder, registry);
 
-    gDetachScreenPieMenu = gMenuHolder->getChild<LLContextMenu>("Object Detach HUD", true);
-    gDetachPieMenu = gMenuHolder->getChild<LLContextMenu>("Object Detach", true);
+    gDetachScreenPieMenu = get_owner_child<LLContextMenu>(gMenuHolder, "Object Detach HUD", true);
+    gDetachPieMenu = get_owner_child<LLContextMenu>(gMenuHolder, "Object Detach", true);
 
     gMenuObject = LLUICtrlFactory::createFromFile<LLContextMenu>(
         "menu_object.xml", gMenuHolder, registry);
 
-    gAttachScreenPieMenu = gMenuHolder->getChild<LLContextMenu>("Object Attach HUD");
-    gAttachPieMenu = gMenuHolder->getChild<LLContextMenu>("Object Attach");
+    gAttachScreenPieMenu = get_owner_child<LLContextMenu>(gMenuHolder, "Object Attach HUD");
+    gAttachPieMenu = get_owner_child<LLContextMenu>(gMenuHolder, "Object Attach");
 
     gMenuAttachmentSelf = LLUICtrlFactory::createFromFile<LLContextMenu>(
         "menu_attachment_self.xml", gMenuHolder, registry);
     gMenuAttachmentOther = LLUICtrlFactory::createFromFile<LLContextMenu>(
         "menu_attachment_other.xml", gMenuHolder, registry);
 
-    gDetachHUDAttSelfMenu = gMenuHolder->getChild<LLContextMenu>("Detach Self HUD", true);
-    gDetachAttSelfMenu = gMenuHolder->getChild<LLContextMenu>("Detach Self", true);
+    gDetachHUDAttSelfMenu = get_owner_child<LLContextMenu>(gMenuHolder, "Detach Self HUD", true);
+    gDetachAttSelfMenu = get_owner_child<LLContextMenu>(gMenuHolder, "Detach Self", true);
 
     gMenuLand = LLUICtrlFactory::createFromFile<LLContextMenu>(
         "menu_land.xml", gMenuHolder, registry);
@@ -589,15 +614,15 @@ void init_menus()
         "menu_pie_avatar_other.xml", gMenuHolder, registry);
 
     // added "Pie" to the control names to keep them unique
-    gPieDetachScreenMenu = gMenuHolder->getChild<PieMenu>("Pie Object Detach HUD", true);
-    gPieDetachMenu = gMenuHolder->getChild<PieMenu>("Pie Object Detach", true);
+    gPieDetachScreenMenu = get_owner_child<PieMenu>(gMenuHolder, "Pie Object Detach HUD", true);
+    gPieDetachMenu = get_owner_child<PieMenu>(gMenuHolder, "Pie Object Detach", true);
 
     gPieMenuObject = LLUICtrlFactory::createFromFile<PieMenu>(
         "menu_pie_object.xml", gMenuHolder, registry);
 
     // added "Pie" to the control names to keep them unique
-    gPieAttachScreenMenu = gMenuHolder->getChild<PieMenu>("Pie Object Attach HUD");
-    gPieAttachMenu = gMenuHolder->getChild<PieMenu>("Pie Object Attach");
+    gPieAttachScreenMenu = get_owner_child<PieMenu>(gMenuHolder, "Pie Object Attach HUD");
+    gPieAttachMenu = get_owner_child<PieMenu>(gMenuHolder, "Pie Object Attach");
 
     gPieMenuAttachmentSelf = LLUICtrlFactory::createFromFile<PieMenu>(
         "menu_pie_attachment_self.xml", gMenuHolder, registry);
@@ -642,7 +667,7 @@ void init_menus()
     gMenuBarView = LLUICtrlFactory::getInstance()->createFromFile<LLMenuBarGL>(kokuamainmenu, gMenuHolder, LLViewerMenuHolderGL::child_registry_t::instance());
 //kokua we could add a legacy menu here
 
-    LLView* menu_bar_holder = gViewerWindow->getRootView()->getChildView("menu_bar_holder");
+    LLView* menu_bar_holder = get_owner_view(gViewerWindow->getRootView(), "menu_bar_holder");
 
     gMenuBarView->setRect(LLRect(0, menu_bar_holder->getRect().mTop, 0, menu_bar_holder->getRect().mTop - MENU_BAR_HEIGHT));
     gMenuBarView->setBackgroundColor( color );
@@ -665,11 +690,11 @@ void init_menus()
     gAttachSubMenu = gMenuBarView->findChildMenuByName("Attach Object", true);
     gDetachSubMenu = gMenuBarView->findChildMenuByName("Detach Object", true);
 
-    gDetachAvatarMenu = gMenuHolder->getChild<LLMenuGL>("Avatar Detach", true);
-    gDetachHUDAvatarMenu = gMenuHolder->getChild<LLMenuGL>("Avatar Detach HUD", true);
+    gDetachAvatarMenu = get_owner_child<LLMenuGL>(gMenuHolder, "Avatar Detach", true);
+    gDetachHUDAvatarMenu = get_owner_child<LLMenuGL>(gMenuHolder, "Avatar Detach HUD", true);
 
     // Don't display the Memory console menu if the feature is turned off
-    LLMenuItemCheckGL *memoryMenu = gMenuBarView->getChild<LLMenuItemCheckGL>("Memory", true);
+    LLMenuItemCheckGL *memoryMenu = get_owner_child<LLMenuItemCheckGL>(gMenuBarView, "Memory", true);
     if (memoryMenu)
     {
         memoryMenu->setVisible(false);
@@ -11486,7 +11511,7 @@ void show_topinfobar_context_menu(LLView* ctrl, S32 x, S32 y)
     static LLMenuGL* show_topbarinfo_context_menu = LLUICtrlFactory::getInstance()->createFromFile<LLMenuGL>("menu_topinfobar.xml",
             gMenuHolder, LLViewerMenuHolderGL::child_registry_t::instance());
 
-    LLMenuItemGL* landmark_item = show_topbarinfo_context_menu->getChild<LLMenuItemGL>("Landmark");
+    LLMenuItemGL* landmark_item = get_owner_child<LLMenuItemGL>(show_topbarinfo_context_menu, "Landmark");
     if (!LLLandmarkActions::landmarkAlreadyExists())
     {
         landmark_item->setLabel(LLTrans::getString("AddLandmarkNavBarMenu"));

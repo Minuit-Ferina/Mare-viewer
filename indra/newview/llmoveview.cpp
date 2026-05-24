@@ -51,6 +51,31 @@
 #include "llviewerregion.h"
 #include "lltooltip.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //
 // Constants
 //
@@ -94,44 +119,44 @@ bool LLFloaterMove::postBuild()
 
     // Code that implements floater buttons toggling when user moves via keyboard is located in LLAgent::propagate()
 
-    mForwardButton = getChild<LLJoystickAgentTurn>("forward btn");
+    mForwardButton = get_owner_child<LLJoystickAgentTurn>(this, "forward btn");
     mForwardButton->setHeldDownDelay(MOVE_BUTTON_DELAY);
 
-    mBackwardButton = getChild<LLJoystickAgentTurn>("backward btn");
+    mBackwardButton = get_owner_child<LLJoystickAgentTurn>(this, "backward btn");
     mBackwardButton->setHeldDownDelay(MOVE_BUTTON_DELAY);
 
-    mSlideLeftButton = getChild<LLJoystickAgentSlide>("move left btn");
+    mSlideLeftButton = get_owner_child<LLJoystickAgentSlide>(this, "move left btn");
     mSlideLeftButton->setHeldDownDelay(MOVE_BUTTON_DELAY);
 
-    mSlideRightButton = getChild<LLJoystickAgentSlide>("move right btn");
+    mSlideRightButton = get_owner_child<LLJoystickAgentSlide>(this, "move right btn");
     mSlideRightButton->setHeldDownDelay(MOVE_BUTTON_DELAY);
 
-    mTurnLeftButton = getChild<LLButton>("turn left btn");
+    mTurnLeftButton = get_owner_child<LLButton>(this, "turn left btn");
     mTurnLeftButton->setHeldDownDelay(MOVE_BUTTON_DELAY);
     mTurnLeftButton->setHeldDownCallback(boost::bind(&LLFloaterMove::turnLeft, this));
-    mTurnRightButton = getChild<LLButton>("turn right btn");
+    mTurnRightButton = get_owner_child<LLButton>(this, "turn right btn");
     mTurnRightButton->setHeldDownDelay(MOVE_BUTTON_DELAY);
     mTurnRightButton->setHeldDownCallback(boost::bind(&LLFloaterMove::turnRight, this));
 
-    mMoveUpButton = getChild<LLButton>("move up btn");
+    mMoveUpButton = get_owner_child<LLButton>(this, "move up btn");
     mMoveUpButton->setHeldDownDelay(MOVE_BUTTON_DELAY);
     mMoveUpButton->setHeldDownCallback(boost::bind(&LLFloaterMove::moveUp, this));
 
-    mMoveDownButton = getChild<LLButton>("move down btn");
+    mMoveDownButton = get_owner_child<LLButton>(this, "move down btn");
     mMoveDownButton->setHeldDownDelay(MOVE_BUTTON_DELAY);
     mMoveDownButton->setHeldDownCallback(boost::bind(&LLFloaterMove::moveDown, this));
 
 
-    mModeActionsPanel = getChild<LLPanel>("panel_modes");
+    mModeActionsPanel = get_owner_child<LLPanel>(this, "panel_modes");
 
     LLButton* btn;
-    btn = getChild<LLButton>("mode_walk_btn");
+    btn = get_owner_child<LLButton>(this, "mode_walk_btn");
     btn->setCommitCallback(boost::bind(&LLFloaterMove::onWalkButtonClick, this));
 
-    btn = getChild<LLButton>("mode_run_btn");
+    btn = get_owner_child<LLButton>(this, "mode_run_btn");
     btn->setCommitCallback(boost::bind(&LLFloaterMove::onRunButtonClick, this));
 
-    btn = getChild<LLButton>("mode_fly_btn");
+    btn = get_owner_child<LLButton>(this, "mode_fly_btn");
     btn->setCommitCallback(boost::bind(&LLFloaterMove::onFlyButtonClick, this));
 
     initModeTooltips();
@@ -409,9 +434,9 @@ void LLFloaterMove::initModeTooltips()
 
 void LLFloaterMove::initModeButtonMap()
 {
-    mModeControlButtonMap[MM_WALK] = getChild<LLButton>("mode_walk_btn");
-    mModeControlButtonMap[MM_RUN] = getChild<LLButton>("mode_run_btn");
-    mModeControlButtonMap[MM_FLY] = getChild<LLButton>("mode_fly_btn");
+    mModeControlButtonMap[MM_WALK] = get_owner_child<LLButton>(this, "mode_walk_btn");
+    mModeControlButtonMap[MM_RUN] = get_owner_child<LLButton>(this, "mode_run_btn");
+    mModeControlButtonMap[MM_FLY] = get_owner_child<LLButton>(this, "mode_fly_btn");
 }
 
 void LLFloaterMove::initMovementMode()
@@ -608,13 +633,13 @@ void LLPanelStandStopFlying::clearStandStopFlyingMode(EStandStopFlyingMode mode)
 
 bool LLPanelStandStopFlying::postBuild()
 {
-    mStandButton = getChild<LLButton>("stand_btn");
+    mStandButton = get_owner_child<LLButton>(this, "stand_btn");
     mStandButton->setCommitCallback(boost::bind(&LLPanelStandStopFlying::onStandButtonClick, this));
     mStandButton->setCommitCallback(boost::bind(&LLFloaterMove::enableInstance));
     mStandButton->setVisible(false);
     LLHints::getInstance()->registerHintTarget("stand_btn", mStandButton->getHandle());
 
-    mStopFlyingButton = getChild<LLButton>("stop_fly_btn");
+    mStopFlyingButton = get_owner_child<LLButton>(this, "stop_fly_btn");
     //mStopFlyingButton->setCommitCallback(boost::bind(&LLFloaterMove::setFlyingMode, false));
     mStopFlyingButton->setCommitCallback(boost::bind(&LLPanelStandStopFlying::onStopFlyingButtonClick, this));
     mStopFlyingButton->setVisible(false);

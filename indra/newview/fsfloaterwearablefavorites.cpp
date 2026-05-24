@@ -44,6 +44,31 @@
 //#include "rlvlocks.h"
 #include "RRInterface.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 #define FS_WEARABLE_FAVORITES_FOLDER "#Wearable Favorites"
 
 static LLDefaultChildRegistry::Register<FSWearableFavoritesItemsList> r("fs_wearable_favorites_items_list");
@@ -116,14 +141,14 @@ FSFloaterWearableFavorites::~FSFloaterWearableFavorites()
 //virtual
 bool FSFloaterWearableFavorites::postBuild()
 {
-    mItemsList = getChild<FSWearableFavoritesItemsList>("favorites_list");
+    mItemsList = get_owner_child<FSWearableFavoritesItemsList>(this, "favorites_list");
     mItemsList->setNoFilteredItemsMsg(getString("search_no_items"));
     mItemsList->setDoubleClickCallback(boost::bind(&FSFloaterWearableFavorites::onDoubleClick, this));
 
-    mRemoveItemBtn = getChild<LLButton>("remove_btn");
+    mRemoveItemBtn = get_owner_child<LLButton>(this, "remove_btn");
     mRemoveItemBtn->setCommitCallback(boost::bind(&FSFloaterWearableFavorites::handleRemove, this));
 
-    mFilterEditor = getChild<LLFilterEditor>("wearable_filter_input");
+    mFilterEditor = get_owner_child<LLFilterEditor>(this, "wearable_filter_input");
     mFilterEditor->setCommitCallback(boost::bind(&FSFloaterWearableFavorites::onFilterEdit, this, _2));
 
     // Create menus.
@@ -133,7 +158,7 @@ bool FSFloaterWearableFavorites::postBuild()
     registrar.add("FavWearables.Action",                boost::bind(&FSFloaterWearableFavorites::onOptionsMenuItemClicked, this, _2));
     enable_registrar.add("FavWearables.CheckAction",    boost::bind(&FSFloaterWearableFavorites::onOptionsMenuItemChecked, this, _2));
 
-    mOptionsButton = getChild<LLMenuButton>("options_btn");
+    mOptionsButton = get_owner_child<LLMenuButton>(this, "options_btn");
 
     if (LLToggleableMenu* options_menu = LLUICtrlFactory::getInstance()->createFromFile<LLToggleableMenu>("menu_fs_wearable_favorites.xml", gMenuHolder, LLViewerMenuHolderGL::child_registry_t::instance()); options_menu)
     {

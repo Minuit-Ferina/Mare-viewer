@@ -30,6 +30,31 @@
 #include "llpanelonlinestatus.h"
 #include "llviewercontrol.h" // for gSavedSettings
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 LLPanelOnlineStatus::LLPanelOnlineStatus(
         const LLNotificationPtr& notification) :
     LLPanelTipToast(notification)
@@ -39,8 +64,8 @@ LLPanelOnlineStatus::LLPanelOnlineStatus(
             "panel_online_status_toast.xml");
 
 
-    getChild<LLUICtrl>("avatar_icon")->setValue(notification->getPayload()["FROM_ID"]);
-    getChild<LLUICtrl>("message")->setValue(notification->getMessage());
+    get_owner_child<LLUICtrl>(this, "avatar_icon")->setValue(notification->getPayload()["FROM_ID"]);
+    get_owner_child<LLUICtrl>(this, "message")->setValue(notification->getMessage());
 
     if (notification->getPayload().has("respond_on_mousedown")
             && notification->getPayload()["respond_on_mousedown"])
@@ -50,6 +75,6 @@ LLPanelOnlineStatus::LLPanelOnlineStatus(
     }
 
     S32 max_line_count =  gSavedSettings.getS32("TipToastMessageLineCount");
-    snapToMessageHeight(getChild<LLTextBox> ("message"), max_line_count);
+    snapToMessageHeight(get_owner_child<LLTextBox>(this, "message"), max_line_count);
 
 }

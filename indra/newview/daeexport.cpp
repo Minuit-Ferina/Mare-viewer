@@ -87,6 +87,31 @@
 #include "llvovolume.h"
 #include "fsexportperms.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static const F32 TEXTURE_DOWNLOAD_TIMEOUT = 60.f;
 
 // *FIXME: Don't hard code these and allow the floater to resize. Right now, I'm too lazy. <FS:CR>
@@ -128,7 +153,7 @@ ColladaExportFloater::~ColladaExportFloater()
 bool ColladaExportFloater::postBuild()
 {
     mTitleProgress = getString("texture_progress");
-    mTexturePanel = getChild<LLPanel>("textures_panel");
+    mTexturePanel = get_owner_child<LLPanel>(this, "textures_panel");
     childSetAction("export_btn", boost::bind(&ColladaExportFloater::onClickExport, this));
     LLSelectMgr::getInstance()->mUpdateSignal.connect(boost::bind(&ColladaExportFloater::updateSelection, this));
 
@@ -218,7 +243,7 @@ void ColladaExportFloater::onTextureExportCheck()
 {
     bool show_tex_panel = (gSavedSettings.getBOOL("DAEExportTextures") && mNumExportableTextures);
 
-    getChild<LLPanel>("tex_layout_panel")->setVisible(show_tex_panel);
+    get_owner_child<LLPanel>(this, "tex_layout_panel")->setVisible(show_tex_panel);
     if (show_tex_panel)
     {
         reshape(EXPANDED_WIDTH, getRect().getHeight());

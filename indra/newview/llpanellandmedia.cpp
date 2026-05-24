@@ -52,6 +52,31 @@
 #include "roles_constants.h"
 #include "llscrolllistctrl.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 //---------------------------------------------------------------------------
 // LLPanelLandMedia
 //---------------------------------------------------------------------------
@@ -81,35 +106,35 @@ LLPanelLandMedia::~LLPanelLandMedia()
 bool LLPanelLandMedia::postBuild()
 {
 
-    mMediaTextureCtrl = getChild<LLTextureCtrl>("media texture");
+    mMediaTextureCtrl = get_owner_child<LLTextureCtrl>(this, "media texture");
     mMediaTextureCtrl->setCommitCallback( onCommitAny, this );
     mMediaTextureCtrl->setAllowNoTexture ( true );
     mMediaTextureCtrl->setImmediateFilterPermMask(PERM_COPY | PERM_TRANSFER);
     mMediaTextureCtrl->setDnDFilterPermMask(PERM_COPY | PERM_TRANSFER);
 
-    mMediaAutoScaleCheck = getChild<LLCheckBoxCtrl>("media_auto_scale");
+    mMediaAutoScaleCheck = get_owner_child<LLCheckBoxCtrl>(this, "media_auto_scale");
     childSetCommitCallback("media_auto_scale", onCommitAny, this);
 
-    mMediaLoopCheck = getChild<LLCheckBoxCtrl>("media_loop");
+    mMediaLoopCheck = get_owner_child<LLCheckBoxCtrl>(this, "media_loop");
     childSetCommitCallback("media_loop", onCommitAny, this );
 
-    mMediaURLEdit = getChild<LLLineEditor>("media_url");
+    mMediaURLEdit = get_owner_child<LLLineEditor>(this, "media_url");
     childSetCommitCallback("media_url", onCommitAny, this );
 
-    mMediaDescEdit = getChild<LLLineEditor>("url_description");
+    mMediaDescEdit = get_owner_child<LLLineEditor>(this, "url_description");
     childSetCommitCallback("url_description", onCommitAny, this);
 
-    mMediaTypeCombo = getChild<LLComboBox>("media type");
+    mMediaTypeCombo = get_owner_child<LLComboBox>(this, "media type");
     childSetCommitCallback("media type", onCommitType, this);
     populateMIMECombo();
 
-    mMediaWidthCtrl = getChild<LLSpinCtrl>("media_size_width");
+    mMediaWidthCtrl = get_owner_child<LLSpinCtrl>(this, "media_size_width");
     childSetCommitCallback("media_size_width", onCommitAny, this);
-    mMediaHeightCtrl = getChild<LLSpinCtrl>("media_size_height");
+    mMediaHeightCtrl = get_owner_child<LLSpinCtrl>(this, "media_size_height");
     childSetCommitCallback("media_size_height", onCommitAny, this);
-    mMediaSizeCtrlLabel = getChild<LLTextBox>("media_size");
+    mMediaSizeCtrlLabel = get_owner_child<LLTextBox>(this, "media_size");
 
-    mSetURLButton = getChild<LLButton>("set_media_url");
+    mSetURLButton = get_owner_child<LLButton>(this, "set_media_url");
     childSetAction("set_media_url", onSetBtn, this);
 
     return true;
@@ -135,7 +160,7 @@ void LLPanelLandMedia::refresh()
         mMediaURLEdit->setText(parcel->getMediaURL());
         mMediaURLEdit->setEnabled( false );
 
-        getChild<LLUICtrl>("current_url")->setValue(parcel->getMediaCurrentURL());
+        get_owner_child<LLUICtrl>(this, "current_url")->setValue(parcel->getMediaCurrentURL());
 
         mMediaDescEdit->setText(parcel->getMediaDesc());
         mMediaDescEdit->setEnabled( can_change_media );
@@ -147,7 +172,7 @@ void LLPanelLandMedia::refresh()
         }
         setMediaType(mime_type);
         mMediaTypeCombo->setEnabled( can_change_media );
-        getChild<LLUICtrl>("mime_type")->setValue(mime_type);
+        get_owner_child<LLUICtrl>(this, "mime_type")->setValue(mime_type);
 
         mMediaAutoScaleCheck->set( static_cast<bool>(parcel->getMediaAutoScale()) );
         mMediaAutoScaleCheck->setEnabled ( can_change_media );
@@ -225,7 +250,7 @@ void LLPanelLandMedia::setMediaType(const std::string& mime_type)
         // localizable - "none" for example (see EXT-6542)
         mime_str = LLMIMETypes::getDefaultMimeTypeTranslation();
     }
-    getChild<LLUICtrl>("mime_type")->setValue(mime_str);
+    get_owner_child<LLUICtrl>(this, "mime_type")->setValue(mime_str);
 }
 
 void LLPanelLandMedia::setMediaURL(const std::string& media_url)
@@ -239,7 +264,7 @@ void LLPanelLandMedia::setMediaURL(const std::string& media_url)
 
     mMediaURLEdit->onCommit();
     // LLViewerParcelMedia::sendMediaNavigateMessage(media_url);
-    getChild<LLUICtrl>("current_url")->setValue(media_url);
+    get_owner_child<LLUICtrl>(this, "current_url")->setValue(media_url);
 }
 std::string LLPanelLandMedia::getMediaURL()
 {
@@ -250,11 +275,11 @@ std::string LLPanelLandMedia::getMediaURL()
 void LLPanelLandMedia::onCommitType(LLUICtrl *ctrl, void *userdata)
 {
     LLPanelLandMedia *self = (LLPanelLandMedia *)userdata;
-    std::string current_type = LLMIMETypes::widgetType(self->getChild<LLUICtrl>("mime_type")->getValue().asString());
+    std::string current_type = LLMIMETypes::widgetType(get_owner_child<LLUICtrl>(self, "mime_type")->getValue().asString());
     std::string new_type = self->mMediaTypeCombo->getValue();
     if(current_type != new_type)
     {
-        self->getChild<LLUICtrl>("mime_type")->setValue(LLMIMETypes::findDefaultMimeType(new_type));
+        get_owner_child<LLUICtrl>(self, "mime_type")->setValue(LLMIMETypes::findDefaultMimeType(new_type));
     }
     onCommitAny(ctrl, userdata);
 
@@ -274,7 +299,7 @@ void LLPanelLandMedia::onCommitAny(LLUICtrl*, void *userdata)
     // Extract data from UI
     std::string media_url   = self->mMediaURLEdit->getText();
     std::string media_desc  = self->mMediaDescEdit->getText();
-    std::string mime_type   = self->getChild<LLUICtrl>("mime_type")->getValue().asString();
+    std::string mime_type   = get_owner_child<LLUICtrl>(self, "mime_type")->getValue().asString();
     U8 media_auto_scale     = static_cast<U8>(self->mMediaAutoScaleCheck->get());
     U8 media_loop           = static_cast<U8>(self->mMediaLoopCheck->get());
     S32 media_width         = (S32)self->mMediaWidthCtrl->get();
@@ -282,7 +307,7 @@ void LLPanelLandMedia::onCommitAny(LLUICtrl*, void *userdata)
     LLUUID media_id         = self->mMediaTextureCtrl->getImageAssetID();
 
 
-    self->getChild<LLUICtrl>("mime_type")->setValue(mime_type);
+    get_owner_child<LLUICtrl>(self, "mime_type")->setValue(mime_type);
 
     // Remove leading/trailing whitespace (common when copying/pasting)
     LLStringUtil::trim(media_url);
@@ -322,7 +347,7 @@ void LLPanelLandMedia::onResetBtn(void *userdata)
     LLParcel* parcel = self->mParcel->getParcel();
     // LLViewerMedia::navigateHome();
     self->refresh();
-    self->getChild<LLUICtrl>("current_url")->setValue(parcel->getMediaURL());
+    get_owner_child<LLUICtrl>(self, "current_url")->setValue(parcel->getMediaURL());
     // LLViewerParcelMedia::sendMediaNavigateMessage(parcel->getMediaURL());
 
 }

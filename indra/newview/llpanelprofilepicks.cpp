@@ -52,6 +52,31 @@
 #include "llviewerparcelmgr.h"
 #include "llviewerregion.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLPanelProfilePicks> t_panel_profile_picks("panel_profile_picks");
 static LLPanelInjector<LLPanelProfilePick> t_panel_profile_pick("panel_profile_pick");
 
@@ -231,10 +256,10 @@ void LLPanelProfilePicks::selectPick(const LLUUID& pick_id)
 
 bool LLPanelProfilePicks::postBuild()
 {
-    mTabContainer = getChild<LLTabContainer>("tab_picks");
-    mNoItemsLabel = getChild<LLUICtrl>("picks_panel_text");
-    mNewButton = getChild<LLButton>("new_btn");
-    mDeleteButton = getChild<LLButton>("delete_btn");
+    mTabContainer = get_owner_child<LLTabContainer>(this, "tab_picks");
+    mNoItemsLabel = get_owner_child<LLUICtrl>(this, "picks_panel_text");
+    mNewButton = get_owner_child<LLButton>(this, "new_btn");
+    mDeleteButton = get_owner_child<LLButton>(this, "delete_btn");
 
         mRlvBehaviorCallbackConnection = gAgent.mRRInterface.setBehaviourCallback(boost::bind(&LLPanelProfilePicks::updateRlvRestrictions, this, _1, _2));
 
@@ -643,14 +668,14 @@ void LLPanelProfilePick::setAvatarId(const LLUUID& avatar_id)
 
 bool LLPanelProfilePick::postBuild()
 {
-    mPickName = getChild<LLLineEditor>("pick_name");
-    mPickDescription = getChild<LLTextEditor>("pick_desc");
-    mSaveButton = getChild<LLButton>("save_changes_btn");
-    mCreateButton = getChild<LLButton>("create_changes_btn");
-    mCancelButton = getChild<LLButton>("cancel_changes_btn");
-    mSetCurrentLocationButton = getChild<LLButton>("set_to_curr_location_btn");
+    mPickName = get_owner_child<LLLineEditor>(this, "pick_name");
+    mPickDescription = get_owner_child<LLTextEditor>(this, "pick_desc");
+    mSaveButton = get_owner_child<LLButton>(this, "save_changes_btn");
+    mCreateButton = get_owner_child<LLButton>(this, "create_changes_btn");
+    mCancelButton = get_owner_child<LLButton>(this, "cancel_changes_btn");
+    mSetCurrentLocationButton = get_owner_child<LLButton>(this, "set_to_curr_location_btn");
 
-    mSnapshotCtrl = getChild<LLTextureCtrl>("pick_snapshot");
+    mSnapshotCtrl = get_owner_child<LLTextureCtrl>(this, "pick_snapshot");
     mSnapshotCtrl->setCommitCallback(boost::bind(&LLPanelProfilePick::onSnapshotChanged, this));
     mSnapshotCtrl->setAllowLocalTexture(false);
     mSnapshotCtrl->setBakeTextureEnabled(false);
@@ -669,7 +694,7 @@ bool LLPanelProfilePick::postBuild()
     mPickDescription->setKeystrokeCallback(boost::bind(&LLPanelProfilePick::onPickChanged, this, _1));
     mPickDescription->setFocusReceivedCallback(boost::bind(&LLPanelProfilePick::onDescriptionFocusReceived, this));
 
-    getChild<LLUICtrl>("pick_location")->setEnabled(false);
+    get_owner_child<LLUICtrl>(this, "pick_location")->setEnabled(false);
 
         mRlvBehaviorCallbackConnection = gAgent.mRRInterface.setBehaviourCallback(boost::bind(&LLPanelProfilePick::updateRlvRestrictions, this, _1, _2));
 
@@ -774,7 +799,7 @@ void LLPanelProfilePick::setPickLocation(const LLUUID &parcel_id, const std::str
 
 void LLPanelProfilePick::setPickLocation(const std::string& location)
 {
-    getChild<LLUICtrl>("pick_location")->setValue(location);
+    get_owner_child<LLUICtrl>(this, "pick_location")->setValue(location);
     mPickLocationStr = location;
     mLastRequestTimer.reset();
 }

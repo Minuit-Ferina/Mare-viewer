@@ -29,6 +29,31 @@
 #include "llflyoutcombobtn.h"
 #include "llviewermenu.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 LLFlyoutComboBtnCtrl::LLFlyoutComboBtnCtrl(LLPanel* parent,
                                            const std::string &action_button,
                                            const std::string &flyout_button,
@@ -74,7 +99,7 @@ void LLFlyoutComboBtnCtrl::setSelectedItem(S32 itemno)
 
 void LLFlyoutComboBtnCtrl::setSelectedItem(const std::string &item)
 {
-    LLMenuItemGL *pitem = mFlyoutMenu->getChild<LLMenuItemGL>(item, false);
+    LLMenuItemGL *pitem = get_owner_child<LLMenuItemGL>(mFlyoutMenu, item, false);
     setSelectedItem(pitem);
 }
 
@@ -88,7 +113,7 @@ void LLFlyoutComboBtnCtrl::setSelectedItem(LLMenuItemGL *pitem)
 
     mSelectedName = pitem->getName();
 
-    LLButton *action_button = mParent->getChild<LLButton>(mActionButton);
+    LLButton *action_button = get_owner_child<LLButton>(mParent, mActionButton);
     action_button->setEnabled(pitem->getEnabled());
     action_button->setLabel(pitem->getLabel());
 }
@@ -98,13 +123,13 @@ void LLFlyoutComboBtnCtrl::setMenuItemEnabled(const std::string& item, bool enab
     mFlyoutMenu->setItemEnabled(item, enabled);
     if (item == mSelectedName)
     {
-        mParent->getChildView(mActionButton)->setEnabled(enabled);
+        get_owner_view(mParent, mActionButton)->setEnabled(enabled);
     }
 }
 
 void LLFlyoutComboBtnCtrl::setShownBtnEnabled(bool enabled)
 {
-    mParent->getChildView(mActionButton)->setEnabled(enabled);
+    get_owner_view(mParent, mActionButton)->setEnabled(enabled);
 }
 
 void LLFlyoutComboBtnCtrl::setMenuItemVisible(const std::string &item, bool visible)
@@ -154,7 +179,7 @@ bool LLFlyoutComboBtnCtrl::onFlyoutItemCheck(LLUICtrl *ctrl, const LLSD &data)
 
 void LLFlyoutComboBtnCtrl::onFlyoutAction(LLUICtrl *ctrl, const LLSD &data)
 {
-    LLMenuItemGL *pmenuitem = mFlyoutMenu->getChild<LLMenuItemGL>(mSelectedName);
+    LLMenuItemGL *pmenuitem = get_owner_child<LLMenuItemGL>(mFlyoutMenu, mSelectedName);
 
     if (!mActionSignal.empty())
         mActionSignal(pmenuitem, data);

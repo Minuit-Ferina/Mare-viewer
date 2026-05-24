@@ -64,6 +64,31 @@
 //MK
 #include "llvoavatar.h"
 #include "llvoavatarself.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
 //mk
 
 //
@@ -91,10 +116,10 @@ bool LLPanelContents::postBuild()
     childSetAction("button bulk_rename",&LLPanelContents::onClickBulkRename, this);
     childSetAction("button refresh",&LLPanelContents::onClickRefresh, this);
 
-    mFilterEditor = getChild<LLFilterEditor>("contents_filter");
+    mFilterEditor = get_owner_child<LLFilterEditor>(this, "contents_filter");
     mFilterEditor->setCommitCallback([&](LLUICtrl*, const LLSD&) { onFilterEdit(); });
 
-    mPanelInventoryObject = getChild<LLPanelObjectInventory>("contents_inventory");
+    mPanelInventoryObject = get_owner_child<LLPanelObjectInventory>(this, "contents_inventory");
 
     // update permission filter once UI is fully initialized
     mSavedFolderState.setApply(false);
@@ -119,7 +144,7 @@ void LLPanelContents::getState(LLViewerObject *objectp )
 {
     if( !objectp )
     {
-        getChildView("button new script")->setEnabled(false);
+        get_owner_view(this, "button new script")->setEnabled(false);
         return;
     }
 
@@ -133,13 +158,13 @@ void LLPanelContents::getState(LLViewerObject *objectp )
     bool all_volume = LLSelectMgr::getInstance()->selectionAllPCode( LL_PCODE_VOLUME );
 
     // Edit script button - ok if object is editable and there's an unambiguous destination for the object.
-    getChildView("button new script")->setEnabled(
+    get_owner_view(this, "button new script")->setEnabled(
         editable &&
         all_volume &&
         ((LLSelectMgr::getInstance()->getSelection()->getRootObjectCount() == 1)
             || (LLSelectMgr::getInstance()->getSelection()->getObjectCount() == 1)));
 
-    getChildView("button permissions")->setEnabled(!objectp->isPermanentEnforced());
+    get_owner_view(this, "button permissions")->setEnabled(!objectp->isPermanentEnforced());
     mPanelInventoryObject->setEnabled(!objectp->isPermanentEnforced());
 }
 

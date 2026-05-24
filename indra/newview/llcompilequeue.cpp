@@ -63,6 +63,31 @@
 #include "llcorehttputil.h"
 #include <map>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // used to resolve item IDs to the floater handle the message reply is for
 typedef std::map<std::string, LLHandle<LLFloaterScriptQueue>> CQMAP;
 // KKA-678 Add initialisation
@@ -150,7 +175,7 @@ public:
         {
             std::string message = std::string("Compiling \"") + getScriptName() + std::string("\"...");
 
-            queue->getChild<LLScrollListCtrl>("queue output")->addSimpleElement(message, ADD_BOTTOM);
+            get_owner_child<LLScrollListCtrl>(queue, "queue output")->addSimpleElement(message, ADD_BOTTOM);
         }
 
         return LLSDMap("success", LLSD::Boolean(true));
@@ -207,8 +232,8 @@ LLFloaterScriptQueue::~LLFloaterScriptQueue()
 bool LLFloaterScriptQueue::postBuild()
 {
     childSetAction("close",onCloseBtn,this);
-    getChildView("close")->setEnabled(false);
-    getChild<LLUICtrl>("copy_btn")->setCommitCallback(boost::bind(&LLFloaterScriptQueue::onClickCopyToClipboard, this));
+    get_owner_view(this, "close")->setEnabled(false);
+    get_owner_child<LLUICtrl>(this, "copy_btn")->setCommitCallback(boost::bind(&LLFloaterScriptQueue::onClickCopyToClipboard, this));
     setVisible(true);
     return true;
 }
@@ -240,7 +265,7 @@ void LLFloaterScriptQueue::onCloseBtn(void* user_data)
 
 void LLFloaterScriptQueue::onClickCopyToClipboard()
 {
-    LLScrollListCtrl *temp = getChild<LLScrollListCtrl>("queue output", true);
+    LLScrollListCtrl *temp = get_owner_child<LLScrollListCtrl>(this, "queue output", true);
     temp->selectAll();
     temp->copy();
     temp->deselect();
@@ -329,7 +354,7 @@ void LLFloaterScriptQueue::addStringMessage(const std::string &message)
 {
     // <FS:Ansariel> Improve log output
     //getChild<LLScrollListCtrl>("queue output")->addSimpleElement(message, ADD_BOTTOM);
-    LLScrollListCtrl* ctrl = getChild<LLScrollListCtrl>("queue output");
+    LLScrollListCtrl* ctrl = get_owner_child<LLScrollListCtrl>(this, "queue output");
     BOOL is_at_end = ctrl->getScrollbar()->isAtEnd();
     ctrl->addSimpleElement(message, ADD_BOTTOM);
     if (is_at_end)
@@ -1204,7 +1229,7 @@ void LLFloaterScriptQueue::objectScriptProcessingQueueCoro(std::string action, L
                 floater->addStringMessage(buffer);
             }
 
-        floater->getChildView("close")->setEnabled(true);
+        get_owner_view(floater.operator->(), "close")->setEnabled(true);
     }
     catch (LLCheckedHandleBase::Stale &)
     {

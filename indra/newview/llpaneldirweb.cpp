@@ -35,6 +35,31 @@
 #include "llviewercontrol.h"
 #include "llweb.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLPanelDirWeb> t_panel_dir_web("panel_dir_web");
 
 LLPanelDirWeb::LLPanelDirWeb()
@@ -48,9 +73,9 @@ bool LLPanelDirWeb::postBuild()
 {
     childSetAction("home_btn", onClickHome, this);
 
-    mBtnBack = getChild<LLButton>("back_btn");
-    mBtnForward = getChild<LLButton>("forward_btn");
-    mStatusBarText = getChild<LLTextBox>("statusbartext");
+    mBtnBack = get_owner_child<LLButton>(this, "back_btn");
+    mBtnForward = get_owner_child<LLButton>(this, "forward_btn");
+    mStatusBarText = get_owner_child<LLTextBox>(this, "statusbartext");
 
     mBtnBack->setClickedCallback([this](LLUICtrl*, const LLSD&) { mWebBrowser->navigateBack(); });
     mBtnForward->setClickedCallback([this](LLUICtrl*, const LLSD&) { mWebBrowser->navigateForward(); });

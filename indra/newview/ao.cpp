@@ -44,6 +44,31 @@
 #include "llnotificationmanager.h"
 #include "llnotificationsutil.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 FloaterAO::FloaterAO(const LLSD& key)
 :   LLTransientDockableFloater(nullptr, true, key), LLEventTimer(10.f),
     mSetList(0),
@@ -215,43 +240,43 @@ void FloaterAO::updateList()
 
 bool FloaterAO::postBuild()
 {
-    LLPanel* aoPanel = getChild<LLPanel>("animation_overrider_outer_panel");
-    mMainInterfacePanel = aoPanel->getChild<LLPanel>("animation_overrider_panel");
-    mSmallInterfacePanel = aoPanel->getChild<LLPanel>("animation_overrider_panel_small");
-    mReloadCoverPanel = aoPanel->getChild<LLPanel>("ao_reload_cover");
+    LLPanel* aoPanel = get_owner_child<LLPanel>(this, "animation_overrider_outer_panel");
+    mMainInterfacePanel = get_owner_child<LLPanel>(aoPanel, "animation_overrider_panel");
+    mSmallInterfacePanel = get_owner_child<LLPanel>(aoPanel, "animation_overrider_panel_small");
+    mReloadCoverPanel = get_owner_child<LLPanel>(aoPanel, "ao_reload_cover");
 
-    mSetSelector = mMainInterfacePanel->getChild<LLComboBox>("ao_set_selection_combo");
-    mActivateSetButton = mMainInterfacePanel->getChild<LLButton>("ao_activate");
-    mAddButton = mMainInterfacePanel->getChild<LLButton>("ao_add");
-    mRemoveButton = mMainInterfacePanel->getChild<LLButton>("ao_remove");
-    mDefaultCheckBox = mMainInterfacePanel->getChild<LLCheckBoxCtrl>("ao_default");
-    mChatCheckBox = mMainInterfacePanel->getChild<LLCheckBoxCtrl>("ao_chat");
-    mOverrideSitsCheckBox = mMainInterfacePanel->getChild<LLCheckBoxCtrl>("ao_sit_override");
-    mSmartCheckBox = mMainInterfacePanel->getChild<LLCheckBoxCtrl>("ao_smart");
-    mDisableMouselookCheckBox = mMainInterfacePanel->getChild<LLCheckBoxCtrl>("ao_disable_stands_in_mouselook");
+    mSetSelector = get_owner_child<LLComboBox>(mMainInterfacePanel, "ao_set_selection_combo");
+    mActivateSetButton = get_owner_child<LLButton>(mMainInterfacePanel, "ao_activate");
+    mAddButton = get_owner_child<LLButton>(mMainInterfacePanel, "ao_add");
+    mRemoveButton = get_owner_child<LLButton>(mMainInterfacePanel, "ao_remove");
+    mDefaultCheckBox = get_owner_child<LLCheckBoxCtrl>(mMainInterfacePanel, "ao_default");
+    mChatCheckBox = get_owner_child<LLCheckBoxCtrl>(mMainInterfacePanel, "ao_chat");
+    mOverrideSitsCheckBox = get_owner_child<LLCheckBoxCtrl>(mMainInterfacePanel, "ao_sit_override");
+    mSmartCheckBox = get_owner_child<LLCheckBoxCtrl>(mMainInterfacePanel, "ao_smart");
+    mDisableMouselookCheckBox = get_owner_child<LLCheckBoxCtrl>(mMainInterfacePanel, "ao_disable_stands_in_mouselook");
 
-    mStateSelector = mMainInterfacePanel->getChild<LLComboBox>("ao_state_selection_combo");
-    mAnimationList = mMainInterfacePanel->getChild<LLScrollListCtrl>("ao_state_animation_list");
-    mMoveUpButton = mMainInterfacePanel->getChild<LLButton>("ao_move_up");
-    mMoveDownButton = mMainInterfacePanel->getChild<LLButton>("ao_move_down");
-    mTrashButton = mMainInterfacePanel->getChild<LLButton>("ao_trash");
-    mCycleCheckBox = mMainInterfacePanel->getChild<LLCheckBoxCtrl>("ao_cycle");
-    mRandomizeCheckBox = mMainInterfacePanel->getChild<LLCheckBoxCtrl>("ao_randomize");
-    mCycleTimeTextLabel = mMainInterfacePanel->getChild<LLTextBox>("ao_cycle_time_seconds_label");
-    mCycleTimeSpinner = mMainInterfacePanel->getChild<LLSpinCtrl>("ao_cycle_time");
+    mStateSelector = get_owner_child<LLComboBox>(mMainInterfacePanel, "ao_state_selection_combo");
+    mAnimationList = get_owner_child<LLScrollListCtrl>(mMainInterfacePanel, "ao_state_animation_list");
+    mMoveUpButton = get_owner_child<LLButton>(mMainInterfacePanel, "ao_move_up");
+    mMoveDownButton = get_owner_child<LLButton>(mMainInterfacePanel, "ao_move_down");
+    mTrashButton = get_owner_child<LLButton>(mMainInterfacePanel, "ao_trash");
+    mCycleCheckBox = get_owner_child<LLCheckBoxCtrl>(mMainInterfacePanel, "ao_cycle");
+    mRandomizeCheckBox = get_owner_child<LLCheckBoxCtrl>(mMainInterfacePanel, "ao_randomize");
+    mCycleTimeTextLabel = get_owner_child<LLTextBox>(mMainInterfacePanel, "ao_cycle_time_seconds_label");
+    mCycleTimeSpinner = get_owner_child<LLSpinCtrl>(mMainInterfacePanel, "ao_cycle_time");
 
-    mReloadButton = mMainInterfacePanel->getChild<LLButton>("ao_reload");
-    mPreviousButton = mMainInterfacePanel->getChild<LLButton>("ao_previous");
-    mNextButton = mMainInterfacePanel->getChild<LLButton>("ao_next");
-    mRandomButton = mMainInterfacePanel->getChild<LLButton>("ao_random");
-    mLessButton = mMainInterfacePanel->getChild<LLButton>("ao_less");
+    mReloadButton = get_owner_child<LLButton>(mMainInterfacePanel, "ao_reload");
+    mPreviousButton = get_owner_child<LLButton>(mMainInterfacePanel, "ao_previous");
+    mNextButton = get_owner_child<LLButton>(mMainInterfacePanel, "ao_next");
+    mRandomButton = get_owner_child<LLButton>(mMainInterfacePanel, "ao_random");
+    mLessButton = get_owner_child<LLButton>(mMainInterfacePanel, "ao_less");
 
-    mSetSelectorSmall = mSmallInterfacePanel->getChild<LLComboBox>("ao_set_selection_combo_small");
-    mMoreButton = mSmallInterfacePanel->getChild<LLButton>("ao_more");
-    mPreviousButtonSmall = mSmallInterfacePanel->getChild<LLButton>("ao_previous_small");
-    mNextButtonSmall = mSmallInterfacePanel->getChild<LLButton>("ao_next_small");
-    mRandomButtonSmall = mSmallInterfacePanel->getChild<LLButton>("ao_random_small");
-    mOverrideSitsCheckBoxSmall = mSmallInterfacePanel->getChild<LLCheckBoxCtrl>("ao_sit_override_small");
+    mSetSelectorSmall = get_owner_child<LLComboBox>(mSmallInterfacePanel, "ao_set_selection_combo_small");
+    mMoreButton = get_owner_child<LLButton>(mSmallInterfacePanel, "ao_more");
+    mPreviousButtonSmall = get_owner_child<LLButton>(mSmallInterfacePanel, "ao_previous_small");
+    mNextButtonSmall = get_owner_child<LLButton>(mSmallInterfacePanel, "ao_next_small");
+    mRandomButtonSmall = get_owner_child<LLButton>(mSmallInterfacePanel, "ao_random_small");
+    mOverrideSitsCheckBoxSmall = get_owner_child<LLCheckBoxCtrl>(mSmallInterfacePanel, "ao_sit_override_small");
 
     mSetSelector->setCommitCallback(boost::bind(&FloaterAO::onSelectSet, this));
     mSetSelector->setFocusLostCallback(boost::bind(&FloaterAO::onSelectSet, this));

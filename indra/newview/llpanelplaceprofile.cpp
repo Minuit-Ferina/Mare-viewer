@@ -53,6 +53,31 @@
 #include "llviewerparcelmgr.h"
 #include "llviewerregion.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 const F64 COVENANT_REFRESH_TIME_SEC = 60.0f;
 
 static LLPanelInjector<LLPanelPlaceProfile> t_place_profile("panel_place_profile");
@@ -96,54 +121,54 @@ bool LLPanelPlaceProfile::postBuild()
 {
     LLPanelPlaceInfo::postBuild();
 
-    mForSalePanel = getChild<LLPanel>("for_sale_panel");
-    mYouAreHerePanel = getChild<LLPanel>("here_panel");
+    mForSalePanel = get_owner_child<LLPanel>(this, "for_sale_panel");
+    mYouAreHerePanel = get_owner_child<LLPanel>(this, "here_panel");
     gIdleCallbacks.addFunction(&LLPanelPlaceProfile::updateYouAreHereBanner, this);
 
     //Icon value should contain sale price of last selected parcel.
-    mForSalePanel->getChild<LLIconCtrl>("icon_for_sale")->
+    get_owner_child<LLIconCtrl>(mForSalePanel, "icon_for_sale")->
                 setMouseDownCallback(boost::bind(&LLPanelPlaceProfile::onForSaleBannerClick, this));
 
-    mParcelRatingIcon = getChild<LLIconCtrl>("rating_icon");
-    mParcelRatingText = getChild<LLTextBox>("rating_value");
-    mVoiceIcon = getChild<LLIconCtrl>("voice_icon");
-    mVoiceText = getChild<LLTextBox>("voice_value");
-    mFlyIcon = getChild<LLIconCtrl>("fly_icon");
-    mFlyText = getChild<LLTextBox>("fly_value");
-    mPushIcon = getChild<LLIconCtrl>("push_icon");
-    mPushText = getChild<LLTextBox>("push_value");
-    mBuildIcon = getChild<LLIconCtrl>("build_icon");
-    mBuildText = getChild<LLTextBox>("build_value");
-    mScriptsIcon = getChild<LLIconCtrl>("scripts_icon");
-    mScriptsText = getChild<LLTextBox>("scripts_value");
-    mDamageIcon = getChild<LLIconCtrl>("damage_icon");
-    mDamageText = getChild<LLTextBox>("damage_value");
-    mSeeAVsIcon = getChild<LLIconCtrl>("see_avatars_icon");
-    mSeeAVsText = getChild<LLTextBox>("see_avatars_value");
+    mParcelRatingIcon = get_owner_child<LLIconCtrl>(this, "rating_icon");
+    mParcelRatingText = get_owner_child<LLTextBox>(this, "rating_value");
+    mVoiceIcon = get_owner_child<LLIconCtrl>(this, "voice_icon");
+    mVoiceText = get_owner_child<LLTextBox>(this, "voice_value");
+    mFlyIcon = get_owner_child<LLIconCtrl>(this, "fly_icon");
+    mFlyText = get_owner_child<LLTextBox>(this, "fly_value");
+    mPushIcon = get_owner_child<LLIconCtrl>(this, "push_icon");
+    mPushText = get_owner_child<LLTextBox>(this, "push_value");
+    mBuildIcon = get_owner_child<LLIconCtrl>(this, "build_icon");
+    mBuildText = get_owner_child<LLTextBox>(this, "build_value");
+    mScriptsIcon = get_owner_child<LLIconCtrl>(this, "scripts_icon");
+    mScriptsText = get_owner_child<LLTextBox>(this, "scripts_value");
+    mDamageIcon = get_owner_child<LLIconCtrl>(this, "damage_icon");
+    mDamageText = get_owner_child<LLTextBox>(this, "damage_value");
+    mSeeAVsIcon = get_owner_child<LLIconCtrl>(this, "see_avatars_icon");
+    mSeeAVsText = get_owner_child<LLTextBox>(this, "see_avatars_value");
 
-    mRegionNameText = getChild<LLTextBox>("region_name");
-    mRegionTypeText = getChild<LLTextBox>("region_type");
-    mRegionRatingIcon = getChild<LLIconCtrl>("region_rating_icon");
-    mRegionRatingText = getChild<LLTextBox>("region_rating");
-    mRegionOwnerText = getChild<LLTextBox>("region_owner");
-    mRegionGroupText = getChild<LLTextBox>("region_group");
+    mRegionNameText = get_owner_child<LLTextBox>(this, "region_name");
+    mRegionTypeText = get_owner_child<LLTextBox>(this, "region_type");
+    mRegionRatingIcon = get_owner_child<LLIconCtrl>(this, "region_rating_icon");
+    mRegionRatingText = get_owner_child<LLTextBox>(this, "region_rating");
+    mRegionOwnerText = get_owner_child<LLTextBox>(this, "region_owner");
+    mRegionGroupText = get_owner_child<LLTextBox>(this, "region_group");
 
-    mEstateNameText = getChild<LLTextBox>("estate_name");
-    mEstateRatingText = getChild<LLTextBox>("estate_rating");
-    mEstateRatingIcon = getChild<LLIconCtrl>("estate_rating_icon");
-    mEstateOwnerText = getChild<LLTextBox>("estate_owner");
-    mCovenantText = getChild<LLTextEditor>("covenant");
+    mEstateNameText = get_owner_child<LLTextBox>(this, "estate_name");
+    mEstateRatingText = get_owner_child<LLTextBox>(this, "estate_rating");
+    mEstateRatingIcon = get_owner_child<LLIconCtrl>(this, "estate_rating_icon");
+    mEstateOwnerText = get_owner_child<LLTextBox>(this, "estate_owner");
+    mCovenantText = get_owner_child<LLTextEditor>(this, "covenant");
 
-    mSalesPriceText = getChild<LLTextBox>("sales_price");
-    mAreaText = getChild<LLTextBox>("area");
-    mTrafficText = getChild<LLTextBox>("traffic");
-    mPrimitivesText = getChild<LLTextBox>("primitives");
-    mParcelScriptsText = getChild<LLTextBox>("parcel_scripts");
-    mTerraformLimitsText = getChild<LLTextBox>("terraform_limits");
-    mSubdivideText = getChild<LLTextEditor>("subdivide");
-    mResaleText = getChild<LLTextEditor>("resale");
-    mSaleToText = getChild<LLTextBox>("sale_to");
-    mAccordionCtrl = getChild<LLAccordionCtrl>("advanced_info_accordion");
+    mSalesPriceText = get_owner_child<LLTextBox>(this, "sales_price");
+    mAreaText = get_owner_child<LLTextBox>(this, "area");
+    mTrafficText = get_owner_child<LLTextBox>(this, "traffic");
+    mPrimitivesText = get_owner_child<LLTextBox>(this, "primitives");
+    mParcelScriptsText = get_owner_child<LLTextBox>(this, "parcel_scripts");
+    mTerraformLimitsText = get_owner_child<LLTextBox>(this, "terraform_limits");
+    mSubdivideText = get_owner_child<LLTextEditor>(this, "subdivide");
+    mResaleText = get_owner_child<LLTextEditor>(this, "resale");
+    mSaleToText = get_owner_child<LLTextBox>(this, "sale_to");
+    mAccordionCtrl = get_owner_child<LLAccordionCtrl>(this, "advanced_info_accordion");
 
     icon_pg = getString("icon_PG");
     icon_m = getString("icon_M");
@@ -237,7 +262,7 @@ void LLPanelPlaceProfile::resetLocation()
     mResaleText->setValue(loading);
     mSaleToText->setValue(loading);
 
-    getChild<LLAccordionCtrlTab>("sales_tab")->setVisible(true);
+    get_owner_child<LLAccordionCtrlTab>(this, "sales_tab")->setVisible(true);
 }
 
 // virtual
@@ -248,10 +273,10 @@ void LLPanelPlaceProfile::setInfoType(EInfoType type)
     mMaturityRatingIcon->setVisible(!is_info_type_agent);
     mMaturityRatingText->setVisible(!is_info_type_agent);
 
-    getChild<LLTextBox>("owner_label")->setVisible(is_info_type_agent);
+    get_owner_child<LLTextBox>(this, "owner_label")->setVisible(is_info_type_agent);
     mParcelOwner->setVisible(is_info_type_agent);
 
-    getChild<LLAccordionCtrl>("advanced_info_accordion")->setVisible(is_info_type_agent);
+    get_owner_child<LLAccordionCtrl>(this, "advanced_info_accordion")->setVisible(is_info_type_agent);
 
     // If we came from search we want larger description area, approx. 10 lines (see STORM-1311).
     // Don't use the maximum available space because that leads to nasty artifacts
@@ -260,14 +285,14 @@ void LLPanelPlaceProfile::setInfoType(EInfoType type)
         const S32 SEARCH_DESC_HEIGHT = 150;
 
         // Remember original geometry (once).
-        static const S32 sOrigDescVPad = getChildView("owner_label")->getRect().mBottom - mDescEditor->getRect().mTop;
+        static const S32 sOrigDescVPad = get_owner_view(this, "owner_label")->getRect().mBottom - mDescEditor->getRect().mTop;
         static const S32 sOrigDescHeight = mDescEditor->getRect().getHeight();
         static const S32 sOrigMRIconVPad = mDescEditor->getRect().mBottom - mMaturityRatingIcon->getRect().mTop;
         static const S32 sOrigMRTextVPad = mDescEditor->getRect().mBottom - mMaturityRatingText->getRect().mTop;
 
         // Resize the description.
         const S32 desc_height = is_info_type_agent ? sOrigDescHeight : SEARCH_DESC_HEIGHT;
-        const S32 desc_top = getChildView("owner_label")->getRect().mBottom - sOrigDescVPad;
+        const S32 desc_top = get_owner_view(this, "owner_label")->getRect().mBottom - sOrigDescVPad;
         LLRect desc_rect = mDescEditor->getRect();
         desc_rect.setOriginAndSize(desc_rect.mLeft, desc_top - desc_height, desc_rect.getWidth(), desc_height);
         mDescEditor->reshape(desc_rect.getWidth(), desc_rect.getHeight());
@@ -625,7 +650,7 @@ void LLPanelPlaceProfile::displaySelectedParcelInfo(LLParcel* parcel,
     LLPanelPlaceInfo::processParcelInfo(parcel_data);
 
     mYouAreHerePanel->setVisible(is_current_parcel);
-    getChild<LLAccordionCtrlTab>("sales_tab")->setVisible(for_sale);
+    get_owner_child<LLAccordionCtrlTab>(this, "sales_tab")->setVisible(for_sale);
     mAccordionCtrl->arrange();
 }
 

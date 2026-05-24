@@ -85,6 +85,31 @@
 
 #include <boost/bind.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 const F32 DEFAULT_GRAVITY_MULTIPLIER = 1.f;
 const F32 DEFAULT_DENSITY = 1000.f;
@@ -97,34 +122,34 @@ bool    LLPanelVolume::postBuild()
         childSetCommitCallback("Animated Mesh Checkbox Ctrl", boost::bind(&LLPanelVolume::onCommitAnimatedMeshCheckbox, this, _1, _2), NULL);
         childSetCommitCallback("Flexible1D Checkbox Ctrl", boost::bind(&LLPanelVolume::onCommitIsFlexible, this, _1, _2), NULL);
         childSetCommitCallback("FlexNumSections",onCommitFlexible,this);
-        getChild<LLUICtrl>("FlexNumSections")->setValidateBeforeCommit(precommitValidate);
+        get_owner_child<LLUICtrl>(this, "FlexNumSections")->setValidateBeforeCommit(precommitValidate);
         childSetCommitCallback("FlexGravity",onCommitFlexible,this);
-        getChild<LLUICtrl>("FlexGravity")->setValidateBeforeCommit(precommitValidate);
+        get_owner_child<LLUICtrl>(this, "FlexGravity")->setValidateBeforeCommit(precommitValidate);
         childSetCommitCallback("FlexFriction",onCommitFlexible,this);
-        getChild<LLUICtrl>("FlexFriction")->setValidateBeforeCommit(precommitValidate);
+        get_owner_child<LLUICtrl>(this, "FlexFriction")->setValidateBeforeCommit(precommitValidate);
         childSetCommitCallback("FlexWind",onCommitFlexible,this);
-        getChild<LLUICtrl>("FlexWind")->setValidateBeforeCommit(precommitValidate);
+        get_owner_child<LLUICtrl>(this, "FlexWind")->setValidateBeforeCommit(precommitValidate);
         childSetCommitCallback("FlexTension",onCommitFlexible,this);
-        getChild<LLUICtrl>("FlexTension")->setValidateBeforeCommit(precommitValidate);
+        get_owner_child<LLUICtrl>(this, "FlexTension")->setValidateBeforeCommit(precommitValidate);
         childSetCommitCallback("FlexForceX",onCommitFlexible,this);
-        getChild<LLUICtrl>("FlexForceX")->setValidateBeforeCommit(precommitValidate);
+        get_owner_child<LLUICtrl>(this, "FlexForceX")->setValidateBeforeCommit(precommitValidate);
         childSetCommitCallback("FlexForceY",onCommitFlexible,this);
-        getChild<LLUICtrl>("FlexForceY")->setValidateBeforeCommit(precommitValidate);
+        get_owner_child<LLUICtrl>(this, "FlexForceY")->setValidateBeforeCommit(precommitValidate);
         childSetCommitCallback("FlexForceZ",onCommitFlexible,this);
-        getChild<LLUICtrl>("FlexForceZ")->setValidateBeforeCommit(precommitValidate);
+        get_owner_child<LLUICtrl>(this, "FlexForceZ")->setValidateBeforeCommit(precommitValidate);
     }
 
     // LIGHT Parameters
     {
         childSetCommitCallback("Light Checkbox Ctrl",onCommitIsLight,this);
-        LLColorSwatchCtrl*  LightColorSwatch = getChild<LLColorSwatchCtrl>("colorswatch");
+        LLColorSwatchCtrl*  LightColorSwatch = get_owner_child<LLColorSwatchCtrl>(this, "colorswatch");
         if(LightColorSwatch){
             LightColorSwatch->setOnCancelCallback(boost::bind(&LLPanelVolume::onLightCancelColor, this, _2));
             LightColorSwatch->setOnSelectCallback(boost::bind(&LLPanelVolume::onLightSelectColor, this, _2));
             childSetCommitCallback("colorswatch",onCommitLight,this);
         }
 
-        LLTextureCtrl* LightTexPicker = getChild<LLTextureCtrl>("light texture control");
+        LLTextureCtrl* LightTexPicker = get_owner_child<LLTextureCtrl>(this, "light texture control");
         if (LightTexPicker)
         {
             LightTexPicker->setOnCancelCallback(boost::bind(&LLPanelVolume::onLightCancelTexture, this, _2));
@@ -133,18 +158,18 @@ bool    LLPanelVolume::postBuild()
         }
 
         childSetCommitCallback("Light Intensity",onCommitLight,this);
-        getChild<LLUICtrl>("Light Intensity")->setValidateBeforeCommit(precommitValidate);
+        get_owner_child<LLUICtrl>(this, "Light Intensity")->setValidateBeforeCommit(precommitValidate);
         childSetCommitCallback("Light Radius",onCommitLight,this);
-        getChild<LLUICtrl>("Light Radius")->setValidateBeforeCommit(precommitValidate);
+        get_owner_child<LLUICtrl>(this, "Light Radius")->setValidateBeforeCommit(precommitValidate);
         childSetCommitCallback("Light Falloff",onCommitLight,this);
-        getChild<LLUICtrl>("Light Falloff")->setValidateBeforeCommit(precommitValidate);
+        get_owner_child<LLUICtrl>(this, "Light Falloff")->setValidateBeforeCommit(precommitValidate);
 
         childSetCommitCallback("Light FOV", onCommitLight, this);
-        getChild<LLUICtrl>("Light FOV")->setValidateBeforeCommit( precommitValidate);
+        get_owner_child<LLUICtrl>(this, "Light FOV")->setValidateBeforeCommit( precommitValidate);
         childSetCommitCallback("Light Focus", onCommitLight, this);
-        getChild<LLUICtrl>("Light Focus")->setValidateBeforeCommit( precommitValidate);
+        get_owner_child<LLUICtrl>(this, "Light Focus")->setValidateBeforeCommit( precommitValidate);
         childSetCommitCallback("Light Ambiance", onCommitLight, this);
-        getChild<LLUICtrl>("Light Ambiance")->setValidateBeforeCommit( precommitValidate);
+        get_owner_child<LLUICtrl>(this, "Light Ambiance")->setValidateBeforeCommit( precommitValidate);
     }
 
     // REFLECTION PROBE Parameters
@@ -160,28 +185,28 @@ bool    LLPanelVolume::postBuild()
     // PHYSICS Parameters
     {
         // PhysicsShapeType combobox
-        mComboPhysicsShapeType = getChild<LLComboBox>("Physics Shape Type Combo Ctrl");
+        mComboPhysicsShapeType = get_owner_child<LLComboBox>(this, "Physics Shape Type Combo Ctrl");
         mComboPhysicsShapeType->setCommitCallback(boost::bind(&LLPanelVolume::sendPhysicsShapeType, this, _1, mComboPhysicsShapeType));
 
         // PhysicsGravity
-        mSpinPhysicsGravity = getChild<LLSpinCtrl>("Physics Gravity");
+        mSpinPhysicsGravity = get_owner_child<LLSpinCtrl>(this, "Physics Gravity");
         mSpinPhysicsGravity->setCommitCallback(boost::bind(&LLPanelVolume::sendPhysicsGravity, this, _1, mSpinPhysicsGravity));
 
         // PhysicsFriction
-        mSpinPhysicsFriction = getChild<LLSpinCtrl>("Physics Friction");
+        mSpinPhysicsFriction = get_owner_child<LLSpinCtrl>(this, "Physics Friction");
         mSpinPhysicsFriction->setCommitCallback(boost::bind(&LLPanelVolume::sendPhysicsFriction, this, _1, mSpinPhysicsFriction));
 
         // PhysicsDensity
-        mSpinPhysicsDensity = getChild<LLSpinCtrl>("Physics Density");
+        mSpinPhysicsDensity = get_owner_child<LLSpinCtrl>(this, "Physics Density");
         mSpinPhysicsDensity->setCommitCallback(boost::bind(&LLPanelVolume::sendPhysicsDensity, this, _1, mSpinPhysicsDensity));
 
         // PhysicsRestitution
-        mSpinPhysicsRestitution = getChild<LLSpinCtrl>("Physics Restitution");
+        mSpinPhysicsRestitution = get_owner_child<LLSpinCtrl>(this, "Physics Restitution");
         mSpinPhysicsRestitution->setCommitCallback(boost::bind(&LLPanelVolume::sendPhysicsRestitution, this, _1, mSpinPhysicsRestitution));
     }
 
-    mMenuClipboardFeatures = getChild<LLMenuButton>("clipboard_features_params_btn");
-    mMenuClipboardLight = getChild<LLMenuButton>("clipboard_light_params_btn");
+    mMenuClipboardFeatures = get_owner_child<LLMenuButton>(this, "clipboard_features_params_btn");
+    mMenuClipboardLight = get_owner_child<LLMenuButton>(this, "clipboard_light_params_btn");
 
     std::map<std::string, std::string> material_name_map;
     material_name_map["Stone"]= LLTrans::getString("Stone");
@@ -196,7 +221,7 @@ bool    LLPanelVolume::postBuild()
     LLMaterialTable::basic.initTableTransNames(material_name_map);
 
     // material type popup
-    mComboMaterial = getChild<LLComboBox>("material");
+    mComboMaterial = get_owner_child<LLComboBox>(this, "material");
     childSetCommitCallback("material",onCommitMaterial,this);
     mComboMaterial->removeall();
 
@@ -295,26 +320,26 @@ void LLPanelVolume::getState( )
     // Select Single Message
     if (single_volume)
     {
-        getChildView("edit_object")->setVisible(true);
-        getChildView("edit_object")->setEnabled(true);
-        getChildView("select_single")->setVisible(false);
+        get_owner_view(this, "edit_object")->setVisible(true);
+        get_owner_view(this, "edit_object")->setEnabled(true);
+        get_owner_view(this, "select_single")->setVisible(false);
     }
     else
     {
-        getChildView("edit_object")->setVisible(false);
-        getChildView("select_single")->setVisible(true);
-        getChildView("select_single")->setEnabled(true);
+        get_owner_view(this, "edit_object")->setVisible(false);
+        get_owner_view(this, "select_single")->setVisible(true);
+        get_owner_view(this, "select_single")->setEnabled(true);
     }
 
     // Light properties
     bool is_light = volobjp && volobjp->getIsLight();
-    getChild<LLUICtrl>("Light Checkbox Ctrl")->setValue(is_light);
-    getChildView("Light Checkbox Ctrl")->setEnabled(editable && single_volume && volobjp);
+    get_owner_child<LLUICtrl>(this, "Light Checkbox Ctrl")->setValue(is_light);
+    get_owner_view(this, "Light Checkbox Ctrl")->setEnabled(editable && single_volume && volobjp);
 
     if (is_light && editable && single_volume)
     {
         //mLabelColor        ->setEnabled( true );
-        LLColorSwatchCtrl* LightColorSwatch = getChild<LLColorSwatchCtrl>("colorswatch");
+        LLColorSwatchCtrl* LightColorSwatch = get_owner_child<LLColorSwatchCtrl>(this, "colorswatch");
         if(LightColorSwatch)
         {
             LightColorSwatch->setEnabled( true );
@@ -322,7 +347,7 @@ void LLPanelVolume::getState( )
             LightColorSwatch->set(volobjp->getLightSRGBBaseColor());
         }
 
-        LLTextureCtrl* LightTextureCtrl = getChild<LLTextureCtrl>("light texture control");
+        LLTextureCtrl* LightTextureCtrl = get_owner_child<LLTextureCtrl>(this, "light texture control");
         if (LightTextureCtrl)
         {
             LightTextureCtrl->setEnabled(true);
@@ -330,38 +355,38 @@ void LLPanelVolume::getState( )
             LightTextureCtrl->setImageAssetID(volobjp->getLightTextureID());
         }
 
-        getChildView("Light Intensity")->setEnabled(true);
-        getChildView("Light Radius")->setEnabled(true);
-        getChildView("Light Falloff")->setEnabled(true);
+        get_owner_view(this, "Light Intensity")->setEnabled(true);
+        get_owner_view(this, "Light Radius")->setEnabled(true);
+        get_owner_view(this, "Light Falloff")->setEnabled(true);
 
-        getChildView("Light FOV")->setEnabled(true);
-        getChildView("Light Focus")->setEnabled(true);
-        getChildView("Light Ambiance")->setEnabled(true);
+        get_owner_view(this, "Light FOV")->setEnabled(true);
+        get_owner_view(this, "Light Focus")->setEnabled(true);
+        get_owner_view(this, "Light Ambiance")->setEnabled(true);
 
-        getChild<LLUICtrl>("Light Intensity")->setValue(volobjp->getLightIntensity());
-        getChild<LLUICtrl>("Light Radius")->setValue(volobjp->getLightRadius());
-        getChild<LLUICtrl>("Light Falloff")->setValue(volobjp->getLightFalloff());
+        get_owner_child<LLUICtrl>(this, "Light Intensity")->setValue(volobjp->getLightIntensity());
+        get_owner_child<LLUICtrl>(this, "Light Radius")->setValue(volobjp->getLightRadius());
+        get_owner_child<LLUICtrl>(this, "Light Falloff")->setValue(volobjp->getLightFalloff());
 
         LLVector3 params = volobjp->getSpotLightParams();
-        getChild<LLUICtrl>("Light FOV")->setValue(params.mV[0]);
-        getChild<LLUICtrl>("Light Focus")->setValue(params.mV[1]);
-        getChild<LLUICtrl>("Light Ambiance")->setValue(params.mV[2]);
+        get_owner_child<LLUICtrl>(this, "Light FOV")->setValue(params.mV[0]);
+        get_owner_child<LLUICtrl>(this, "Light Focus")->setValue(params.mV[1]);
+        get_owner_child<LLUICtrl>(this, "Light Ambiance")->setValue(params.mV[2]);
 
         mLightSavedColor = volobjp->getLightSRGBBaseColor();
     }
     else
     {
-        getChild<LLSpinCtrl>("Light Intensity", true)->clear();
-        getChild<LLSpinCtrl>("Light Radius", true)->clear();
-        getChild<LLSpinCtrl>("Light Falloff", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "Light Intensity", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "Light Radius", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "Light Falloff", true)->clear();
 
-        LLColorSwatchCtrl* LightColorSwatch = getChild<LLColorSwatchCtrl>("colorswatch");
+        LLColorSwatchCtrl* LightColorSwatch = get_owner_child<LLColorSwatchCtrl>(this, "colorswatch");
         if(LightColorSwatch)
         {
             LightColorSwatch->setEnabled( false );
             LightColorSwatch->setValid( false );
         }
-        LLTextureCtrl* LightTextureCtrl = getChild<LLTextureCtrl>("light texture control");
+        LLTextureCtrl* LightTextureCtrl = get_owner_child<LLTextureCtrl>(this, "light texture control");
         if (LightTextureCtrl)
         {
             LightTextureCtrl->setEnabled(false);
@@ -377,43 +402,43 @@ void LLPanelVolume::getState( )
             }
         }
 
-        getChildView("Light Intensity")->setEnabled(false);
-        getChildView("Light Radius")->setEnabled(false);
-        getChildView("Light Falloff")->setEnabled(false);
+        get_owner_view(this, "Light Intensity")->setEnabled(false);
+        get_owner_view(this, "Light Radius")->setEnabled(false);
+        get_owner_view(this, "Light Falloff")->setEnabled(false);
 
-        getChildView("Light FOV")->setEnabled(false);
-        getChildView("Light Focus")->setEnabled(false);
-        getChildView("Light Ambiance")->setEnabled(false);
+        get_owner_view(this, "Light FOV")->setEnabled(false);
+        get_owner_view(this, "Light Focus")->setEnabled(false);
+        get_owner_view(this, "Light Ambiance")->setEnabled(false);
     }
 
     // Reflection Probe
     bool is_probe = volobjp && volobjp->isReflectionProbe();
     bool is_mirror = volobjp && volobjp->getReflectionProbeIsMirror();
-    getChild<LLUICtrl>("Reflection Probe")->setValue(is_probe);
-    getChildView("Reflection Probe")->setEnabled(editable && single_volume && volobjp && !volobjp->isMesh());
+    get_owner_child<LLUICtrl>(this, "Reflection Probe")->setValue(is_probe);
+    get_owner_view(this, "Reflection Probe")->setEnabled(editable && single_volume && volobjp && !volobjp->isMesh());
 
     bool probe_enabled = is_probe && editable && single_volume;
 
     bool mirrors_enabled = LLPipeline::RenderMirrors;
 
-    getChildView("Probe Update Type")->setVisible(mirrors_enabled);
-    getChildView("Probe Update Label")->setVisible(mirrors_enabled);
-    getChildView("Probe Dynamic")->setVisible(!mirrors_enabled);
+    get_owner_view(this, "Probe Update Type")->setVisible(mirrors_enabled);
+    get_owner_view(this, "Probe Update Label")->setVisible(mirrors_enabled);
+    get_owner_view(this, "Probe Dynamic")->setVisible(!mirrors_enabled);
 
-    getChildView("Probe Dynamic")->setEnabled(probe_enabled);
-    getChildView("Probe Update Type")->setEnabled(probe_enabled);
-    getChildView("Probe Volume Type")->setEnabled(probe_enabled && !is_mirror);
-    getChildView("Probe Ambiance")->setEnabled(probe_enabled && !is_mirror);
-    getChildView("Probe Near Clip")->setEnabled(probe_enabled && !is_mirror);
-    getChildView("Probe Update Label")->setEnabled(probe_enabled);
+    get_owner_view(this, "Probe Dynamic")->setEnabled(probe_enabled);
+    get_owner_view(this, "Probe Update Type")->setEnabled(probe_enabled);
+    get_owner_view(this, "Probe Volume Type")->setEnabled(probe_enabled && !is_mirror);
+    get_owner_view(this, "Probe Ambiance")->setEnabled(probe_enabled && !is_mirror);
+    get_owner_view(this, "Probe Near Clip")->setEnabled(probe_enabled && !is_mirror);
+    get_owner_view(this, "Probe Update Label")->setEnabled(probe_enabled);
 
     if (!probe_enabled)
     {
-        getChild<LLComboBox>("Probe Volume Type", true)->clear();
-        getChild<LLSpinCtrl>("Probe Ambiance", true)->clear();
-        getChild<LLSpinCtrl>("Probe Near Clip", true)->clear();
-        getChild<LLComboBox>("Probe Update Type", true)->clear();
-        getChild<LLUICtrl>("Probe Dynamic")->setValue(false);
+        get_owner_child<LLComboBox>(this, "Probe Volume Type", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "Probe Ambiance", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "Probe Near Clip", true)->clear();
+        get_owner_child<LLComboBox>(this, "Probe Update Type", true)->clear();
+        get_owner_child<LLUICtrl>(this, "Probe Dynamic")->setValue(false);
     }
     else
     {
@@ -444,16 +469,16 @@ void LLPanelVolume::getState( )
             update_type = "Dynamic Mirror";
         }
 
-        getChild<LLComboBox>("Probe Volume Type", true)->setValue(volume_type);
-        getChild<LLSpinCtrl>("Probe Ambiance", true)->setValue(volobjp->getReflectionProbeAmbiance());
-        getChild<LLSpinCtrl>("Probe Near Clip", true)->setValue(volobjp->getReflectionProbeNearClip());
-        getChild<LLComboBox>("Probe Update Type", true)->setValue(update_type);
-        getChild<LLUICtrl>("Probe Dynamic")->setValue(volobjp->getReflectionProbeIsDynamic());
+        get_owner_child<LLComboBox>(this, "Probe Volume Type", true)->setValue(volume_type);
+        get_owner_child<LLSpinCtrl>(this, "Probe Ambiance", true)->setValue(volobjp->getReflectionProbeAmbiance());
+        get_owner_child<LLSpinCtrl>(this, "Probe Near Clip", true)->setValue(volobjp->getReflectionProbeNearClip());
+        get_owner_child<LLComboBox>(this, "Probe Update Type", true)->setValue(update_type);
+        get_owner_child<LLUICtrl>(this, "Probe Dynamic")->setValue(volobjp->getReflectionProbeIsDynamic());
     }
 
     // Animated Mesh
     bool is_animated_mesh = single_root_volume && root_volobjp && root_volobjp->isAnimatedObject();
-    getChild<LLUICtrl>("Animated Mesh Checkbox Ctrl")->setValue(is_animated_mesh);
+    get_owner_child<LLUICtrl>(this, "Animated Mesh Checkbox Ctrl")->setValue(is_animated_mesh);
     bool enabled_animated_object_box = false;
     if (root_volobjp && root_volobjp == volobjp)
     {
@@ -477,7 +502,7 @@ void LLPanelVolume::getState( )
             enabled_animated_object_box = false;
         }
     }
-    getChildView("Animated Mesh Checkbox Ctrl")->setEnabled(enabled_animated_object_box);
+    get_owner_view(this, "Animated Mesh Checkbox Ctrl")->setEnabled(enabled_animated_object_box);
 
     //refresh any bakes
     if (root_volobjp)
@@ -503,65 +528,65 @@ void LLPanelVolume::getState( )
 
     // Flexible properties
     bool is_flexible = volobjp && volobjp->isFlexible();
-    getChild<LLUICtrl>("Flexible1D Checkbox Ctrl")->setValue(is_flexible);
+    get_owner_child<LLUICtrl>(this, "Flexible1D Checkbox Ctrl")->setValue(is_flexible);
     if (is_flexible || (volobjp && volobjp->canBeFlexible()))
     {
-        getChildView("Flexible1D Checkbox Ctrl")->setEnabled(editable && single_volume && volobjp && !volobjp->isMesh() && !objectp->isPermanentEnforced());
+        get_owner_view(this, "Flexible1D Checkbox Ctrl")->setEnabled(editable && single_volume && volobjp && !volobjp->isMesh() && !objectp->isPermanentEnforced());
     }
     else
     {
-        getChildView("Flexible1D Checkbox Ctrl")->setEnabled(false);
+        get_owner_view(this, "Flexible1D Checkbox Ctrl")->setEnabled(false);
     }
     if (is_flexible && editable && single_volume)
     {
-        getChildView("FlexNumSections")->setVisible(true);
-        getChildView("FlexGravity")->setVisible(true);
-        getChildView("FlexTension")->setVisible(true);
-        getChildView("FlexFriction")->setVisible(true);
-        getChildView("FlexWind")->setVisible(true);
-        getChildView("FlexForceX")->setVisible(true);
-        getChildView("FlexForceY")->setVisible(true);
-        getChildView("FlexForceZ")->setVisible(true);
+        get_owner_view(this, "FlexNumSections")->setVisible(true);
+        get_owner_view(this, "FlexGravity")->setVisible(true);
+        get_owner_view(this, "FlexTension")->setVisible(true);
+        get_owner_view(this, "FlexFriction")->setVisible(true);
+        get_owner_view(this, "FlexWind")->setVisible(true);
+        get_owner_view(this, "FlexForceX")->setVisible(true);
+        get_owner_view(this, "FlexForceY")->setVisible(true);
+        get_owner_view(this, "FlexForceZ")->setVisible(true);
 
-        getChildView("FlexNumSections")->setEnabled(true);
-        getChildView("FlexGravity")->setEnabled(true);
-        getChildView("FlexTension")->setEnabled(true);
-        getChildView("FlexFriction")->setEnabled(true);
-        getChildView("FlexWind")->setEnabled(true);
-        getChildView("FlexForceX")->setEnabled(true);
-        getChildView("FlexForceY")->setEnabled(true);
-        getChildView("FlexForceZ")->setEnabled(true);
+        get_owner_view(this, "FlexNumSections")->setEnabled(true);
+        get_owner_view(this, "FlexGravity")->setEnabled(true);
+        get_owner_view(this, "FlexTension")->setEnabled(true);
+        get_owner_view(this, "FlexFriction")->setEnabled(true);
+        get_owner_view(this, "FlexWind")->setEnabled(true);
+        get_owner_view(this, "FlexForceX")->setEnabled(true);
+        get_owner_view(this, "FlexForceY")->setEnabled(true);
+        get_owner_view(this, "FlexForceZ")->setEnabled(true);
 
         LLFlexibleObjectData *attributes = (LLFlexibleObjectData *)objectp->getParameterEntry(LLNetworkData::PARAMS_FLEXIBLE);
 
-        getChild<LLUICtrl>("FlexNumSections")->setValue((F32)attributes->getSimulateLOD());
-        getChild<LLUICtrl>("FlexGravity")->setValue(attributes->getGravity());
-        getChild<LLUICtrl>("FlexTension")->setValue(attributes->getTension());
-        getChild<LLUICtrl>("FlexFriction")->setValue(attributes->getAirFriction());
-        getChild<LLUICtrl>("FlexWind")->setValue(attributes->getWindSensitivity());
-        getChild<LLUICtrl>("FlexForceX")->setValue(attributes->getUserForce().mV[VX]);
-        getChild<LLUICtrl>("FlexForceY")->setValue(attributes->getUserForce().mV[VY]);
-        getChild<LLUICtrl>("FlexForceZ")->setValue(attributes->getUserForce().mV[VZ]);
+        get_owner_child<LLUICtrl>(this, "FlexNumSections")->setValue((F32)attributes->getSimulateLOD());
+        get_owner_child<LLUICtrl>(this, "FlexGravity")->setValue(attributes->getGravity());
+        get_owner_child<LLUICtrl>(this, "FlexTension")->setValue(attributes->getTension());
+        get_owner_child<LLUICtrl>(this, "FlexFriction")->setValue(attributes->getAirFriction());
+        get_owner_child<LLUICtrl>(this, "FlexWind")->setValue(attributes->getWindSensitivity());
+        get_owner_child<LLUICtrl>(this, "FlexForceX")->setValue(attributes->getUserForce().mV[VX]);
+        get_owner_child<LLUICtrl>(this, "FlexForceY")->setValue(attributes->getUserForce().mV[VY]);
+        get_owner_child<LLUICtrl>(this, "FlexForceZ")->setValue(attributes->getUserForce().mV[VZ]);
     }
     else
     {
-        getChild<LLSpinCtrl>("FlexNumSections", true)->clear();
-        getChild<LLSpinCtrl>("FlexGravity", true)->clear();
-        getChild<LLSpinCtrl>("FlexTension", true)->clear();
-        getChild<LLSpinCtrl>("FlexFriction", true)->clear();
-        getChild<LLSpinCtrl>("FlexWind", true)->clear();
-        getChild<LLSpinCtrl>("FlexForceX", true)->clear();
-        getChild<LLSpinCtrl>("FlexForceY", true)->clear();
-        getChild<LLSpinCtrl>("FlexForceZ", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "FlexNumSections", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "FlexGravity", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "FlexTension", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "FlexFriction", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "FlexWind", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "FlexForceX", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "FlexForceY", true)->clear();
+        get_owner_child<LLSpinCtrl>(this, "FlexForceZ", true)->clear();
 
-        getChildView("FlexNumSections")->setEnabled(false);
-        getChildView("FlexGravity")->setEnabled(false);
-        getChildView("FlexTension")->setEnabled(false);
-        getChildView("FlexFriction")->setEnabled(false);
-        getChildView("FlexWind")->setEnabled(false);
-        getChildView("FlexForceX")->setEnabled(false);
-        getChildView("FlexForceY")->setEnabled(false);
-        getChildView("FlexForceZ")->setEnabled(false);
+        get_owner_view(this, "FlexNumSections")->setEnabled(false);
+        get_owner_view(this, "FlexGravity")->setEnabled(false);
+        get_owner_view(this, "FlexTension")->setEnabled(false);
+        get_owner_view(this, "FlexFriction")->setEnabled(false);
+        get_owner_view(this, "FlexWind")->setEnabled(false);
+        get_owner_view(this, "FlexForceX")->setEnabled(false);
+        get_owner_view(this, "FlexForceY")->setEnabled(false);
+        get_owner_view(this, "FlexForceZ")->setEnabled(false);
     }
 
     // Material properties
@@ -710,12 +735,12 @@ void LLPanelVolume::refresh()
         region->getSimulatorFeatures(sim_features);
         enable_mesh = sim_features.has("PhysicsShapeTypes");
     }
-    getChildView("label physicsshapetype")->setVisible(enable_mesh);
-    getChildView("Physics Shape Type Combo Ctrl")->setVisible(enable_mesh);
-    getChildView("Physics Gravity")->setVisible(enable_mesh);
-    getChildView("Physics Friction")->setVisible(enable_mesh);
-    getChildView("Physics Density")->setVisible(enable_mesh);
-    getChildView("Physics Restitution")->setVisible(enable_mesh);
+    get_owner_view(this, "label physicsshapetype")->setVisible(enable_mesh);
+    get_owner_view(this, "Physics Shape Type Combo Ctrl")->setVisible(enable_mesh);
+    get_owner_view(this, "Physics Gravity")->setVisible(enable_mesh);
+    get_owner_view(this, "Physics Friction")->setVisible(enable_mesh);
+    get_owner_view(this, "Physics Density")->setVisible(enable_mesh);
+    get_owner_view(this, "Physics Restitution")->setVisible(enable_mesh);
 
     /* TODO: add/remove individual physics shape types as per the PhysicsShapeTypes simulator features */
 }
@@ -731,44 +756,44 @@ void LLPanelVolume::clearCtrls()
 {
     LLPanel::clearCtrls();
 
-    getChildView("select_single")->setEnabled(false);
-    getChildView("select_single")->setVisible(true);
-    getChildView("edit_object")->setEnabled(false);
-    getChildView("edit_object")->setVisible(false);
-    getChildView("Light Checkbox Ctrl")->setEnabled(false);;
-    LLColorSwatchCtrl* LightColorSwatch = getChild<LLColorSwatchCtrl>("colorswatch");
+    get_owner_view(this, "select_single")->setEnabled(false);
+    get_owner_view(this, "select_single")->setVisible(true);
+    get_owner_view(this, "edit_object")->setEnabled(false);
+    get_owner_view(this, "edit_object")->setVisible(false);
+    get_owner_view(this, "Light Checkbox Ctrl")->setEnabled(false);;
+    LLColorSwatchCtrl* LightColorSwatch = get_owner_child<LLColorSwatchCtrl>(this, "colorswatch");
     if(LightColorSwatch)
     {
         LightColorSwatch->setEnabled( false );
         LightColorSwatch->setValid( false );
     }
-    LLTextureCtrl* LightTextureCtrl = getChild<LLTextureCtrl>("light texture control");
+    LLTextureCtrl* LightTextureCtrl = get_owner_child<LLTextureCtrl>(this, "light texture control");
     if(LightTextureCtrl)
     {
         LightTextureCtrl->setEnabled( false );
         LightTextureCtrl->setValid( false );
     }
 
-    getChildView("Light Intensity")->setEnabled(false);
-    getChildView("Light Radius")->setEnabled(false);
-    getChildView("Light Falloff")->setEnabled(false);
+    get_owner_view(this, "Light Intensity")->setEnabled(false);
+    get_owner_view(this, "Light Radius")->setEnabled(false);
+    get_owner_view(this, "Light Falloff")->setEnabled(false);
 
-    getChildView("Reflection Probe")->setEnabled(false);;
-    getChildView("Probe Volume Type")->setEnabled(false);
-    getChildView("Probe Update Type")->setEnabled(false);
-    getChildView("Probe Dynamic")->setEnabled(false);
-    getChildView("Probe Ambiance")->setEnabled(false);
-    getChildView("Probe Near Clip")->setEnabled(false);
-    getChildView("Animated Mesh Checkbox Ctrl")->setEnabled(false);
-    getChildView("Flexible1D Checkbox Ctrl")->setEnabled(false);
-    getChildView("FlexNumSections")->setEnabled(false);
-    getChildView("FlexGravity")->setEnabled(false);
-    getChildView("FlexTension")->setEnabled(false);
-    getChildView("FlexFriction")->setEnabled(false);
-    getChildView("FlexWind")->setEnabled(false);
-    getChildView("FlexForceX")->setEnabled(false);
-    getChildView("FlexForceY")->setEnabled(false);
-    getChildView("FlexForceZ")->setEnabled(false);
+    get_owner_view(this, "Reflection Probe")->setEnabled(false);;
+    get_owner_view(this, "Probe Volume Type")->setEnabled(false);
+    get_owner_view(this, "Probe Update Type")->setEnabled(false);
+    get_owner_view(this, "Probe Dynamic")->setEnabled(false);
+    get_owner_view(this, "Probe Ambiance")->setEnabled(false);
+    get_owner_view(this, "Probe Near Clip")->setEnabled(false);
+    get_owner_view(this, "Animated Mesh Checkbox Ctrl")->setEnabled(false);
+    get_owner_view(this, "Flexible1D Checkbox Ctrl")->setEnabled(false);
+    get_owner_view(this, "FlexNumSections")->setEnabled(false);
+    get_owner_view(this, "FlexGravity")->setEnabled(false);
+    get_owner_view(this, "FlexTension")->setEnabled(false);
+    get_owner_view(this, "FlexFriction")->setEnabled(false);
+    get_owner_view(this, "FlexWind")->setEnabled(false);
+    get_owner_view(this, "FlexForceX")->setEnabled(false);
+    get_owner_view(this, "FlexForceY")->setEnabled(false);
+    get_owner_view(this, "FlexForceZ")->setEnabled(false);
 
     mSpinPhysicsGravity->setEnabled(false);
     mSpinPhysicsFriction->setEnabled(false);
@@ -791,7 +816,7 @@ void LLPanelVolume::sendIsLight()
     }
     LLVOVolume *volobjp = (LLVOVolume *)objectp;
 
-    bool value = getChild<LLUICtrl>("Light Checkbox Ctrl")->getValue();
+    bool value = get_owner_child<LLUICtrl>(this, "Light Checkbox Ctrl")->getValue();
     volobjp->setIsLight(value);
     LL_INFOS() << "update light sent" << LL_ENDL;
 }
@@ -813,7 +838,7 @@ void LLPanelVolume::sendIsReflectionProbe()
     }
     LLVOVolume* volobjp = (LLVOVolume*)objectp;
 
-    bool value = getChild<LLUICtrl>("Reflection Probe")->getValue();
+    bool value = get_owner_child<LLUICtrl>(this, "Reflection Probe")->getValue();
     bool old_value = volobjp->isReflectionProbe();
 
     if (value && value != old_value)
@@ -873,7 +898,7 @@ void LLPanelVolume::doSendIsReflectionProbe(const LLSD & notification, const LLS
     else
     {
         // cancelled, touch up UI state
-        getChild<LLUICtrl>("Reflection Probe")->setValue(false);
+        get_owner_child<LLUICtrl>(this, "Reflection Probe")->setValue(false);
     }
 }
 
@@ -886,7 +911,7 @@ void LLPanelVolume::sendIsFlexible()
     }
     LLVOVolume *volobjp = (LLVOVolume *)objectp;
 
-    bool is_flexible = getChild<LLUICtrl>("Flexible1D Checkbox Ctrl")->getValue();
+    bool is_flexible = get_owner_child<LLUICtrl>(this, "Flexible1D Checkbox Ctrl")->getValue();
     //bool is_flexible = mCheckFlexible1D->get();
 
     if (is_flexible)
@@ -953,7 +978,7 @@ void LLPanelVolume::refreshCost()
 
 void LLPanelVolume::onLightCancelColor(const LLSD& data)
 {
-    LLColorSwatchCtrl*  LightColorSwatch = getChild<LLColorSwatchCtrl>("colorswatch");
+    LLColorSwatchCtrl*  LightColorSwatch = get_owner_child<LLColorSwatchCtrl>(this, "colorswatch");
     if(LightColorSwatch)
     {
         LightColorSwatch->setColor(mLightSavedColor);
@@ -963,7 +988,7 @@ void LLPanelVolume::onLightCancelColor(const LLSD& data)
 
 void LLPanelVolume::onLightCancelTexture(const LLSD& data)
 {
-    LLTextureCtrl* LightTextureCtrl = getChild<LLTextureCtrl>("light texture control");
+    LLTextureCtrl* LightTextureCtrl = get_owner_child<LLTextureCtrl>(this, "light texture control");
     LLVOVolume *volobjp = (LLVOVolume *) mObject.get();
 
     if (volobjp && LightTextureCtrl)
@@ -980,9 +1005,9 @@ void LLPanelVolume::onLightCancelTexture(const LLSD& data)
         if (!is_spotlight && tex_id.notNull())
         {
             LLVector3 spot_params = volobjp->getSpotLightParams();
-            getChild<LLUICtrl>("Light FOV")->setValue(spot_params.mV[0]);
-            getChild<LLUICtrl>("Light Focus")->setValue(spot_params.mV[1]);
-            getChild<LLUICtrl>("Light Ambiance")->setValue(spot_params.mV[2]);
+            get_owner_child<LLUICtrl>(this, "Light FOV")->setValue(spot_params.mV[0]);
+            get_owner_child<LLUICtrl>(this, "Light Focus")->setValue(spot_params.mV[1]);
+            get_owner_child<LLUICtrl>(this, "Light Ambiance")->setValue(spot_params.mV[2]);
         }
     }
 }
@@ -997,7 +1022,7 @@ void LLPanelVolume::onLightSelectColor(const LLSD& data)
     LLVOVolume *volobjp = (LLVOVolume *)objectp;
 
 
-    LLColorSwatchCtrl*  LightColorSwatch = getChild<LLColorSwatchCtrl>("colorswatch");
+    LLColorSwatchCtrl*  LightColorSwatch = get_owner_child<LLColorSwatchCtrl>(this, "colorswatch");
     if(LightColorSwatch)
     {
         LLColor4    clr = LightColorSwatch->get();
@@ -1016,7 +1041,7 @@ void LLPanelVolume::onLightSelectTexture(const LLSD& data)
     LLVOVolume *volobjp = (LLVOVolume *) mObject.get();
 
 
-    LLTextureCtrl*  LightTextureCtrl = getChild<LLTextureCtrl>("light texture control");
+    LLTextureCtrl*  LightTextureCtrl = get_owner_child<LLTextureCtrl>(this, "light texture control");
     if(LightTextureCtrl)
     {
         LLUUID id = LightTextureCtrl->getImageAssetID();
@@ -1386,18 +1411,18 @@ void LLPanelVolume::onCommitLight( LLUICtrl* ctrl, void* userdata )
     LLVOVolume *volobjp = (LLVOVolume *)objectp;
 
 
-    volobjp->setLightIntensity((F32)self->getChild<LLUICtrl>("Light Intensity")->getValue().asReal());
-    volobjp->setLightRadius((F32)self->getChild<LLUICtrl>("Light Radius")->getValue().asReal());
-    volobjp->setLightFalloff((F32)self->getChild<LLUICtrl>("Light Falloff")->getValue().asReal());
+    volobjp->setLightIntensity((F32)get_owner_child<LLUICtrl>(self, "Light Intensity")->getValue().asReal());
+    volobjp->setLightRadius((F32)get_owner_child<LLUICtrl>(self, "Light Radius")->getValue().asReal());
+    volobjp->setLightFalloff((F32)get_owner_child<LLUICtrl>(self, "Light Falloff")->getValue().asReal());
 
-    LLColorSwatchCtrl*  LightColorSwatch = self->getChild<LLColorSwatchCtrl>("colorswatch");
+    LLColorSwatchCtrl*  LightColorSwatch = get_owner_child<LLColorSwatchCtrl>(self, "colorswatch");
     if(LightColorSwatch)
     {
         LLColor4    clr = LightColorSwatch->get();
         volobjp->setLightSRGBColor(LLColor3(clr));
     }
 
-    LLTextureCtrl*  LightTextureCtrl = self->getChild<LLTextureCtrl>("light texture control");
+    LLTextureCtrl*  LightTextureCtrl = get_owner_child<LLTextureCtrl>(self, "light texture control");
     if(LightTextureCtrl)
     {
         LLUUID id = LightTextureCtrl->getImageAssetID();
@@ -1408,9 +1433,9 @@ void LLPanelVolume::onCommitLight( LLUICtrl* ctrl, void* userdata )
             { //this commit is making this a spot light, set UI to default params
                 setLightTextureID(id, item_id, volobjp);
                 LLVector3 spot_params = volobjp->getSpotLightParams();
-                self->getChild<LLUICtrl>("Light FOV")->setValue(spot_params.mV[0]);
-                self->getChild<LLUICtrl>("Light Focus")->setValue(spot_params.mV[1]);
-                self->getChild<LLUICtrl>("Light Ambiance")->setValue(spot_params.mV[2]);
+                get_owner_child<LLUICtrl>(self, "Light FOV")->setValue(spot_params.mV[0]);
+                get_owner_child<LLUICtrl>(self, "Light Focus")->setValue(spot_params.mV[1]);
+                get_owner_child<LLUICtrl>(self, "Light Ambiance")->setValue(spot_params.mV[2]);
             }
             else
             { //modifying existing params, this time volobjp won't change params on its own.
@@ -1420,9 +1445,9 @@ void LLPanelVolume::onCommitLight( LLUICtrl* ctrl, void* userdata )
                 }
 
                 LLVector3 spot_params;
-                spot_params.mV[0] = (F32) self->getChild<LLUICtrl>("Light FOV")->getValue().asReal();
-                spot_params.mV[1] = (F32) self->getChild<LLUICtrl>("Light Focus")->getValue().asReal();
-                spot_params.mV[2] = (F32) self->getChild<LLUICtrl>("Light Ambiance")->getValue().asReal();
+                spot_params.mV[0] = (F32) get_owner_child<LLUICtrl>(self, "Light FOV")->getValue().asReal();
+                spot_params.mV[1] = (F32) get_owner_child<LLUICtrl>(self, "Light Focus")->getValue().asReal();
+                spot_params.mV[2] = (F32) get_owner_child<LLUICtrl>(self, "Light Ambiance")->getValue().asReal();
                 volobjp->setSpotLightParams(spot_params);
             }
         }
@@ -1449,15 +1474,15 @@ void LLPanelVolume::onCommitProbe(LLUICtrl* ctrl, void* userdata)
     }
     LLVOVolume* volobjp = (LLVOVolume*)objectp;
 
-    volobjp->setReflectionProbeAmbiance((F32)self->getChild<LLUICtrl>("Probe Ambiance")->getValue().asReal());
-    volobjp->setReflectionProbeNearClip((F32)self->getChild<LLUICtrl>("Probe Near Clip")->getValue().asReal());
+    volobjp->setReflectionProbeAmbiance((F32)get_owner_child<LLUICtrl>(self, "Probe Ambiance")->getValue().asReal());
+    volobjp->setReflectionProbeNearClip((F32)get_owner_child<LLUICtrl>(self, "Probe Near Clip")->getValue().asReal());
 
     bool mirrors_enabled = LLPipeline::RenderMirrors;
     bool is_mirror = false;
 
     if (mirrors_enabled)
     {
-        std::string update_type = self->getChild<LLUICtrl>("Probe Update Type")->getValue().asString();
+        std::string update_type = get_owner_child<LLUICtrl>(self, "Probe Update Type")->getValue().asString();
 
         is_mirror = update_type.find("Mirror") != std::string::npos;
 
@@ -1467,15 +1492,15 @@ void LLPanelVolume::onCommitProbe(LLUICtrl* ctrl, void* userdata)
     else
     {
         is_mirror = volobjp->getReflectionProbeIsMirror();
-        bool is_dynamic = self->getChild<LLUICtrl>("Probe Dynamic")->getValue().asBoolean();
+        bool is_dynamic = get_owner_child<LLUICtrl>(self, "Probe Dynamic")->getValue().asBoolean();
         volobjp->setReflectionProbeIsDynamic(is_dynamic);
     }
 
-    self->getChildView("Probe Volume Type")->setEnabled(!is_mirror);
-    self->getChildView("Probe Ambiance")->setEnabled(!is_mirror);
-    self->getChildView("Probe Near Clip")->setEnabled(!is_mirror);
+    get_owner_view(self, "Probe Volume Type")->setEnabled(!is_mirror);
+    get_owner_view(self, "Probe Ambiance")->setEnabled(!is_mirror);
+    get_owner_view(self, "Probe Near Clip")->setEnabled(!is_mirror);
 
-    std::string shape_type = self->getChild<LLUICtrl>("Probe Volume Type")->getValue().asString();
+    std::string shape_type = get_owner_child<LLUICtrl>(self, "Probe Volume Type")->getValue().asString();
 
     bool is_box = shape_type == "Box" || is_mirror;
 
@@ -1575,14 +1600,14 @@ void LLPanelVolume::onCommitFlexible( LLUICtrl* ctrl, void* userdata )
         new_attributes = *attributes;
 
 
-        new_attributes.setSimulateLOD(self->getChild<LLUICtrl>("FlexNumSections")->getValue().asInteger());//(S32)self->mSpinSections->get());
-        new_attributes.setGravity((F32)self->getChild<LLUICtrl>("FlexGravity")->getValue().asReal());
-        new_attributes.setTension((F32)self->getChild<LLUICtrl>("FlexTension")->getValue().asReal());
-        new_attributes.setAirFriction((F32)self->getChild<LLUICtrl>("FlexFriction")->getValue().asReal());
-        new_attributes.setWindSensitivity((F32)self->getChild<LLUICtrl>("FlexWind")->getValue().asReal());
-        F32 fx = (F32)self->getChild<LLUICtrl>("FlexForceX")->getValue().asReal();
-        F32 fy = (F32)self->getChild<LLUICtrl>("FlexForceY")->getValue().asReal();
-        F32 fz = (F32)self->getChild<LLUICtrl>("FlexForceZ")->getValue().asReal();
+        new_attributes.setSimulateLOD(get_owner_child<LLUICtrl>(self, "FlexNumSections")->getValue().asInteger());//(S32)self->mSpinSections->get());
+        new_attributes.setGravity((F32)get_owner_child<LLUICtrl>(self, "FlexGravity")->getValue().asReal());
+        new_attributes.setTension((F32)get_owner_child<LLUICtrl>(self, "FlexTension")->getValue().asReal());
+        new_attributes.setAirFriction((F32)get_owner_child<LLUICtrl>(self, "FlexFriction")->getValue().asReal());
+        new_attributes.setWindSensitivity((F32)get_owner_child<LLUICtrl>(self, "FlexWind")->getValue().asReal());
+        F32 fx = (F32)get_owner_child<LLUICtrl>(self, "FlexForceX")->getValue().asReal();
+        F32 fy = (F32)get_owner_child<LLUICtrl>(self, "FlexForceY")->getValue().asReal();
+        F32 fz = (F32)get_owner_child<LLUICtrl>(self, "FlexForceZ")->getValue().asReal();
         LLVector3 force(fx,fy,fz);
 
         new_attributes.setUserForce(force);
@@ -1601,7 +1626,7 @@ void LLPanelVolume::onCommitAnimatedMeshCheckbox(LLUICtrl *, void*)
         return;
     }
     LLVOVolume *volobjp = (LLVOVolume *)objectp;
-    bool animated_mesh = getChild<LLUICtrl>("Animated Mesh Checkbox Ctrl")->getValue();
+    bool animated_mesh = get_owner_child<LLUICtrl>(this, "Animated Mesh Checkbox Ctrl")->getValue();
     U32 flags = volobjp->getExtendedMeshFlags();
     U32 new_flags = flags;
     if (animated_mesh)
@@ -1660,6 +1685,6 @@ void LLPanelVolume::handleResponseChangeToFlexible(const LLSD &pNotification, co
     }
     else
     {
-        getChild<LLUICtrl>("Flexible1D Checkbox Ctrl")->setValue(false);
+        get_owner_child<LLUICtrl>(this, "Flexible1D Checkbox Ctrl")->setValue(false);
     }
 }

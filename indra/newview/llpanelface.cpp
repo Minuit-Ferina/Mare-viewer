@@ -94,6 +94,31 @@
 #include "llsdserialize.h"
 #include "llinventorymodel.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 using namespace std::literals;
 
 LLPanelFace::Selection LLPanelFace::sMaterialOverrideSelection;
@@ -409,7 +434,7 @@ bool    LLPanelFace::postBuild()
 
     setMouseOpaque(false);
 
-    mPBRTextureCtrl = getChild<LLTextureCtrl>("pbr_control");
+    mPBRTextureCtrl = get_owner_child<LLTextureCtrl>(this, "pbr_control");
     mPBRTextureCtrl->setDefaultImageAssetID(LLUUID::null);
     mPBRTextureCtrl->setBlankImageAssetID(BLANK_MATERIAL_ASSET_ID);
     mPBRTextureCtrl->setCommitCallback([&](LLUICtrl*, const LLSD&) { onCommitPbr(); });
@@ -425,7 +450,7 @@ bool    LLPanelFace::postBuild()
     mPBRTextureCtrl->setBakeTextureEnabled(false);
     mPBRTextureCtrl->setInventoryPickType(PICK_MATERIAL);
 
-    mTextureCtrl = getChild<LLTextureCtrl>("texture control");
+    mTextureCtrl = get_owner_child<LLTextureCtrl>(this, "texture control");
     mTextureCtrl->setDefaultImageAssetID(DEFAULT_OBJECT_TEXTURE);
     mTextureCtrl->setCommitCallback([&](LLUICtrl*, const LLSD&) { onCommitTexture(); });
     mTextureCtrl->setOnCancelCallback([&](LLUICtrl*, const LLSD&) { onCancelTexture(); });
@@ -438,7 +463,7 @@ bool    LLPanelFace::postBuild()
     mTextureCtrl->setImmediateFilterPermMask(PERM_NONE);
     mTextureCtrl->setDnDFilterPermMask(PERM_COPY | PERM_TRANSFER);
 
-    mShinyTextureCtrl = getChild<LLTextureCtrl>("shinytexture control");
+    mShinyTextureCtrl = get_owner_child<LLTextureCtrl>(this, "shinytexture control");
     mShinyTextureCtrl->setDefaultImageAssetID(DEFAULT_OBJECT_SPECULAR);
     mShinyTextureCtrl->setCommitCallback([&](LLUICtrl*, const LLSD& data) { onCommitSpecularTexture(data); });
     mShinyTextureCtrl->setOnCancelCallback([&](LLUICtrl*, const LLSD& data) { onCancelSpecularTexture(data); });
@@ -451,7 +476,7 @@ bool    LLPanelFace::postBuild()
     mShinyTextureCtrl->setImmediateFilterPermMask(PERM_NONE);
     mShinyTextureCtrl->setDnDFilterPermMask(PERM_COPY | PERM_TRANSFER);
 
-    mBumpyTextureCtrl = getChild<LLTextureCtrl>("bumpytexture control");
+    mBumpyTextureCtrl = get_owner_child<LLTextureCtrl>(this, "bumpytexture control");
     mBumpyTextureCtrl->setDefaultImageAssetID(DEFAULT_OBJECT_NORMAL);
     mBumpyTextureCtrl->setBlankImageAssetID(BLANK_OBJECT_NORMAL);
     mBumpyTextureCtrl->setCommitCallback([&](LLUICtrl*, const LLSD& data) { onCommitNormalTexture(data); });
@@ -465,7 +490,7 @@ bool    LLPanelFace::postBuild()
     mBumpyTextureCtrl->setImmediateFilterPermMask(PERM_NONE);
     mBumpyTextureCtrl->setDnDFilterPermMask(PERM_COPY | PERM_TRANSFER);
 
-    mColorSwatch = getChild<LLColorSwatchCtrl>("colorswatch");
+    mColorSwatch = get_owner_child<LLColorSwatchCtrl>(this, "colorswatch");
     mColorSwatch->setCommitCallback([&](LLUICtrl*, const LLSD&) { onCommitColor(); });
     mColorSwatch->setOnCancelCallback([&](LLUICtrl*, const LLSD&) { onCancelColor(); });
     mColorSwatch->setOnSelectCallback([&](LLUICtrl*, const LLSD&) { onSelectColor(); });
@@ -473,7 +498,7 @@ bool    LLPanelFace::postBuild()
     mColorSwatch->setFollowsLeft();
         mColorSwatch->setCanApplyImmediately(true);
 
-    mShinyColorSwatch = getChild<LLColorSwatchCtrl>("shinycolorswatch");
+    mShinyColorSwatch = get_owner_child<LLColorSwatchCtrl>(this, "shinycolorswatch");
     mShinyColorSwatch->setCommitCallback([&](LLUICtrl*, const LLSD&) { onCommitShinyColor(); });
     mShinyColorSwatch->setOnCancelCallback([&](LLUICtrl*, const LLSD&) { onCancelShinyColor(); });
     mShinyColorSwatch->setOnSelectCallback([&](LLUICtrl*, const LLSD&) { onSelectShinyColor(); });
@@ -481,11 +506,11 @@ bool    LLPanelFace::postBuild()
     mShinyColorSwatch->setFollowsLeft();
         mShinyColorSwatch->setCanApplyImmediately(true);
 
-    mLabelColorTransp = getChild<LLTextBox>("color trans");
+    mLabelColorTransp = get_owner_child<LLTextBox>(this, "color trans");
     mLabelColorTransp->setFollowsTop();
     mLabelColorTransp->setFollowsLeft();
 
-    mCtrlColorTransp = getChild<LLSpinCtrl>("ColorTrans");
+    mCtrlColorTransp = get_owner_child<LLSpinCtrl>(this, "ColorTrans");
     mCtrlColorTransp->setCommitCallback([&](LLUICtrl*, const LLSD&) { onCommitAlpha(); });
     mCtrlColorTransp->setPrecision(0);
     mCtrlColorTransp->setFollowsTop();
@@ -494,7 +519,7 @@ bool    LLPanelFace::postBuild()
     getChildSetCommitCallback(mCheckFullbright, "checkbox fullbright", [&](LLUICtrl*, const LLSD&) { onCommitFullbright(); });
     getChildSetCommitCallback(mCheckHideWater, "checkbox_hide_water", [&](LLUICtrl*, const LLSD&) { onCommitHideWater(); });
 
-    mLabelTexGen = getChild<LLTextBox>("tex gen");
+    mLabelTexGen = get_owner_child<LLTextBox>(this, "tex gen");
     getChildSetCommitCallback(mComboTexGen, "combobox texgen", [&](LLUICtrl*, const LLSD&) { onCommitTexGen(); });
     mComboTexGen->setFollows(FOLLOWS_LEFT | FOLLOWS_TOP);
 
@@ -507,27 +532,27 @@ bool    LLPanelFace::postBuild()
     getChildSetCommitCallback(mRadioPbrType, "radio_pbr_type", [&](LLUICtrl*, const LLSD&) { onCommitPbrType(); });
     mRadioPbrType->selectNthItem(PBRTYPE_RENDER_MATERIAL_ID);
 
-    mLabelGlow = getChild<LLTextBox>("glow label");
+    mLabelGlow = get_owner_child<LLTextBox>(this, "glow label");
     getChildSetCommitCallback(mCtrlGlow, "glow", [&](LLUICtrl*, const LLSD&) { onCommitGlow(); });
 
-    mMenuClipboardColor = getChild<LLMenuButton>("clipboard_color_params_btn");
-    mMenuClipboardTexture = getChild<LLMenuButton>("clipboard_texture_params_btn");
+    mMenuClipboardColor = get_owner_child<LLMenuButton>(this, "clipboard_color_params_btn");
+    mMenuClipboardTexture = get_owner_child<LLMenuButton>(this, "clipboard_texture_params_btn");
 
-    mTitleMedia = getChild<LLMediaCtrl>("title_media");
-    mTitleMediaText = getChild<LLTextBox>("media_info");
+    mTitleMedia = get_owner_child<LLMediaCtrl>(this, "title_media");
+    mTitleMediaText = get_owner_child<LLTextBox>(this, "media_info");
 
-    mLabelBumpiness = getChild<LLTextBox>("label bumpiness");
-    mLabelShininess = getChild<LLTextBox>("label shininess");
-    mLabelAlphaMode = getChild<LLTextBox>("label alphamode");
-    mLabelGlossiness = getChild<LLTextBox>("label glossiness");
-    mLabelEnvironment = getChild<LLTextBox>("label environment");
-    mLabelMaskCutoff = getChild<LLTextBox>("label maskcutoff");
-    mLabelShiniColor = getChild<LLTextBox>("label shinycolor");
-    mLabelColor = getChild<LLTextBox>("color label");
+    mLabelBumpiness = get_owner_child<LLTextBox>(this, "label bumpiness");
+    mLabelShininess = get_owner_child<LLTextBox>(this, "label shininess");
+    mLabelAlphaMode = get_owner_child<LLTextBox>(this, "label alphamode");
+    mLabelGlossiness = get_owner_child<LLTextBox>(this, "label glossiness");
+    mLabelEnvironment = get_owner_child<LLTextBox>(this, "label environment");
+    mLabelMaskCutoff = get_owner_child<LLTextBox>(this, "label maskcutoff");
+    mLabelShiniColor = get_owner_child<LLTextBox>(this, "label shinycolor");
+    mLabelColor = get_owner_child<LLTextBox>(this, "color label");
 
-    mLabelMatPermLoading = getChild<LLTextBox>("material_permissions_loading_label");
+    mLabelMatPermLoading = get_owner_child<LLTextBox>(this, "material_permissions_loading_label");
 
-    mCheckSyncSettings = getChild<LLCheckBoxCtrl>("checkbox_sync_settings");
+    mCheckSyncSettings = get_owner_child<LLCheckBoxCtrl>(this, "checkbox_sync_settings");
 
     clearCtrls();
 
@@ -712,8 +737,8 @@ struct LLPanelFaceSetTEFunctor : public LLSelectedTEFunctor
             return false;
         }
 
-        LLCheckBoxCtrl* ctrlTexScaleFlipS = mPanel->getChild<LLCheckBoxCtrl>("TexScaleFlipU");
-        LLCheckBoxCtrl* ctrlTexScaleFlipT = mPanel->getChild<LLCheckBoxCtrl>("TexScaleFlipV");
+        LLCheckBoxCtrl* ctrlTexScaleFlipS = get_owner_child<LLCheckBoxCtrl>(mPanel, "TexScaleFlipU");
+        LLCheckBoxCtrl* ctrlTexScaleFlipT = get_owner_child<LLCheckBoxCtrl>(mPanel, "TexScaleFlipV");
         bool align_planar = mPanel->mPlanarAlign->get();
 
         llassert(object);
@@ -3100,12 +3125,12 @@ void LLPanelFace::updateVisibility(LLViewerObject* objectp /* = nullptr */)
     // texture scale and position controls
     mTexScaleU->setVisible(show_texture);
     mTexScaleV->setVisible(show_texture);
-    getChildView("TexScaleFlipU")->setVisible(show_texture);
-    getChildView("TexScaleFlipV")->setVisible(show_texture);
+    get_owner_view(this, "TexScaleFlipU")->setVisible(show_texture);
+    get_owner_view(this, "TexScaleFlipV")->setVisible(show_texture);
     mTexRotate->setVisible(show_texture);
     mTexOffsetU->setVisible(show_texture);
     mTexOffsetV->setVisible(show_texture);
-    getChildView("TexDuplicate")->setVisible(show_texture);
+    get_owner_view(this, "TexDuplicate")->setVisible(show_texture);
 
     // Specular map controls
     mShinyTextureCtrl->setVisible(show_shininess);
@@ -3123,12 +3148,12 @@ void LLPanelFace::updateVisibility(LLViewerObject* objectp /* = nullptr */)
     }
     mShinyScaleU->setVisible(show_shininess);
     mShinyScaleV->setVisible(show_shininess);
-    getChildView("shinyScaleFlipU")->setVisible(show_shininess);
-    getChildView("shinyScaleFlipV")->setVisible(show_shininess);
+    get_owner_view(this, "shinyScaleFlipU")->setVisible(show_shininess);
+    get_owner_view(this, "shinyScaleFlipV")->setVisible(show_shininess);
     mShinyRotate->setVisible(show_shininess);
     mShinyOffsetU->setVisible(show_shininess);
     mShinyOffsetV->setVisible(show_shininess);
-    getChildView("shinyDuplicate")->setVisible(show_shininess);
+    get_owner_view(this, "shinyDuplicate")->setVisible(show_shininess);
 
     // Normal map controls
     if (show_bumpiness)
@@ -3140,12 +3165,12 @@ void LLPanelFace::updateVisibility(LLViewerObject* objectp /* = nullptr */)
     mLabelBumpiness->setVisible(show_bumpiness);
     mBumpyScaleU->setVisible(show_bumpiness);
     mBumpyScaleV->setVisible(show_bumpiness);
-    getChildView("bumpyScaleFlipU")->setVisible(show_bumpiness);
-    getChildView("bumpyScaleFlipV")->setVisible(show_bumpiness);
+    get_owner_view(this, "bumpyScaleFlipU")->setVisible(show_bumpiness);
+    get_owner_view(this, "bumpyScaleFlipV")->setVisible(show_bumpiness);
     mBumpyRotate->setVisible(show_bumpiness);
     mBumpyOffsetU->setVisible(show_bumpiness);
     mBumpyOffsetV->setVisible(show_bumpiness);
-    getChildView("bumpyDuplicate")->setVisible(show_bumpiness);
+    get_owner_view(this, "bumpyDuplicate")->setVisible(show_bumpiness);
     mTexRepeat->setVisible(show_material || show_media);
     // PBR controls
     updateVisibilityGLTF(objectp);

@@ -40,6 +40,31 @@
 // Library includes (after viewer)
 #include "lluictrlfactory.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 static LLPanelInjector<LLPanelVoiceDeviceSettings> t_panel_group_general("panel_voice_device_settings");
 static const std::string DEFAULT_DEVICE("Default");
 
@@ -65,13 +90,13 @@ LLPanelVoiceDeviceSettings::~LLPanelVoiceDeviceSettings()
 
 bool LLPanelVoiceDeviceSettings::postBuild()
 {
-    LLSlider* volume_slider = getChild<LLSlider>("mic_volume_slider");
+    LLSlider* volume_slider = get_owner_child<LLSlider>(this, "mic_volume_slider");
     // set mic volume tuning slider based on last mic volume setting
     volume_slider->setValue(mMicVolume);
 
-    mCtrlInputDevices = getChild<LLComboBox>("voice_input_device");
-    mCtrlOutputDevices = getChild<LLComboBox>("voice_output_device");
-    mUnmuteBtn = getChild<LLButton>("unmute_btn");
+    mCtrlInputDevices = get_owner_child<LLComboBox>(this, "voice_input_device");
+    mCtrlOutputDevices = get_owner_child<LLComboBox>(this, "voice_output_device");
+    mUnmuteBtn = get_owner_child<LLButton>(this, "unmute_btn");
 
     mCtrlInputDevices->setCommitCallback(
         boost::bind(&LLPanelVoiceDeviceSettings::onCommitInputDevice, this));
@@ -115,18 +140,18 @@ void LLPanelVoiceDeviceSettings::draw()
     bool voice_enabled = LLVoiceClient::getInstance()->voiceEnabled();
     if (voice_enabled)
     {
-        getChildView("wait_text")->setVisible( !is_in_tuning_mode && mUseTuningMode);
-        getChildView("disabled_text")->setVisible(false);
+        get_owner_view(this, "wait_text")->setVisible( !is_in_tuning_mode && mUseTuningMode);
+        get_owner_view(this, "disabled_text")->setVisible(false);
         mUnmuteBtn->setVisible(false);
     }
     else
     {
-        getChildView("wait_text")->setVisible(false);
+        get_owner_view(this, "wait_text")->setVisible(false);
 
         static LLCachedControl<bool> chat_enabled(gSavedSettings, "EnableVoiceChat");
         // If voice isn't enabled, it is either disabled or muted
         bool voice_disabled = chat_enabled() || LLStartUp::getStartupState() <= STATE_LOGIN_WAIT;
-        getChildView("disabled_text")->setVisible(voice_disabled);
+        get_owner_view(this, "disabled_text")->setVisible(voice_disabled);
         mUnmuteBtn->setVisible(!voice_disabled);
     }
 
@@ -141,7 +166,7 @@ void LLPanelVoiceDeviceSettings::draw()
         for(S32 power_bar_idx = 0; power_bar_idx < num_bars; power_bar_idx++)
         {
             std::string view_name = llformat("%s%d", "bar", power_bar_idx);
-            LLView* bar_view = getChild<LLView>(view_name);
+            LLView* bar_view = get_owner_child<LLView>(this, view_name);
             if (bar_view)
             {
                 gl_rect_2d(bar_view->getRect(), LLColor4::grey, true);
@@ -182,7 +207,7 @@ void LLPanelVoiceDeviceSettings::apply()
     }
 
     // assume we are being destroyed by closing our embedding window
-    LLSlider* volume_slider = getChild<LLSlider>("mic_volume_slider");
+    LLSlider* volume_slider = get_owner_child<LLSlider>(this, "mic_volume_slider");
     if(volume_slider)
     {
         F32 slider_value = (F32)volume_slider->getValue().asReal();
@@ -203,7 +228,7 @@ void LLPanelVoiceDeviceSettings::cancel()
         mCtrlOutputDevices->setValue(mOutputDevice);
 
     gSavedSettings.setF32("AudioLevelMic", mMicVolume);
-    LLSlider* volume_slider = getChild<LLSlider>("mic_volume_slider");
+    LLSlider* volume_slider = get_owner_child<LLSlider>(this, "mic_volume_slider");
     if(volume_slider)
     {
         volume_slider->setValue(mMicVolume);
@@ -213,7 +238,7 @@ void LLPanelVoiceDeviceSettings::cancel()
 void LLPanelVoiceDeviceSettings::refresh()
 {
     //grab current volume
-    LLSlider* volume_slider = getChild<LLSlider>("mic_volume_slider");
+    LLSlider* volume_slider = get_owner_child<LLSlider>(this, "mic_volume_slider");
     // set mic volume tuning slider based on last mic volume setting
     F32 current_volume = (F32)volume_slider->getValue().asReal();
     LLVoiceClient::getInstance()->tuningSetMicVolume(current_volume);
@@ -231,7 +256,7 @@ void LLPanelVoiceDeviceSettings::refresh()
         mCtrlOutputDevices->setEnabled(device_settings_available);
     }
 
-    getChild<LLSlider>("mic_volume_slider")->setEnabled(device_settings_available);
+    get_owner_child<LLSlider>(this, "mic_volume_slider")->setEnabled(device_settings_available);
 
     if(!device_settings_available)
     {

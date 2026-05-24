@@ -39,6 +39,31 @@
 
 #include "llagentbenefits.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 /**
  * The panel provides UI for saving snapshot as an inventory texture.
  */
@@ -84,10 +109,10 @@ LLPanelSnapshotInventory::LLPanelSnapshotInventory()
 // virtual
 bool LLPanelSnapshotInventory::postBuild()
 {
-    getChild<LLSpinCtrl>(getWidthSpinnerName())->setAllowEdit(false);
-    getChild<LLSpinCtrl>(getHeightSpinnerName())->setAllowEdit(false);
+    get_owner_child<LLSpinCtrl>(this, getWidthSpinnerName())->setAllowEdit(false);
+    get_owner_child<LLSpinCtrl>(this, getHeightSpinnerName())->setAllowEdit(false);
 
-    getChild<LLUICtrl>(getImageSizeComboName())->setCommitCallback(boost::bind(&LLPanelSnapshotInventory::onResolutionCommit, this, _1));
+    get_owner_child<LLUICtrl>(this, getImageSizeComboName())->setCommitCallback(boost::bind(&LLPanelSnapshotInventory::onResolutionCommit, this, _1));
     return LLPanelSnapshot::postBuild();
 }
 
@@ -103,20 +128,20 @@ void LLPanelSnapshotInventory::onOpen(const LLSD& key)
 void LLPanelSnapshotInventory::updateControls(const LLSD& info)
 {
     const bool have_snapshot = info.has("have-snapshot") ? info["have-snapshot"].asBoolean() : true;
-    getChild<LLUICtrl>("save_btn")->setEnabled(have_snapshot);
+    get_owner_child<LLUICtrl>(this, "save_btn")->setEnabled(have_snapshot);
 
     updateUploadCost();
 }
 
 void LLPanelSnapshotInventory::onResolutionCommit(LLUICtrl* ctrl)
 {
-    LLComboBox* combo = getChild<LLComboBox>(getImageSizeComboName());
+    LLComboBox* combo = get_owner_child<LLComboBox>(this, getImageSizeComboName());
     // Current window likely won't ever change position from being the penultimate item
     // Custom window is last item
     S32  curent_window_index = combo->getItemCount() - 2;
     bool current_window_selected = (combo->getCurrentIndex() == curent_window_index);
-    getChild<LLSpinCtrl>(getWidthSpinnerName())->setVisible(!current_window_selected);
-    getChild<LLSpinCtrl>(getHeightSpinnerName())->setVisible(!current_window_selected);
+    get_owner_child<LLSpinCtrl>(this, getWidthSpinnerName())->setVisible(!current_window_selected);
+    get_owner_child<LLSpinCtrl>(this, getHeightSpinnerName())->setVisible(!current_window_selected);
 }
 
 void LLPanelSnapshotInventory::onSend()
@@ -144,7 +169,7 @@ void LLPanelSnapshotInventory::onSend()
 
 void LLPanelSnapshotInventory::updateUploadCost()
 {
-    getChild<LLUICtrl>("hint_lbl")->setTextArg("[UPLOAD_COST]", llformat("%d", calculateUploadCost()));
+    get_owner_child<LLUICtrl>(this, "hint_lbl")->setTextArg("[UPLOAD_COST]", llformat("%d", calculateUploadCost()));
 }
 
 S32 LLPanelSnapshotInventory::calculateUploadCost()

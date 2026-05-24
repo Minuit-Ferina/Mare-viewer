@@ -67,6 +67,31 @@
 #include "llderenderlist.h"
 #include "llfloaterblocked.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // max number of objects that can be (de-)selected in a single packet.
 const S32 MAX_OBJECTS_PER_PACKET = 255;
 
@@ -165,7 +190,7 @@ FSAreaSearch::~FSAreaSearch()
 
 bool FSAreaSearch::postBuild()
 {
-    mTab = getChild<LLTabContainer>("area_searchtab");
+    mTab = get_owner_child<LLTabContainer>(this, "area_searchtab");
 
     if (!gSavedSettings.getBOOL("FSAreaSearchAdvanced"))
     {
@@ -1322,17 +1347,17 @@ FSPanelAreaSearchList::FSPanelAreaSearchList(FSAreaSearch* pointer)
 
 bool FSPanelAreaSearchList::postBuild()
 {
-    mResultList = getChild<FSScrollListCtrl>("result_list");
+    mResultList = get_owner_child<FSScrollListCtrl>(this, "result_list");
     mResultList->setDoubleClickCallback(boost::bind(&FSPanelAreaSearchList::onDoubleClick, this));
     mResultList->sortByColumn("name", true);
     mResultList->setContextMenu(&gFSAreaSearchMenu);
 
-    mCounterText = getChild<LLTextBox>("counter");
+    mCounterText = get_owner_child<LLTextBox>(this, "counter");
 
-    mRefreshButton = getChild<LLButton>("Refresh");
+    mRefreshButton = get_owner_child<LLButton>(this, "Refresh");
     mRefreshButton->setClickedCallback(boost::bind(&FSPanelAreaSearchList::onClickRefresh, this));
 
-    mCheckboxBeacons = getChild<LLCheckBoxCtrl>("beacons");
+    mCheckboxBeacons = get_owner_child<LLCheckBoxCtrl>(this, "beacons");
     mCheckboxBeacons->setCommitCallback(boost::bind(&FSPanelAreaSearchList::onCommitCheckboxBeacons, this));
 
     mAgentLastPosition = gAgent.getPositionGlobal();
@@ -1965,31 +1990,31 @@ FSPanelAreaSearchFind::FSPanelAreaSearchFind(FSAreaSearch* pointer)
 
 bool FSPanelAreaSearchFind::postBuild()
 {
-    mNameLineEditor = getChild<LLLineEditor>("name_search");
+    mNameLineEditor = get_owner_child<LLLineEditor>(this, "name_search");
     mNameLineEditor->setCommitCallback(boost::bind(&FSAreaSearch::onCommitLine, mFSAreaSearch));
 
-    mDescriptionLineEditor = getChild<LLLineEditor>("description_search");
+    mDescriptionLineEditor = get_owner_child<LLLineEditor>(this, "description_search");
     mDescriptionLineEditor->setCommitCallback(boost::bind(&FSAreaSearch::onCommitLine, mFSAreaSearch));
 
-    mOwnerLineEditor = getChild<LLLineEditor>("owner_search");
+    mOwnerLineEditor = get_owner_child<LLLineEditor>(this, "owner_search");
     mOwnerLineEditor->setCommitCallback(boost::bind(&FSAreaSearch::onCommitLine, mFSAreaSearch));
 
-    mGroupLineEditor = getChild<LLLineEditor>("group_search");
+    mGroupLineEditor = get_owner_child<LLLineEditor>(this, "group_search");
     mGroupLineEditor->setCommitCallback(boost::bind(&FSAreaSearch::onCommitLine, mFSAreaSearch));
 
-    mCreatorLineEditor = getChild<LLLineEditor>("creator_search");
+    mCreatorLineEditor = get_owner_child<LLLineEditor>(this, "creator_search");
     mCreatorLineEditor->setCommitCallback(boost::bind(&FSAreaSearch::onCommitLine, mFSAreaSearch));
 
-    mLastOwnerLineEditor = getChild<LLLineEditor>("last_owner_search");
+    mLastOwnerLineEditor = get_owner_child<LLLineEditor>(this, "last_owner_search");
     mLastOwnerLineEditor->setCommitCallback(boost::bind(&FSAreaSearch::onCommitLine, mFSAreaSearch));
 
-    mCheckboxRegex = getChild<LLCheckBoxCtrl>("regular_expression");
+    mCheckboxRegex = get_owner_child<LLCheckBoxCtrl>(this, "regular_expression");
     mCheckboxRegex->setCommitCallback(boost::bind(&FSAreaSearch::onCommitCheckboxRegex, mFSAreaSearch));
 
-    mSearchButton = getChild<LLButton>("search");
+    mSearchButton = get_owner_child<LLButton>(this, "search");
     mSearchButton->setClickedCallback(boost::bind(&FSAreaSearch::onButtonClickedSearch, mFSAreaSearch));
 
-    mClearButton = getChild<LLButton>("clear");
+    mClearButton = get_owner_child<LLButton>(this, "clear");
     mClearButton->setClickedCallback(boost::bind(&FSPanelAreaSearchFind::onButtonClickedClear, this));
 
     return LLPanel::postBuild();
@@ -2035,81 +2060,81 @@ FSPanelAreaSearchFilter::FSPanelAreaSearchFilter(FSAreaSearch* pointer)
 
 bool FSPanelAreaSearchFilter::postBuild()
 {
-    mCheckboxLocked = getChild<LLCheckBoxCtrl>("filter_locked");
+    mCheckboxLocked = get_owner_child<LLCheckBoxCtrl>(this, "filter_locked");
     mCheckboxLocked->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxPhysical = getChild<LLCheckBoxCtrl>("filter_physical");
+    mCheckboxPhysical = get_owner_child<LLCheckBoxCtrl>(this, "filter_physical");
     mCheckboxPhysical->setEnabled(false);
     mCheckboxPhysical->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxTemporary = getChild<LLCheckBoxCtrl>("filter_temporary");
+    mCheckboxTemporary = get_owner_child<LLCheckBoxCtrl>(this, "filter_temporary");
     mCheckboxTemporary->setEnabled(false);
     mCheckboxTemporary->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxPhantom = getChild<LLCheckBoxCtrl>("filter_phantom");
+    mCheckboxPhantom = get_owner_child<LLCheckBoxCtrl>(this, "filter_phantom");
     mCheckboxPhantom->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxForSale = getChild<LLCheckBoxCtrl>("filter_for_sale");
+    mCheckboxForSale = get_owner_child<LLCheckBoxCtrl>(this, "filter_for_sale");
     mCheckboxForSale->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxAttachment = getChild<LLCheckBoxCtrl>("filter_attachment");
+    mCheckboxAttachment = get_owner_child<LLCheckBoxCtrl>(this, "filter_attachment");
     mCheckboxAttachment->setEnabled(false);
     mCheckboxAttachment->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mSpinForSaleMinValue= getChild<LLSpinCtrl>("min_price");
+    mSpinForSaleMinValue= get_owner_child<LLSpinCtrl>(this, "min_price");
     mSpinForSaleMinValue->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitSpin, this));
 
-    mSpinForSaleMaxValue= getChild<LLSpinCtrl>("max_price");
+    mSpinForSaleMaxValue= get_owner_child<LLSpinCtrl>(this, "max_price");
     mSpinForSaleMaxValue->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitSpin, this));
 
-    mComboClickAction = getChild<LLComboBox>("click_action");
+    mComboClickAction = get_owner_child<LLComboBox>(this, "click_action");
     mComboClickAction->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCombo, this));
 
-    mCheckboxExcludeAttachment = getChild<LLCheckBoxCtrl>("exclude_attachment");
+    mCheckboxExcludeAttachment = get_owner_child<LLCheckBoxCtrl>(this, "exclude_attachment");
     mCheckboxExcludeAttachment->set(true);
     mCheckboxExcludeAttachment->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxExcludePhysics = getChild<LLCheckBoxCtrl>("exclude_physical");
+    mCheckboxExcludePhysics = get_owner_child<LLCheckBoxCtrl>(this, "exclude_physical");
     mCheckboxExcludePhysics->set(true);
     mCheckboxExcludePhysics->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxExcludetemporary = getChild<LLCheckBoxCtrl>("exclude_temporary");
+    mCheckboxExcludetemporary = get_owner_child<LLCheckBoxCtrl>(this, "exclude_temporary");
     mCheckboxExcludetemporary->set(true);
     mCheckboxExcludetemporary->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxExcludeChildPrim = getChild<LLCheckBoxCtrl>("exclude_childprim");
+    mCheckboxExcludeChildPrim = get_owner_child<LLCheckBoxCtrl>(this, "exclude_childprim");
     mCheckboxExcludeChildPrim->set(true);
     mCheckboxExcludeChildPrim->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxExcludeNeighborRegions = getChild<LLCheckBoxCtrl>("exclude_neighbor_region");
+    mCheckboxExcludeNeighborRegions = get_owner_child<LLCheckBoxCtrl>(this, "exclude_neighbor_region");
     mCheckboxExcludeNeighborRegions->set(true);
     mCheckboxExcludeNeighborRegions->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mButtonApply = getChild<LLButton>("apply");
+    mButtonApply = get_owner_child<LLButton>(this, "apply");
     mButtonApply->setClickedCallback(boost::bind(&FSAreaSearch::onButtonClickedSearch, mFSAreaSearch));
 
-    mCheckboxDistance = getChild<LLCheckBoxCtrl>("filter_distance");
+    mCheckboxDistance = get_owner_child<LLCheckBoxCtrl>(this, "filter_distance");
     mCheckboxDistance->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mSpinDistanceMinValue = getChild<LLSpinCtrl>("min_distance");
+    mSpinDistanceMinValue = get_owner_child<LLSpinCtrl>(this, "min_distance");
     mSpinDistanceMinValue->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitSpin, this));
 
-    mSpinDistanceMaxValue= getChild<LLSpinCtrl>("max_distance");
+    mSpinDistanceMaxValue= get_owner_child<LLSpinCtrl>(this, "max_distance");
     mSpinDistanceMaxValue->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitSpin, this));
 
-    mCheckboxMoaP = getChild<LLCheckBoxCtrl>("filter_moap");
+    mCheckboxMoaP = get_owner_child<LLCheckBoxCtrl>(this, "filter_moap");
     mCheckboxMoaP->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxPermCopy = getChild<LLCheckBoxCtrl>("filter_perm_copy");
+    mCheckboxPermCopy = get_owner_child<LLCheckBoxCtrl>(this, "filter_perm_copy");
     mCheckboxPermCopy->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxPermModify = getChild<LLCheckBoxCtrl>("filter_perm_modify");
+    mCheckboxPermModify = get_owner_child<LLCheckBoxCtrl>(this, "filter_perm_modify");
     mCheckboxPermModify->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxPermTransfer = getChild<LLCheckBoxCtrl>("filter_perm_transfer");
+    mCheckboxPermTransfer = get_owner_child<LLCheckBoxCtrl>(this, "filter_perm_transfer");
     mCheckboxPermTransfer->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
-    mCheckboxAgentParcelOnly = getChild<LLCheckBoxCtrl>("filter_agent_parcel_only");
+    mCheckboxAgentParcelOnly = get_owner_child<LLCheckBoxCtrl>(this, "filter_agent_parcel_only");
     mCheckboxAgentParcelOnly->setCommitCallback(boost::bind(&FSPanelAreaSearchFilter::onCommitCheckbox, this));
 
     return LLPanel::postBuild();
@@ -2249,8 +2274,8 @@ FSPanelAreaSearchAdvanced::FSPanelAreaSearchAdvanced(FSAreaSearch* pointer)
 
 bool FSPanelAreaSearchAdvanced::postBuild()
 {
-    mCheckboxClickTouch = getChild<LLCheckBoxCtrl>("double_click_touch");
-    mCheckboxClickBuy = getChild<LLCheckBoxCtrl>("double_click_buy");
+    mCheckboxClickTouch = get_owner_child<LLCheckBoxCtrl>(this, "double_click_touch");
+    mCheckboxClickBuy = get_owner_child<LLCheckBoxCtrl>(this, "double_click_buy");
 
     return LLPanel::postBuild();
 }

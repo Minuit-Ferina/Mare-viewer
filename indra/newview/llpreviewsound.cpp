@@ -37,6 +37,31 @@
 #include "llviewermessage.h"  // send_guid_sound_trigger
 #include "lluictrlfactory.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 extern LLAudioEngine* gAudiop;
 extern LLAgent gAgent;
 
@@ -56,7 +81,7 @@ bool    LLPreviewSound::postBuild()
     setupSoundButtons();
 
     childSetCommitCallback("desc", LLPreview::onText, this);
-    getChild<LLLineEditor>("desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
+    get_owner_child<LLLineEditor>(this, "desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
 
     return LLPreview::postBuild();
 }
@@ -65,7 +90,7 @@ void LLPreviewSound::setupDescriptionField(const LLInventoryItem* item)
 {
     if (item)
     {
-        getChild<LLUICtrl>("desc")->setValue(item->getDescription());
+        get_owner_child<LLUICtrl>(this, "desc")->setValue(item->getDescription());
     }
 }
 
@@ -74,10 +99,10 @@ void LLPreviewSound::setupSoundButtons()
     childSetAction("Sound play btn",&LLPreviewSound::playSound,this);
     childSetAction("Sound audition btn",&LLPreviewSound::auditionSound,this);
 
-    LLButton* button = getChild<LLButton>("Sound play btn");
+    LLButton* button = get_owner_child<LLButton>(this, "Sound play btn");
     button->setSoundFlags(LLView::SILENT);
 
-    button = getChild<LLButton>("Sound audition btn");
+    button = get_owner_child<LLButton>(this, "Sound audition btn");
     button->setSoundFlags(LLView::SILENT);
 }
 

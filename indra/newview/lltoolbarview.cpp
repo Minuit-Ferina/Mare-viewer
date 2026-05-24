@@ -46,6 +46,31 @@
 #include "llviewercontrol.h"  // HACK for destinations guide on startup
 #include "llinventorymodel.h" // HACK to disable starter avatars button for NUX
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 LLToolBarView* gToolBarView = NULL;
 
 static LLDefaultChildRegistry::Register<LLToolBarView> r("toolbar_view");
@@ -100,16 +125,16 @@ LLToolBarView::~LLToolBarView()
 
 bool LLToolBarView::postBuild()
 {
-    mToolbars[LLToolBarEnums::TOOLBAR_LEFT] = getChild<LLToolBar>("toolbar_left");
+    mToolbars[LLToolBarEnums::TOOLBAR_LEFT] = get_owner_child<LLToolBar>(this, "toolbar_left");
     mToolbars[LLToolBarEnums::TOOLBAR_LEFT]->getCenterLayoutPanel()->setLocationId(LLToolBarEnums::TOOLBAR_LEFT);
 
-    mToolbars[LLToolBarEnums::TOOLBAR_RIGHT] = getChild<LLToolBar>("toolbar_right");
+    mToolbars[LLToolBarEnums::TOOLBAR_RIGHT] = get_owner_child<LLToolBar>(this, "toolbar_right");
     mToolbars[LLToolBarEnums::TOOLBAR_RIGHT]->getCenterLayoutPanel()->setLocationId(LLToolBarEnums::TOOLBAR_RIGHT);
 
-    mToolbars[LLToolBarEnums::TOOLBAR_BOTTOM] = getChild<LLToolBar>("toolbar_bottom");
+    mToolbars[LLToolBarEnums::TOOLBAR_BOTTOM] = get_owner_child<LLToolBar>(this, "toolbar_bottom");
     mToolbars[LLToolBarEnums::TOOLBAR_BOTTOM]->getCenterLayoutPanel()->setLocationId(LLToolBarEnums::TOOLBAR_BOTTOM);
 
-    mBottomToolbarPanel = getChild<LLView>("bottom_toolbar_panel");
+    mBottomToolbarPanel = get_owner_child<LLView>(this, "bottom_toolbar_panel");
 
     for (int i = LLToolBarEnums::TOOLBAR_FIRST; i <= LLToolBarEnums::TOOLBAR_LAST; i++)
     {

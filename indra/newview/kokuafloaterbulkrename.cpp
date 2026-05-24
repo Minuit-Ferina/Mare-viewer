@@ -50,6 +50,31 @@
 
 #include "roles_constants.h" // for GP_OBJECT_MANIPULATE
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 
 KokuaFloaterBulkRename::KokuaFloaterBulkRename(const LLSD& seed)
 :   LLFloater(seed),
@@ -98,7 +123,7 @@ void KokuaFloaterBulkRename::doApply()
     private:
         std::vector<LLUUID>& mQueue;
     };
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("queue output");
+    LLScrollListCtrl* list = get_owner_child<LLScrollListCtrl>(this, "queue output");
     list->deleteAllItems();
     list->setEnabled(true);
     ModifiableGatherer gatherer(mObjectIDs);
@@ -184,12 +209,12 @@ void KokuaFloaterBulkRename::onCloseBtn()
 
 bool KokuaFloaterBulkRename::start()
 {
-    mSearchRegExp = getChild<LLUICtrl>("search_term")->getValue().asString();
+    mSearchRegExp = get_owner_child<LLUICtrl>(this, "search_term")->getValue().asString();
     //LL_INFOS() << "Search term is " << mSearchRegExp << LL_ENDL;
-    mReplaceWith = getChild<LLUICtrl>("replace_term")->getValue().asString();
+    mReplaceWith = get_owner_child<LLUICtrl>(this, "replace_term")->getValue().asString();
     //LL_INFOS() << "Replace term is " << mReplaceWith << LL_ENDL;
     // note: number of top-level objects to modify is mObjectIDs.size().
-    getChild<LLScrollListCtrl>("queue output")->setCommentText(getString("start_text"));
+    get_owner_child<LLScrollListCtrl>(this, "queue output")->setCommentText(getString("start_text"));
     return nextObject();
 }
 
@@ -212,7 +237,7 @@ bool KokuaFloaterBulkRename::nextObject()
 
     if(isDone() && !mDone)
     {
-        getChild<LLScrollListCtrl>("queue output")->addCommentText(getString("done_text"));
+        get_owner_child<LLScrollListCtrl>(this, "queue output")->addCommentText(getString("done_text"));
         mDone = true;
     }
     return successful_start;
@@ -265,7 +290,7 @@ void KokuaFloaterBulkRename::doCheckUncheckAll(bool check)
 
 void KokuaFloaterBulkRename::handleInventory(LLViewerObject* viewer_obj, LLInventoryObject::object_list_t* inv)
 {
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("queue output");
+    LLScrollListCtrl* list = get_owner_child<LLScrollListCtrl>(this, "queue output");
 
     LLInventoryObject::object_list_t::const_iterator it = inv->begin();
     LLInventoryObject::object_list_t::const_iterator end = inv->end();

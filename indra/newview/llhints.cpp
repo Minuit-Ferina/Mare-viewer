@@ -36,6 +36,31 @@
 #include "lliconctrl.h"
 #include "llsdparam.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 class LLHintPopup : public LLPanel
 {
 public:
@@ -172,7 +197,7 @@ LLHintPopup::LLHintPopup(const LLHintPopup::Params& p)
     if (p.hint_image.isProvided())
     {
         buildFromFile("panel_hint_image.xml", p);
-        getChild<LLIconCtrl>("hint_image")->setImage(p.hint_image());
+        get_owner_child<LLIconCtrl>(this, "hint_image")->setImage(p.hint_image());
     }
     else
     {
@@ -185,8 +210,8 @@ bool LLHintPopup::postBuild()
     LLTextBox& hint_text = getChildRef<LLTextBox>("hint_text");
     hint_text.setText(mNotification->getMessage());
 
-    getChild<LLButton>("close")->setClickedCallback(boost::bind(&LLHintPopup::onClickClose, this));
-    getChild<LLTextBox>("hint_title")->setText(mNotification->getLabel());
+    get_owner_child<LLButton>(this, "close")->setClickedCallback(boost::bind(&LLHintPopup::onClickClose, this));
+    get_owner_child<LLTextBox>(this, "hint_title")->setText(mNotification->getLabel());
 
     LLRect text_bounds = hint_text.getTextBoundingRect();
     S32 delta_height = text_bounds.getHeight() - hint_text.getRect().getHeight();

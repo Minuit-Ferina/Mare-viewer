@@ -54,6 +54,31 @@
 #include "llviewercontrol.h"    // <FS:CR> FIRE-593 - Needed for gSavedSettings where we store our media list
 #include "llclipboard.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 // Values for the parcel voice settings radio group
 enum
 {
@@ -80,40 +105,40 @@ LLPanelLandAudio::~LLPanelLandAudio()
 
 bool LLPanelLandAudio::postBuild()
 {
-    mCheckSoundLocal = getChild<LLCheckBoxCtrl>("check sound local");
+    mCheckSoundLocal = get_owner_child<LLCheckBoxCtrl>(this, "check sound local");
     childSetCommitCallback("check sound local", onCommitAny, this);
 
-    mCheckParcelEnableVoice = getChild<LLCheckBoxCtrl>("parcel_enable_voice_channel");
+    mCheckParcelEnableVoice = get_owner_child<LLCheckBoxCtrl>(this, "parcel_enable_voice_channel");
     childSetCommitCallback("parcel_enable_voice_channel", onCommitAny, this);
 
     // This one is always disabled so no need for a commit callback
-    mCheckEstateDisabledVoice = getChild<LLCheckBoxCtrl>("parcel_enable_voice_channel_is_estate_disabled");
+    mCheckEstateDisabledVoice = get_owner_child<LLCheckBoxCtrl>(this, "parcel_enable_voice_channel_is_estate_disabled");
 
-    mCheckParcelVoiceLocal = getChild<LLCheckBoxCtrl>("parcel_enable_voice_channel_local");
+    mCheckParcelVoiceLocal = get_owner_child<LLCheckBoxCtrl>(this, "parcel_enable_voice_channel_local");
     childSetCommitCallback("parcel_enable_voice_channel_local", onCommitAny, this);
 
 // <FS:CR> FIRE-593 - We use a combobox now, not a line editor, also set callbacks for new add/remove stream buttons
     //mMusicURLEdit = getChild<LLLineEditor>("music_url");
-    mMusicURLEdit = getChild<LLComboBox>("music_url");
+    mMusicURLEdit = get_owner_child<LLComboBox>(this, "music_url");
     childSetCommitCallback("music_url", onCommitAny, this);
 
-    mBtnStreamAdd = getChild<LLButton>("stream_add_btn");
+    mBtnStreamAdd = get_owner_child<LLButton>(this, "stream_add_btn");
     mBtnStreamAdd->setCommitCallback(boost::bind(&LLPanelLandAudio::onBtnStreamAdd, this));
 
-    mBtnStreamDelete = getChild<LLButton>("stream_delete_btn");
+    mBtnStreamDelete = get_owner_child<LLButton>(this, "stream_delete_btn");
     mBtnStreamDelete->setCommitCallback(boost::bind(&LLPanelLandAudio::onBtnStreamDelete, this));
 
-    mBtnStreamCopyToClipboard = getChild<LLButton>("stream_copy_btn");
+    mBtnStreamCopyToClipboard = get_owner_child<LLButton>(this, "stream_copy_btn");
     mBtnStreamCopyToClipboard->setCommitCallback(boost::bind(&LLPanelLandAudio::onBtnCopyToClipboard, this));
 // </FS:CR>
 
-    mCheckAVSoundAny = getChild<LLCheckBoxCtrl>("all av sound check");
+    mCheckAVSoundAny = get_owner_child<LLCheckBoxCtrl>(this, "all av sound check");
     childSetCommitCallback("all av sound check", onCommitAny, this);
 
-    mCheckAVSoundGroup = getChild<LLCheckBoxCtrl>("group av sound check");
+    mCheckAVSoundGroup = get_owner_child<LLCheckBoxCtrl>(this, "group av sound check");
     childSetCommitCallback("group av sound check", onCommitAny, this);
 
-    mCheckObscureMOAP = getChild<LLCheckBoxCtrl>("obscure_moap");
+    mCheckObscureMOAP = get_owner_child<LLCheckBoxCtrl>(this, "obscure_moap");
     childSetCommitCallback("obscure_moap", onCommitAny, this);
 
     return true;

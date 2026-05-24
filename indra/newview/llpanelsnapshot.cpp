@@ -42,6 +42,31 @@
 
 #include "llagentbenefits.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_owner_child(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(LLView* owner, const std::string& name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_owner_view(const LLView* owner, const std::string& name, bool recurse = true)
+{
+    return const_cast<LLView*>(owner)->getChildView(name, recurse);
+}
+}
+
 constexpr S32 MAX_TEXTURE_SIZE = 2048 ; //max upload texture size 2048 * 2048
 
 S32 power_of_two(S32 sz, S32 upper)
@@ -64,19 +89,19 @@ bool LLPanelSnapshot::postBuild()
 {
     S32 w = getTypedPreviewWidth();
     S32 h = getTypedPreviewHeight();
-    getChild<LLUICtrl>("save_btn")->setLabelArg("[UPLOAD_COST]", std::to_string(LLAgentBenefitsMgr::current().getTextureUploadCost(w, h)));
-    getChild<LLUICtrl>(getImageSizeComboName())->setCommitCallback(boost::bind(&LLPanelSnapshot::onResolutionComboCommit, this, _1));
+    get_owner_child<LLUICtrl>(this, "save_btn")->setLabelArg("[UPLOAD_COST]", std::to_string(LLAgentBenefitsMgr::current().getTextureUploadCost(w, h)));
+    get_owner_child<LLUICtrl>(this, getImageSizeComboName())->setCommitCallback(boost::bind(&LLPanelSnapshot::onResolutionComboCommit, this, _1));
     if (!getWidthSpinnerName().empty())
     {
-        getChild<LLUICtrl>(getWidthSpinnerName())->setCommitCallback(boost::bind(&LLPanelSnapshot::onCustomResolutionCommit, this));
+        get_owner_child<LLUICtrl>(this, getWidthSpinnerName())->setCommitCallback(boost::bind(&LLPanelSnapshot::onCustomResolutionCommit, this));
     }
     if (!getHeightSpinnerName().empty())
     {
-        getChild<LLUICtrl>(getHeightSpinnerName())->setCommitCallback(boost::bind(&LLPanelSnapshot::onCustomResolutionCommit, this));
+        get_owner_child<LLUICtrl>(this, getHeightSpinnerName())->setCommitCallback(boost::bind(&LLPanelSnapshot::onCustomResolutionCommit, this));
     }
     if (!getAspectRatioCBName().empty())
     {
-        getChild<LLUICtrl>(getAspectRatioCBName())->setCommitCallback(boost::bind(&LLPanelSnapshot::onKeepAspectRatioCommit, this, _1));
+        get_owner_child<LLUICtrl>(this, getAspectRatioCBName())->setCommitCallback(boost::bind(&LLPanelSnapshot::onKeepAspectRatioCommit, this, _1));
     }
     updateControls(LLSD());
 
@@ -104,7 +129,7 @@ void LLPanelSnapshot::onOpen(const LLSD& key)
     // If resolution is set to "Current Window", force a snapshot update
     // each time a snapshot panel is opened to determine the correct
     // image size (and upload fee) depending on the snapshot type.
-    if (mSnapshotFloater && getChild<LLUICtrl>(getImageSizeComboName())->getValue().asString() == "[i0,i0]")
+    if (mSnapshotFloater && get_owner_child<LLUICtrl>(this, getImageSizeComboName())->getValue().asString() == "[i0,i0]")
     {
         if (LLSnapshotLivePreview* preview = mSnapshotFloater->getPreviewView())
         {
@@ -126,31 +151,31 @@ void LLPanelSnapshot::enableControls(bool enable)
 LLSpinCtrl* LLPanelSnapshot::getWidthSpinner()
 {
     llassert(!getWidthSpinnerName().empty());
-    return getChild<LLSpinCtrl>(getWidthSpinnerName());
+    return get_owner_child<LLSpinCtrl>(this, getWidthSpinnerName());
 }
 
 LLSpinCtrl* LLPanelSnapshot::getHeightSpinner()
 {
     llassert(!getHeightSpinnerName().empty());
-    return getChild<LLSpinCtrl>(getHeightSpinnerName());
+    return get_owner_child<LLSpinCtrl>(this, getHeightSpinnerName());
 }
 
 S32 LLPanelSnapshot::getTypedPreviewWidth() const
 {
     llassert(!getWidthSpinnerName().empty());
-    return getChild<LLUICtrl>(getWidthSpinnerName())->getValue().asInteger();
+    return get_owner_child<LLUICtrl>(this, getWidthSpinnerName())->getValue().asInteger();
 }
 
 S32 LLPanelSnapshot::getTypedPreviewHeight() const
 {
     llassert(!getHeightSpinnerName().empty());
-    return getChild<LLUICtrl>(getHeightSpinnerName())->getValue().asInteger();
+    return get_owner_child<LLUICtrl>(this, getHeightSpinnerName())->getValue().asInteger();
 }
 
 void LLPanelSnapshot::enableAspectRatioCheckbox(bool enable)
 {
     llassert(!getAspectRatioCBName().empty());
-    getChild<LLUICtrl>(getAspectRatioCBName())->setEnabled(enable);
+    get_owner_child<LLUICtrl>(this, getAspectRatioCBName())->setEnabled(enable);
 }
 
 LLSideTrayPanelContainer* LLPanelSnapshot::getParentContainer()
@@ -167,7 +192,7 @@ LLSideTrayPanelContainer* LLPanelSnapshot::getParentContainer()
 
 void LLPanelSnapshot::updateImageQualityLevel()
 {
-    LLSliderCtrl* quality_slider = getChild<LLSliderCtrl>("image_quality_slider");
+    LLSliderCtrl* quality_slider = get_owner_child<LLSliderCtrl>(this, "image_quality_slider");
     S32 quality_val = llfloor((F32) quality_slider->getValue().asReal());
 
     std::string quality_lvl;
@@ -193,7 +218,7 @@ void LLPanelSnapshot::updateImageQualityLevel()
         quality_lvl = LLTrans::getString("snapshot_quality_very_high");
     }
 
-    getChild<LLTextBox>("image_quality_level")->setTextArg("[QLVL]", quality_lvl);
+    get_owner_child<LLTextBox>(this, "image_quality_level")->setTextArg("[QLVL]", quality_lvl);
 }
 
 void LLPanelSnapshot::goBack()
@@ -218,8 +243,8 @@ void LLPanelSnapshot::onCustomResolutionCommit()
     std::string widthSpinnerName = getWidthSpinnerName();
     std::string heightSpinnerName = getHeightSpinnerName();
     llassert(!widthSpinnerName.empty() && !heightSpinnerName.empty());
-    LLSpinCtrl *widthSpinner = getChild<LLSpinCtrl>(widthSpinnerName);
-    LLSpinCtrl *heightSpinner = getChild<LLSpinCtrl>(heightSpinnerName);
+    LLSpinCtrl *widthSpinner = get_owner_child<LLSpinCtrl>(this, widthSpinnerName);
+    LLSpinCtrl *heightSpinner = get_owner_child<LLSpinCtrl>(this, heightSpinnerName);
     if (getName() == "panel_snapshot_inventory")
     {
         S32 width = widthSpinner->getValue().asInteger();
