@@ -1901,7 +1901,13 @@ No open items in this section right now.
 - [x] Verify settings debug/AutoReplace dialog objects with targeted builds,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/398-settings-debug-autoreplace-dialog-helpers-summary.md`.
-- [ ] Continue with land/region/admin dialogs or another high-count floater family.
+- [x] Continue with land/region/admin dialogs or another high-count floater family.
+- [x] Move simple UI ownership helpers across land holdings, auction, and sell-land dialogs.
+- [x] Verify land transaction dialog objects with targeted builds, regenerated
+      source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/399-land-transaction-dialog-helpers-summary.md`.
+- [ ] Treat `llfloaterbuyland.cpp`, `llfloaterland.cpp`, and
+      `llfloaterregioninfo.cpp` as isolated high-risk packets.
 
 ## Post-Phase2 Guardrails
 

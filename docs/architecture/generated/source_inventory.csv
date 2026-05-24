@@ -108,7 +108,7 @@ indra/llui/llbutton.cpp,render.opengl_touching,1434,23,0,0,0,0,4,0,5,0,0,0,0,0,0
 indra/llui/llscrollbar.cpp,render.opengl_touching,667,14,0,0,0,0,4,0,4,0,0,0,0,0,0
 indra/newview/marefsr2upscaler.cpp,render.opengl_touching,401,14,0,0,0,0,3,76,1,0,0,4,0,0,0
 indra/newview/llviewertexture.cpp,render.pipeline,4096,34,0,0,0,0,3,39,27,1,0,0,17,134,0
-indra/newview/llfloaterauction.cpp,ui,560,29,0,0,0,0,3,1,0,0,0,0,0,1,0
+indra/newview/llfloaterauction.cpp,ui,583,29,0,0,0,0,3,1,0,0,0,0,0,1,0
 indra/newview/llfloatersnapshot.cpp,ui,1531,16,0,0,0,0,3,0,1,0,0,0,0,0,0
 indra/newview/piemenu.cpp,render.opengl_touching,606,6,0,0,0,0,3,0,0,0,0,0,0,0,0
 indra/newview/llcolorswatch.cpp,render.opengl_touching,377,12,0,0,0,0,3,0,0,0,0,0,0,0,0
@@ -358,7 +358,7 @@ indra/newview/app_settings/shaders/class1/deferred/pbropaqueF.glsl,assets.textur
 indra/newview/llfloaterimagepreview.h,ui,166,4,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/llfloaterreporter.h,ui,154,4,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/llfloaterinspect.h,ui,110,3,0,0,0,0,0,0,0,0,0,0,0,1,0
-indra/newview/llfloaterauction.h,ui,87,4,0,0,0,0,0,0,0,0,0,0,0,1,0
+indra/newview/llfloaterauction.h,ui,92,4,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/tests/llviewertexture_stub.cpp,assets.texture,35,3,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/llrender/llfontbitmapcache.h,render.legacy_low_level,84,2,0,0,0,0,0,0,0,0,0,0,2,0,0
 indra/llrender/llfontfreetype.cpp,render.legacy_low_level,904,14,0,0,0,0,0,0,0,0,0,0,1,0,0
@@ -696,6 +696,7 @@ indra/llappearance/lldriverparam.cpp,unknown,623,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/llquaternion.h,unknown,623,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llgiveinventory.cpp,viewer.misc,622,19,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterfixedenvironment.cpp,ui,617,22,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloatersellland.cpp,ui,615,17,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llurlentry.h,unknown,614,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpreview.cpp,viewer.misc,611,28,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/v3math.h,unknown,611,6,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -724,7 +725,6 @@ indra/llcommon/llprocess.h,core,578,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaternotificationstabbed.cpp,ui,577,12,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcharacter/llheadrotmotion.cpp,unknown,576,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llattachmentsmgr.cpp,viewer.misc,574,11,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloatersellland.cpp,ui,573,17,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/test/lldatapacker_tut.cpp,unknown,571,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcharacter/llpose.cpp,unknown,570,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/httprequest.cpp,unknown,568,11,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -946,6 +946,7 @@ indra/llui/lluicolortable.cpp,unknown,385,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/tests/v4math_test.cpp,unknown,384,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelgrouproles.h,ui,382,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/indra_constants.h,core,382,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaterlandholdings.cpp,ui,381,23,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/tests/test_bufferarray.hpp,unknown,381,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llsetkeybinddialog.cpp,viewer.misc,378,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/hbxxh.cpp,core,378,3,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -990,7 +991,6 @@ indra/llmessage/llproxy.h,network,356,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/kokuafloaterbulkrename.cpp,viewer.misc,356,23,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanellandaudio.cpp,ui,356,20,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llstatusbar.h,viewer.misc,356,1,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaterlandholdings.cpp,ui,356,23,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llregistry.h,core,354,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llfilesystem/lldir_linux.cpp,unknown,353,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llviewerthrottle.cpp,viewer.misc,352,8,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2228,6 +2228,7 @@ indra/newview/llxmlrpctransaction.h,viewer.misc,85,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/tuple.h,core,85,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelmarketplaceinbox.h,ui,84,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llstylemap.cpp,viewer.misc,84,7,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaterlandholdings.h,ui,84,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterspellchecksettings.h,ui,84,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llphysicsextensionsos/llpathinglib.cpp,unknown,84,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llphysicsextensionsos/llconvexdecomposition.cpp,unknown,84,3,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2288,7 +2289,6 @@ indra/newview/app_settings/shaders/class1/deferred/fsr2/fsr2_rcas.comp.glsl,view
 indra/newview/llfloatercreatelandmark.h,ui,79,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llaccountingcostmanager.h,viewer.misc,79,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloateravatarwelcomepack.cpp,ui,79,7,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaterlandholdings.h,ui,79,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelplacestab.h,ui,79,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterscriptedprefs.cpp,ui,79,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcharacter/llkeyframefallmotion.h,unknown,79,2,0,0,0,0,0,0,0,0,0,0,0,0,0

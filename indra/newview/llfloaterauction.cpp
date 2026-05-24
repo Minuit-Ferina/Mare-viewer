@@ -109,35 +109,58 @@ void LLFloaterAuction::initialize()
         mParcelID = parcelp->getLocalID();
         mParcelUpdateCapUrl = region->getCapability("ParcelPropertiesUpdate");
 
-        getChild<LLUICtrl>("parcel_text")->setValue(parcelp->getName());
-        getChildView("snapshot_btn")->setEnabled(true);
-        getChildView("reset_parcel_btn")->setEnabled(true);
-        getChildView("start_auction_btn")->setEnabled(true);
+        setParcelText(parcelp->getName());
+        setAuctionButtonsEnabled(true);
 
         U32 estate_id = LLEstateInfoModel::instance().getID();
         // Only enable "Sell to Anyone" on Teen grid or if we don't know the ID yet
-        getChildView("sell_to_anyone_btn")->setEnabled(estate_id == ESTATE_TEEN || estate_id == 0);
+        setSellToAnyoneEnabled(estate_id == ESTATE_TEEN || estate_id == 0);
     }
     else
     {
         mParcelHost.invalidate();
         if(parcelp && parcelp->getForSale())
         {
-            getChild<LLUICtrl>("parcel_text")->setValue(getString("already for sale"));
+            setParcelText(getString("already for sale"));
         }
         else
         {
-            getChild<LLUICtrl>("parcel_text")->setValue(LLStringUtil::null);
+            setParcelText(LLStringUtil::null);
         }
         mParcelID = -1;
-        getChildView("snapshot_btn")->setEnabled(false);
-        getChildView("reset_parcel_btn")->setEnabled(false);
-        getChildView("sell_to_anyone_btn")->setEnabled(false);
-        getChildView("start_auction_btn")->setEnabled(false);
+        setAuctionButtonsEnabled(false);
+        setSellToAnyoneEnabled(false);
     }
 
     mImageID.setNull();
     mImage = NULL;
+}
+
+void LLFloaterAuction::setParcelText(const LLSD& value)
+{
+    getChild<LLUICtrl>("parcel_text")->setValue(value);
+}
+
+LLSD LLFloaterAuction::getParcelText()
+{
+    return getChild<LLUICtrl>("parcel_text")->getValue();
+}
+
+bool LLFloaterAuction::getFenceEnabled()
+{
+    return getChild<LLUICtrl>("fence_check")->getValue().asBoolean();
+}
+
+void LLFloaterAuction::setAuctionButtonsEnabled(bool enabled)
+{
+    getChildView("snapshot_btn")->setEnabled(enabled);
+    getChildView("reset_parcel_btn")->setEnabled(enabled);
+    getChildView("start_auction_btn")->setEnabled(enabled);
+}
+
+void LLFloaterAuction::setSellToAnyoneEnabled(bool enabled)
+{
+    getChildView("sell_to_anyone_btn")->setEnabled(enabled);
 }
 
 void LLFloaterAuction::draw()
@@ -176,7 +199,7 @@ void LLFloaterAuction::onClickSnapshot(void* data)
 
     LLPointer<LLImageRaw> raw = new LLImageRaw;
 
-    gForceRenderLandFence = self->getChild<LLUICtrl>("fence_check")->getValue().asBoolean();
+    gForceRenderLandFence = self->getFenceEnabled();
     bool success = gViewerWindow->rawSnapshot(raw,
                                               gViewerWindow->getWindowWidthScaled(),
                                               gViewerWindow->getWindowHeightScaled(),
@@ -233,7 +256,7 @@ void LLFloaterAuction::onClickStartAuction(void* data)
 
     if(self->mImageID.notNull())
     {
-        LLSD parcel_name = self->getChild<LLUICtrl>("parcel_text")->getValue();
+        LLSD parcel_name = self->getParcelText();
 
     // create the asset
         std::string* name = new std::string(parcel_name.asString());
@@ -342,7 +365,7 @@ void LLFloaterAuction::doResetParcel()
 
         std::string new_name(parcel_name.str().c_str());
         body["name"] = new_name;
-        getChild<LLUICtrl>("parcel_text")->setValue(new_name);  // Set name in dialog as well, since it won't get updated otherwise
+        setParcelText(new_name);  // Set name in dialog as well, since it won't get updated otherwise
 
         body["sale_price"] = (S32) 0;
         body["description"] = empty;

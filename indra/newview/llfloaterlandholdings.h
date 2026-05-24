@@ -60,6 +60,11 @@ public:
     static bool sHasLindenHome;
 
 protected:
+    void setupActions();
+    LLScrollListCtrl* getParcelList();
+    LLScrollListCtrl* getGrantList();
+    void syncActionButtons(bool enabled);
+    void syncAggregateText(S32 allowed_area, S32 current_area, S32 available_area);
     void refreshAggregates();
 
 protected:

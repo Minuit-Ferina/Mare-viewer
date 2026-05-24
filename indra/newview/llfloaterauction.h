@@ -56,6 +56,11 @@ private:
     ~LLFloaterAuction();
 
     void initialize();
+    void setParcelText(const LLSD& value);
+    LLSD getParcelText();
+    bool getFenceEnabled();
+    void setAuctionButtonsEnabled(bool enabled);
+    void setSellToAnyoneEnabled(bool enabled);
 
     static void onClickSnapshot(void* data);
     static void onClickResetParcel(void* data);

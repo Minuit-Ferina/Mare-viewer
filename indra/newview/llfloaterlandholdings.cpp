@@ -68,11 +68,10 @@ LLFloaterLandHoldings::LLFloaterLandHoldings(const LLSD& key)
 
 bool LLFloaterLandHoldings::postBuild()
 {
-    childSetAction("Teleport", onClickTeleport, this);
-    childSetAction("Show on Map", onClickMap, this);
+    setupActions();
 
     // Grant list
-    LLScrollListCtrl* grant_list = getChild<LLScrollListCtrl>("grant list");
+    LLScrollListCtrl* grant_list = getGrantList();
     grant_list->sortByColumnIndex(0, true);
     grant_list->setDoubleClickCallback(onGrantList, this);
 
@@ -102,6 +101,22 @@ bool LLFloaterLandHoldings::postBuild()
     return true;
 }
 
+void LLFloaterLandHoldings::setupActions()
+{
+    childSetAction("Teleport", onClickTeleport, this);
+    childSetAction("Show on Map", onClickMap, this);
+}
+
+LLScrollListCtrl* LLFloaterLandHoldings::getParcelList()
+{
+    return getChild<LLScrollListCtrl>("parcel list");
+}
+
+LLScrollListCtrl* LLFloaterLandHoldings::getGrantList()
+{
+    return getChild<LLScrollListCtrl>("grant list");
+}
+
 
 // protected
 LLFloaterLandHoldings::~LLFloaterLandHoldings()
@@ -110,7 +125,7 @@ LLFloaterLandHoldings::~LLFloaterLandHoldings()
 
 void LLFloaterLandHoldings::onOpen(const LLSD& key)
 {
-    LLScrollListCtrl *list = getChild<LLScrollListCtrl>("parcel list");
+    LLScrollListCtrl *list = getParcelList();
     list->clearRows();
 
     // query_id null is known to be us
@@ -145,10 +160,15 @@ void LLFloaterLandHoldings::refresh()
         enable_btns = true;
     }
 
-    getChildView("Teleport")->setEnabled(enable_btns);
-    getChildView("Show on Map")->setEnabled(enable_btns);
+    syncActionButtons(enable_btns);
 
     refreshAggregates();
+}
+
+void LLFloaterLandHoldings::syncActionButtons(bool enabled)
+{
+    getChildView("Teleport")->setEnabled(enabled);
+    getChildView("Show on Map")->setEnabled(enabled);
 }
 
 
@@ -280,7 +300,7 @@ void LLFloaterLandHoldings::processPlacesReply(LLMessageSystem* msg, void**)
 
 void LLFloaterLandHoldings::buttonCore(S32 which)
 {
-    LLScrollListCtrl *list = getChild<LLScrollListCtrl>("parcel list");
+    LLScrollListCtrl *list = getParcelList();
     if (!list) return;
 
     S32 index = list->getFirstSelectedIndex();
@@ -349,6 +369,11 @@ void LLFloaterLandHoldings::refreshAggregates()
     S32 current_area = gStatusBar->getSquareMetersCommitted();
     S32 available_area = gStatusBar->getSquareMetersLeft();
 
+    syncAggregateText(allowed_area, current_area, available_area);
+}
+
+void LLFloaterLandHoldings::syncAggregateText(S32 allowed_area, S32 current_area, S32 available_area)
+{
     getChild<LLUICtrl>("allowed_text")->setTextArg("[AREA]", llformat("%d",allowed_area));
     getChild<LLUICtrl>("current_text")->setTextArg("[AREA]", llformat("%d",current_area));
     getChild<LLUICtrl>("available_text")->setTextArg("[AREA]", llformat("%d",available_area));
