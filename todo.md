@@ -1690,12 +1690,12 @@ do not start a direct Vulkan port.
 - [x] Add `docs/architecture/349-model-preview-texture-size-summary.md`.
 - [x] Map model preview dimension/import-scale UI reads before moving them.
 - [x] Add `docs/architecture/350-model-preview-dimension-options-task.md`.
-- [ ] Move dimension/import-scale UI reads behind a `LLFloaterModelPreview`
+- [x] Move dimension/import-scale UI reads behind a `LLFloaterModelPreview`
       owner method without changing timing.
-- [ ] Verify the dimension option packet with targeted `llmodelpreview.cpp.o`,
+- [x] Verify the dimension option packet with targeted `llmodelpreview.cpp.o`,
       targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
       both GL guardrails, and `git diff --check`.
-- [ ] Add `docs/architecture/351-model-preview-dimension-options-summary.md`.
+- [x] Add `docs/architecture/351-model-preview-dimension-options-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

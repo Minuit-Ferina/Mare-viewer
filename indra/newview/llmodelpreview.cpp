@@ -246,9 +246,17 @@ void LLModelPreview::updateDimentionsAndOffsets()
 
     std::set<LLModel*> accounted;
 
-    mPelvisZOffset = mFMP ? (F32)mFMP->childGetValue("pelvis_offset").asReal() : 3.0f;
+    bool upload_joints = false;
+    F32 import_scale = 1.f;
+    mPelvisZOffset = 3.0f;
 
-    if (mFMP && mFMP->childGetValue("upload_joints").asBoolean())
+    if (mFMP)
+    {
+        LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->getModelPreviewDimensionOptions(mPelvisZOffset, upload_joints, import_scale);
+    }
+
+    if (upload_joints)
     {
         // FIXME if preview avatar ever gets reused, this fake mesh ID stuff will fail.
         // see also call to addAttachmentPosOverride.
@@ -276,7 +284,7 @@ void LLModelPreview::updateDimentionsAndOffsets()
         }
     }
 
-    F32 scale = mFMP ? (F32)mFMP->childGetValue("import_scale").asReal()*2.f : 2.f;
+    F32 scale = import_scale * 2.f;
 
     mDetailsSignal((F32)(mPreviewScale[0] * scale), (F32)(mPreviewScale[1] * scale), (F32)(mPreviewScale[2] * scale));
 

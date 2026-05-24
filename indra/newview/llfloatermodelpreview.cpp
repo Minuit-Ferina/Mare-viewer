@@ -457,6 +457,13 @@ void LLFloaterModelPreview::getModelPreviewRenderOptions(bool& upload_skin, bool
     physics_explode = (F32)childGetValue("physics_explode").asReal();
 }
 
+void LLFloaterModelPreview::getModelPreviewDimensionOptions(F32& pelvis_offset, bool& upload_joints, F32& import_scale)
+{
+    pelvis_offset = (F32)childGetValue("pelvis_offset").asReal();
+    upload_joints = childGetValue("upload_joints").asBoolean();
+    import_scale = (F32)childGetValue("import_scale").asReal();
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

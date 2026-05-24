@@ -141,6 +141,7 @@ protected:
     friend class LLPhysicsDecomp;
 
     void        getModelPreviewRenderOptions(bool& upload_skin, bool& upload_joints, F32& physics_explode);
+    void        getModelPreviewDimensionOptions(F32& pelvis_offset, bool& upload_joints, F32& import_scale);
     void        syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
 
     void        onDescriptionKeystroke(LLUICtrl*);
