@@ -1655,12 +1655,12 @@ task, and do not start a direct Vulkan port.
 - [x] Map the `LLFloaterModelPreview::draw3dPreview()` textured-quad drawing
       boundary before moving draw calls.
 - [x] Add `docs/architecture/344-model-preview-texture-quad-task.md`.
-- [ ] Move preview texture quad drawing from `LLFloaterModelPreview` to
+- [x] Move preview texture quad drawing from `LLFloaterModelPreview` to
       `LLModelPreview` without changing preview panel rect handling.
-- [ ] Verify the preview texture quad packet with targeted
+- [x] Verify the preview texture quad packet with targeted
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
-- [ ] Add `docs/architecture/345-model-preview-texture-quad-summary.md`.
+- [x] Add `docs/architecture/345-model-preview-texture-quad-summary.md`.
 - [ ] Do not start another helper-only phase unless it directly supports that
       separation.
 - [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,

@@ -896,12 +896,6 @@ void LLFloaterModelPreview::onLODParamCommit(S32 lod, bool enforce_tri_limit)
 
 void LLFloaterModelPreview::draw3dPreview()
 {
-    gGL.color3f(1.f, 1.f, 1.f);
-
-    gGL.getTexUnit(0)->bind(mModelPreview);
-
-
-
     LLView* preview_panel = getChild<LLView>("preview_panel");
 
     if (!preview_panel)
@@ -916,25 +910,7 @@ void LLFloaterModelPreview::draw3dPreview()
         mPreviewRect = preview_panel->getRect();
     }
 
-   gGL.begin(LLRender::TRIANGLES);
-    {
-        gGL.texCoord2f(0.f, 1.f);
-        gGL.vertex2i(mPreviewRect.mLeft + 1, mPreviewRect.mTop - 1);
-        gGL.texCoord2f(0.f, 0.f);
-        gGL.vertex2i(mPreviewRect.mLeft + 1, mPreviewRect.mBottom + 1);
-        gGL.texCoord2f(1.f, 0.f);
-        gGL.vertex2i(mPreviewRect.mRight - 1, mPreviewRect.mBottom + 1);
-
-        gGL.texCoord2f(1.f, 0.f);
-        gGL.vertex2i(mPreviewRect.mRight - 1, mPreviewRect.mBottom + 1);
-        gGL.texCoord2f(1.f, 1.f);
-        gGL.vertex2i(mPreviewRect.mRight - 1, mPreviewRect.mTop - 1);
-        gGL.texCoord2f(0.f, 1.f);
-        gGL.vertex2i(mPreviewRect.mLeft + 1, mPreviewRect.mTop - 1);
-    }
-    gGL.end();
-
-    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+    mModelPreview->drawPreviewTexture(mPreviewRect.mLeft, mPreviewRect.mTop, mPreviewRect.mRight, mPreviewRect.mBottom);
 }
 
 

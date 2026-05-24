@@ -152,6 +152,7 @@ public:
     void genBuffers(S32 lod, bool skinned);
     void clearBuffers();
     void refresh();
+    void drawPreviewTexture(S32 left, S32 top, S32 right, S32 bottom);
     void rotate(F32 yaw_radians, F32 pitch_radians);
     void zoom(F32 zoom_amt);
     void pan(F32 right, F32 up);

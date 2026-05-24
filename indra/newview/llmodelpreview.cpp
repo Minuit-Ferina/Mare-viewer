@@ -3358,6 +3358,33 @@ bool LLModelPreview::hasPreviewLODModel() const
     return !mModel[mPreviewLOD].empty();
 }
 
+void LLModelPreview::drawPreviewTexture(S32 left, S32 top, S32 right, S32 bottom)
+{
+    gGL.color3f(1.f, 1.f, 1.f);
+
+    gGL.getTexUnit(0)->bind(this);
+
+    gGL.begin(LLRender::TRIANGLES);
+    {
+        gGL.texCoord2f(0.f, 1.f);
+        gGL.vertex2i(left + 1, top - 1);
+        gGL.texCoord2f(0.f, 0.f);
+        gGL.vertex2i(left + 1, bottom + 1);
+        gGL.texCoord2f(1.f, 0.f);
+        gGL.vertex2i(right - 1, bottom + 1);
+
+        gGL.texCoord2f(1.f, 0.f);
+        gGL.vertex2i(right - 1, bottom + 1);
+        gGL.texCoord2f(1.f, 1.f);
+        gGL.vertex2i(right - 1, top - 1);
+        gGL.texCoord2f(0.f, 1.f);
+        gGL.vertex2i(left + 1, top - 1);
+    }
+    gGL.end();
+
+    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+}
+
 void LLModelPreview::drawPreviewCanvas(S32 width, S32 height)
 {
     gUIProgram.bind();
