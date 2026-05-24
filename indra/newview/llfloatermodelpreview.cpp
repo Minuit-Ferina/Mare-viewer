@@ -502,6 +502,27 @@ F32 LLFloaterModelPreview::getModelPreviewLODErrorThresholdPercent(S32 lod) cons
     return (F32)childGetValue("lod_error_threshold_" + lod_name[lod]).asReal();
 }
 
+std::string LLFloaterModelPreview::getModelPreviewRequestedName() const
+{
+    return getChild<LLUICtrl>("description_form")->getValue().asString();
+}
+
+F32 LLFloaterModelPreview::getModelPreviewImportScale() const
+{
+    return (F32)getChild<LLSpinCtrl>("import_scale")->getValue().asReal();
+}
+
+void LLFloaterModelPreview::syncModelPreviewImportScaleLimit(F32 max_import_scale, F32 current_scale)
+{
+    LLSpinCtrl* scale_spinner = getChild<LLSpinCtrl>("import_scale");
+    scale_spinner->setMaxValue(max_import_scale);
+
+    if (max_import_scale < current_scale)
+    {
+        scale_spinner->setValue(max_import_scale);
+    }
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

@@ -301,11 +301,10 @@ void LLModelPreview::rebuildUploadData()
 
     //fill uploaddata instance vectors from scene data
 
-    std::string requested_name = mFMP->getChild<LLUICtrl>("description_form")->getValue().asString();
+    LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+    std::string requested_name = fmp->getModelPreviewRequestedName();
 
-    LLSpinCtrl* scale_spinner = mFMP->getChild<LLSpinCtrl>("import_scale");
-
-    F32 scale = (F32)scale_spinner->getValue().asReal();
+    F32 scale = fmp->getModelPreviewImportScale();
 
     LLMatrix4 scale_mat;
     scale_mat.initScale(LLVector3(scale, scale, scale));
@@ -509,7 +508,6 @@ void LLModelPreview::rebuildUploadData()
             }
 
             LLModel* high_lod_model = instance.mLOD[LLModel::LOD_HIGH];
-            LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
             bool upload_skinweights = false;
             bool upload_textures = false;
             bool upload_data_options_read = false;
@@ -645,12 +643,7 @@ void LLModelPreview::rebuildUploadData()
     //clamp scale so that total imported model bounding box is smaller than 240m on a side
     max_import_scale = llmin(max_import_scale, 240.f / max_axis);
 
-    scale_spinner->setMaxValue(max_import_scale);
-
-    if (max_import_scale < scale)
-    {
-        scale_spinner->setValue(max_import_scale);
-    }
+    fmp->syncModelPreviewImportScaleLimit(max_import_scale, scale);
 
 }
 

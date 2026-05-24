@@ -148,6 +148,9 @@ protected:
     U32         getModelPreviewLODMode(S32 lod, U32 default_mode);
     F32         getModelPreviewLODTriangleLimit(S32 lod) const;
     F32         getModelPreviewLODErrorThresholdPercent(S32 lod) const;
+    std::string getModelPreviewRequestedName() const;
+    F32         getModelPreviewImportScale() const;
+    void        syncModelPreviewImportScaleLimit(F32 max_import_scale, F32 current_scale);
     void        syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
 
     void        onDescriptionKeystroke(LLUICtrl*);

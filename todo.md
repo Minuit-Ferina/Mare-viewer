@@ -1728,6 +1728,15 @@ do not start a direct Vulkan port.
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/359-model-preview-lod-optimizer-options-summary.md`.
+- [x] Map model preview upload-data description/import-scale UI access before
+      moving it.
+- [x] Add `docs/architecture/360-model-preview-upload-data-scale-task.md`.
+- [x] Move upload-data description/import-scale UI access behind
+      `LLFloaterModelPreview` owner methods without changing timing.
+- [x] Verify the upload-data scale packet with targeted `llmodelpreview.cpp.o`,
+      targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
+      both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/361-model-preview-upload-data-scale-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.
