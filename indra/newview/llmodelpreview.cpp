@@ -2628,62 +2628,8 @@ void LLModelPreview::updateStatusMessages()
 
         //fmp->childSetEnabled("physics_optimize", !use_hull);
 
-        bool enable = (phys_tris > 0 || phys_hulls > 0) && fmp->mCurRequest.empty();
         //enable = enable && !use_hull && fmp->childGetValue("physics_optimize").asBoolean();
-
-        //enable/disable "analysis" UI
-#if LL_HAVOK
-        LLPanel* panel = fmp->getChild<LLPanel>("physics simplification");
-        panel->setVisible(true);
-
-        panel = fmp->getChild<LLPanel>("physics analysis havok");
-        panel->setVisible(true);
-#else
-        LLPanel* panel = fmp->getChild<LLPanel>("physics analysis vhacd");
-        panel->setVisible(true);
-#endif
-        LLView* child = panel->getFirstChild();
-        while (child)
-        {
-            child->setEnabled(enable);
-            child = panel->findNextSibling(child);
-        }
-
-        enable = phys_hulls > 0 && fmp->mCurRequest.empty();
-        //enable/disable "simplification" UI
-        panel = fmp->getChild<LLPanel>("physics simplification");
-        child = panel->getFirstChild();
-        while (child)
-        {
-            child->setEnabled(enable);
-            child = panel->findNextSibling(child);
-        }
-
-        if (fmp->mCurRequest.empty())
-        {
-            fmp->childSetVisible("Simplify", true);
-            fmp->childSetVisible("simplify_cancel", false);
-            fmp->childSetVisible("Decompose", true);
-            fmp->childSetVisible("decompose_cancel", false);
-            fmp->childSetVisible("Analyze", true);
-            fmp->childSetVisible("analyze_cancel", false);
-
-            if (phys_hulls > 0)
-            {
-                fmp->childEnable("Simplify");
-            }
-
-            if (phys_tris || phys_hulls > 0)
-            {
-                fmp->childEnable("Decompose");
-                fmp->childEnable("Analyze");
-            }
-        }
-        else
-        {
-            fmp->childEnable("simplify_cancel");
-            fmp->childEnable("decompose_cancel");
-        }
+        fmp->syncModelPreviewPhysicsDecompositionControls(phys_tris > 0, phys_hulls > 0);
 
         fmp->getModelPreviewPhysicsLODMode(which_mode, file_mode);
     }

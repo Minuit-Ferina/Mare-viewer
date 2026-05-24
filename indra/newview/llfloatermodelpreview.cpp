@@ -705,6 +705,63 @@ void LLFloaterModelPreview::syncModelPreviewShowPhysicsOption(bool has_physics, 
     }
 }
 
+void LLFloaterModelPreview::syncModelPreviewPhysicsDecompositionControls(bool has_physics_tris, bool has_physics_hulls)
+{
+    bool enable = (has_physics_tris || has_physics_hulls) && mCurRequest.empty();
+
+#if LL_HAVOK
+    LLPanel* panel = getChild<LLPanel>("physics simplification");
+    panel->setVisible(true);
+
+    panel = getChild<LLPanel>("physics analysis havok");
+    panel->setVisible(true);
+#else
+    LLPanel* panel = getChild<LLPanel>("physics analysis vhacd");
+    panel->setVisible(true);
+#endif
+    LLView* child = panel->getFirstChild();
+    while (child)
+    {
+        child->setEnabled(enable);
+        child = panel->findNextSibling(child);
+    }
+
+    enable = has_physics_hulls && mCurRequest.empty();
+    panel = getChild<LLPanel>("physics simplification");
+    child = panel->getFirstChild();
+    while (child)
+    {
+        child->setEnabled(enable);
+        child = panel->findNextSibling(child);
+    }
+
+    if (mCurRequest.empty())
+    {
+        childSetVisible("Simplify", true);
+        childSetVisible("simplify_cancel", false);
+        childSetVisible("Decompose", true);
+        childSetVisible("decompose_cancel", false);
+        childSetVisible("Analyze", true);
+        childSetVisible("analyze_cancel", false);
+
+        if (has_physics_hulls)
+        {
+            childEnable("Simplify");
+        }
+
+        if (has_physics_tris || has_physics_hulls)
+        {
+            childEnable("Decompose");
+            childEnable("Analyze");
+        }
+    }
+    else
+    {
+        childEnable("simplify_cancel");
+        childEnable("decompose_cancel");
+    }
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)
