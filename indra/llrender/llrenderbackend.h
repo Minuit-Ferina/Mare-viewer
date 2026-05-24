@@ -133,6 +133,7 @@ public:
 
     virtual void setViewport(const LLRenderViewport& viewport) = 0;
     virtual void setScissor(const LLRenderScissor& scissor) = 0;
+    virtual void clear(const LLRenderPassDesc& desc) = 0;
 };
 
 const char* getRenderBackendTypeName(LLRenderBackendType type);

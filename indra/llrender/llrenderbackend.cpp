@@ -42,6 +42,7 @@ public:
 
     void setViewport(const LLRenderViewport&) override {}
     void setScissor(const LLRenderScissor&) override {}
+    void clear(const LLRenderPassDesc&) override {}
 };
 
 class LLOpenGLRenderBackend final : public LLRenderBackend
@@ -78,6 +79,14 @@ public:
             scissor.mY,
             static_cast<U32>(scissor.mWidth),
             static_cast<U32>(scissor.mHeight));
+    }
+
+    void clear(const LLRenderPassDesc& desc) override
+    {
+        LLGLContainment::clearBuffersByIntent(
+            (desc.mClearMask & LL_RENDER_CLEAR_COLOR) != 0,
+            (desc.mClearMask & LL_RENDER_CLEAR_DEPTH) != 0,
+            (desc.mClearMask & LL_RENDER_CLEAR_STENCIL) != 0);
     }
 };
 }

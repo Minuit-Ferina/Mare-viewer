@@ -1962,6 +1962,13 @@ No open items in this section right now.
       build, regenerated source inventory, both GL guardrails, and
       `git diff --check`.
 - [x] Add `docs/architecture/408-rendertarget-backend-viewport-scissor-summary.md`.
+- [x] Route only `LLRenderTarget::clear()` buffer-clear intent through the
+      OpenGL backend, keeping GL mask translation out of the abstract backend
+      API.
+- [x] Verify the render target clear backend routing packet with targeted
+      `llrender` build, regenerated source inventory, both GL guardrails, and
+      `git diff --check`.
+- [x] Add `docs/architecture/409-rendertarget-backend-clear-summary.md`.
 
 ## Post-Phase2 Guardrails
 

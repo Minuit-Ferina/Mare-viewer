@@ -1004,6 +1004,25 @@ void clearBuffers(U32 mask)
     glClear(mask);
 }
 
+void clearBuffersByIntent(bool color, bool depth, bool stencil)
+{
+    U32 mask = 0;
+    if (color)
+    {
+        mask |= GL_COLOR_BUFFER_BIT;
+    }
+    if (depth)
+    {
+        mask |= GL_DEPTH_BUFFER_BIT;
+    }
+    if (stencil)
+    {
+        mask |= GL_STENCIL_BUFFER_BIT;
+    }
+
+    clearBuffers(mask);
+}
+
 void setPolygonOffset(LLGLfloat factor, LLGLfloat units)
 {
     glPolygonOffset(factor, units);

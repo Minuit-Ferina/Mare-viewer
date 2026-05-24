@@ -340,6 +340,7 @@ void waitSyncObject(LLGLsync sync);
 void deleteSyncObject(LLGLsync sync);
 void generateTextureMipmap(LLGLenum texture_target);
 void clearBuffers(U32 mask);
+void clearBuffersByIntent(bool color, bool depth, bool stencil);
 void setPolygonOffset(LLGLfloat factor, LLGLfloat units);
 void setPolygonMode(LLGLenum face, LLGLenum mode);
 void setScissorBox(LLGLint x, LLGLint y, U32 width, U32 height);

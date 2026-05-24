@@ -169,7 +169,20 @@ void generate_bound_render_target_mipmaps()
 
 void clear_render_target_buffers(U32 mask)
 {
-    LLGLContainment::clearBuffers(mask);
+    LLRenderPassDesc desc;
+    if (mask & GL_COLOR_BUFFER_BIT)
+    {
+        desc.mClearMask |= LL_RENDER_CLEAR_COLOR;
+    }
+    if (mask & GL_DEPTH_BUFFER_BIT)
+    {
+        desc.mClearMask |= LL_RENDER_CLEAR_DEPTH;
+    }
+    if (mask & GL_STENCIL_BUFFER_BIT)
+    {
+        desc.mClearMask |= LL_RENDER_CLEAR_STENCIL;
+    }
+    getOpenGLRenderBackend().clear(desc);
 }
 
 void set_render_target_scissor(U32 width, U32 height)
