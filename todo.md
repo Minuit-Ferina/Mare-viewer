@@ -1954,6 +1954,14 @@ No open items in this section right now.
 - [x] Add `docs/architecture/407-render-backend-interface-summary.md`.
 - [x] Document that the backend interface must leave room for Vulkan-style
       multi-threaded command recording and explicit submission ownership.
+- [x] Add null and OpenGL backend implementations for the minimal interface.
+- [x] Route only `LLRenderTarget` viewport/scissor intentions through the
+      OpenGL backend while preserving `LLGLContainment` as the direct GL
+      boundary.
+- [x] Verify the first runtime backend routing packet with targeted `llrender`
+      build, regenerated source inventory, both GL guardrails, and
+      `git diff --check`.
+- [x] Add `docs/architecture/408-rendertarget-backend-viewport-scissor-summary.md`.
 
 ## Post-Phase2 Guardrails
 

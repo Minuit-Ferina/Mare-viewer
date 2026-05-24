@@ -30,6 +30,7 @@
 #include "llrender.h"
 #include "llgl.h"
 #include "llglcontainment.h"
+#include "llrenderbackend.h"
 
 LLRenderTarget* LLRenderTarget::sBoundTarget = NULL;
 U32 LLRenderTarget::sBytesAllocated = 0;
@@ -64,14 +65,22 @@ void check_current_draw_framebuffer_status()
 
 void set_render_target_viewport(U32 width, U32 height)
 {
-    LLGLContainment::setViewport(0, 0, static_cast<LLGLint>(width), static_cast<LLGLint>(height));
+    LLRenderViewport viewport;
+    viewport.mWidth = static_cast<F32>(width);
+    viewport.mHeight = static_cast<F32>(height);
+    getOpenGLRenderBackend().setViewport(viewport);
     LLRenderTarget::sCurResX = width;
     LLRenderTarget::sCurResY = height;
 }
 
 void restore_default_framebuffer_viewport()
 {
-    LLGLContainment::setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+    LLRenderViewport viewport;
+    viewport.mX = static_cast<F32>(gGLViewport[0]);
+    viewport.mY = static_cast<F32>(gGLViewport[1]);
+    viewport.mWidth = static_cast<F32>(gGLViewport[2]);
+    viewport.mHeight = static_cast<F32>(gGLViewport[3]);
+    getOpenGLRenderBackend().setViewport(viewport);
     LLRenderTarget::sCurResX = gGLViewport[2];
     LLRenderTarget::sCurResY = gGLViewport[3];
 }
@@ -165,7 +174,11 @@ void clear_render_target_buffers(U32 mask)
 
 void set_render_target_scissor(U32 width, U32 height)
 {
-    LLGLContainment::setScissorBox(0, 0, width, height);
+    LLRenderScissor scissor;
+    scissor.mWidth = width;
+    scissor.mHeight = height;
+    scissor.mEnabled = true;
+    getOpenGLRenderBackend().setScissor(scissor);
 }
 
 bool render_target_texture_allocation_failed()

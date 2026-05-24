@@ -23,6 +23,65 @@
 
 #include "llrenderbackend.h"
 
+#include "llglcontainment.h"
+
+namespace
+{
+class LLNullRenderBackend final : public LLRenderBackend
+{
+public:
+    LLRenderBackendType getType() const override { return LLRenderBackendType::Null; }
+    const char* getName() const override { return "Null"; }
+    bool isReady() const override { return true; }
+
+    void beginFrame(const LLRenderFrameDesc&) override {}
+    void endFrame() override {}
+
+    void beginRenderPass(const LLRenderPassDesc&) override {}
+    void endRenderPass() override {}
+
+    void setViewport(const LLRenderViewport&) override {}
+    void setScissor(const LLRenderScissor&) override {}
+};
+
+class LLOpenGLRenderBackend final : public LLRenderBackend
+{
+public:
+    LLRenderBackendType getType() const override { return LLRenderBackendType::OpenGL; }
+    const char* getName() const override { return "OpenGL"; }
+    bool isReady() const override { return true; }
+
+    void beginFrame(const LLRenderFrameDesc&) override {}
+    void endFrame() override {}
+
+    void beginRenderPass(const LLRenderPassDesc&) override {}
+    void endRenderPass() override {}
+
+    void setViewport(const LLRenderViewport& viewport) override
+    {
+        LLGLContainment::setViewport(
+            static_cast<LLGLint>(viewport.mX),
+            static_cast<LLGLint>(viewport.mY),
+            static_cast<LLGLint>(viewport.mWidth),
+            static_cast<LLGLint>(viewport.mHeight));
+    }
+
+    void setScissor(const LLRenderScissor& scissor) override
+    {
+        if (!scissor.mEnabled)
+        {
+            return;
+        }
+
+        LLGLContainment::setScissorBox(
+            scissor.mX,
+            scissor.mY,
+            static_cast<U32>(scissor.mWidth),
+            static_cast<U32>(scissor.mHeight));
+    }
+};
+}
+
 LLRenderBackend::~LLRenderBackend() = default;
 
 const char* getRenderBackendTypeName(LLRenderBackendType type)
@@ -41,4 +100,16 @@ const char* getRenderBackendTypeName(LLRenderBackendType type)
     default:
         return "Unknown";
     }
+}
+
+LLRenderBackend& getNullRenderBackend()
+{
+    static LLNullRenderBackend backend;
+    return backend;
+}
+
+LLRenderBackend& getOpenGLRenderBackend()
+{
+    static LLOpenGLRenderBackend backend;
+    return backend;
 }

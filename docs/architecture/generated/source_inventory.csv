@@ -78,7 +78,7 @@ indra/newview/qtoolalign.cpp,render.opengl_touching,572,14,0,0,0,0,15,4,2,0,0,0,
 indra/newview/llhudeffectpointat.cpp,render.opengl_touching,524,18,0,0,0,0,15,4,1,0,0,0,0,0,0
 indra/newview/RRInterface.cpp,render.pipeline,6996,75,0,0,0,0,14,9,1,15,3,0,0,1,0
 indra/llui/llview.cpp,render.opengl_touching,2967,25,0,0,0,0,14,0,2,0,0,0,0,0,0
-indra/llrender/llrendertarget.cpp,render.legacy_low_level,675,5,0,0,0,0,12,29,0,0,0,42,11,0,0
+indra/llrender/llrendertarget.cpp,render.legacy_low_level,688,6,0,0,0,0,12,24,0,0,0,42,11,0,0
 indra/llrender/llglslshader.cpp,render.legacy_low_level,2093,12,0,0,0,0,11,292,1,0,0,2,0,0,0
 indra/newview/lldrawpoolmaterials.cpp,render.draw_pool,291,7,0,0,0,0,11,8,3,0,9,0,0,0,0
 indra/newview/llprogressview.cpp,assets.texture,738,25,0,0,0,0,11,1,0,0,0,0,0,1,0
@@ -195,6 +195,7 @@ indra/llprimitive/lltextureentry.cpp,assets.texture,801,7,0,0,0,0,0,7,0,0,0,0,0,
 indra/newview/llgltfmaterialpreviewmgr.h,assets.texture,86,5,0,0,0,0,0,6,0,0,0,2,0,1,0
 indra/newview/llfloaterprofiletexture.cpp,ui,317,9,0,0,0,0,0,6,0,0,0,0,0,5,0
 indra/newview/llfetchedgltfmaterial.h,assets.texture,89,3,0,0,0,0,0,6,0,0,0,0,0,1,0
+indra/llrender/llrenderbackend.cpp,render.legacy_low_level,116,3,0,0,0,0,0,6,0,0,0,0,0,0,0
 indra/newview/llviewercontrol.cpp,render.pipeline,1273,56,0,0,0,0,0,5,0,28,3,0,2,0,0
 indra/newview/llappviewer.cpp,render.pipeline,6744,198,0,0,0,0,0,5,3,6,0,4,3,0,3
 indra/newview/llsettingsvo.cpp,render.pipeline,1670,30,0,0,0,0,0,5,1,1,4,0,0,0,0
@@ -1713,6 +1714,7 @@ indra/llcorehttp/_httprequestqueue.h,unknown,144,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/httpoptions.cpp,unknown,144,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llwindow/llkeyboard.h,unknown,144,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/pbropaqueV.glsl,viewer.misc,144,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/llrender/llrenderbackend.h,render.legacy_low_level,143,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llsearchhistory.h,viewer.misc,143,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterchangeitemthumbnail.h,ui,143,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelvolumepulldown.cpp,ui,143,10,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1760,7 +1762,6 @@ indra/llcommon/lltempredirect.cpp,core,139,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llappearance/llwearable.h,unknown,139,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llfunctorregistry.h,unknown,139,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llplugin/llpluginmessage.h,unknown,138,1,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/llrender/llrenderbackend.h,render.legacy_low_level,138,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llimage/llimagefilter.h,unknown,138,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/llhttpconstants.cpp,unknown,138,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llviewquery.h,unknown,138,3,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2863,7 +2864,6 @@ indra/newview/app_settings/shaders/class1/interface/onetexturefilterF.glsl,asset
 indra/newview/app_settings/shaders/class1/deferred/diffuseNoColorV.glsl,viewer.misc,46,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/SMAAEdgeDetectV.glsl,viewer.misc,46,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/llmessagesenderinterface.h,network,45,2,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/llrender/llrenderbackend.cpp,render.legacy_low_level,45,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/test/test.h,unknown,45,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/pieseparator.cpp,viewer.misc,45,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llnotificationlistview.cpp,viewer.misc,45,2,0,0,0,0,0,0,0,0,0,0,0,0,0

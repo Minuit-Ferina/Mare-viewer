@@ -130,8 +130,13 @@ public:
 
     virtual void beginRenderPass(const LLRenderPassDesc& desc) = 0;
     virtual void endRenderPass() = 0;
+
+    virtual void setViewport(const LLRenderViewport& viewport) = 0;
+    virtual void setScissor(const LLRenderScissor& scissor) = 0;
 };
 
 const char* getRenderBackendTypeName(LLRenderBackendType type);
+LLRenderBackend& getNullRenderBackend();
+LLRenderBackend& getOpenGLRenderBackend();
 
 #endif
