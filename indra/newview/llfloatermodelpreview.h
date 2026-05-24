@@ -145,6 +145,9 @@ protected:
     void        getModelPreviewUploadStatusOptions(bool& upload_skin, bool& upload_joints, bool& upload_textures);
     void        getModelPreviewUploadDataOptions(bool& upload_skin, bool& upload_textures);
     F32         getModelPreviewCreaseAngle() const;
+    U32         getModelPreviewLODMode(S32 lod, U32 default_mode);
+    F32         getModelPreviewLODTriangleLimit(S32 lod) const;
+    F32         getModelPreviewLODErrorThresholdPercent(S32 lod) const;
     void        syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
 
     void        onDescriptionKeystroke(LLUICtrl*);

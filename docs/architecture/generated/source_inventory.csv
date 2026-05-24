@@ -37,7 +37,7 @@ indra/newview/llworldmapview.cpp,render.opengl_touching,1983,31,0,0,0,0,88,2,8,0
 indra/llappearance/lltexlayer.cpp,render.opengl_touching,1991,18,0,0,0,0,85,20,17,0,0,11,0,0,0
 indra/newview/llmanipscale.cpp,render.opengl_touching,2080,32,0,0,0,0,78,13,7,0,0,0,0,0,0
 indra/newview/llfasttimerview.cpp,render.opengl_touching,1669,27,0,0,0,0,75,7,12,0,0,1,0,0,0
-indra/newview/llmodelpreview.cpp,render.opengl_touching,4168,42,0,0,0,0,73,30,18,0,0,0,0,0,0
+indra/newview/llmodelpreview.cpp,render.opengl_touching,4165,42,0,0,0,0,73,30,18,0,0,0,0,0,0
 indra/newview/llfloaterimagepreview.cpp,render.draw_pool,1116,39,0,0,0,0,72,8,11,0,2,0,0,0,0
 indra/newview/llmaniprotate.cpp,render.opengl_touching,1976,33,0,0,0,0,70,13,6,0,0,0,0,0,1
 indra/newview/llreflectionmapmanager.cpp,render.pipeline,1637,16,0,0,0,0,69,17,3,13,0,1,3,0,0
@@ -407,7 +407,7 @@ indra/newview/lltexturecache.cpp,assets.texture,2322,10,0,0,0,0,0,0,0,0,0,0,0,0,
 indra/newview/fsareasearch.cpp,viewer.misc,2262,36,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llimprocessing.cpp,viewer.misc,2257,37,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llinventory/llsettingssky.cpp,render.draw_pool,2254,7,0,0,0,0,0,0,0,0,1,0,0,0,0
-indra/newview/llfloatermodelpreview.cpp,ui,2219,37,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloatermodelpreview.cpp,ui,2239,37,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelobjectinventory.cpp,ui,2208,35,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/tests/llsdserialize_test.cpp,core,2204,24,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/lldatapacker.cpp,network,2181,10,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1220,12 +1220,12 @@ indra/newview/llregioninfomodel.cpp,viewer.misc,255,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llrender/llfontgl.h,render.legacy_low_level,254,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelsnapshotpostcard.cpp,ui,254,18,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterdisplayname.cpp,ui,254,9,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloatermodelpreview.h,ui,253,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/tests/test_bufferstream.hpp,unknown,253,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lltoolcomp.h,viewer.misc,252,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpaneleditwater.cpp,ui,252,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llnotificationlistitem.h,viewer.misc,252,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llaccordionctrltab.h,unknown,252,5,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloatermodelpreview.h,ui,250,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lltoastimpanel.cpp,viewer.misc,250,12,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpaneldirevents.cpp,ui,248,12,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelpeople.h,ui,248,8,0,0,0,0,0,0,0,0,0,0,0,0,0

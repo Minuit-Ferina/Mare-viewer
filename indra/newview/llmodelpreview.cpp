@@ -1873,15 +1873,12 @@ void LLModelPreview::genMeshOptimizerLODs(S32 which_lod, S32 meshopt_mode, U32 d
     F32 indices_decimator = 0;
     F32 triangle_limit = 0;
     F32 lod_error_threshold = 1; //100%
+    LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
 
     // If requesting a single lod
     if (which_lod > -1 && which_lod < NUM_LOD)
     {
-        LLCtrlSelectionInterface* iface = mFMP->childGetSelectionInterface("lod_mode_" + lod_name[which_lod]);
-        if (iface)
-        {
-            lod_mode = iface->getFirstSelectedIndex();
-        }
+        lod_mode = fmp->getModelPreviewLODMode(which_lod, lod_mode);
 
         if (lod_mode == LIMIT_TRIANGLES)
         {
@@ -1897,7 +1894,7 @@ void LLModelPreview::genMeshOptimizerLODs(S32 which_lod, S32 meshopt_mode, U32 d
             {
 
                 // UI spacifies limit for all models of single lod
-                triangle_limit = (F32)mFMP->childGetValue("lod_triangle_limit_" + lod_name[which_lod]).asReal();
+                triangle_limit = fmp->getModelPreviewLODTriangleLimit(which_lod);
 
             }
             // meshoptimizer doesn't use triangle limit, it uses indices limit, so convert it to aproximate ratio
@@ -1907,7 +1904,7 @@ void LLModelPreview::genMeshOptimizerLODs(S32 which_lod, S32 meshopt_mode, U32 d
         else
         {
             // UI shows 0 to 100%, but meshoptimizer works with 0 to 1
-            lod_error_threshold = (F32)mFMP->childGetValue("lod_error_threshold_" + lod_name[which_lod]).asReal() / 100.f;
+            lod_error_threshold = fmp->getModelPreviewLODErrorThresholdPercent(which_lod) / 100.f;
         }
     }
     else

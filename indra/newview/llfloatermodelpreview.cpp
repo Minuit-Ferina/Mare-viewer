@@ -482,6 +482,26 @@ F32 LLFloaterModelPreview::getModelPreviewCreaseAngle() const
     return (F32)childGetValue("crease_angle").asReal();
 }
 
+U32 LLFloaterModelPreview::getModelPreviewLODMode(S32 lod, U32 default_mode)
+{
+    LLCtrlSelectionInterface* iface = childGetSelectionInterface("lod_mode_" + lod_name[lod]);
+    if (!iface)
+    {
+        return default_mode;
+    }
+    return (U32)iface->getFirstSelectedIndex();
+}
+
+F32 LLFloaterModelPreview::getModelPreviewLODTriangleLimit(S32 lod) const
+{
+    return (F32)childGetValue("lod_triangle_limit_" + lod_name[lod]).asReal();
+}
+
+F32 LLFloaterModelPreview::getModelPreviewLODErrorThresholdPercent(S32 lod) const
+{
+    return (F32)childGetValue("lod_error_threshold_" + lod_name[lod]).asReal();
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

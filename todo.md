@@ -1720,6 +1720,14 @@ do not start a direct Vulkan port.
       targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
       both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/357-model-preview-crease-angle-summary.md`.
+- [x] Map model preview LOD optimizer UI reads before moving them.
+- [x] Add `docs/architecture/358-model-preview-lod-optimizer-options-task.md`.
+- [x] Move LOD optimizer UI reads behind `LLFloaterModelPreview` owner methods
+      without changing timing.
+- [x] Verify the LOD optimizer option packet with targeted
+      `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/359-model-preview-lod-optimizer-options-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.
