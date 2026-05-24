@@ -140,6 +140,7 @@ protected:
     friend class LLMeshFilePicker;
     friend class LLPhysicsDecomp;
 
+    void        getModelPreviewRenderOptions(bool& upload_skin, bool& upload_joints, F32& physics_explode);
     void        syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
 
     void        onDescriptionKeystroke(LLUICtrl*);

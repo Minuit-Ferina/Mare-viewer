@@ -3307,13 +3307,13 @@ bool LLModelPreview::render()
 
     drawPreviewCanvas(width, height);
 
-    LLFloaterModelPreview* fmp = LLFloaterModelPreview::sInstance;
+    LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
 
-    bool upload_skin = mFMP->childGetValue("upload_skin").asBoolean();
-    bool upload_joints = mFMP->childGetValue("upload_joints").asBoolean();
+    bool upload_skin = false;
+    bool upload_joints = false;
+    F32 physics_explode = 0.f;
+    fmp->getModelPreviewRenderOptions(upload_skin, upload_joints, physics_explode);
     bool has_skin_weights = updateSkinPreviewControls(fmp, upload_skin, upload_joints, show_skin_weight);
-
-    F32 physics_explode = (F32)mFMP->childGetValue("physics_explode").asReal();
 
     LLGLDepthTest gls_depth(GL_TRUE); // SL-12781 re-enable z-buffer for 3D model preview
     PreviewCameraState camera_state = setupPreviewCamera(show_skin_weight, width, height);

@@ -462,6 +462,13 @@ void LLFloaterModelPreview::disableViewOption(const std::string& option)
     setViewOptionEnabled(option, false);
 }
 
+void LLFloaterModelPreview::getModelPreviewRenderOptions(bool& upload_skin, bool& upload_joints, F32& physics_explode)
+{
+    upload_skin = childGetValue("upload_skin").asBoolean();
+    upload_joints = childGetValue("upload_joints").asBoolean();
+    physics_explode = (F32)childGetValue("physics_explode").asReal();
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

@@ -69,7 +69,7 @@
 | `indra/newview/lldrawpool.cpp` | render.draw_pool | 920 | 0 | 0 | 0 | 21 | 13 | 0 | 0 |
 | `indra/llrender/llfontgl.cpp` | render.legacy_low_level | 1424 | 0 | 0 | 0 | 21 | 0 | 0 | 0 |
 | `indra/newview/llhudeffectblob.cpp` | render.opengl_touching | 106 | 0 | 0 | 0 | 19 | 1 | 0 | 0 |
-| `indra/newview/llfloatermodelpreview.cpp` | ui | 2223 | 0 | 0 | 0 | 17 | 0 | 0 | 0 |
+| `indra/newview/llfloatermodelpreview.cpp` | ui | 2230 | 0 | 0 | 0 | 17 | 0 | 0 | 0 |
 | `indra/newview/animationexplorer.cpp` | render.opengl_touching | 564 | 0 | 0 | 0 | 17 | 0 | 0 | 0 |
 | `indra/newview/llhudeffectlookat.cpp` | render.opengl_touching | 827 | 0 | 0 | 0 | 16 | 4 | 0 | 0 |
 | `indra/newview/llhudicon.cpp` | assets.texture | 354 | 0 | 0 | 0 | 16 | 3 | 0 | 0 |
