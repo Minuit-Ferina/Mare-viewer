@@ -57,6 +57,15 @@ LLPanel::factory_stack_t    LLPanel::sFactoryStack;
 template class LLPanel* LLView::getChild<class LLPanel>(
     std::string_view name, bool recurse) const;
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_ui_child(LLView* owner, std::string_view name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+}
+
 LLPanel::LocalizedString::LocalizedString()
 :   name("name"),
     value("value")
@@ -257,7 +266,7 @@ void LLPanel::setDefaultBtn(LLButton* btn)
 
 void LLPanel::setDefaultBtn(std::string_view id)
 {
-    LLButton *button = getChild<LLButton>(id);
+    LLButton *button = get_ui_child<LLButton>(this, id);
     if (button)
     {
         setDefaultBtn(button);

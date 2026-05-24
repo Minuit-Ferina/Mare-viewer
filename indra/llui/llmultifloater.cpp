@@ -32,6 +32,15 @@
 #include "llmultifloater.h"
 #include "llresizehandle.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_ui_child(LLView* owner, std::string_view name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+}
+
 //
 // LLMultiFloater
 //
@@ -462,7 +471,7 @@ bool LLMultiFloater::postBuild()
         return true;
     }
 
-    mTabContainer = getChild<LLTabContainer>("Preview Tabs");
+    mTabContainer = get_ui_child<LLTabContainer>(this, "Preview Tabs");
 
     setCanResize(mResizable);
     return true;

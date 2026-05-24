@@ -61,6 +61,15 @@
 
 #include <boost/bind.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_ui_child(LLView* owner, std::string_view name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+}
+
 static LLDefaultChildRegistry::Register<LLScrollListCtrl> r("scroll_list");
 
 // local structures & classes.
@@ -1393,7 +1402,7 @@ void LLScrollListCtrl::setCommentText(const std::string& comment_text)
 // <FS:Ansariel> Allow appending of comment text
 void LLScrollListCtrl::addCommentText(const std::string& comment_text)
 {
-    LLTextBox *ctrl = getChild<LLTextBox>("comment_text");
+    LLTextBox *ctrl = get_ui_child<LLTextBox>(this, "comment_text");
     ctrl->appendText(comment_text, !ctrl->getText().empty()); // don't prepend newline if empty (Sei)
 }
 // </FS:Ansariel> Allow appending of comment text
@@ -2274,8 +2283,8 @@ bool LLScrollListCtrl::handleRightMouseDown(S32 x, S32 y, MASK mask)
                 if (mIsFriendSignal)
                 {
                     bool isFriend = *(*mIsFriendSignal)(uuid);
-                    LLView* addFriendButton = menu->getChild<LLView>("add_friend");
-                    LLView* removeFriendButton = menu->getChild<LLView>("remove_friend");
+                    LLView* addFriendButton = get_ui_child<LLView>(menu, "add_friend");
+                    LLView* removeFriendButton = get_ui_child<LLView>(menu, "remove_friend");
 
                     if (addFriendButton && removeFriendButton)
                     {

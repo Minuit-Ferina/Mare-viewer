@@ -29,6 +29,15 @@
 #include "lldockcontrol.h"
 #include "lldockablefloater.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_ui_child(LLView* owner, std::string_view name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+}
+
 LLDockControl::LLDockControl(LLView* dockWidget, LLFloater* dockableFloater,
         const LLUIImagePtr& dockTongue, DocAt dockAt, get_allowed_rect_callback_t get_allowed_rect_callback) :
         mDockableFloater(dockableFloater),
@@ -43,7 +52,7 @@ LLDockControl::LLDockControl(LLView* dockWidget, LLFloater* dockableFloater,
         mDockWidgetHandle = dockWidget->getHandle();
     }
 
-    mNonToolbarPanelHandle = mDockableFloater->getRootView()->getChild<LLView>("non_toolbar_panel")->getHandle();
+    mNonToolbarPanelHandle = get_ui_child<LLView>(mDockableFloater->getRootView(), "non_toolbar_panel")->getHandle();
 
     if (dockableFloater->isDocked())
     {
@@ -385,4 +394,3 @@ void LLDockControl::drawToungue()
         mDockTongue->draw(mDockTongueX, mDockTongueY);
     }
 }
-

@@ -35,6 +35,15 @@
 #include "llinventory.h"
 #include "lliconctrl.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_ui_child(LLView* owner, std::string_view name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+}
+
 // uncomment this and remove the one in llui.cpp when there is an external reference to this translation unit
 // thanks, MSVC!
 //static LLDefaultChildRegistry::Register<LLToolBar> r1("toolbar");
@@ -214,7 +223,7 @@ void LLToolBar::createContextMenu()
         {
             menu->setBackgroundColor(LLUIColorTable::instance().getColor("MenuPopupBgColor"));
             mPopupMenuHandle = menu->getHandle();
-            mRemoveButtonHandle = menu->getChild<LLView>("Remove button")->getHandle();
+            mRemoveButtonHandle = get_ui_child<LLView>(menu, "Remove button")->getHandle();
         }
         else
         {
@@ -998,7 +1007,7 @@ void LLToolBar::draw()
     // Position the caret
     if (!mCaretIcon)
     {
-        mCaretIcon = getChild<LLIconCtrl>("caret");
+        mCaretIcon = get_ui_child<LLIconCtrl>(this, "caret");
     }
 
     LLIconCtrl* caret = mCaretIcon;

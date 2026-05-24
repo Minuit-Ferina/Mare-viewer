@@ -62,6 +62,14 @@
 #include <set>
 #include <boost/tokenizer.hpp>
 
+namespace
+{
+[[maybe_unused]] LLView* get_ui_view(LLView* owner, std::string_view name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+}
+
 // static
 LLMenuHolderGL *LLMenuGL::sMenuContainer = NULL;
 view_listener_t::listener_map_t view_listener_t::sListeners;
@@ -1001,7 +1009,7 @@ LLView* LLMenuItemBranchGL::getChildView(std::string_view name, bool recurse) co
         }
 
         // Always recurse on branches
-        return branch->getChildView(name, recurse);
+        return get_ui_view(branch, name, recurse);
     }
 
     return LLView::getChildView(name, recurse);

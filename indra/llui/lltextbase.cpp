@@ -50,6 +50,15 @@
 #include <boost/algorithm/string.hpp>
 // [/SL:KB]
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_ui_child(LLView* owner, std::string_view name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+}
+
 const F32   CURSOR_FLASH_DELAY = 1.0f;  // in seconds
 const S32   CURSOR_THICKNESS = 2;
 const F32   TRIPLE_CLICK_INTERVAL = 0.3f;   // delay between double and triple click.
@@ -2446,8 +2455,8 @@ void LLTextBase::createUrlContextMenu(S32 x, S32 y, const std::string &in_url)
         if (mIsFriendSignal)
         {
             bool isFriend = *(*mIsFriendSignal)(LLUUID(LLUrlAction::getUserID(url)));
-            LLView* addFriendButton = menu->getChild<LLView>("add_friend");
-            LLView* removeFriendButton = menu->getChild<LLView>("remove_friend");
+            LLView* addFriendButton = get_ui_child<LLView>(menu, "add_friend");
+            LLView* removeFriendButton = get_ui_child<LLView>(menu, "remove_friend");
 
             if (addFriendButton && removeFriendButton)
             {
@@ -2459,8 +2468,8 @@ void LLTextBase::createUrlContextMenu(S32 x, S32 y, const std::string &in_url)
         if (mIsObjectBlockedSignal)
         {
             bool is_blocked = *(*mIsObjectBlockedSignal)(LLUUID(LLUrlAction::getObjectId(url)), LLUrlAction::getObjectName(url));
-            LLView* blockButton = menu->getChild<LLView>("block_object");
-            LLView* unblockButton = menu->getChild<LLView>("unblock_object");
+            LLView* blockButton = get_ui_child<LLView>(menu, "block_object");
+            LLView* unblockButton = get_ui_child<LLView>(menu, "unblock_object");
 
             if (blockButton && unblockButton)
             {
@@ -2472,7 +2481,7 @@ void LLTextBase::createUrlContextMenu(S32 x, S32 y, const std::string &in_url)
         if (mIsObjectReachableSignal)
         {
             bool is_reachable = *(*mIsObjectReachableSignal)(LLUUID(LLUrlAction::getObjectId(url)));
-            if (LLView* zoom_btn = menu->getChild<LLView>("zoom_in"))
+            if (LLView* zoom_btn = get_ui_child<LLView>(menu, "zoom_in"))
             {
                 zoom_btn->setEnabled(is_reachable);
             }

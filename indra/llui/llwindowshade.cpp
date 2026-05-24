@@ -34,6 +34,20 @@
 #include "llcheckboxctrl.h"
 #include "lllineeditor.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_ui_child(LLView* owner, std::string_view name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_ui_view(LLView* owner, std::string_view name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+}
+
 const S32 MIN_NOTIFICATION_AREA_HEIGHT = 30;
 const S32 MAX_NOTIFICATION_AREA_HEIGHT = 100;
 
@@ -243,7 +257,7 @@ void LLWindowShade::displayLatestNotification()
     LLSD payload = notification->getPayload();
 
     LLNotificationFormPtr formp = notification->getForm();
-    mNotificationsArea->getChild<LLUICtrl>("notification_icon")->setValue(notification->getIcon());
+    get_ui_child<LLUICtrl>(mNotificationsArea, "notification_icon")->setValue(notification->getIcon());
     mNotificationsText->setValue(notification->getMessage());
     mNotificationsText->setToolTip(notification->getMessage());
 
@@ -376,7 +390,7 @@ bool LLWindowShade::isShown() const
 
 void LLWindowShade::setCanClose(bool can_close)
 {
-    getChildView("close_panel")->setVisible(can_close);
+    get_ui_view(this, "close_panel")->setVisible(can_close);
 }
 
 LLNotificationPtr LLWindowShade::getCurrentNotification()
@@ -387,4 +401,3 @@ LLNotificationPtr LLWindowShade::getCurrentNotification()
     }
     return mNotifications.back();
 }
-

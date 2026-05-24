@@ -89,6 +89,15 @@ bool LLView::sIsDrawing = false;
 template class LLView* LLView::getChild<class LLView>(
     std::string_view name, bool recurse) const;
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_ui_child(const LLView* owner, std::string_view name, bool recurse = true)
+{
+    return owner->getChild<T>(name, recurse);
+}
+}
+
 static LLDefaultChildRegistry::Register<LLView> r("view");
 
 void deleteView(LLView *aView)
@@ -1707,7 +1716,7 @@ bool LLView::hasChild(std::string_view childname, bool recurse) const
 //-----------------------------------------------------------------------------
 LLView* LLView::getChildView(std::string_view name, bool recurse) const
 {
-    return getChild<LLView>(name, recurse);
+    return get_ui_child<LLView>(this, name, recurse);
 }
 
 LLView* LLView::findChildView(std::string_view name, bool recurse) const
@@ -2955,4 +2964,3 @@ void LLView::addInfo(LLSD & info)
     info["rect"] = LLSDMap("left", rect.mLeft)("top", rect.mTop)
                 ("right", rect.mRight)("bottom", rect.mBottom);
 }
-

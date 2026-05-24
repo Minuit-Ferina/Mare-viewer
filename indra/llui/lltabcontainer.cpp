@@ -40,6 +40,14 @@
 #include "lltrans.h"
 #include "lluiusage.h"
 
+namespace
+{
+[[maybe_unused]] LLView* get_ui_view(LLView* owner, std::string_view name, bool recurse = true)
+{
+    return owner->getChildView(name, recurse);
+}
+}
+
 //----------------------------------------------------------------------------
 
 // Implementation Notes:
@@ -332,7 +340,7 @@ LLView* LLTabContainer::getChildView(std::string_view name, bool recurse) const
         for (itor = mTabList.begin(); itor != mTabList.end(); ++itor)
         {
             LLPanel *panel = (*itor)->mTabPanel;
-            LLView *child = panel->getChildView(name, recurse);
+            LLView *child = get_ui_view(panel, name, recurse);
             if (child)
             {
                 return child;

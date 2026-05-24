@@ -77,7 +77,7 @@ indra/newview/maretaaupscaler.cpp,render.opengl_touching,182,12,0,0,0,0,15,7,2,0
 indra/newview/qtoolalign.cpp,render.opengl_touching,572,14,0,0,0,0,15,4,2,0,0,0,0,0,0
 indra/newview/llhudeffectpointat.cpp,render.opengl_touching,524,18,0,0,0,0,15,4,1,0,0,0,0,0,0
 indra/newview/RRInterface.cpp,render.pipeline,6996,75,0,0,0,0,14,9,1,15,3,0,0,1,0
-indra/llui/llview.cpp,render.opengl_touching,2959,25,0,0,0,0,14,0,2,0,0,0,0,0,0
+indra/llui/llview.cpp,render.opengl_touching,2967,25,0,0,0,0,14,0,2,0,0,0,0,0,0
 indra/llrender/llrendertarget.cpp,render.legacy_low_level,675,5,0,0,0,0,12,29,0,0,0,42,11,0,0
 indra/llrender/llglslshader.cpp,render.legacy_low_level,2093,12,0,0,0,0,11,292,1,0,0,2,0,0,0
 indra/newview/lldrawpoolmaterials.cpp,render.draw_pool,291,7,0,0,0,0,11,8,3,0,9,0,0,0,0
@@ -92,16 +92,16 @@ indra/newview/llhudrender.cpp,render.opengl_touching,136,12,0,0,0,0,9,0,4,0,0,0,
 indra/llappearance/lltexlayerparams.cpp,render.opengl_touching,599,11,0,0,0,0,8,1,3,0,0,0,0,0,0
 indra/llui/llviewborder.cpp,render.opengl_touching,271,6,0,0,0,0,8,0,0,0,0,0,0,0,0
 indra/newview/llagent.cpp,render.pipeline,5766,73,0,0,0,0,7,0,1,1,0,0,0,0,0
-indra/llui/llmenugl.cpp,render.opengl_touching,4422,20,0,0,0,0,7,0,0,0,0,0,0,0,0
+indra/llui/llmenugl.cpp,render.opengl_touching,4430,20,0,0,0,0,7,0,0,0,0,0,0,0,0
 indra/newview/lltextureview.cpp,assets.texture,1077,30,0,0,0,0,6,16,0,0,0,2,3,2,0
 indra/newview/lldrawpoolsimple.cpp,render.pipeline,228,14,0,0,0,0,6,10,3,4,18,0,0,0,0
 indra/newview/llhudeffectbeam.cpp,render.opengl_touching,354,13,0,0,0,0,6,1,0,0,0,0,0,0,0
-indra/llui/lltabcontainer.cpp,render.opengl_touching,2205,14,0,0,0,0,6,0,0,0,0,0,0,0,0
+indra/llui/lltabcontainer.cpp,render.opengl_touching,2213,14,0,0,0,0,6,0,0,0,0,0,0,0,0
 indra/newview/llscrollingpanelparam.cpp,render.opengl_touching,379,13,0,0,0,0,6,0,0,0,0,0,0,0,0
 indra/llrender/llrendernavprim.cpp,render.legacy_low_level,60,6,0,0,0,0,6,0,1,0,0,0,0,0,0
 indra/newview/llviewercamera.cpp,render.opengl_touching,995,25,0,0,0,0,5,6,2,0,0,0,0,0,0
 indra/newview/lldrawpoolwater.cpp,render.pipeline,339,22,0,0,0,0,5,4,1,1,19,3,0,3,0
-indra/llui/lltextbase.cpp,render.opengl_touching,4485,20,0,0,0,0,5,0,0,0,0,0,0,0,0
+indra/llui/lltextbase.cpp,render.opengl_touching,4494,20,0,0,0,0,5,0,0,0,0,0,0,0,0
 indra/newview/lltoolselectrect.cpp,render.opengl_touching,207,12,0,0,0,0,5,0,0,0,0,0,0,0,0
 indra/newview/lldynamictexture.cpp,render.pipeline,350,15,0,0,0,0,4,8,0,4,0,8,0,3,0
 indra/llui/llbutton.cpp,render.opengl_touching,1434,23,0,0,0,0,4,0,5,0,0,0,0,0,0
@@ -129,7 +129,7 @@ indra/llrender/lluiimage.cpp,render.legacy_low_level,174,4,0,0,0,0,2,0,0,0,0,0,0
 indra/newview/llviewertexturelist.cpp,assets.texture,1907,33,0,0,0,0,1,23,3,0,0,0,3,31,0
 indra/newview/llvovolume.cpp,render.pipeline,7187,62,0,0,0,0,1,13,19,29,11,0,0,21,0
 indra/llappearance/lllocaltextureobject.cpp,assets.texture,213,8,0,0,0,0,1,3,0,0,0,0,0,0,0
-indra/llui/llscrolllistctrl.cpp,render.opengl_touching,3857,28,0,0,0,0,1,2,0,0,0,0,0,0,0
+indra/llui/llscrolllistctrl.cpp,render.opengl_touching,3866,28,0,0,0,0,1,2,0,0,0,0,0,0,0
 indra/newview/llhudobject.cpp,render.opengl_touching,336,14,0,0,0,0,1,2,0,0,0,0,0,0,0
 indra/llui/lllocalcliprect.cpp,render.opengl_touching,122,7,0,0,0,0,1,2,0,0,0,0,0,0,0
 indra/newview/llvotree.cpp,render.pipeline,1245,26,0,0,0,0,1,1,1,6,5,0,0,1,0
@@ -443,9 +443,9 @@ indra/llcommon/llerror.cpp,core,1654,24,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llinventorymodelbackgroundfetch.cpp,viewer.misc,1645,20,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llxml/llcontrol.cpp,unknown,1628,19,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llgesturemgr.cpp,viewer.misc,1597,24,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/llui/lltoolbar.cpp,unknown,1590,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llwebrtc/llwebrtc.cpp,unknown,1588,14,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelprofileclassifieds.cpp,ui,1582,33,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/llui/lltoolbar.cpp,unknown,1581,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanellandmarks.cpp,ui,1550,34,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterimsessiontab.cpp,ui,1549,24,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/llassetstorage.cpp,network,1545,17,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -580,10 +580,10 @@ indra/llcommon/llsingleton.h,core,874,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llaudio/llaudioengine_fmodstudio.cpp,unknown,873,13,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelgroupgeneral.cpp,ui,872,27,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/m4math.cpp,unknown,869,7,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/llui/llpanel.cpp,ui,863,18,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/tests/llstring_test.cpp,core,860,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llunittype.h,core,859,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/lloctree.h,unknown,859,4,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/llui/llpanel.cpp,ui,854,18,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloatergesture.cpp,ui,846,23,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llappearance/llpolymorph.cpp,unknown,845,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/lltemplatemessagereader.cpp,network,840,12,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -760,6 +760,7 @@ indra/llmath/v3dmath.h,unknown,535,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpaneltopinfobar.cpp,ui,534,19,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llsettingspicker.cpp,viewer.misc,533,15,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llthread.cpp,core,532,12,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/llui/llmultifloater.cpp,unknown,532,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/tests/v3dmath_test.cpp,unknown,532,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpaneloutfitsinventory.cpp,ui,531,18,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llimage/llimagedxt.cpp,unknown,531,3,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -774,7 +775,6 @@ indra/llmessage/llcoproceduremanager.cpp,network,525,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llwindowlistener.cpp,viewer.misc,524,18,0,0,0,0,0,0,0,0,0,0,0,0,1
 indra/llcommon/llleap.cpp,core,524,16,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterregioninfo.h,ui,523,10,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/llui/llmultifloater.cpp,unknown,523,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llspinctrl.cpp,unknown,523,16,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/pbrterrainUtilF.glsl,viewer.misc,523,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llwearableitemslist.h,viewer.misc,522,7,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -917,6 +917,7 @@ indra/llmessage/tests/llnamevalue_test.cpp,network,407,4,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llagentpilot.cpp,viewer.misc,406,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterlandholdings.cpp,ui,406,23,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/v2math.h,unknown,406,2,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/llui/llwindowshade.cpp,unknown,404,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llsetkeybinddialog.cpp,viewer.misc,403,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterlagmeter.cpp,ui,402,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llinventory/llsettingswater.cpp,unknown,401,7,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -924,6 +925,7 @@ indra/llcommon/threadsafeschedule.h,core,400,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llworkerthread.cpp,core,399,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/llxfer_vfile.cpp,network,398,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llplugin/llpluginmessagepipe.cpp,unknown,398,4,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/llui/lldockcontrol.cpp,unknown,397,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llinventoryitemslist.cpp,viewer.misc,396,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcharacter/lljointsolverrp3.cpp,unknown,396,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/media_plugins/example/media_plugin_example.cpp,unknown,396,7,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -936,11 +938,9 @@ indra/llcommon/llkeybind.cpp,core,394,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/llvector4a.h,unknown,393,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/tests/test_httpheaders.hpp,unknown,393,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/httpcommon.cpp,unknown,392,7,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/llui/llwindowshade.cpp,unknown,391,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterbuy.cpp,ui,390,15,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lldirpicker.cpp,viewer.misc,390,13,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/llxfer.cpp,network,389,6,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/llui/lldockcontrol.cpp,unknown,389,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/tests/llunits_test.cpp,core,389,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/lldraghandle.cpp,unknown,388,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/lliosocket.h,network,387,5,0,0,0,0,0,0,0,0,0,0,0,0,0
