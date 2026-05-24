@@ -36,9 +36,9 @@
 #include "m4math.h"
 
 #include "llrender.h"
+#include "llrenderbackend.h"
 #include "llglslshader.h"
 
-#include "llglcontainment.h"
 #include "llgl.h"
 #include "llglheaders.h"
 
@@ -129,16 +129,16 @@ LLCubeMapArray::LLCubeMapArray(LLCubeMapArray& lhs, U32 width, U32 count) : mTex
 
             // Handle different resolutions by scaling the image
             LLPointer<LLImageRaw> src_image = new LLImageRaw(lhs.mWidth, lhs.mWidth, lhs.mImage->getComponents());
-            LLGLContainment::readTextureImage(
-                GL_TEXTURE_CUBE_MAP_ARRAY,
+            getOpenGLRenderBackend().readTextureImage(
+                LLRenderTextureTarget::TextureCubeMapArray,
                 0,
                 components,
                 GL_UNSIGNED_BYTE,
                 src_image->getData());
 
             LLPointer<LLImageRaw> scaled_image = src_image->scaled(mWidth, mWidth);
-            LLGLContainment::setTextureSubImage3D(
-                GL_TEXTURE_CUBE_MAP_ARRAY,
+            getOpenGLRenderBackend().setTextureSubImage3D(
+                LLRenderTextureTarget::TextureCubeMapArray,
                 0,
                 0,
                 0,
@@ -186,8 +186,8 @@ void LLCubeMapArray::allocate(U32 resolution, U32 components, U32 count, bool us
     U32 mip_resolution = resolution;
     while (mip_resolution >= 1)
     {
-        LLGLContainment::setTextureImage3D(
-            GL_TEXTURE_CUBE_MAP_ARRAY,
+        getOpenGLRenderBackend().setTextureImage3D(
+            LLRenderTextureTarget::TextureCubeMapArray,
             mip,
             format,
             mip_resolution,

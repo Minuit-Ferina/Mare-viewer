@@ -37,7 +37,6 @@
 
 #include "llmath.h"
 #include "llgl.h"
-#include "llglcontainment.h"
 #include "llglslshader.h"
 #include "llrender.h"
 #include "llrenderbackend.h"
@@ -172,6 +171,7 @@ static void unbind_pixel_pack_buffer();
 static void bind_scratch_pbo_for_pixel_unpack(U32 pbo);
 static void unbind_pixel_unpack_buffer();
 static void resize_pixel_pack_buffer(U64 size);
+static void query_texture_level_parameter(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value);
 
 //------------------------
 //****************************************************************************************************
@@ -189,12 +189,11 @@ void LLImageGL::checkTexSize(bool forced) const
         {
             //check viewport
             GLint vp[4] ;
-            LLGLContainment::getInteger(GL_VIEWPORT, vp) ;
+            getOpenGLRenderBackend().getViewport(vp);
             llcallstacks << "viewport: " << vp[0] << " : " << vp[1] << " : " << vp[2] << " : " << vp[3] << llcallstacksendl ;
         }
 
-        GLint texname;
-        LLGLContainment::getInteger(GL_TEXTURE_BINDING_2D, &texname);
+        U32 texname = getOpenGLRenderBackend().getBoundTexture2D();
         bool error = false;
         if (texname != mTexName)
         {
@@ -212,8 +211,8 @@ void LLImageGL::checkTexSize(bool forced) const
         }
         stop_glerror() ;
         LLGLint x = 0, y = 0 ;
-        LLGLContainment::getTextureLevelParameterInteger(mTarget, 0, GL_TEXTURE_WIDTH, &x);
-        LLGLContainment::getTextureLevelParameterInteger(mTarget, 0, GL_TEXTURE_HEIGHT, &y) ;
+        query_texture_level_parameter(mTarget, 0, GL_TEXTURE_WIDTH, &x);
+        query_texture_level_parameter(mTarget, 0, GL_TEXTURE_HEIGHT, &y);
         stop_glerror() ;
         llcallstacks << "w: " << x << " h: " << y << llcallstacksendl ;
 
@@ -610,6 +609,58 @@ static bool check_power_of_two(S32 dim)
     return !(dim & (dim - 1)) ;
 }
 
+static LLRenderTextureTarget to_render_texture_target(LLGLenum target)
+{
+    switch (target)
+    {
+    case GL_TEXTURE_2D:
+        return LLRenderTextureTarget::Texture2D;
+    case GL_TEXTURE_RECTANGLE:
+        return LLRenderTextureTarget::TextureRectangle;
+    case GL_TEXTURE_CUBE_MAP:
+        return LLRenderTextureTarget::TextureCubeMap;
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+        return LLRenderTextureTarget::TextureCubeMapPositiveX;
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+        return LLRenderTextureTarget::TextureCubeMapNegativeX;
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+        return LLRenderTextureTarget::TextureCubeMapPositiveY;
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+        return LLRenderTextureTarget::TextureCubeMapNegativeY;
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+        return LLRenderTextureTarget::TextureCubeMapPositiveZ;
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+        return LLRenderTextureTarget::TextureCubeMapNegativeZ;
+    case GL_TEXTURE_CUBE_MAP_ARRAY:
+        return LLRenderTextureTarget::TextureCubeMapArray;
+    case GL_TEXTURE_2D_MULTISAMPLE:
+        return LLRenderTextureTarget::Texture2DMultisample;
+    case GL_TEXTURE_3D:
+        return LLRenderTextureTarget::Texture3D;
+    default:
+        llassert(false);
+        return LLRenderTextureTarget::Texture2D;
+    }
+}
+
+static LLRenderTextureLevelParameter to_render_texture_level_parameter(LLGLenum parameter)
+{
+    switch (parameter)
+    {
+    case GL_TEXTURE_WIDTH:
+        return LLRenderTextureLevelParameter::Width;
+    case GL_TEXTURE_HEIGHT:
+        return LLRenderTextureLevelParameter::Height;
+    case GL_TEXTURE_COMPRESSED:
+        return LLRenderTextureLevelParameter::Compressed;
+    case GL_TEXTURE_COMPRESSED_IMAGE_SIZE:
+        return LLRenderTextureLevelParameter::CompressedImageSize;
+    default:
+        llassert(false);
+        return LLRenderTextureLevelParameter::Width;
+    }
+}
+
 static void set_texture_unpack_swap_bytes_enabled(bool enabled)
 {
     getOpenGLRenderBackend().setPixelStoreInteger(
@@ -624,22 +675,34 @@ static void set_texture_unpack_row_length(S32 row_length)
 
 static void query_texture_level_parameter(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value)
 {
-    LLGLContainment::getTextureLevelParameterInteger(target, level, parameter, value);
+    getOpenGLRenderBackend().getTextureLevelParameterInteger(
+        to_render_texture_target(target),
+        level,
+        to_render_texture_level_parameter(parameter),
+        value);
 }
 
 static void read_compressed_texture_level_image(LLGLenum target, S32 level, GLvoid* pixels)
 {
-    LLGLContainment::readCompressedTextureImage(target, level, pixels);
+    getOpenGLRenderBackend().readCompressedTextureImage(to_render_texture_target(target), level, pixels);
 }
 
 static void read_texture_level_image(LLGLenum target, S32 level, LLGLenum format, LLGLenum type, GLvoid* pixels)
 {
-    LLGLContainment::readTextureImage(target, level, format, type, pixels);
+    getOpenGLRenderBackend().readTextureImage(to_render_texture_target(target), level, format, type, pixels);
 }
 
 static void copy_current_framebuffer_to_texture_region(LLGLenum target, S32 level, S32 xoffset, S32 yoffset, S32 x, S32 y, S32 width, S32 height)
 {
-    LLGLContainment::copyTextureSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+    getOpenGLRenderBackend().copyTextureSubImage2D(
+        to_render_texture_target(target),
+        level,
+        xoffset,
+        yoffset,
+        x,
+        y,
+        width,
+        height);
 }
 
 static void ensure_scratch_pbo_created(U32& pbo, U32& pbo_size)
@@ -692,27 +755,27 @@ static void resize_pixel_pack_buffer(U64 size)
 
 static GLsync create_texture_upload_sync()
 {
-    return static_cast<GLsync>(LLGLContainment::createSyncObject());
+    return static_cast<GLsync>(getOpenGLRenderBackend().createSyncObject());
 }
 
 static void flush_texture_upload_commands()
 {
-    LLGLContainment::flushCommands();
+    getOpenGLRenderBackend().flushCommands();
 }
 
 static void client_wait_for_texture_upload_sync(GLsync sync)
 {
-    LLGLContainment::clientWaitSyncObject(sync);
+    getOpenGLRenderBackend().clientWaitSyncObject(sync);
 }
 
 static void wait_for_texture_upload_sync(GLsync sync)
 {
-    LLGLContainment::waitSyncObject(sync);
+    getOpenGLRenderBackend().waitSyncObject(sync);
 }
 
 static void delete_texture_upload_sync(GLsync sync)
 {
-    LLGLContainment::deleteSyncObject(sync);
+    getOpenGLRenderBackend().deleteSyncObject(sync);
 }
 
 //static
@@ -897,8 +960,8 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
                 if (is_compressed)
                 {
                     GLsizei tex_size = (GLsizei)dataFormatBytes(mFormatPrimary, w, h);
-                    LLGLContainment::setCompressedTextureImage2D(
-                        mTarget,
+                    getOpenGLRenderBackend().setCompressedTextureImage2D(
+                        to_render_texture_target(mTarget),
                         gl_level,
                         mFormatPrimary,
                         w,
@@ -956,7 +1019,10 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
                     //      (some rendering issues while core profile is enabled are acceptable at this point in time)
                     if (!LLRender::sGLCoreProfile)
                     {
-                        LLGLContainment::setTextureParameterInteger(mTarget, GL_GENERATE_MIPMAP, GL_TRUE);
+                        getOpenGLRenderBackend().setTextureParameterInteger(
+                            to_render_texture_target(mTarget),
+                            LLRenderTextureParameter::GenerateMipmap,
+                            GL_TRUE);
                     }
 
                     LLImageGL::setManualImage(mTarget, 0, mFormatInternal,
@@ -977,7 +1043,7 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
                     if (LLRender::sGLCoreProfile)
                     {
                         LL_PROFILE_GPU_ZONE("generate mip map");
-                        LLGLContainment::generateTextureMipmap(mTarget);
+                        getOpenGLRenderBackend().generateMipmaps(to_render_texture_target(mTarget));
                     }
                     stop_glerror();
                 }
@@ -1108,8 +1174,8 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
         if (is_compressed)
         {
             GLsizei tex_size = (GLsizei)dataFormatBytes(mFormatPrimary, w, h);
-            LLGLContainment::setCompressedTextureImage2D(
-                mTarget,
+            getOpenGLRenderBackend().setCompressedTextureImage2D(
+                to_render_texture_target(mTarget),
                 0,
                 mFormatPrimary,
                 w,
@@ -1221,8 +1287,8 @@ void sub_image_lines(U32 target, S32 miplevel, S32 x_offset, S32 y_offset, S32 w
         {
             // If this keeps crashing, pass down data_size, looks like it is using
             // imageraw->getData(); for data, but goes way over allocated size limit
-            LLGLContainment::setTextureSubImage2D(
-                target,
+            getOpenGLRenderBackend().setTextureSubImage2D(
+                to_render_texture_target(target),
                 miplevel,
                 x_offset,
                 y_pos,
@@ -1241,8 +1307,8 @@ void sub_image_lines(U32 target, S32 miplevel, S32 x_offset, S32 y_offset, S32 w
         {
             // If this keeps crashing, pass down data_size, looks like it is using
             // imageraw->getData(); for data, but goes way over allocated size limit
-            LLGLContainment::setTextureSubImage2D(
-                target,
+            getOpenGLRenderBackend().setTextureSubImage2D(
+                to_render_texture_target(target),
                 miplevel,
                 x_offset,
                 y_pos,
@@ -1343,8 +1409,8 @@ bool LLImageGL::setSubImage(const U8* datap, S32 data_width, S32 data_height, S3
             // setManualImage? Maybe because it only gets called with the
             // dimensions of the full image?  Or because the image is never
             // compressed?
-            LLGLContainment::setTextureSubImage2D(
-                mTarget,
+            getOpenGLRenderBackend().setTextureSubImage2D(
+                to_render_texture_target(mTarget),
                 0,
                 x_pos,
                 y_pos,
@@ -1473,9 +1539,9 @@ void LLImageGL::setManualImage(U32 target, S32 miplevel, S32 intformat, S32 widt
             if (pixformat == GL_ALPHA)
             { //GL_ALPHA is deprecated, convert to RGBA
                 const LLGLint mask[] = { GL_ZERO, GL_ZERO, GL_ZERO, GL_RED };
-                LLGLContainment::setTextureParameterIntegerVector(
-                    GL_TEXTURE_2D,
-                    GL_TEXTURE_SWIZZLE_RGBA,
+                getOpenGLRenderBackend().setTextureParameterIntegerVector(
+                    LLRenderTextureTarget::Texture2D,
+                    LLRenderTextureParameter::SwizzleRGBA,
                     mask);
                 pixformat = GL_RED;
                 intformat = GL_R8;
@@ -1484,9 +1550,9 @@ void LLImageGL::setManualImage(U32 target, S32 miplevel, S32 intformat, S32 widt
             if (pixformat == GL_LUMINANCE)
             { //GL_LUMINANCE is deprecated, convert to GL_RGBA
                 const LLGLint mask[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
-                LLGLContainment::setTextureParameterIntegerVector(
-                    GL_TEXTURE_2D,
-                    GL_TEXTURE_SWIZZLE_RGBA,
+                getOpenGLRenderBackend().setTextureParameterIntegerVector(
+                    LLRenderTextureTarget::Texture2D,
+                    LLRenderTextureParameter::SwizzleRGBA,
                     mask);
                 pixformat = GL_RED;
                 intformat = GL_R8;
@@ -1495,9 +1561,9 @@ void LLImageGL::setManualImage(U32 target, S32 miplevel, S32 intformat, S32 widt
             if (pixformat == GL_LUMINANCE_ALPHA)
             { //GL_LUMINANCE_ALPHA is deprecated, convert to RGBA
                 const LLGLint mask[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
-                LLGLContainment::setTextureParameterIntegerVector(
-                    GL_TEXTURE_2D,
-                    GL_TEXTURE_SWIZZLE_RGBA,
+                getOpenGLRenderBackend().setTextureParameterIntegerVector(
+                    LLRenderTextureTarget::Texture2D,
+                    LLRenderTextureParameter::SwizzleRGBA,
                     mask);
                 pixformat = GL_RG;
                 intformat = GL_RG8;
@@ -1626,8 +1692,8 @@ void LLImageGL::setManualImage(U32 target, S32 miplevel, S32 intformat, S32 widt
         if (!use_sub_image)
         {
             LL_PROFILE_ZONE_NAMED("glTexImage2D alloc + copy");
-            LLGLContainment::setTextureImage2D(
-                target,
+            getOpenGLRenderBackend().setTextureImage2D(
+                to_render_texture_target(target),
                 miplevel,
                 intformat,
                 width,
@@ -1642,8 +1708,8 @@ void LLImageGL::setManualImage(U32 target, S32 miplevel, S32 intformat, S32 widt
             // break up calls to a manageable size for the GL command buffer
             {
                 LL_PROFILE_ZONE_NAMED("glTexImage2D alloc");
-                LLGLContainment::setTextureImage2D(
-                    target,
+                getOpenGLRenderBackend().setTextureImage2D(
+                    to_render_texture_target(target),
                     miplevel,
                     intformat,
                     width,
@@ -1860,13 +1926,13 @@ bool LLImageGL::createGLTexture(S32 discard_level, const U8* data_in, bool data_
         LLImageGL::generateTextures(1, &new_texname);
         {
             gGL.getTexUnit(0)->bind(this, false, false, new_texname);
-            LLGLContainment::setTextureParameterInteger(
-                LLTexUnit::getInternalType(mBindTarget),
-                GL_TEXTURE_BASE_LEVEL,
+            getOpenGLRenderBackend().setTextureParameterInteger(
+                to_render_texture_target(LLTexUnit::getInternalType(mBindTarget)),
+                LLRenderTextureParameter::BaseLevel,
                 0);
-            LLGLContainment::setTextureParameterInteger(
-                LLTexUnit::getInternalType(mBindTarget),
-                GL_TEXTURE_MAX_LEVEL,
+            getOpenGLRenderBackend().setTextureParameterInteger(
+                to_render_texture_target(LLTexUnit::getInternalType(mBindTarget)),
+                LLRenderTextureParameter::MaxLevel,
                 mMaxDiscardLevel - discard_level);
         }
     }
@@ -2053,7 +2119,7 @@ bool LLImageGL::readBackRaw(S32 discard_level, LLImageRaw* imageraw, bool compre
 
     //-----------------------------------------------------------------------------------------------
     GLenum error ;
-    while((error = LLGLContainment::getError()) != GL_NO_ERROR)
+    while((error = getOpenGLRenderBackend().getErrorCode()) != GL_NO_ERROR)
     {
         LL_WARNS() << "GL Error happens before reading back texture. Error code: " << error << LL_ENDL ;
     }
@@ -2108,12 +2174,12 @@ bool LLImageGL::readBackRaw(S32 discard_level, LLImageRaw* imageraw, bool compre
     }
 
     //-----------------------------------------------------------------------------------------------
-    if((error = LLGLContainment::getError()) != GL_NO_ERROR)
+    if((error = getOpenGLRenderBackend().getErrorCode()) != GL_NO_ERROR)
     {
         LL_WARNS() << "GL Error happens after reading back texture. Error code: " << error << LL_ENDL ;
         imageraw->deleteData() ;
 
-        while((error = LLGLContainment::getError()) != GL_NO_ERROR)
+        while((error = getOpenGLRenderBackend().getErrorCode()) != GL_NO_ERROR)
         {
             LL_WARNS() << "GL Error happens after reading back texture. Error code: " << error << LL_ENDL ;
         }
@@ -2196,7 +2262,9 @@ bool LLImageGL::getIsResident(bool test_now)
     {
         if (mTexName != 0)
         {
-            LLGLContainment::areTexturesResident(1, &mTexName, &mIsResident);
+            bool is_resident = false;
+            getOpenGLRenderBackend().areTexturesResident(1, &mTexName, &is_resident);
+            mIsResident = is_resident;
         }
         else
         {
@@ -2683,8 +2751,8 @@ bool LLImageGL::scaleDown(S32 desired_discard)
             getOpenGLRenderBackend().drawArrays(LLRenderPrimitiveType::Triangles, 0, 3);
 
             free_tex_image(mTexName);
-            LLGLContainment::setTextureImage2D(
-                mTarget,
+            getOpenGLRenderBackend().setTextureImage2D(
+                to_render_texture_target(mTarget),
                 0,
                 mFormatInternal,
                 desired_width,
@@ -2735,8 +2803,8 @@ bool LLImageGL::scaleDown(S32 desired_discard)
         unbind_pixel_pack_buffer();
 
         bind_scratch_pbo_for_pixel_unpack(sScratchPBO);
-        LLGLContainment::setTextureImage2D(
-            mTarget,
+        getOpenGLRenderBackend().setTextureImage2D(
+            to_render_texture_target(mTarget),
             0,
             mFormatInternal,
             desired_width,

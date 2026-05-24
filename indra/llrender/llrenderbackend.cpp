@@ -26,6 +26,8 @@
 #include "llglcontainment.h"
 #include "llglheaders.h"
 
+#include <vector>
+
 namespace
 {
 LLGLenum to_opengl_blend_factor(LLRenderBlendFactor factor)
@@ -124,6 +126,18 @@ LLGLenum to_opengl_texture_target(LLRenderTextureTarget target)
         return GL_TEXTURE_RECTANGLE;
     case LLRenderTextureTarget::TextureCubeMap:
         return GL_TEXTURE_CUBE_MAP;
+    case LLRenderTextureTarget::TextureCubeMapPositiveX:
+        return GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+    case LLRenderTextureTarget::TextureCubeMapNegativeX:
+        return GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+    case LLRenderTextureTarget::TextureCubeMapPositiveY:
+        return GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+    case LLRenderTextureTarget::TextureCubeMapNegativeY:
+        return GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+    case LLRenderTextureTarget::TextureCubeMapPositiveZ:
+        return GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+    case LLRenderTextureTarget::TextureCubeMapNegativeZ:
+        return GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
     case LLRenderTextureTarget::TextureCubeMapArray:
         return GL_TEXTURE_CUBE_MAP_ARRAY;
     case LLRenderTextureTarget::Texture2DMultisample:
@@ -132,6 +146,40 @@ LLGLenum to_opengl_texture_target(LLRenderTextureTarget target)
         return GL_TEXTURE_3D;
     default:
         return GL_TEXTURE_2D;
+    }
+}
+
+LLGLenum to_opengl_texture_level_parameter(LLRenderTextureLevelParameter parameter)
+{
+    switch (parameter)
+    {
+    case LLRenderTextureLevelParameter::Width:
+        return GL_TEXTURE_WIDTH;
+    case LLRenderTextureLevelParameter::Height:
+        return GL_TEXTURE_HEIGHT;
+    case LLRenderTextureLevelParameter::Compressed:
+        return GL_TEXTURE_COMPRESSED;
+    case LLRenderTextureLevelParameter::CompressedImageSize:
+        return GL_TEXTURE_COMPRESSED_IMAGE_SIZE;
+    default:
+        return GL_TEXTURE_WIDTH;
+    }
+}
+
+LLGLenum to_opengl_texture_parameter(LLRenderTextureParameter parameter)
+{
+    switch (parameter)
+    {
+    case LLRenderTextureParameter::GenerateMipmap:
+        return GL_GENERATE_MIPMAP;
+    case LLRenderTextureParameter::BaseLevel:
+        return GL_TEXTURE_BASE_LEVEL;
+    case LLRenderTextureParameter::MaxLevel:
+        return GL_TEXTURE_MAX_LEVEL;
+    case LLRenderTextureParameter::SwizzleRGBA:
+        return GL_TEXTURE_SWIZZLE_RGBA;
+    default:
+        return GL_TEXTURE_BASE_LEVEL;
     }
 }
 
@@ -299,6 +347,88 @@ LLGLenum to_opengl_framebuffer_attachment(LLRenderFramebufferAttachment attachme
     }
 }
 
+LLGLenum to_opengl_query_target(LLRenderQueryTarget target)
+{
+    switch (target)
+    {
+    case LLRenderQueryTarget::TimeElapsed:
+        return GL_TIME_ELAPSED;
+    case LLRenderQueryTarget::SamplesPassed:
+        return GL_SAMPLES_PASSED;
+    case LLRenderQueryTarget::PrimitivesGenerated:
+        return GL_PRIMITIVES_GENERATED;
+    default:
+        return GL_TIME_ELAPSED;
+    }
+}
+
+LLGLenum to_opengl_query_parameter(LLRenderQueryParameter parameter)
+{
+    switch (parameter)
+    {
+    case LLRenderQueryParameter::ResultAvailable:
+        return GL_QUERY_RESULT_AVAILABLE;
+    case LLRenderQueryParameter::Result:
+        return GL_QUERY_RESULT;
+    default:
+        return GL_QUERY_RESULT;
+    }
+}
+
+LLGLenum to_opengl_shader_stage(LLRenderShaderStage stage)
+{
+    switch (stage)
+    {
+    case LLRenderShaderStage::Vertex:
+        return GL_VERTEX_SHADER;
+    case LLRenderShaderStage::Fragment:
+        return GL_FRAGMENT_SHADER;
+    default:
+        return GL_VERTEX_SHADER;
+    }
+}
+
+LLGLenum to_opengl_shader_parameter(LLRenderShaderParameter parameter)
+{
+    switch (parameter)
+    {
+    case LLRenderShaderParameter::InfoLogLength:
+        return GL_INFO_LOG_LENGTH;
+    case LLRenderShaderParameter::CompileStatus:
+        return GL_COMPILE_STATUS;
+    default:
+        return GL_INFO_LOG_LENGTH;
+    }
+}
+
+LLGLenum to_opengl_program_parameter(LLRenderProgramParameter parameter)
+{
+    switch (parameter)
+    {
+    case LLRenderProgramParameter::InfoLogLength:
+        return GL_INFO_LOG_LENGTH;
+    case LLRenderProgramParameter::LinkStatus:
+        return GL_LINK_STATUS;
+    case LLRenderProgramParameter::ActiveUniforms:
+        return GL_ACTIVE_UNIFORMS;
+    case LLRenderProgramParameter::BinaryLength:
+        return GL_PROGRAM_BINARY_LENGTH;
+    default:
+        return GL_INFO_LOG_LENGTH;
+    }
+}
+
+LLGLenum to_opengl_program_setting(LLRenderProgramSetting parameter)
+{
+    switch (parameter)
+    {
+    case LLRenderProgramSetting::BinaryRetrievableHint:
+        return GL_PROGRAM_BINARY_RETRIEVABLE_HINT;
+    default:
+        return GL_PROGRAM_BINARY_RETRIEVABLE_HINT;
+    }
+}
+
 class LLNullRenderBackend final : public LLRenderBackend
 {
 public:
@@ -375,10 +505,145 @@ public:
     void setFramebufferBufferRouting(U32) override {}
     void restoreDefaultFramebufferBufferRouting() override {}
     bool hasError() override { return false; }
+    U32 getErrorCode() override { return 0; }
     void setDebugMessageCallback(LLRenderDebugMessageCallback, void*) override {}
     bool hasVertexArraySupport() const override { return true; }
     void generateVertexArrays(S32, U32*) override {}
     void bindVertexArray(U32) override {}
+    void generateQueries(S32, U32*) override {}
+    void deleteQueries(S32, const U32*) override {}
+    void beginQuery(LLRenderQueryTarget, U32) override {}
+    void endQuery(LLRenderQueryTarget) override {}
+    void getQueryObjectUnsignedInteger64(U32, LLRenderQueryParameter, U64* value) override { *value = 0; }
+    U32 createProgram() override { return 0; }
+    void deleteProgram(U32) override {}
+    U32 createShader(LLRenderShaderStage) override { return 0; }
+    void deleteShader(U32) override {}
+    bool isShader(U32) const override { return false; }
+    bool isProgram(U32) const override { return false; }
+    void attachShader(U32, U32) override {}
+    void detachShader(U32, U32) override {}
+    void getAttachedShaders(U32, S32, S32* count, U32*) override { *count = 0; }
+    void setShaderSource(U32, S32, const char* const*) override {}
+    void compileShader(U32) override {}
+    void linkProgram(U32) override {}
+    void validateProgram(U32) override {}
+    void useProgram(U32) override {}
+    void getShaderInteger(U32, LLRenderShaderParameter, S32* value) override { *value = 0; }
+    void getProgramInteger(U32, LLRenderProgramParameter, S32* value) override { *value = 0; }
+    void getShaderInfoLog(U32, S32, S32* length, char*) override { *length = 0; }
+    void getProgramInfoLog(U32, S32, S32* length, char*) override { *length = 0; }
+    void setProgramParameterInteger(U32, LLRenderProgramSetting, S32) override {}
+    void setProgramBinary(U32, U32, const void*, S32) override {}
+    void getProgramBinary(U32, S32, S32* length, U32* binary_format, void*) override
+    {
+        *length = 0;
+        *binary_format = 0;
+    }
+    S32 getUniformLocation(U32, const char*) override { return -1; }
+    S32 getAttributeLocation(U32, const char*) override { return -1; }
+    void bindAttributeLocation(U32, U32, const char*) override {}
+    void getActiveUniform(U32, U32, S32, S32* length, S32* size, U32* type, char* name) override
+    {
+        *length = 0;
+        *size = 0;
+        *type = 0;
+        if (name)
+        {
+            name[0] = '\0';
+        }
+    }
+    U32 getUniformBlockIndex(U32, const char*) override { return 0; }
+    void bindUniformBlock(U32, U32, U32) override {}
+    void setUniformInteger(S32, S32) override {}
+    void setUniformInteger2(S32, S32, S32) override {}
+    void setUniformIntegerVector(S32, S32, const S32*) override {}
+    void setUniformIntegerVector4(S32, S32, const S32*) override {}
+    void setUniformUnsignedIntegerVector4(S32, S32, const U32*) override {}
+    void setUniformFloat(S32, F32) override {}
+    void setUniformFloat2(S32, F32, F32) override {}
+    void setUniformFloat3(S32, F32, F32, F32) override {}
+    void setUniformFloat4(S32, F32, F32, F32, F32) override {}
+    void setUniformFloatVector(S32, S32, const F32*) override {}
+    void setUniformFloatVector2(S32, S32, const F32*) override {}
+    void setUniformFloatVector3(S32, S32, const F32*) override {}
+    void setUniformFloatVector4(S32, S32, const F32*) override {}
+    void setUniformMatrix2(S32, S32, bool, const F32*) override {}
+    void setUniformMatrix3(S32, S32, bool, const F32*) override {}
+    void setUniformMatrix3x4(S32, S32, bool, const F32*) override {}
+    void setUniformMatrix4(S32, S32, bool, const F32*) override {}
+    void setVertexAttribute4(U32, F32, F32, F32, F32) override {}
+    void setVertexAttributeVector4(U32, const F32*) override {}
+    void pushLegacyAllAttributes() override {}
+    void pushLegacyAllClientAttributes() override {}
+    void popLegacyClientAttributes() override {}
+    void popLegacyAttributes() override {}
+    void copyTextureImage2D(LLRenderTextureTarget, S32, U32, S32, S32, S32, S32, S32) override {}
+    void setTextureImage2D(
+        LLRenderTextureTarget,
+        S32,
+        S32,
+        S32,
+        S32,
+        S32,
+        U32,
+        U32,
+        const void*) override {}
+    void readTextureImage(LLRenderTextureTarget, S32, U32, U32, void*) override {}
+    void readCompressedTextureImage(LLRenderTextureTarget, S32, void*) override {}
+    void copyTextureSubImage2D(LLRenderTextureTarget, S32, S32, S32, S32, S32, S32, S32) override {}
+    void setCompressedTextureImage2D(LLRenderTextureTarget, S32, S32, S32, S32, S32, S32, const void*) override {}
+    void setTextureSubImage2D(LLRenderTextureTarget, S32, S32, S32, S32, S32, U32, U32, const void*) override {}
+    void setTextureSubImage3D(
+        LLRenderTextureTarget,
+        S32,
+        S32,
+        S32,
+        S32,
+        S32,
+        S32,
+        S32,
+        U32,
+        U32,
+        const void*) override {}
+    void setTextureImage3D(
+        LLRenderTextureTarget,
+        S32,
+        S32,
+        S32,
+        S32,
+        S32,
+        S32,
+        U32,
+        U32,
+        const void*) override {}
+    void getTextureLevelParameterInteger(LLRenderTextureTarget, S32, LLRenderTextureLevelParameter, S32* value) override
+    {
+        *value = 0;
+    }
+    void setTextureParameterInteger(LLRenderTextureTarget, LLRenderTextureParameter, S32) override {}
+    void setTextureParameterIntegerVector(LLRenderTextureTarget, LLRenderTextureParameter, const S32*) override {}
+    void areTexturesResident(S32 count, const U32*, bool* residences) override
+    {
+        for (S32 i = 0; i < count; ++i)
+        {
+            residences[i] = false;
+        }
+    }
+    void getViewport(S32* viewport) override
+    {
+        viewport[0] = 0;
+        viewport[1] = 0;
+        viewport[2] = 0;
+        viewport[3] = 0;
+    }
+    U32 getBoundTexture2D() override { return 0; }
+    void* createSyncObject() override { return nullptr; }
+    void flushCommands() override {}
+    void clientWaitSyncObject(void*) override {}
+    void waitSyncObject(void*) override {}
+    void deleteSyncObject(void*) override {}
+    void setLegacyMaterialSpecular(const F32*, S32) override {}
 };
 
 class LLOpenGLRenderBackend final : public LLRenderBackend
@@ -749,6 +1014,11 @@ public:
         return LLGLContainment::getError() != GL_NO_ERROR;
     }
 
+    U32 getErrorCode() override
+    {
+        return LLGLContainment::getError();
+    }
+
     void setDebugMessageCallback(LLRenderDebugMessageCallback callback, void* user_param) override
     {
         LLGLContainment::setDebugMessageCallback(
@@ -769,6 +1039,570 @@ public:
     void bindVertexArray(U32 array) override
     {
         LLGLContainment::bindVertexArray(array);
+    }
+
+    void generateQueries(S32 count, U32* queries) override
+    {
+        LLGLContainment::generateQueries(count, queries);
+    }
+
+    void deleteQueries(S32 count, const U32* queries) override
+    {
+        LLGLContainment::deleteQueries(count, queries);
+    }
+
+    void beginQuery(LLRenderQueryTarget target, U32 query) override
+    {
+        LLGLContainment::beginQuery(to_opengl_query_target(target), query);
+    }
+
+    void endQuery(LLRenderQueryTarget target) override
+    {
+        LLGLContainment::endQuery(to_opengl_query_target(target));
+    }
+
+    void getQueryObjectUnsignedInteger64(
+        U32 query,
+        LLRenderQueryParameter parameter,
+        U64* value) override
+    {
+        LLGLContainment::getQueryObjectUnsignedInteger64(
+            query,
+            to_opengl_query_parameter(parameter),
+            value);
+    }
+
+    U32 createProgram() override
+    {
+        return LLGLContainment::createProgram();
+    }
+
+    void deleteProgram(U32 program) override
+    {
+        LLGLContainment::deleteProgram(program);
+    }
+
+    U32 createShader(LLRenderShaderStage stage) override
+    {
+        return LLGLContainment::createShader(to_opengl_shader_stage(stage));
+    }
+
+    void deleteShader(U32 shader) override
+    {
+        LLGLContainment::deleteShader(shader);
+    }
+
+    bool isShader(U32 shader) const override
+    {
+        return LLGLContainment::isShader(shader);
+    }
+
+    bool isProgram(U32 program) const override
+    {
+        return LLGLContainment::isProgram(program);
+    }
+
+    void attachShader(U32 program, U32 shader) override
+    {
+        LLGLContainment::attachShader(program, shader);
+    }
+
+    void detachShader(U32 program, U32 shader) override
+    {
+        LLGLContainment::detachShader(program, shader);
+    }
+
+    void getAttachedShaders(U32 program, S32 max_count, S32* count, U32* shaders) override
+    {
+        LLGLContainment::getAttachedShaders(program, max_count, count, shaders);
+    }
+
+    void setShaderSource(U32 shader, S32 count, const char* const* strings) override
+    {
+        LLGLContainment::setShaderSource(shader, count, strings);
+    }
+
+    void compileShader(U32 shader) override
+    {
+        LLGLContainment::compileShader(shader);
+    }
+
+    void linkProgram(U32 program) override
+    {
+        LLGLContainment::linkProgram(program);
+    }
+
+    void validateProgram(U32 program) override
+    {
+        LLGLContainment::validateProgram(program);
+    }
+
+    void useProgram(U32 program) override
+    {
+        LLGLContainment::useProgram(program);
+    }
+
+    void getShaderInteger(U32 shader, LLRenderShaderParameter parameter, S32* value) override
+    {
+        LLGLContainment::getShaderInteger(shader, to_opengl_shader_parameter(parameter), value);
+    }
+
+    void getProgramInteger(U32 program, LLRenderProgramParameter parameter, S32* value) override
+    {
+        LLGLContainment::getProgramInteger(program, to_opengl_program_parameter(parameter), value);
+    }
+
+    void getShaderInfoLog(U32 shader, S32 buffer_size, S32* length, char* info_log) override
+    {
+        LLGLContainment::getShaderInfoLog(shader, buffer_size, length, info_log);
+    }
+
+    void getProgramInfoLog(U32 program, S32 buffer_size, S32* length, char* info_log) override
+    {
+        LLGLContainment::getProgramInfoLog(program, buffer_size, length, info_log);
+    }
+
+    void setProgramParameterInteger(U32 program, LLRenderProgramSetting parameter, S32 value) override
+    {
+        LLGLContainment::setProgramParameterInteger(program, to_opengl_program_setting(parameter), value);
+    }
+
+    void setProgramBinary(U32 program, U32 binary_format, const void* binary, S32 length) override
+    {
+        LLGLContainment::setProgramBinary(program, binary_format, binary, length);
+    }
+
+    void getProgramBinary(
+        U32 program,
+        S32 buffer_size,
+        S32* length,
+        U32* binary_format,
+        void* binary) override
+    {
+        LLGLContainment::getProgramBinary(program, buffer_size, length, binary_format, binary);
+    }
+
+    S32 getUniformLocation(U32 program, const char* name) override
+    {
+        return LLGLContainment::getUniformLocation(program, name);
+    }
+
+    S32 getAttributeLocation(U32 program, const char* name) override
+    {
+        return LLGLContainment::getAttributeLocation(program, name);
+    }
+
+    void bindAttributeLocation(U32 program, U32 index, const char* name) override
+    {
+        LLGLContainment::bindAttributeLocation(program, index, name);
+    }
+
+    void getActiveUniform(
+        U32 program,
+        U32 index,
+        S32 buffer_size,
+        S32* length,
+        S32* size,
+        U32* type,
+        char* name) override
+    {
+        LLGLenum gl_type = 0;
+        LLGLContainment::getActiveUniform(program, index, buffer_size, length, size, &gl_type, name);
+        *type = gl_type;
+    }
+
+    U32 getUniformBlockIndex(U32 program, const char* name) override
+    {
+        return LLGLContainment::getUniformBlockIndex(program, name);
+    }
+
+    void bindUniformBlock(U32 program, U32 block_index, U32 binding) override
+    {
+        LLGLContainment::bindUniformBlock(program, block_index, binding);
+    }
+
+    void setUniformInteger(S32 location, S32 value) override
+    {
+        LLGLContainment::setUniformInteger(location, value);
+    }
+
+    void setUniformInteger2(S32 location, S32 first, S32 second) override
+    {
+        LLGLContainment::setUniformInteger2(location, first, second);
+    }
+
+    void setUniformIntegerVector(S32 location, S32 count, const S32* values) override
+    {
+        LLGLContainment::setUniformIntegerVector(location, count, values);
+    }
+
+    void setUniformIntegerVector4(S32 location, S32 count, const S32* values) override
+    {
+        LLGLContainment::setUniformIntegerVector4(location, count, values);
+    }
+
+    void setUniformUnsignedIntegerVector4(S32 location, S32 count, const U32* values) override
+    {
+        LLGLContainment::setUniformUnsignedIntegerVector4(location, count, values);
+    }
+
+    void setUniformFloat(S32 location, F32 value) override
+    {
+        LLGLContainment::setUniformFloat(location, value);
+    }
+
+    void setUniformFloat2(S32 location, F32 first, F32 second) override
+    {
+        LLGLContainment::setUniformFloat2(location, first, second);
+    }
+
+    void setUniformFloat3(S32 location, F32 first, F32 second, F32 third) override
+    {
+        LLGLContainment::setUniformFloat3(location, first, second, third);
+    }
+
+    void setUniformFloat4(S32 location, F32 first, F32 second, F32 third, F32 fourth) override
+    {
+        LLGLContainment::setUniformFloat4(location, first, second, third, fourth);
+    }
+
+    void setUniformFloatVector(S32 location, S32 count, const F32* values) override
+    {
+        LLGLContainment::setUniformFloatVector(location, count, values);
+    }
+
+    void setUniformFloatVector2(S32 location, S32 count, const F32* values) override
+    {
+        LLGLContainment::setUniformFloatVector2(location, count, values);
+    }
+
+    void setUniformFloatVector3(S32 location, S32 count, const F32* values) override
+    {
+        LLGLContainment::setUniformFloatVector3(location, count, values);
+    }
+
+    void setUniformFloatVector4(S32 location, S32 count, const F32* values) override
+    {
+        LLGLContainment::setUniformFloatVector4(location, count, values);
+    }
+
+    void setUniformMatrix2(S32 location, S32 count, bool transpose, const F32* values) override
+    {
+        LLGLContainment::setUniformMatrix2(location, count, transpose, values);
+    }
+
+    void setUniformMatrix3(S32 location, S32 count, bool transpose, const F32* values) override
+    {
+        LLGLContainment::setUniformMatrix3(location, count, transpose, values);
+    }
+
+    void setUniformMatrix3x4(S32 location, S32 count, bool transpose, const F32* values) override
+    {
+        LLGLContainment::setUniformMatrix3x4(location, count, transpose, values);
+    }
+
+    void setUniformMatrix4(S32 location, S32 count, bool transpose, const F32* values) override
+    {
+        LLGLContainment::setUniformMatrix4(location, count, transpose, values);
+    }
+
+    void setVertexAttribute4(U32 location, F32 first, F32 second, F32 third, F32 fourth) override
+    {
+        LLGLContainment::setVertexAttribute4(location, first, second, third, fourth);
+    }
+
+    void setVertexAttributeVector4(U32 location, const F32* values) override
+    {
+        LLGLContainment::setVertexAttributeVector4(location, values);
+    }
+
+    void pushLegacyAllAttributes() override
+    {
+        LLGLContainment::pushAttributeBits(GL_ALL_ATTRIB_BITS);
+    }
+
+    void pushLegacyAllClientAttributes() override
+    {
+        LLGLContainment::pushClientAttributeBits(GL_ALL_ATTRIB_BITS);
+    }
+
+    void popLegacyClientAttributes() override
+    {
+        LLGLContainment::popClientAttributes();
+    }
+
+    void popLegacyAttributes() override
+    {
+        LLGLContainment::popAttributes();
+    }
+
+    void copyTextureImage2D(
+        LLRenderTextureTarget target,
+        S32 level,
+        U32 internal_format,
+        S32 x,
+        S32 y,
+        S32 width,
+        S32 height,
+        S32 border) override
+    {
+        LLGLContainment::copyTextureImage2D(
+            to_opengl_texture_target(target),
+            level,
+            internal_format,
+            x,
+            y,
+            width,
+            height,
+            border);
+    }
+
+    void setTextureImage2D(
+        LLRenderTextureTarget target,
+        S32 level,
+        S32 internal_format,
+        S32 width,
+        S32 height,
+        S32 border,
+        U32 format,
+        U32 type,
+        const void* data) override
+    {
+        LLGLContainment::setTextureImage2D(
+            to_opengl_texture_target(target),
+            level,
+            internal_format,
+            width,
+            height,
+            border,
+            format,
+            type,
+            data);
+    }
+
+    void readTextureImage(
+        LLRenderTextureTarget target,
+        S32 level,
+        U32 format,
+        U32 type,
+        void* pixels) override
+    {
+        LLGLContainment::readTextureImage(
+            to_opengl_texture_target(target),
+            level,
+            format,
+            type,
+            pixels);
+    }
+
+    void readCompressedTextureImage(LLRenderTextureTarget target, S32 level, void* pixels) override
+    {
+        LLGLContainment::readCompressedTextureImage(to_opengl_texture_target(target), level, pixels);
+    }
+
+    void copyTextureSubImage2D(
+        LLRenderTextureTarget target,
+        S32 level,
+        S32 xoffset,
+        S32 yoffset,
+        S32 x,
+        S32 y,
+        S32 width,
+        S32 height) override
+    {
+        LLGLContainment::copyTextureSubImage2D(
+            to_opengl_texture_target(target),
+            level,
+            xoffset,
+            yoffset,
+            x,
+            y,
+            width,
+            height);
+    }
+
+    void setCompressedTextureImage2D(
+        LLRenderTextureTarget target,
+        S32 level,
+        S32 internal_format,
+        S32 width,
+        S32 height,
+        S32 border,
+        S32 image_size,
+        const void* data) override
+    {
+        LLGLContainment::setCompressedTextureImage2D(
+            to_opengl_texture_target(target),
+            level,
+            internal_format,
+            width,
+            height,
+            border,
+            image_size,
+            data);
+    }
+
+    void setTextureSubImage2D(
+        LLRenderTextureTarget target,
+        S32 level,
+        S32 xoffset,
+        S32 yoffset,
+        S32 width,
+        S32 height,
+        U32 format,
+        U32 type,
+        const void* pixels) override
+    {
+        LLGLContainment::setTextureSubImage2D(
+            to_opengl_texture_target(target),
+            level,
+            xoffset,
+            yoffset,
+            width,
+            height,
+            format,
+            type,
+            pixels);
+    }
+
+    void setTextureSubImage3D(
+        LLRenderTextureTarget target,
+        S32 level,
+        S32 xoffset,
+        S32 yoffset,
+        S32 zoffset,
+        S32 width,
+        S32 height,
+        S32 depth,
+        U32 format,
+        U32 type,
+        const void* pixels) override
+    {
+        LLGLContainment::setTextureSubImage3D(
+            to_opengl_texture_target(target),
+            level,
+            xoffset,
+            yoffset,
+            zoffset,
+            width,
+            height,
+            depth,
+            format,
+            type,
+            pixels);
+    }
+
+    void setTextureImage3D(
+        LLRenderTextureTarget target,
+        S32 level,
+        S32 internal_format,
+        S32 width,
+        S32 height,
+        S32 depth,
+        S32 border,
+        U32 format,
+        U32 type,
+        const void* data) override
+    {
+        LLGLContainment::setTextureImage3D(
+            to_opengl_texture_target(target),
+            level,
+            internal_format,
+            width,
+            height,
+            depth,
+            border,
+            format,
+            type,
+            data);
+    }
+
+    void getTextureLevelParameterInteger(
+        LLRenderTextureTarget target,
+        S32 level,
+        LLRenderTextureLevelParameter parameter,
+        S32* value) override
+    {
+        LLGLContainment::getTextureLevelParameterInteger(
+            to_opengl_texture_target(target),
+            level,
+            to_opengl_texture_level_parameter(parameter),
+            value);
+    }
+
+    void setTextureParameterInteger(
+        LLRenderTextureTarget target,
+        LLRenderTextureParameter parameter,
+        S32 value) override
+    {
+        LLGLContainment::setTextureParameterInteger(
+            to_opengl_texture_target(target),
+            to_opengl_texture_parameter(parameter),
+            value);
+    }
+
+    void setTextureParameterIntegerVector(
+        LLRenderTextureTarget target,
+        LLRenderTextureParameter parameter,
+        const S32* values) override
+    {
+        LLGLContainment::setTextureParameterIntegerVector(
+            to_opengl_texture_target(target),
+            to_opengl_texture_parameter(parameter),
+            values);
+    }
+
+    void areTexturesResident(S32 count, const U32* textures, bool* residences) override
+    {
+        std::vector<LLGLboolean> gl_residences(count);
+        LLGLContainment::areTexturesResident(count, textures, gl_residences.data());
+        for (S32 i = 0; i < count; ++i)
+        {
+            residences[i] = gl_residences[i] != 0;
+        }
+    }
+
+    void getViewport(S32* viewport) override
+    {
+        LLGLContainment::getInteger(GL_VIEWPORT, viewport);
+    }
+
+    U32 getBoundTexture2D() override
+    {
+        LLGLint texture = 0;
+        LLGLContainment::getInteger(GL_TEXTURE_BINDING_2D, &texture);
+        return static_cast<U32>(texture);
+    }
+
+    void* createSyncObject() override
+    {
+        return LLGLContainment::createSyncObject();
+    }
+
+    void flushCommands() override
+    {
+        LLGLContainment::flushCommands();
+    }
+
+    void clientWaitSyncObject(void* sync) override
+    {
+        LLGLContainment::clientWaitSyncObject(sync);
+    }
+
+    void waitSyncObject(void* sync) override
+    {
+        LLGLContainment::waitSyncObject(sync);
+    }
+
+    void deleteSyncObject(void* sync) override
+    {
+        LLGLContainment::deleteSyncObject(sync);
+    }
+
+    void setLegacyMaterialSpecular(const F32* color, S32 shininess) override
+    {
+        LLGLContainment::setMaterialFloatVector(GL_FRONT_AND_BACK, GL_SPECULAR, color);
+        LLGLContainment::setMaterialInteger(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
     }
 };
 }

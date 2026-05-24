@@ -27,7 +27,7 @@
 #include "linden_common.h"
 #include "llshadermgr.h"
 #include "llgl.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llrender.h"
 #include "llfile.h"
 #include "lldir.h"
@@ -44,6 +44,23 @@ using std::vector;
 using std::pair;
 using std::make_pair;
 using std::string;
+
+namespace
+{
+LLRenderShaderStage to_render_shader_stage(LLGLenum type)
+{
+    switch (type)
+    {
+    case GL_VERTEX_SHADER:
+        return LLRenderShaderStage::Vertex;
+    case GL_FRAGMENT_SHADER:
+        return LLRenderShaderStage::Fragment;
+    default:
+        llassert(false);
+        return LLRenderShaderStage::Vertex;
+    }
+}
+}
 
 LLShaderMgr * LLShaderMgr::sInstance = NULL;
 
@@ -376,12 +393,12 @@ static std::string get_shader_log(LLGLuint ret)
 
     //get log length
     LLGLint length;
-    LLGLContainment::getShaderInteger(ret, GL_INFO_LOG_LENGTH, &length);
+    getOpenGLRenderBackend().getShaderInteger(ret, LLRenderShaderParameter::InfoLogLength, &length);
     if (length > 0)
     {
         //the log could be any size, so allocate appropriately
         char* log = new char[length];
-        LLGLContainment::getShaderInfoLog(ret, length, &length, log);
+        getOpenGLRenderBackend().getShaderInfoLog(ret, length, &length, log);
         res = std::string((char *)log);
         delete[] log;
     }
@@ -395,12 +412,12 @@ static std::string get_program_log(LLGLuint ret)
 
     //get log length
     LLGLint length;
-    LLGLContainment::getProgramInteger(ret, GL_INFO_LOG_LENGTH, &length);
+    getOpenGLRenderBackend().getProgramInteger(ret, LLRenderProgramParameter::InfoLogLength, &length);
     if (length > 0)
     {
         //the log could be any size, so allocate appropriately
         char* log = new char[length];
-        LLGLContainment::getProgramInfoLog(ret, length, &length, log);
+        getOpenGLRenderBackend().getProgramInfoLog(ret, length, &length, log);
         res = std::string((char*)log);
         delete[] log;
     }
@@ -411,13 +428,13 @@ static std::string get_program_log(LLGLuint ret)
 // NOTE: ret MUST be a shader OR a program object
 static std::string get_object_log(LLGLuint ret)
 {
-    if (LLGLContainment::isProgram(ret))
+    if (getOpenGLRenderBackend().isProgram(ret))
     {
         return get_program_log(ret);
     }
     else
     {
-        llassert(LLGLContainment::isShader(ret));
+        llassert(getOpenGLRenderBackend().isShader(ret));
         return get_shader_log(ret);
     }
 }
@@ -468,7 +485,7 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
 
     LLGLenum error = GL_NO_ERROR;
 
-    error = LLGLContainment::getError();
+    error = getOpenGLRenderBackend().getErrorCode();
     if (error != GL_NO_ERROR)
     {
         LL_SHADER_LOADING_WARNS() << "GL ERROR entering loadShaderFile(): " << error << " for file: " << filename << LL_ENDL;
@@ -850,15 +867,15 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
     fclose(file);
 
     //create shader object
-    LLGLuint ret = LLGLContainment::createShader(type);
+    LLGLuint ret = getOpenGLRenderBackend().createShader(to_render_shader_stage(type));
 
-    error = LLGLContainment::getError();
+    error = getOpenGLRenderBackend().getErrorCode();
     if (error != GL_NO_ERROR)
     {
         LL_WARNS("ShaderLoading") << "GL ERROR in glCreateShader: " << error << " for file: " << open_file_name << LL_ENDL;
         if (ret)
         {
-            LLGLContainment::deleteShader(ret); //no longer need handle
+            getOpenGLRenderBackend().deleteShader(ret); //no longer need handle
             ret = 0;
         }
     }
@@ -867,13 +884,13 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
     if (ret)
     {
         LL_DEBUGS("ShaderLoading") << "glCreateShader done" << LL_ENDL;
-        LLGLContainment::setShaderSource(ret, shader_code_count, shader_code_text);
+        getOpenGLRenderBackend().setShaderSource(ret, shader_code_count, shader_code_text);
 
-        error = LLGLContainment::getError();
+        error = getOpenGLRenderBackend().getErrorCode();
         if (error != GL_NO_ERROR)
         {
             LL_WARNS("ShaderLoading") << "GL ERROR in glShaderSource: " << error << " for file: " << open_file_name << LL_ENDL;
-            LLGLContainment::deleteShader(ret); //no longer need handle
+            getOpenGLRenderBackend().deleteShader(ret); //no longer need handle
             ret = 0;
         }
     }
@@ -882,13 +899,13 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
     if (ret)
     {
         LL_DEBUGS("ShaderLoading") << "glShaderSource done" << U32(ret) << LL_ENDL;
-        LLGLContainment::compileShader(ret);
+        getOpenGLRenderBackend().compileShader(ret);
 
-        error = LLGLContainment::getError();
+        error = getOpenGLRenderBackend().getErrorCode();
         if (error != GL_NO_ERROR)
         {
             LL_WARNS("ShaderLoading") << "GL ERROR in glCompileShader: " << error << " for file: " << open_file_name << LL_ENDL;
-            LLGLContainment::deleteShader(ret); //no longer need handle
+            getOpenGLRenderBackend().deleteShader(ret); //no longer need handle
             ret = 0;
         }
     }
@@ -898,16 +915,16 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
         //check for errors
         LL_DEBUGS("ShaderLoading") << "glCompileShader done" << U32(ret) << LL_ENDL;
         LLGLint success = GL_TRUE;
-        LLGLContainment::getShaderInteger(ret, GL_COMPILE_STATUS, &success);
+        getOpenGLRenderBackend().getShaderInteger(ret, LLRenderShaderParameter::CompileStatus, &success);
 
-        error = LLGLContainment::getError();
+        error = getOpenGLRenderBackend().getErrorCode();
         if (error != GL_NO_ERROR || success == GL_FALSE)
         {
             //an error occured, print log
             LL_WARNS("ShaderLoading") << "GLSL Compilation Error:" << LL_ENDL;
             dumpObjectLog(ret, true, open_file_name);
             dumpShaderSource(shader_code_count, shader_code_text);
-            LLGLContainment::deleteShader(ret); //no longer need handle
+            getOpenGLRenderBackend().deleteShader(ret); //no longer need handle
             ret = 0;
         }
     }
@@ -955,14 +972,14 @@ bool LLShaderMgr::linkProgramObject(LLGLuint obj, bool suppress_errors)
     //check for errors
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_SHADER("glLinkProgram");
-        LLGLContainment::linkProgram(obj);
+        getOpenGLRenderBackend().linkProgram(obj);
     }
 
     LLGLint success = GL_TRUE;
 
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_SHADER("glsl check link status");
-        LLGLContainment::getProgramInteger(obj, GL_LINK_STATUS, &success);
+        getOpenGLRenderBackend().getProgramInteger(obj, LLRenderProgramParameter::LinkStatus, &success);
         if (!suppress_errors && success == GL_FALSE)
         {
             //an error occured, print log
@@ -986,9 +1003,9 @@ bool LLShaderMgr::linkProgramObject(LLGLuint obj, bool suppress_errors)
 bool LLShaderMgr::validateProgramObject(LLGLuint obj)
 {
     //check program validity against current GL
-    LLGLContainment::validateProgram(obj);
+    getOpenGLRenderBackend().validateProgram(obj);
     LLGLint success = GL_TRUE;
-    LLGLContainment::getProgramInteger(obj, GL_LINK_STATUS, &success);
+    getOpenGLRenderBackend().getProgramInteger(obj, LLRenderProgramParameter::LinkStatus, &success);
     if (success == GL_FALSE)
     {
         LL_SHADER_LOADING_WARNS() << "GLSL program not valid: " << LL_ENDL;
@@ -1122,7 +1139,7 @@ bool LLShaderMgr::loadCachedProgramBinary(LLGLSLShader* shader)
 {
     if (!mShaderCacheEnabled) return false;
 
-    LLGLContainment::setProgramParameterInteger(shader->mProgramObject, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
+    getOpenGLRenderBackend().setProgramParameterInteger(shader->mProgramObject, LLRenderProgramSetting::BinaryRetrievableHint, GL_TRUE);
 
     auto binary_iter = mShaderBinaryCache.find(shader->mShaderHash);
     if (binary_iter != mShaderBinaryCache.end())
@@ -1142,12 +1159,12 @@ bool LLShaderMgr::loadCachedProgramBinary(LLGLSLShader* shader)
 
                 if (result == in_data.size())
                 {
-                    LLGLenum error = LLGLContainment::getError(); // Clear current error
-                    LLGLContainment::setProgramBinary(shader->mProgramObject, shader_info.mBinaryFormat, in_data.data(), shader_info.mBinaryLength);
+                    LLGLenum error = getOpenGLRenderBackend().getErrorCode(); // Clear current error
+                    getOpenGLRenderBackend().setProgramBinary(shader->mProgramObject, shader_info.mBinaryFormat, in_data.data(), shader_info.mBinaryLength);
 
-                    error = LLGLContainment::getError();
+                    error = getOpenGLRenderBackend().getErrorCode();
                     LLGLint success = GL_TRUE;
-                    LLGLContainment::getProgramInteger(shader->mProgramObject, GL_LINK_STATUS, &success);
+                    getOpenGLRenderBackend().getProgramInteger(shader->mProgramObject, LLRenderProgramParameter::LinkStatus, &success);
                     if (error == GL_NO_ERROR && success == GL_TRUE)
                     {
                         binary_iter->second.mLastUsedTime = (F32)LLTimer::getTotalSeconds();
@@ -1170,15 +1187,15 @@ bool LLShaderMgr::saveCachedProgramBinary(LLGLSLShader* shader)
     if (!mShaderCacheEnabled) return true;
 
     ProgramBinaryData binary_info = ProgramBinaryData();
-    LLGLContainment::getProgramInteger(shader->mProgramObject, GL_PROGRAM_BINARY_LENGTH, &binary_info.mBinaryLength);
+    getOpenGLRenderBackend().getProgramInteger(shader->mProgramObject, LLRenderProgramParameter::BinaryLength, &binary_info.mBinaryLength);
     if (binary_info.mBinaryLength > 0)
     {
         std::vector<U8> program_binary;
         program_binary.resize(binary_info.mBinaryLength);
 
-        LLGLenum error = LLGLContainment::getError(); // Clear current error
-        LLGLContainment::getProgramBinary(shader->mProgramObject, program_binary.size() * sizeof(U8), nullptr, &binary_info.mBinaryFormat, program_binary.data());
-        error = LLGLContainment::getError();
+        LLGLenum error = getOpenGLRenderBackend().getErrorCode(); // Clear current error
+        getOpenGLRenderBackend().getProgramBinary(shader->mProgramObject, program_binary.size() * sizeof(U8), nullptr, &binary_info.mBinaryFormat, program_binary.data());
+        error = getOpenGLRenderBackend().getErrorCode();
         if (error == GL_NO_ERROR)
         {
             std::string out_path = gDirUtilp->add(mShaderCacheDir, shader->mShaderHash.asString() + ".shaderbin");

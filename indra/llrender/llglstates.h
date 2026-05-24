@@ -28,9 +28,9 @@
 #ifndef LL_LLGLSTATES_H
 #define LL_LLGLSTATES_H
 
-#include "llglcontainment.h"
 #include "llgltypes.h"
 #include "llimagegl.h"
+#include "llrenderbackend.h"
 
 //----------------------------------------------------------------------------
 
@@ -177,18 +177,16 @@ public:
         mShininess = shininess;
         if (mShininess > 0.0f)
         {
-            LLGLContainment::setMaterialFloatVector(GL_FRONT_AND_BACK, GL_SPECULAR, color.mV);
             S32 shiny = (S32)(shininess*128.f);
             shiny = llclamp(shiny,0,128);
-            LLGLContainment::setMaterialInteger(GL_FRONT_AND_BACK, GL_SHININESS, shiny);
+            getOpenGLRenderBackend().setLegacyMaterialSpecular(color.mV, shiny);
         }
     }
     ~LLGLSSpecular()
     {
         if (mShininess > 0.f)
         {
-            LLGLContainment::setMaterialFloatVector(GL_FRONT_AND_BACK, GL_SPECULAR, LLColor4(0.f,0.f,0.f,0.f).mV);
-            LLGLContainment::setMaterialInteger(GL_FRONT_AND_BACK, GL_SHININESS, 0);
+            getOpenGLRenderBackend().setLegacyMaterialSpecular(LLColor4(0.f,0.f,0.f,0.f).mV, 0);
         }
     }
 };

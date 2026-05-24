@@ -27,7 +27,6 @@
 #include "linden_common.h"
 
 #include "llpostprocess.h"
-#include "llglcontainment.h"
 #include "llglheaders.h"
 #include "llglslshader.h"
 #include "llimagegl.h"
@@ -293,15 +292,15 @@ void LLPostProcess::getShaderUniforms(glslUniforms & uniforms, LLGLuint & prog)
     /// Find uniform locations and insert into map
     glslUniforms::iterator i;
     for (i  = uniforms.begin(); i != uniforms.end(); ++i){
-        i->second = LLGLContainment::getUniformLocation(prog, i->first.String().c_str());
+        i->second = getOpenGLRenderBackend().getUniformLocation(prog, i->first.String().c_str());
     }
 }
 
 void LLPostProcess::doEffects(void)
 {
     /// Save GL State
-    LLGLContainment::pushAttributeBits(GL_ALL_ATTRIB_BITS);
-    LLGLContainment::pushClientAttributeBits(GL_ALL_ATTRIB_BITS);
+    getOpenGLRenderBackend().pushLegacyAllAttributes();
+    getOpenGLRenderBackend().pushLegacyAllClientAttributes();
 
     /// Copy the screen buffer to the render texture
     {
@@ -331,16 +330,16 @@ void LLPostProcess::doEffects(void)
     viewPerspective();
 
     /// Reset GL State
-    LLGLContainment::popClientAttributes();
-    LLGLContainment::popAttributes();
+    getOpenGLRenderBackend().popLegacyClientAttributes();
+    getOpenGLRenderBackend().popLegacyAttributes();
     checkError();
 }
 
 void LLPostProcess::copyFrameBuffer(U32 & texture, unsigned int width, unsigned int height)
 {
     gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, texture);
-    LLGLContainment::copyTextureImage2D(
-        GL_TEXTURE_RECTANGLE,
+    getOpenGLRenderBackend().copyTextureImage2D(
+        LLRenderTextureTarget::TextureRectangle,
         0,
         GL_RGBA,
         0,
@@ -388,8 +387,8 @@ void LLPostProcess::createTexture(LLPointer<LLImageGL>& texture, unsigned int wi
     if(texture->createGLTexture())
     {
         gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, texture->getTexName());
-        LLGLContainment::setTextureImage2D(
-            GL_TEXTURE_RECTANGLE,
+        getOpenGLRenderBackend().setTextureImage2D(
+            LLRenderTextureTarget::TextureRectangle,
             0,
             4,
             static_cast<S32>(width),
@@ -427,7 +426,7 @@ bool LLPostProcess::checkError(void)
     GLenum glErr;
     bool    retCode = false;
 
-    glErr = LLGLContainment::getError();
+    glErr = getOpenGLRenderBackend().getErrorCode();
     while (glErr != GL_NO_ERROR)
     {
         // shaderErrorLog << (const char *) gluErrorString(glErr) << std::endl;
@@ -445,7 +444,7 @@ bool LLPostProcess::checkError(void)
         }
 
         retCode = true;
-        glErr = LLGLContainment::getError();
+        glErr = getOpenGLRenderBackend().getErrorCode();
     }
     return retCode;
 }
@@ -458,7 +457,10 @@ void LLPostProcess::checkShaderError(LLGLuint shader)
 
     checkError();  // Check for OpenGL errors
 
-    LLGLContainment::getShaderInteger(shader, GL_INFO_LOG_LENGTH, &infologLength);
+    getOpenGLRenderBackend().getShaderInteger(
+        shader,
+        LLRenderShaderParameter::InfoLogLength,
+        &infologLength);
 
     checkError();  // Check for OpenGL errors
 
@@ -470,7 +472,7 @@ void LLPostProcess::checkShaderError(LLGLuint shader)
             /// Could not allocate infolog buffer
             return;
         }
-        LLGLContainment::getProgramInfoLog(shader, infologLength, &charsWritten, infoLog);
+        getOpenGLRenderBackend().getProgramInfoLog(shader, infologLength, &charsWritten, infoLog);
         // shaderErrorLog << (char *) infoLog << std::endl;
         mShaderErrorString = (char *) infoLog;
         free(infoLog);
