@@ -1777,6 +1777,14 @@ do not start a direct Vulkan port.
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/371-model-preview-physics-file-controls-summary.md`.
+- [x] Map model preview crease control synchronization before moving it.
+- [x] Add `docs/architecture/372-model-preview-crease-control-sync-task.md`.
+- [x] Move crease control synchronization behind a `LLFloaterModelPreview`
+      owner method without changing behavior.
+- [x] Verify the crease control sync packet with targeted
+      `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/373-model-preview-crease-control-sync-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

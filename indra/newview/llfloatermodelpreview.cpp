@@ -635,6 +635,22 @@ void LLFloaterModelPreview::syncModelPreviewPhysicsFileControls(bool enabled)
     childSetEnabled("physics_browse", enabled);
 }
 
+void LLFloaterModelPreview::syncModelPreviewCreaseControl(F32 requested_crease_angle)
+{
+    LLSpinCtrl* crease = getChild<LLSpinCtrl>("crease_angle");
+
+    if (requested_crease_angle == -1.f)
+    {
+        childSetColor("crease_label", LLColor4::grey);
+        crease->forceSetValue(75.f);
+    }
+    else
+    {
+        childSetColor("crease_label", LLColor4::white);
+        crease->forceSetValue(requested_crease_angle);
+    }
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

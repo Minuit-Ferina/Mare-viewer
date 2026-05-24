@@ -2705,19 +2705,7 @@ void LLModelPreview::updateStatusMessages()
 
     LLFloaterModelPreview* physics_file_fmp = (LLFloaterModelPreview*)mFMP;
     physics_file_fmp->syncModelPreviewPhysicsFileControls(which_mode == file_mode);
-
-    LLSpinCtrl* crease = mFMP->getChild<LLSpinCtrl>("crease_angle");
-
-    if (mRequestedCreaseAngle[mPreviewLOD] == -1.f)
-    {
-        mFMP->childSetColor("crease_label", LLColor4::grey);
-        crease->forceSetValue(75.f);
-    }
-    else
-    {
-        mFMP->childSetColor("crease_label", LLColor4::white);
-        crease->forceSetValue(mRequestedCreaseAngle[mPreviewLOD]);
-    }
+    physics_file_fmp->syncModelPreviewCreaseControl(mRequestedCreaseAngle[mPreviewLOD]);
 
     mModelUpdatedSignal(true);
 
