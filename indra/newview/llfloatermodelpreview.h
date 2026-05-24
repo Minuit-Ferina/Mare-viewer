@@ -170,6 +170,7 @@ protected:
     void        setModelPreviewLODFile(S32 lod, const std::string& filename);
     void        setModelPreviewPhysicsFile(const std::string& filename);
     void        syncModelPreviewSelectedLOD(S32 lod, const std::string& filename);
+    void        syncModelPreviewShowPhysicsOption(bool has_physics, bool& show_physics);
     void        syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
 
     void        onDescriptionKeystroke(LLUICtrl*);

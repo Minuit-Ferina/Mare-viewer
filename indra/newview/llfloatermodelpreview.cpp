@@ -686,6 +686,25 @@ void LLFloaterModelPreview::syncModelPreviewSelectedLOD(S32 lod, const std::stri
     }
 }
 
+void LLFloaterModelPreview::syncModelPreviewShowPhysicsOption(bool has_physics, bool& show_physics)
+{
+    if (has_physics)
+    {
+        if (!isViewOptionEnabled("show_physics"))
+        {
+            enableViewOption("show_physics");
+            show_physics = true;
+            childSetValue("show_physics", true);
+        }
+    }
+    else
+    {
+        disableViewOption("show_physics");
+        show_physics = false;
+        childSetValue("show_physics", false);
+    }
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

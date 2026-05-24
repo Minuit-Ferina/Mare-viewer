@@ -1801,6 +1801,14 @@ do not start a direct Vulkan port.
       targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
       both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/377-model-preview-selected-lod-sync-summary.md`.
+- [x] Map model preview show-physics option synchronization before moving it.
+- [x] Add `docs/architecture/378-model-preview-show-physics-option-task.md`.
+- [x] Move show-physics option synchronization behind `LLFloaterModelPreview`
+      owner methods without changing behavior.
+- [x] Verify the show-physics option packet with targeted
+      `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/379-model-preview-show-physics-option-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

@@ -2622,22 +2622,7 @@ void LLModelPreview::updateStatusMessages()
     LLFloaterModelPreview* fmp = LLFloaterModelPreview::sInstance;
     if (fmp)
     {
-        if (phys_tris > 0 || phys_hulls > 0)
-        {
-            if (!fmp->isViewOptionEnabled("show_physics"))
-            {
-                fmp->enableViewOption("show_physics");
-                mViewOption["show_physics"] = true;
-                fmp->childSetValue("show_physics", true);
-            }
-        }
-        else
-        {
-            fmp->disableViewOption("show_physics");
-            mViewOption["show_physics"] = false;
-            fmp->childSetValue("show_physics", false);
-
-        }
+        fmp->syncModelPreviewShowPhysicsOption(phys_tris > 0 || phys_hulls > 0, mViewOption["show_physics"]);
 
         //bool use_hull = fmp->childGetValue("physics_use_hull").asBoolean();
 
