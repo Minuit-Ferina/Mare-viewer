@@ -943,6 +943,11 @@ void LLFloaterModelPreview::draw()
         return;
     }
 
+    if (mModelPreview->hasPreviewLODModel())
+    {
+        childEnable("reset_btn");
+    }
+
     mModelPreview->update();
 
     if (!mModelPreview->mLoading)

@@ -3329,7 +3329,6 @@ bool LLModelPreview::render()
 
     if (!mModel[mPreviewLOD].empty())
     {
-        mFMP->childEnable("reset_btn");
         ensurePreviewLODVertexBuffers(show_skin_weight, show_physics);
 
         if (!show_skin_weight)
@@ -3352,6 +3351,11 @@ bool LLModelPreview::render()
     gGL.popMatrix();
 
     return true;
+}
+
+bool LLModelPreview::hasPreviewLODModel() const
+{
+    return !mModel[mPreviewLOD].empty();
 }
 
 void LLModelPreview::drawPreviewCanvas(S32 width, S32 height)

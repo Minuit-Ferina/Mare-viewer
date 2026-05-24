@@ -156,6 +156,7 @@ public:
     void zoom(F32 zoom_amt);
     void pan(F32 right, F32 up);
     virtual bool needsRender() { return mNeedsUpdate; }
+    bool hasPreviewLODModel() const;
     void setPreviewLOD(S32 lod);
     void clearModel(S32 lod);
     void getJointAliases(JointMap& joint_map);
