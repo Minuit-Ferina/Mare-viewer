@@ -1817,6 +1817,14 @@ do not start a direct Vulkan port.
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/381-model-preview-physics-decomposition-controls-summary.md`.
+- [x] Map model preview physics summary text before moving it.
+- [x] Add `docs/architecture/382-model-preview-physics-summary-text-task.md`.
+- [x] Move physics summary text synchronization behind `LLFloaterModelPreview`
+      owner methods without changing values.
+- [x] Verify the physics summary text packet with targeted
+      `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/383-model-preview-physics-summary-text-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

@@ -2599,29 +2599,10 @@ void LLModelPreview::updateStatusMessages()
         }
     }
 
-    if (phys_tris > 0)
-    {
-        mFMP->childSetTextArg("physics_triangles", "[TRIANGLES]", llformat("%d", phys_tris));
-    }
-    else
-    {
-        mFMP->childSetTextArg("physics_triangles", "[TRIANGLES]", mesh_status_na);
-    }
-
-    if (phys_hulls > 0)
-    {
-        mFMP->childSetTextArg("physics_hulls", "[HULLS]", llformat("%d", phys_hulls));
-        mFMP->childSetTextArg("physics_points", "[POINTS]", llformat("%d", phys_points));
-    }
-    else
-    {
-        mFMP->childSetTextArg("physics_hulls", "[HULLS]", mesh_status_na);
-        mFMP->childSetTextArg("physics_points", "[POINTS]", mesh_status_na);
-    }
-
     LLFloaterModelPreview* fmp = LLFloaterModelPreview::sInstance;
     if (fmp)
     {
+        fmp->syncModelPreviewPhysicsSummaryText(phys_tris, phys_hulls, phys_points, mesh_status_na);
         fmp->syncModelPreviewShowPhysicsOption(phys_tris > 0 || phys_hulls > 0, mViewOption["show_physics"]);
 
         //bool use_hull = fmp->childGetValue("physics_use_hull").asBoolean();

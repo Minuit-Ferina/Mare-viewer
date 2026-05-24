@@ -172,6 +172,10 @@ protected:
     void        syncModelPreviewSelectedLOD(S32 lod, const std::string& filename);
     void        syncModelPreviewShowPhysicsOption(bool has_physics, bool& show_physics);
     void        syncModelPreviewPhysicsDecompositionControls(bool has_physics_tris, bool has_physics_hulls);
+    void        syncModelPreviewPhysicsSummaryText(S32 phys_tris,
+                                                   S32 phys_hulls,
+                                                   S32 phys_points,
+                                                   const std::string& mesh_status_na);
     void        syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
 
     void        onDescriptionKeystroke(LLUICtrl*);

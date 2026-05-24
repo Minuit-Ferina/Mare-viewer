@@ -762,6 +762,32 @@ void LLFloaterModelPreview::syncModelPreviewPhysicsDecompositionControls(bool ha
     }
 }
 
+void LLFloaterModelPreview::syncModelPreviewPhysicsSummaryText(S32 phys_tris,
+                                                               S32 phys_hulls,
+                                                               S32 phys_points,
+                                                               const std::string& mesh_status_na)
+{
+    if (phys_tris > 0)
+    {
+        childSetTextArg("physics_triangles", "[TRIANGLES]", llformat("%d", phys_tris));
+    }
+    else
+    {
+        childSetTextArg("physics_triangles", "[TRIANGLES]", mesh_status_na);
+    }
+
+    if (phys_hulls > 0)
+    {
+        childSetTextArg("physics_hulls", "[HULLS]", llformat("%d", phys_hulls));
+        childSetTextArg("physics_points", "[POINTS]", llformat("%d", phys_points));
+    }
+    else
+    {
+        childSetTextArg("physics_hulls", "[HULLS]", mesh_status_na);
+        childSetTextArg("physics_points", "[POINTS]", mesh_status_na);
+    }
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)
