@@ -26,8 +26,10 @@ Primary candidates:
 - `indra/newview/lltexturectrl.h`
 - `indra/newview/llviewertexlayer.cpp`
 - `indra/newview/llviewertexlayer.h`
-- `indra/newview/llvisualparamhint.cpp`
-- `indra/newview/llvisualparamhint.h`
+
+Removed from active scope after tree verification:
+
+- `indra/newview/llvisualparamhint.*` is not present in the current tree.
 
 Secondary candidates only if they match the same pattern:
 
@@ -93,7 +95,6 @@ Likely files:
 - `llfloaterimagepreview.cpp`
 - `llpreviewtexture.cpp`
 - `lltexturectrl.cpp`
-- `llvisualparamhint.cpp`
 
 Target:
 

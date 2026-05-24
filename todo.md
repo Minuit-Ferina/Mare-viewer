@@ -1837,8 +1837,10 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Add `docs/architecture/385-phase13-plan.md`.
 - [x] Switch active strategy from deep `LLModelPreview` cleanup to breadth-first
       multi-file preview/UI-render packets.
-- [ ] Map matching preview panel/canvas access across 3 to 6 files before
+- [x] Map matching preview panel/canvas access across 3 to 6 files before
       editing source.
+- [x] Add `docs/architecture/386-preview-panel-canvas-access-map.md`.
+- [x] Remove absent `llvisualparamhint.*` from active phase 13 scope.
 - [ ] Move the first multi-file preview panel/canvas access packet behind UI
       owner methods without changing render behavior.
 - [ ] Verify the first phase 13 source packet with targeted object builds,
