@@ -347,7 +347,7 @@ bool LLFloaterURLEntry::callback_clear_url_list(const LLSD& notification, const 
         LLURLHistory::clear("parcel");
 
         // cleared the list so disable Clear button
-        getChildView("clear_btn")->setEnabled(false );
+        get_floater_view(this, "clear_btn")->setEnabled(false );
     }
     return false;
 }
