@@ -1588,6 +1588,11 @@ start a direct Vulkan port.
       `llmodelpreview.cpp.o`, regenerated source inventory, both GL guardrails,
       and `git diff --check`.
 - [x] Add `docs/architecture/324-model-preview-canvas-summary.md`.
+- [x] Add `docs/architecture/325-model-preview-render-prep-task.md`.
+- [x] Verify the `LLModelPreview::render()` prep helper split with targeted
+      `llmodelpreview.cpp.o`, regenerated source inventory, both GL guardrails,
+      and `git diff --check`.
+- [x] Add `docs/architecture/326-model-preview-render-prep-summary.md`.
 - [ ] Keep any `needsRender()` override out of wrapper-only packets.
 - [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
       multi-window, and multi-login work out of phase 10 unless explicitly

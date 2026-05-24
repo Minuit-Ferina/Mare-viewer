@@ -227,6 +227,9 @@ private:
     // Count amount of original models, excluding sub-models
     static U32 countRootModels(LLModelLoader::model_list models);
     void        drawPreviewCanvas(S32 width, S32 height);
+    bool        updateSkinPreviewControls(LLFloaterModelPreview* fmp, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
+    void        ensurePreviewLODVertexBuffers(bool show_skin_weight, bool show_physics);
+    void        applyPreviewMaterial(LLModelInstance& instance, size_t material_index, bool show_textures);
     LLVector3   mGroundPlane[4];
     void        renderGroundPlane(float z_offset = 0.0f);
     /// Indicates whether we should warn of high-lod meshes that do not have a corresponding physics mesh.

@@ -3309,124 +3309,9 @@ bool LLModelPreview::render()
 
     LLFloaterModelPreview* fmp = LLFloaterModelPreview::sInstance;
 
-    bool has_skin_weights = false;
     bool upload_skin = mFMP->childGetValue("upload_skin").asBoolean();
     bool upload_joints = mFMP->childGetValue("upload_joints").asBoolean();
-
-    if (upload_joints != mLastJointUpdate)
-    {
-        mLastJointUpdate = upload_joints;
-        if (fmp)
-        {
-            fmp->clearAvatarTab();
-        }
-    }
-
-    for (LLModelLoader::scene::iterator iter = mScene[mPreviewLOD].begin(); iter != mScene[mPreviewLOD].end(); ++iter)
-    {
-        for (LLModelLoader::model_instance_list::iterator model_iter = iter->second.begin(); model_iter != iter->second.end(); ++model_iter)
-        {
-            LLModelInstance& instance = *model_iter;
-            LLModel* model = instance.mModel;
-            model->mPelvisOffset = mPelvisZOffset;
-            if (!model->mSkinWeights.empty())
-            {
-                has_skin_weights = true;
-            }
-        }
-    }
-
-    if (has_skin_weights && lodsReady())
-    { //model has skin weights, enable view options for skin weights and joint positions
-        U32 flags = getLegacyRigFlags();
-        if (fmp)
-        {
-            if (flags == LEGACY_RIG_OK)
-            {
-                if (mFirstSkinUpdate)
-                {
-                    // auto enable weight upload if weights are present
-                    // (note: all these UI updates need to be somewhere that is not render)
-                    fmp->childSetValue("upload_skin", true);
-                    mFirstSkinUpdate = false;
-                    upload_skin = true;
-                    show_skin_weight = true;
-                    mViewOption["show_skin_weight"] = true;
-                }
-
-                fmp->enableViewOption("show_skin_weight");
-                fmp->setViewOptionEnabled("show_joint_overrides", show_skin_weight);
-                fmp->setViewOptionEnabled("show_joint_positions", show_skin_weight);
-                mFMP->childEnable("upload_skin");
-                mFMP->childSetValue("show_skin_weight", show_skin_weight);
-
-            }
-            else if ((flags & LEGACY_RIG_FLAG_TOO_MANY_JOINTS) > 0)
-            {
-                mFMP->childSetVisible("skin_too_many_joints", true);
-            }
-            else if ((flags & LEGACY_RIG_FLAG_UNKNOWN_JOINT) > 0)
-            {
-                mFMP->childSetVisible("skin_unknown_joint", true);
-            }
-        }
-    }
-    else
-    {
-        mFMP->childDisable("upload_skin");
-        if (fmp)
-        {
-            mViewOption["show_skin_weight"] = false;
-            fmp->disableViewOption("show_skin_weight");
-            fmp->disableViewOption("show_joint_overrides");
-            fmp->disableViewOption("show_joint_positions");
-
-            show_skin_weight = false;
-            mFMP->childSetValue("show_skin_weight", false);
-            fmp->setViewOptionEnabled("show_skin_weight", show_skin_weight);
-        }
-    }
-
-    if (upload_skin && !has_skin_weights)
-    { //can't upload skin weights if model has no skin weights
-        mFMP->childSetValue("upload_skin", false);
-        upload_skin = false;
-    }
-
-    if (!upload_skin && upload_joints)
-    { //can't upload joints if not uploading skin weights
-        mFMP->childSetValue("upload_joints", false);
-        upload_joints = false;
-    }
-
-    if (fmp)
-    {
-        if (upload_skin)
-        {
-            // will populate list of joints
-            fmp->updateAvatarTab(upload_joints);
-        }
-        else
-        {
-            fmp->clearAvatarTab();
-        }
-    }
-
-    if (upload_skin && upload_joints)
-    {
-        mFMP->childEnable("lock_scale_if_joint_position");
-    }
-    else
-    {
-        mFMP->childDisable("lock_scale_if_joint_position");
-        mFMP->childSetValue("lock_scale_if_joint_position", false);
-    }
-
-    //Only enable joint offsets if it passed the earlier critiquing
-    if (isRigValidForJointPositionUpload())
-    {
-        mFMP->childSetEnabled("upload_joints", upload_skin);
-    }
+    bool has_skin_weights = updateSkinPreviewControls(fmp, upload_skin, upload_joints, show_skin_weight);
 
     F32 physics_explode = (F32)mFMP->childGetValue("physics_explode").asReal();
 
@@ -3492,32 +3377,7 @@ bool LLModelPreview::render()
     if (!mModel[mPreviewLOD].empty())
     {
         mFMP->childEnable("reset_btn");
-
-        bool regen = mVertexBuffer[mPreviewLOD].empty();
-        if (!regen)
-        {
-            const std::vector<LLPointer<LLVertexBuffer> >& vb_vec = mVertexBuffer[mPreviewLOD].begin()->second;
-            if (!vb_vec.empty())
-            {
-                const LLVertexBuffer* buff = vb_vec[0];
-                regen = buff->hasDataType(LLVertexBuffer::TYPE_WEIGHT4) != show_skin_weight;
-            }
-            else
-            {
-                LL_INFOS() << "Vertex Buffer[" << mPreviewLOD << "]" << " is EMPTY!!!" << LL_ENDL;
-                regen = true;
-            }
-        }
-
-        if (regen)
-        {
-            genBuffers(mPreviewLOD, show_skin_weight);
-        }
-
-        if (show_physics && mVertexBuffer[LLModel::LOD_PHYSICS].empty())
-        {
-            genBuffers(LLModel::LOD_PHYSICS, false);
-        }
+        ensurePreviewLODVertexBuffers(show_skin_weight, show_physics);
 
         if (!show_skin_weight)
         {
@@ -3541,29 +3401,7 @@ bool LLModelPreview::render()
                 auto num_models = mVertexBuffer[mPreviewLOD][model].size();
                 for (size_t i = 0; i < num_models; ++i)
                 {
-                    if (show_textures)
-                    {
-                        auto materialCnt = instance.mModel->mMaterialList.size();
-                        if (i < materialCnt)
-                        {
-                            const std::string& binding = instance.mModel->mMaterialList[i];
-                            const LLImportMaterial& material = instance.mMaterial[binding];
-
-                            gGL.diffuseColor4fv(material.mDiffuseColor.mV);
-
-                            // Find the tex for this material, bind it, and add it to our set
-                            //
-                            LLViewerFetchedTexture* tex = bindMaterialDiffuseTexture(material);
-                            if (tex)
-                            {
-                                mTextureSet.insert(tex);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        gGL.diffuseColor4fv(PREVIEW_BASE_COL.mV);
-                    }
+                    applyPreviewMaterial(instance, i, show_textures);
 
                     // Zero this variable for an obligatory buffer initialization
                     // See https://github.com/secondlife/viewer/issues/912
@@ -3876,30 +3714,7 @@ bool LLModelPreview::render()
                             LLRenderPass::uploadMatrixPalette(mPreviewAvatar, &model->mSkinInfo);
 
                             gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-
-                            if (show_textures)
-                            {
-                                auto materialCnt = instance.mModel->mMaterialList.size();
-                                if (i < materialCnt)
-                                {
-                                    const std::string& binding = instance.mModel->mMaterialList[i];
-                                    const LLImportMaterial& material = instance.mMaterial[binding];
-
-                                    gGL.diffuseColor4fv(material.mDiffuseColor.mV);
-
-                                    // Find the tex for this material, bind it, and add it to our set
-                                    //
-                                    LLViewerFetchedTexture* tex = bindMaterialDiffuseTexture(material);
-                                    if (tex)
-                                    {
-                                        mTextureSet.insert(tex);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                gGL.diffuseColor4fv(PREVIEW_BASE_COL.mV);
-                            }
+                            applyPreviewMaterial(instance, i, show_textures);
 
                             // Zero this variable for an obligatory buffer initialization
                             // See https://github.com/secondlife/viewer/issues/912
@@ -3984,6 +3799,184 @@ void LLModelPreview::drawPreviewCanvas(S32 width, S32 height)
     gGL.matrixMode(LLRender::MM_MODELVIEW);
     gGL.popMatrix();
     gUIProgram.unbind();
+}
+
+bool LLModelPreview::updateSkinPreviewControls(LLFloaterModelPreview* fmp, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
+{
+    bool has_skin_weights = false;
+
+    if (upload_joints != mLastJointUpdate)
+    {
+        mLastJointUpdate = upload_joints;
+        if (fmp)
+        {
+            fmp->clearAvatarTab();
+        }
+    }
+
+    for (LLModelLoader::scene::iterator iter = mScene[mPreviewLOD].begin(); iter != mScene[mPreviewLOD].end(); ++iter)
+    {
+        for (LLModelLoader::model_instance_list::iterator model_iter = iter->second.begin(); model_iter != iter->second.end(); ++model_iter)
+        {
+            LLModelInstance& instance = *model_iter;
+            LLModel* model = instance.mModel;
+            model->mPelvisOffset = mPelvisZOffset;
+            if (!model->mSkinWeights.empty())
+            {
+                has_skin_weights = true;
+            }
+        }
+    }
+
+    if (has_skin_weights && lodsReady())
+    { //model has skin weights, enable view options for skin weights and joint positions
+        U32 flags = getLegacyRigFlags();
+        if (fmp)
+        {
+            if (flags == LEGACY_RIG_OK)
+            {
+                if (mFirstSkinUpdate)
+                {
+                    // auto enable weight upload if weights are present
+                    // (note: all these UI updates need to be somewhere that is not render)
+                    fmp->childSetValue("upload_skin", true);
+                    mFirstSkinUpdate = false;
+                    upload_skin = true;
+                    show_skin_weight = true;
+                    mViewOption["show_skin_weight"] = true;
+                }
+
+                fmp->enableViewOption("show_skin_weight");
+                fmp->setViewOptionEnabled("show_joint_overrides", show_skin_weight);
+                fmp->setViewOptionEnabled("show_joint_positions", show_skin_weight);
+                mFMP->childEnable("upload_skin");
+                mFMP->childSetValue("show_skin_weight", show_skin_weight);
+
+            }
+            else if ((flags & LEGACY_RIG_FLAG_TOO_MANY_JOINTS) > 0)
+            {
+                mFMP->childSetVisible("skin_too_many_joints", true);
+            }
+            else if ((flags & LEGACY_RIG_FLAG_UNKNOWN_JOINT) > 0)
+            {
+                mFMP->childSetVisible("skin_unknown_joint", true);
+            }
+        }
+    }
+    else
+    {
+        mFMP->childDisable("upload_skin");
+        if (fmp)
+        {
+            mViewOption["show_skin_weight"] = false;
+            fmp->disableViewOption("show_skin_weight");
+            fmp->disableViewOption("show_joint_overrides");
+            fmp->disableViewOption("show_joint_positions");
+
+            show_skin_weight = false;
+            mFMP->childSetValue("show_skin_weight", false);
+            fmp->setViewOptionEnabled("show_skin_weight", show_skin_weight);
+        }
+    }
+
+    if (upload_skin && !has_skin_weights)
+    { //can't upload skin weights if model has no skin weights
+        mFMP->childSetValue("upload_skin", false);
+        upload_skin = false;
+    }
+
+    if (!upload_skin && upload_joints)
+    { //can't upload joints if not uploading skin weights
+        mFMP->childSetValue("upload_joints", false);
+        upload_joints = false;
+    }
+
+    if (fmp)
+    {
+        if (upload_skin)
+        {
+            // will populate list of joints
+            fmp->updateAvatarTab(upload_joints);
+        }
+        else
+        {
+            fmp->clearAvatarTab();
+        }
+    }
+
+    if (upload_skin && upload_joints)
+    {
+        mFMP->childEnable("lock_scale_if_joint_position");
+    }
+    else
+    {
+        mFMP->childDisable("lock_scale_if_joint_position");
+        mFMP->childSetValue("lock_scale_if_joint_position", false);
+    }
+
+    //Only enable joint offsets if it passed the earlier critiquing
+    if (isRigValidForJointPositionUpload())
+    {
+        mFMP->childSetEnabled("upload_joints", upload_skin);
+    }
+
+    return has_skin_weights;
+}
+
+void LLModelPreview::ensurePreviewLODVertexBuffers(bool show_skin_weight, bool show_physics)
+{
+    bool regen = mVertexBuffer[mPreviewLOD].empty();
+    if (!regen)
+    {
+        const std::vector<LLPointer<LLVertexBuffer> >& vb_vec = mVertexBuffer[mPreviewLOD].begin()->second;
+        if (!vb_vec.empty())
+        {
+            const LLVertexBuffer* buff = vb_vec[0];
+            regen = buff->hasDataType(LLVertexBuffer::TYPE_WEIGHT4) != show_skin_weight;
+        }
+        else
+        {
+            LL_INFOS() << "Vertex Buffer[" << mPreviewLOD << "]" << " is EMPTY!!!" << LL_ENDL;
+            regen = true;
+        }
+    }
+
+    if (regen)
+    {
+        genBuffers(mPreviewLOD, show_skin_weight);
+    }
+
+    if (show_physics && mVertexBuffer[LLModel::LOD_PHYSICS].empty())
+    {
+        genBuffers(LLModel::LOD_PHYSICS, false);
+    }
+}
+
+void LLModelPreview::applyPreviewMaterial(LLModelInstance& instance, size_t material_index, bool show_textures)
+{
+    if (show_textures)
+    {
+        auto materialCnt = instance.mModel->mMaterialList.size();
+        if (material_index < materialCnt)
+        {
+            const std::string& binding = instance.mModel->mMaterialList[material_index];
+            const LLImportMaterial& material = instance.mMaterial[binding];
+
+            gGL.diffuseColor4fv(material.mDiffuseColor.mV);
+
+            // Find the tex for this material, bind it, and add it to our set
+            //
+            LLViewerFetchedTexture* tex = bindMaterialDiffuseTexture(material);
+            if (tex)
+            {
+                mTextureSet.insert(tex);
+            }
+        }
+    }
+    else
+    {
+        gGL.diffuseColor4fv(PREVIEW_BASE_COL.mV);
+    }
 }
 
 void LLModelPreview::renderGroundPlane(float z_offset)
