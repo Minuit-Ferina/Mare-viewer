@@ -640,10 +640,22 @@ public:
     U32 getBoundTexture2D() override { return 0; }
     void* createSyncObject() override { return nullptr; }
     void flushCommands() override {}
+    void finishCommands() override {}
     void clientWaitSyncObject(void*) override {}
+    U32 clientWaitSyncObjectStatus(void*, U64) override { return 0; }
     void waitSyncObject(void*) override {}
     void deleteSyncObject(void*) override {}
     void setLegacyMaterialSpecular(const F32*, S32) override {}
+    void getLegacyInteger(U32, S32* value) override { *value = 0; }
+    void getLegacyBoolean(U32, U8* value) override { *value = 0; }
+    void getLegacyFloat(U32, F32* value) override { *value = 0.f; }
+    void getLegacyBufferObjectParameterInteger(U32, U32, S32* value) override { *value = 0; }
+    const char* getLegacyString(U32) override { return ""; }
+    const char* getLegacyStringIndexed(U32, U32) override { return ""; }
+    void setLegacyHint(U32, U32) override {}
+    void setClientActiveTextureUnit(S32) override {}
+    void setLegacyCapability(U32, bool) override {}
+    bool isLegacyCapabilityEnabled(U32) override { return false; }
 };
 
 class LLOpenGLRenderBackend final : public LLRenderBackend
@@ -1584,9 +1596,19 @@ public:
         LLGLContainment::flushCommands();
     }
 
+    void finishCommands() override
+    {
+        LLGLContainment::finishCommands();
+    }
+
     void clientWaitSyncObject(void* sync) override
     {
         LLGLContainment::clientWaitSyncObject(sync);
+    }
+
+    U32 clientWaitSyncObjectStatus(void* sync, U64 timeout) override
+    {
+        return LLGLContainment::clientWaitSyncObjectStatus(sync, timeout);
     }
 
     void waitSyncObject(void* sync) override
@@ -1603,6 +1625,63 @@ public:
     {
         LLGLContainment::setMaterialFloatVector(GL_FRONT_AND_BACK, GL_SPECULAR, color);
         LLGLContainment::setMaterialInteger(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+    }
+
+    void getLegacyInteger(U32 parameter, S32* value) override
+    {
+        LLGLContainment::getInteger(parameter, value);
+    }
+
+    void getLegacyBoolean(U32 parameter, U8* value) override
+    {
+        LLGLContainment::getBoolean(parameter, value);
+    }
+
+    void getLegacyFloat(U32 parameter, F32* value) override
+    {
+        LLGLContainment::getFloat(parameter, value);
+    }
+
+    void getLegacyBufferObjectParameterInteger(U32 target, U32 parameter, S32* value) override
+    {
+        LLGLContainment::getBufferObjectParameterInteger(target, parameter, value);
+    }
+
+    const char* getLegacyString(U32 parameter) override
+    {
+        return LLGLContainment::getString(parameter);
+    }
+
+    const char* getLegacyStringIndexed(U32 parameter, U32 index) override
+    {
+        return LLGLContainment::getStringIndexed(parameter, index);
+    }
+
+    void setLegacyHint(U32 target, U32 mode) override
+    {
+        LLGLContainment::setHint(target, mode);
+    }
+
+    void setClientActiveTextureUnit(S32 unit) override
+    {
+        LLGLContainment::setClientActiveTexture(GL_TEXTURE0 + unit);
+    }
+
+    void setLegacyCapability(U32 capability, bool enabled) override
+    {
+        if (enabled)
+        {
+            LLGLContainment::enableCapability(capability);
+        }
+        else
+        {
+            LLGLContainment::disableCapability(capability);
+        }
+    }
+
+    bool isLegacyCapabilityEnabled(U32 capability) override
+    {
+        return LLGLContainment::isCapabilityEnabled(capability);
     }
 };
 }

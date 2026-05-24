@@ -586,10 +586,22 @@ public:
     virtual U32 getBoundTexture2D() = 0;
     virtual void* createSyncObject() = 0;
     virtual void flushCommands() = 0;
+    virtual void finishCommands() = 0;
     virtual void clientWaitSyncObject(void* sync) = 0;
+    virtual U32 clientWaitSyncObjectStatus(void* sync, U64 timeout) = 0;
     virtual void waitSyncObject(void* sync) = 0;
     virtual void deleteSyncObject(void* sync) = 0;
     virtual void setLegacyMaterialSpecular(const F32* color, S32 shininess) = 0;
+    virtual void getLegacyInteger(U32 parameter, S32* value) = 0;
+    virtual void getLegacyBoolean(U32 parameter, U8* value) = 0;
+    virtual void getLegacyFloat(U32 parameter, F32* value) = 0;
+    virtual void getLegacyBufferObjectParameterInteger(U32 target, U32 parameter, S32* value) = 0;
+    virtual const char* getLegacyString(U32 parameter) = 0;
+    virtual const char* getLegacyStringIndexed(U32 parameter, U32 index) = 0;
+    virtual void setLegacyHint(U32 target, U32 mode) = 0;
+    virtual void setClientActiveTextureUnit(S32 unit) = 0;
+    virtual void setLegacyCapability(U32 capability, bool enabled) = 0;
+    virtual bool isLegacyCapabilityEnabled(U32 capability) = 0;
 };
 
 const char* getRenderBackendTypeName(LLRenderBackendType type);
