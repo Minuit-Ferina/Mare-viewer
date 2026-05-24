@@ -24,7 +24,7 @@
 | `indra/llrender/llrender2dutils.cpp` | render.legacy_low_level | 1873 | 0 | 1 | 0 | 577 | 1 | 0 | 2 |
 | `indra/newview/lldrawpoolterrain.cpp` | render.pipeline | 1124 | 0 | 1 | 1 | 189 | 85 | 1 | 0 |
 | `indra/newview/llselectmgr.cpp` | render.pipeline | 9001 | 0 | 1 | 1 | 68 | 51 | 1 | 0 |
-| `indra/llrender/llcubemap.cpp` | render.legacy_low_level | 347 | 0 | 1 | 0 | 21 | 3 | 0 | 0 |
+| `indra/llrender/llcubemap.cpp` | render.legacy_low_level | 347 | 0 | 1 | 0 | 21 | 1 | 0 | 0 |
 | `indra/newview/llfetchedgltfmaterial.cpp` | render.pipeline | 265 | 0 | 1 | 1 | 0 | 16 | 2 | 0 |
 | `indra/newview/llscenemonitor.h` | assets.texture | 130 | 0 | 1 | 1 | 0 | 1 | 0 | 5 |
 | `indra/newview/app_settings/shaders/class2/interface/irradianceGenF.glsl` | viewer.misc | 215 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -81,7 +81,7 @@
 | `indra/newview/llhudeffectpointat.cpp` | render.opengl_touching | 524 | 0 | 0 | 0 | 15 | 4 | 0 | 0 |
 | `indra/newview/RRInterface.cpp` | render.pipeline | 6996 | 0 | 0 | 0 | 14 | 9 | 15 | 0 |
 | `indra/llui/llview.cpp` | render.opengl_touching | 2967 | 0 | 0 | 0 | 14 | 0 | 0 | 0 |
-| `indra/llrender/llrendertarget.cpp` | render.legacy_low_level | 701 | 0 | 0 | 0 | 12 | 23 | 0 | 42 |
+| `indra/llrender/llrendertarget.cpp` | render.legacy_low_level | 701 | 0 | 0 | 0 | 12 | 22 | 0 | 42 |
 | `indra/llrender/llglslshader.cpp` | render.legacy_low_level | 2093 | 0 | 0 | 0 | 11 | 292 | 0 | 2 |
 | `indra/newview/lldrawpoolmaterials.cpp` | render.draw_pool | 291 | 0 | 0 | 0 | 11 | 8 | 0 | 0 |
 | `indra/newview/llprogressview.cpp` | assets.texture | 738 | 0 | 0 | 0 | 11 | 1 | 0 | 0 |

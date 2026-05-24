@@ -112,6 +112,19 @@ LLGLenum to_opengl_depth_function(LLRenderDepthFunction function)
     }
 }
 
+LLGLenum to_opengl_texture_target(LLRenderTextureTarget target)
+{
+    switch (target)
+    {
+    case LLRenderTextureTarget::Texture2D:
+        return GL_TEXTURE_2D;
+    case LLRenderTextureTarget::TextureCubeMap:
+        return GL_TEXTURE_CUBE_MAP;
+    default:
+        return GL_TEXTURE_2D;
+    }
+}
+
 class LLNullRenderBackend final : public LLRenderBackend
 {
 public:
@@ -136,6 +149,7 @@ public:
     void setCullFace(LLRenderCullFace) override {}
     void setDepthFunction(LLRenderDepthFunction) override {}
     void setDepthWriteEnabled(bool) override {}
+    void generateMipmaps(LLRenderTextureTarget) override {}
 };
 
 class LLOpenGLRenderBackend final : public LLRenderBackend
@@ -241,6 +255,11 @@ public:
     void setDepthWriteEnabled(bool enabled) override
     {
         LLGLContainment::setDepthMask(static_cast<LLGLboolean>(enabled));
+    }
+
+    void generateMipmaps(LLRenderTextureTarget target) override
+    {
+        LLGLContainment::generateTextureMipmap(to_opengl_texture_target(target));
     }
 };
 }

@@ -1986,6 +1986,12 @@ No open items in this section right now.
       build, regenerated source inventory, both GL guardrails, and
       `git diff --check`.
 - [x] Add `docs/architecture/412-llrender-backend-capability-depth-summary.md`.
+- [x] Route known-target mipmap generation for cubemap and render target
+      owners through the backend.
+- [x] Verify the known-target mipmap backend packet with targeted `llrender`
+      build, regenerated source inventory, both GL guardrails, and
+      `git diff --check`.
+- [x] Add `docs/architecture/413-known-target-mipmap-backend-summary.md`.
 
 ## Post-Phase2 Guardrails
 

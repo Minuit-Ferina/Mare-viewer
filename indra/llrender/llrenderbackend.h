@@ -86,6 +86,12 @@ enum class LLRenderDepthFunction : U8
     Greater,
 };
 
+enum class LLRenderTextureTarget : U8
+{
+    Texture2D,
+    TextureCubeMap,
+};
+
 enum LLRenderClearMask : U32
 {
     LL_RENDER_CLEAR_NONE = 0,
@@ -198,6 +204,7 @@ public:
     virtual void setCullFace(LLRenderCullFace face) = 0;
     virtual void setDepthFunction(LLRenderDepthFunction function) = 0;
     virtual void setDepthWriteEnabled(bool enabled) = 0;
+    virtual void generateMipmaps(LLRenderTextureTarget target) = 0;
 };
 
 const char* getRenderBackendTypeName(LLRenderBackendType type);
