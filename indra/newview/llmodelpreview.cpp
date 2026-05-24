@@ -509,6 +509,10 @@ void LLModelPreview::rebuildUploadData()
             }
 
             LLModel* high_lod_model = instance.mLOD[LLModel::LOD_HIGH];
+            LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+            bool upload_skinweights = false;
+            bool upload_textures = false;
+            bool upload_data_options_read = false;
             if (!high_lod_model)
             {
                 LLFloaterModelPreview::addStringToLog("Model " + instance.mLabel + " has no High Lod (LOD3).", true);
@@ -529,8 +533,11 @@ void LLModelPreview::rebuildUploadData()
                         mFMP->childDisable("calculate_btn");
                     }
                 }
-                LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
-                bool upload_skinweights = fmp && fmp->childGetValue("upload_skin").asBoolean();
+                if (fmp)
+                {
+                    fmp->getModelPreviewUploadDataOptions(upload_skinweights, upload_textures);
+                    upload_data_options_read = true;
+                }
                 if (upload_skinweights && high_lod_model->mSkinInfo.mJointNames.size() > 0)
                 {
                     LLQuaternion bind_rot = LLSkinningUtil::getUnscaledQuaternion(LLMatrix4(high_lod_model->mSkinInfo.mBindShapeMatrix));
@@ -555,7 +562,11 @@ void LLModelPreview::rebuildUploadData()
             mUploadData.push_back(instance);
 
             // if uploading textures, make sure textures are present
-            if (mFMP->childGetValue("upload_textures").asBoolean()) // too early to cheack if still loading
+            if (!upload_data_options_read && fmp)
+            {
+                fmp->getModelPreviewUploadDataOptions(upload_skinweights, upload_textures);
+            }
+            if (upload_textures) // too early to cheack if still loading
             {
                 for (auto& mat_pair : instance.mMaterial)
                 {

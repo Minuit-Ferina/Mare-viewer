@@ -1704,6 +1704,14 @@ do not start a direct Vulkan port.
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/353-model-preview-upload-status-options-summary.md`.
+- [x] Map model preview upload-data UI reads before moving them.
+- [x] Add `docs/architecture/354-model-preview-upload-data-options-task.md`.
+- [x] Move upload-data UI reads behind a `LLFloaterModelPreview` owner method
+      without changing timing.
+- [x] Verify the upload-data option packet with targeted
+      `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/355-model-preview-upload-data-options-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

@@ -471,6 +471,12 @@ void LLFloaterModelPreview::getModelPreviewUploadStatusOptions(bool& upload_skin
     upload_textures = childGetValue("upload_textures").asBoolean();
 }
 
+void LLFloaterModelPreview::getModelPreviewUploadDataOptions(bool& upload_skin, bool& upload_textures)
+{
+    upload_skin = childGetValue("upload_skin").asBoolean();
+    upload_textures = childGetValue("upload_textures").asBoolean();
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)
