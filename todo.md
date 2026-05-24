@@ -1745,6 +1745,14 @@ do not start a direct Vulkan port.
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/363-model-preview-default-description-summary.md`.
+- [x] Map model preview calculate button mutations before moving them.
+- [x] Add `docs/architecture/364-model-preview-calculate-button-task.md`.
+- [x] Move calculate button mutations behind a `LLFloaterModelPreview` owner
+      method without changing conditions.
+- [x] Verify the calculate button packet with targeted `llmodelpreview.cpp.o`,
+      targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
+      both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/365-model-preview-calculate-button-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

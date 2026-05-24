@@ -532,6 +532,11 @@ void LLFloaterModelPreview::setModelPreviewDefaultRequestedName(const std::strin
     }
 }
 
+void LLFloaterModelPreview::setModelPreviewCalculateButtonEnabled(bool enabled)
+{
+    childSetEnabled("calculate_btn", enabled);
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

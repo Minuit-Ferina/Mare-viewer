@@ -515,7 +515,7 @@ void LLModelPreview::rebuildUploadData()
             {
                 LLFloaterModelPreview::addStringToLog("Model " + instance.mLabel + " has no High Lod (LOD3).", true);
                 load_state = LLModelLoader::ERROR_MATERIALS;
-                mFMP->childDisable("calculate_btn");
+                fmp->setModelPreviewCalculateButtonEnabled(false);
             }
             else
             {
@@ -528,7 +528,7 @@ void LLModelPreview::rebuildUploadData()
                     {
                         LLFloaterModelPreview::addStringToLog("Model " + instance.mLabel + " has mismatching materials between lods." , true);
                         load_state = LLModelLoader::ERROR_MATERIALS;
-                        mFMP->childDisable("calculate_btn");
+                        fmp->setModelPreviewCalculateButtonEnabled(false);
                     }
                 }
                 if (fmp)
@@ -614,7 +614,7 @@ void LLModelPreview::rebuildUploadData()
                     LLFloaterModelPreview::addStringToLog(out, true);
                 }
                 load_state = LLModelLoader::ERROR_MATERIALS;
-                mFMP->childDisable("calculate_btn");
+                fmp->setModelPreviewCalculateButtonEnabled(false);
             }
         }
     }
@@ -875,7 +875,8 @@ void LLModelPreview::loadModel(std::string filename, S32 lod, bool force_disable
     if (getLoadState() >= LLModelLoader::ERROR_PARSING)
     {
         mFMP->childDisable("ok_btn");
-        mFMP->childDisable("calculate_btn");
+        LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->setModelPreviewCalculateButtonEnabled(false);
     }
 
     if (lod == mPreviewLOD)
@@ -1002,7 +1003,8 @@ void LLModelPreview::loadModelCallback(S32 loaded_lod)
     mLodsWithParsingError.erase(std::remove(mLodsWithParsingError.begin(), mLodsWithParsingError.end(), loaded_lod), mLodsWithParsingError.end());
     if (mLodsWithParsingError.empty())
     {
-        mFMP->childEnable("calculate_btn");
+        LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->setModelPreviewCalculateButtonEnabled(true);
     }
 
     // Copy determinations about rig so UI will reflect them
@@ -2226,7 +2228,8 @@ void LLModelPreview::updateStatusMessages()
         if (!model_high_lod)
         {
             setLoadState(LLModelLoader::ERROR_MATERIALS);
-            mFMP->childDisable("calculate_btn");
+            LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+            fmp->setModelPreviewCalculateButtonEnabled(false);
             continue;
         }
 
@@ -2236,7 +2239,8 @@ void LLModelPreview::updateStatusMessages()
             if (!lod_model)
             {
                 setLoadState(LLModelLoader::ERROR_MATERIALS);
-                mFMP->childDisable("calculate_btn");
+                LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+                fmp->setModelPreviewCalculateButtonEnabled(false);
             }
             else
             {
@@ -2534,21 +2538,25 @@ void LLModelPreview::updateStatusMessages()
     if (!mModelNoErrors || mHasDegenerate)
     {
         mFMP->childDisable("ok_btn");
-        mFMP->childDisable("calculate_btn");
+        LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->setModelPreviewCalculateButtonEnabled(false);
     }
     else
     {
         mFMP->childEnable("ok_btn");
-        mFMP->childEnable("calculate_btn");
+        LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->setModelPreviewCalculateButtonEnabled(true);
     }
 
     if (mModelNoErrors && mLodsWithParsingError.empty())
     {
-        mFMP->childEnable("calculate_btn");
+        LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->setModelPreviewCalculateButtonEnabled(true);
     }
     else
     {
-        mFMP->childDisable("calculate_btn");
+        LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->setModelPreviewCalculateButtonEnabled(false);
     }
 
     //add up physics triangles etc
