@@ -1636,7 +1636,14 @@ task, and do not start a direct Vulkan port.
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/339-model-preview-skin-ui-sync-summary.md`.
-- [ ] Map the remaining `reset_btn` render-path mutation before moving it.
+- [x] Map the remaining `reset_btn` render-path mutation before moving it.
+- [x] Add `docs/architecture/340-model-preview-reset-control-task.md`.
+- [ ] Move `reset_btn` enablement out of `LLModelPreview::render()` and into a
+      floater-owned UI sync point.
+- [ ] Verify the reset control packet with targeted `llmodelpreview.cpp.o`,
+      targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
+      both GL guardrails, and `git diff --check`.
+- [ ] Add `docs/architecture/341-model-preview-reset-control-summary.md`.
 - [ ] Do not start another helper-only phase unless it directly supports that
       separation.
 - [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
