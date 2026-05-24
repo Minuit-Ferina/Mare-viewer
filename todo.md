@@ -1914,8 +1914,9 @@ No open items in this section right now.
       available floater object rules, regenerated source inventory, both GL
       guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/400-all-remaining-floater-helper-sweep-summary.md`.
-- [ ] Decide whether phase 14 should close here or continue into non-floater
-      `LLPanel`/`LLView` UI ownership helpers.
+- [x] Close phase 14 at the floater boundary and move non-floater
+      `LLPanel`/`LLView` UI ownership helpers into phase 15.
+- [x] Add `docs/architecture/401-phase14-completion-summary.md`.
 
 ## Post-Phase2 Guardrails
 
