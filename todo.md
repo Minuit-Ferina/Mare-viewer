@@ -3,12 +3,12 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 12 is active on branch `phase12`. Preserve the completed
-OpenGL containment and header guardrails. Prefer targeted object builds and
-guardrails during small ownership packets; do not run broad `mare-viewer`
-integration rebuilds unless explicitly selected for a branch checkpoint. Do not
-move source files, do not change runtime behavior without an explicit task, and
-do not start a direct Vulkan port.
+Current rule: phase 13 is active on branch `phase13`. Preserve the completed
+OpenGL containment and header guardrails. Prefer breadth-first multi-file
+preview/UI-render ownership packets, targeted object builds, and guardrails; do
+not run broad `mare-viewer` integration rebuilds unless explicitly selected for
+a branch checkpoint. Do not move source files, do not change runtime behavior
+without an explicit task, and do not start a direct Vulkan port.
 
 ## Done
 
@@ -1830,6 +1830,20 @@ do not start a direct Vulkan port.
 - [x] Add `docs/architecture/384-phase12-completion-summary.md`.
 - [x] Decide that phase 13 should switch to breadth-first multi-file packets
       across preview/UI-render hotspots.
+
+## Phase 13 Candidate Backlog
+
+- [x] Create branch `phase13` from completed `phase12`.
+- [x] Add `docs/architecture/385-phase13-plan.md`.
+- [x] Switch active strategy from deep `LLModelPreview` cleanup to breadth-first
+      multi-file preview/UI-render packets.
+- [ ] Map matching preview panel/canvas access across 3 to 6 files before
+      editing source.
+- [ ] Move the first multi-file preview panel/canvas access packet behind UI
+      owner methods without changing render behavior.
+- [ ] Verify the first phase 13 source packet with targeted object builds,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [ ] Add a summary document for the first phase 13 source packet.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.
