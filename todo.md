@@ -1769,6 +1769,14 @@ do not start a direct Vulkan port.
       targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
       both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/369-model-preview-lod-control-sync-summary.md`.
+- [x] Map model preview physics file-control UI access before moving it.
+- [x] Add `docs/architecture/370-model-preview-physics-file-controls-task.md`.
+- [x] Move physics LOD combo reads and physics file-control enablement behind
+      `LLFloaterModelPreview` owner methods without changing conditions.
+- [x] Verify the physics file-control packet with targeted
+      `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/371-model-preview-physics-file-controls-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

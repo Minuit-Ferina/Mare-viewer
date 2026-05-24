@@ -2699,25 +2699,12 @@ void LLModelPreview::updateStatusMessages()
             fmp->childEnable("decompose_cancel");
         }
 
-        LLCtrlSelectionInterface* iface = fmp->childGetSelectionInterface("physics_lod_combo");
-        if (iface)
-        {
-            which_mode = iface->getFirstSelectedIndex();
-            file_mode = iface->getItemCount() - 1;
-        }
+        fmp->getModelPreviewPhysicsLODMode(which_mode, file_mode);
     }
 
 
-    if (which_mode == file_mode)
-    {
-        mFMP->childEnable("physics_file");
-        mFMP->childEnable("physics_browse");
-    }
-    else
-    {
-        mFMP->childDisable("physics_file");
-        mFMP->childDisable("physics_browse");
-    }
+    LLFloaterModelPreview* physics_file_fmp = (LLFloaterModelPreview*)mFMP;
+    physics_file_fmp->syncModelPreviewPhysicsFileControls(which_mode == file_mode);
 
     LLSpinCtrl* crease = mFMP->getChild<LLSpinCtrl>("crease_angle");
 

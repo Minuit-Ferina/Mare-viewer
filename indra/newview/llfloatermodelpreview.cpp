@@ -619,6 +619,22 @@ void LLFloaterModelPreview::syncModelPreviewLODGenerateControls(S32 lod,
     }
 }
 
+void LLFloaterModelPreview::getModelPreviewPhysicsLODMode(S32& which_mode, S32& file_mode)
+{
+    LLCtrlSelectionInterface* iface = childGetSelectionInterface("physics_lod_combo");
+    if (iface)
+    {
+        which_mode = iface->getFirstSelectedIndex();
+        file_mode = iface->getItemCount() - 1;
+    }
+}
+
+void LLFloaterModelPreview::syncModelPreviewPhysicsFileControls(bool enabled)
+{
+    childSetEnabled("physics_file", enabled);
+    childSetEnabled("physics_browse", enabled);
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

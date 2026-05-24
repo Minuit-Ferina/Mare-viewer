@@ -37,7 +37,7 @@ indra/newview/llworldmapview.cpp,render.opengl_touching,1983,31,0,0,0,0,88,2,8,0
 indra/llappearance/lltexlayer.cpp,render.opengl_touching,1991,18,0,0,0,0,85,20,17,0,0,11,0,0,0
 indra/newview/llmanipscale.cpp,render.opengl_touching,2080,32,0,0,0,0,78,13,7,0,0,0,0,0,0
 indra/newview/llfasttimerview.cpp,render.opengl_touching,1669,27,0,0,0,0,75,7,12,0,0,1,0,0,0
-indra/newview/llmodelpreview.cpp,render.opengl_touching,4106,42,0,0,0,0,73,30,18,0,0,0,0,0,0
+indra/newview/llmodelpreview.cpp,render.opengl_touching,4093,42,0,0,0,0,73,30,18,0,0,0,0,0,0
 indra/newview/llfloaterimagepreview.cpp,render.draw_pool,1116,39,0,0,0,0,72,8,11,0,2,0,0,0,0
 indra/newview/llmaniprotate.cpp,render.opengl_touching,1976,33,0,0,0,0,70,13,6,0,0,0,0,0,1
 indra/newview/llreflectionmapmanager.cpp,render.pipeline,1637,16,0,0,0,0,69,17,3,13,0,1,3,0,0
@@ -401,8 +401,8 @@ indra/llcommon/llsdserialize.cpp,core,2471,16,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llprimitive/llprimitive.cpp,unknown,2431,15,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llviewerinventory.cpp,viewer.misc,2421,44,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelobject.cpp,ui,2374,42,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloatermodelpreview.cpp,ui,2372,37,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llprimitive/llmodel.cpp,unknown,2368,9,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloatermodelpreview.cpp,ui,2356,37,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfavoritesbar.cpp,viewer.misc,2330,28,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lltexturecache.cpp,assets.texture,2322,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/fsareasearch.cpp,viewer.misc,2262,36,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1183,12 +1183,12 @@ indra/newview/llchannelmanager.cpp,viewer.misc,271,12,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelexperiencelisteditor.cpp,ui,271,14,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/llmatrix4a.h,unknown,271,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/llavatarname.cpp,world.avatar,270,5,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloatermodelpreview.h,ui,270,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llresmgr.cpp,unknown,269,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llplugin/slplugin/slplugin.cpp,unknown,269,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/lliopipe.h,network,268,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelexperiencelog.cpp,ui,268,12,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llwind.cpp,viewer.misc,268,9,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloatermodelpreview.h,ui,268,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcharacter/llmotion.h,unknown,268,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llaudiosourcevo.cpp,viewer.misc,267,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelprofilepicks.h,ui,267,6,0,0,0,0,0,0,0,0,0,0,0,0,0
