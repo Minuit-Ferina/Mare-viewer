@@ -51,6 +51,13 @@ public:
 
 protected:
     virtual void        onCommit() override;
+    void        setupNameField(const std::string& asset_name);
+    void        setupDescriptionField();
+    void        setupUploadCostControls(S32 expected_upload_cost);
+    void        setupUploadCommitAction();
+    void        setUploadButtonEnabled(bool enabled);
+    std::string getUploadName();
+    std::string getUploadDescription();
 
 protected:
     bool        mIsAudio;

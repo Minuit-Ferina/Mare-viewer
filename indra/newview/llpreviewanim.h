@@ -31,6 +31,7 @@
 #include "llcharacter.h"
 
 class LLMotion;
+class LLButton;
 class LLTextBox;
 
 class LLPreviewAnim : public LLPreview
@@ -48,6 +49,16 @@ public:
     void showAdvanced();
 
 protected:
+    void setupDescriptionField();
+    void setupAdvancedStats();
+    LLButton* getPlaybackButton(const std::string& button_name);
+    void togglePlaybackButton(const std::string& button_name);
+    bool isPlaybackButtonChecked(const std::string& button_name);
+    void setPlaybackButtonEnabled(const std::string& button_name, bool enabled);
+    void resetPlaybackButtons();
+    void setAdvancedStatsVisible(bool visible);
+    void resizeForAdvancedStats(bool visible);
+    void syncAdvancedStatsText(LLMotion* motion);
 
     LLUUID  mItemID; // Not an item id, but a playing asset id
     bool    mDidStart;

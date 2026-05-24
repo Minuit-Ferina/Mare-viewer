@@ -98,6 +98,12 @@ protected:
     bool saveIfNeeded(LLInventoryItem* copyitem = NULL, bool sync = true);
 
     void deleteNotecard();
+    void setupEditor();
+    void setupButtons();
+    void setupDescriptionField(const LLInventoryItem* item);
+    void syncEditableControls(bool enabled);
+    void syncSaveButton(bool enabled);
+    void setDeleteButtonEnabled(bool enabled);
 
     static void onLoadComplete(const LLUUID& asset_uuid,
                                LLAssetType::EType type,

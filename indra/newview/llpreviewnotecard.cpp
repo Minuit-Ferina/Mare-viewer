@@ -94,10 +94,30 @@ bool LLPreviewNotecard::postBuild()
         return true;
     }
 //mk
+    setupEditor();
+    setupButtons();
+
+    const LLInventoryItem* item = getItem();
+    setupDescriptionField(item);
+
+    if (item)
+    {
+        bool source_library = mObjectUUID.isNull() && gInventory.isObjectDescendentOf(item->getUUID(), gInventory.getLibraryRootFolderID());
+        setDeleteButtonEnabled(!source_library);
+    }
+
+    return LLPreview::postBuild();
+}
+
+void LLPreviewNotecard::setupEditor()
+{
     mEditor = getChild<LLViewerTextEditor>("Notecard Editor");
     mEditor->setNotecardInfo(mItemUUID, mObjectID, getKey());
     mEditor->makePristine();
+}
 
+void LLPreviewNotecard::setupButtons()
+{
     mSaveBtn = getChild<LLButton>("Save");
     mSaveBtn->setCommitCallback(boost::bind(&LLPreviewNotecard::saveIfNeeded, this, nullptr, true));
 
@@ -106,33 +126,24 @@ bool LLPreviewNotecard::postBuild()
 
     mDeleteBtn = getChild<LLButton>("Delete");
     mDeleteBtn->setCommitCallback(boost::bind(&LLPreviewNotecard::deleteNotecard, this));
-    mDeleteBtn->setEnabled(false);
+    setDeleteButtonEnabled(false);
 
     mEditBtn = getChild<LLButton>("Edit");
     mEditBtn->setCommitCallback(boost::bind(&LLPreviewNotecard::openInExternalEditor, this));
+}
 
-    const LLInventoryItem* item = getItem();
-
+void LLPreviewNotecard::setupDescriptionField(const LLInventoryItem* item)
+{
     mDescEditor = getChild<LLLineEditor>("desc");
     mDescEditor->setCommitCallback(boost::bind(&LLPreview::onText, mDescEditor, this));
     if (item)
     {
         mDescEditor->setValue(item->getDescription());
-        bool source_library = mObjectUUID.isNull() && gInventory.isObjectDescendentOf(item->getUUID(), gInventory.getLibraryRootFolderID());
-        mDeleteBtn->setEnabled(!source_library);
     }
     mDescEditor->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
-
-    return LLPreview::postBuild();
 }
 
-bool LLPreviewNotecard::saveItem()
-{
-    LLInventoryItem* item = gInventory.getItem(mItemUUID);
-    return saveIfNeeded(item);
-}
-
-void LLPreviewNotecard::setEnabled(bool enabled)
+void LLPreviewNotecard::syncEditableControls(bool enabled)
 {
     if (mEditor)
     {
@@ -146,18 +157,40 @@ void LLPreviewNotecard::setEnabled(bool enabled)
     {
         mDescEditor->setEnabled(enabled);
     }
+}
+
+void LLPreviewNotecard::syncSaveButton(bool enabled)
+{
     if (mSaveBtn)
     {
         mSaveBtn->setEnabled(enabled && mEditor && (!mEditor->isPristine()));
     }
 }
 
+void LLPreviewNotecard::setDeleteButtonEnabled(bool enabled)
+{
+    if (mDeleteBtn)
+    {
+        mDeleteBtn->setEnabled(enabled);
+    }
+}
+
+bool LLPreviewNotecard::saveItem()
+{
+    LLInventoryItem* item = gInventory.getItem(mItemUUID);
+    return saveIfNeeded(item);
+}
+
+void LLPreviewNotecard::setEnabled(bool enabled)
+{
+    syncEditableControls(enabled);
+    syncSaveButton(enabled);
+}
+
 
 void LLPreviewNotecard::draw()
 {
-    bool changed = !mEditor->isPristine();
-
-    mSaveBtn->setEnabled(changed && getEnabled());
+    syncSaveButton(getEnabled());
 
     LLPreview::draw();
 }
@@ -344,7 +377,7 @@ void LLPreviewNotecard::loadAsset()
 
         if((allow_modify || is_owner) && !source_library)
         {
-            mDeleteBtn->setEnabled(true);
+            setDeleteButtonEnabled(true);
         }
     }
     else if (mObjectUUID.notNull() && mItemUUID.notNull())

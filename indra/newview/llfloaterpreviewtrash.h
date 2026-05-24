@@ -42,6 +42,7 @@ public:
     bool postBuild() override;
 
 protected:
+    void setupButtons();
     void onClickEmpty();
     void onClickCancel();
 };

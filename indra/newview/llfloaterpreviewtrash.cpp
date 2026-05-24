@@ -39,10 +39,7 @@ LLFloaterPreviewTrash::LLFloaterPreviewTrash(const LLSD& key)
 
 bool LLFloaterPreviewTrash::postBuild()
 {
-    getChild<LLUICtrl>("empty_btn")->setCommitCallback(
-        boost::bind(&LLFloaterPreviewTrash::onClickEmpty, this));
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback(
-        boost::bind(&LLFloaterPreviewTrash::onClickCancel, this));
+    setupButtons();
     // Always center the dialog.  User can change the size,
     // but purchases are important and should be center screen.
     // This also avoids problems where the user resizes the application window
@@ -50,6 +47,14 @@ bool LLFloaterPreviewTrash::postBuild()
     center();
 
     return true;
+}
+
+void LLFloaterPreviewTrash::setupButtons()
+{
+    getChild<LLUICtrl>("empty_btn")->setCommitCallback(
+        boost::bind(&LLFloaterPreviewTrash::onClickEmpty, this));
+    getChild<LLUICtrl>("cancel_btn")->setCommitCallback(
+        boost::bind(&LLFloaterPreviewTrash::onClickCancel, this));
 }
 
 LLFloaterPreviewTrash::~LLFloaterPreviewTrash()

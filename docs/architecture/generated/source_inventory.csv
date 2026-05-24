@@ -149,7 +149,7 @@ indra/llui/llslider.cpp,render.opengl_touching,384,9,0,0,0,0,1,0,0,0,0,0,0,0,0
 indra/llui/llxyvector.cpp,render.opengl_touching,338,7,0,0,0,0,1,0,0,0,0,0,0,0,0
 indra/llui/llcontainerview.cpp,render.opengl_touching,301,11,0,0,0,0,1,0,0,0,0,0,0,0,0
 indra/llui/llscrolllistitem.cpp,render.opengl_touching,205,4,0,0,0,0,1,0,0,0,0,0,0,0,0
-indra/newview/llfloaterbigpreview.cpp,ui,111,3,0,0,0,0,1,0,1,0,0,0,0,0,0
+indra/newview/llfloaterbigpreview.cpp,ui,119,3,0,0,0,0,1,0,1,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/dynamicVelocityV.glsl,render.opengl_touching,39,0,0,0,0,0,1,0,1,0,0,0,0,0,0
 indra/llrender/llglcontainment.h,render.legacy_low_level,375,2,0,0,0,0,0,321,0,0,0,0,0,0,0
 indra/newview/llviewershadermgr.cpp,render.pipeline,3765,18,0,0,0,0,0,214,2,7,0,0,0,0,0
@@ -385,7 +385,7 @@ indra/newview/llagentcamera.cpp,viewer.misc,3112,25,0,0,0,0,0,0,0,0,0,0,0,0,2
 indra/llcorehttp/tests/test_httprequest.hpp,unknown,3063,12,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelmaininventory.cpp,ui,2945,37,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llinitparam.h,core,2860,11,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llpreviewscript.cpp,viewer.misc,2802,66,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llpreviewscript.cpp,viewer.misc,2821,66,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llwindow/llwindowmacosx.cpp,unknown,2773,20,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llimage/llimage.cpp,unknown,2723,14,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lltoolpie.cpp,viewer.misc,2713,49,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -428,7 +428,7 @@ indra/newview/llmarketplacefunctions.cpp,viewer.misc,1903,20,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloatereditextdaycycle.cpp,ui,1860,32,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llagentwearables.cpp,viewer.misc,1839,27,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llstring.cpp,core,1838,7,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llpreviewgesture.cpp,viewer.misc,1815,27,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llpreviewgesture.cpp,viewer.misc,1829,27,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpaneleditwearable.cpp,ui,1798,36,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llurlentry.cpp,unknown,1787,16,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llaisapi.cpp,viewer.misc,1779,13,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -558,6 +558,7 @@ indra/newview/llconversationview.cpp,viewer.misc,947,17,0,0,0,0,0,0,0,0,0,0,0,0,
 indra/newview/llfloaterexperienceprofile.cpp,ui,943,24,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterscriptlimits.cpp,ui,942,25,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llimage/llimagefilter.cpp,unknown,942,9,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llpreviewnotecard.cpp,viewer.misc,936,34,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/tests/llurlentry_test.cpp,unknown,936,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/tests/llerror_test.cpp,core,935,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llinventorybridge.h,viewer.misc,932,11,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -568,7 +569,6 @@ indra/newview/app_settings/shaders/class3/deferred/reflectionProbeF.glsl,viewer.
 indra/llmessage/llbuffer.cpp,network,909,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llchiclet.h,viewer.misc,908,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llinventory/llsettingsdaycycle.cpp,unknown,908,9,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llpreviewnotecard.cpp,viewer.misc,903,34,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/lltemplatemessagebuilder.cpp,network,894,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterpathfindingobjects.cpp,ui,891,34,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llinventoryobserver.cpp,viewer.misc,888,30,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -921,13 +921,13 @@ indra/newview/llfloatergroups.cpp,ui,396,12,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llinventoryitemslist.cpp,viewer.misc,396,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcharacter/lljointsolverrp3.cpp,unknown,396,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/media_plugins/example/media_plugin_example.cpp,unknown,396,7,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llpreviewscript.h,viewer.misc,395,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class3/deferred/screenSpaceReflUtil.glsl,viewer.misc,395,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llprimitive/llprimlinkinfo.h,unknown,394,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcharacter/llkeyframewalkmotion.cpp,unknown,394,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llkeybind.cpp,core,394,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/llvector4a.h,unknown,393,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/tests/test_httpheaders.hpp,unknown,393,2,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llpreviewscript.h,viewer.misc,392,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/httpcommon.cpp,unknown,392,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llwindowshade.cpp,unknown,391,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lldirpicker.cpp,viewer.misc,390,13,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1030,6 +1030,7 @@ indra/newview/llviewerchat.cpp,viewer.misc,335,13,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/lldate.cpp,core,335,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llmetricperformancetester.cpp,core,334,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/tests/m3math_test.cpp,unknown,333,8,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaternamedesc.cpp,ui,332,24,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llkeythrottle.h,core,332,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llwindow/llwindow.h,unknown,332,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llspeakingindicatormanager.cpp,viewer.misc,331,4,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1084,6 +1085,7 @@ indra/newview/llpanelprofileview.cpp,ui,309,12,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloatermyscripts.cpp,ui,308,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcharacter/lljoint.h,unknown,308,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llscrolllistcell.h,unknown,308,8,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaterconversationpreview.cpp,ui,307,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llviewerparcelaskplay.cpp,viewer.misc,307,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llcallbacklist.cpp,viewer.misc,306,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llavatarlistitem.h,world.avatar,306,7,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1104,7 +1106,6 @@ indra/llinventory/llinventory.h,unknown,299,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/llrect.h,unknown,299,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llviewereventrecorder.cpp,unknown,299,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class2/deferred/multiSpotLightF.glsl,viewer.misc,299,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaternamedesc.cpp,ui,298,24,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llprofilercategories.h,core,298,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llmarketplacefunctions.h,viewer.misc,297,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llhandle.h,core,297,5,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1132,7 +1133,6 @@ indra/newview/llworldmap.h,viewer.misc,289,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llhudeffecttrail.cpp,viewer.misc,289,14,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llmutex.h,core,289,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/llpartdata.h,network,288,5,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaterconversationpreview.cpp,ui,288,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llcombobox.h,unknown,288,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llcommandhandler.cpp,viewer.misc,287,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class3/deferred/softenLightF.glsl,viewer.misc,286,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1155,6 +1155,7 @@ indra/llcorehttp/_httpoperation.h,unknown,282,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/tests/llinstancetracker_test.cpp,core,282,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llcompilequeue.h,viewer.misc,281,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterbump.cpp,ui,281,15,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llpreviewanim.cpp,viewer.misc,281,14,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llagentwearables.h,viewer.misc,281,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaternotificationsconsole.cpp,ui,281,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloatertelehub.cpp,ui,280,14,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1271,7 +1272,6 @@ indra/newview/llviewerdisplayname.cpp,viewer.misc,239,13,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llbase32.cpp,core,239,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llwindow/llwindowcallbacks.cpp,unknown,239,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/tests/llxmlrpclistener_test.cpp,viewer.misc,239,16,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llpreviewanim.cpp,viewer.misc,238,14,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llviewernetwork.h,viewer.misc,238,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lltoolselectland.cpp,viewer.misc,238,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/httpresponse.h,unknown,238,4,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1506,6 +1506,7 @@ indra/llui/llundo.cpp,unknown,175,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/tests/test_allocator.cpp,unknown,175,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/test/llservicebuilder_tut.cpp,unknown,174,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llviewerstatsrecorder.h,viewer.misc,174,3,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llpreviewgesture.h,viewer.misc,174,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llmultisliderctrl.h,unknown,174,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llcheckboxctrl.h,unknown,174,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/tests/llviewercontrollistener_test.cpp,viewer.misc,174,6,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1525,7 +1526,6 @@ indra/llmessage/lldispatcher.cpp,network,171,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/exogroupmutelist.cpp,viewer.misc,171,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lloutputmonitorctrl.h,viewer.misc,171,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llsidepaneltaskinfo.h,viewer.misc,171,3,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llpreviewgesture.h,viewer.misc,171,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterprofile.cpp,ui,171,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelgroupnotices.h,ui,171,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcharacter/lltargetingmotion.cpp,unknown,171,5,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1686,6 +1686,7 @@ indra/llrender/llfontregistry.h,render.legacy_low_level,145,1,0,0,0,0,0,0,0,0,0,
 indra/newview/llgroupiconctrl.cpp,viewer.misc,145,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelmarketplaceinboxinventory.h,ui,145,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llphysicsshapebuilderutil.h,viewer.misc,145,2,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llpreviewnotecard.h,viewer.misc,145,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llgrouplist.h,viewer.misc,145,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/environment/waterFogF.glsl,viewer.misc,145,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/tests/llallocator_heap_profile_test.cpp,core,145,2,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1737,7 +1738,6 @@ indra/newview/llfloaterbvhpreview.h,ui,139,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lldebugview.cpp,viewer.misc,139,13,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpathfindingpathtool.h,viewer.misc,139,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llcofwearables.h,viewer.misc,139,4,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llpreviewnotecard.h,viewer.misc,139,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llsettingspicker.h,viewer.misc,139,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/lltempredirect.cpp,core,139,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llappearance/llwearable.h,unknown,139,4,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1934,6 +1934,7 @@ indra/newview/llmaniptranslate.h,viewer.misc,115,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llblockedlistitem.cpp,viewer.misc,115,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/kokuafloaterbulkrename.h,viewer.misc,115,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpathfindinglinkset.h,viewer.misc,115,2,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llpreviewsound.cpp,viewer.misc,115,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llsearcheditor.h,unknown,115,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llradiogroup.h,unknown,115,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llcommunicationchannel.cpp,viewer.misc,114,7,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2065,7 +2066,6 @@ indra/newview/llregioninfomodel.h,viewer.misc,101,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llremoteparcelrequest.h,viewer.misc,101,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/fsscrolllistctrl.h,viewer.misc,101,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llnotificationgrouphandler.cpp,viewer.misc,101,8,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llpreviewsound.cpp,viewer.misc,101,11,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llindexedvector.h,core,101,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/llcalc.h,unknown,101,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/fullbrightF.glsl,viewer.misc,101,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2144,6 +2144,7 @@ indra/newview/app_settings/shaders/class1/deferred/postDeferredNoDoFF.glsl,viewe
 indra/llprimitive/llvolumemessage.h,unknown,93,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llsaveoutfitcombobtn.cpp,viewer.misc,93,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llvieweraudio.h,viewer.misc,93,2,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaternamedesc.h,ui,93,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llagentpicksinfo.h,viewer.misc,93,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterbanduration.cpp,ui,93,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llurllineeditorctrl.h,viewer.misc,93,3,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2182,6 +2183,7 @@ indra/newview/lldateutil.h,viewer.misc,89,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llexperiencelog.h,viewer.misc,89,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llspeakingindicatormanager.h,viewer.misc,89,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/llxfer_file.h,network,88,2,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaterpreviewtrash.cpp,ui,88,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llmorphview.h,viewer.misc,88,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterdestinations.cpp,ui,88,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelavatartag.h,ui,88,2,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2197,7 +2199,6 @@ indra/llimage/llimagejpeg.h,unknown,87,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/tests/llvieweroctree_stub.cpp,viewer.misc,87,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/objects/previewV.glsl,viewer.misc,87,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/lltrustedmessageservice.cpp,network,86,6,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaternamedesc.h,ui,86,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llplacesfolderview.cpp,viewer.misc,86,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/noise.cpp,viewer.misc,86,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llconfirmationmanager.h,viewer.misc,86,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2234,7 +2235,6 @@ indra/llmessage/llpacketack.cpp,network,83,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/test/mock_http_client.cpp,unknown,83,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloateropenobject.h,ui,83,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterinventorythumbnailshelper.h,ui,83,1,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaterpreviewtrash.cpp,ui,83,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llparcelselection.cpp,viewer.misc,83,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelcontents.h,ui,83,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelmediasettingssecurity.h,ui,83,1,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2323,6 +2323,7 @@ indra/newview/llagentaccess.h,viewer.misc,77,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpaneleventinfo.h,ui,77,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelplacestab.cpp,ui,77,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llappviewerwin32.h,viewer.misc,77,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaterconversationpreview.h,ui,77,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llnamebox.h,viewer.misc,77,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llflyoutcombobtn.h,viewer.misc,77,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llscripteditor.h,viewer.misc,77,1,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2387,7 +2388,6 @@ indra/newview/llhudview.cpp,viewer.misc,73,12,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelland.h,ui,73,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llnotificationmanager.cpp,viewer.misc,73,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterinventorysettings.cpp,ui,73,4,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaterconversationpreview.h,ui,73,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloatervoiceeffect.h,ui,73,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelhome.cpp,ui,73,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/lazyeventapi.cpp,core,73,5,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2444,6 +2444,7 @@ indra/newview/llfloaterurlentry.h,ui,69,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llweb.h,viewer.misc,69,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llvoinventorylistener.h,viewer.misc,69,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llvoicecallhandler.cpp,viewer.misc,69,5,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llpreviewanim.h,viewer.misc,69,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llprocinfo.h,core,69,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llcrc.h,core,69,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llheartbeat.h,core,69,2,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2606,6 +2607,7 @@ indra/newview/llpanelhome.h,ui,59,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterconversationlog.h,ui,59,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lltrackpicker.h,viewer.misc,59,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/utilitybar.h,viewer.misc,59,2,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaterbigpreview.h,ui,59,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloatersaveprefpreset.h,ui,59,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterchatmentionpicker.h,ui,59,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterhowto.h,ui,59,1,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2630,7 +2632,6 @@ indra/newview/llappviewermacosx-for-objc.h,viewer.misc,58,1,0,0,0,0,0,0,0,0,0,0,
 indra/newview/llnotificationstorage.h,viewer.misc,58,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloateravatartextures.h,ui,58,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lltoolindividual.h,viewer.misc,58,1,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llpreviewanim.h,viewer.misc,58,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llprocessor.h,core,58,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/lluiusage.h,unknown,58,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class2/deferred/sunLightF.glsl,viewer.misc,58,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2687,7 +2688,6 @@ indra/newview/llappviewermacosx.h,viewer.misc,55,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llimagefiltersmanager.h,viewer.misc,55,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llhudeffectblob.h,viewer.misc,55,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterimnearbychathandler.h,ui,55,1,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaterbigpreview.h,ui,55,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lluploaddialog.h,viewer.misc,55,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llhints.h,viewer.misc,55,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llsaveoutfitcombobtn.h,viewer.misc,55,1,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2757,6 +2757,7 @@ indra/llmessage/llgenericstreamingmessage.h,network,51,2,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/lltrustedmessageservice.h,network,51,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterinventorysettings.h,ui,51,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterhud.h,ui,51,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloaterpreviewtrash.h,ui,51,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterimnearbychatlistener.h,ui,51,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llclassifiedinfo.cpp,viewer.misc,51,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llviewercontrollistener.h,viewer.misc,51,1,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2772,7 +2773,7 @@ indra/llimagej2coj/llimagej2coj.h,unknown,50,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llrender/llrendernavprim.h,render.legacy_low_level,50,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaternewfeaturenotification.h,ui,50,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloatersounddevices.h,ui,50,1,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloaterpreviewtrash.h,ui,50,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llpreviewsound.h,viewer.misc,50,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelpresetscamerapulldown.h,ui,50,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llxmlrpclistener.h,viewer.misc,50,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelgroupbulkban.h,ui,50,3,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2864,7 +2865,6 @@ indra/llmessage/llmessagesenderinterface.h,network,45,2,0,0,0,0,0,0,0,0,0,0,0,0,
 indra/test/test.h,unknown,45,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/pieseparator.cpp,viewer.misc,45,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llnotificationlistview.cpp,viewer.misc,45,2,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llpreviewsound.h,viewer.misc,45,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llresourcedata.h,viewer.misc,45,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelimcontrolpanel.cpp,ui,45,14,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterchatvoicevolume.cpp,ui,45,2,0,0,0,0,0,0,0,0,0,0,0,0,0

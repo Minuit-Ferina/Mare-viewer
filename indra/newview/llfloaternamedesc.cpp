@@ -106,41 +106,20 @@ bool LLFloaterNameDesc::postBuild()
 
     r.setLeftTopAndSize( PREVIEW_HPAD, y, line_width, PREVIEW_LINE_HEIGHT );
 
-    getChild<LLUICtrl>("name_form")->setCommitCallback(boost::bind(&LLFloaterNameDesc::doCommit, this));
-    getChild<LLUICtrl>("name_form")->setValue(LLSD(asset_name));
-
-    LLLineEditor *NameEditor = getChild<LLLineEditor>("name_form");
-    if (NameEditor)
-    {
-        NameEditor->setMaxTextLength(DB_INV_ITEM_NAME_STR_LEN);
-        NameEditor->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
-    }
+    setupNameField(asset_name);
 
     y -= llfloor(PREVIEW_LINE_HEIGHT * 1.2f);
     y -= PREVIEW_LINE_HEIGHT;
 
     r.setLeftTopAndSize( PREVIEW_HPAD, y, line_width, PREVIEW_LINE_HEIGHT );
-    getChild<LLUICtrl>("description_form")->setCommitCallback(boost::bind(&LLFloaterNameDesc::doCommit, this));
-    LLLineEditor *DescEditor = getChild<LLLineEditor>("description_form");
-    if (DescEditor)
-    {
-        DescEditor->setMaxTextLength(DB_INV_ITEM_DESC_STR_LEN);
-        DescEditor->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
-    }
+    setupDescriptionField();
 
     y -= llfloor(PREVIEW_LINE_HEIGHT * 1.2f);
 
     // Cancel button
     getChild<LLUICtrl>("cancel_btn")->setCommitCallback(boost::bind(&LLFloaterNameDesc::onBtnCancel, this));
 
-    S32 expected_upload_cost = getExpectedUploadCost();
-    getChild<LLUICtrl>("ok_btn")->setLabelArg("[AMOUNT]", llformat("%d", expected_upload_cost));
-
-    LLTextBox* info_text = getChild<LLTextBox>("info_text");
-    if (info_text)
-    {
-        info_text->setValue(LLTrans::getString("UploadFeeInfo"));
-    }
+    setupUploadCostControls(getExpectedUploadCost());
 
     setDefaultBtn("ok_btn");
 
@@ -164,6 +143,61 @@ S32 LLFloaterNameDesc::getExpectedUploadCost() const
         LL_WARNS() << "Unable to find upload cost for " << mFilename << LL_ENDL;
     }
     return upload_cost;
+}
+
+void LLFloaterNameDesc::setupNameField(const std::string& asset_name)
+{
+    getChild<LLUICtrl>("name_form")->setCommitCallback(boost::bind(&LLFloaterNameDesc::doCommit, this));
+    getChild<LLUICtrl>("name_form")->setValue(LLSD(asset_name));
+
+    LLLineEditor* name_editor = getChild<LLLineEditor>("name_form");
+    if (name_editor)
+    {
+        name_editor->setMaxTextLength(DB_INV_ITEM_NAME_STR_LEN);
+        name_editor->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
+    }
+}
+
+void LLFloaterNameDesc::setupDescriptionField()
+{
+    getChild<LLUICtrl>("description_form")->setCommitCallback(boost::bind(&LLFloaterNameDesc::doCommit, this));
+    LLLineEditor* desc_editor = getChild<LLLineEditor>("description_form");
+    if (desc_editor)
+    {
+        desc_editor->setMaxTextLength(DB_INV_ITEM_DESC_STR_LEN);
+        desc_editor->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
+    }
+}
+
+void LLFloaterNameDesc::setupUploadCostControls(S32 expected_upload_cost)
+{
+    getChild<LLUICtrl>("ok_btn")->setLabelArg("[AMOUNT]", llformat("%d", expected_upload_cost));
+
+    LLTextBox* info_text = getChild<LLTextBox>("info_text");
+    if (info_text)
+    {
+        info_text->setValue(LLTrans::getString("UploadFeeInfo"));
+    }
+}
+
+void LLFloaterNameDesc::setupUploadCommitAction()
+{
+    getChild<LLUICtrl>("ok_btn")->setCommitCallback(boost::bind(&LLFloaterNameDesc::onBtnOK, this));
+}
+
+void LLFloaterNameDesc::setUploadButtonEnabled(bool enabled)
+{
+    getChildView("ok_btn")->setEnabled(enabled);
+}
+
+std::string LLFloaterNameDesc::getUploadName()
+{
+    return getChild<LLUICtrl>("name_form")->getValue().asString();
+}
+
+std::string LLFloaterNameDesc::getUploadDescription()
+{
+    return getChild<LLUICtrl>("description_form")->getValue().asString();
 }
 
 //-----------------------------------------------------------------------------
@@ -195,7 +229,7 @@ void LLFloaterNameDesc::doCommit()
 //-----------------------------------------------------------------------------
 void LLFloaterNameDesc::onBtnOK( )
 {
-    getChildView("ok_btn")->setEnabled(false); // don't allow inadvertent extra uploads
+    setUploadButtonEnabled(false); // don't allow inadvertent extra uploads
 
     LLAssetStorage::LLStoreAssetCallback callback;
     S32 expected_upload_cost = getExpectedUploadCost();
@@ -206,8 +240,8 @@ void LLFloaterNameDesc::onBtnOK( )
 
         LLResourceUploadInfo::ptr_t uploadInfo(std::make_shared<LLNewFileResourceUploadInfo>(
             mFilenameAndPath,
-            getChild<LLUICtrl>("name_form")->getValue().asString(),
-            getChild<LLUICtrl>("description_form")->getValue().asString(), 0,
+            getUploadName(),
+            getUploadDescription(), 0,
             LLFolderType::FT_NONE, LLInventoryType::IT_NONE,
             LLFloaterPerms::getNextOwnerPerms("Uploads"),
             LLFloaterPerms::getGroupPerms("Uploads"),
@@ -252,7 +286,7 @@ bool LLFloaterSoundPreview::postBuild()
     {
         return false;
     }
-    getChild<LLUICtrl>("ok_btn")->setCommitCallback(boost::bind(&LLFloaterNameDesc::onBtnOK, this));
+    setupUploadCommitAction();
     return true;
 }
 
@@ -272,7 +306,7 @@ bool LLFloaterAnimPreview::postBuild()
     {
         return false;
     }
-    getChild<LLUICtrl>("ok_btn")->setCommitCallback(boost::bind(&LLFloaterNameDesc::onBtnOK, this));
+    setupUploadCommitAction();
     return true;
 }
 
@@ -292,6 +326,6 @@ bool LLFloaterScriptPreview::postBuild()
     {
         return false;
     }
-    getChild<LLUICtrl>("ok_btn")->setCommitCallback(boost::bind(&LLFloaterNameDesc::onBtnOK, this));
+    setupUploadCommitAction();
     return true;
 }

@@ -74,6 +74,9 @@ protected:
     void addKeys();
     void addAnimations();
     void addSounds();
+    void setupDescriptionField(const LLInventoryItem* item);
+    void hideStepOptionControls();
+    void setStepEditButtonsEnabled(bool enabled);
 
     void initDefaultGesture();
 

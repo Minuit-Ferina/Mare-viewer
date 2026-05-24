@@ -29,6 +29,8 @@
 
 #include "llpreview.h"
 
+class LLInventoryItem;
+
 class LLPreviewSound : public LLPreview
 {
 public:
@@ -39,6 +41,9 @@ public:
 
 protected:
     bool postBuild() override;
+    void setupDescriptionField(const LLInventoryItem* item);
+    void setupSoundButtons();
+    void preloadSound(const LLInventoryItem* item);
 };
 
 #endif  // LL_LLPREVIEWSOUND_H

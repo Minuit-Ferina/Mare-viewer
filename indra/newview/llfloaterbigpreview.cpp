@@ -72,12 +72,21 @@ void LLFloaterBigPreview::draw()
     LLFloater::draw();
 
     LLSnapshotLivePreview * previewp = static_cast<LLSnapshotLivePreview *>(mPreviewHandle.get());
+    drawBigThumbnail(previewp);
+}
 
+LLRect LLFloaterBigPreview::getPreviewPlaceholderRect() const
+{
+    return mPreviewPlaceholder->getRect();
+}
+
+void LLFloaterBigPreview::drawBigThumbnail(LLSnapshotLivePreview* previewp)
+{
     // Display the preview if one is available
     if (previewp && previewp->getBigThumbnailImage())
     {
         // Get the preview rect
-        const LLRect& preview_rect = mPreviewPlaceholder->getRect();
+        const LLRect preview_rect = getPreviewPlaceholderRect();
 
         // Get the preview texture size
         S32 thumbnail_w = previewp->getBigThumbnailWidth();
@@ -107,4 +116,3 @@ void LLFloaterBigPreview::draw()
                              previewp->getBigThumbnailImage(), color % alpha);
     }
 }
-

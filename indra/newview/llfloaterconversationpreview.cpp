@@ -41,6 +41,7 @@ const S32 CONVERSATION_HISTORY_PAGE_SIZE = 100;
 
 LLFloaterConversationPreview::LLFloaterConversationPreview(const LLSD& session_id)
 :   LLFloater(session_id),
+    mPageSpinner(NULL),
     mChatHistory(NULL),
     mSessionID(session_id.asUUID()),
     mCurrentPage(0),
@@ -63,7 +64,13 @@ LLFloaterConversationPreview::~LLFloaterConversationPreview()
 bool LLFloaterConversationPreview::postBuild()
 {
     mChatHistory = getChild<LLChatHistory>("chat_history");
+    syncConversationIdentity();
 
+    return LLFloater::postBuild();
+}
+
+void LLFloaterConversationPreview::syncConversationIdentity()
+{
     const LLConversation* conv = LLConversationLog::instance().getConversation(mSessionID);
     std::string name;
     std::string file;
@@ -93,8 +100,6 @@ bool LLFloaterConversationPreview::postBuild()
     args["[NAME]"] = name;
     std::string title = getString("Title", args);
     setTitle(title);
-
-    return LLFloater::postBuild();
 }
 
 void LLFloaterConversationPreview::setPages(std::list<LLSD>* messages, const std::string& file_name)
@@ -110,12 +115,7 @@ void LLFloaterConversationPreview::setPages(std::list<LLSD>* messages, const std
         mMessages = messages;
         mCurrentPage = (mMessages->size() ? (static_cast<int>(mMessages->size()) - 1) / mPageSize : 0);
 
-        mPageSpinner->setEnabled(true);
-        mPageSpinner->setMaxValue((F32)(mCurrentPage+1));
-        mPageSpinner->set((F32)(mCurrentPage+1));
-
-        std::string total_page_num = llformat("/ %d", mCurrentPage+1);
-        getChild<LLTextBox>("page_num_label")->setValue(total_page_num);
+        syncPageControls();
         mShowHistory = true;
     }
     LLLoadHistoryThread* loadThread = LLLogChat::getInstance()->getLoadHistoryThread(mSessionID);
@@ -154,19 +154,9 @@ void LLFloaterConversationPreview::onOpen(const LLSD& key)
     load_params["cut_off_todays_date"] = false;
     load_params["is_group"] = mIsGroup;
 
-    // The temporary message list with "Loading..." text
-    // Will be deleted upon loading completion in setPages() method
-    mMessages = new std::list<LLSD>();
-
-
-    LLSD loading;
-    loading[LL_IM_TEXT] = LLTrans::getString("loading_chat_logs");
-    mMessages->push_back(loading);
+    queueLoadingMessage();
     mPageSpinner = getChild<LLSpinCtrl>("history_page_spin");
-    mPageSpinner->setCommitCallback(boost::bind(&LLFloaterConversationPreview::onMoreHistoryBtnClick, this));
-    mPageSpinner->setMinValue(1);
-    mPageSpinner->set(1);
-    mPageSpinner->setEnabled(false);
+    setupPageSpinner();
 
     // The actual message list to load from file
     // Will be deleted in a separate thread LLDeleteHistoryThread not to freeze UI
@@ -185,6 +175,35 @@ void LLFloaterConversationPreview::onOpen(const LLSD& key)
     log_chat_inst->addDeleteHistoryThread(mSessionID, deleteThread);
 
     mShowHistory = true;
+}
+
+void LLFloaterConversationPreview::setupPageSpinner()
+{
+    mPageSpinner->setCommitCallback(boost::bind(&LLFloaterConversationPreview::onMoreHistoryBtnClick, this));
+    mPageSpinner->setMinValue(1);
+    mPageSpinner->set(1);
+    mPageSpinner->setEnabled(false);
+}
+
+void LLFloaterConversationPreview::syncPageControls()
+{
+    mPageSpinner->setEnabled(true);
+    mPageSpinner->setMaxValue((F32)(mCurrentPage+1));
+    mPageSpinner->set((F32)(mCurrentPage+1));
+
+    std::string total_page_num = llformat("/ %d", mCurrentPage+1);
+    getChild<LLTextBox>("page_num_label")->setValue(total_page_num);
+}
+
+void LLFloaterConversationPreview::queueLoadingMessage()
+{
+    // The temporary message list with "Loading..." text
+    // Will be deleted upon loading completion in setPages() method
+    mMessages = new std::list<LLSD>();
+
+    LLSD loading;
+    loading[LL_IM_TEXT] = LLTrans::getString("loading_chat_logs");
+    mMessages->push_back(loading);
 }
 
 void LLFloaterConversationPreview::onClose(bool app_quitting)

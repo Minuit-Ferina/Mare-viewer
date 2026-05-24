@@ -1637,18 +1637,40 @@ bool LLPreviewLSL::postBuild()
     const LLInventoryItem* item = getItem();
 
     llassert(item);
-    if (item)
-    {
-        getChild<LLUICtrl>("desc")->setValue(item->getDescription());
-
-        std::string item_path = get_category_path(item->getParentUUID());
-        getChild<LLUICtrl>("path_txt")->setValue(item_path);
-        getChild<LLUICtrl>("path_txt")->setToolTip(item_path);
-    }
+    syncDescriptionAndPath(item);
     childSetCommitCallback("desc", LLPreview::onText, this);
     getChild<LLLineEditor>("desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
 
     return LLPreview::postBuild();
+}
+
+void LLPreviewLSL::syncDescriptionAndPath(const LLInventoryItem* item)
+{
+    if (!item)
+    {
+        return;
+    }
+
+    getChild<LLUICtrl>("desc")->setValue(item->getDescription());
+    syncPath(item);
+}
+
+void LLPreviewLSL::syncPath(const LLInventoryItem* item)
+{
+    if (!item)
+    {
+        return;
+    }
+
+    std::string item_path = get_category_path(item->getParentUUID());
+    getChild<LLUICtrl>("path_txt")->setValue(item_path);
+    getChild<LLUICtrl>("path_txt")->setToolTip(item_path);
+}
+
+void LLPreviewLSL::markScriptItemRemoved()
+{
+    setTitle(LLTrans::getString("ScriptWasDeleted"));
+    mScriptEd->setItemRemoved(true);
 }
 
 void LLPreviewLSL::draw()
@@ -1656,14 +1678,11 @@ void LLPreviewLSL::draw()
     const LLInventoryItem* item = getItem();
     if(!item)
     {
-        setTitle(LLTrans::getString("ScriptWasDeleted"));
-        mScriptEd->setItemRemoved(true);
+        markScriptItemRemoved();
     }
     else if (mDirty)
     {
-        std::string item_path = get_category_path(item->getParentUUID());
-        getChild<LLUICtrl>("path_txt")->setValue(item_path);
-        getChild<LLUICtrl>("path_txt")->setToolTip(item_path);
+        syncPath(item);
     }
     LLPreview::draw();
 }

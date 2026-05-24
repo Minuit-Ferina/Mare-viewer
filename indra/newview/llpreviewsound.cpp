@@ -51,15 +51,26 @@ LLPreviewSound::LLPreviewSound(const LLSD& key)
 bool    LLPreviewSound::postBuild()
 {
     const LLInventoryItem* item = getItem();
+    setupDescriptionField(item);
+    preloadSound(item);
+    setupSoundButtons();
+
+    childSetCommitCallback("desc", LLPreview::onText, this);
+    getChild<LLLineEditor>("desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
+
+    return LLPreview::postBuild();
+}
+
+void LLPreviewSound::setupDescriptionField(const LLInventoryItem* item)
+{
     if (item)
     {
         getChild<LLUICtrl>("desc")->setValue(item->getDescription());
-        if (gAudiop)
-        {
-            gAudiop->preloadSound(item->getAssetUUID()); // preload the sound
-        }
     }
+}
 
+void LLPreviewSound::setupSoundButtons()
+{
     childSetAction("Sound play btn",&LLPreviewSound::playSound,this);
     childSetAction("Sound audition btn",&LLPreviewSound::auditionSound,this);
 
@@ -68,11 +79,14 @@ bool    LLPreviewSound::postBuild()
 
     button = getChild<LLButton>("Sound audition btn");
     button->setSoundFlags(LLView::SILENT);
+}
 
-    childSetCommitCallback("desc", LLPreview::onText, this);
-    getChild<LLLineEditor>("desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
-
-    return LLPreview::postBuild();
+void LLPreviewSound::preloadSound(const LLInventoryItem* item)
+{
+    if (item && gAudiop)
+    {
+        gAudiop->preloadSound(item->getAssetUUID()); // preload the sound
+    }
 }
 
 // static

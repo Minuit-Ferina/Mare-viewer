@@ -256,6 +256,9 @@ protected:
     virtual void draw();
     virtual bool canClose();
     void closeIfNeeded();
+    void syncDescriptionAndPath(const LLInventoryItem* item);
+    void syncPath(const LLInventoryItem* item);
+    void markScriptItemRemoved();
 
     virtual void loadAsset();
     /*virtual*/ void saveIfNeeded(bool sync = true);

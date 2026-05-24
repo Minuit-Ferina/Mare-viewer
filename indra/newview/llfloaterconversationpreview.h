@@ -49,6 +49,10 @@ public:
     void onClose(bool app_quitting) override;
 
 private:
+    void syncConversationIdentity();
+    void setupPageSpinner();
+    void syncPageControls();
+    void queueLoadingMessage();
     void onMoreHistoryBtnClick();
     void showHistory();
 

@@ -3,12 +3,12 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 13 is complete on branch `phase13`. Preserve the completed
-OpenGL containment and header guardrails. For the next phase, keep using
-breadth-first multi-file preview/UI-render ownership packets, targeted object
-builds, and guardrails; do not run broad `mare-viewer` integration rebuilds
-unless explicitly selected for a branch checkpoint. Do not move source files, do
-not change runtime behavior without an explicit task, and do not start a direct
+Current rule: phase 14 is active on branch `phase14`. Preserve the completed
+OpenGL containment and header guardrails. Apply the preview/UI ownership pattern
+across all registered preview dialogs, using targeted object builds and
+guardrails; do not run broad `mare-viewer` integration rebuilds unless
+explicitly selected for a branch checkpoint. Do not move source files, do not
+change runtime behavior without an explicit task, and do not start a direct
 Vulkan port.
 
 ## Done
@@ -1864,6 +1864,17 @@ Vulkan port.
 ## Phase 1 Inventory
 
 No open items in this section right now.
+
+## Phase 14 All Preview Dialogs
+
+- [x] Create branch `phase14` from completed `phase13`.
+- [x] Add `docs/architecture/392-phase14-all-dialog-map.md`.
+- [x] Move simple UI ownership helpers across the first broad dialog/floater
+      packet outside the already-covered texture/image/model files.
+- [x] Verify affected preview dialog objects with targeted builds, regenerated
+      source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add a summary document for the first all-dialog ownership packet.
+- [ ] Map the next broad dialog family before source edits.
 
 ## Post-Phase2 Guardrails
 

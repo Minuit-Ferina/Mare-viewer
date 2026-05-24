@@ -29,6 +29,8 @@
 
 #include "llfloater.h"
 
+class LLSnapshotLivePreview;
+
 class LLFloaterBigPreview : public LLFloater
 {
 public:
@@ -45,10 +47,12 @@ public:
     void closeOnFloaterOwnerClosing(LLFloater* floaterp);
 
 private:
+    LLRect getPreviewPlaceholderRect() const;
+    void drawBigThumbnail(LLSnapshotLivePreview* previewp);
+
     LLHandle<LLView> mPreviewHandle;
     LLUICtrl*  mPreviewPlaceholder;
     LLFloater* mFloaterOwner;
 };
 
 #endif // LL_LLFLOATERBIGPREVIEW_H
-

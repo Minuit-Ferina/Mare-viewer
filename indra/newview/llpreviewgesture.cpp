@@ -384,23 +384,20 @@ bool LLPreviewGesture::postBuild()
 
     btn = getChild<LLButton>( "add_btn");
     btn->setClickedCallback(onClickAdd, this);
-    btn->setEnabled(false);
     mAddBtn = btn;
 
     btn = getChild<LLButton>( "up_btn");
     btn->setClickedCallback(onClickUp, this);
-    btn->setEnabled(false);
     mUpBtn = btn;
 
     btn = getChild<LLButton>( "down_btn");
     btn->setClickedCallback(onClickDown, this);
-    btn->setEnabled(false);
     mDownBtn = btn;
 
     btn = getChild<LLButton>( "delete_btn");
     btn->setClickedCallback(onClickDelete, this);
-    btn->setEnabled(false);
     mDeleteBtn = btn;
+    setStepEditButtonsEnabled(false);
 
     list = getChild<LLScrollListCtrl>("step_list");
     list->setCommitCallback(onCommitStep, this);
@@ -410,23 +407,19 @@ bool LLPreviewGesture::postBuild()
     mOptionsText = getChild<LLTextBox>("options_text");
 
     combo = getChild<LLComboBox>( "animation_list");
-    combo->setVisible(false);
     combo->setCommitCallback(onCommitAnimation, this);
     mAnimationCombo = combo;
 
     LLRadioGroup* group;
     group = getChild<LLRadioGroup>("animation_trigger_type");
-    group->setVisible(false);
     group->setCommitCallback(onCommitAnimationTrigger, this);
     mAnimationRadio = group;
 
     combo = getChild<LLComboBox>( "sound_list");
-    combo->setVisible(false);
     combo->setCommitCallback(onCommitSound, this);
     mSoundCombo = combo;
 
     edit = getChild<LLLineEditor>("chat_editor");
-    edit->setVisible(false);
     edit->setCommitCallback(onCommitChat, this);
     //edit->setKeystrokeCallback(onKeystrokeCommit, this);
     edit->setCommitOnFocusLost(true);
@@ -434,29 +427,26 @@ bool LLPreviewGesture::postBuild()
     mChatEditor = edit;
 
     check = getChild<LLCheckBoxCtrl>( "wait_key_release_check");
-    check->setVisible(false);
     check->setCommitCallback(onCommitWait, this);
     mWaitKeyReleaseCheck = check;
 
     check = getChild<LLCheckBoxCtrl>( "wait_anim_check");
-    check->setVisible(false);
     check->setCommitCallback(onCommitWait, this);
     mWaitAnimCheck = check;
 
     check = getChild<LLCheckBoxCtrl>( "wait_time_check");
-    check->setVisible(false);
     check->setCommitCallback(onCommitWait, this);
     mWaitTimeCheck = check;
 
     edit = getChild<LLLineEditor>("wait_time_editor");
     edit->setEnabled(false);
-    edit->setVisible(false);
     edit->setPrevalidate(LLTextValidate::validateFloat);
 //  edit->setKeystrokeCallback(onKeystrokeCommit, this);
     edit->setCommitOnFocusLost(true);
     edit->setCommitCallback(onCommitWaitTime, this);
     edit->setIgnoreTab(true);
     mWaitTimeEditor = edit;
+    hideStepOptionControls();
 
     // Buttons at the bottom
     check = getChild<LLCheckBoxCtrl>( "active_check");
@@ -479,14 +469,38 @@ bool LLPreviewGesture::postBuild()
     addSounds();
 
     const LLInventoryItem* item = getItem();
+    setupDescriptionField(item);
 
+    return LLPreview::postBuild();
+}
+
+void LLPreviewGesture::setupDescriptionField(const LLInventoryItem* item)
+{
     if (item)
     {
         getChild<LLUICtrl>("desc")->setValue(item->getDescription());
         getChild<LLLineEditor>("desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
     }
+}
 
-    return LLPreview::postBuild();
+void LLPreviewGesture::hideStepOptionControls()
+{
+    mAnimationCombo->setVisible(false);
+    mAnimationRadio->setVisible(false);
+    mSoundCombo->setVisible(false);
+    mChatEditor->setVisible(false);
+    mWaitKeyReleaseCheck->setVisible(false);
+    mWaitAnimCheck->setVisible(false);
+    mWaitTimeCheck->setVisible(false);
+    mWaitTimeEditor->setVisible(false);
+}
+
+void LLPreviewGesture::setStepEditButtonsEnabled(bool enabled)
+{
+    mAddBtn->setEnabled(enabled);
+    mUpBtn->setEnabled(enabled);
+    mDownBtn->setEnabled(enabled);
+    mDeleteBtn->setEnabled(enabled);
 }
 
 

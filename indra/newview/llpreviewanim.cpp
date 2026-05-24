@@ -52,17 +52,87 @@ LLPreviewAnim::LLPreviewAnim(const LLSD& key)
 // virtual
 bool LLPreviewAnim::postBuild()
 {
+    setupDescriptionField();
+    setupAdvancedStats();
+
+    return LLPreview::postBuild();
+}
+
+void LLPreviewAnim::setupDescriptionField()
+{
     childSetCommitCallback("desc", LLPreview::onText, this);
     getChild<LLLineEditor>("desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
+}
+
+void LLPreviewAnim::setupAdvancedStats()
+{
     getChild<LLTextBox>("adv_trigger")->setClickedCallback(boost::bind(&LLPreviewAnim::showAdvanced, this));
     pAdvancedStatsTextBox = getChild<LLTextBox>("AdvancedStats");
 
     // Assume that advanced stats start visible (for XUI preview tool's purposes)
-    pAdvancedStatsTextBox->setVisible(false);
-    LLRect rect = getRect();
-    reshape(rect.getWidth(), rect.getHeight() - pAdvancedStatsTextBox->getRect().getHeight() - ADVANCED_VPAD, false);
+    setAdvancedStatsVisible(false);
+    resizeForAdvancedStats(false);
+}
 
-    return LLPreview::postBuild();
+LLButton* LLPreviewAnim::getPlaybackButton(const std::string& button_name)
+{
+    return getChild<LLButton>(button_name);
+}
+
+void LLPreviewAnim::togglePlaybackButton(const std::string& button_name)
+{
+    if (LLButton* button = getPlaybackButton(button_name))
+    {
+        button->toggleState();
+    }
+}
+
+bool LLPreviewAnim::isPlaybackButtonChecked(const std::string& button_name)
+{
+    return getChild<LLUICtrl>(button_name)->getValue().asBoolean();
+}
+
+void LLPreviewAnim::setPlaybackButtonEnabled(const std::string& button_name, bool enabled)
+{
+    if (LLButton* button = getPlaybackButton(button_name))
+    {
+        button->setEnabled(enabled);
+    }
+}
+
+void LLPreviewAnim::resetPlaybackButtons()
+{
+    getChild<LLUICtrl>("Inworld")->setValue(false);
+    getChild<LLUICtrl>("Locally")->setValue(false);
+    setPlaybackButtonEnabled("Inworld", true);
+    setPlaybackButtonEnabled("Locally", true);
+}
+
+void LLPreviewAnim::setAdvancedStatsVisible(bool visible)
+{
+    pAdvancedStatsTextBox->setVisible(visible);
+}
+
+void LLPreviewAnim::resizeForAdvancedStats(bool visible)
+{
+    LLRect rect = getRect();
+    const S32 stats_height = pAdvancedStatsTextBox->getRect().getHeight() + ADVANCED_VPAD;
+    reshape(rect.getWidth(), visible ? rect.getHeight() + stats_height : rect.getHeight() - stats_height, false);
+}
+
+void LLPreviewAnim::syncAdvancedStatsText(LLMotion* motion)
+{
+    if (!motion)
+    {
+        return;
+    }
+
+    pAdvancedStatsTextBox->setTextArg("[PRIORITY]", llformat("%d", motion->getPriority()));
+    pAdvancedStatsTextBox->setTextArg("[DURATION]", llformat("%.2f", motion->getDuration()));
+    pAdvancedStatsTextBox->setTextArg("[EASE_IN]", llformat("%.2f", motion->getEaseInDuration()));
+    pAdvancedStatsTextBox->setTextArg("[EASE_OUT]", llformat("%.2f", motion->getEaseOutDuration()));
+    pAdvancedStatsTextBox->setTextArg("[IS_LOOP]", (motion->getLoop() ? LLTrans::getString("PermYes") : LLTrans::getString("PermNo")));
+    pAdvancedStatsTextBox->setTextArg("[NUM_JOINTS]", llformat("%d", motion->getNumJointMotions()));
 }
 
 // llinventorybridge also calls into here
@@ -75,35 +145,25 @@ void LLPreviewAnim::play(const LLSD& param)
         LLUUID itemID=item->getAssetUUID();
 
         std::string btn_name = param.asString();
-        LLButton* btn_inuse;
-        LLButton* btn_other;
+        std::string btn_other_name;
 
         if ("Inworld" == btn_name)
         {
-            btn_inuse = getChild<LLButton>("Inworld");
-            btn_other = getChild<LLButton>("Locally");
+            btn_other_name = "Locally";
         }
         else if ("Locally" == btn_name)
         {
-            btn_inuse = getChild<LLButton>("Locally");
-            btn_other = getChild<LLButton>("Inworld");
+            btn_other_name = "Inworld";
         }
         else
         {
             return;
         }
 
-        if (btn_inuse)
-        {
-            btn_inuse->toggleState();
-        }
+        togglePlaybackButton(btn_name);
+        setPlaybackButtonEnabled(btn_other_name, false);
 
-        if (btn_other)
-        {
-            btn_other->setEnabled(false);
-        }
-
-        if (getChild<LLUICtrl>(btn_name)->getValue().asBoolean() )
+        if (isPlaybackButtonChecked(btn_name))
         {
             if("Inworld" == btn_name)
             {
@@ -126,10 +186,7 @@ void LLPreviewAnim::play(const LLSD& param)
             gAgentAvatarp->stopMotion(itemID);
             gAgent.sendAnimationRequest(itemID, ANIM_REQUEST_STOP);
 
-            if (btn_other)
-            {
-                btn_other->setEnabled(true);
-            }
+            setPlaybackButtonEnabled(btn_other_name, true);
         }
     }
 }
@@ -180,10 +237,7 @@ void LLPreviewAnim::cleanup()
 {
     this->mItemID = LLUUID::null;
     this->mDidStart = false;
-    getChild<LLUICtrl>("Inworld")->setValue(false);
-    getChild<LLUICtrl>("Locally")->setValue(false);
-    getChild<LLUICtrl>("Inworld")->setEnabled(true);
-    getChild<LLUICtrl>("Locally")->setEnabled(true);
+    resetPlaybackButtons();
 }
 
 // virtual
@@ -204,15 +258,13 @@ void LLPreviewAnim::showAdvanced()
 
     if (was_visible)
     {
-        pAdvancedStatsTextBox->setVisible(false);
-        LLRect rect = getRect();
-        reshape(rect.getWidth(), rect.getHeight() - pAdvancedStatsTextBox->getRect().getHeight() - ADVANCED_VPAD, false);
+        setAdvancedStatsVisible(false);
+        resizeForAdvancedStats(false);
     }
     else
     {
-        pAdvancedStatsTextBox->setVisible(true);
-        LLRect rect = getRect();
-        reshape(rect.getWidth(), rect.getHeight() + pAdvancedStatsTextBox->getRect().getHeight() + ADVANCED_VPAD, false);
+        setAdvancedStatsVisible(true);
+        resizeForAdvancedStats(true);
 
         LLMotion *motion = NULL;
         const LLInventoryItem* item = getItem();
@@ -223,15 +275,6 @@ void LLPreviewAnim::showAdvanced()
             motion = gAgentAvatarp->createMotion(item->getAssetUUID());
         }
 
-        // set text
-        if (motion)
-        {
-            pAdvancedStatsTextBox->setTextArg("[PRIORITY]", llformat("%d", motion->getPriority()));
-            pAdvancedStatsTextBox->setTextArg("[DURATION]", llformat("%.2f", motion->getDuration()));
-            pAdvancedStatsTextBox->setTextArg("[EASE_IN]", llformat("%.2f", motion->getEaseInDuration()));
-            pAdvancedStatsTextBox->setTextArg("[EASE_OUT]", llformat("%.2f", motion->getEaseOutDuration()));
-            pAdvancedStatsTextBox->setTextArg("[IS_LOOP]", (motion->getLoop() ? LLTrans::getString("PermYes") : LLTrans::getString("PermNo")));
-            pAdvancedStatsTextBox->setTextArg("[NUM_JOINTS]", llformat("%d", motion->getNumJointMotions()));
-        }
+        syncAdvancedStatsText(motion);
     }
 }
