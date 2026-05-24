@@ -41,6 +41,23 @@ The first patch adds:
 The interface deliberately avoids `llgltypes.h` and direct OpenGL types. It is
 not a wrapper around OpenGL function names.
 
+## Threading Model
+
+Vulkan can record and prepare rendering work from multiple threads. The backend
+interface must not bake in OpenGL's implicit single-current-context model.
+
+For now, phase 17 does not add threading primitives. It records the constraint
+that future backend work must make command ownership explicit before any
+multi-threaded submission path is introduced.
+
+Design implications:
+
+- avoid global mutable render state in the abstract interface;
+- keep frame and render pass boundaries explicit;
+- do not assume command recording and command submission happen on the same
+  thread;
+- document thread ownership before routing runtime rendering through a backend.
+
 ## Verification
 
 Use a targeted `llrender` build first. The expected check is that the new

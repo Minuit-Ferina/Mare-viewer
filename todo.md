@@ -1952,6 +1952,8 @@ No open items in this section right now.
       build, regenerated source inventory, both GL guardrails, and
       `git diff --check`.
 - [x] Add `docs/architecture/407-render-backend-interface-summary.md`.
+- [x] Document that the backend interface must leave room for Vulkan-style
+      multi-threaded command recording and explicit submission ownership.
 
 ## Post-Phase2 Guardrails
 

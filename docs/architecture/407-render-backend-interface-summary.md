@@ -31,6 +31,16 @@ Current concepts:
 
 The header does not include `llgltypes.h` and does not expose OpenGL ABI types.
 
+## Threading Constraint
+
+The interface is intended to leave room for Vulkan-style multi-threaded command
+recording. It should not grow around OpenGL's implicit global current-context
+model.
+
+No multi-threaded backend behavior is implemented in this packet. Future backend
+work must define command ownership and submission ownership explicitly before
+runtime rendering is routed through the interface.
+
 ## Runtime Behavior
 
 No runtime rendering path uses this interface yet.
