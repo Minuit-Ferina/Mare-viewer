@@ -3,13 +3,13 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 16 is active on branch `phase16`. Preserve the completed
-OpenGL containment, header guardrails, phase 14 floater boundary, and phase 15
-non-floater UI ownership boundary. Apply the UI ownership helper pattern to the
-small `indra/llui` toolkit surface with targeted object builds and guardrails;
-do not run broad `mare-viewer` integration rebuilds unless explicitly selected
-for a branch checkpoint. Do not move source files, do not change runtime
-behavior without an explicit task, and do not start a direct Vulkan port.
+Current rule: phase 17 is active on branch `phase17`. Preserve the completed
+OpenGL containment, header guardrails, and UI ownership helper boundaries. Add
+only backend-neutral rendering interface vocabulary first; do not route runtime
+rendering through it until a specific owner migration is selected. Do not run
+broad `mare-viewer` integration rebuilds unless explicitly selected for a
+branch checkpoint. Do not move source files, do not change runtime behavior
+without an explicit task, and do not start a direct Vulkan port.
 
 ## Done
 
@@ -1941,6 +1941,17 @@ No open items in this section right now.
 - [x] Verify the `llui` toolkit sweep with targeted builds, regenerated source
       inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/405-llui-toolkit-helper-sweep-summary.md`.
+
+## Phase 17 Render Backend Interface
+
+- [x] Create branch `phase17` from completed phase 16 source packet.
+- [x] Add `docs/architecture/406-phase17-render-backend-interface-plan.md`.
+- [x] Add a minimal backend-neutral render interface under `indra/llrender`.
+- [x] Wire the new interface translation unit into the `llrender` target.
+- [x] Verify the first render backend interface patch with targeted `llrender`
+      build, regenerated source inventory, both GL guardrails, and
+      `git diff --check`.
+- [x] Add `docs/architecture/407-render-backend-interface-summary.md`.
 
 ## Post-Phase2 Guardrails
 

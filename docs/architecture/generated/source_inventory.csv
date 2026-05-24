@@ -1760,6 +1760,7 @@ indra/llcommon/lltempredirect.cpp,core,139,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llappearance/llwearable.h,unknown,139,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llfunctorregistry.h,unknown,139,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llplugin/llpluginmessage.h,unknown,138,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/llrender/llrenderbackend.h,render.legacy_low_level,138,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llimage/llimagefilter.h,unknown,138,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/llhttpconstants.cpp,unknown,138,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llviewquery.h,unknown,138,3,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -2862,6 +2863,7 @@ indra/newview/app_settings/shaders/class1/interface/onetexturefilterF.glsl,asset
 indra/newview/app_settings/shaders/class1/deferred/diffuseNoColorV.glsl,viewer.misc,46,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/SMAAEdgeDetectV.glsl,viewer.misc,46,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/llmessagesenderinterface.h,network,45,2,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/llrender/llrenderbackend.cpp,render.legacy_low_level,45,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/test/test.h,unknown,45,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/pieseparator.cpp,viewer.misc,45,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llnotificationlistview.cpp,viewer.misc,45,2,0,0,0,0,0,0,0,0,0,0,0,0,0
