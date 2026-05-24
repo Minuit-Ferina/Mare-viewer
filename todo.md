@@ -3,11 +3,12 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 10 is active on branch `phase10`. Preserve the completed
-OpenGL containment and header guardrails, then prepare the next renderer
-boundaries with docs-first, small, reviewable packets. Do not move source
-files, do not change runtime behavior without an explicit task, and do not
-start a direct Vulkan port.
+Current rule: phase 10 is complete on branch `phase10`. Preserve the completed
+OpenGL containment and header guardrails. Start the next phase with a
+docs-first plan that targets a real behavior-preserving UI/render separation
+boundary, not another helper-only cleanup phase unless that cleanup directly
+supports the separation. Do not move source files, do not change runtime
+behavior without an explicit task, and do not start a direct Vulkan port.
 
 ## Done
 
@@ -1613,10 +1614,23 @@ start a direct Vulkan port.
       `llmodelpreview.cpp.o`, regenerated source inventory, both GL guardrails,
       and `git diff --check`.
 - [x] Add `docs/architecture/334-model-preview-skinned-summary.md`.
-- [ ] Keep any `needsRender()` override out of wrapper-only packets.
-- [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
+- [x] Keep any `needsRender()` override out of wrapper-only packets.
+- [x] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
       multi-window, and multi-login work out of phase 10 unless explicitly
       selected later.
+- [x] Run the final phase 10 integration checkpoint.
+- [x] Add `docs/architecture/335-phase10-completion-summary.md`.
+- [x] Close phase 10.
+
+## Phase 11 Candidate Backlog
+
+- [ ] Start phase 11 with a docs-first plan before any source edits.
+- [ ] Map a real behavior-preserving separation of `LLModelPreview` UI
+      mutation from render work before moving code.
+- [ ] Do not start another helper-only phase unless it directly supports that
+      separation.
+- [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
+      multi-window, and multi-login work out unless explicitly selected.
 
 ## Phase 1 Inventory
 
