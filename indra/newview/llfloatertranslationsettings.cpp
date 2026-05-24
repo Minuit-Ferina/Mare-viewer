@@ -54,6 +54,15 @@ LLFloaterTranslationSettings::LLFloaterTranslationSettings(const LLSD& key)
 // virtual
 bool LLFloaterTranslationSettings::postBuild()
 {
+    setupControls();
+    setupCallbacks();
+
+    center();
+    return true;
+}
+
+void LLFloaterTranslationSettings::setupControls()
+{
     mMachineTranslationCB = getChild<LLCheckBoxCtrl>("translate_chat_checkbox");
     mLanguageCombo = getChild<LLComboBox>("translate_language_combo");
     mTranslationServiceRadioGroup = getChild<LLRadioGroup>("translation_service_rg");
@@ -67,7 +76,10 @@ bool LLFloaterTranslationSettings::postBuild()
     mGoogleVerifyBtn = getChild<LLButton>("verify_google_api_key_btn");
     mDeepLVerifyBtn = getChild<LLButton>("verify_deepl_api_key_btn");
     mOKBtn = getChild<LLButton>("ok_btn");
+}
 
+void LLFloaterTranslationSettings::setupCallbacks()
+{
     mMachineTranslationCB->setCommitCallback(boost::bind(&LLFloaterTranslationSettings::updateControlsEnabledState, this));
     mTranslationServiceRadioGroup->setCommitCallback(boost::bind(&LLFloaterTranslationSettings::updateControlsEnabledState, this));
     mOKBtn->setClickedCallback(boost::bind(&LLFloaterTranslationSettings::onBtnOK, this));
@@ -104,19 +116,28 @@ bool LLFloaterTranslationSettings::postBuild()
                                                {
                                                 setDeepLVerified(false, false, 0);
                                                });
-
-    center();
-    return true;
 }
 
 // virtual
 void LLFloaterTranslationSettings::onOpen(const LLSD& key)
 {
+    syncSettingsFromSaved();
+    updateControlsEnabledState();
+}
+
+void LLFloaterTranslationSettings::syncSettingsFromSaved()
+{
     mMachineTranslationCB->setValue(gSavedSettings.getBOOL("TranslateChat"));
     mLanguageCombo->setSelectedByValue(gSavedSettings.getString("TranslateLanguage"), true);
     mTranslationServiceRadioGroup->setSelectedByValue(gSavedSettings.getString("TranslationService"), true);
 
-    LLSD azure_key = gSavedSettings.getLLSD("AzureTranslateAPIKey");
+    syncAzureKeyFromSaved(gSavedSettings.getLLSD("AzureTranslateAPIKey"));
+    syncGoogleKeyFromSaved(gSavedSettings.getString("GoogleTranslateAPIKey"));
+    syncDeepLKeyFromSaved(gSavedSettings.getLLSD("DeepLTranslateAPIKey"));
+}
+
+void LLFloaterTranslationSettings::syncAzureKeyFromSaved(const LLSD& azure_key)
+{
     if (azure_key.isMap() && !azure_key["id"].asString().empty())
     {
         mAzureAPIKeyEditor->setText(azure_key["id"].asString());
@@ -139,8 +160,10 @@ void LLFloaterTranslationSettings::onOpen(const LLSD& key)
         mAzureAPIRegionEditor->setTentative(true);
         mAzureKeyVerified = false;
     }
+}
 
-    std::string google_key = gSavedSettings.getString("GoogleTranslateAPIKey");
+void LLFloaterTranslationSettings::syncGoogleKeyFromSaved(const std::string& google_key)
+{
     if (!google_key.empty())
     {
         mGoogleAPIKeyEditor->setText(google_key);
@@ -152,8 +175,10 @@ void LLFloaterTranslationSettings::onOpen(const LLSD& key)
         mGoogleAPIKeyEditor->setTentative(true);
         mGoogleKeyVerified = false;
     }
+}
 
-    LLSD deepl_key = gSavedSettings.getLLSD("DeepLTranslateAPIKey");
+void LLFloaterTranslationSettings::syncDeepLKeyFromSaved(const LLSD& deepl_key)
+{
     if (deepl_key.isMap() && !deepl_key["id"].asString().empty())
     {
         mDeepLAPIKeyEditor->setText(deepl_key["id"].asString());
@@ -166,8 +191,6 @@ void LLFloaterTranslationSettings::onOpen(const LLSD& key)
         mDeepLAPIKeyEditor->setTentative(true);
         mDeepLKeyVerified = false;
     }
-
-    updateControlsEnabledState();
 }
 
 void LLFloaterTranslationSettings::setAzureVerified(bool ok, bool alert, S32 status)
@@ -264,27 +287,27 @@ void LLFloaterTranslationSettings::updateControlsEnabledState()
     mLanguageCombo->setEnabled(on);
 
     // MS Azure
-    getChild<LLTextBox>("azure_api_endoint_label")->setEnabled(on);
+    setLabelEnabled("azure_api_endoint_label", on);
     mAzureAPIEndpointEditor->setEnabled(on && azure_selected);
-    getChild<LLTextBox>("azure_api_key_label")->setEnabled(on);
+    setLabelEnabled("azure_api_key_label", on);
     mAzureAPIKeyEditor->setEnabled(on && azure_selected);
-    getChild<LLTextBox>("azure_api_region_label")->setEnabled(on);
+    setLabelEnabled("azure_api_region_label", on);
     mAzureAPIRegionEditor->setEnabled(on && azure_selected);
 
     mAzureVerifyBtn->setEnabled(on && azure_selected &&
                                 !mAzureKeyVerified && getEnteredAzureKey().isMap());
 
     // Google
-    getChild<LLTextBox>("google_api_key_label")->setEnabled(on);
+    setLabelEnabled("google_api_key_label", on);
     mGoogleAPIKeyEditor->setEnabled(on && google_selected);
 
     mGoogleVerifyBtn->setEnabled(on && google_selected &&
         !mGoogleKeyVerified && !getEnteredGoogleKey().empty());
 
     // DeepL
-    getChild<LLTextBox>("deepl_api_domain_label")->setEnabled(on);
+    setLabelEnabled("deepl_api_domain_label", on);
     mDeepLAPIDomainCombo->setEnabled(on && deepl_selected);
-    getChild<LLTextBox>("deepl_api_key_label")->setEnabled(on);
+    setLabelEnabled("deepl_api_key_label", on);
     mDeepLAPIKeyEditor->setEnabled(on && deepl_selected);
 
     mDeepLVerifyBtn->setEnabled(on && deepl_selected &&
@@ -297,6 +320,11 @@ void LLFloaterTranslationSettings::updateControlsEnabledState()
     gSavedPerAccountSettings.setBOOL("TranslatingEnabled", service_verified);
 
     mOKBtn->setEnabled(!on || service_verified);
+}
+
+void LLFloaterTranslationSettings::setLabelEnabled(const std::string& name, bool enabled)
+{
+    getChild<LLTextBox>(name)->setEnabled(enabled);
 }
 
 /*static*/

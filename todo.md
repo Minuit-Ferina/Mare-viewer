@@ -1889,8 +1889,14 @@ No open items in this section right now.
 - [x] Verify camera/environment dialog objects with targeted builds,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/396-camera-environment-dialog-helpers-summary.md`.
-- [ ] Continue with the next broad dialog/floater family, keeping
+- [x] Continue with the next broad dialog/floater family, keeping
       `llfloaterpreference.cpp` as an isolated packet because of its size.
+- [x] Move simple UI ownership helpers across settings utility dialogs.
+- [x] Verify settings utility dialog objects with targeted builds, regenerated
+      source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/397-settings-utility-dialog-helpers-summary.md`.
+- [ ] Continue with larger settings/admin dialogs such as `llfloatersettingsdebug.cpp`
+      and `llfloaterautoreplacesettings.cpp`.
 
 ## Post-Phase2 Guardrails
 

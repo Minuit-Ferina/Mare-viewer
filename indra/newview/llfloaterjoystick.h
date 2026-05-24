@@ -60,6 +60,11 @@ private:
     LLFloaterJoystick(const LLSD& data);
     virtual ~LLFloaterJoystick();
 
+    void setupAxisStats(F32 range);
+    void setupControls();
+    void setupCallbacks();
+    void selectJoystickDevice(bool is_device_id_set);
+    void updateCurrentDeviceTracking(bool is_device_id_set);
     void initFromSettings();
 
     static void onCommitJoystickEnabled(LLUICtrl*, void*);

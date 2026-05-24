@@ -54,17 +54,8 @@ bool LLFloaterSettingsColor::postBuild()
 {
     enableResizeCtrls(true, false, true);
 
-    mAlphaSpinner = getChild<LLSpinCtrl>("alpha_spinner");
-    mColorSwatch = getChild<LLColorSwatchCtrl>("color_swatch");
-
-    mDefaultButton = getChild<LLUICtrl>("default_btn");
-    mSettingNameText = getChild<LLTextBox>("color_name_txt");
-
-    getChild<LLFilterEditor>("filter_input")->setCommitCallback(boost::bind(&LLFloaterSettingsColor::setSearchFilter, this, _2));
-
-    mSettingList = getChild<LLScrollListCtrl>("setting_list");
-    mSettingList->setCommitOnSelectionChange(true);
-    mSettingList->setCommitCallback(boost::bind(&LLFloaterSettingsColor::onSettingSelect, this));
+    setupControls();
+    setupCallbacks();
 
     updateList();
 
@@ -73,15 +64,30 @@ bool LLFloaterSettingsColor::postBuild()
     return LLFloater::postBuild();
 }
 
+void LLFloaterSettingsColor::setupControls()
+{
+    mAlphaSpinner = getChild<LLSpinCtrl>("alpha_spinner");
+    mColorSwatch = getChild<LLColorSwatchCtrl>("color_swatch");
+
+    mDefaultButton = getChild<LLUICtrl>("default_btn");
+    mSettingNameText = getChild<LLTextBox>("color_name_txt");
+    mSettingList = getChild<LLScrollListCtrl>("setting_list");
+}
+
+void LLFloaterSettingsColor::setupCallbacks()
+{
+    getChild<LLFilterEditor>("filter_input")->setCommitCallback(boost::bind(&LLFloaterSettingsColor::setSearchFilter, this, _2));
+
+    mSettingList->setCommitOnSelectionChange(true);
+    mSettingList->setCommitCallback(boost::bind(&LLFloaterSettingsColor::onSettingSelect, this));
+}
+
 void LLFloaterSettingsColor::draw()
 {
-    LLScrollListItem* first_selected = mSettingList->getFirstSelected();
-    if (first_selected)
+    const std::string color_name = getSelectedColorName();
+    if (!color_name.empty())
     {
-        if(auto cell = first_selected->getColumn(1))
-        {
-            updateControl(cell->getValue().asString());
-        }
+        updateControl(color_name);
     }
 
     LLFloater::draw();
@@ -94,14 +100,8 @@ void LLFloaterSettingsColor::onCommitSettings()
     {
         return;
     }
-    auto cell = first_selected->getColumn(1);
 
-    if (!cell)
-    {
-        return;
-    }
-
-    auto color_name = cell->getValue().asString();
+    auto color_name = getSelectedColorName();
     if (color_name.empty())
     {
         return;
@@ -119,17 +119,12 @@ void LLFloaterSettingsColor::onCommitSettings()
 // static
 void LLFloaterSettingsColor::onClickDefault()
 {
-    LLScrollListItem* first_selected = mSettingList->getFirstSelected();
-    if (first_selected)
+    auto name = getSelectedColorName();
+    if (!name.empty())
     {
-        auto cell = first_selected->getColumn(1);
-        if (cell)
-        {
-            auto name = cell->getValue().asString();
-            LLUIColorTable::instance().resetToDefault(name);
-            updateDefaultColumn(name);
-            updateControl(name);
-        }
+        LLUIColorTable::instance().resetToDefault(name);
+        updateDefaultColumn(name);
+        updateControl(name);
     }
 }
 
@@ -140,29 +135,46 @@ void LLFloaterSettingsColor::updateControl(const std::string& color_name)
 
     if (!isSettingHidden(color_name))
     {
-        mDefaultButton->setVisible(true);
-        mSettingNameText->setVisible(true);
-        mSettingNameText->setText(color_name);
-        mSettingNameText->setToolTip(color_name);
-
         LLColor4 clr = LLUIColorTable::instance().getColor(color_name);
-        mColorSwatch->setVisible(true);
-        // only set if changed so color picker doesn't update
-        if (clr != LLColor4(mColorSwatch->getValue()))
-        {
-            mColorSwatch->setOriginal(clr);
-        }
-        mAlphaSpinner->setVisible(true);
-        mAlphaSpinner->setLabel(std::string("Alpha"));
-        if (!mAlphaSpinner->hasFocus())
-        {
-            mAlphaSpinner->setPrecision(3);
-            mAlphaSpinner->setMinValue(0.0);
-            mAlphaSpinner->setMaxValue(1.f);
-            mAlphaSpinner->setValue(clr.mV[VALPHA]);
-        }
+        showColorControls(color_name, clr);
     }
 
+}
+
+std::string LLFloaterSettingsColor::getSelectedColorName()
+{
+    LLScrollListItem* first_selected = mSettingList->getFirstSelected();
+    if (!first_selected)
+    {
+        return std::string();
+    }
+
+    auto cell = first_selected->getColumn(1);
+    return cell ? cell->getValue().asString() : std::string();
+}
+
+void LLFloaterSettingsColor::showColorControls(const std::string& color_name, const LLColor4& color)
+{
+    mDefaultButton->setVisible(true);
+    mSettingNameText->setVisible(true);
+    mSettingNameText->setText(color_name);
+    mSettingNameText->setToolTip(color_name);
+
+    mColorSwatch->setVisible(true);
+    // only set if changed so color picker doesn't update
+    if (color != LLColor4(mColorSwatch->getValue()))
+    {
+        mColorSwatch->setOriginal(color);
+    }
+    mAlphaSpinner->setVisible(true);
+    mAlphaSpinner->setLabel(std::string("Alpha"));
+    if (!mAlphaSpinner->hasFocus())
+    {
+        mAlphaSpinner->setPrecision(3);
+        mAlphaSpinner->setMinValue(0.0);
+        mAlphaSpinner->setMaxValue(1.f);
+        mAlphaSpinner->setValue(color.mV[VALPHA]);
+    }
 }
 
 void LLFloaterSettingsColor::updateList(bool skip_selection)
@@ -331,4 +343,3 @@ void LLFloaterSettingsColor::hideUIControls()
     mDefaultButton->setVisible(false);
     mSettingNameText->setVisible(false);
 }
-

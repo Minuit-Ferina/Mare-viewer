@@ -62,6 +62,10 @@ private:
     void onSettingSelect();
     void setSearchFilter(const std::string& filter);
 
+    void setupControls();
+    void setupCallbacks();
+    std::string getSelectedColorName();
+    void showColorControls(const std::string& color_name, const LLColor4& color);
     void updateDefaultColumn(const std::string& color_name);
     void hideUIControls();
 
@@ -78,4 +82,3 @@ protected:
 };
 
 #endif //LLFLOATERCOLORSETTINGS_H
-

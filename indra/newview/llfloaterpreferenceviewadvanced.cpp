@@ -45,19 +45,15 @@ LLFloaterPreferenceViewAdvanced::~LLFloaterPreferenceViewAdvanced()
 
 void LLFloaterPreferenceViewAdvanced::updateCameraControl(const LLVector3& vector)
 {
-    getChild<LLSpinCtrl>("camera_x")->setValue(vector[VX]);
-    getChild<LLSpinCtrl>("camera_y")->setValue(vector[VY]);
-    getChild<LLSpinCtrl>("camera_z")->setValue(vector[VZ]);
+    setCameraAxisControls(vector);
 }
 
 void LLFloaterPreferenceViewAdvanced::updateFocusControl(const LLVector3d& vector3d)
 {
-    getChild<LLSpinCtrl>("focus_x")->setValue(vector3d[VX]);
-    getChild<LLSpinCtrl>("focus_y")->setValue(vector3d[VY]);
-    getChild<LLSpinCtrl>("focus_z")->setValue(vector3d[VZ]);
+    setFocusAxisControls(vector3d);
 }
 
- void LLFloaterPreferenceViewAdvanced::draw()
+void LLFloaterPreferenceViewAdvanced::draw()
 {
     updateCameraControl(gAgentCamera.getCameraOffsetInitial());
     updateFocusControl(gAgentCamera.getFocusOffsetInitial());
@@ -67,16 +63,43 @@ void LLFloaterPreferenceViewAdvanced::updateFocusControl(const LLVector3d& vecto
 
 void LLFloaterPreferenceViewAdvanced::onCommitSettings()
 {
+    gSavedSettings.setVector3("CameraOffsetRearView", getCameraAxisControls());
+    gSavedSettings.setVector3d("FocusOffsetRearView", getFocusAxisControls());
+}
+
+void LLFloaterPreferenceViewAdvanced::setCameraAxisControls(const LLVector3& vector)
+{
+    getChild<LLSpinCtrl>("camera_x")->setValue(vector[VX]);
+    getChild<LLSpinCtrl>("camera_y")->setValue(vector[VY]);
+    getChild<LLSpinCtrl>("camera_z")->setValue(vector[VZ]);
+}
+
+void LLFloaterPreferenceViewAdvanced::setFocusAxisControls(const LLVector3d& vector3d)
+{
+    getChild<LLSpinCtrl>("focus_x")->setValue(vector3d[VX]);
+    getChild<LLSpinCtrl>("focus_y")->setValue(vector3d[VY]);
+    getChild<LLSpinCtrl>("focus_z")->setValue(vector3d[VZ]);
+}
+
+LLVector3 LLFloaterPreferenceViewAdvanced::getCameraAxisControls()
+{
     LLVector3 vector;
+    vector.mV[VX] = getControlF32("camera_x");
+    vector.mV[VY] = getControlF32("camera_y");
+    vector.mV[VZ] = getControlF32("camera_z");
+    return vector;
+}
+
+LLVector3d LLFloaterPreferenceViewAdvanced::getFocusAxisControls()
+{
     LLVector3d vector3d;
+    vector3d.mdV[VX] = getControlF32("focus_x");
+    vector3d.mdV[VY] = getControlF32("focus_y");
+    vector3d.mdV[VZ] = getControlF32("focus_z");
+    return vector3d;
+}
 
-    vector.mV[VX] = (F32)getChild<LLUICtrl>("camera_x")->getValue().asReal();
-    vector.mV[VY] = (F32)getChild<LLUICtrl>("camera_y")->getValue().asReal();
-    vector.mV[VZ] = (F32)getChild<LLUICtrl>("camera_z")->getValue().asReal();
-    gSavedSettings.setVector3("CameraOffsetRearView", vector);
-
-    vector3d.mdV[VX] = (F32)getChild<LLUICtrl>("focus_x")->getValue().asReal();
-    vector3d.mdV[VY] = (F32)getChild<LLUICtrl>("focus_y")->getValue().asReal();
-    vector3d.mdV[VZ] = (F32)getChild<LLUICtrl>("focus_z")->getValue().asReal();
-    gSavedSettings.setVector3d("FocusOffsetRearView", vector3d);
+F32 LLFloaterPreferenceViewAdvanced::getControlF32(const std::string& name)
+{
+    return (F32)getChild<LLUICtrl>(name)->getValue().asReal();
 }

@@ -29,6 +29,9 @@
 
 #include "llfloater.h"
 
+class LLComboBox;
+class LLScrollListCtrl;
+
 class LLFloaterSpellCheckerSettings : public LLFloater
 {
 public:
@@ -45,6 +48,12 @@ protected:
     void onBtnRemove();
     void onSpellCheckSettingsChange();
     void refreshDictionaries(bool from_settings);
+    void setupCallbacks();
+    void syncRemoveButton();
+    void setMoveButtonsEnabled(bool enabled);
+    LLScrollListCtrl* getAvailableList();
+    LLScrollListCtrl* getActiveList();
+    LLComboBox* getMainCombo();
 
     bool mMainSelectionChanged{ false };
 };
@@ -62,6 +71,10 @@ protected:
     void onBtnOK();
     void importSelectedDictionary(const std::vector<std::string>& filenames);
     std::string parseXcuFile(const std::string& file_path) const;
+    void setupCallbacks();
+    void setDictionaryPath(const std::string& filepath);
+    void setDictionaryName(const std::string& dictionary_name);
+    std::string getDictionaryLanguage();
 
     std::string mDictionaryDir;
     std::string mDictionaryBasename;

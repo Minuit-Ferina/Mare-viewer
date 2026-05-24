@@ -55,6 +55,13 @@ private:
     void showAlert(const std::string& msg_name, S32 status) const;
     void updateControlsEnabledState();
     void verifyKey(int service, const LLSD& key, bool alert = true);
+    void setupControls();
+    void setupCallbacks();
+    void syncSettingsFromSaved();
+    void syncAzureKeyFromSaved(const LLSD& azure_key);
+    void syncGoogleKeyFromSaved(const std::string& google_key);
+    void syncDeepLKeyFromSaved(const LLSD& deepl_key);
+    void setLabelEnabled(const std::string& name, bool enabled);
 
     void onEditorFocused(LLFocusableElement* control);
     void onAzureKeyEdited();

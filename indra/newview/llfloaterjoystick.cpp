@@ -141,6 +141,17 @@ bool LLFloaterJoystick::postBuild()
     center();
     F32 range = gSavedSettings.getBOOL("Cursor3D") ? 128.f : 2.f;
 
+    setupAxisStats(range);
+    setupControls();
+    setupCallbacks();
+
+    refresh();
+    refreshListOfDevices();
+    return true;
+}
+
+void LLFloaterJoystick::setupAxisStats(F32 range)
+{
     for (U32 i = 0; i < 6; i++)
     {
         std::string stat_name(llformat("Joystick axis %d", i));
@@ -152,19 +163,22 @@ bool LLFloaterJoystick::postBuild()
             mAxisStatsBar[i]->setRange(-range, range);
         }
     }
+}
 
+void LLFloaterJoystick::setupControls()
+{
     mJoysticksCombo = getChild<LLComboBox>("joystick_combo");
-    childSetCommitCallback("joystick_combo",onCommitJoystickEnabled,this);
     mCheckFlycamEnabled = getChild<LLCheckBoxCtrl>("JoystickFlycamEnabled");
+}
+
+void LLFloaterJoystick::setupCallbacks()
+{
+    childSetCommitCallback("joystick_combo",onCommitJoystickEnabled,this);
     childSetCommitCallback("JoystickFlycamEnabled",onCommitJoystickEnabled,this);
 
     childSetAction("SpaceNavigatorDefaults", onClickRestoreSNDefaults, this);
     childSetAction("cancel_btn", onClickCancel, this);
     childSetAction("ok_btn", onClickOK, this);
-
-    refresh();
-    refreshListOfDevices();
-    return true;
 }
 
 LLFloaterJoystick::~LLFloaterJoystick()
@@ -312,11 +326,20 @@ void LLFloaterJoystick::refreshListOfDevices()
         }
     }
 
+    selectJoystickDevice(is_device_id_set);
+
+    // Update tracking
+    updateCurrentDeviceTracking(is_device_id_set);
+    mJoystickInitialized = joystick->isJoystickInitialized();
+}
+
+void LLFloaterJoystick::selectJoystickDevice(bool is_device_id_set)
+{
     if (gSavedSettings.getBOOL("JoystickEnabled") && mHasDeviceList)
     {
         if (is_device_id_set)
         {
-            LLSD guid = joystick->getDeviceUUID();
+            LLSD guid = LLViewerJoystick::getInstance()->getDeviceUUID();
             mCurrentDeviceId = guid.asUUID();
             mJoysticksCombo->selectByValue(guid);
         }
@@ -330,18 +353,19 @@ void LLFloaterJoystick::refreshListOfDevices()
     {
         mJoysticksCombo->selectByValue(LLSD::Integer(0));
     }
+}
 
-    // Update tracking
+void LLFloaterJoystick::updateCurrentDeviceTracking(bool is_device_id_set)
+{
     if (is_device_id_set)
     {
-        LLSD guid = joystick->getDeviceUUID();
+        LLSD guid = LLViewerJoystick::getInstance()->getDeviceUUID();
         mCurrentDeviceId = guid.asUUID();
     }
     else
     {
         mCurrentDeviceId.setNull();
     }
-    mJoystickInitialized = joystick->isJoystickInitialized();
 }
 
 void LLFloaterJoystick::cancel()

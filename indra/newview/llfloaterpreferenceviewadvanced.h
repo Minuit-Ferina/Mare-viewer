@@ -45,7 +45,12 @@ public:
 
 private:
     virtual ~LLFloaterPreferenceViewAdvanced();
+
+    void setCameraAxisControls(const LLVector3& vector);
+    void setFocusAxisControls(const LLVector3d& vector3d);
+    LLVector3 getCameraAxisControls();
+    LLVector3d getFocusAxisControls();
+    F32 getControlF32(const std::string& name);
 };
 
 #endif //LLFLOATERPREFERENCEVIEWADVANCED_H
-
