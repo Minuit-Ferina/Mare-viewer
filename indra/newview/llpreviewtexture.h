@@ -82,6 +82,7 @@ protected:
 private:
     void                updateImageID(); // set what image is being uploaded.
     void                updateDimensions();
+    void                getTexturePreviewDrawRects(LLRect& border, LLRect& interior) const;
     LLUUID              mImageID;
     LLPointer<LLViewerFetchedTexture>       mImage;
     S32                 mImageOldBoostLevel;

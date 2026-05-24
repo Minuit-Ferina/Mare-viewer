@@ -1841,11 +1841,12 @@ without an explicit task, and do not start a direct Vulkan port.
       editing source.
 - [x] Add `docs/architecture/386-preview-panel-canvas-access-map.md`.
 - [x] Remove absent `llvisualparamhint.*` from active phase 13 scope.
-- [ ] Move the first multi-file preview panel/canvas access packet behind UI
+- [x] Add `docs/architecture/387-preview-panel-canvas-access-task.md`.
+- [x] Move the first multi-file preview panel/canvas access packet behind UI
       owner methods without changing render behavior.
-- [ ] Verify the first phase 13 source packet with targeted object builds,
+- [x] Verify the first phase 13 source packet with targeted object builds,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
-- [ ] Add a summary document for the first phase 13 source packet.
+- [x] Add a summary document for the first phase 13 source packet.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

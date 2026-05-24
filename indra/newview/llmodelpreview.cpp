@@ -3344,9 +3344,8 @@ void LLModelPreview::applyPreviewMaterial(LLModelInstance& instance, size_t mate
 
 LLModelPreview::PreviewCameraState LLModelPreview::setupPreviewCamera(bool show_skin_weight, S32 width, S32 height)
 {
-    LLRect preview_rect;
-
-    preview_rect = mFMP->getChildView("preview_panel")->getRect();
+    LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+    LLRect preview_rect = fmp->getModelPreviewPanelRect();
 
     F32 aspect = (F32)preview_rect.getWidth() / preview_rect.getHeight();
 

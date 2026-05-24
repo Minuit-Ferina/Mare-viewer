@@ -142,6 +142,7 @@ protected:
     static void     onPreviewTypeCommit(LLUICtrl*,void*);
     void            draw() override;
     bool            loadImage(const std::string& filename);
+    S32             getPreviewDrawRight() const;
 
     LLPointer<LLImageRaw> mRawImagep;
     LLPointer<LLImagePreviewAvatar> mAvatarPreview;

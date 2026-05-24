@@ -766,14 +766,13 @@ void LLFloaterTexturePicker::draw()
             return;
         }
 
-        // Border
-        LLRect border = mPreviewWidget->getRect();
+        LLRect border;
+        LLRect interior;
+        getPreviewWidgetDrawRects(border, interior);
         gl_rect_2d( border, LLColor4::black, false );
 
 
         // Interior
-        LLRect interior = border;
-        interior.stretch( -1 );
 
         // If the floater is focused, don't apply its alpha to the texture (STORM-677).
         const F32 alpha = getTransparencyType() == TT_ACTIVE ? 1.0f : getCurrentTransparency();
@@ -838,6 +837,13 @@ void LLFloaterTexturePicker::draw()
             mSelectedItemPinned = true;
         }
     }
+}
+
+void LLFloaterTexturePicker::getPreviewWidgetDrawRects(LLRect& border, LLRect& interior) const
+{
+    border = mPreviewWidget->getRect();
+    interior = border;
+    interior.stretch(-1);
 }
 
 LLViewerInventoryItem* LLFloaterTexturePicker::findInvItem(const LLUUID& asset_id, bool copyable_only, bool ignore_library) const
@@ -2516,7 +2522,6 @@ namespace LLInitParam
         declare("material", PICK_MATERIAL);
     }
 }
-
 
 
 

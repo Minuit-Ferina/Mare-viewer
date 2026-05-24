@@ -788,6 +788,11 @@ void LLFloaterModelPreview::syncModelPreviewPhysicsSummaryText(S32 phys_tris,
     }
 }
 
+LLRect LLFloaterModelPreview::getModelPreviewPanelRect() const
+{
+    return getChildView("preview_panel")->getRect();
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

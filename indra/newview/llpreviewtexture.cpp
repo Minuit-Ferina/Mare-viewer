@@ -210,9 +210,9 @@ void LLPreviewTexture::draw()
         LLGLSUIDefault gls_ui;
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
-        const LLRect& border = mClientRect;
-        LLRect interior = mClientRect;
-        interior.stretch( -PREVIEW_BORDER_WIDTH );
+        LLRect border;
+        LLRect interior;
+        getTexturePreviewDrawRects(border, interior);
 
         // ...border
         gl_rect_2d( border, LLColor4(0.f, 0.f, 0.f, 1.f));
@@ -354,6 +354,13 @@ void LLPreviewTexture::saveMultipleToFile(const std::string& file_name)
     mImage->forceToSaveRawImage(0);//re-fetch the raw image if the old one is removed.
     mImage->setLoadedCallback(LLPreviewTexture::onFileLoadedForSave,
         0, true, false, new LLUUID(mItemUUID), &mCallbackTextureList);
+}
+
+void LLPreviewTexture::getTexturePreviewDrawRects(LLRect& border, LLRect& interior) const
+{
+    border = mClientRect;
+    interior = mClientRect;
+    interior.stretch(-PREVIEW_BORDER_WIDTH);
 }
 
 // virtual

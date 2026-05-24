@@ -320,7 +320,6 @@ void LLFloaterImagePreview::onBtnOK()
 void LLFloaterImagePreview::draw()
 {
     LLFloater::draw();
-    LLRect r = getRect();
 
     if (mRawImagep.notNull())
     {
@@ -363,14 +362,14 @@ void LLFloaterImagePreview::draw()
                 gGL.texCoord2f(mPreviewImageRect.mLeft, mPreviewImageRect.mBottom);
                 gGL.vertex2i(PREVIEW_HPAD, PREVIEW_HPAD + PREF_BUTTON_HEIGHT + PREVIEW_HPAD);
                 gGL.texCoord2f(mPreviewImageRect.mRight, mPreviewImageRect.mBottom);
-                gGL.vertex2i(r.getWidth() - PREVIEW_HPAD, PREVIEW_HPAD + PREF_BUTTON_HEIGHT + PREVIEW_HPAD);
+                gGL.vertex2i(getPreviewDrawRight(), PREVIEW_HPAD + PREF_BUTTON_HEIGHT + PREVIEW_HPAD);
 
                 gGL.texCoord2f(mPreviewImageRect.mRight, mPreviewImageRect.mBottom);
-                gGL.vertex2i(r.getWidth() - PREVIEW_HPAD, PREVIEW_HPAD + PREF_BUTTON_HEIGHT + PREVIEW_HPAD);
+                gGL.vertex2i(getPreviewDrawRight(), PREVIEW_HPAD + PREF_BUTTON_HEIGHT + PREVIEW_HPAD);
                 gGL.texCoord2f(mPreviewImageRect.mLeft, mPreviewImageRect.mTop);
                 gGL.vertex2i(PREVIEW_HPAD, PREVIEW_TEXTURE_HEIGHT + PREVIEW_VPAD);
                 gGL.texCoord2f(mPreviewImageRect.mRight, mPreviewImageRect.mTop);
-                gGL.vertex2i(r.getWidth() - PREVIEW_HPAD, PREVIEW_TEXTURE_HEIGHT + PREVIEW_VPAD);
+                gGL.vertex2i(getPreviewDrawRight(), PREVIEW_TEXTURE_HEIGHT + PREVIEW_VPAD);
             }
             gGL.end();
 
@@ -400,14 +399,14 @@ void LLFloaterImagePreview::draw()
                     gGL.texCoord2f(0.f, 0.f);
                     gGL.vertex2i(PREVIEW_HPAD, PREVIEW_HPAD + PREF_BUTTON_HEIGHT + PREVIEW_HPAD);
                     gGL.texCoord2f(1.f, 0.f);
-                    gGL.vertex2i(r.getWidth() - PREVIEW_HPAD, PREVIEW_HPAD + PREF_BUTTON_HEIGHT + PREVIEW_HPAD);
+                    gGL.vertex2i(getPreviewDrawRight(), PREVIEW_HPAD + PREF_BUTTON_HEIGHT + PREVIEW_HPAD);
 
                     gGL.texCoord2f(1.f, 0.f);
-                    gGL.vertex2i(r.getWidth() - PREVIEW_HPAD, PREVIEW_HPAD + PREF_BUTTON_HEIGHT + PREVIEW_HPAD);
+                    gGL.vertex2i(getPreviewDrawRight(), PREVIEW_HPAD + PREF_BUTTON_HEIGHT + PREVIEW_HPAD);
                     gGL.texCoord2f(0.f, 1.f);
                     gGL.vertex2i(PREVIEW_HPAD, PREVIEW_TEXTURE_HEIGHT + PREVIEW_VPAD);
                     gGL.texCoord2f(1.f, 1.f);
-                    gGL.vertex2i(r.getWidth() - PREVIEW_HPAD, PREVIEW_TEXTURE_HEIGHT + PREVIEW_VPAD);
+                    gGL.vertex2i(getPreviewDrawRight(), PREVIEW_TEXTURE_HEIGHT + PREVIEW_VPAD);
                 }
                 gGL.end();
 
@@ -415,6 +414,11 @@ void LLFloaterImagePreview::draw()
             }
         }
     }
+}
+
+S32 LLFloaterImagePreview::getPreviewDrawRight() const
+{
+    return getRect().getWidth() - PREVIEW_HPAD;
 }
 
 
