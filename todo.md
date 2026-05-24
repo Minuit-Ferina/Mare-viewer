@@ -1593,6 +1593,11 @@ start a direct Vulkan port.
       `llmodelpreview.cpp.o`, regenerated source inventory, both GL guardrails,
       and `git diff --check`.
 - [x] Add `docs/architecture/326-model-preview-render-prep-summary.md`.
+- [x] Add `docs/architecture/327-model-preview-camera-task.md`.
+- [x] Verify the `LLModelPreview::render()` camera helper split with targeted
+      `llmodelpreview.cpp.o`, regenerated source inventory, both GL guardrails,
+      and `git diff --check`.
+- [x] Add `docs/architecture/328-model-preview-camera-summary.md`.
 - [ ] Keep any `needsRender()` override out of wrapper-only packets.
 - [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
       multi-window, and multi-login work out of phase 10 unless explicitly

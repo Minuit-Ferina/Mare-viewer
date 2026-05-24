@@ -42,7 +42,7 @@ indra/newview/llmaniprotate.cpp,render.opengl_touching,1976,33,0,0,0,0,70,13,6,0
 indra/newview/llreflectionmapmanager.cpp,render.pipeline,1637,16,0,0,0,0,69,17,3,13,0,1,3,0,0
 indra/newview/llsnapshotlivepreview.cpp,assets.texture,1105,30,0,0,0,0,64,3,3,0,0,0,0,3,0
 indra/newview/gltfscenemanager.cpp,render.pipeline,1210,23,0,0,0,0,56,38,5,8,0,0,0,2,0
-indra/newview/llmodelpreview.cpp,render.opengl_touching,4168,42,0,0,0,0,56,30,17,0,0,0,0,0,0
+indra/newview/llmodelpreview.cpp,render.opengl_touching,4175,42,0,0,0,0,56,30,17,0,0,0,0,0,0
 indra/newview/lldrawpoolbump.cpp,render.pipeline,1083,23,0,0,0,0,47,23,9,8,26,1,3,8,0
 indra/newview/lldrawpoolavatar.cpp,render.pipeline,991,27,0,0,0,0,46,4,1,17,59,0,0,1,0
 indra/newview/llviewerwindow.cpp,render.pipeline,6505,171,0,0,0,0,44,18,13,63,2,2,5,4,174
@@ -968,6 +968,7 @@ indra/llmath/tests/llbbox_test.cpp,unknown,368,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llxmlrpclistener.cpp,viewer.misc,367,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lloutputmonitorctrl.cpp,viewer.misc,366,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llappearance/llwearabledata.cpp,unknown,366,5,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llmodelpreview.h,viewer.misc,365,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/workqueue.cpp,core,364,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterbuycurrency.cpp,ui,363,16,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llnotificationslistener.cpp,unknown,363,6,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -985,7 +986,6 @@ indra/newview/llpanelmediasettingssecurity.cpp,ui,357,17,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llurlregistry.cpp,unknown,357,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/llmodaldialog.cpp,unknown,357,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/llproxy.h,network,356,8,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llmodelpreview.h,viewer.misc,356,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/kokuafloaterbulkrename.cpp,viewer.misc,356,23,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanellandaudio.cpp,ui,356,20,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llstatusbar.h,viewer.misc,356,1,0,0,0,0,0,0,0,0,0,0,0,0,0

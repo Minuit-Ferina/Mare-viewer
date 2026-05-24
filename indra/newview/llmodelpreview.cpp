@@ -3316,54 +3316,7 @@ bool LLModelPreview::render()
     F32 physics_explode = (F32)mFMP->childGetValue("physics_explode").asReal();
 
     LLGLDepthTest gls_depth(GL_TRUE); // SL-12781 re-enable z-buffer for 3D model preview
-
-    LLRect preview_rect;
-
-    preview_rect = mFMP->getChildView("preview_panel")->getRect();
-
-    F32 aspect = (F32)preview_rect.getWidth() / preview_rect.getHeight();
-
-    LLViewerCamera::getInstance()->setAspect(aspect);
-
-    LLViewerCamera::getInstance()->setView(LLViewerCamera::getInstance()->getDefaultFOV() / mCameraZoom);
-
-    LLVector3 offset = mCameraOffset;
-    LLVector3 target_pos = mPreviewTarget + offset;
-
-    F32 z_near = 0.001f;
-    F32 z_far = mCameraDistance*10.0f + mPreviewScale.magVec() + mCameraOffset.magVec();
-
-    if (show_skin_weight)
-    {
-        target_pos = getPreviewAvatar()->getPositionAgent() + offset;
-        z_near = 0.01f;
-        z_far = 1024.f;
-
-        //render avatar previews every frame
-        refresh();
-    }
-
-    gObjectPreviewProgram.bind(show_skin_weight);
-
-    gGL.loadIdentity();
-    gPipeline.enableLightsPreview();
-
-    LLQuaternion camera_rot = LLQuaternion(mCameraPitch, LLVector3::y_axis) *
-        LLQuaternion(mCameraYaw, LLVector3::z_axis);
-
-    LLQuaternion av_rot = camera_rot;
-    F32 camera_distance = show_skin_weight ? SKIN_WEIGHT_CAMERA_DISTANCE : mCameraDistance;
-    LLViewerCamera::getInstance()->setOriginAndLookAt(
-        target_pos + ((LLVector3(camera_distance, 0.f, 0.f) + offset) * av_rot),        // camera
-        LLVector3::z_axis,                                                                  // up
-        target_pos);                                            // point of interest
-
-
-    z_near = llclamp(z_far * 0.001f, 0.001f, 0.1f);
-
-    LLViewerCamera::getInstance()->setPerspective(false, mOrigin.mX, mOrigin.mY, width, height, false, z_near, z_far);
-
-    stop_glerror();
+    PreviewCameraState camera_state = setupPreviewCamera(show_skin_weight, width, height);
 
     gGL.pushMatrix();
     gGL.color4fv(PREVIEW_EDGE_COL.mV);
@@ -3638,7 +3591,7 @@ bool LLModelPreview::render()
         }
         else
         {
-            target_pos = getPreviewAvatar()->getPositionAgent();
+            camera_state.target_pos = getPreviewAvatar()->getPositionAgent();
             getPreviewAvatar()->clearAttachmentOverrides(); // removes pelvis fixup
             LLUUID fake_mesh_id;
             fake_mesh_id.generate();
@@ -3646,9 +3599,9 @@ bool LLModelPreview::render()
             bool pelvis_recalc = false;
 
             LLViewerCamera::getInstance()->setOriginAndLookAt(
-                target_pos + ((LLVector3(camera_distance, 0.f, 0.f) + offset) * av_rot),        // camera
+                camera_state.target_pos + ((LLVector3(camera_state.camera_distance, 0.f, 0.f) + camera_state.offset) * camera_state.av_rot),        // camera
                 LLVector3::z_axis,                                                                  // up
-                target_pos);                                            // point of interest
+                camera_state.target_pos);                                            // point of interest
 
             for (LLModelLoader::scene::iterator iter = mScene[mPreviewLOD].begin(); iter != mScene[mPreviewLOD].end(); ++iter)
             {
@@ -3977,6 +3930,60 @@ void LLModelPreview::applyPreviewMaterial(LLModelInstance& instance, size_t mate
     {
         gGL.diffuseColor4fv(PREVIEW_BASE_COL.mV);
     }
+}
+
+LLModelPreview::PreviewCameraState LLModelPreview::setupPreviewCamera(bool show_skin_weight, S32 width, S32 height)
+{
+    LLRect preview_rect;
+
+    preview_rect = mFMP->getChildView("preview_panel")->getRect();
+
+    F32 aspect = (F32)preview_rect.getWidth() / preview_rect.getHeight();
+
+    LLViewerCamera::getInstance()->setAspect(aspect);
+
+    LLViewerCamera::getInstance()->setView(LLViewerCamera::getInstance()->getDefaultFOV() / mCameraZoom);
+
+    PreviewCameraState camera_state;
+    camera_state.offset = mCameraOffset;
+    camera_state.target_pos = mPreviewTarget + camera_state.offset;
+
+    F32 z_near = 0.001f;
+    F32 z_far = mCameraDistance*10.0f + mPreviewScale.magVec() + mCameraOffset.magVec();
+
+    if (show_skin_weight)
+    {
+        camera_state.target_pos = getPreviewAvatar()->getPositionAgent() + camera_state.offset;
+        z_near = 0.01f;
+        z_far = 1024.f;
+
+        //render avatar previews every frame
+        refresh();
+    }
+
+    gObjectPreviewProgram.bind(show_skin_weight);
+
+    gGL.loadIdentity();
+    gPipeline.enableLightsPreview();
+
+    LLQuaternion camera_rot = LLQuaternion(mCameraPitch, LLVector3::y_axis) *
+        LLQuaternion(mCameraYaw, LLVector3::z_axis);
+
+    camera_state.av_rot = camera_rot;
+    camera_state.camera_distance = show_skin_weight ? SKIN_WEIGHT_CAMERA_DISTANCE : mCameraDistance;
+    LLViewerCamera::getInstance()->setOriginAndLookAt(
+        camera_state.target_pos + ((LLVector3(camera_state.camera_distance, 0.f, 0.f) + camera_state.offset) * camera_state.av_rot),        // camera
+        LLVector3::z_axis,                                                                  // up
+        camera_state.target_pos);                                            // point of interest
+
+
+    z_near = llclamp(z_far * 0.001f, 0.001f, 0.1f);
+
+    LLViewerCamera::getInstance()->setPerspective(false, mOrigin.mX, mOrigin.mY, width, height, false, z_near, z_far);
+
+    stop_glerror();
+
+    return camera_state;
 }
 
 void LLModelPreview::renderGroundPlane(float z_offset)

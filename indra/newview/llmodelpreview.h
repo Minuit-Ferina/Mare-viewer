@@ -218,6 +218,14 @@ protected:
     void lookupLODModelFiles(S32 lod);
 
 private:
+    struct PreviewCameraState
+    {
+        LLVector3 offset;
+        LLVector3 target_pos;
+        LLQuaternion av_rot;
+        F32 camera_distance = 0.f;
+    };
+
     //Utility function for controller vertex compare
     bool verifyCount(int expected, int result);
     //Creates the dummy avatar for the preview window
@@ -230,6 +238,7 @@ private:
     bool        updateSkinPreviewControls(LLFloaterModelPreview* fmp, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
     void        ensurePreviewLODVertexBuffers(bool show_skin_weight, bool show_physics);
     void        applyPreviewMaterial(LLModelInstance& instance, size_t material_index, bool show_textures);
+    PreviewCameraState setupPreviewCamera(bool show_skin_weight, S32 width, S32 height);
     LLVector3   mGroundPlane[4];
     void        renderGroundPlane(float z_offset = 0.0f);
     /// Indicates whether we should warn of high-lod meshes that do not have a corresponding physics mesh.
