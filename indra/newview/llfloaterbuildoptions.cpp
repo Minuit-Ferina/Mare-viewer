@@ -37,6 +37,32 @@
 #include "llcombobox.h"
 #include "llselectmgr.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //
 // Methods
 //
@@ -54,7 +80,7 @@ LLFloaterBuildOptions::~LLFloaterBuildOptions()
 
 bool LLFloaterBuildOptions::postBuild()
 {
-    mComboGridMode = getChild<LLComboBox>("combobox grid mode");
+    mComboGridMode = get_floater_child<LLComboBox>(this, "combobox grid mode");
 
     return true;
 }

@@ -34,6 +34,32 @@
 #include "llpanel.h"
 #include "llcombobox.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const S32 NOTIFICATION_PANEL_HEADER_HEIGHT = 20;
 const S32 HEADER_PADDING = 38;
 
@@ -61,7 +87,7 @@ LLNotificationChannelPanel::LLNotificationChannelPanel(const LLNotificationChann
 LLNotificationChannelPanel::~LLNotificationChannelPanel()
 {
     // Userdata for all records is a LLNotification* we need to clean up
-    std::vector<LLScrollListItem*> data_list = getChild<LLScrollListCtrl>("notifications_list")->getAllData();
+    std::vector<LLScrollListItem*> data_list = get_floater_child<LLScrollListCtrl>(this, "notifications_list")->getAllData();
     std::vector<LLScrollListItem*>::iterator data_itor;
     for (data_itor = data_list.begin(); data_itor != data_list.end(); ++data_itor)
     {
@@ -74,13 +100,13 @@ LLNotificationChannelPanel::~LLNotificationChannelPanel()
 
 bool LLNotificationChannelPanel::postBuild()
 {
-    LLButton* header_button = getChild<LLButton>("header");
+    LLButton* header_button = get_floater_child<LLButton>(this, "header");
     header_button->setLabel(mChannelPtr->getName());
     header_button->setClickedCallback(toggleClick, this);
 
     mChannelPtr->connectChanged(boost::bind(&LLNotificationChannelPanel::update, this, _1));
 
-    LLScrollListCtrl* scroll = getChild<LLScrollListCtrl>("notifications_list");
+    LLScrollListCtrl* scroll = get_floater_child<LLScrollListCtrl>(this, "notifications_list");
     scroll->setDoubleClickCallback(onClickNotification, this);
     scroll->setRect(LLRect( getRect().mLeft, getRect().mTop, getRect().mRight, 0));
     return true;
@@ -92,7 +118,7 @@ void LLNotificationChannelPanel::toggleClick(void *user_data)
     LLNotificationChannelPanel* self = (LLNotificationChannelPanel*)user_data;
     if (!self) return;
 
-    LLButton* header_button = self->getChild<LLButton>("header");
+    LLButton* header_button = get_floater_child<LLButton>(self, "header");
 
     LLLayoutStack* stack = dynamic_cast<LLLayoutStack*>(self->getParent());
     if (stack)
@@ -101,8 +127,8 @@ void LLNotificationChannelPanel::toggleClick(void *user_data)
     }
 
     // turn off tab stop for collapsed panel
-    self->getChild<LLScrollListCtrl>("notifications_list")->setTabStop(!header_button->getToggleState());
-    self->getChild<LLScrollListCtrl>("notifications_list")->setVisible(!header_button->getToggleState());
+    get_floater_child<LLScrollListCtrl>(self, "notifications_list")->setTabStop(!header_button->getToggleState());
+    get_floater_child<LLScrollListCtrl>(self, "notifications_list")->setVisible(!header_button->getToggleState());
 }
 
 /*static*/
@@ -110,7 +136,7 @@ void LLNotificationChannelPanel::onClickNotification(void* user_data)
 {
     LLNotificationChannelPanel* self = (LLNotificationChannelPanel*)user_data;
     if (!self) return;
-    LLScrollListItem* firstselected = self->getChild<LLScrollListCtrl>("notifications_list")->getFirstSelected();
+    LLScrollListItem* firstselected = get_floater_child<LLScrollListCtrl>(self, "notifications_list")->getFirstSelected();
     llassert(firstselected);
     if (firstselected)
     {
@@ -138,7 +164,7 @@ bool LLNotificationChannelPanel::update(const LLSD& payload)
         row["columns"][2]["column"] = "date";
         row["columns"][2]["type"] = "date";
 
-        LLScrollListItem* sli = getChild<LLScrollListCtrl>("notifications_list")->addElement(row);
+        LLScrollListItem* sli = get_floater_child<LLScrollListCtrl>(this, "notifications_list")->addElement(row);
         sli->setUserdata(new LLNotification(notification->asLLSD()));
     }
 
@@ -171,7 +197,7 @@ bool LLFloaterNotificationConsole::postBuild()
 
 //  getChild<LLButton>("add_notification")->setClickedCallback(onClickAdd, this);
 
-    LLComboBox* notifications = getChild<LLComboBox>("notification_types");
+    LLComboBox* notifications = get_floater_child<LLComboBox>(this, "notification_types");
     LLNotifications::TemplateNames names = LLNotifications::instance().getTemplateNames();
     for (LLNotifications::TemplateNames::iterator template_it = names.begin();
         template_it != names.end();
@@ -204,7 +230,7 @@ void LLFloaterNotificationConsole::addChannel(const std::string& name, bool open
 
 void LLFloaterNotificationConsole::removeChannel(const std::string& name)
 {
-    LLPanel* panelp = getChild<LLPanel>(name);
+    LLPanel* panelp = get_floater_child<LLPanel>(this, name);
     getChildRef<LLView>("notification_channels").removeChild(panelp);
     delete panelp;
 
@@ -223,7 +249,7 @@ void LLFloaterNotificationConsole::updateResizeLimits()
 
 void LLFloaterNotificationConsole::onClickAdd()
 {
-    std::string message_name = getChild<LLComboBox>("notification_types")->getValue().asString();
+    std::string message_name = get_floater_child<LLComboBox>(this, "notification_types")->getValue().asString();
     if (!message_name.empty())
     {
         LLNotifications::instance().add(message_name, LLSD(), LLSD());
@@ -243,9 +269,9 @@ LLFloaterNotification::LLFloaterNotification(LLNotification* note)
 bool LLFloaterNotification::postBuild()
 {
     setTitle(mNote->getName());
-    getChild<LLUICtrl>("payload")->setValue(mNote->getMessage());
+    get_floater_child<LLUICtrl>(this, "payload")->setValue(mNote->getMessage());
 
-    LLComboBox* responses_combo = getChild<LLComboBox>("response");
+    LLComboBox* responses_combo = get_floater_child<LLComboBox>(this, "response");
     LLCtrlListInterface* response_list = responses_combo->getListInterface();
     LLNotificationFormPtr form(mNote->getForm());
     if(!form)
@@ -269,7 +295,7 @@ bool LLFloaterNotification::postBuild()
 
 void LLFloaterNotification::respond()
 {
-    LLComboBox* responses_combo = getChild<LLComboBox>("response");
+    LLComboBox* responses_combo = get_floater_child<LLComboBox>(this, "response");
     LLCtrlListInterface* response_list = responses_combo->getListInterface();
     const std::string& trigger = response_list->getSelectedValue().asString();
     //LL_INFOS() << trigger << LL_ENDL;

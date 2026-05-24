@@ -40,6 +40,32 @@
 #include "llfocusmgr.h"
 #include "lltextbox.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const std::string LAG_CRITICAL_IMAGE_NAME = "lag_status_critical.tga";
 const std::string LAG_WARNING_IMAGE_NAME  = "lag_status_warning.tga";
 const std::string LAG_GOOD_IMAGE_NAME     = "lag_status_good.tga";
@@ -62,17 +88,17 @@ bool LLFloaterLagMeter::postBuild()
         onClickShrink();
     }
 
-    mClientButton = getChild<LLButton>("client_lagmeter");
-    mClientText = getChild<LLTextBox>("client_text");
-    mClientCause = getChild<LLTextBox>("client_lag_cause");
+    mClientButton = get_floater_child<LLButton>(this, "client_lagmeter");
+    mClientText = get_floater_child<LLTextBox>(this, "client_text");
+    mClientCause = get_floater_child<LLTextBox>(this, "client_lag_cause");
 
-    mNetworkButton = getChild<LLButton>("network_lagmeter");
-    mNetworkText = getChild<LLTextBox>("network_text");
-    mNetworkCause = getChild<LLTextBox>("network_lag_cause");
+    mNetworkButton = get_floater_child<LLButton>(this, "network_lagmeter");
+    mNetworkText = get_floater_child<LLTextBox>(this, "network_text");
+    mNetworkCause = get_floater_child<LLTextBox>(this, "network_lag_cause");
 
-    mServerButton = getChild<LLButton>("server_lagmeter");
-    mServerText = getChild<LLTextBox>("server_text");
-    mServerCause = getChild<LLTextBox>("server_lag_cause");
+    mServerButton = get_floater_child<LLButton>(this, "server_lagmeter");
+    mServerText = get_floater_child<LLTextBox>(this, "server_text");
+    mServerCause = get_floater_child<LLTextBox>(this, "server_lag_cause");
 
     std::string config_string = getString("client_frame_rate_critical_fps", mStringArgs);
     mClientFrameTimeCritical = F32Seconds(1.0f / (float)atof( config_string.c_str() ));
@@ -310,7 +336,7 @@ void LLFloaterLagMeter::updateControls(bool shrink)
 {
 //  LLFloaterLagMeter * self = (LLFloaterLagMeter*)data;
 
-    LLButton * button = getChild<LLButton>("minimize");
+    LLButton * button = get_floater_child<LLButton>(this, "minimize");
     S32 delta_width = mMaxWidth -mMinWidth;
     LLRect r = getRect();
 
@@ -322,9 +348,9 @@ void LLFloaterLagMeter::updateControls(bool shrink)
         setRect(r);
         reshape(mMaxWidth, getRect().getHeight());
 
-        getChild<LLUICtrl>("client")->setValue(getString("client_text_msg", mStringArgs) + ":");
-        getChild<LLUICtrl>("network")->setValue(getString("network_text_msg",mStringArgs) + ":");
-        getChild<LLUICtrl>("server")->setValue(getString("server_text_msg", mStringArgs) + ":");
+        get_floater_child<LLUICtrl>(this, "client")->setValue(getString("client_text_msg", mStringArgs) + ":");
+        get_floater_child<LLUICtrl>(this, "network")->setValue(getString("network_text_msg",mStringArgs) + ":");
+        get_floater_child<LLUICtrl>(this, "server")->setValue(getString("server_text_msg", mStringArgs) + ":");
 
         // usually "<<"
         button->setLabel( getString("smaller_label", mStringArgs) );
@@ -337,9 +363,9 @@ void LLFloaterLagMeter::updateControls(bool shrink)
         setRect(r);
         reshape(mMinWidth, getRect().getHeight());
 
-        getChild<LLUICtrl>("client")->setValue(getString("client_text_msg", mStringArgs) );
-        getChild<LLUICtrl>("network")->setValue(getString("network_text_msg",mStringArgs) );
-        getChild<LLUICtrl>("server")->setValue(getString("server_text_msg", mStringArgs) );
+        get_floater_child<LLUICtrl>(this, "client")->setValue(getString("client_text_msg", mStringArgs) );
+        get_floater_child<LLUICtrl>(this, "network")->setValue(getString("network_text_msg",mStringArgs) );
+        get_floater_child<LLUICtrl>(this, "server")->setValue(getString("server_text_msg", mStringArgs) );
 
         // usually ">>"
         button->setLabel( getString("bigger_label", mStringArgs) );

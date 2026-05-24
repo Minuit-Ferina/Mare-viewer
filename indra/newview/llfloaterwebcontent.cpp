@@ -41,6 +41,32 @@
 
 #include "llfloaterwebcontent.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterWebContent::_Params::_Params()
 :   url("url"),
     target("target"),
@@ -88,15 +114,15 @@ LLFloaterWebContent::LLFloaterWebContent( const Params& params )
 bool LLFloaterWebContent::postBuild()
 {
     // these are used in a bunch of places so cache them
-    mWebBrowser        = getChild< LLMediaCtrl >( "webbrowser" );
-    mAddressCombo      = getChild< LLComboBox >( "address" );
-    mStatusBarText     = getChild< LLTextBox >( "statusbartext" );
-    mStatusBarProgress = getChild<LLProgressBar>("statusbarprogress" );
+    mWebBrowser        = get_floater_child< LLMediaCtrl >(this,  "webbrowser" );
+    mAddressCombo      = get_floater_child< LLComboBox >(this,  "address" );
+    mStatusBarText     = get_floater_child< LLTextBox >(this,  "statusbartext" );
+    mStatusBarProgress = get_floater_child<LLProgressBar>(this, "statusbarprogress" );
 
-    mBtnBack           = getChildView( "back" );
-    mBtnForward        = getChildView( "forward" );
-    mBtnReload         = getChildView( "reload" );
-    mBtnStop           = getChildView( "stop" );
+    mBtnBack           = get_floater_view(this,  "back" );
+    mBtnForward        = get_floater_view(this,  "forward" );
+    mBtnReload         = get_floater_view(this,  "reload" );
+    mBtnStop           = get_floater_view(this,  "stop" );
 
     // observe browser events
     mWebBrowser->addObserver( this );
@@ -104,10 +130,10 @@ bool LLFloaterWebContent::postBuild()
     // these buttons are always enabled
     mBtnReload->setEnabled( true );
     mBtnReload->setVisible( false );
-    getChildView("popexternal")->setEnabled( true );
+    get_floater_view(this, "popexternal")->setEnabled( true );
 
     // cache image for secure browsing
-    mSecureLockIcon = getChild< LLIconCtrl >("media_secure_lock_flag");
+    mSecureLockIcon = get_floater_child< LLIconCtrl >(this, "media_secure_lock_flag");
 
     // initialize the URL history using the system URL History manager
     initializeURLHistory();
@@ -180,7 +206,7 @@ void LLFloaterWebContent::geometryChanged(const std::string &uuid, S32 x, S32 y,
 void LLFloaterWebContent::geometryChanged(S32 x, S32 y, S32 width, S32 height)
 {
     // Make sure the layout of the browser control is updated, so this calculation is correct.
-    getChild<LLLayoutStack>("stack1")->updateLayout();
+    get_floater_child<LLLayoutStack>(this, "stack1")->updateLayout();
 
     // TODO: need to adjust size and constrain position to make sure floaters aren't moved outside the window view, etc.
     LLCoordWindow window_size;
@@ -240,16 +266,16 @@ void LLFloaterWebContent::open_media(const Params& p)
 
     set_current_url(p.url);
 
-    getChild<LLLayoutPanel>("status_bar")->setVisible(p.show_chrome);
-    getChild<LLLayoutPanel>("nav_controls")->setVisible(p.show_chrome);
+    get_floater_child<LLLayoutPanel>(this, "status_bar")->setVisible(p.show_chrome);
+    get_floater_child<LLLayoutPanel>(this, "nav_controls")->setVisible(p.show_chrome);
 
     // turn additional debug controls on but only for Develop mode (Develop menu open)
-    getChild<LLLayoutPanel>("debug_controls")->setVisible(mDevelopMode);
+    get_floater_child<LLLayoutPanel>(this, "debug_controls")->setVisible(mDevelopMode);
 
     bool address_entry_enabled = p.allow_address_entry && !p.trusted_content;
     mAllowNavigation = p.allow_back_forward_navigation;
-    getChildView("address")->setEnabled(address_entry_enabled);
-    getChildView("popexternal")->setEnabled(address_entry_enabled);
+    get_floater_view(this, "address")->setEnabled(address_entry_enabled);
+    get_floater_view(this, "popexternal")->setEnabled(address_entry_enabled);
 
     if (!p.show_chrome)
     {
@@ -258,7 +284,7 @@ void LLFloaterWebContent::open_media(const Params& p)
 
     if (!p.preferred_media_size().isEmpty())
     {
-        getChild<LLLayoutStack>("stack1")->updateLayout();
+        get_floater_child<LLLayoutStack>(this, "stack1")->updateLayout();
         LLRect browser_rect = mWebBrowser->calcScreenRect();
         LLCoordWindow window_size;
         getWindow()->getSize(&window_size);

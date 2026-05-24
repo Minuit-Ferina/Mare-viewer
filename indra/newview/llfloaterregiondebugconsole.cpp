@@ -36,6 +36,32 @@
 #include "llviewerregion.h"
 #include "llcorehttputil.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 // Two versions of the sim console API are supported.
 //
 // SimConsole capability (deprecated):
@@ -108,13 +134,13 @@ LLFloaterRegionDebugConsole::~LLFloaterRegionDebugConsole()
 
 bool LLFloaterRegionDebugConsole::postBuild()
 {
-    LLLineEditor* input = getChild<LLLineEditor>("region_debug_console_input");
+    LLLineEditor* input = get_floater_child<LLLineEditor>(this, "region_debug_console_input");
     input->setEnableLineHistory(true);
     input->setCommitCallback(boost::bind(&LLFloaterRegionDebugConsole::onInput, this, _1, _2));
     input->setFocus(true);
     input->setCommitOnFocusLost(false);
 
-    mOutput = getChild<LLTextEditor>("region_debug_console_output");
+    mOutput = get_floater_child<LLTextEditor>(this, "region_debug_console_output");
 
     std::string url = gAgent.getRegionCapability("SimConsoleAsync");
     if (url.empty())

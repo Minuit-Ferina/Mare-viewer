@@ -40,6 +40,32 @@
 #include "llagent.h" // for RLV
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterPostProcess::LLFloaterPostProcess(const LLSD& key)
   : LLFloater(key)
 {
@@ -77,12 +103,12 @@ bool LLFloaterPostProcess::postBuild()
     childSetCommitCallback("BloomStrength", &LLFloaterPostProcess::onFloatControlMoved, (char*)"bloom_strength");
 
     // Effect loading and saving.
-    LLComboBox* comboBox = getChild<LLComboBox>("PPEffectsCombo");
-    getChild<LLComboBox>("PPLoadEffect")->setCommitCallback(boost::bind(&LLFloaterPostProcess::onLoadEffect, this, comboBox));
+    LLComboBox* comboBox = get_floater_child<LLComboBox>(this, "PPEffectsCombo");
+    get_floater_child<LLComboBox>(this, "PPLoadEffect")->setCommitCallback(boost::bind(&LLFloaterPostProcess::onLoadEffect, this, comboBox));
     comboBox->setCommitCallback(boost::bind(&LLFloaterPostProcess::onChangeEffectName, this, _1));
 
-    LLLineEditor* editBox = getChild<LLLineEditor>("PPEffectNameEditor");
-    getChild<LLComboBox>("PPSaveEffect")->setCommitCallback(boost::bind(&LLFloaterPostProcess::onSaveEffect, this, editBox));
+    LLLineEditor* editBox = get_floater_child<LLLineEditor>(this, "PPEffectNameEditor");
+    get_floater_child<LLComboBox>(this, "PPSaveEffect")->setCommitCallback(boost::bind(&LLFloaterPostProcess::onSaveEffect, this, editBox));
 
     syncMenu();
     return true;
@@ -179,7 +205,7 @@ void LLFloaterPostProcess::onSaveEffect(LLLineEditor* editBox)
 void LLFloaterPostProcess::onChangeEffectName(LLUICtrl* ctrl)
 {
     // get the combo box and name
-    LLLineEditor* editBox = getChild<LLLineEditor>("PPEffectNameEditor");
+    LLLineEditor* editBox = get_floater_child<LLLineEditor>(this, "PPEffectNameEditor");
 
     // set the parameter's new name
     editBox->setValue(ctrl->getValue());
@@ -202,7 +228,7 @@ bool LLFloaterPostProcess::saveAlertCallback(const LLSD& notification, const LLS
 void LLFloaterPostProcess::syncMenu()
 {
     // add the combo boxe contents
-    LLComboBox* comboBox = getChild<LLComboBox>("PPEffectsCombo");
+    LLComboBox* comboBox = get_floater_child<LLComboBox>(this, "PPEffectsCombo");
 
     comboBox->removeall();
 
@@ -218,25 +244,25 @@ void LLFloaterPostProcess::syncMenu()
     comboBox->selectByValue(gPostProcess->getSelectedEffect());
 
     /// Sync Color Filter Menu
-    getChild<LLUICtrl>("ColorFilterToggle")->setValue(gPostProcess->tweaks.useColorFilter());
+    get_floater_child<LLUICtrl>(this, "ColorFilterToggle")->setValue(gPostProcess->tweaks.useColorFilter());
     //getChild<LLUICtrl>("ColorFilterGamma")->setValue(gPostProcess->tweaks.gamma());
-    getChild<LLUICtrl>("ColorFilterBrightness")->setValue(gPostProcess->tweaks.brightness());
-    getChild<LLUICtrl>("ColorFilterSaturation")->setValue(gPostProcess->tweaks.saturation());
-    getChild<LLUICtrl>("ColorFilterContrast")->setValue(gPostProcess->tweaks.contrast());
-    getChild<LLUICtrl>("ColorFilterBaseR")->setValue(gPostProcess->tweaks.contrastBaseR());
-    getChild<LLUICtrl>("ColorFilterBaseG")->setValue(gPostProcess->tweaks.contrastBaseG());
-    getChild<LLUICtrl>("ColorFilterBaseB")->setValue(gPostProcess->tweaks.contrastBaseB());
-    getChild<LLUICtrl>("ColorFilterBaseI")->setValue(gPostProcess->tweaks.contrastBaseIntensity());
+    get_floater_child<LLUICtrl>(this, "ColorFilterBrightness")->setValue(gPostProcess->tweaks.brightness());
+    get_floater_child<LLUICtrl>(this, "ColorFilterSaturation")->setValue(gPostProcess->tweaks.saturation());
+    get_floater_child<LLUICtrl>(this, "ColorFilterContrast")->setValue(gPostProcess->tweaks.contrast());
+    get_floater_child<LLUICtrl>(this, "ColorFilterBaseR")->setValue(gPostProcess->tweaks.contrastBaseR());
+    get_floater_child<LLUICtrl>(this, "ColorFilterBaseG")->setValue(gPostProcess->tweaks.contrastBaseG());
+    get_floater_child<LLUICtrl>(this, "ColorFilterBaseB")->setValue(gPostProcess->tweaks.contrastBaseB());
+    get_floater_child<LLUICtrl>(this, "ColorFilterBaseI")->setValue(gPostProcess->tweaks.contrastBaseIntensity());
 
     /// Sync Night Vision Menu
-    getChild<LLUICtrl>("NightVisionToggle")->setValue(gPostProcess->tweaks.useNightVisionShader());
-    getChild<LLUICtrl>("NightVisionBrightMult")->setValue(gPostProcess->tweaks.brightMult());
-    getChild<LLUICtrl>("NightVisionNoiseSize")->setValue(gPostProcess->tweaks.noiseSize());
-    getChild<LLUICtrl>("NightVisionNoiseStrength")->setValue(gPostProcess->tweaks.noiseStrength());
+    get_floater_child<LLUICtrl>(this, "NightVisionToggle")->setValue(gPostProcess->tweaks.useNightVisionShader());
+    get_floater_child<LLUICtrl>(this, "NightVisionBrightMult")->setValue(gPostProcess->tweaks.brightMult());
+    get_floater_child<LLUICtrl>(this, "NightVisionNoiseSize")->setValue(gPostProcess->tweaks.noiseSize());
+    get_floater_child<LLUICtrl>(this, "NightVisionNoiseStrength")->setValue(gPostProcess->tweaks.noiseStrength());
 
     /// Sync Bloom Menu
-    getChild<LLUICtrl>("BloomToggle")->setValue(LLSD(gPostProcess->tweaks.useBloomShader()));
-    getChild<LLUICtrl>("BloomExtract")->setValue(gPostProcess->tweaks.extractLow());
-    getChild<LLUICtrl>("BloomSize")->setValue(gPostProcess->tweaks.bloomWidth());
-    getChild<LLUICtrl>("BloomStrength")->setValue(gPostProcess->tweaks.bloomStrength());
+    get_floater_child<LLUICtrl>(this, "BloomToggle")->setValue(LLSD(gPostProcess->tweaks.useBloomShader()));
+    get_floater_child<LLUICtrl>(this, "BloomExtract")->setValue(gPostProcess->tweaks.extractLow());
+    get_floater_child<LLUICtrl>(this, "BloomSize")->setValue(gPostProcess->tweaks.bloomWidth());
+    get_floater_child<LLUICtrl>(this, "BloomStrength")->setValue(gPostProcess->tweaks.bloomStrength());
 }

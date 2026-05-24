@@ -33,6 +33,32 @@
 #include "lltrans.h"
 #include "llweb.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterVoiceEffect::LLFloaterVoiceEffect(const LLSD& key)
     : LLFloater(key)
 {
@@ -59,10 +85,10 @@ LLFloaterVoiceEffect::~LLFloaterVoiceEffect()
 bool LLFloaterVoiceEffect::postBuild()
 {
     setDefaultBtn("record_btn");
-    getChild<LLButton>("record_btn")->setFocus(true);
-    getChild<LLUICtrl>("voice_morphing_link")->setTextArg("[URL]", LLTrans::getString("voice_morphing_url"));
+    get_floater_child<LLButton>(this, "record_btn")->setFocus(true);
+    get_floater_child<LLUICtrl>(this, "voice_morphing_link")->setTextArg("[URL]", LLTrans::getString("voice_morphing_url"));
 
-    mVoiceEffectList = getChild<LLScrollListCtrl>("voice_effect_list");
+    mVoiceEffectList = get_floater_child<LLScrollListCtrl>(this, "voice_effect_list");
     if (mVoiceEffectList)
     {
         mVoiceEffectList->setCommitCallback(boost::bind(&LLFloaterVoiceEffect::onClickPlay, this));
@@ -224,8 +250,8 @@ void LLFloaterVoiceEffect::updateControls()
         recording = effect_interface->isPreviewRecording();
     }
 
-    getChild<LLButton>("record_btn")->setVisible(!recording);
-    getChild<LLButton>("record_stop_btn")->setVisible(recording);
+    get_floater_child<LLButton>(this, "record_btn")->setVisible(!recording);
+    get_floater_child<LLButton>(this, "record_stop_btn")->setVisible(recording);
 }
 
 // virtual

@@ -33,6 +33,32 @@
 #include "llviewercontrol.h"
 #include "llviewermenufile.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 constexpr S32 MAX_HEIGH = 211;
 
 LLFloaterBulkUpload::LLFloaterBulkUpload(const LLSD& key)
@@ -63,14 +89,14 @@ bool LLFloaterBulkUpload::postBuild()
     childSetAction("upload_btn", [this](void*) { onClickUpload(); }, this);
     childSetAction("cancel_btn", [this](void*) { onClickCancel(); }, this);
 
-    mCountLabel = getChild<LLTextBox>("number_of_items", true);
-    mCostLabel = getChild<LLTextBox>("upload_cost", true);
+    mCountLabel = get_floater_child<LLTextBox>(this, "number_of_items", true);
+    mCostLabel = get_floater_child<LLTextBox>(this, "upload_cost", true);
 
-    mCheckboxPanel = getChild<LLPanel>("checkbox_panel", true);
-    mLinkPanel = getChild<LLPanel>("link_panel", true);
-    mWarningPanel = getChild<LLPanel>("warning_panel", true);
+    mCheckboxPanel = get_floater_child<LLPanel>(this, "checkbox_panel", true);
+    mLinkPanel = get_floater_child<LLPanel>(this, "link_panel", true);
+    mWarningPanel = get_floater_child<LLPanel>(this, "warning_panel", true);
 
-    mCheckboxUpload2K = getChild<LLUICtrl>("upload_2k");
+    mCheckboxUpload2K = get_floater_child<LLUICtrl>(this, "upload_2k");
     mCheckboxUpload2K->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& data) { onUpload2KCheckBox(); });
 
     mAllow2kTextures = gSavedSettings.getBOOL("BulkUpload2KTextures");

@@ -44,6 +44,31 @@
 #include "lltexteditor.h"
 #include "kokuarlvmode.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 
 LLFloaterSettingsDebug::LLFloaterSettingsDebug(const LLSD& key)
 :   LLFloater(key),
@@ -74,26 +99,26 @@ bool LLFloaterSettingsDebug::postBuild()
 
 void LLFloaterSettingsDebug::setupControls()
 {
-    mValSpinner1 = getChild<LLSpinCtrl>("val_spinner_1");
-    mValSpinner2 = getChild<LLSpinCtrl>("val_spinner_2");
-    mValSpinner3 = getChild<LLSpinCtrl>("val_spinner_3");
-    mValSpinner4 = getChild<LLSpinCtrl>("val_spinner_4");
-    mBooleanCombo = getChild<LLUICtrl>("boolean_combo");
-    mValText = getChild<LLUICtrl>("val_text");
+    mValSpinner1 = get_floater_child<LLSpinCtrl>(this, "val_spinner_1");
+    mValSpinner2 = get_floater_child<LLSpinCtrl>(this, "val_spinner_2");
+    mValSpinner3 = get_floater_child<LLSpinCtrl>(this, "val_spinner_3");
+    mValSpinner4 = get_floater_child<LLSpinCtrl>(this, "val_spinner_4");
+    mBooleanCombo = get_floater_child<LLUICtrl>(this, "boolean_combo");
+    mValText = get_floater_child<LLUICtrl>(this, "val_text");
 
-    mColorSwatch = getChild<LLColorSwatchCtrl>("val_color_swatch");
+    mColorSwatch = get_floater_child<LLColorSwatchCtrl>(this, "val_color_swatch");
 
-    mDefaultButton = getChild<LLUICtrl>("default_btn");
-    mSettingNameText = getChild<LLTextBox>("setting_name_txt");
+    mDefaultButton = get_floater_child<LLUICtrl>(this, "default_btn");
+    mSettingNameText = get_floater_child<LLTextBox>(this, "setting_name_txt");
 
-    mComment = getChild<LLTextEditor>("comment_text");
+    mComment = get_floater_child<LLTextEditor>(this, "comment_text");
 
-    mSettingList = getChild<LLScrollListCtrl>("setting_list");
+    mSettingList = get_floater_child<LLScrollListCtrl>(this, "setting_list");
 }
 
 void LLFloaterSettingsDebug::setupCallbacks()
 {
-    getChild<LLFilterEditor>("filter_input")->setCommitCallback(boost::bind(&LLFloaterSettingsDebug::setSearchFilter, this, _2));
+    get_floater_child<LLFilterEditor>(this, "filter_input")->setCommitCallback(boost::bind(&LLFloaterSettingsDebug::setSearchFilter, this, _2));
 
     mSettingList->setCommitOnSelectionChange(true);
     mSettingList->setCommitCallback(boost::bind(&LLFloaterSettingsDebug::onSettingSelect, this));
@@ -665,7 +690,7 @@ LLControlVariable* LLFloaterSettingsDebug::getSelectedControl()
 
 void LLFloaterSettingsDebug::setActionButtonVisible(const std::string& name, bool visible)
 {
-    getChildView(name)->setVisible(visible);
+    get_floater_view(this, name)->setVisible(visible);
 }
 
 void LLFloaterSettingsDebug::setSearchFilter(const std::string& filter)

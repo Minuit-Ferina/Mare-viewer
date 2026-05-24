@@ -63,6 +63,32 @@
 #include "llmenubutton.h"
 #include "lltoggleablemenu.h"
 #include "llviewermenu.h"           // for gMenuHolder
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 // </FS:Ansariel>
 
 //LLFloaterInspect* LLFloaterInspect::sInstance = NULL;
@@ -99,7 +125,7 @@ LLFloaterInspect::LLFloaterInspect(const LLSD& key)
 
 bool LLFloaterInspect::postBuild()
 {
-    mObjectList = getChild<LLScrollListCtrl>("object_list");
+    mObjectList = get_floater_child<LLScrollListCtrl>(this, "object_list");
 //  childSetAction("button owner",onClickOwnerProfile, this);
 //  childSetAction("button creator",onClickCreatorProfile, this);
 //  childSetCommitCallback("object_list", onSelectObject, NULL);
@@ -111,7 +137,7 @@ bool LLFloaterInspect::postBuild()
     registrar.add("Inspect.ToggleColumn",           boost::bind(&LLFloaterInspect::onColumnVisibilityChecked, this, _2));
     enable_registrar.add("Inspect.EnableColumn",    boost::bind(&LLFloaterInspect::onEnableColumnVisibilityChecked, this, _2));
 
-    mOptionsButton = getChild<LLMenuButton>("options_btn");
+    mOptionsButton = get_floater_child<LLMenuButton>(this, "options_btn");
 
     LLToggleableMenu* options_menu  = LLUICtrlFactory::getInstance()->createFromFile<LLToggleableMenu>("menu_fs_inspect_options.xml", gMenuHolder, LLViewerMenuHolderGL::child_registry_t::instance());
     if (options_menu)
@@ -279,13 +305,13 @@ void LLFloaterInspect::onSelectObject()
             // RLV/CA: Just take brute force approach
             if (!gRRenabled || (gRRenabled && !gAgent.mRRInterface.mContainsShownames))
             {
-        getChildView("button owner")->setEnabled(true);
-        getChildView("button creator")->setEnabled(true);
+        get_floater_view(this, "button owner")->setEnabled(true);
+        get_floater_view(this, "button creator")->setEnabled(true);
             }
             else
             {
-            getChildView("button owner")->setEnabled(false);
-            getChildView("button creator")->setEnabled(false);
+            get_floater_view(this, "button owner")->setEnabled(false);
+            get_floater_view(this, "button creator")->setEnabled(false);
             }
 //      }
 //      else
@@ -339,8 +365,8 @@ void LLFloaterInspect::refresh()
     F32 max_attachment_complexity = max_complexity_setting;
     max_attachment_complexity = llmax(max_attachment_complexity, 1.0e6f);
     // PoundLife - End
-    getChildView("button owner")->setEnabled(false);
-    getChildView("button creator")->setEnabled(false);
+    get_floater_view(this, "button owner")->setEnabled(false);
+    get_floater_view(this, "button creator")->setEnabled(false);
     LLUUID selected_uuid;
     S32 selected_index = mObjectList->getFirstSelectedIndex();
     if(selected_index > -1)
@@ -610,7 +636,7 @@ void LLFloaterInspect::refresh()
     args["VRAM_USAGE"] = format_res_string;
     res_mgr.getIntegerString(format_res_string, complexity);
     args["COMPLEXITY"] = format_res_string;
-    getChild<LLTextBase>("linksetstats_text")->setText(getString("stats_list", args));
+    get_floater_child<LLTextBase>(this, "linksetstats_text")->setText(getString("stats_list", args));
     // PoundLife - End
 }
 

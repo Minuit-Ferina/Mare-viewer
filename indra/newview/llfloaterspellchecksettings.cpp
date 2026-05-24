@@ -40,6 +40,31 @@
 
 #include <boost/algorithm/string.hpp>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 ///----------------------------------------------------------------------------
 /// Class LLFloaterSpellCheckerSettings
 ///----------------------------------------------------------------------------
@@ -62,7 +87,7 @@ void LLFloaterSpellCheckerSettings::syncRemoveButton()
     {
         enable_remove &= LLSpellChecker::getInstance()->canRemoveDictionary((*sel_it)->getValue().asString());
     }
-    getChild<LLUICtrl>("spellcheck_remove_btn")->setEnabled(enable_remove);
+    get_floater_child<LLUICtrl>(this, "spellcheck_remove_btn")->setEnabled(enable_remove);
 }
 
 bool LLFloaterSpellCheckerSettings::postBuild(void)
@@ -76,15 +101,15 @@ bool LLFloaterSpellCheckerSettings::postBuild(void)
 
 void LLFloaterSpellCheckerSettings::setupCallbacks()
 {
-    getChild<LLUICtrl>("spellcheck_remove_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerSettings::onBtnRemove, this));
-    getChild<LLUICtrl>("spellcheck_import_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerSettings::onBtnImport, this));
-    getChild<LLUICtrl>("spellcheck_main_combo")->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& data)
+    get_floater_child<LLUICtrl>(this, "spellcheck_remove_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerSettings::onBtnRemove, this));
+    get_floater_child<LLUICtrl>(this, "spellcheck_import_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerSettings::onBtnImport, this));
+    get_floater_child<LLUICtrl>(this, "spellcheck_main_combo")->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& data)
     {
         mMainSelectionChanged = true;
         refreshDictionaries(false);
     });
-    getChild<LLUICtrl>("spellcheck_moveleft_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerSettings::onBtnMove, this, "spellcheck_active_list", "spellcheck_available_list"));
-    getChild<LLUICtrl>("spellcheck_moveright_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerSettings::onBtnMove, this, "spellcheck_available_list", "spellcheck_active_list"));
+    get_floater_child<LLUICtrl>(this, "spellcheck_moveleft_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerSettings::onBtnMove, this, "spellcheck_active_list", "spellcheck_available_list"));
+    get_floater_child<LLUICtrl>(this, "spellcheck_moveright_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerSettings::onBtnMove, this, "spellcheck_available_list", "spellcheck_active_list"));
 }
 
 void LLFloaterSpellCheckerSettings::onBtnImport()
@@ -254,23 +279,23 @@ void LLFloaterSpellCheckerSettings::refreshDictionaries(bool from_settings)
 
 void LLFloaterSpellCheckerSettings::setMoveButtonsEnabled(bool enabled)
 {
-    getChild<LLUICtrl>("spellcheck_moveleft_btn")->setEnabled(enabled);
-    getChild<LLUICtrl>("spellcheck_moveright_btn")->setEnabled(enabled);
+    get_floater_child<LLUICtrl>(this, "spellcheck_moveleft_btn")->setEnabled(enabled);
+    get_floater_child<LLUICtrl>(this, "spellcheck_moveright_btn")->setEnabled(enabled);
 }
 
 LLScrollListCtrl* LLFloaterSpellCheckerSettings::getAvailableList()
 {
-    return getChild<LLScrollListCtrl>("spellcheck_available_list");
+    return get_floater_child<LLScrollListCtrl>(this, "spellcheck_available_list");
 }
 
 LLScrollListCtrl* LLFloaterSpellCheckerSettings::getActiveList()
 {
-    return getChild<LLScrollListCtrl>("spellcheck_active_list");
+    return get_floater_child<LLScrollListCtrl>(this, "spellcheck_active_list");
 }
 
 LLComboBox* LLFloaterSpellCheckerSettings::getMainCombo()
 {
-    return getChild<LLComboBox>("spellcheck_main_combo");
+    return get_floater_child<LLComboBox>(this, "spellcheck_main_combo");
 }
 
 ///----------------------------------------------------------------------------
@@ -290,9 +315,9 @@ bool LLFloaterSpellCheckerImport::postBuild()
 
 void LLFloaterSpellCheckerImport::setupCallbacks()
 {
-    getChild<LLUICtrl>("dictionary_path_browse")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerImport::onBtnBrowse, this));
-    getChild<LLUICtrl>("ok_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerImport::onBtnOK, this));
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerImport::onBtnCancel, this));
+    get_floater_child<LLUICtrl>(this, "dictionary_path_browse")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerImport::onBtnBrowse, this));
+    get_floater_child<LLUICtrl>(this, "ok_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerImport::onBtnOK, this));
+    get_floater_child<LLUICtrl>(this, "cancel_btn")->setCommitCallback(boost::bind(&LLFloaterSpellCheckerImport::onBtnCancel, this));
 }
 
 void LLFloaterSpellCheckerImport::onBtnBrowse()
@@ -426,17 +451,17 @@ void LLFloaterSpellCheckerImport::onBtnOK()
 
 void LLFloaterSpellCheckerImport::setDictionaryPath(const std::string& filepath)
 {
-    getChild<LLUICtrl>("dictionary_path")->setValue(filepath);
+    get_floater_child<LLUICtrl>(this, "dictionary_path")->setValue(filepath);
 }
 
 void LLFloaterSpellCheckerImport::setDictionaryName(const std::string& dictionary_name)
 {
-    getChild<LLUICtrl>("dictionary_name")->setValue(dictionary_name);
+    get_floater_child<LLUICtrl>(this, "dictionary_name")->setValue(dictionary_name);
 }
 
 std::string LLFloaterSpellCheckerImport::getDictionaryLanguage()
 {
-    return getChild<LLUICtrl>("dictionary_language")->getValue().asString();
+    return get_floater_child<LLUICtrl>(this, "dictionary_language")->getValue().asString();
 }
 
 std::string LLFloaterSpellCheckerImport::parseXcuFile(const std::string& file_path) const

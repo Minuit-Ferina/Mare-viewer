@@ -35,6 +35,31 @@
 #include "lltrans.h"
 #include "llnotificationsutil.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const std::string LL_FCP_COMPLETE_NAME("complete_name");
 const std::string LL_FCP_ACCOUNT_NAME("user_name");
 const S32 CONVERSATION_HISTORY_PAGE_SIZE = 100;
@@ -63,7 +88,7 @@ LLFloaterConversationPreview::~LLFloaterConversationPreview()
 
 bool LLFloaterConversationPreview::postBuild()
 {
-    mChatHistory = getChild<LLChatHistory>("chat_history");
+    mChatHistory = get_floater_child<LLChatHistory>(this, "chat_history");
     syncConversationIdentity();
 
     return LLFloater::postBuild();
@@ -155,7 +180,7 @@ void LLFloaterConversationPreview::onOpen(const LLSD& key)
     load_params["is_group"] = mIsGroup;
 
     queueLoadingMessage();
-    mPageSpinner = getChild<LLSpinCtrl>("history_page_spin");
+    mPageSpinner = get_floater_child<LLSpinCtrl>(this, "history_page_spin");
     setupPageSpinner();
 
     // The actual message list to load from file
@@ -192,7 +217,7 @@ void LLFloaterConversationPreview::syncPageControls()
     mPageSpinner->set((F32)(mCurrentPage+1));
 
     std::string total_page_num = llformat("/ %d", mCurrentPage+1);
-    getChild<LLTextBox>("page_num_label")->setValue(total_page_num);
+    get_floater_child<LLTextBox>(this, "page_num_label")->setValue(total_page_num);
 }
 
 void LLFloaterConversationPreview::queueLoadingMessage()

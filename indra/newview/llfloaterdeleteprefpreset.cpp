@@ -36,6 +36,32 @@
 #include "llviewercontrol.h"
 #include "llfloaterreg.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterDeletePrefPreset::LLFloaterDeletePrefPreset(const LLSD &key)
 :   LLFloater(key)
 {
@@ -49,8 +75,8 @@ bool LLFloaterDeletePrefPreset::postBuild()
     {
         preferences->addDependentFloater(this);
     }
-    getChild<LLButton>("delete")->setCommitCallback(boost::bind(&LLFloaterDeletePrefPreset::onBtnDelete, this));
-    getChild<LLButton>("cancel")->setCommitCallback(boost::bind(&LLFloaterDeletePrefPreset::onBtnCancel, this));
+    get_floater_child<LLButton>(this, "delete")->setCommitCallback(boost::bind(&LLFloaterDeletePrefPreset::onBtnDelete, this));
+    get_floater_child<LLButton>(this, "cancel")->setCommitCallback(boost::bind(&LLFloaterDeletePrefPreset::onBtnCancel, this));
     LLPresetsManager::instance().setPresetListChangeCallback(boost::bind(&LLFloaterDeletePrefPreset::onPresetsListChange, this));
 
     return true;
@@ -71,18 +97,18 @@ void LLFloaterDeletePrefPreset::onOpen(const LLSD& key)
         setTitle(title_type);
     }
 
-    LLComboBox* combo = getChild<LLComboBox>("preset_combo");
+    LLComboBox* combo = get_floater_child<LLComboBox>(this, "preset_combo");
     EDefaultOptions option = DEFAULT_HIDE;
     bool action;
     action = LLPresetsManager::getInstance()->setPresetNamesInComboBox(mSubdirectory, combo, option);
 
-    LLButton* delete_btn = getChild<LLButton>("delete");
+    LLButton* delete_btn = get_floater_child<LLButton>(this, "delete");
     delete_btn->setEnabled(action);
 }
 
 void LLFloaterDeletePrefPreset::onBtnDelete()
 {
-    LLComboBox* combo = getChild<LLComboBox>("preset_combo");
+    LLComboBox* combo = get_floater_child<LLComboBox>(this, "preset_combo");
     std::string name = combo->getSimple();
 
     if (!LLPresetsManager::getInstance()->deletePreset(mSubdirectory, name))
@@ -104,7 +130,7 @@ void LLFloaterDeletePrefPreset::onBtnDelete()
 
 void LLFloaterDeletePrefPreset::onPresetsListChange()
 {
-    LLComboBox* combo = getChild<LLComboBox>("preset_combo");
+    LLComboBox* combo = get_floater_child<LLComboBox>(this, "preset_combo");
 
     EDefaultOptions option = DEFAULT_HIDE;
 

@@ -55,6 +55,31 @@
 #include "llsettingsvo.h"
 #include "llinventorymodel.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 extern LLControlGroup gSavedSettings;
 
 namespace
@@ -102,15 +127,15 @@ bool LLFloaterFixedEnvironment::postBuild()
 
 void LLFloaterFixedEnvironment::setupBaseControls()
 {
-    mTab = getChild<LLTabContainer>(CONTROL_TAB_AREA);
-    mTxtName = getChild<LLLineEditor>(FIELD_SETTINGS_NAME);
+    mTab = get_floater_child<LLTabContainer>(this, CONTROL_TAB_AREA);
+    mTxtName = get_floater_child<LLLineEditor>(this, FIELD_SETTINGS_NAME);
 
     mTxtName->setCommitOnFocusLost(true);
     mTxtName->setCommitCallback([this](LLUICtrl *, const LLSD &) { onNameChanged(mTxtName->getValue().asString()); });
 
-    getChild<LLButton>(BUTTON_NAME_IMPORT)->setClickedCallback([this](LLUICtrl *, const LLSD &) { onButtonImport(); });
-    getChild<LLButton>(BUTTON_NAME_CANCEL)->setClickedCallback([this](LLUICtrl *, const LLSD &) { onClickCloseBtn(); });
-    getChild<LLButton>(BUTTON_NAME_LOAD)->setClickedCallback([this](LLUICtrl *, const LLSD &) { onButtonLoad(); });
+    get_floater_child<LLButton>(this, BUTTON_NAME_IMPORT)->setClickedCallback([this](LLUICtrl *, const LLSD &) { onButtonImport(); });
+    get_floater_child<LLButton>(this, BUTTON_NAME_CANCEL)->setClickedCallback([this](LLUICtrl *, const LLSD &) { onClickCloseBtn(); });
+    get_floater_child<LLButton>(this, BUTTON_NAME_LOAD)->setClickedCallback([this](LLUICtrl *, const LLSD &) { onButtonLoad(); });
 }
 
 void LLFloaterFixedEnvironment::setupFlyoutControl()

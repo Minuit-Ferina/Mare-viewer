@@ -37,6 +37,32 @@
 #include "lltoolbarview.h"
 #include "lltrans.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterToybox::LLFloaterToybox(const LLSD& key)
     : LLFloater(key)
     , mToolBar(NULL)
@@ -60,7 +86,7 @@ bool compare_localized_command_labels(LLCommand * cmd1, LLCommand * cmd2)
 
 bool LLFloaterToybox::postBuild()
 {
-    mToolBar = getChild<LLToolBar>("toybox_toolbar");
+    mToolBar = get_floater_child<LLToolBar>(this, "toybox_toolbar");
 
     mToolBar->setStartDragCallback(boost::bind(LLToolBarView::startDragTool,_1,_2,_3));
     mToolBar->setHandleDragCallback(boost::bind(LLToolBarView::handleDragTool,_1,_2,_3,_4));

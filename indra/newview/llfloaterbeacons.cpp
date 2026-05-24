@@ -33,6 +33,32 @@
 #include "pipeline.h"
 //MK
 #include "llagent.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //mk
 
 LLFloaterBeacons::LLFloaterBeacons(const LLSD& seed)
@@ -72,15 +98,15 @@ void LLFloaterBeacons::onClickUICheck(LLUICtrl *ctrl)
     {
         LLPipeline::setRenderScriptedBeacons(FALSE);
         LLPipeline::setRenderScriptedTouchBeacons(FALSE);
-        getChild<LLCheckBoxCtrl>("scripted")->setControlValue(LLSD(FALSE));
-        getChild<LLCheckBoxCtrl>("touch_only")->setControlValue(LLSD(FALSE));
+        get_floater_child<LLCheckBoxCtrl>(this, "scripted")->setControlValue(LLSD(FALSE));
+        get_floater_child<LLCheckBoxCtrl>(this, "touch_only")->setControlValue(LLSD(FALSE));
         LLPipeline::setRenderPhysicalBeacons(FALSE);
         LLPipeline::setRenderSoundBeacons(FALSE);
         LLPipeline::setRenderParticleBeacons(FALSE);
         LLPipeline::setRenderBeacons(FALSE);
         LLPipeline::setRenderHighlights(FALSE);
-        getChild<LLCheckBoxCtrl>("beacons")->setControlValue(LLSD(FALSE));
-        getChild<LLCheckBoxCtrl>("highlights")->setControlValue(LLSD(FALSE));
+        get_floater_child<LLCheckBoxCtrl>(this, "beacons")->setControlValue(LLSD(FALSE));
+        get_floater_child<LLCheckBoxCtrl>(this, "highlights")->setControlValue(LLSD(FALSE));
         return;
     }
 //mk
@@ -94,10 +120,10 @@ void LLFloaterBeacons::onClickUICheck(LLUICtrl *ctrl)
             LLPipeline::getRenderScriptedBeacons() )
         {
             LLPipeline::setRenderScriptedBeacons(false);
-            getChild<LLCheckBoxCtrl>("scripted")->setControlValue(LLSD(false));
-            getChild<LLCheckBoxCtrl>("scripted")->setValue(false);
-            getChild<LLCheckBoxCtrl>("touch_only")->setControlValue(LLSD(true)); // just to be sure it's in sync with llpipeline
-            getChild<LLCheckBoxCtrl>("touch_only")->setValue(true);
+            get_floater_child<LLCheckBoxCtrl>(this, "scripted")->setControlValue(LLSD(false));
+            get_floater_child<LLCheckBoxCtrl>(this, "scripted")->setValue(false);
+            get_floater_child<LLCheckBoxCtrl>(this, "touch_only")->setControlValue(LLSD(true)); // just to be sure it's in sync with llpipeline
+            get_floater_child<LLCheckBoxCtrl>(this, "touch_only")->setValue(true);
         }
     }
     else if(name == "scripted")
@@ -109,10 +135,10 @@ void LLFloaterBeacons::onClickUICheck(LLUICtrl *ctrl)
             LLPipeline::getRenderScriptedBeacons() )
         {
             LLPipeline::setRenderScriptedTouchBeacons(false);
-            getChild<LLCheckBoxCtrl>("touch_only")->setControlValue(LLSD(false));
-            getChild<LLCheckBoxCtrl>("touch_only")->setValue(false);
-            getChild<LLCheckBoxCtrl>("scripted")->setControlValue(LLSD(true)); // just to be sure it's in sync with llpipeline
-            getChild<LLCheckBoxCtrl>("scripted")->setValue(true);
+            get_floater_child<LLCheckBoxCtrl>(this, "touch_only")->setControlValue(LLSD(false));
+            get_floater_child<LLCheckBoxCtrl>(this, "touch_only")->setValue(false);
+            get_floater_child<LLCheckBoxCtrl>(this, "scripted")->setControlValue(LLSD(true)); // just to be sure it's in sync with llpipeline
+            get_floater_child<LLCheckBoxCtrl>(this, "scripted")->setValue(true);
         }
     }
     else if(name == "physical")       LLPipeline::setRenderPhysicalBeacons(check->get());
@@ -128,10 +154,10 @@ void LLFloaterBeacons::onClickUICheck(LLUICtrl *ctrl)
             !LLPipeline::getRenderHighlights() )
         {
             LLPipeline::setRenderBeacons(true);
-            getChild<LLCheckBoxCtrl>("beacons")->setControlValue(LLSD(true));
-            getChild<LLCheckBoxCtrl>("beacons")->setValue(true);
-            getChild<LLCheckBoxCtrl>("highlights")->setControlValue(LLSD(false)); // just to be sure it's in sync with llpipeline
-            getChild<LLCheckBoxCtrl>("highlights")->setValue(false);
+            get_floater_child<LLCheckBoxCtrl>(this, "beacons")->setControlValue(LLSD(true));
+            get_floater_child<LLCheckBoxCtrl>(this, "beacons")->setValue(true);
+            get_floater_child<LLCheckBoxCtrl>(this, "highlights")->setControlValue(LLSD(false)); // just to be sure it's in sync with llpipeline
+            get_floater_child<LLCheckBoxCtrl>(this, "highlights")->setValue(false);
         }
     }
     else if(name == "beacons")
@@ -143,10 +169,10 @@ void LLFloaterBeacons::onClickUICheck(LLUICtrl *ctrl)
             !LLPipeline::getRenderHighlights() )
         {
             LLPipeline::setRenderHighlights(true);
-            getChild<LLCheckBoxCtrl>("highlights")->setControlValue(LLSD(true));
-            getChild<LLCheckBoxCtrl>("highlights")->setValue(true);
-            getChild<LLCheckBoxCtrl>("beacons")->setControlValue(LLSD(false)); // just to be sure it's in sync with llpipeline
-            getChild<LLCheckBoxCtrl>("beacons")->setValue(false);
+            get_floater_child<LLCheckBoxCtrl>(this, "highlights")->setControlValue(LLSD(true));
+            get_floater_child<LLCheckBoxCtrl>(this, "highlights")->setValue(true);
+            get_floater_child<LLCheckBoxCtrl>(this, "beacons")->setControlValue(LLSD(false)); // just to be sure it's in sync with llpipeline
+            get_floater_child<LLCheckBoxCtrl>(this, "beacons")->setValue(false);
         }
     }
 }

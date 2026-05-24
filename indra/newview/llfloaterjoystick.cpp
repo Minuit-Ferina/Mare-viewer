@@ -45,6 +45,31 @@
 #include "llcheckboxctrl.h"
 #include "llcombobox.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 #if LL_WINDOWS && !LL_MESA_HEADLESS
 // Require DirectInput version 8
 #define DIRECTINPUT_VERSION 0x0800
@@ -156,7 +181,7 @@ void LLFloaterJoystick::setupAxisStats(F32 range)
     {
         std::string stat_name(llformat("Joystick axis %d", i));
         std::string axisname = llformat("axis%d", i);
-        mAxisStatsBar[i] = getChild<LLStatBar>(axisname);
+        mAxisStatsBar[i] = get_floater_child<LLStatBar>(this, axisname);
         if (mAxisStatsBar[i])
         {
             mAxisStatsBar[i]->setStat(stat_name);
@@ -167,8 +192,8 @@ void LLFloaterJoystick::setupAxisStats(F32 range)
 
 void LLFloaterJoystick::setupControls()
 {
-    mJoysticksCombo = getChild<LLComboBox>("joystick_combo");
-    mCheckFlycamEnabled = getChild<LLCheckBoxCtrl>("JoystickFlycamEnabled");
+    mJoysticksCombo = get_floater_child<LLComboBox>(this, "joystick_combo");
+    mCheckFlycamEnabled = get_floater_child<LLCheckBoxCtrl>(this, "JoystickFlycamEnabled");
 }
 
 void LLFloaterJoystick::setupCallbacks()

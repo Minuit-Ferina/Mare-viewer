@@ -24,6 +24,31 @@
 #include "lltexteditor.h"
 #include "llviewermenu.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 // ============================================================================
 // LLFloaterSearchReplace class
 //
@@ -52,30 +77,30 @@ bool LLFloaterSearchReplace::postBuild()
 
 void LLFloaterSearchReplace::setupEditors()
 {
-    m_pSearchEditor = getChild<LLLineEditor>("search_text");
+    m_pSearchEditor = get_floater_child<LLLineEditor>(this, "search_text");
     m_pSearchEditor->setCommitCallback(boost::bind(&LLFloaterSearchReplace::onSearchClick, this));
     m_pSearchEditor->setCommitOnFocusLost(false);
     m_pSearchEditor->setKeystrokeCallback(boost::bind(&LLFloaterSearchReplace::refreshHighlight, this), NULL);
-    m_pReplaceEditor = getChild<LLLineEditor>("replace_text");
+    m_pReplaceEditor = get_floater_child<LLLineEditor>(this, "replace_text");
 }
 
 void LLFloaterSearchReplace::setupOptions()
 {
-    m_pCaseInsensitiveCheck = getChild<LLCheckBoxCtrl>("case_text");
+    m_pCaseInsensitiveCheck = get_floater_child<LLCheckBoxCtrl>(this, "case_text");
     m_pCaseInsensitiveCheck->setCommitCallback(boost::bind(&LLFloaterSearchReplace::refreshHighlight, this));
-    m_pSearchUpCheck = getChild<LLCheckBoxCtrl>("find_previous");
+    m_pSearchUpCheck = get_floater_child<LLCheckBoxCtrl>(this, "find_previous");
 }
 
 void LLFloaterSearchReplace::setupButtons()
 {
-    LLButton* pSearchBtn = getChild<LLButton>("search_btn");
+    LLButton* pSearchBtn = get_floater_child<LLButton>(this, "search_btn");
     pSearchBtn->setCommitCallback(boost::bind(&LLFloaterSearchReplace::onSearchClick, this));
     setDefaultBtn(pSearchBtn);
 
-    LLButton* pReplaceBtn = getChild<LLButton>("replace_btn");
+    LLButton* pReplaceBtn = get_floater_child<LLButton>(this, "replace_btn");
     pReplaceBtn->setCommitCallback(boost::bind(&LLFloaterSearchReplace::onReplaceClick, this));
 
-    LLButton* pReplaceAllBtn = getChild<LLButton>("replace_all_btn");
+    LLButton* pReplaceAllBtn = get_floater_child<LLButton>(this, "replace_all_btn");
     pReplaceAllBtn->setCommitCallback(boost::bind(&LLFloaterSearchReplace::onReplaceAllClick, this));
 }
 
@@ -105,8 +130,8 @@ void LLFloaterSearchReplace::syncEditorSelection(LLTextEditor* editor)
 void LLFloaterSearchReplace::syncReplaceControls(bool can_replace)
 {
     m_pReplaceEditor->setEnabled(can_replace);
-    getChild<LLButton>("replace_btn")->setEnabled(can_replace);
-    getChild<LLButton>("replace_all_btn")->setEnabled(can_replace);
+    get_floater_child<LLButton>(this, "replace_btn")->setEnabled(can_replace);
+    get_floater_child<LLButton>(this, "replace_all_btn")->setEnabled(can_replace);
 }
 
 void LLFloaterSearchReplace::onClose(bool fQuiting)

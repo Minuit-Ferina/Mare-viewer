@@ -31,6 +31,32 @@
 #include "llpresetsmanager.h"
 #include "llviewercontrol.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterCameraPresets::LLFloaterCameraPresets(const LLSD& key)
 :   LLFloater(key)
 {}
@@ -40,7 +66,7 @@ LLFloaterCameraPresets::~LLFloaterCameraPresets()
 
 bool LLFloaterCameraPresets::postBuild()
 {
-    mPresetList = getChild<LLFlatListView>("preset_list");
+    mPresetList = get_floater_child<LLFlatListView>(this, "preset_list");
     mPresetList->setCommitCallback(boost::bind(&LLFloaterCameraPresets::onSelectionChange, this));
     mPresetList->setCommitOnSelectionChange(true);
     LLPresetsManager::getInstance()->setPresetListChangeCameraCallback(boost::bind(&LLFloaterCameraPresets::populateList, this));
@@ -101,14 +127,14 @@ LLCameraPresetFlatItem::~LLCameraPresetFlatItem()
 
 bool LLCameraPresetFlatItem::postBuild()
 {
-    mDeleteBtn = getChild<LLButton>("delete_btn");
+    mDeleteBtn = get_floater_child<LLButton>(this, "delete_btn");
     mDeleteBtn->setVisible(false);
 
-    mResetBtn = getChild<LLButton>("reset_btn");
+    mResetBtn = get_floater_child<LLButton>(this, "reset_btn");
     mResetBtn->setVisible(false);
 
     LLStyle::Params style;
-    LLTextBox* name_text = getChild<LLTextBox>("preset_name");
+    LLTextBox* name_text = get_floater_child<LLTextBox>(this, "preset_name");
     LLFontDescriptor new_desc(name_text->getFont()->getFontDesc());
     new_desc.setStyle(mIsDefaultPrest ? LLFontGL::ITALIC : LLFontGL::NORMAL);
     LLFontGL* new_font = LLFontGL::getFont(new_desc);
@@ -122,7 +148,7 @@ void LLCameraPresetFlatItem::onMouseEnter(S32 x, S32 y, MASK mask)
 {
     mDeleteBtn->setVisible(!mIsDefaultPrest);
     mResetBtn->setVisible(mIsDefaultPrest);
-    getChildView("hovered_icon")->setVisible(true);
+    get_floater_view(this, "hovered_icon")->setVisible(true);
     LLPanel::onMouseEnter(x, y, mask);
 }
 
@@ -130,7 +156,7 @@ void LLCameraPresetFlatItem::onMouseLeave(S32 x, S32 y, MASK mask)
 {
     mDeleteBtn->setVisible(false);
     mResetBtn->setVisible(false);
-    getChildView("hovered_icon")->setVisible(false);
+    get_floater_view(this, "hovered_icon")->setVisible(false);
     LLPanel::onMouseLeave(x, y, mask);
 }
 
@@ -138,7 +164,7 @@ void LLCameraPresetFlatItem::setValue(const LLSD& value)
 {
     if (!value.isMap()) return;;
     if (!value.has("selected")) return;
-    getChildView("selected_icon")->setVisible(value["selected"]);
+    get_floater_view(this, "selected_icon")->setVisible(value["selected"]);
 }
 
 void LLCameraPresetFlatItem::onDeleteBtnClick()

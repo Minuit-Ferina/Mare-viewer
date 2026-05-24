@@ -41,6 +41,32 @@
 
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLSimpleSnapshotFloaterView* gSimpleSnapshotFloaterView = NULL;
 
 const S32 LLFloaterSimpleSnapshot::THUMBNAIL_SNAPSHOT_DIM_MAX = 256;
@@ -274,7 +300,7 @@ bool LLFloaterSimpleSnapshot::postBuild()
     childSetAction("save_btn", boost::bind(&LLFloaterSimpleSnapshot::onSend, this));
     childSetAction("cancel_btn", boost::bind(&LLFloaterSimpleSnapshot::onCancel, this));
 
-    mThumbnailPlaceholder = getChild<LLUICtrl>("thumbnail_placeholder");
+    mThumbnailPlaceholder = get_floater_child<LLUICtrl>(this, "thumbnail_placeholder");
 
     // create preview window
     LLRect full_screen_rect = getRootView()->getRect();

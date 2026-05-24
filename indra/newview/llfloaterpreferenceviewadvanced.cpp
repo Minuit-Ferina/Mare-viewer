@@ -33,6 +33,31 @@
 #include "llspinctrl.h"
 #include "llviewercontrol.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 
 LLFloaterPreferenceViewAdvanced::LLFloaterPreferenceViewAdvanced(const LLSD& key)
 :   LLFloater(key)
@@ -69,16 +94,16 @@ void LLFloaterPreferenceViewAdvanced::onCommitSettings()
 
 void LLFloaterPreferenceViewAdvanced::setCameraAxisControls(const LLVector3& vector)
 {
-    getChild<LLSpinCtrl>("camera_x")->setValue(vector[VX]);
-    getChild<LLSpinCtrl>("camera_y")->setValue(vector[VY]);
-    getChild<LLSpinCtrl>("camera_z")->setValue(vector[VZ]);
+    get_floater_child<LLSpinCtrl>(this, "camera_x")->setValue(vector[VX]);
+    get_floater_child<LLSpinCtrl>(this, "camera_y")->setValue(vector[VY]);
+    get_floater_child<LLSpinCtrl>(this, "camera_z")->setValue(vector[VZ]);
 }
 
 void LLFloaterPreferenceViewAdvanced::setFocusAxisControls(const LLVector3d& vector3d)
 {
-    getChild<LLSpinCtrl>("focus_x")->setValue(vector3d[VX]);
-    getChild<LLSpinCtrl>("focus_y")->setValue(vector3d[VY]);
-    getChild<LLSpinCtrl>("focus_z")->setValue(vector3d[VZ]);
+    get_floater_child<LLSpinCtrl>(this, "focus_x")->setValue(vector3d[VX]);
+    get_floater_child<LLSpinCtrl>(this, "focus_y")->setValue(vector3d[VY]);
+    get_floater_child<LLSpinCtrl>(this, "focus_z")->setValue(vector3d[VZ]);
 }
 
 LLVector3 LLFloaterPreferenceViewAdvanced::getCameraAxisControls()
@@ -101,5 +126,5 @@ LLVector3d LLFloaterPreferenceViewAdvanced::getFocusAxisControls()
 
 F32 LLFloaterPreferenceViewAdvanced::getControlF32(const std::string& name)
 {
-    return (F32)getChild<LLUICtrl>(name)->getValue().asReal();
+    return (F32)get_floater_child<LLUICtrl>(this, name)->getValue().asReal();
 }

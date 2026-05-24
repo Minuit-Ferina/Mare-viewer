@@ -43,6 +43,32 @@
 #include "llviewerobjectlist.h"
 #include "lluictrlfactory.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterTelehub::LLFloaterTelehub(const LLSD& key)
 :   LLFloater(key),
     mTelehubObjectID(),
@@ -57,12 +83,12 @@ bool LLFloaterTelehub::postBuild()
 {
     gMessageSystem->setHandlerFunc("TelehubInfo", processTelehubInfo);
 
-    getChild<LLUICtrl>("connect_btn")->setCommitCallback(boost::bind(&LLFloaterTelehub::onClickConnect, this));
-    getChild<LLUICtrl>("disconnect_btn")->setCommitCallback(boost::bind(&LLFloaterTelehub::onClickDisconnect, this));
-    getChild<LLUICtrl>("add_spawn_point_btn")->setCommitCallback(boost::bind(&LLFloaterTelehub::onClickAddSpawnPoint, this));
-    getChild<LLUICtrl>("remove_spawn_point_btn")->setCommitCallback(boost::bind(&LLFloaterTelehub::onClickRemoveSpawnPoint, this));
+    get_floater_child<LLUICtrl>(this, "connect_btn")->setCommitCallback(boost::bind(&LLFloaterTelehub::onClickConnect, this));
+    get_floater_child<LLUICtrl>(this, "disconnect_btn")->setCommitCallback(boost::bind(&LLFloaterTelehub::onClickDisconnect, this));
+    get_floater_child<LLUICtrl>(this, "add_spawn_point_btn")->setCommitCallback(boost::bind(&LLFloaterTelehub::onClickAddSpawnPoint, this));
+    get_floater_child<LLUICtrl>(this, "remove_spawn_point_btn")->setCommitCallback(boost::bind(&LLFloaterTelehub::onClickRemoveSpawnPoint, this));
 
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("spawn_points_list");
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(this, "spawn_points_list");
     if (list)
     {
         // otherwise you can't walk with arrow keys while floater is up
@@ -105,19 +131,19 @@ void LLFloaterTelehub::refresh()
 
     bool have_selection = (object != NULL);
     bool all_volume = LLSelectMgr::getInstance()->selectionAllPCode( LL_PCODE_VOLUME );
-    getChildView("connect_btn")->setEnabled(have_selection && all_volume);
+    get_floater_view(this, "connect_btn")->setEnabled(have_selection && all_volume);
 
     bool have_telehub = mTelehubObjectID.notNull();
-    getChildView("disconnect_btn")->setEnabled(have_telehub);
+    get_floater_view(this, "disconnect_btn")->setEnabled(have_telehub);
 
     bool space_avail = (mNumSpawn < MAX_SPAWNPOINTS_PER_TELEHUB);
-    getChildView("add_spawn_point_btn")->setEnabled(have_selection && all_volume && space_avail);
+    get_floater_view(this, "add_spawn_point_btn")->setEnabled(have_selection && all_volume && space_avail);
 
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("spawn_points_list");
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(this, "spawn_points_list");
     if (list)
     {
         bool enable_remove = (list->getFirstSelected() != NULL);
-        getChildView("remove_spawn_point_btn")->setEnabled(enable_remove);
+        get_floater_view(this, "remove_spawn_point_btn")->setEnabled(enable_remove);
     }
 }
 
@@ -149,7 +175,7 @@ void LLFloaterTelehub::addBeacons()
     // Draw nice thick 3-pixel lines.
     gObjectList.addDebugBeacon(hub_pos_region, "", LLColor4::yellow, LLColor4::white, 4);
 
-    LLScrollListCtrl* list = floater->getChild<LLScrollListCtrl>("spawn_points_list");
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(floater, "spawn_points_list");
     if (list)
     {
         S32 spawn_index = list->getFirstSelectedIndex();
@@ -184,7 +210,7 @@ void LLFloaterTelehub::onClickAddSpawnPoint()
 
 void LLFloaterTelehub::onClickRemoveSpawnPoint()
 {
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("spawn_points_list");
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(this, "spawn_points_list");
     if (!list)
         return;
 
@@ -248,21 +274,21 @@ void LLFloaterTelehub::unpackTelehubInfo(LLMessageSystem* msg)
 
     if (mTelehubObjectID.isNull())
     {
-        getChildView("status_text_connected")->setVisible( false);
-        getChildView("status_text_not_connected")->setVisible( true);
-        getChildView("help_text_connected")->setVisible( false);
-        getChildView("help_text_not_connected")->setVisible( true);
+        get_floater_view(this, "status_text_connected")->setVisible( false);
+        get_floater_view(this, "status_text_not_connected")->setVisible( true);
+        get_floater_view(this, "help_text_connected")->setVisible( false);
+        get_floater_view(this, "help_text_not_connected")->setVisible( true);
     }
     else
     {
-        getChild<LLUICtrl>("status_text_connected")->setTextArg("[OBJECT]", mTelehubObjectName);
-        getChildView("status_text_connected")->setVisible( true);
-        getChildView("status_text_not_connected")->setVisible( false);
-        getChildView("help_text_connected")->setVisible( true);
-        getChildView("help_text_not_connected")->setVisible( false);
+        get_floater_child<LLUICtrl>(this, "status_text_connected")->setTextArg("[OBJECT]", mTelehubObjectName);
+        get_floater_view(this, "status_text_connected")->setVisible( true);
+        get_floater_view(this, "status_text_not_connected")->setVisible( false);
+        get_floater_view(this, "help_text_connected")->setVisible( true);
+        get_floater_view(this, "help_text_not_connected")->setVisible( false);
     }
 
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("spawn_points_list");
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(this, "spawn_points_list");
     if (list)
     {
         list->deleteAllItems();

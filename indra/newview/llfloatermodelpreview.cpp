@@ -67,6 +67,32 @@
 #include "llmaterialeditor.h"
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //static
 S32 LLFloaterModelPreview::sUploadAmount = 10;
 LLFloaterModelPreview* LLFloaterModelPreview::sInstance = NULL;
@@ -157,20 +183,20 @@ bool LLFloaterModelPreview::postBuild()
 
     childSetCommitCallback("cancel_btn", onCancel, this);
     childSetCommitCallback("crease_angle", onGenerateNormalsCommit, this);
-    getChild<LLCheckBoxCtrl>("gen_normals")->setCommitCallback(boost::bind(&LLFloaterModelPreview::toggleGenarateNormals, this));
+    get_floater_child<LLCheckBoxCtrl>(this, "gen_normals")->setCommitCallback(boost::bind(&LLFloaterModelPreview::toggleGenarateNormals, this));
 
     childSetCommitCallback("lod_generate", onAutoFillCommit, this);
 
     for (S32 lod = 0; lod <= LLModel::LOD_HIGH; ++lod)
     {
-        LLComboBox* lod_source_combo = getChild<LLComboBox>("lod_source_" + lod_name[lod]);
+        LLComboBox* lod_source_combo = get_floater_child<LLComboBox>(this, "lod_source_" + lod_name[lod]);
         lod_source_combo->setCommitCallback(boost::bind(&LLFloaterModelPreview::onLoDSourceCommit, this, lod));
         lod_source_combo->setCurrentByIndex(mLODMode[lod]);
 
-        getChild<LLButton>("lod_browse_" + lod_name[lod])->setCommitCallback(boost::bind(&LLFloaterModelPreview::onBrowseLOD, this, lod));
-        getChild<LLComboBox>("lod_mode_" + lod_name[lod])->setCommitCallback(boost::bind(&LLFloaterModelPreview::onLODParamCommit, this, lod, false));
-        getChild<LLSpinCtrl>("lod_error_threshold_" + lod_name[lod])->setCommitCallback(boost::bind(&LLFloaterModelPreview::onLODParamCommit, this, lod, false));
-        getChild<LLSpinCtrl>("lod_triangle_limit_" + lod_name[lod])->setCommitCallback(boost::bind(&LLFloaterModelPreview::onLODParamCommit, this, lod, true));
+        get_floater_child<LLButton>(this, "lod_browse_" + lod_name[lod])->setCommitCallback(boost::bind(&LLFloaterModelPreview::onBrowseLOD, this, lod));
+        get_floater_child<LLComboBox>(this, "lod_mode_" + lod_name[lod])->setCommitCallback(boost::bind(&LLFloaterModelPreview::onLODParamCommit, this, lod, false));
+        get_floater_child<LLSpinCtrl>(this, "lod_error_threshold_" + lod_name[lod])->setCommitCallback(boost::bind(&LLFloaterModelPreview::onLODParamCommit, this, lod, false));
+        get_floater_child<LLSpinCtrl>(this, "lod_triangle_limit_" + lod_name[lod])->setCommitCallback(boost::bind(&LLFloaterModelPreview::onLODParamCommit, this, lod, true));
     }
 
     // Upload/avatar options, they need to refresh errors/notifications
@@ -191,14 +217,14 @@ bool LLFloaterModelPreview::postBuild()
     childSetCommitCallback("import_scale", onImportScaleCommit, this);
     childSetCommitCallback("pelvis_offset", onPelvisOffsetCommit, this);
 
-    getChild<LLLineEditor>("description_form")->setKeystrokeCallback(boost::bind(&LLFloaterModelPreview::onDescriptionKeystroke, this, _1), NULL);
+    get_floater_child<LLLineEditor>(this, "description_form")->setKeystrokeCallback(boost::bind(&LLFloaterModelPreview::onDescriptionKeystroke, this, _1), NULL);
 
-    getChild<LLCheckBoxCtrl>("show_edges")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onViewOptionChecked, this, _1));
-    getChild<LLCheckBoxCtrl>("show_physics")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onViewOptionChecked, this, _1));
-    getChild<LLCheckBoxCtrl>("show_textures")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onViewOptionChecked, this, _1));
-    getChild<LLCheckBoxCtrl>("show_skin_weight")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onShowSkinWeightChecked, this, _1));
-    getChild<LLCheckBoxCtrl>("show_joint_overrides")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onViewOptionChecked, this, _1));
-    getChild<LLCheckBoxCtrl>("show_joint_positions")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onViewOptionChecked, this, _1));
+    get_floater_child<LLCheckBoxCtrl>(this, "show_edges")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onViewOptionChecked, this, _1));
+    get_floater_child<LLCheckBoxCtrl>(this, "show_physics")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onViewOptionChecked, this, _1));
+    get_floater_child<LLCheckBoxCtrl>(this, "show_textures")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onViewOptionChecked, this, _1));
+    get_floater_child<LLCheckBoxCtrl>(this, "show_skin_weight")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onShowSkinWeightChecked, this, _1));
+    get_floater_child<LLCheckBoxCtrl>(this, "show_joint_overrides")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onViewOptionChecked, this, _1));
+    get_floater_child<LLCheckBoxCtrl>(this, "show_joint_positions")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onViewOptionChecked, this, _1));
 
     childDisable("upload_skin");
     childDisable("upload_joints");
@@ -212,7 +238,7 @@ bool LLFloaterModelPreview::postBuild()
 
     initDecompControls();
 
-    LLView* preview_panel = getChild<LLView>("preview_panel");
+    LLView* preview_panel = get_floater_child<LLView>(this, "preview_panel");
 
     mPreviewRect = preview_panel->getRect();
 
@@ -221,25 +247,25 @@ bool LLFloaterModelPreview::postBuild()
     //set callbacks for left click on line editor rows
     for (U32 i = 0; i <= LLModel::LOD_HIGH; i++)
     {
-        LLTextBox* text = getChild<LLTextBox>(lod_label_name[i]);
+        LLTextBox* text = get_floater_child<LLTextBox>(this, lod_label_name[i]);
         if (text)
         {
             text->setMouseDownCallback(boost::bind(&LLFloaterModelPreview::setPreviewLOD, this, i));
         }
 
-        text = getChild<LLTextBox>(lod_triangles_name[i]);
+        text = get_floater_child<LLTextBox>(this, lod_triangles_name[i]);
         if (text)
         {
             text->setMouseDownCallback(boost::bind(&LLFloaterModelPreview::setPreviewLOD, this, i));
         }
 
-        text = getChild<LLTextBox>(lod_vertices_name[i]);
+        text = get_floater_child<LLTextBox>(this, lod_vertices_name[i]);
         if (text)
         {
             text->setMouseDownCallback(boost::bind(&LLFloaterModelPreview::setPreviewLOD, this, i));
         }
 
-        text = getChild<LLTextBox>(lod_status_name[i]);
+        text = get_floater_child<LLTextBox>(this, lod_status_name[i]);
         if (text)
         {
             text->setMouseDownCallback(boost::bind(&LLFloaterModelPreview::setPreviewLOD, this, i));
@@ -261,16 +287,16 @@ bool LLFloaterModelPreview::postBuild()
     {
         validate_url = llformat("http://secondlife.%s.lindenlab.com/my/account/mesh.php",current_grid.c_str());
     }
-    getChild<LLTextBox>("warning_message")->setTextArg("[VURL]", validate_url);
+    get_floater_child<LLTextBox>(this, "warning_message")->setTextArg("[VURL]", validate_url);
 
-    mUploadBtn = getChild<LLButton>("ok_btn");
-    mCalculateBtn = getChild<LLButton>("calculate_btn");
-    mUploadLogText = getChild<LLViewerTextEditor>("log_text");
-    mTabContainer = getChild<LLTabContainer>("import_tab");
+    mUploadBtn = get_floater_child<LLButton>(this, "ok_btn");
+    mCalculateBtn = get_floater_child<LLButton>(this, "calculate_btn");
+    mUploadLogText = get_floater_child<LLViewerTextEditor>(this, "log_text");
+    mTabContainer = get_floater_child<LLTabContainer>(this, "import_tab");
 
     LLPanel *panel = mTabContainer->getPanelByName("rigging_panel");
     mAvatarTabIndex = mTabContainer->getIndexForPanel(panel);
-    panel->getChild<LLScrollListCtrl>("joints_list")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onJointListSelection, this));
+    get_floater_child<LLScrollListCtrl>(panel, "joints_list")->setCommitCallback(boost::bind(&LLFloaterModelPreview::onJointListSelection, this));
 
     if (LLConvexDecomposition::getInstance() != NULL)
     {
@@ -294,7 +320,7 @@ void LLFloaterModelPreview::reshape(S32 width, S32 height, bool called_from_pare
 {
     LLFloaterModelUploadBase::reshape(width, height, called_from_parent);
 
-    LLView* preview_panel = getChild<LLView>("preview_panel");
+    LLView* preview_panel = get_floater_child<LLView>(this, "preview_panel");
     LLRect rect = preview_panel->getRect();
 
     if (rect != mPreviewRect)
@@ -432,7 +458,7 @@ bool LLFloaterModelPreview::isViewOptionChecked(const LLSD& userdata)
 
 bool LLFloaterModelPreview::isViewOptionEnabled(const LLSD& userdata)
 {
-    return getChildView(userdata.asString())->getEnabled();
+    return get_floater_view(this, userdata.asString())->getEnabled();
 }
 
 void LLFloaterModelPreview::setViewOptionEnabled(const std::string& option, bool enabled)
@@ -504,17 +530,17 @@ F32 LLFloaterModelPreview::getModelPreviewLODErrorThresholdPercent(S32 lod) cons
 
 std::string LLFloaterModelPreview::getModelPreviewRequestedName() const
 {
-    return getChild<LLUICtrl>("description_form")->getValue().asString();
+    return get_floater_child<LLUICtrl>(this, "description_form")->getValue().asString();
 }
 
 F32 LLFloaterModelPreview::getModelPreviewImportScale() const
 {
-    return (F32)getChild<LLSpinCtrl>("import_scale")->getValue().asReal();
+    return (F32)get_floater_child<LLSpinCtrl>(this, "import_scale")->getValue().asReal();
 }
 
 void LLFloaterModelPreview::syncModelPreviewImportScaleLimit(F32 max_import_scale, F32 current_scale)
 {
-    LLSpinCtrl* scale_spinner = getChild<LLSpinCtrl>("import_scale");
+    LLSpinCtrl* scale_spinner = get_floater_child<LLSpinCtrl>(this, "import_scale");
     scale_spinner->setMaxValue(max_import_scale);
 
     if (max_import_scale < current_scale)
@@ -525,7 +551,7 @@ void LLFloaterModelPreview::syncModelPreviewImportScaleLimit(F32 max_import_scal
 
 void LLFloaterModelPreview::setModelPreviewDefaultRequestedName(const std::string& model_name)
 {
-    LLLineEditor* description_form = getChild<LLLineEditor>("description_form");
+    LLLineEditor* description_form = get_floater_child<LLLineEditor>(this, "description_form");
     if (description_form->getText().empty())
     {
         description_form->setText(model_name);
@@ -594,15 +620,15 @@ void LLFloaterModelPreview::syncModelPreviewLODGenerateControls(S32 lod,
                                                                 F32 requested_error_threshold,
                                                                 U32 requested_lod_mode)
 {
-    LLSpinCtrl* threshold = getChild<LLSpinCtrl>("lod_error_threshold_" + lod_name[lod]);
-    LLSpinCtrl* limit = getChild<LLSpinCtrl>("lod_triangle_limit_" + lod_name[lod]);
+    LLSpinCtrl* threshold = get_floater_child<LLSpinCtrl>(this, "lod_error_threshold_" + lod_name[lod]);
+    LLSpinCtrl* limit = get_floater_child<LLSpinCtrl>(this, "lod_triangle_limit_" + lod_name[lod]);
 
     limit->setMaxValue((F32)max_triangle_limit);
     limit->forceSetValue(requested_triangle_count);
 
     threshold->forceSetValue(requested_error_threshold);
 
-    getChild<LLComboBox>("lod_mode_" + lod_name[lod])->selectNthItem(requested_lod_mode);
+    get_floater_child<LLComboBox>(this, "lod_mode_" + lod_name[lod])->selectNthItem(requested_lod_mode);
 
     if (requested_lod_mode == 0)
     {
@@ -637,7 +663,7 @@ void LLFloaterModelPreview::syncModelPreviewPhysicsFileControls(bool enabled)
 
 void LLFloaterModelPreview::syncModelPreviewCreaseControl(F32 requested_crease_angle)
 {
-    LLSpinCtrl* crease = getChild<LLSpinCtrl>("crease_angle");
+    LLSpinCtrl* crease = get_floater_child<LLSpinCtrl>(this, "crease_angle");
 
     if (requested_crease_angle == -1.f)
     {
@@ -668,7 +694,7 @@ void LLFloaterModelPreview::setModelPreviewPhysicsFile(const std::string& filena
 
 void LLFloaterModelPreview::syncModelPreviewSelectedLOD(S32 lod, const std::string& filename)
 {
-    LLComboBox* combo_box = getChild<LLComboBox>("preview_lod_combo");
+    LLComboBox* combo_box = get_floater_child<LLComboBox>(this, "preview_lod_combo");
     combo_box->setCurrentByIndex((NUM_LOD - 1) - lod); // combo box list of lods is in reverse order
     setModelPreviewLODFile(lod, filename);
 
@@ -710,13 +736,13 @@ void LLFloaterModelPreview::syncModelPreviewPhysicsDecompositionControls(bool ha
     bool enable = (has_physics_tris || has_physics_hulls) && mCurRequest.empty();
 
 #if LL_HAVOK
-    LLPanel* panel = getChild<LLPanel>("physics simplification");
+    LLPanel* panel = get_floater_child<LLPanel>(this, "physics simplification");
     panel->setVisible(true);
 
-    panel = getChild<LLPanel>("physics analysis havok");
+    panel = get_floater_child<LLPanel>(this, "physics analysis havok");
     panel->setVisible(true);
 #else
-    LLPanel* panel = getChild<LLPanel>("physics analysis vhacd");
+    LLPanel* panel = get_floater_child<LLPanel>(this, "physics analysis vhacd");
     panel->setVisible(true);
 #endif
     LLView* child = panel->getFirstChild();
@@ -727,7 +753,7 @@ void LLFloaterModelPreview::syncModelPreviewPhysicsDecompositionControls(bool ha
     }
 
     enable = has_physics_hulls && mCurRequest.empty();
-    panel = getChild<LLPanel>("physics simplification");
+    panel = get_floater_child<LLPanel>(this, "physics simplification");
     child = panel->getFirstChild();
     while (child)
     {
@@ -790,7 +816,7 @@ void LLFloaterModelPreview::syncModelPreviewPhysicsSummaryText(S32 phys_tris,
 
 LLRect LLFloaterModelPreview::getModelPreviewPanelRect() const
 {
-    return getChildView("preview_panel")->getRect();
+    return get_floater_view(this, "preview_panel")->getRect();
 }
 
 void LLFloaterModelPreview::syncModelPreviewLoadStatus()
@@ -825,8 +851,8 @@ void LLFloaterModelPreview::syncModelPreviewLoadStatus()
 
 void LLFloaterModelPreview::setModelPreviewUploadPermissionWarningsVisible(bool visible)
 {
-    getChild<LLTextBox>("warning_title")->setVisible(visible);
-    getChild<LLTextBox>("warning_message")->setVisible(visible);
+    get_floater_child<LLTextBox>(this, "warning_title")->setVisible(visible);
+    get_floater_child<LLTextBox>(this, "warning_message")->setVisible(visible);
 }
 
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
@@ -992,7 +1018,7 @@ void LLFloaterModelPreview::onClickCalculateBtn()
     mUploadBtn->setEnabled(false);
 
     //disable "simplification" UI
-    LLPanel* simplification_panel = getChild<LLPanel>("physics simplification");
+    LLPanel* simplification_panel = get_floater_child<LLPanel>(this, "physics simplification");
     LLView* child = simplification_panel->getFirstChild();
     while (child)
     {
@@ -1097,9 +1123,9 @@ void LLFloaterModelPreview::onJointListSelection()
 {
     S32 display_lod = mModelPreview->mPreviewLOD;
     LLPanel *panel = mTabContainer->getPanelByName("rigging_panel");
-    LLScrollListCtrl *joints_list = panel->getChild<LLScrollListCtrl>("joints_list");
-    LLScrollListCtrl *joints_pos = panel->getChild<LLScrollListCtrl>("pos_overrides_list");
-    LLTextBox *joint_pos_descr = panel->getChild<LLTextBox>("pos_overrides_descr");
+    LLScrollListCtrl *joints_list = get_floater_child<LLScrollListCtrl>(panel, "joints_list");
+    LLScrollListCtrl *joints_pos = get_floater_child<LLScrollListCtrl>(panel, "pos_overrides_list");
+    LLTextBox *joint_pos_descr = get_floater_child<LLTextBox>(panel, "pos_overrides_descr");
 
     joints_pos->deleteAllItems();
 
@@ -1225,7 +1251,7 @@ void LLFloaterModelPreview::onAutoFillCommit(LLUICtrl* ctrl, void* userdata)
 
 void LLFloaterModelPreview::onLODParamCommit(S32 lod, bool enforce_tri_limit)
 {
-    LLComboBox* lod_source_combo = getChild<LLComboBox>("lod_source_" + lod_name[lod]);
+    LLComboBox* lod_source_combo = get_floater_child<LLComboBox>(this, "lod_source_" + lod_name[lod]);
     S32 mode = lod_source_combo->getCurrentIndex();
     switch (mode)
     {
@@ -1242,7 +1268,7 @@ void LLFloaterModelPreview::onLODParamCommit(S32 lod, bool enforce_tri_limit)
     //refresh LoDs that reference this one
     for (S32 i = lod - 1; i >= 0; --i)
     {
-        LLComboBox* lod_source_combo = getChild<LLComboBox>("lod_source_" + lod_name[i]);
+        LLComboBox* lod_source_combo = get_floater_child<LLComboBox>(this, "lod_source_" + lod_name[i]);
         if (lod_source_combo->getCurrentIndex() == LLModelPreview::USE_LOD_ABOVE)
         {
             onLoDSourceCommit(i);
@@ -1256,7 +1282,7 @@ void LLFloaterModelPreview::onLODParamCommit(S32 lod, bool enforce_tri_limit)
 
 void LLFloaterModelPreview::draw3dPreview()
 {
-    LLView* preview_panel = getChild<LLView>("preview_panel");
+    LLView* preview_panel = get_floater_child<LLView>(this, "preview_panel");
 
     if (!preview_panel)
     {
@@ -1612,7 +1638,7 @@ void LLFloaterModelPreview::initDecompControls()
 
     for (S32 j = stage_count-1; j >= 0; --j)
     {
-        LLButton* button = getChild<LLButton>(stage[j].mName);
+        LLButton* button = get_floater_child<LLButton>(this, stage[j].mName);
         if (button)
         {
             button->setCommitCallback(onPhysicsStageExecute, (void*) &stage[j]);
@@ -1645,7 +1671,7 @@ void LLFloaterModelPreview::initDecompControls()
                 //LL_INFOS() << "Type: float, Default: " << param[i].mDefault.mFloat << LL_ENDL;
 
 
-                LLUICtrl* ctrl = getChild<LLUICtrl>(name);
+                LLUICtrl* ctrl = get_floater_child<LLUICtrl>(this, name);
                 if (LLSliderCtrl* slider = dynamic_cast<LLSliderCtrl*>(ctrl))
                 {
                     slider->setMinValue(param[i].mDetails.mRange.mLow.mFloat);
@@ -1694,7 +1720,7 @@ void LLFloaterModelPreview::initDecompControls()
                 //LL_INFOS() << "Type: integer, Default: " << param[i].mDefault.mIntOrEnumValue << LL_ENDL;
 
 
-                LLUICtrl* ctrl = getChild<LLUICtrl>(name);
+                LLUICtrl* ctrl = get_floater_child<LLUICtrl>(this, name);
                 if (LLSliderCtrl* slider = dynamic_cast<LLSliderCtrl*>(ctrl))
                 {
                     slider->setMinValue((F32)param[i].mDetails.mRange.mLow.mIntOrEnumValue);
@@ -1719,7 +1745,7 @@ void LLFloaterModelPreview::initDecompControls()
                 mDecompParams[param[i].mName] = LLSD(param[i].mDefault.mBool);
                 //LL_INFOS() << "Type: boolean, Default: " << (param[i].mDefault.mBool ? "True" : "False") << LL_ENDL;
 
-                LLCheckBoxCtrl* check_box = getChild<LLCheckBoxCtrl>(name);
+                LLCheckBoxCtrl* check_box = get_floater_child<LLCheckBoxCtrl>(this, name);
                 if (check_box)
                 {
                     check_box->setValue(param[i].mDefault.mBool);
@@ -1734,7 +1760,7 @@ void LLFloaterModelPreview::initDecompControls()
                 { //plug into combo box
 
                     //LL_INFOS() << "Accepted values: " << LL_ENDL;
-                    LLComboBox* combo_box = getChild<LLComboBox>(name);
+                    LLComboBox* combo_box = get_floater_child<LLComboBox>(this, name);
                     for (S32 k = 0; k < param[i].mDetails.mEnumValues.mNumEnums; ++k)
                     {
                         //LL_INFOS() << param[i].mDetails.mEnumValues.mEnumsArray[k].mValue
@@ -1920,9 +1946,9 @@ void LLFloaterModelPreview::addStringToLog(const std::ostringstream& strm, bool 
 void LLFloaterModelPreview::clearAvatarTab()
 {
     LLPanel *panel = mTabContainer->getPanelByName("rigging_panel");
-    LLScrollListCtrl *joints_list = panel->getChild<LLScrollListCtrl>("joints_list");
+    LLScrollListCtrl *joints_list = get_floater_child<LLScrollListCtrl>(panel, "joints_list");
     joints_list->deleteAllItems();
-    LLScrollListCtrl *joints_pos = panel->getChild<LLScrollListCtrl>("pos_overrides_list");
+    LLScrollListCtrl *joints_pos = get_floater_child<LLScrollListCtrl>(panel, "pos_overrides_list");
     joints_pos->deleteAllItems();    mSelectedJointName.clear();
 
     for (U32 i = 0; i < LLModel::NUM_LODS; ++i)
@@ -1930,12 +1956,12 @@ void LLFloaterModelPreview::clearAvatarTab()
         mJointOverrides[i].clear();
     }
 
-    LLTextBox *joint_total_descr = panel->getChild<LLTextBox>("conflicts_description");
+    LLTextBox *joint_total_descr = get_floater_child<LLTextBox>(panel, "conflicts_description");
     joint_total_descr->setTextArg("[CONFLICTS]", llformat("%d", 0));
     joint_total_descr->setTextArg("[JOINTS_COUNT]", llformat("%d", 0));
 
 
-    LLTextBox *joint_pos_descr = panel->getChild<LLTextBox>("pos_overrides_descr");
+    LLTextBox *joint_pos_descr = get_floater_child<LLTextBox>(panel, "pos_overrides_descr");
     joint_pos_descr->setTextArg("[JOINT]", std::string("mPelvis")); // Might be better to hide it
 }
 
@@ -2019,7 +2045,7 @@ void LLFloaterModelPreview::updateAvatarTab(bool highlight_overrides)
     }
 
     LLPanel *panel = mTabContainer->getPanelByName("rigging_panel");
-    LLScrollListCtrl *joints_list = panel->getChild<LLScrollListCtrl>("joints_list");
+    LLScrollListCtrl *joints_list = get_floater_child<LLScrollListCtrl>(panel, "joints_list");
 
     if (joints_list->isEmpty())
     {
@@ -2069,7 +2095,7 @@ void LLFloaterModelPreview::updateAvatarTab(bool highlight_overrides)
             mSelectedJointName = selected->getValue().asString();
         }
 
-        LLTextBox *joint_conf_descr = panel->getChild<LLTextBox>("conflicts_description");
+        LLTextBox *joint_conf_descr = get_floater_child<LLTextBox>(panel, "conflicts_description");
         joint_conf_descr->setTextArg("[CONFLICTS]", llformat("%d", conflicts));
         joint_conf_descr->setTextArg("[JOINTS_COUNT]", llformat("%d", mJointOverrides[display_lod].size()));
     }
@@ -2305,7 +2331,7 @@ void LLFloaterModelPreview::onLoDSourceCommit(S32 lod)
 {
     mModelPreview->updateLodControls(lod);
 
-    LLComboBox* lod_source_combo = getChild<LLComboBox>("lod_source_" + lod_name[lod]);
+    LLComboBox* lod_source_combo = get_floater_child<LLComboBox>(this, "lod_source_" + lod_name[lod]);
     S32 index = lod_source_combo->getCurrentIndex();
     if (index == LLModelPreview::MESH_OPTIMIZER_AUTO
         || index == LLModelPreview::MESH_OPTIMIZER_SLOPPY
@@ -2331,7 +2357,7 @@ void LLFloaterModelPreview::resetDisplayOptions()
 
     for(;option_it != mModelPreview->mViewOption.end(); ++option_it)
     {
-        LLUICtrl* ctrl = getChild<LLUICtrl>(option_it->first);
+        LLUICtrl* ctrl = get_floater_child<LLUICtrl>(this, option_it->first);
         ctrl->setValue(false);
     }
 }
@@ -2347,24 +2373,24 @@ void LLFloaterModelPreview::resetUploadOptions()
     childSetVisible("Detail Scale", true);
     childSetVisible("Detail Scale label", true);
 
-    getChild<LLComboBox>("lod_source_" + lod_name[NUM_LOD - 1])->setCurrentByIndex(LLModelPreview::LOD_FROM_FILE);
+    get_floater_child<LLComboBox>(this, "lod_source_" + lod_name[NUM_LOD - 1])->setCurrentByIndex(LLModelPreview::LOD_FROM_FILE);
     for (S32 lod = 0; lod < NUM_LOD - 1; ++lod)
     {
-        getChild<LLComboBox>("lod_source_" + lod_name[lod])->setCurrentByIndex(LLModelPreview::MESH_OPTIMIZER_AUTO);
+        get_floater_child<LLComboBox>(this, "lod_source_" + lod_name[lod])->setCurrentByIndex(LLModelPreview::MESH_OPTIMIZER_AUTO);
         childSetValue("lod_file_" + lod_name[lod], "");
     }
 
     for(auto& p : mDefaultDecompParams)
     {
         std::string ctrl_name(p.first);
-        LLUICtrl* ctrl = getChild<LLUICtrl>(ctrl_name);
+        LLUICtrl* ctrl = get_floater_child<LLUICtrl>(this, ctrl_name);
         if (ctrl)
         {
             ctrl->setValue(p.second);
         }
     }
-    getChild<LLComboBox>("physics_lod_combo")->setCurrentByIndex(0);
-    getChild<LLComboBox>("Cosine%")->setCurrentByIndex(0);
+    get_floater_child<LLComboBox>(this, "physics_lod_combo")->setCurrentByIndex(0);
+    get_floater_child<LLComboBox>(this, "Cosine%")->setCurrentByIndex(0);
 }
 
 void LLFloaterModelPreview::clearLogTab()

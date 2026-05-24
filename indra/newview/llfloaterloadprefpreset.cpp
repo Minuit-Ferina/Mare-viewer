@@ -35,6 +35,32 @@
 #include "llpresetsmanager.h"
 #include "llviewercontrol.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterLoadPrefPreset::LLFloaterLoadPrefPreset(const LLSD &key)
 :   LLFloater(key)
 {
@@ -48,8 +74,8 @@ bool LLFloaterLoadPrefPreset::postBuild()
     {
         preferences->addDependentFloater(this);
     }
-    getChild<LLButton>("ok")->setCommitCallback(boost::bind(&LLFloaterLoadPrefPreset::onBtnOk, this));
-    getChild<LLButton>("cancel")->setCommitCallback(boost::bind(&LLFloaterLoadPrefPreset::onBtnCancel, this));
+    get_floater_child<LLButton>(this, "ok")->setCommitCallback(boost::bind(&LLFloaterLoadPrefPreset::onBtnOk, this));
+    get_floater_child<LLButton>(this, "cancel")->setCommitCallback(boost::bind(&LLFloaterLoadPrefPreset::onBtnCancel, this));
     LLPresetsManager::instance().setPresetListChangeCallback(boost::bind(&LLFloaterLoadPrefPreset::onPresetsListChange, this));
 
     return true;
@@ -70,7 +96,7 @@ void LLFloaterLoadPrefPreset::onOpen(const LLSD& key)
         setTitle(title_type);
     }
 
-    LLComboBox* combo = getChild<LLComboBox>("preset_combo");
+    LLComboBox* combo = get_floater_child<LLComboBox>(this, "preset_combo");
 
     EDefaultOptions option = DEFAULT_TOP;
     LLPresetsManager::getInstance()->setPresetNamesInComboBox(mSubdirectory, combo, option);
@@ -83,7 +109,7 @@ void LLFloaterLoadPrefPreset::onOpen(const LLSD& key)
 
 void LLFloaterLoadPrefPreset::onPresetsListChange()
 {
-    LLComboBox* combo = getChild<LLComboBox>("preset_combo");
+    LLComboBox* combo = get_floater_child<LLComboBox>(this, "preset_combo");
 
     EDefaultOptions option = DEFAULT_TOP;
     LLPresetsManager::getInstance()->setPresetNamesInComboBox(mSubdirectory, combo, option);
@@ -101,7 +127,7 @@ void LLFloaterLoadPrefPreset::onBtnCancel()
 
 void LLFloaterLoadPrefPreset::onBtnOk()
 {
-    LLComboBox* combo = getChild<LLComboBox>("preset_combo");
+    LLComboBox* combo = get_floater_child<LLComboBox>(this, "preset_combo");
     std::string name = combo->getSimple();
 
     LLPresetsManager::getInstance()->loadPreset(mSubdirectory, name);

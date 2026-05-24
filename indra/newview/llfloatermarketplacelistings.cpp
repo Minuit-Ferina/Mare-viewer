@@ -47,6 +47,32 @@
 #include "lltrans.h"
 #include "llviewerwindow.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 ///----------------------------------------------------------------------------
 /// LLPanelMarketplaceListings
 ///----------------------------------------------------------------------------
@@ -67,10 +93,10 @@ bool LLPanelMarketplaceListings::postBuild()
     childSetAction("add_btn", boost::bind(&LLPanelMarketplaceListings::onAddButtonClicked, this));
     childSetAction("audit_btn", boost::bind(&LLPanelMarketplaceListings::onAuditButtonClicked, this));
 
-    mFilterEditor = getChild<LLFilterEditor>("filter_editor");
+    mFilterEditor = get_floater_child<LLFilterEditor>(this, "filter_editor");
     mFilterEditor->setCommitCallback(boost::bind(&LLPanelMarketplaceListings::onFilterEdit, this, _2));
 
-    mAuditBtn = getChild<LLButton>("audit_btn");
+    mAuditBtn = get_floater_child<LLButton>(this, "audit_btn");
     mAuditBtn->setEnabled(false);
 
     return LLPanel::postBuild();
@@ -120,7 +146,7 @@ void LLPanelMarketplaceListings::buildAllPanels()
     panel->getFilter().markDefault();
 
     // Set the tab panel
-    LLTabContainer* tabs_panel = getChild<LLTabContainer>("marketplace_filter_tabs");
+    LLTabContainer* tabs_panel = get_floater_child<LLTabContainer>(this, "marketplace_filter_tabs");
     tabs_panel->setCommitCallback(boost::bind(&LLPanelMarketplaceListings::onTabChange, this));
     tabs_panel->selectTabPanel(panel_all_items);      // All panel selected by default
     mRootFolder = panel_all_items->getRootFolder();   // Keep the root of the all panel
@@ -131,12 +157,12 @@ void LLPanelMarketplaceListings::buildAllPanels()
 
 LLInventoryPanel* LLPanelMarketplaceListings::buildInventoryPanel(const std::string& childname, const std::string& filename)
 {
-    LLTabContainer* tabs_panel = getChild<LLTabContainer>("marketplace_filter_tabs");
+    LLTabContainer* tabs_panel = get_floater_child<LLTabContainer>(this, "marketplace_filter_tabs");
     LLInventoryPanel* panel = LLUICtrlFactory::createFromFile<LLInventoryPanel>(filename, tabs_panel, LLInventoryPanel::child_registry_t::instance());
     llassert(panel != NULL);
 
     // Set sort order and callbacks
-    panel = getChild<LLInventoryPanel>(childname);
+    panel = get_floater_child<LLInventoryPanel>(this, childname);
     panel->getFolderViewModel()->setSorter(LLInventoryFilter::SO_FOLDERS_BY_NAME);
     panel->setSelectCallback(boost::bind(&LLPanelMarketplaceListings::onSelectionChange, this, panel, _1, _2));
 
@@ -149,7 +175,7 @@ void LLPanelMarketplaceListings::setSortOrder(U32 sort_order)
     gSavedSettings.setU32("MarketplaceListingsSortOrder", sort_order);
 
     // Set each panel with that sort order
-    LLTabContainer* tabs_panel = getChild<LLTabContainer>("marketplace_filter_tabs");
+    LLTabContainer* tabs_panel = get_floater_child<LLTabContainer>(this, "marketplace_filter_tabs");
     LLInventoryPanel* panel = (LLInventoryPanel*)tabs_panel->getPanelByName("All Items");
     panel->setSortOrder(mSortOrder);
     panel = (LLInventoryPanel*)tabs_panel->getPanelByName("Active Items");
@@ -163,7 +189,7 @@ void LLPanelMarketplaceListings::setSortOrder(U32 sort_order)
 void LLPanelMarketplaceListings::onFilterEdit(const std::string& search_string)
 {
     // Find active panel
-    LLInventoryPanel* panel = (LLInventoryPanel*)getChild<LLTabContainer>("marketplace_filter_tabs")->getCurrentPanel();
+    LLInventoryPanel* panel = (LLInventoryPanel*)get_floater_child<LLTabContainer>(this, "marketplace_filter_tabs")->getCurrentPanel();
     if (panel)
     {
         // Save filter string (needed when switching tabs)
@@ -197,29 +223,29 @@ void LLPanelMarketplaceListings::onSelectionChange(LLInventoryPanel *panel, cons
 
 bool LLPanelMarketplaceListings::allowDropOnRoot()
 {
-    LLInventoryPanel* panel = (LLInventoryPanel*)getChild<LLTabContainer>("marketplace_filter_tabs")->getCurrentPanel();
+    LLInventoryPanel* panel = (LLInventoryPanel*)get_floater_child<LLTabContainer>(this, "marketplace_filter_tabs")->getCurrentPanel();
     return (panel ? panel->getAllowDropOnRoot() : false);
 }
 
 void LLPanelMarketplaceListings::onTabChange()
 {
     // Find active panel
-    LLInventoryPanel* panel = (LLInventoryPanel*)getChild<LLTabContainer>("marketplace_filter_tabs")->getCurrentPanel();
+    LLInventoryPanel* panel = (LLInventoryPanel*)get_floater_child<LLTabContainer>(this, "marketplace_filter_tabs")->getCurrentPanel();
     if (panel)
     {
         // If the panel doesn't allow drop on root, it doesn't allow the creation of new folder on root either
-        LLButton* add_btn = getChild<LLButton>("add_btn");
+        LLButton* add_btn = get_floater_child<LLButton>(this, "add_btn");
         add_btn->setEnabled(panel->getAllowDropOnRoot());
 
         // Set filter string on active panel
         panel->setFilterSubString(mFilterSubString);
 
         // Show/hide the drop zone and resize the inventory tabs panel accordingly
-        LLPanel* drop_zone = (LLPanel*)getChild<LLPanel>("marketplace_drop_zone");
+        LLPanel* drop_zone = (LLPanel*)get_floater_child<LLPanel>(this, "marketplace_drop_zone");
         bool drop_zone_visible = drop_zone->getVisible();
         if (drop_zone_visible != panel->getAllowDropOnRoot())
         {
-            LLPanel* tabs = (LLPanel*)getChild<LLPanel>("tab_container_panel");
+            LLPanel* tabs = (LLPanel*)get_floater_child<LLPanel>(this, "tab_container_panel");
             S32 delta_height = drop_zone->getRect().getHeight();
             delta_height = (drop_zone_visible ? delta_height : -delta_height);
             tabs->reshape(tabs->getRect().getWidth(),tabs->getRect().getHeight() + delta_height);
@@ -247,7 +273,7 @@ void LLPanelMarketplaceListings::onAddButtonClicked()
         {
             return;
         }
-        LLInventoryPanel* panel = (LLInventoryPanel*)marketplace_panel->getChild<LLTabContainer>("marketplace_filter_tabs")->getCurrentPanel();
+        LLInventoryPanel* panel = (LLInventoryPanel*)get_floater_child<LLTabContainer>(marketplace_panel, "marketplace_filter_tabs")->getCurrentPanel();
         if (panel)
         {
             gInventory.notifyObservers();
@@ -290,7 +316,7 @@ void LLPanelMarketplaceListings::onViewSortMenuItemClicked(const LLSD& userdata)
     {
         mFilterListingFoldersOnly = !mFilterListingFoldersOnly;
         // Set each panel with that filter flag
-        LLTabContainer* tabs_panel = getChild<LLTabContainer>("marketplace_filter_tabs");
+        LLTabContainer* tabs_panel = get_floater_child<LLTabContainer>(this, "marketplace_filter_tabs");
         LLInventoryPanel* panel = (LLInventoryPanel*)tabs_panel->getPanelByName("All Items");
         panel->getFilter().setFilterMarketplaceListingFolders(mFilterListingFoldersOnly);
         panel = (LLInventoryPanel*)tabs_panel->getPanelByName("Active Items");
@@ -397,13 +423,13 @@ LLFloaterMarketplaceListings::~LLFloaterMarketplaceListings()
 
 bool LLFloaterMarketplaceListings::postBuild()
 {
-    mInventoryStatus = getChild<LLTextBox>("marketplace_status");
-    mInventoryInitializationInProgress = getChild<LLView>("initialization_progress_indicator");
-    mInventoryPlaceholder = getChild<LLView>("marketplace_listings_inventory_placeholder_panel");
-    mInventoryText = mInventoryPlaceholder->getChild<LLTextBox>("marketplace_listings_inventory_placeholder_text");
-    mInventoryTitle = mInventoryPlaceholder->getChild<LLTextBox>("marketplace_listings_inventory_placeholder_title");
+    mInventoryStatus = get_floater_child<LLTextBox>(this, "marketplace_status");
+    mInventoryInitializationInProgress = get_floater_child<LLView>(this, "initialization_progress_indicator");
+    mInventoryPlaceholder = get_floater_child<LLView>(this, "marketplace_listings_inventory_placeholder_panel");
+    mInventoryText = get_floater_child<LLTextBox>(mInventoryPlaceholder, "marketplace_listings_inventory_placeholder_text");
+    mInventoryTitle = get_floater_child<LLTextBox>(mInventoryPlaceholder, "marketplace_listings_inventory_placeholder_title");
 
-    mPanelListings = static_cast<LLPanelMarketplaceListings*>(getChild<LLUICtrl>("panel_marketplace_listing"));
+    mPanelListings = static_cast<LLPanelMarketplaceListings*>(get_floater_child<LLUICtrl>(this, "panel_marketplace_listing"));
 
     LLFocusableElement::setFocusReceivedCallback(boost::bind(&LLFloaterMarketplaceListings::onFocusReceived, this));
 
@@ -787,9 +813,9 @@ LLFloaterAssociateListing::~LLFloaterAssociateListing()
 
 bool LLFloaterAssociateListing::postBuild()
 {
-    getChild<LLButton>("OK")->setCommitCallback(boost::bind(&LLFloaterAssociateListing::apply, this, true));
-    getChild<LLButton>("Cancel")->setCommitCallback(boost::bind(&LLFloaterAssociateListing::cancel, this));
-    getChild<LLLineEditor>("listing_id")->setPrevalidate(&LLTextValidate::validateNonNegativeS32);
+    get_floater_child<LLButton>(this, "OK")->setCommitCallback(boost::bind(&LLFloaterAssociateListing::apply, this, true));
+    get_floater_child<LLButton>(this, "Cancel")->setCommitCallback(boost::bind(&LLFloaterAssociateListing::cancel, this));
+    get_floater_child<LLLineEditor>(this, "listing_id")->setPrevalidate(&LLTextValidate::validateNonNegativeS32);
     center();
 
     return LLFloater::postBuild();
@@ -835,7 +861,7 @@ void LLFloaterAssociateListing::apply(bool user_confirm)
 {
     if (mUUID.notNull())
     {
-        S32 id = (S32)getChild<LLUICtrl>("listing_id")->getValue().asInteger();
+        S32 id = (S32)get_floater_child<LLUICtrl>(this, "listing_id")->getValue().asInteger();
         if (id > 0)
         {
             // Check if the id exists in the merchant SLM DB: note that this record might exist in the LLMarketplaceData
@@ -881,7 +907,7 @@ bool LLFloaterMarketplaceValidation::postBuild()
     childSetAction("OK", onOK, this);
 
     // This widget displays the validation messages
-    mEditor = getChild<LLTextEditor>("validation_text");
+    mEditor = get_floater_child<LLTextEditor>(this, "validation_text");
     mEditor->setEnabled(false);
     mEditor->setFocus(true);
     mEditor->setValue(LLSD());

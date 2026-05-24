@@ -97,6 +97,32 @@
 #include "piemenu.h"
 #include "llviewermenu.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 // Globals
 LLFloaterTools *gFloaterTools = NULL;
 bool LLFloaterTools::sShowObjectCost = true;
@@ -238,34 +264,34 @@ bool    LLFloaterTools::postBuild()
     getDragHandle()->setEnabled( !gSavedSettings.getBOOL("ToolboxAutoMove") );
 
     LLRect rect;
-    mBtnFocus           = getChild<LLButton>("button focus");//btn;
-    mBtnMove            = getChild<LLButton>("button move");
-    mBtnEdit            = getChild<LLButton>("button edit");
-    mBtnCreate          = getChild<LLButton>("button create");
-    mBtnLand            = getChild<LLButton>("button land" );
-    mTextStatus         = getChild<LLTextBox>("text status");
-    mRadioGroupFocus    = getChild<LLRadioGroup>("focus_radio_group");
-    mRadioGroupMove     = getChild<LLRadioGroup>("move_radio_group");
-    mRadioGroupEdit     = getChild<LLRadioGroup>("edit_radio_group");
-    mBtnGridOptions     = getChild<LLButton>("Options...");
-    mBtnLink            = getChild<LLButton>("link_btn");
-    mBtnUnlink          = getChild<LLButton>("unlink_btn");
-    mBtnGiveMenu    = getChild<LLButton>("give_menu");
+    mBtnFocus           = get_floater_child<LLButton>(this, "button focus");//btn;
+    mBtnMove            = get_floater_child<LLButton>(this, "button move");
+    mBtnEdit            = get_floater_child<LLButton>(this, "button edit");
+    mBtnCreate          = get_floater_child<LLButton>(this, "button create");
+    mBtnLand            = get_floater_child<LLButton>(this, "button land" );
+    mTextStatus         = get_floater_child<LLTextBox>(this, "text status");
+    mRadioGroupFocus    = get_floater_child<LLRadioGroup>(this, "focus_radio_group");
+    mRadioGroupMove     = get_floater_child<LLRadioGroup>(this, "move_radio_group");
+    mRadioGroupEdit     = get_floater_child<LLRadioGroup>(this, "edit_radio_group");
+    mBtnGridOptions     = get_floater_child<LLButton>(this, "Options...");
+    mBtnLink            = get_floater_child<LLButton>(this, "link_btn");
+    mBtnUnlink          = get_floater_child<LLButton>(this, "unlink_btn");
+    mBtnGiveMenu    = get_floater_child<LLButton>(this, "give_menu");
 
     // <FS:PP> FIRE-14493: Buttons to cycle through linkset
-    mBtnPrevPart        = getChild<LLButton>("prev_part_btn");
-    mBtnNextPart        = getChild<LLButton>("next_part_btn");
+    mBtnPrevPart        = get_floater_child<LLButton>(this, "prev_part_btn");
+    mBtnNextPart        = get_floater_child<LLButton>(this, "next_part_btn");
     // </FS:PP>
 
-    mCheckSelectIndividual  = getChild<LLCheckBoxCtrl>("checkbox edit linked parts");
-    getChild<LLUICtrl>("checkbox edit linked parts")->setValue((bool)gSavedSettings.getBOOL("EditLinkedParts"));
-    mCheckSnapToGrid        = getChild<LLCheckBoxCtrl>("checkbox snap to grid");
-    getChild<LLUICtrl>("checkbox snap to grid")->setValue((bool)gSavedSettings.getBOOL("SnapEnabled"));
-    mCheckStretchUniform    = getChild<LLCheckBoxCtrl>("checkbox uniform");
-    getChild<LLUICtrl>("checkbox uniform")->setValue((bool)gSavedSettings.getBOOL("ScaleUniform"));
-    mCheckStretchTexture    = getChild<LLCheckBoxCtrl>("checkbox stretch textures");
-    getChild<LLUICtrl>("checkbox stretch textures")->setValue((bool)gSavedSettings.getBOOL("ScaleStretchTextures"));
-    mComboGridMode          = getChild<LLComboBox>("combobox grid mode");
+    mCheckSelectIndividual  = get_floater_child<LLCheckBoxCtrl>(this, "checkbox edit linked parts");
+    get_floater_child<LLUICtrl>(this, "checkbox edit linked parts")->setValue((bool)gSavedSettings.getBOOL("EditLinkedParts"));
+    mCheckSnapToGrid        = get_floater_child<LLCheckBoxCtrl>(this, "checkbox snap to grid");
+    get_floater_child<LLUICtrl>(this, "checkbox snap to grid")->setValue((bool)gSavedSettings.getBOOL("SnapEnabled"));
+    mCheckStretchUniform    = get_floater_child<LLCheckBoxCtrl>(this, "checkbox uniform");
+    get_floater_child<LLUICtrl>(this, "checkbox uniform")->setValue((bool)gSavedSettings.getBOOL("ScaleUniform"));
+    mCheckStretchTexture    = get_floater_child<LLCheckBoxCtrl>(this, "checkbox stretch textures");
+    get_floater_child<LLUICtrl>(this, "checkbox stretch textures")->setValue((bool)gSavedSettings.getBOOL("ScaleStretchTextures"));
+    mComboGridMode          = get_floater_child<LLComboBox>(this, "combobox grid mode");
 
     //
     // Create Buttons
@@ -273,7 +299,7 @@ bool    LLFloaterTools::postBuild()
 
     for(size_t t=0; t<LL_ARRAY_SIZE(toolNames); ++t)
     {
-        LLButton *found = getChild<LLButton>(toolNames[t]);
+        LLButton *found = get_floater_child<LLButton>(this, toolNames[t]);
         if(found)
         {
             found->setClickedCallback(boost::bind(&LLFloaterTools::setObjectType, toolData[t]));
@@ -282,35 +308,35 @@ bool    LLFloaterTools::postBuild()
             LL_WARNS() << "Tool button not found! DOA Pending." << LL_ENDL;
         }
     }
-    mCheckCopySelection = getChild<LLCheckBoxCtrl>("checkbox copy selection");
-    getChild<LLUICtrl>("checkbox copy selection")->setValue((bool)gSavedSettings.getBOOL("CreateToolCopySelection"));
-    mCheckSticky = getChild<LLCheckBoxCtrl>("checkbox sticky");
-    getChild<LLUICtrl>("checkbox sticky")->setValue((bool)gSavedSettings.getBOOL("CreateToolKeepSelected"));
-    mCheckCopyCenters = getChild<LLCheckBoxCtrl>("checkbox copy centers");
-    getChild<LLUICtrl>("checkbox copy centers")->setValue((bool)gSavedSettings.getBOOL("CreateToolCopyCenters"));
-    mCheckCopyRotates = getChild<LLCheckBoxCtrl>("checkbox copy rotates");
-    getChild<LLUICtrl>("checkbox copy rotates")->setValue((bool)gSavedSettings.getBOOL("CreateToolCopyRotates"));
+    mCheckCopySelection = get_floater_child<LLCheckBoxCtrl>(this, "checkbox copy selection");
+    get_floater_child<LLUICtrl>(this, "checkbox copy selection")->setValue((bool)gSavedSettings.getBOOL("CreateToolCopySelection"));
+    mCheckSticky = get_floater_child<LLCheckBoxCtrl>(this, "checkbox sticky");
+    get_floater_child<LLUICtrl>(this, "checkbox sticky")->setValue((bool)gSavedSettings.getBOOL("CreateToolKeepSelected"));
+    mCheckCopyCenters = get_floater_child<LLCheckBoxCtrl>(this, "checkbox copy centers");
+    get_floater_child<LLUICtrl>(this, "checkbox copy centers")->setValue((bool)gSavedSettings.getBOOL("CreateToolCopyCenters"));
+    mCheckCopyRotates = get_floater_child<LLCheckBoxCtrl>(this, "checkbox copy rotates");
+    get_floater_child<LLUICtrl>(this, "checkbox copy rotates")->setValue((bool)gSavedSettings.getBOOL("CreateToolCopyRotates"));
 
-    mRadioGroupLand         = getChild<LLRadioGroup>("land_radio_group");
-    mBtnApplyToSelection    = getChild<LLButton>("button apply to selection");
-    mSliderDozerSize        = getChild<LLSlider>("slider brush size");
-    getChild<LLUICtrl>("slider brush size")->setValue(gSavedSettings.getF32("LandBrushSize"));
-    mSliderDozerForce       = getChild<LLSlider>("slider force");
+    mRadioGroupLand         = get_floater_child<LLRadioGroup>(this, "land_radio_group");
+    mBtnApplyToSelection    = get_floater_child<LLButton>(this, "button apply to selection");
+    mSliderDozerSize        = get_floater_child<LLSlider>(this, "slider brush size");
+    get_floater_child<LLUICtrl>(this, "slider brush size")->setValue(gSavedSettings.getF32("LandBrushSize"));
+    mSliderDozerForce       = get_floater_child<LLSlider>(this, "slider force");
     // the setting stores the actual force multiplier, but the slider is logarithmic, so we convert here
-    getChild<LLUICtrl>("slider force")->setValue(log10(gSavedSettings.getF32("LandBrushForce")));
+    get_floater_child<LLUICtrl>(this, "slider force")->setValue(log10(gSavedSettings.getF32("LandBrushForce")));
 
-    mTextBulldozer = getChild<LLTextBox>("Bulldozer:");
-    mTextDozerSize = getChild<LLTextBox>("Dozer Size:");
-    mTextDozerStrength = getChild<LLTextBox>("Strength:");
-    mSliderZoom = getChild<LLSlider>("slider zoom");
+    mTextBulldozer = get_floater_child<LLTextBox>(this, "Bulldozer:");
+    mTextDozerSize = get_floater_child<LLTextBox>(this, "Dozer Size:");
+    mTextDozerStrength = get_floater_child<LLTextBox>(this, "Strength:");
+    mSliderZoom = get_floater_child<LLSlider>(this, "slider zoom");
 
-    mTextSelectionCount = getChild<LLTextBox>("selection_count");
-    mTextSelectionEmpty = getChild<LLTextBox>("selection_empty");
-    mTextSelectionFaces = getChild<LLTextBox>("selection_faces");
+    mTextSelectionCount = get_floater_child<LLTextBox>(this, "selection_count");
+    mTextSelectionEmpty = get_floater_child<LLTextBox>(this, "selection_empty");
+    mTextSelectionFaces = get_floater_child<LLTextBox>(this, "selection_faces");
 
-    mCostTextBorder = getChild<LLViewBorder>("cost_text_border");
+    mCostTextBorder = get_floater_child<LLViewBorder>(this, "cost_text_border");
 
-    mTab = getChild<LLTabContainer>("Object Info Tabs");
+    mTab = get_floater_child<LLTabContainer>(this, "Object Info Tabs");
     if(mTab)
     {
         mTab->setFollows(FOLLOWS_TOP | FOLLOWS_LEFT);
@@ -567,8 +593,8 @@ void LLFloaterTools::refresh()
         }
     }
 
-    getChild<LLUICtrl>("link_num_obj_count")->setTextArg("[DESC]", desc_string);
-    getChild<LLUICtrl>("link_num_obj_count")->setTextArg("[NUM]", num_string);
+    get_floater_child<LLUICtrl>(this, "link_num_obj_count")->setTextArg("[DESC]", desc_string);
+    get_floater_child<LLUICtrl>(this, "link_num_obj_count")->setTextArg("[NUM]", num_string);
     // </FS:KC>
 #if 0
     if (!gMeshRepo.meshRezEnabled())
@@ -586,15 +612,15 @@ void LLFloaterTools::refresh()
             std::string prim_cost_string;
             S32 render_cost = LLSelectMgr::getInstance()->getSelection()->getSelectedObjectRenderCost();
             LLResMgr::getInstance()->getIntegerString(prim_cost_string, render_cost);
-            getChild<LLUICtrl>("RenderingCost")->setTextArg("[COUNT]", prim_cost_string);
+            get_floater_child<LLUICtrl>(this, "RenderingCost")->setTextArg("[COUNT]", prim_cost_string);
         }
 
         // disable the object and prim counts if nothing selected
         bool have_selection = ! LLSelectMgr::getInstance()->getSelection()->isEmpty();
-        getChildView("link_num_obj_count")->setEnabled(have_selection);
-        getChildView("obj_count")->setEnabled(have_selection);
-        getChildView("prim_count")->setEnabled(have_selection);
-        getChildView("RenderingCost")->setEnabled(have_selection && sShowObjectCost);
+        get_floater_view(this, "link_num_obj_count")->setEnabled(have_selection);
+        get_floater_view(this, "obj_count")->setEnabled(have_selection);
+        get_floater_view(this, "prim_count")->setEnabled(have_selection);
+        get_floater_view(this, "RenderingCost")->setEnabled(have_selection && sShowObjectCost);
     }
     else
 #endif
@@ -682,7 +708,7 @@ void LLFloaterTools::refresh()
     // <FS> disable the object and prim counts if nothing selected
     // KKA-744 we now toggle visibility rather than enabled and always have something to show if there's a selection
     bool have_selection = ! LLSelectMgr::getInstance()->getSelection()->isEmpty();
-    getChildView("link_num_obj_count")->setVisible(have_selection);
+    get_floater_view(this, "link_num_obj_count")->setVisible(have_selection);
     // </FS>
 
     // Refresh child tabs
@@ -1407,7 +1433,7 @@ void LLFloaterTools::onClickBtnGiveMenu()
 
             if (is_other_attachment)
             {
-                gMenuAttachmentOther->getChild<LLUICtrl>("Avatar Mute")->setValue(mute_msg);
+                get_floater_child<LLUICtrl>(gMenuAttachmentOther, "Avatar Mute")->setValue(mute_msg);
                     if(gSavedPerAccountSettings.getBOOL("UsePieMenu"))
                         gPieMenuAttachmentOther->show(x, y);
                     else
@@ -1415,7 +1441,7 @@ void LLFloaterTools::onClickBtnGiveMenu()
             }
             else
             {
-                gMenuAvatarOther->getChild<LLUICtrl>("Avatar Mute")->setValue(mute_msg);
+                get_floater_child<LLUICtrl>(gMenuAvatarOther, "Avatar Mute")->setValue(mute_msg);
                     if(gSavedPerAccountSettings.getBOOL("UsePieMenu"))
                         gPieMenuAvatarOther->show(x, y);
                     else
@@ -1475,5 +1501,4 @@ void LLFloaterTools::onClickBtnCopyKeys()
         LLView::getWindow()->copyTextToClipboard(utf8str_to_wstring(stringKeys));
     }
 }
-
 

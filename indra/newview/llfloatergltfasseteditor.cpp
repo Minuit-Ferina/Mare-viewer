@@ -36,6 +36,32 @@
 #include "llspinctrl.h"
 #include "llviewerobject.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const LLColor4U DEFAULT_WHITE(255, 255, 255);
 
 /// LLFloaterGLTFAssetEditor
@@ -63,37 +89,37 @@ LLFloaterGLTFAssetEditor::~LLFloaterGLTFAssetEditor()
 bool LLFloaterGLTFAssetEditor::postBuild()
 {
     // Position
-    mMenuClipboardPos = getChild<LLMenuButton>("clipboard_pos_btn");
-    mCtrlPosX = getChild<LLSpinCtrl>("Pos X", true);
+    mMenuClipboardPos = get_floater_child<LLMenuButton>(this, "clipboard_pos_btn");
+    mCtrlPosX = get_floater_child<LLSpinCtrl>(this, "Pos X", true);
     mCtrlPosX->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) { onCommitTransform(); });
-    mCtrlPosY = getChild<LLSpinCtrl>("Pos Y", true);
+    mCtrlPosY = get_floater_child<LLSpinCtrl>(this, "Pos Y", true);
     mCtrlPosY->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) { onCommitTransform(); });
-    mCtrlPosZ = getChild<LLSpinCtrl>("Pos Z", true);
+    mCtrlPosZ = get_floater_child<LLSpinCtrl>(this, "Pos Z", true);
     mCtrlPosZ->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) { onCommitTransform(); });
 
     // Scale
-    mMenuClipboardScale = getChild<LLMenuButton>("clipboard_size_btn");
-    mCtrlScaleX = getChild<LLSpinCtrl>("Scale X", true);
+    mMenuClipboardScale = get_floater_child<LLMenuButton>(this, "clipboard_size_btn");
+    mCtrlScaleX = get_floater_child<LLSpinCtrl>(this, "Scale X", true);
     mCtrlScaleX->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) { onCommitTransform(); });
-    mCtrlScaleY = getChild<LLSpinCtrl>("Scale Y", true);
+    mCtrlScaleY = get_floater_child<LLSpinCtrl>(this, "Scale Y", true);
     mCtrlScaleY->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) { onCommitTransform(); });
-    mCtrlScaleZ = getChild<LLSpinCtrl>("Scale Z", true);
+    mCtrlScaleZ = get_floater_child<LLSpinCtrl>(this, "Scale Z", true);
     mCtrlScaleZ->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) { onCommitTransform(); });
 
     // Rotation
-    mMenuClipboardRot = getChild<LLMenuButton>("clipboard_rot_btn");
-    mCtrlRotX = getChild<LLSpinCtrl>("Rot X", true);
+    mMenuClipboardRot = get_floater_child<LLMenuButton>(this, "clipboard_rot_btn");
+    mCtrlRotX = get_floater_child<LLSpinCtrl>(this, "Rot X", true);
     mCtrlRotX->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) { onCommitTransform(); });
-    mCtrlRotY = getChild<LLSpinCtrl>("Rot Y", true);
+    mCtrlRotY = get_floater_child<LLSpinCtrl>(this, "Rot Y", true);
     mCtrlRotY->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) { onCommitTransform(); });
-    mCtrlRotZ = getChild<LLSpinCtrl>("Rot Z", true);
+    mCtrlRotZ = get_floater_child<LLSpinCtrl>(this, "Rot Z", true);
     mCtrlPosZ->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) { onCommitTransform(); });
     setTransformsEnabled(false);
     // todo: do multiple panels based on selected element.
-    mTransformsPanel = getChild<LLPanel>("transform_panel", true);
+    mTransformsPanel = get_floater_child<LLPanel>(this, "transform_panel", true);
     mTransformsPanel->setVisible(false);
 
-    mItemListPanel = getChild<LLPanel>("item_list_panel", true);
+    mItemListPanel = get_floater_child<LLPanel>(this, "item_list_panel", true);
     initFolderRoot();
 
     return true;

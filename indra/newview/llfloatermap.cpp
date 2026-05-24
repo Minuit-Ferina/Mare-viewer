@@ -46,6 +46,32 @@
 
 //MK
 #include "llagent.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //mk
 
 //
@@ -80,7 +106,7 @@ LLFloaterMap::~LLFloaterMap()
 
 bool LLFloaterMap::postBuild()
 {
-    mMap = getChild<LLNetMap>("Net Map");
+    mMap = get_floater_child<LLNetMap>(this, "Net Map");
     mMap->setToolTipMsg(getString("ToolTipMsg"));
     mMap->setParcelNameMsg(getString("ParcelNameMsg"));
     mMap->setParcelSalePriceMsg(getString("ParcelSalePriceMsg"));
@@ -91,14 +117,14 @@ bool LLFloaterMap::postBuild()
     mMap->setAltToolTipHintMsg(getString("AltToolTipHintMsg"));
     sendChildToBack(mMap);
 
-    mTextBoxNorth     = getChild<LLTextBox>("floater_map_north");
-    mTextBoxEast      = getChild<LLTextBox>("floater_map_east");
-    mTextBoxWest      = getChild<LLTextBox>("floater_map_west");
-    mTextBoxSouth     = getChild<LLTextBox>("floater_map_south");
-    mTextBoxSouthEast = getChild<LLTextBox>("floater_map_southeast");
-    mTextBoxNorthEast = getChild<LLTextBox>("floater_map_northeast");
-    mTextBoxSouthWest = getChild<LLTextBox>("floater_map_southwest");
-    mTextBoxNorthWest = getChild<LLTextBox>("floater_map_northwest");
+    mTextBoxNorth     = get_floater_child<LLTextBox>(this, "floater_map_north");
+    mTextBoxEast      = get_floater_child<LLTextBox>(this, "floater_map_east");
+    mTextBoxWest      = get_floater_child<LLTextBox>(this, "floater_map_west");
+    mTextBoxSouth     = get_floater_child<LLTextBox>(this, "floater_map_south");
+    mTextBoxSouthEast = get_floater_child<LLTextBox>(this, "floater_map_southeast");
+    mTextBoxNorthEast = get_floater_child<LLTextBox>(this, "floater_map_northeast");
+    mTextBoxSouthWest = get_floater_child<LLTextBox>(this, "floater_map_southwest");
+    mTextBoxNorthWest = get_floater_child<LLTextBox>(this, "floater_map_northwest");
 
     mTextBoxNorth->reshapeToFitText();
     mTextBoxEast->reshapeToFitText();

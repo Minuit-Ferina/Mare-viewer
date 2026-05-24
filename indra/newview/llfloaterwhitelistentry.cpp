@@ -36,6 +36,32 @@
 #include "lllineeditor.h"
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 LLFloaterWhiteListEntry::LLFloaterWhiteListEntry( const LLSD& key ) :
@@ -53,7 +79,7 @@ LLFloaterWhiteListEntry::~LLFloaterWhiteListEntry()
 //
 bool LLFloaterWhiteListEntry::postBuild()
 {
-    mWhiteListEdit = getChild<LLLineEditor>("whitelist_entry");
+    mWhiteListEdit = get_floater_child<LLLineEditor>(this, "whitelist_entry");
 
     childSetAction("cancel_btn", onBtnCancel, this);
     childSetAction("ok_btn", onBtnOK, this);

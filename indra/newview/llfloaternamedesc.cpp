@@ -54,6 +54,31 @@
 #include "llinventorytype.h"
 #include "llagentbenefits.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const S32 PREVIEW_LINE_HEIGHT = 19;
 const S32 PREVIEW_BORDER_WIDTH = 2;
 const S32 PREVIEW_RESIZE_HANDLE_SIZE = S32(RESIZE_HANDLE_WIDTH * OO_SQRT2) + PREVIEW_BORDER_WIDTH;
@@ -117,7 +142,7 @@ bool LLFloaterNameDesc::postBuild()
     y -= llfloor(PREVIEW_LINE_HEIGHT * 1.2f);
 
     // Cancel button
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback(boost::bind(&LLFloaterNameDesc::onBtnCancel, this));
+    get_floater_child<LLUICtrl>(this, "cancel_btn")->setCommitCallback(boost::bind(&LLFloaterNameDesc::onBtnCancel, this));
 
     setupUploadCostControls(getExpectedUploadCost());
 
@@ -147,10 +172,10 @@ S32 LLFloaterNameDesc::getExpectedUploadCost() const
 
 void LLFloaterNameDesc::setupNameField(const std::string& asset_name)
 {
-    getChild<LLUICtrl>("name_form")->setCommitCallback(boost::bind(&LLFloaterNameDesc::doCommit, this));
-    getChild<LLUICtrl>("name_form")->setValue(LLSD(asset_name));
+    get_floater_child<LLUICtrl>(this, "name_form")->setCommitCallback(boost::bind(&LLFloaterNameDesc::doCommit, this));
+    get_floater_child<LLUICtrl>(this, "name_form")->setValue(LLSD(asset_name));
 
-    LLLineEditor* name_editor = getChild<LLLineEditor>("name_form");
+    LLLineEditor* name_editor = get_floater_child<LLLineEditor>(this, "name_form");
     if (name_editor)
     {
         name_editor->setMaxTextLength(DB_INV_ITEM_NAME_STR_LEN);
@@ -160,8 +185,8 @@ void LLFloaterNameDesc::setupNameField(const std::string& asset_name)
 
 void LLFloaterNameDesc::setupDescriptionField()
 {
-    getChild<LLUICtrl>("description_form")->setCommitCallback(boost::bind(&LLFloaterNameDesc::doCommit, this));
-    LLLineEditor* desc_editor = getChild<LLLineEditor>("description_form");
+    get_floater_child<LLUICtrl>(this, "description_form")->setCommitCallback(boost::bind(&LLFloaterNameDesc::doCommit, this));
+    LLLineEditor* desc_editor = get_floater_child<LLLineEditor>(this, "description_form");
     if (desc_editor)
     {
         desc_editor->setMaxTextLength(DB_INV_ITEM_DESC_STR_LEN);
@@ -171,9 +196,9 @@ void LLFloaterNameDesc::setupDescriptionField()
 
 void LLFloaterNameDesc::setupUploadCostControls(S32 expected_upload_cost)
 {
-    getChild<LLUICtrl>("ok_btn")->setLabelArg("[AMOUNT]", llformat("%d", expected_upload_cost));
+    get_floater_child<LLUICtrl>(this, "ok_btn")->setLabelArg("[AMOUNT]", llformat("%d", expected_upload_cost));
 
-    LLTextBox* info_text = getChild<LLTextBox>("info_text");
+    LLTextBox* info_text = get_floater_child<LLTextBox>(this, "info_text");
     if (info_text)
     {
         info_text->setValue(LLTrans::getString("UploadFeeInfo"));
@@ -182,22 +207,22 @@ void LLFloaterNameDesc::setupUploadCostControls(S32 expected_upload_cost)
 
 void LLFloaterNameDesc::setupUploadCommitAction()
 {
-    getChild<LLUICtrl>("ok_btn")->setCommitCallback(boost::bind(&LLFloaterNameDesc::onBtnOK, this));
+    get_floater_child<LLUICtrl>(this, "ok_btn")->setCommitCallback(boost::bind(&LLFloaterNameDesc::onBtnOK, this));
 }
 
 void LLFloaterNameDesc::setUploadButtonEnabled(bool enabled)
 {
-    getChildView("ok_btn")->setEnabled(enabled);
+    get_floater_view(this, "ok_btn")->setEnabled(enabled);
 }
 
 std::string LLFloaterNameDesc::getUploadName()
 {
-    return getChild<LLUICtrl>("name_form")->getValue().asString();
+    return get_floater_child<LLUICtrl>(this, "name_form")->getValue().asString();
 }
 
 std::string LLFloaterNameDesc::getUploadDescription()
 {
-    return getChild<LLUICtrl>("description_form")->getValue().asString();
+    return get_floater_child<LLUICtrl>(this, "description_form")->getValue().asString();
 }
 
 //-----------------------------------------------------------------------------

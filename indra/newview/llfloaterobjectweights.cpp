@@ -36,6 +36,32 @@
 #include "llviewerparcelmgr.h"
 #include "llviewerregion.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 static const std::string lod_strings[4] =
 {
     "lowest_lod",
@@ -97,22 +123,22 @@ LLFloaterObjectWeights::~LLFloaterObjectWeights()
 // virtual
 bool LLFloaterObjectWeights::postBuild()
 {
-    mSelectedObjects = getChild<LLTextBox>("objects");
-    mSelectedPrims = getChild<LLTextBox>("prims");
+    mSelectedObjects = get_floater_child<LLTextBox>(this, "objects");
+    mSelectedPrims = get_floater_child<LLTextBox>(this, "prims");
 
-    mSelectedDownloadWeight = getChild<LLTextBox>("download");
-    mSelectedPhysicsWeight = getChild<LLTextBox>("physics");
-    mSelectedServerWeight = getChild<LLTextBox>("server");
-    mSelectedDisplayWeight = getChild<LLTextBox>("display");
+    mSelectedDownloadWeight = get_floater_child<LLTextBox>(this, "download");
+    mSelectedPhysicsWeight = get_floater_child<LLTextBox>(this, "physics");
+    mSelectedServerWeight = get_floater_child<LLTextBox>(this, "server");
+    mSelectedDisplayWeight = get_floater_child<LLTextBox>(this, "display");
 
-    mSelectedOnLand = getChild<LLTextBox>("selected");
-    mRezzedOnLand = getChild<LLTextBox>("rezzed_on_land");
-    mRemainingCapacity = getChild<LLTextBox>("remaining_capacity");
-    mTotalCapacity = getChild<LLTextBox>("total_capacity");
+    mSelectedOnLand = get_floater_child<LLTextBox>(this, "selected");
+    mRezzedOnLand = get_floater_child<LLTextBox>(this, "rezzed_on_land");
+    mRemainingCapacity = get_floater_child<LLTextBox>(this, "remaining_capacity");
+    mTotalCapacity = get_floater_child<LLTextBox>(this, "total_capacity");
 
-    mLodLevel = getChild<LLTextBox>("lod_level");
-    mTrianglesShown = getChild<LLTextBox>("triangles_shown");
-    mPixelArea = getChild<LLTextBox>("pixel_area");
+    mLodLevel = get_floater_child<LLTextBox>(this, "lod_level");
+    mTrianglesShown = get_floater_child<LLTextBox>(this, "triangles_shown");
+    mPixelArea = get_floater_child<LLTextBox>(this, "pixel_area");
 
     return true;
 }

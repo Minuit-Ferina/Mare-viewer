@@ -31,6 +31,32 @@
 
 // Linden library includes
 #include "llfloaterreg.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //#include "lluictrlfactory.h"
 
 LLFloaterTestInspectors::LLFloaterTestInspectors(const LLSD& seed)
@@ -48,21 +74,21 @@ LLFloaterTestInspectors::~LLFloaterTestInspectors()
 bool LLFloaterTestInspectors::postBuild()
 {
     // Test the dummy widget construction code
-    getChild<LLUICtrl>("intentionally-not-found")->setEnabled(true);
+    get_floater_child<LLUICtrl>(this, "intentionally-not-found")->setEnabled(true);
 
 //  getChild<LLUICtrl>("avatar_2d_btn")->setCommitCallback(
 //      boost::bind(&LLFloaterTestInspectors::onClickAvatar2D, this));
-    getChild<LLUICtrl>("avatar_3d_btn")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "avatar_3d_btn")->setCommitCallback(
         boost::bind(&LLFloaterTestInspectors::onClickAvatar3D, this));
-    getChild<LLUICtrl>("object_2d_btn")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "object_2d_btn")->setCommitCallback(
         boost::bind(&LLFloaterTestInspectors::onClickObject2D, this));
-    getChild<LLUICtrl>("object_3d_btn")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "object_3d_btn")->setCommitCallback(
         boost::bind(&LLFloaterTestInspectors::onClickObject3D, this));
-    getChild<LLUICtrl>("group_btn")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "group_btn")->setCommitCallback(
         boost::bind(&LLFloaterTestInspectors::onClickGroup, this));
-    getChild<LLUICtrl>("place_btn")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "place_btn")->setCommitCallback(
         boost::bind(&LLFloaterTestInspectors::onClickPlace, this));
-    getChild<LLUICtrl>("event_btn")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "event_btn")->setCommitCallback(
         boost::bind(&LLFloaterTestInspectors::onClickEvent, this));
 
     return LLFloater::postBuild();

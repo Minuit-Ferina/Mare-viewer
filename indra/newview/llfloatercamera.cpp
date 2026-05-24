@@ -48,6 +48,31 @@
 #include "llvoavatarself.h"
 #include "llcallbacklist.h"  // gIdleCallbacks
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 static LLDefaultChildRegistry::Register<LLPanelCameraItem> r("panel_camera_item");
 
 const F32 NUDGE_TIME = 0.25f;       // in seconds
@@ -141,7 +166,7 @@ LLPanelCameraItem::LLPanelCameraItem(const LLPanelCameraItem::Params& p)
 
 void set_view_visible(LLView* parent, const std::string& name, bool visible)
 {
-    parent->getChildView(name)->setVisible(visible);
+    get_floater_view(parent, name)->setVisible(visible);
 }
 
 void LLPanelCameraItem::setValue(const LLSD& value)
@@ -149,9 +174,9 @@ void LLPanelCameraItem::setValue(const LLSD& value)
     if (!value.isMap()) return;;
     if (!value.has("selected")) return;
     const bool selected = value["selected"].asBoolean();
-    getChildView("selected_icon")->setVisible(selected);
-    getChildView("picture")->setVisible(!selected);
-    getChildView("selected_picture")->setVisible(selected);
+    get_floater_view(this, "selected_icon")->setVisible(selected);
+    get_floater_view(this, "picture")->setVisible(!selected);
+    get_floater_view(this, "selected_picture")->setVisible(selected);
 }
 
 bool LLPanelCameraItem::postBuild()
@@ -192,9 +217,9 @@ bool LLPanelCameraZoom::postBuild()
 
 void LLPanelCameraZoom::setupControls()
 {
-    mPlusBtn  = getChild<LLButton>("zoom_plus_btn");
-    mMinusBtn = getChild<LLButton>("zoom_minus_btn");
-    mSlider   = getChild<LLSlider>("zoom_slider");
+    mPlusBtn  = get_floater_child<LLButton>(this, "zoom_plus_btn");
+    mMinusBtn = get_floater_child<LLButton>(this, "zoom_minus_btn");
+    mSlider   = get_floater_child<LLSlider>(this, "zoom_slider");
 }
 
 void LLPanelCameraZoom::draw()
@@ -575,12 +600,12 @@ bool LLFloaterCamera::postBuild()
 
 void LLFloaterCamera::setupChildControls()
 {
-    mAgentCameraInfo = getChild<LLPanel>("agent_camera_info");
-    mViewerCameraInfo = getChild<LLPanel>("viewer_camera_info");
-    mRotate = getChild<LLJoystickCameraRotate>(ORBIT);
-    mZoom = getChild<LLPanelCameraZoom>(ZOOM);
-    mTrack = getChild<LLJoystickCameraTrack>(PAN);
-    mPresetCombo = getChild<LLComboBox>("preset_combo");
+    mAgentCameraInfo = get_floater_child<LLPanel>(this, "agent_camera_info");
+    mViewerCameraInfo = get_floater_child<LLPanel>(this, "viewer_camera_info");
+    mRotate = get_floater_child<LLJoystickCameraRotate>(this, ORBIT);
+    mZoom = get_floater_child<LLPanelCameraZoom>(this, ZOOM);
+    mTrack = get_floater_child<LLJoystickCameraTrack>(this, PAN);
+    mPresetCombo = get_floater_child<LLComboBox>(this, "preset_combo");
 }
 
 void LLFloaterCamera::setupAdvancedControls()
@@ -591,7 +616,7 @@ void LLFloaterCamera::setupAdvancedControls()
         return;
     }
 
-    mPreciseCtrls = getChild<LLTextBox>("precise_ctrs_label");
+    mPreciseCtrls = get_floater_child<LLTextBox>(this, "precise_ctrs_label");
 
     mPreciseCtrls->setShowCursorHand(false);
     mPreciseCtrls->setSoundFlags(LLView::MOUSE_UP);
@@ -813,7 +838,7 @@ void LLFloaterCamera::setCameraItemSelected(const std::string& item_name, bool s
 {
     LLSD argument;
     argument["selected"] = selected;
-    getChild<LLPanelCameraItem>(item_name)->setValue(argument);
+    get_floater_child<LLPanelCameraItem>(this, item_name)->setValue(argument);
 }
 
 // static

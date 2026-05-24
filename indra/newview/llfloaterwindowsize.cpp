@@ -37,6 +37,32 @@
 #include "llregex.h"
 #include "lluictrl.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 // Extract from strings of the form "<width> x <height>", e.g. "640 x 480".
 bool extractWindowSizeFromString(const std::string& instr, U32 *width, U32 *height)
 {
@@ -67,9 +93,9 @@ bool LLFloaterWindowSize::postBuild()
 {
     center();
     initWindowSizeControls();
-    getChild<LLUICtrl>("set_btn")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "set_btn")->setCommitCallback(
         boost::bind(&LLFloaterWindowSize::onClickSet, this));
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "cancel_btn")->setCommitCallback(
         boost::bind(&LLFloaterWindowSize::onClickCancel, this));
     setDefaultBtn("set_btn");
     return true;
@@ -77,7 +103,7 @@ bool LLFloaterWindowSize::postBuild()
 
 void LLFloaterWindowSize::initWindowSizeControls()
 {
-    LLComboBox* ctrl_window_size = getChild<LLComboBox>("window_size_combo");
+    LLComboBox* ctrl_window_size = get_floater_child<LLComboBox>(this, "window_size_combo");
 
     // Look to see if current window size matches existing window sizes, if so then
     // just set the selection value...
@@ -107,7 +133,7 @@ void LLFloaterWindowSize::initWindowSizeControls()
 
 void LLFloaterWindowSize::onClickSet()
 {
-    LLComboBox* ctrl_window_size = getChild<LLComboBox>("window_size_combo");
+    LLComboBox* ctrl_window_size = get_floater_child<LLComboBox>(this, "window_size_combo");
     U32 width = 0;
     U32 height = 0;
     std::string resolution = ctrl_window_size->getValue().asString();

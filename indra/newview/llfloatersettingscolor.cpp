@@ -38,6 +38,31 @@
 #include "llviewercontrol.h"
 #include "lltexteditor.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 
 LLFloaterSettingsColor::LLFloaterSettingsColor(const LLSD& key)
 :   LLFloater(key),
@@ -66,17 +91,17 @@ bool LLFloaterSettingsColor::postBuild()
 
 void LLFloaterSettingsColor::setupControls()
 {
-    mAlphaSpinner = getChild<LLSpinCtrl>("alpha_spinner");
-    mColorSwatch = getChild<LLColorSwatchCtrl>("color_swatch");
+    mAlphaSpinner = get_floater_child<LLSpinCtrl>(this, "alpha_spinner");
+    mColorSwatch = get_floater_child<LLColorSwatchCtrl>(this, "color_swatch");
 
-    mDefaultButton = getChild<LLUICtrl>("default_btn");
-    mSettingNameText = getChild<LLTextBox>("color_name_txt");
-    mSettingList = getChild<LLScrollListCtrl>("setting_list");
+    mDefaultButton = get_floater_child<LLUICtrl>(this, "default_btn");
+    mSettingNameText = get_floater_child<LLTextBox>(this, "color_name_txt");
+    mSettingList = get_floater_child<LLScrollListCtrl>(this, "setting_list");
 }
 
 void LLFloaterSettingsColor::setupCallbacks()
 {
-    getChild<LLFilterEditor>("filter_input")->setCommitCallback(boost::bind(&LLFloaterSettingsColor::setSearchFilter, this, _2));
+    get_floater_child<LLFilterEditor>(this, "filter_input")->setCommitCallback(boost::bind(&LLFloaterSettingsColor::setSearchFilter, this, _2));
 
     mSettingList->setCommitOnSelectionChange(true);
     mSettingList->setCommitCallback(boost::bind(&LLFloaterSettingsColor::onSettingSelect, this));

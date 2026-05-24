@@ -63,6 +63,32 @@
 #include "llviewernetwork.h"
 #include "roles_constants.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 // NOTE: This is duplicated in lldatamoney.cpp ...
 const F32 GROUP_LAND_BONUS_FACTOR = 1.1f;
 
@@ -509,11 +535,11 @@ void LLFloaterBuyLandUI::updateCovenantInfo()
     U8 sim_access = region->getSimAccess();
     std::string rating = LLViewerRegion::accessToString(sim_access);
 
-    LLTextBox* region_name = getChild<LLTextBox>("region_name_text");
+    LLTextBox* region_name = get_floater_child<LLTextBox>(this, "region_name_text");
     std::string region_name_txt = region->getName() + " ("+rating +")";
     region_name->setText(region_name_txt);
 
-    LLIconCtrl* rating_icon = getChild<LLIconCtrl>("rating_icon");
+    LLIconCtrl* rating_icon = get_floater_child<LLIconCtrl>(this, "rating_icon");
     LLRect rect = rating_icon->getRect();
     S32 region_name_width = llmin(region_name->getRect().getWidth(), region_name->getTextBoundingRect().getWidth());
     S32 icon_left_pad = region_name->getRect().mLeft + region_name_width + ICON_PAD;
@@ -534,24 +560,24 @@ void LLFloaterBuyLandUI::updateCovenantInfo()
         rating_icon->setValue(getString("icon_M"));
     }
 
-    LLTextBox* region_type = getChild<LLTextBox>("region_type_text");
+    LLTextBox* region_type = get_floater_child<LLTextBox>(this, "region_type_text");
     region_type->setText(region->getLocalizedSimProductName());
     region_type->setToolTip(region->getLocalizedSimProductName());
 
-    LLTextBox* resellable_clause = getChild<LLTextBox>("resellable_clause");
+    LLTextBox* resellable_clause = get_floater_child<LLTextBox>(this, "resellable_clause");
     const char* can_resell = region->getRegionFlag(REGION_FLAGS_BLOCK_LAND_RESELL) ? "can_not_resell" : "can_resell";
     resellable_clause->setText(getString(can_resell));
 
-    LLTextBox* changeable_clause = getChild<LLTextBox>("changeable_clause");
+    LLTextBox* changeable_clause = get_floater_child<LLTextBox>(this, "changeable_clause");
     const char* can_change = region->getRegionFlag(REGION_FLAGS_ALLOW_PARCEL_CHANGES) ? "can_change" : "can_not_change";
     changeable_clause->setText(getString(can_change));
 
-    LLCheckBoxCtrl* check = getChild<LLCheckBoxCtrl>("agree_covenant");
+    LLCheckBoxCtrl* check = get_floater_child<LLCheckBoxCtrl>(this, "agree_covenant");
     check->set(false);
     check->setEnabled(true);
     check->setCommitCallback(onChangeAgreeCovenant, this);
 
-    LLTextBox* box = getChild<LLTextBox>("covenant_text");
+    LLTextBox* box = get_floater_child<LLTextBox>(this, "covenant_text");
         box->setVisible(false);
 
     // send EstateCovenantInfo message
@@ -574,7 +600,7 @@ void LLFloaterBuyLandUI::onChangeAgreeCovenant(LLUICtrl* ctrl, void* user_data)
 
 void LLFloaterBuyLandUI::updateFloaterCovenant(const LLTextBase* source, const LLUUID& asset_id)
 {
-    LLViewerTextEditor* editor = getChild<LLViewerTextEditor>("covenant_editor");
+    LLViewerTextEditor* editor = get_floater_child<LLViewerTextEditor>(this, "covenant_editor");
     editor->copyContents(source);
 
     onCovenantTextUpdated(asset_id);
@@ -582,7 +608,7 @@ void LLFloaterBuyLandUI::updateFloaterCovenant(const LLTextBase* source, const L
 
 void LLFloaterBuyLandUI::updateFloaterCovenantText(const std::string &string, const LLUUID& asset_id)
 {
-    LLViewerTextEditor* editor = getChild<LLViewerTextEditor>("covenant_editor");
+    LLViewerTextEditor* editor = get_floater_child<LLViewerTextEditor>(this, "covenant_editor");
     editor->setText(string);
 
     onCovenantTextUpdated(asset_id);
@@ -590,8 +616,8 @@ void LLFloaterBuyLandUI::updateFloaterCovenantText(const std::string &string, co
 
 void LLFloaterBuyLandUI::onCovenantTextUpdated(const LLUUID& asset_id)
 {
-    LLCheckBoxCtrl* check = getChild<LLCheckBoxCtrl>("agree_covenant");
-    LLTextBox* box = getChild<LLTextBox>("covenant_text");
+    LLCheckBoxCtrl* check = get_floater_child<LLCheckBoxCtrl>(this, "agree_covenant");
+    LLTextBox* box = get_floater_child<LLTextBox>(this, "covenant_text");
     if (asset_id.isNull())
     {
         check->set(true);
@@ -612,20 +638,20 @@ void LLFloaterBuyLandUI::onCovenantTextUpdated(const LLUUID& asset_id)
 
 void LLFloaterBuyLandUI::updateFloaterEstateName(const std::string& name)
 {
-    LLTextBox* box = getChild<LLTextBox>("estate_name_text");
+    LLTextBox* box = get_floater_child<LLTextBox>(this, "estate_name_text");
     box->setText(name);
     box->setToolTip(name);
 }
 
 void LLFloaterBuyLandUI::updateFloaterLastModified(const std::string& text)
 {
-    LLTextBox* editor = getChild<LLTextBox>("covenant_timestamp_text");
+    LLTextBox* editor = get_floater_child<LLTextBox>(this, "covenant_timestamp_text");
     editor->setText(text);
 }
 
 void LLFloaterBuyLandUI::updateFloaterEstateOwnerName(const std::string& name)
 {
-    LLTextBox* box = getChild<LLTextBox>("estate_owner_text");
+    LLTextBox* box = get_floater_child<LLTextBox>(this, "estate_owner_text");
     box->setText(name);
 }
 
@@ -721,7 +747,7 @@ void LLFloaterBuyLandUI::runWebSitePrep(const std::string& password)
         return;
     }
 
-    bool remove_contribution = getChild<LLUICtrl>("remove_contribution")->getValue().asBoolean();
+    bool remove_contribution = get_floater_child<LLUICtrl>(this, "remove_contribution")->getValue().asBoolean();
     mParcelBuyInfo = LLViewerParcelMgr::getInstance()->setupParcelBuy(gAgent.getID(), gAgent.getSessionID(),
                         gAgent.getGroupID(), mIsForGroup, mIsClaim, remove_contribution);
 
@@ -740,7 +766,7 @@ void LLFloaterBuyLandUI::runWebSitePrep(const std::string& password)
 
     if (mSiteMembershipUpgrade)
     {
-        LLComboBox* levels = getChild<LLComboBox>( "account_level");
+        LLComboBox* levels = get_floater_child<LLComboBox>(this,  "account_level");
         if (levels)
         {
             mUserPlanChoice = levels->getCurrentIndex();
@@ -919,9 +945,9 @@ bool LLFloaterBuyLandUI::postBuild()
 
     mCurrency.prepare();
 
-    getChild<LLUICtrl>("buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuyLandUI::onClickBuy, this));
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuyLandUI::onClickCancel, this));
-    getChild<LLUICtrl>("error_web")->setCommitCallback( boost::bind(&LLFloaterBuyLandUI::onClickErrorWeb, this));
+    get_floater_child<LLUICtrl>(this, "buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuyLandUI::onClickBuy, this));
+    get_floater_child<LLUICtrl>(this, "cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuyLandUI::onClickCancel, this));
+    get_floater_child<LLUICtrl>(this, "error_web")->setCommitCallback( boost::bind(&LLFloaterBuyLandUI::onClickErrorWeb, this));
 
     center();
 
@@ -1002,7 +1028,7 @@ void LLFloaterBuyLandUI::refreshUI()
 {
     // section zero: title area
     {
-        LLTextureCtrl* snapshot = getChild<LLTextureCtrl>("info_image");
+        LLTextureCtrl* snapshot = get_floater_child<LLTextureCtrl>(this, "info_image");
         if (snapshot)
         {
             snapshot->setImageAssetID(
@@ -1011,13 +1037,13 @@ void LLFloaterBuyLandUI::refreshUI()
 
         if (mParcelValid)
         {
-            getChild<LLUICtrl>("info_parcel")->setValue(mParcelLocation);
+            get_floater_child<LLUICtrl>(this, "info_parcel")->setValue(mParcelLocation);
 
             LLStringUtil::format_map_t string_args;
             string_args["[AMOUNT]"] = llformat("%d", mParcelActualArea);
             string_args["[AMOUNT2]"] = llformat("%d", mParcelSupportedObjects);
 
-            getChild<LLUICtrl>("info_size")->setValue(getString("meters_supports_object", string_args));
+            get_floater_child<LLUICtrl>(this, "info_size")->setValue(getString("meters_supports_object", string_args));
 
             F32 cost_per_sqm = 0.0f;
             if (mParcelActualArea > 0)
@@ -1036,17 +1062,17 @@ void LLFloaterBuyLandUI::refreshUI()
             {
                 info_price_args["[SOLD_WITH_OBJECTS]"] = getString("sold_without_objects");
             }
-            getChild<LLUICtrl>("info_price")->setValue(getString("info_price_string", info_price_args));
-            getChildView("info_price")->setVisible( mParcelIsForSale);
+            get_floater_child<LLUICtrl>(this, "info_price")->setValue(getString("info_price_string", info_price_args));
+            get_floater_view(this, "info_price")->setVisible( mParcelIsForSale);
         }
         else
         {
-            getChild<LLUICtrl>("info_parcel")->setValue(getString("no_parcel_selected"));
-            getChild<LLUICtrl>("info_size")->setValue(LLStringUtil::null);
-            getChild<LLUICtrl>("info_price")->setValue(LLStringUtil::null);
+            get_floater_child<LLUICtrl>(this, "info_parcel")->setValue(getString("no_parcel_selected"));
+            get_floater_child<LLUICtrl>(this, "info_size")->setValue(LLStringUtil::null);
+            get_floater_child<LLUICtrl>(this, "info_price")->setValue(LLStringUtil::null);
         }
 
-        getChild<LLUICtrl>("info_action")->setValue(
+        get_floater_child<LLUICtrl>(this, "info_action")->setValue(
             mCanBuy
                 ?
                     mIsForGroup
@@ -1070,20 +1096,20 @@ void LLFloaterBuyLandUI::refreshUI()
                 ? LLViewChildren::BADGE_ERROR
                 : LLViewChildren::BADGE_WARN);
 
-        LLTextBox* message = getChild<LLTextBox>("error_message");
+        LLTextBox* message = get_floater_child<LLTextBox>(this, "error_message");
         if (message)
         {
             message->setVisible(true);
             message->setValue(LLSD(!mCanBuy ? mCannotBuyReason : "(waiting for data)"));
         }
 
-        getChildView("error_web")->setVisible(mCannotBuyIsError && !mCannotBuyURI.empty());
+        get_floater_view(this, "error_web")->setVisible(mCannotBuyIsError && !mCannotBuyURI.empty());
     }
     else
     {
-        getChildView("step_error")->setVisible(false);
-        getChildView("error_message")->setVisible(false);
-        getChildView("error_web")->setVisible(false);
+        get_floater_view(this, "step_error")->setVisible(false);
+        get_floater_view(this, "error_message")->setVisible(false);
+        get_floater_view(this, "error_web")->setVisible(false);
     }
 
 
@@ -1094,14 +1120,14 @@ void LLFloaterBuyLandUI::refreshUI()
             mSiteMembershipUpgrade
                 ? LLViewChildren::BADGE_NOTE
                 : LLViewChildren::BADGE_OK);
-        getChild<LLUICtrl>("account_action")->setValue(mSiteMembershipAction);
-        getChild<LLUICtrl>("account_reason")->setValue(
+        get_floater_child<LLUICtrl>(this, "account_action")->setValue(mSiteMembershipAction);
+        get_floater_child<LLUICtrl>(this, "account_reason")->setValue(
             mSiteMembershipUpgrade
                 ?   getString("must_upgrade")
                 :   getString("cant_own_land")
             );
 
-        LLComboBox* levels = getChild<LLComboBox>( "account_level");
+        LLComboBox* levels = get_floater_child<LLComboBox>(this,  "account_level");
         if (levels)
         {
             levels->setVisible(mSiteMembershipUpgrade);
@@ -1118,16 +1144,16 @@ void LLFloaterBuyLandUI::refreshUI()
             levels->setCurrentByIndex(mUserPlanChoice);
         }
 
-        getChildView("step_1")->setVisible(true);
-        getChildView("account_action")->setVisible(true);
-        getChildView("account_reason")->setVisible(true);
+        get_floater_view(this, "step_1")->setVisible(true);
+        get_floater_view(this, "account_action")->setVisible(true);
+        get_floater_view(this, "account_reason")->setVisible(true);
     }
     else
     {
-        getChildView("step_1")->setVisible(false);
-        getChildView("account_action")->setVisible(false);
-        getChildView("account_reason")->setVisible(false);
-        getChildView("account_level")->setVisible(false);
+        get_floater_view(this, "step_1")->setVisible(false);
+        get_floater_view(this, "account_action")->setVisible(false);
+        get_floater_view(this, "account_reason")->setVisible(false);
+        get_floater_view(this, "account_level")->setVisible(false);
     }
 
     // section two: land use fees
@@ -1137,7 +1163,7 @@ void LLFloaterBuyLandUI::refreshUI()
             mSiteLandUseUpgrade
                 ? LLViewChildren::BADGE_NOTE
                 : LLViewChildren::BADGE_OK);
-        getChild<LLUICtrl>("land_use_action")->setValue(mSiteLandUseAction);
+        get_floater_child<LLUICtrl>(this, "land_use_action")->setValue(mSiteLandUseAction);
 
         std::string message;
 
@@ -1183,17 +1209,17 @@ void LLFloaterBuyLandUI::refreshUI()
             }
         }
 
-        getChild<LLUICtrl>("land_use_reason")->setValue(message);
+        get_floater_child<LLUICtrl>(this, "land_use_reason")->setValue(message);
 
-        getChildView("step_2")->setVisible(true);
-        getChildView("land_use_action")->setVisible(true);
-        getChildView("land_use_reason")->setVisible(true);
+        get_floater_view(this, "step_2")->setVisible(true);
+        get_floater_view(this, "land_use_action")->setVisible(true);
+        get_floater_view(this, "land_use_reason")->setVisible(true);
     }
     else
     {
-        getChildView("step_2")->setVisible(false);
-        getChildView("land_use_action")->setVisible(false);
-        getChildView("land_use_reason")->setVisible(false);
+        get_floater_view(this, "step_2")->setVisible(false);
+        get_floater_view(this, "land_use_action")->setVisible(false);
+        get_floater_view(this, "land_use_reason")->setVisible(false);
     }
 
     // section three: purchase & currency
@@ -1217,8 +1243,8 @@ void LLFloaterBuyLandUI::refreshUI()
         LLStringUtil::format_map_t string_args;
         string_args["[AMOUNT]"] = llformat("%d", mParcelPrice);
         string_args["[SELLER]"] = mParcelSellerName;
-        getChild<LLUICtrl>("purchase_action")->setValue(getString("pay_to_for_land", string_args));
-        getChildView("purchase_action")->setVisible( mParcelValid);
+        get_floater_child<LLUICtrl>(this, "purchase_action")->setValue(getString("pay_to_for_land", string_args));
+        get_floater_view(this, "purchase_action")->setVisible( mParcelValid);
 
         std::string reasonString;
 
@@ -1227,7 +1253,7 @@ void LLFloaterBuyLandUI::refreshUI()
             LLStringUtil::format_map_t string_args;
             string_args["[AMOUNT]"] = llformat("%d", mAgentCashBalance);
 
-            getChild<LLUICtrl>("currency_reason")->setValue(getString("have_enough_lindens", string_args));
+            get_floater_child<LLUICtrl>(this, "currency_reason")->setValue(getString("have_enough_lindens", string_args));
         }
         else
         {
@@ -1235,9 +1261,9 @@ void LLFloaterBuyLandUI::refreshUI()
             string_args["[AMOUNT]"] = llformat("%d", mAgentCashBalance);
             string_args["[AMOUNT2]"] = llformat("%d", mParcelPrice - mAgentCashBalance);
 
-            getChild<LLUICtrl>("currency_reason")->setValue(getString("not_enough_lindens", string_args));
+            get_floater_child<LLUICtrl>(this, "currency_reason")->setValue(getString("not_enough_lindens", string_args));
 
-            getChild<LLUICtrl>("currency_est")->setTextArg("[LOCAL_AMOUNT]", mCurrency.getLocalEstimate());
+            get_floater_child<LLUICtrl>(this, "currency_est")->setTextArg("[LOCAL_AMOUNT]", mCurrency.getLocalEstimate());
         }
 
         if (willHaveEnough)
@@ -1245,7 +1271,7 @@ void LLFloaterBuyLandUI::refreshUI()
             LLStringUtil::format_map_t string_args;
             string_args["[AMOUNT]"] = llformat("%d", finalBalance);
 
-            getChild<LLUICtrl>("currency_balance")->setValue(getString("balance_left", string_args));
+            get_floater_child<LLUICtrl>(this, "currency_balance")->setValue(getString("balance_left", string_args));
 
         }
         else
@@ -1253,41 +1279,41 @@ void LLFloaterBuyLandUI::refreshUI()
             LLStringUtil::format_map_t string_args;
             string_args["[AMOUNT]"] = llformat("%d", mParcelPrice - mAgentCashBalance);
 
-            getChild<LLUICtrl>("currency_balance")->setValue(getString("balance_needed", string_args));
+            get_floater_child<LLUICtrl>(this, "currency_balance")->setValue(getString("balance_needed", string_args));
 
         }
 
-        getChild<LLUICtrl>("remove_contribution")->setValue(LLSD(groupContributionEnough));
-        getChildView("remove_contribution")->setEnabled(groupContributionEnough);
+        get_floater_child<LLUICtrl>(this, "remove_contribution")->setValue(LLSD(groupContributionEnough));
+        get_floater_view(this, "remove_contribution")->setEnabled(groupContributionEnough);
         bool showRemoveContribution = mParcelIsGroupLand
                             && (mParcelGroupContribution > 0);
-        getChildView("remove_contribution")->setLabelArg("[AMOUNT]",
+        get_floater_view(this, "remove_contribution")->setLabelArg("[AMOUNT]",
                             llformat("%d", minContribution));
-        getChildView("remove_contribution")->setVisible( showRemoveContribution);
+        get_floater_view(this, "remove_contribution")->setVisible( showRemoveContribution);
 
-        getChildView("step_3")->setVisible(true);
-        getChildView("purchase_action")->setVisible(true);
-        getChildView("currency_reason")->setVisible(true);
-        getChildView("currency_balance")->setVisible(true);
+        get_floater_view(this, "step_3")->setVisible(true);
+        get_floater_view(this, "purchase_action")->setVisible(true);
+        get_floater_view(this, "currency_reason")->setVisible(true);
+        get_floater_view(this, "currency_balance")->setVisible(true);
     }
     else
     {
-        getChildView("step_3")->setVisible(false);
-        getChildView("purchase_action")->setVisible(false);
-        getChildView("currency_reason")->setVisible(false);
-        getChildView("currency_balance")->setVisible(false);
-        getChildView("remove_group_donation")->setVisible(false);
+        get_floater_view(this, "step_3")->setVisible(false);
+        get_floater_view(this, "purchase_action")->setVisible(false);
+        get_floater_view(this, "currency_reason")->setVisible(false);
+        get_floater_view(this, "currency_balance")->setVisible(false);
+        get_floater_view(this, "remove_group_donation")->setVisible(false);
     }
 
 
     bool agrees_to_covenant = false;
-    LLCheckBoxCtrl* check = getChild<LLCheckBoxCtrl>("agree_covenant");
+    LLCheckBoxCtrl* check = get_floater_child<LLCheckBoxCtrl>(this, "agree_covenant");
     if (check)
     {
         agrees_to_covenant = check->get();
     }
 
-    getChildView("buy_btn")->setEnabled(mCanBuy  &&  mSiteValid  &&  willHaveEnough  &&  !mTransaction && agrees_to_covenant);
+    get_floater_view(this, "buy_btn")->setEnabled(mCanBuy  &&  mSiteValid  &&  willHaveEnough  &&  !mTransaction && agrees_to_covenant);
 }
 
 void LLFloaterBuyLandUI::startBuyPreConfirm()
@@ -1299,7 +1325,7 @@ void LLFloaterBuyLandUI::startBuyPreConfirm()
         action += mSiteMembershipAction;
         action += "\n";
 
-        LLComboBox* levels = getChild<LLComboBox>( "account_level");
+        LLComboBox* levels = get_floater_child<LLComboBox>(this,  "account_level");
         if (levels)
         {
             action += " * ";

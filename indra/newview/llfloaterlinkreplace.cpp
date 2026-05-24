@@ -37,6 +37,32 @@
 #include "lltextbox.h"
 #include "llviewercontrol.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterLinkReplace::LLFloaterLinkReplace(const LLSD& key)
     : LLFloater(key),
     LLEventTimer(gSavedSettings.getF32("LinkReplaceBatchPauseTime")),
@@ -59,22 +85,22 @@ LLFloaterLinkReplace::~LLFloaterLinkReplace()
 bool LLFloaterLinkReplace::postBuild()
 {
     childSetVisible("delete_text", false); // <FS:Beq> FIRE-17695 - Delete links capability
-    mStartBtn = getChild<LLButton>("btn_start");
+    mStartBtn = get_floater_child<LLButton>(this, "btn_start");
     mStartBtn->setCommitCallback(boost::bind(&LLFloaterLinkReplace::onStartClicked, this));
 
-    mRefreshBtn = getChild<LLButton>("btn_refresh");
+    mRefreshBtn = get_floater_child<LLButton>(this, "btn_refresh");
     mRefreshBtn->setCommitCallback(boost::bind(&LLFloaterLinkReplace::checkEnableStart, this));
     // <FS:Beq> FIRE-17695 - Delete links capability
-    mDeleteOnlyToggle = getChild<LLCheckBoxCtrl>("delete_links_only");
+    mDeleteOnlyToggle = get_floater_child<LLCheckBoxCtrl>(this, "delete_links_only");
     mDeleteOnlyToggle->setCommitCallback(boost::bind(&LLFloaterLinkReplace::onDeleteOnlyToggle, this));
     // </FS:Beq>
-    mSourceEditor = getChild<LLInventoryLinkReplaceDropTarget>("source_uuid_editor");
-    mTargetEditor = getChild<LLInventoryLinkReplaceDropTarget>("target_uuid_editor");
+    mSourceEditor = get_floater_child<LLInventoryLinkReplaceDropTarget>(this, "source_uuid_editor");
+    mTargetEditor = get_floater_child<LLInventoryLinkReplaceDropTarget>(this, "target_uuid_editor");
 
     mSourceEditor->setDADCallback(boost::bind(&LLFloaterLinkReplace::onSourceItemDrop, this, _1));
     mTargetEditor->setDADCallback(boost::bind(&LLFloaterLinkReplace::onTargetItemDrop, this, _1));
 
-    mStatusText = getChild<LLTextBox>("status_text");
+    mStatusText = get_floater_child<LLTextBox>(this, "status_text");
 
     return true;
 }

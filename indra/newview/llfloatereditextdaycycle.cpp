@@ -66,6 +66,32 @@
 #include "llenvironment.h"
 #include "lltrans.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 extern LLControlGroup gSavedSettings;
 
 //=========================================================================
@@ -203,20 +229,20 @@ LLFloaterEditExtDayCycle::~LLFloaterEditExtDayCycle()
 // virtual
 bool LLFloaterEditExtDayCycle::postBuild()
 {
-    mNameEditor = getChild<LLLineEditor>(TXT_DAY_NAME, true);
-    mCancelButton = getChild<LLButton>(BTN_CANCEL, true);
-    mAddFrameButton = getChild<LLButton>(BTN_ADDFRAME, true);
-    mDeleteFrameButton = getChild<LLButton>(BTN_DELFRAME, true);
-    mTimeSlider = getChild<LLMultiSliderCtrl>(SLDR_TIME);
-    mFramesSlider = getChild<LLMultiSliderCtrl>(SLDR_KEYFRAMES);
-    mSkyTabLayoutContainer = getChild<LLView>(VIEW_SKY_SETTINGS, true);
-    mWaterTabLayoutContainer = getChild<LLView>(VIEW_WATER_SETTINGS, true);
-    mCurrentTimeLabel = getChild<LLTextBox>(LBL_CURRENT_TIME, true);
-    mImportButton = getChild<LLButton>(BTN_IMPORT, true);
-    mLoadFrame = getChild<LLButton>(BTN_LOADFRAME, true);
-    mCloneTrack = getChild<LLButton>(BTN_CLONETRACK, true);
-    mLoadTrack = getChild<LLButton>(BTN_LOADTRACK, true);
-    mClearTrack = getChild<LLButton>(BTN_CLEARTRACK, true);
+    mNameEditor = get_floater_child<LLLineEditor>(this, TXT_DAY_NAME, true);
+    mCancelButton = get_floater_child<LLButton>(this, BTN_CANCEL, true);
+    mAddFrameButton = get_floater_child<LLButton>(this, BTN_ADDFRAME, true);
+    mDeleteFrameButton = get_floater_child<LLButton>(this, BTN_DELFRAME, true);
+    mTimeSlider = get_floater_child<LLMultiSliderCtrl>(this, SLDR_TIME);
+    mFramesSlider = get_floater_child<LLMultiSliderCtrl>(this, SLDR_KEYFRAMES);
+    mSkyTabLayoutContainer = get_floater_child<LLView>(this, VIEW_SKY_SETTINGS, true);
+    mWaterTabLayoutContainer = get_floater_child<LLView>(this, VIEW_WATER_SETTINGS, true);
+    mCurrentTimeLabel = get_floater_child<LLTextBox>(this, LBL_CURRENT_TIME, true);
+    mImportButton = get_floater_child<LLButton>(this, BTN_IMPORT, true);
+    mLoadFrame = get_floater_child<LLButton>(this, BTN_LOADFRAME, true);
+    mCloneTrack = get_floater_child<LLButton>(this, BTN_CLONETRACK, true);
+    mLoadTrack = get_floater_child<LLButton>(this, BTN_LOADTRACK, true);
+    mClearTrack = get_floater_child<LLButton>(this, BTN_CLEARTRACK, true);
 
     mFlyoutControl = new LLFlyoutComboBtnCtrl(this, BTN_SAVE, BTN_FLYOUT, XML_FLYOUTMENU_FILE, false);
     mFlyoutControl->setAction([this](LLUICtrl *ctrl, const LLSD&) { onButtonApply(ctrl); });
@@ -240,7 +266,7 @@ bool LLFloaterEditExtDayCycle::postBuild()
 
     mTimeSlider->addSlider(0);
 
-    LLTabContainer* tab_container = mSkyTabLayoutContainer->getChild<LLTabContainer>("sky_tabs");
+    LLTabContainer* tab_container = get_floater_child<LLTabContainer>(mSkyTabLayoutContainer, "sky_tabs");
     S32 tab_count = tab_container->getTabCount();
 
     LLSettingsEditPanel *panel = nullptr;
@@ -252,7 +278,7 @@ bool LLFloaterEditExtDayCycle::postBuild()
             panel->setOnDirtyFlagChanged([this](LLPanel *, bool val) { onPanelDirtyFlagChanged(val); });
     }
 
-    tab_container = mWaterTabLayoutContainer->getChild<LLTabContainer>("water_tabs");
+    tab_container = get_floater_child<LLTabContainer>(mWaterTabLayoutContainer, "water_tabs");
     tab_count = tab_container->getTabCount();
 
     for (S32 idx = 0; idx < tab_count; ++idx)
@@ -334,7 +360,7 @@ void LLFloaterEditExtDayCycle::onOpen(const LLSD& key)
 
             formatted_label.setArg("[HH]", llformat("%d", hrs.value()));
             formatted_label.setArg("[MM]", llformat("%d", abs(minutes.value())));
-            getChild<LLTextBox>("p" + llformat("%d", i), true)->setTextArg("[DSC]", formatted_label.getString());
+            get_floater_child<LLTextBox>(this, "p" + llformat("%d", i), true)->setTextArg("[DSC]", formatted_label.getString());
         }
         hrs = mDayLength;
         minutes = mDayLength - hrs;
@@ -346,17 +372,17 @@ void LLFloaterEditExtDayCycle::onOpen(const LLSD& key)
     {
         for (int i = 0; i < max_elm; i++)
         {
-            getChild<LLTextBox>("p" + llformat("%d", i), true)->setTextArg("[DSC]", std::string());
+            get_floater_child<LLTextBox>(this, "p" + llformat("%d", i), true)->setTextArg("[DSC]", std::string());
         }
         mCurrentTimeLabel->setTextArg("[DSC]", std::string());
     }
 
     // Adjust Time&Percentage labels' location according to length
-    LLRect label_rect = getChild<LLTextBox>("p0", true)->getRect();
+    LLRect label_rect = get_floater_child<LLTextBox>(this, "p0", true)->getRect();
     F32 slider_width = (F32)mFramesSlider->getRect().getWidth();
     for (int i = 1; i < max_elm; i++)
     {
-        LLTextBox *pcnt_label = getChild<LLTextBox>("p" + llformat("%d", i), true);
+        LLTextBox *pcnt_label = get_floater_child<LLTextBox>(this, "p" + llformat("%d", i), true);
         LLRect new_rect = pcnt_label->getRect();
         new_rect.mLeft = label_rect.mLeft + (S32)(slider_width * (F32)i / (F32)(max_elm - 1)) - (S32)(pcnt_label->getTextPixelWidth() / 2);
         pcnt_label->setRect(new_rect);
@@ -381,12 +407,12 @@ void LLFloaterEditExtDayCycle::onOpen(const LLSD& key)
             convert << (idx + 1);
         }
         formatted_label.setArg("[ALT]", convert.str());
-        getChild<LLButton>(track_tabs[idx + 1], true)->setLabel(formatted_label.getString());
+        get_floater_child<LLButton>(this, track_tabs[idx + 1], true)->setLabel(formatted_label.getString());
     }
 
     for (U32 i = 2; i < LLSettingsDay::TRACK_MAX; i++) //skies #2 through #4
     {
-        getChild<LLButton>(track_tabs[i])->setEnabled(extended_env);
+        get_floater_child<LLButton>(this, track_tabs[i])->setEnabled(extended_env);
     }
 
     if (mEditContext == CONTEXT_INVENTORY)
@@ -534,7 +560,7 @@ void LLFloaterEditExtDayCycle::setEditName(const std::string &name)
         mEditDay->setName(name);
     }
 
-    getChild<LLLineEditor>(TXT_DAY_NAME)->setText(name);
+    get_floater_child<LLLineEditor>(this, TXT_DAY_NAME)->setText(name);
 }
 
 /* virtual */
@@ -656,7 +682,7 @@ void LLFloaterEditExtDayCycle::onButtonApply(LLUICtrl *ctrl)
             if (is_local)
             {
                 LLSD args;
-                LLButton* button = getChild<LLButton>(track_tabs[i], true);
+                LLButton* button = get_floater_child<LLButton>(this, track_tabs[i], true);
                 args["TRACK"] = button->getCurrentLabel();
                 args["FRAME"] = iter->first * 100; // %
                 args["FIELD"] = desc;
@@ -1009,9 +1035,9 @@ void LLFloaterEditExtDayCycle::cloneTrack(const LLSettingsDay::ptr_t &source_day
 
         LL_WARNS() << "Can not import water track into sky track or vice versa" << LL_ENDL;
 
-        LLButton* button = getChild<LLButton>(track_tabs[source_index], true);
+        LLButton* button = get_floater_child<LLButton>(this, track_tabs[source_index], true);
         args["TRACK1"] = button->getCurrentLabel();
-        button = getChild<LLButton>(track_tabs[dest_index], true);
+        button = get_floater_child<LLButton>(this, track_tabs[dest_index], true);
         args["TRACK2"] = button->getCurrentLabel();
 
         LLNotificationsUtil::add("TrackLoadMismatch", args);
@@ -1042,7 +1068,7 @@ void LLFloaterEditExtDayCycle::cloneTrack(const LLSettingsDay::ptr_t &source_day
         mEditDay->replaceCycleTrack(dest_index, backup_track);
 
         LLSD args;
-        LLButton* button = getChild<LLButton>(track_tabs[dest_index], true);
+        LLButton* button = get_floater_child<LLButton>(this, track_tabs[dest_index], true);
         args["TRACK"] = button->getCurrentLabel();
 
         LLNotificationsUtil::add("TrackLoadFailed", args);
@@ -1059,7 +1085,7 @@ void LLFloaterEditExtDayCycle::selectTrack(U32 track_index, bool force )
     if (track_index < LLSettingsDay::TRACK_MAX)
         mCurrentTrack = track_index;
 
-    LLButton* button = getChild<LLButton>(track_tabs[mCurrentTrack], true);
+    LLButton* button = get_floater_child<LLButton>(this, track_tabs[mCurrentTrack], true);
     if (button->getToggleState() && !force)
     {
         return;
@@ -1067,7 +1093,7 @@ void LLFloaterEditExtDayCycle::selectTrack(U32 track_index, bool force )
 
     for (U32 i = 0; i < LLSettingsDay::TRACK_MAX; i++) // use max value
     {
-        getChild<LLButton>(track_tabs[i], true)->setToggleState(i == mCurrentTrack);
+        get_floater_child<LLButton>(this, track_tabs[i], true)->setToggleState(i == mCurrentTrack);
     }
 
     bool show_water = (mCurrentTrack == LLSettingsDay::TRACK_WATER);
@@ -1141,7 +1167,7 @@ void LLFloaterEditExtDayCycle::updateTabs()
 
 void LLFloaterEditExtDayCycle::updateWaterTabs(const LLSettingsWaterPtr_t &p_water)
 {
-    LLView* tab_container = mWaterTabLayoutContainer->getChild<LLView>(TABS_WATER); //can't extract panels directly, since it is in 'tuple'
+    LLView* tab_container = get_floater_child<LLView>(mWaterTabLayoutContainer, TABS_WATER); //can't extract panels directly, since it is in 'tuple'
     LLPanelSettingsWaterMainTab* panel = dynamic_cast<LLPanelSettingsWaterMainTab*>(tab_container->findChildView("water_panel"));
     if (panel)
     {
@@ -1151,7 +1177,7 @@ void LLFloaterEditExtDayCycle::updateWaterTabs(const LLSettingsWaterPtr_t &p_wat
 
 void LLFloaterEditExtDayCycle::updateSkyTabs(const LLSettingsSkyPtr_t &p_sky)
 {
-    LLTabContainer* tab_container = mSkyTabLayoutContainer->getChild<LLTabContainer>(TABS_SKYS); //can't extract panels directly, since they are in 'tuple'
+    LLTabContainer* tab_container = get_floater_child<LLTabContainer>(mSkyTabLayoutContainer, TABS_SKYS); //can't extract panels directly, since they are in 'tuple'
 
     LLPanelSettingsSky* panel;
     panel = dynamic_cast<LLPanelSettingsSky*>(tab_container->findChildView("atmosphere_panel"));
@@ -1225,7 +1251,7 @@ void LLFloaterEditExtDayCycle::updateButtons()
     bool extended_env = LLEnvironment::instance().isExtendedEnvironmentEnabled();
     for (U32 track = 0; track < LLSettingsDay::TRACK_MAX; ++track)
     {
-        LLButton* button = getChild<LLButton>(track_tabs[track], true);
+        LLButton* button = get_floater_child<LLButton>(this, track_tabs[track], true);
         button->setEnabled(extended_env);
         button->setToggleState(track == mCurrentTrack);
     }
@@ -1378,7 +1404,7 @@ void LLFloaterEditExtDayCycle::synchronizeTabs()
     bool canedit(false);
 
     LLSettingsWater::ptr_t psettingW;
-    LLTabContainer * tabs = mWaterTabLayoutContainer->getChild<LLTabContainer>(TABS_WATER);
+    LLTabContainer * tabs = get_floater_child<LLTabContainer>(mWaterTabLayoutContainer, TABS_WATER);
     if (mCurrentTrack == LLSettingsDay::TRACK_WATER)
     {
         if (!mEditDay)
@@ -1402,7 +1428,7 @@ void LLFloaterEditExtDayCycle::synchronizeTabs()
             psettingW = mScratchWater;
         }
 
-        getChild<LLUICtrl>(ICN_LOCK_EDIT)->setVisible(!canedit);
+        get_floater_child<LLUICtrl>(this, ICN_LOCK_EDIT)->setVisible(!canedit);
     }
     else
     {
@@ -1414,7 +1440,7 @@ void LLFloaterEditExtDayCycle::synchronizeTabs()
 
     LLSettingsSky::ptr_t psettingS;
     canedit = false;
-    tabs = mSkyTabLayoutContainer->getChild<LLTabContainer>(TABS_SKYS);
+    tabs = get_floater_child<LLTabContainer>(mSkyTabLayoutContainer, TABS_SKYS);
     if (mCurrentTrack != LLSettingsDay::TRACK_WATER)
     {
         if (!mEditDay)
@@ -1438,7 +1464,7 @@ void LLFloaterEditExtDayCycle::synchronizeTabs()
             psettingS = mScratchSky;
         }
 
-        getChild<LLUICtrl>(ICN_LOCK_EDIT)->setVisible(!canedit);
+        get_floater_child<LLUICtrl>(this, ICN_LOCK_EDIT)->setVisible(!canedit);
     }
     else
     {
@@ -1565,8 +1591,8 @@ void LLFloaterEditExtDayCycle::startPlay()
     gIdleCallbacks.addFunction(onIdlePlay, this);
     mPlayStartFrame = mTimeSlider->getCurSliderValue();
 
-    getChild<LLView>("play_layout", true)->setVisible(false);
-    getChild<LLView>("pause_layout", true)->setVisible(true);
+    get_floater_child<LLView>(this, "play_layout", true)->setVisible(false);
+    get_floater_child<LLView>(this, "pause_layout", true)->setVisible(true);
 }
 
 void LLFloaterEditExtDayCycle::stopPlay()
@@ -1580,8 +1606,8 @@ void LLFloaterEditExtDayCycle::stopPlay()
     F32 frame = mTimeSlider->getCurSliderValue();
     selectFrame(frame, LLSettingsDay::DEFAULT_FRAME_SLOP_FACTOR);
 
-    getChild<LLView>("play_layout", true)->setVisible(true);
-    getChild<LLView>("pause_layout", true)->setVisible(false);
+    get_floater_child<LLView>(this, "play_layout", true)->setVisible(true);
+    get_floater_child<LLView>(this, "pause_layout", true)->setVisible(false);
 }
 
 //static
@@ -1616,7 +1642,7 @@ void LLFloaterEditExtDayCycle::clearDirtyFlag()
 {
     mIsDirty = false;
 
-    LLTabContainer* tab_container = mSkyTabLayoutContainer->getChild<LLTabContainer>("sky_tabs");
+    LLTabContainer* tab_container = get_floater_child<LLTabContainer>(mSkyTabLayoutContainer, "sky_tabs");
     S32 tab_count = tab_container->getTabCount();
 
     for (S32 idx = 0; idx < tab_count; ++idx)
@@ -1626,7 +1652,7 @@ void LLFloaterEditExtDayCycle::clearDirtyFlag()
             panel->clearIsDirty();
     }
 
-    tab_container = mWaterTabLayoutContainer->getChild<LLTabContainer>("water_tabs");
+    tab_container = get_floater_child<LLTabContainer>(mWaterTabLayoutContainer, "water_tabs");
     tab_count = tab_container->getTabCount();
 
     for (S32 idx = 0; idx < tab_count; ++idx)

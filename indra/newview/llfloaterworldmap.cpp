@@ -82,6 +82,32 @@
 #include "llwindow.h"           // copyTextToClipboard()
 #include <algorithm>
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //---------------------------------------------------------------------------
 // Constants
 //---------------------------------------------------------------------------
@@ -405,54 +431,54 @@ void* LLFloaterWorldMap::createWorldMapView(void* data)
 
 bool LLFloaterWorldMap::postBuild()
 {
-    mMapView = dynamic_cast<LLWorldMapView*>(getChild<LLPanel>("objects_mapview"));
+    mMapView = dynamic_cast<LLWorldMapView*>(get_floater_child<LLPanel>(this, "objects_mapview"));
     mMapView->setPan(0, 0, true);
 
-    mTeleportButton = getChild<LLButton>("Teleport");
-    mShowDestinationButton = getChild<LLButton>("Show Destination");
-    mCopySlurlButton = getChild<LLButton>("copy_slurl");
-    mGoHomeButton = getChild<LLButton>("Go Home");
+    mTeleportButton = get_floater_child<LLButton>(this, "Teleport");
+    mShowDestinationButton = get_floater_child<LLButton>(this, "Show Destination");
+    mCopySlurlButton = get_floater_child<LLButton>(this, "copy_slurl");
+    mGoHomeButton = get_floater_child<LLButton>(this, "Go Home");
 
-    mPeopleCheck = getChild<LLCheckBoxCtrl>("people_chk");
-    mInfohubCheck = getChild<LLCheckBoxCtrl>("infohub_chk");
-    mLandSaleCheck = getChild<LLCheckBoxCtrl>("land_for_sale_chk");
-    mEventsCheck = getChild<LLCheckBoxCtrl>("event_chk");
-    mEventsMatureCheck = getChild<LLCheckBoxCtrl>("events_mature_chk");
-    mEventsAdultCheck = getChild<LLCheckBoxCtrl>("events_adult_chk");
+    mPeopleCheck = get_floater_child<LLCheckBoxCtrl>(this, "people_chk");
+    mInfohubCheck = get_floater_child<LLCheckBoxCtrl>(this, "infohub_chk");
+    mLandSaleCheck = get_floater_child<LLCheckBoxCtrl>(this, "land_for_sale_chk");
+    mEventsCheck = get_floater_child<LLCheckBoxCtrl>(this, "event_chk");
+    mEventsMatureCheck = get_floater_child<LLCheckBoxCtrl>(this, "events_mature_chk");
+    mEventsAdultCheck = get_floater_child<LLCheckBoxCtrl>(this, "events_adult_chk");
 
-    mAvatarIcon = getChild<LLUICtrl>("friends_icon");
-    mLandmarkIcon = getChild<LLUICtrl>("landmark_icon");
-    mLocationIcon = getChild<LLUICtrl>("location_icon");
+    mAvatarIcon = get_floater_child<LLUICtrl>(this, "friends_icon");
+    mLandmarkIcon = get_floater_child<LLUICtrl>(this, "landmark_icon");
+    mLocationIcon = get_floater_child<LLUICtrl>(this, "location_icon");
 
-    mTeleportCoordSpinX = getChild<LLUICtrl>("teleport_coordinate_x");
-    mTeleportCoordSpinY = getChild<LLUICtrl>("teleport_coordinate_y");
-    mTeleportCoordSpinZ = getChild<LLUICtrl>("teleport_coordinate_z");
+    mTeleportCoordSpinX = get_floater_child<LLUICtrl>(this, "teleport_coordinate_x");
+    mTeleportCoordSpinY = get_floater_child<LLUICtrl>(this, "teleport_coordinate_y");
+    mTeleportCoordSpinZ = get_floater_child<LLUICtrl>(this, "teleport_coordinate_z");
 
-    mFriendCombo = getChild<LLComboBox>("friend combo");
+    mFriendCombo = get_floater_child<LLComboBox>(this, "friend combo");
     mFriendCombo->selectFirstItem();
     mFriendCombo->setPrearrangeCallback(boost::bind(&LLFloaterWorldMap::onAvatarComboPrearrange, this));
     mFriendCombo->setTextChangedCallback(boost::bind(&LLFloaterWorldMap::onComboTextEntry, this));
 
-    mLocationEditor = getChild<LLSearchEditor>("location");
+    mLocationEditor = get_floater_child<LLSearchEditor>(this, "location");
     mLocationEditor->setFocusChangedCallback(boost::bind(&LLFloaterWorldMap::onLocationFocusChanged, this, _1));
     mLocationEditor->setTextChangedCallback(boost::bind(&LLFloaterWorldMap::onSearchTextEntry, this));
 
-    mSearchResults = getChild<LLScrollListCtrl>("search_results");
+    mSearchResults = get_floater_child<LLScrollListCtrl>(this, "search_results");
     mSearchResults->setDoubleClickCallback(boost::bind(&LLFloaterWorldMap::onClickTeleportBtn, this));
 
-    mLandmarkCombo = getChild<LLComboBox>("landmark combo");
+    mLandmarkCombo = get_floater_child<LLComboBox>(this, "landmark combo");
     mLandmarkCombo->selectFirstItem();
     mLandmarkCombo->setPrearrangeCallback(boost::bind(&LLFloaterWorldMap::onLandmarkComboPrearrange, this));
     mLandmarkCombo->setTextChangedCallback(boost::bind(&LLFloaterWorldMap::onComboTextEntry, this));
 
-    mZoomSlider = getChild<LLSliderCtrl>("zoom slider");
+    mZoomSlider = get_floater_child<LLSliderCtrl>(this, "zoom slider");
     F32 slider_zoom = mMapView->getZoom();
     mZoomSlider->setValue(slider_zoom);
 
-    mTrackCtrlsPanel = getChild<LLPanel>("layout_panel_4");
-    mSearchButton = getChild<LLButton>("DoSearch");
+    mTrackCtrlsPanel = get_floater_child<LLPanel>(this, "layout_panel_4");
+    mSearchButton = get_floater_child<LLButton>(this, "DoSearch");
 
-    getChild<LLPanel>("expand_btn_panel")->setMouseDownCallback(boost::bind(&LLFloaterWorldMap::onExpandCollapseBtn, this));
+    get_floater_child<LLPanel>(this, "expand_btn_panel")->setMouseDownCallback(boost::bind(&LLFloaterWorldMap::onExpandCollapseBtn, this));
 
     mTrackCtrlsPanel->setDefaultBtn(nullptr);
 
@@ -688,7 +714,7 @@ void LLFloaterWorldMap::draw()
     setMouseOpaque(true);
     getDragHandle()->setMouseOpaque(true);
 
-    mMapView->zoom((F32)getChild<LLUICtrl>("zoom slider")->getValue().asReal());
+    mMapView->zoom((F32)get_floater_child<LLUICtrl>(this, "zoom slider")->getValue().asReal());
 
     // Enable/disable checkboxes depending on the zoom level
     // If above threshold level (i.e. low res) -> Disable all checkboxes
@@ -1600,8 +1626,8 @@ void LLFloaterWorldMap::onCopySLURL()
 
 void LLFloaterWorldMap::onExpandCollapseBtn()
 {
-    LLLayoutStack* floater_stack = getChild<LLLayoutStack>("floater_map_stack");
-    LLLayoutPanel* controls_panel = getChild<LLLayoutPanel>("controls_lp");
+    LLLayoutStack* floater_stack = get_floater_child<LLLayoutStack>(this, "floater_map_stack");
+    LLLayoutPanel* controls_panel = get_floater_child<LLLayoutPanel>(this, "controls_lp");
 
     bool toggle_collapse = !controls_panel->isCollapsed();
     floater_stack->collapsePanel(controls_panel, toggle_collapse);
@@ -1609,10 +1635,10 @@ void LLFloaterWorldMap::onExpandCollapseBtn()
 
     std::string image_name = getString(toggle_collapse ? "expand_icon" : "collapse_icon");
     std::string tooltip = getString(toggle_collapse ? "expand_tooltip" : "collapse_tooltip");
-    LLIconCtrl* expandCollapseIcon = getChild<LLIconCtrl>("expand_collapse_icon");
+    LLIconCtrl* expandCollapseIcon = get_floater_child<LLIconCtrl>(this, "expand_collapse_icon");
     expandCollapseIcon->setImage(LLUI::getUIImage(image_name));
     expandCollapseIcon->setToolTip(tooltip);
-    getChild<LLPanel>("expand_btn_panel")->setToolTip(tooltip);
+    get_floater_child<LLPanel>(this, "expand_btn_panel")->setToolTip(tooltip);
 }
 
 // protected
@@ -1949,13 +1975,13 @@ void LLFloaterWorldMap::onChangeMaturity()
     bool can_access_mature = gAgent.canAccessMature();
     bool can_access_adult = gAgent.canAccessAdult();
 
-    getChildView("events_mature_icon")->setVisible( can_access_mature);
-    getChildView("events_mature_label")->setVisible( can_access_mature);
-    getChildView("events_mature_chk")->setVisible( can_access_mature);
+    get_floater_view(this, "events_mature_icon")->setVisible( can_access_mature);
+    get_floater_view(this, "events_mature_label")->setVisible( can_access_mature);
+    get_floater_view(this, "events_mature_chk")->setVisible( can_access_mature);
 
-    getChildView("events_adult_icon")->setVisible( can_access_adult);
-    getChildView("events_adult_label")->setVisible( can_access_adult);
-    getChildView("events_adult_chk")->setVisible( can_access_adult);
+    get_floater_view(this, "events_adult_icon")->setVisible( can_access_adult);
+    get_floater_view(this, "events_adult_label")->setVisible( can_access_adult);
+    get_floater_view(this, "events_adult_chk")->setVisible( can_access_adult);
 
     // disable mature / adult events.
     if (!can_access_mature)
@@ -1989,7 +2015,7 @@ LLPanelHideBeacon* LLPanelHideBeacon::getInstance()
 
 bool LLPanelHideBeacon::postBuild()
 {
-    mHideButton = getChild<LLButton>("hide_beacon_btn");
+    mHideButton = get_floater_child<LLButton>(this, "hide_beacon_btn");
     mHideButton->setCommitCallback(boost::bind(&LLPanelHideBeacon::onHideButtonClick, this));
 
     gViewerWindow->setOnWorldViewRectUpdated(boost::bind(&LLPanelHideBeacon::updatePosition, this));

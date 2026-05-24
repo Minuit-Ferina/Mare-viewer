@@ -33,6 +33,32 @@
 #include "llweb.h"
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 constexpr S32 STACK_WIDTH = 300;
 constexpr S32 STACK_HEIGHT = 505; // content will be 500
 
@@ -65,7 +91,7 @@ void LLFloaterHowTo::onOpen(const LLSD& key)
     {
         // Elements from LLFloaterWebContent did not pick up restored size (save_rect) of LLFloaterHowTo
         // set the stack size and position (alternative to preferred_media_size)
-        LLLayoutStack *stack = getChild<LLLayoutStack>("stack1");
+        LLLayoutStack *stack = get_floater_child<LLLayoutStack>(this, "stack1");
         LLRect stack_rect = stack->getRect();
         stack->reshape(STACK_WIDTH, STACK_HEIGHT);
         stack->setOrigin(stack_rect.mLeft, stack_rect.mTop - STACK_HEIGHT);

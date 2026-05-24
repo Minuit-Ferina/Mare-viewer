@@ -36,6 +36,32 @@
 #include "llmath.h"
 #include "llviewerwindow.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 U32 LLFloaterMemLeak::sMemLeakingSpeed = 0 ; //bytes leaked per frame
 U32 LLFloaterMemLeak::sMaxLeakedMem = 0 ; //maximum allowed leaked memory
 U32 LLFloaterMemLeak::sTotalLeaked = 0 ;
@@ -60,7 +86,7 @@ LLFloaterMemLeak::LLFloaterMemLeak(const LLSD& key)
 bool LLFloaterMemLeak::postBuild(void)
 {
     F32 a, b ;
-    a = (F32)getChild<LLUICtrl>("leak_speed")->getValue().asReal();
+    a = (F32)get_floater_child<LLUICtrl>(this, "leak_speed")->getValue().asReal();
     if(a > (F32)(0xFFFFFFFF))
     {
         sMemLeakingSpeed = 0xFFFFFFFF ;
@@ -69,7 +95,7 @@ bool LLFloaterMemLeak::postBuild(void)
     {
         sMemLeakingSpeed = (U32)a ;
     }
-    b = (F32)getChild<LLUICtrl>("max_leak")->getValue().asReal();
+    b = (F32)get_floater_child<LLUICtrl>(this, "max_leak")->getValue().asReal();
     if(b > (F32)0xFFF)
     {
         sMaxLeakedMem = 0xFFFFFFFF ;
@@ -150,7 +176,7 @@ void LLFloaterMemLeak::idle()
 //----------------------
 void LLFloaterMemLeak::onChangeLeakingSpeed()
 {
-    F32 tmp = (F32)getChild<LLUICtrl>("leak_speed")->getValue().asReal();
+    F32 tmp = (F32)get_floater_child<LLUICtrl>(this, "leak_speed")->getValue().asReal();
 
     if(tmp > (F32)0xFFFFFFFF)
     {
@@ -164,7 +190,7 @@ void LLFloaterMemLeak::onChangeLeakingSpeed()
 
 void LLFloaterMemLeak::onChangeMaxMemLeaking()
 {
-    F32 tmp = (F32)getChild<LLUICtrl>("max_leak")->getValue().asReal();
+    F32 tmp = (F32)get_floater_child<LLUICtrl>(this, "max_leak")->getValue().asReal();
     if(tmp > (F32)0xFFF)
     {
         sMaxLeakedMem = 0xFFFFFFFF ;
@@ -203,22 +229,22 @@ void LLFloaterMemLeak::draw()
     {
         std::string bytes_string;
         LLResMgr::getInstance()->getIntegerString(bytes_string, sTotalLeaked >> 10 );
-        getChild<LLUICtrl>("total_leaked_label")->setTextArg("[SIZE]", bytes_string);
+        get_floater_child<LLUICtrl>(this, "total_leaked_label")->setTextArg("[SIZE]", bytes_string);
     }
     else
     {
-        getChild<LLUICtrl>("total_leaked_label")->setTextArg("[SIZE]", LLStringExplicit("0"));
+        get_floater_child<LLUICtrl>(this, "total_leaked_label")->setTextArg("[SIZE]", LLStringExplicit("0"));
     }
 
     if(sbAllocationFailed)
     {
-        getChild<LLUICtrl>("note_label_1")->setTextArg("[NOTE1]", LLStringExplicit("Memory leaking simulation stops. Reduce leaking speed or"));
-        getChild<LLUICtrl>("note_label_2")->setTextArg("[NOTE2]", LLStringExplicit("increase max leaked memory, then press Start to continue."));
+        get_floater_child<LLUICtrl>(this, "note_label_1")->setTextArg("[NOTE1]", LLStringExplicit("Memory leaking simulation stops. Reduce leaking speed or"));
+        get_floater_child<LLUICtrl>(this, "note_label_2")->setTextArg("[NOTE2]", LLStringExplicit("increase max leaked memory, then press Start to continue."));
     }
     else
     {
-        getChild<LLUICtrl>("note_label_1")->setTextArg("[NOTE1]", LLStringExplicit(""));
-        getChild<LLUICtrl>("note_label_2")->setTextArg("[NOTE2]", LLStringExplicit(""));
+        get_floater_child<LLUICtrl>(this, "note_label_1")->setTextArg("[NOTE1]", LLStringExplicit(""));
+        get_floater_child<LLUICtrl>(this, "note_label_2")->setTextArg("[NOTE2]", LLStringExplicit(""));
     }
 
     LLFloater::draw();

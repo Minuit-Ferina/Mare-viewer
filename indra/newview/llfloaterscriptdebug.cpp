@@ -43,6 +43,32 @@
 #include "llviewerobjectlist.h"
 #include "llviewertexturelist.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //
 // Statics
 //
@@ -193,7 +219,7 @@ LLFloaterScriptDebugOutput::LLFloaterScriptDebugOutput(const LLSD& object_id)
 bool LLFloaterScriptDebugOutput::postBuild()
 {
     LLFloater::postBuild();
-    mHistoryEditor = getChild<LLViewerTextEditor>("Chat History Editor");
+    mHistoryEditor = get_floater_child<LLViewerTextEditor>(this, "Chat History Editor");
     return true;
 }
 

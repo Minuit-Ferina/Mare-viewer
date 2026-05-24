@@ -89,6 +89,32 @@
 #include "llcorehttputil.h"
 #include "llviewerassetupload.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const std::string SCREEN_PREV_FILENAME = "screen_report_last.png";
 
 //=========================================================================
@@ -166,7 +192,7 @@ bool LLFloaterReporter::postBuild()
 {
     LLSLURL slurl;
     LLAgentUI::buildSLURL(slurl);
-    getChild<LLUICtrl>("abuse_location_edit")->setValue(slurl.getSLURLString());
+    get_floater_child<LLUICtrl>(this, "abuse_location_edit")->setValue(slurl.getSLURLString());
 
 //MK
     if (gRRenabled && gAgent.mRRInterface.mContainsShowloc)
@@ -187,26 +213,26 @@ bool LLFloaterReporter::postBuild()
     LLViewerRegion *regionp = gAgent.getRegion();
     if (regionp)
     {
-        getChild<LLUICtrl>("sim_field")->setValue(regionp->getName());
+        get_floater_child<LLUICtrl>(this, "sim_field")->setValue(regionp->getName());
         pos -= regionp->getOriginGlobal();
     }
     setPosBox(pos);
 
     // Default text to be blank
-    getChild<LLUICtrl>("object_name")->setValue(LLStringUtil::null);
-    getChild<LLUICtrl>("owner_name")->setValue(LLStringUtil::null);
+    get_floater_child<LLUICtrl>(this, "object_name")->setValue(LLStringUtil::null);
+    get_floater_child<LLUICtrl>(this, "owner_name")->setValue(LLStringUtil::null);
     mOwnerName = LLStringUtil::null;
 
-    getChild<LLUICtrl>("summary_edit")->setFocus(true);
+    get_floater_child<LLUICtrl>(this, "summary_edit")->setFocus(true);
 
-    mDefaultSummary = getChild<LLUICtrl>("details_edit")->getValue().asString();
+    mDefaultSummary = get_floater_child<LLUICtrl>(this, "details_edit")->getValue().asString();
 
     // abuser name is selected from a list
-    LLUICtrl* le = getChild<LLUICtrl>("abuser_name_edit");
+    LLUICtrl* le = get_floater_child<LLUICtrl>(this, "abuser_name_edit");
     le->setEnabled( false );
 
     setPosBox((LLVector3d)mPosition.getValue());
-    LLButton* pick_btn = getChild<LLButton>("pick_btn");
+    LLButton* pick_btn = get_floater_child<LLButton>(this, "pick_btn");
     pick_btn->setImages(std::string("tool_face.tga"),
                         std::string("tool_face_active.tga") );
     childSetAction("pick_btn", onClickObjPicker, this);
@@ -218,7 +244,7 @@ bool LLFloaterReporter::postBuild()
 
     // grab the user's name
     std::string reporter = LLSLURL("agent", gAgent.getID(), "inspect").getSLURLString();
-    getChild<LLUICtrl>("reporter_field")->setValue(reporter);
+    get_floater_child<LLUICtrl>(this, "reporter_field")->setValue(reporter);
 
     // request categories
     if (gAgent.getRegion()
@@ -282,14 +308,14 @@ void LLFloaterReporter::onIdle(void* user_data)
 
 void LLFloaterReporter::enableControls(bool enable)
 {
-    getChildView("category_combo")->setEnabled(enable);
-    getChildView("chat_check")->setEnabled(enable);
-    getChildView("screenshot")->setEnabled(false);
-    getChildView("pick_btn")->setEnabled(enable);
-    getChildView("summary_edit")->setEnabled(enable);
-    getChildView("details_edit")->setEnabled(enable);
-    getChildView("send_btn")->setEnabled(enable);
-    getChildView("cancel_btn")->setEnabled(enable);
+    get_floater_view(this, "category_combo")->setEnabled(enable);
+    get_floater_view(this, "chat_check")->setEnabled(enable);
+    get_floater_view(this, "screenshot")->setEnabled(false);
+    get_floater_view(this, "pick_btn")->setEnabled(enable);
+    get_floater_view(this, "summary_edit")->setEnabled(enable);
+    get_floater_view(this, "details_edit")->setEnabled(enable);
+    get_floater_view(this, "send_btn")->setEnabled(enable);
+    get_floater_view(this, "cancel_btn")->setEnabled(enable);
 }
 
 void LLFloaterReporter::getExperienceInfo(const LLUUID& experience_id)
@@ -311,7 +337,7 @@ void LLFloaterReporter::getExperienceInfo(const LLUUID& experience_id)
             desc << "Unable to retrieve details for id: "<< mExperienceID;
         }
 
-        LLUICtrl* details = getChild<LLUICtrl>("details_edit");
+        LLUICtrl* details = get_floater_child<LLUICtrl>(this, "details_edit");
         details->setValue(desc.str());
     }
 }
@@ -348,12 +374,12 @@ void LLFloaterReporter::getObjectInfo(const LLUUID& object_id)
 //MK
                 if (gRRenabled && gAgent.mRRInterface.mContainsShowloc)
                 {
-                    getChild<LLUICtrl>("sim_field")->setValue(std::string ("(Region hidden)"));
+                    get_floater_child<LLUICtrl>(this, "sim_field")->setValue(std::string ("(Region hidden)"));
                 }
                 else
                 {
 //mk
-                    getChild<LLUICtrl>("sim_field")->setValue(regionp->getName());
+                    get_floater_child<LLUICtrl>(this, "sim_field")->setValue(regionp->getName());
 //MK
                 }
 //mk
@@ -402,7 +428,7 @@ void LLFloaterReporter::callbackAvatarID(const uuid_vec_t& ids, const std::vecto
 {
     if (ids.empty() || names.empty()) return;
 
-    getChild<LLUICtrl>("abuser_name_edit")->setValue(names[0].getCompleteName());
+    get_floater_child<LLUICtrl>(this, "abuser_name_edit")->setValue(names[0].getCompleteName());
 
     mAbuserID = ids[0];
 
@@ -414,7 +440,7 @@ void LLFloaterReporter::setFromAvatarID(const LLUUID& avatar_id)
 {
     mAbuserID = mObjectID = avatar_id;
     std::string avatar_link = LLSLURL("agent", mObjectID, "inspect").getSLURLString();
-    getChild<LLUICtrl>("owner_name")->setValue(avatar_link);
+    get_floater_child<LLUICtrl>(this, "owner_name")->setValue(avatar_link);
 
     if (mAvatarNameCacheConnection.connected())
     {
@@ -430,9 +456,9 @@ void LLFloaterReporter::onAvatarNameCache(const LLUUID& avatar_id, const LLAvata
     if (mObjectID == avatar_id)
     {
         mOwnerName = av_name.getCompleteName();
-        getChild<LLUICtrl>("object_name")->setValue(av_name.getCompleteName());
-        getChild<LLUICtrl>("object_name")->setToolTip(av_name.getCompleteName());
-        getChild<LLUICtrl>("abuser_name_edit")->setValue(av_name.getCompleteName());
+        get_floater_child<LLUICtrl>(this, "object_name")->setValue(av_name.getCompleteName());
+        get_floater_child<LLUICtrl>(this, "object_name")->setToolTip(av_name.getCompleteName());
+        get_floater_child<LLUICtrl>(this, "abuser_name_edit")->setValue(av_name.getCompleteName());
     }
 }
 
@@ -461,7 +487,7 @@ void LLFloaterReporter::requestAbuseCategoriesCoro(std::string url, LLHandle<LLF
     }
 
     LLFloater* floater = handle.get();
-    LLComboBox* combo = floater->getChild<LLComboBox>("category_combo");
+    LLComboBox* combo = get_floater_child<LLComboBox>(floater, "category_combo");
     if (!combo)
     {
         LL_WARNS() << "categories category_combo not found!" << LL_ENDL;
@@ -511,15 +537,15 @@ void LLFloaterReporter::onClickSend(void *userdata)
 
             const int IP_CONTENT_REMOVAL = 66;
             const int IP_PERMISSONS_EXPLOIT = 37;
-            LLComboBox* combo = self->getChild<LLComboBox>( "category_combo");
+            LLComboBox* combo = get_floater_child<LLComboBox>(self,  "category_combo");
             int category_value = combo->getSelectedValue().asInteger();
 
             if ( ! self->mCopyrightWarningSeen )
             {
 
-                std::string details_lc = self->getChild<LLUICtrl>("details_edit")->getValue().asString();
+                std::string details_lc = get_floater_child<LLUICtrl>(self, "details_edit")->getValue().asString();
                 LLStringUtil::toLower( details_lc );
-                std::string summary_lc = self->getChild<LLUICtrl>("summary_edit")->getValue().asString();
+                std::string summary_lc = get_floater_child<LLUICtrl>(self, "summary_edit")->getValue().asString();
                 LLStringUtil::toLower( summary_lc );
                 if ( details_lc.find( "copyright" ) != std::string::npos ||
                     summary_lc.find( "copyright" ) != std::string::npos  ||
@@ -551,8 +577,8 @@ void LLFloaterReporter::onClickSend(void *userdata)
         }
         else
         {
-            self->getChildView("send_btn")->setEnabled(false);
-            self->getChildView("cancel_btn")->setEnabled(false);
+            get_floater_view(self, "send_btn")->setEnabled(false);
+            get_floater_view(self, "cancel_btn")->setEnabled(false);
             // the callback from uploading the image calls sendReportViaLegacy()
             self->uploadImage();
         }
@@ -583,10 +609,10 @@ void LLFloaterReporter::onClickObjPicker(void *userdata)
     LLToolObjPicker::getInstance()->setExitCallback(LLFloaterReporter::closePickTool, self);
     LLToolMgr::getInstance()->setTransientTool(LLToolObjPicker::getInstance());
     self->mPicking = true;
-    self->getChild<LLUICtrl>("object_name")->setValue(LLStringUtil::null);
-    self->getChild<LLUICtrl>("owner_name")->setValue(LLStringUtil::null);
+    get_floater_child<LLUICtrl>(self, "object_name")->setValue(LLStringUtil::null);
+    get_floater_child<LLUICtrl>(self, "owner_name")->setValue(LLStringUtil::null);
     self->mOwnerName = LLStringUtil::null;
-    LLButton* pick_btn = self->getChild<LLButton>("pick_btn");
+    LLButton* pick_btn = get_floater_child<LLButton>(self, "pick_btn");
     if (pick_btn) pick_btn->setToggleState(true);
 }
 
@@ -601,7 +627,7 @@ void LLFloaterReporter::closePickTool(void *userdata)
 
     LLToolMgr::getInstance()->clearTransientTool();
     self->mPicking = false;
-    LLButton* pick_btn = self->getChild<LLButton>("pick_btn");
+    LLButton* pick_btn = get_floater_child<LLButton>(self, "pick_btn");
     if (pick_btn) pick_btn->setToggleState(false);
 }
 
@@ -695,17 +721,17 @@ void LLFloaterReporter::showFromChat(const LLUUID& avatar_id, const std::string&
     if (self)
     {
         std::string description = self->getString("chat_report_format", args);
-        self->getChild<LLUICtrl>("details_edit")->setValue(description);
+        get_floater_child<LLUICtrl>(self, "details_edit")->setValue(description);
     }
 }
 
 void LLFloaterReporter::setPickedObjectProperties(const std::string& object_name, const std::string& owner_name, const LLUUID owner_id)
 {
-    getChild<LLUICtrl>("object_name")->setValue(object_name);
+    get_floater_child<LLUICtrl>(this, "object_name")->setValue(object_name);
     std::string owner_link =
         LLSLURL("agent", owner_id, "inspect").getSLURLString();
-    getChild<LLUICtrl>("owner_name")->setValue(owner_link);
-    getChild<LLUICtrl>("abuser_name_edit")->setValue(owner_name);
+    get_floater_child<LLUICtrl>(this, "owner_name")->setValue(owner_link);
+    get_floater_child<LLUICtrl>(this, "abuser_name_edit")->setValue(owner_name);
     mAbuserID = owner_id;
     mOwnerName = owner_name;
 }
@@ -714,7 +740,7 @@ void LLFloaterReporter::setPickedObjectProperties(const std::string& object_name
 bool LLFloaterReporter::validateReport()
 {
     // Ensure user selected a category from the list
-    LLSD category_sd = getChild<LLUICtrl>("category_combo")->getValue();
+    LLSD category_sd = get_floater_child<LLUICtrl>(this, "category_combo")->getValue();
     U8 category = (U8)category_sd.asInteger();
     if (category == 0)
     {
@@ -723,32 +749,32 @@ bool LLFloaterReporter::validateReport()
     }
 
 
-    if ( getChild<LLUICtrl>("abuser_name_edit")->getValue().asString().empty() )
+    if ( get_floater_child<LLUICtrl>(this, "abuser_name_edit")->getValue().asString().empty() )
     {
         LLNotificationsUtil::add("HelpReportAbuseAbuserNameEmpty");
         return false;
     };
 
-    if ( getChild<LLUICtrl>("abuse_location_edit")->getValue().asString().empty() )
+    if ( get_floater_child<LLUICtrl>(this, "abuse_location_edit")->getValue().asString().empty() )
     {
         LLNotificationsUtil::add("HelpReportAbuseAbuserLocationEmpty");
         return false;
     };
 
-    if ( getChild<LLUICtrl>("abuse_location_edit")->getValue().asString().empty() )
+    if ( get_floater_child<LLUICtrl>(this, "abuse_location_edit")->getValue().asString().empty() )
     {
         LLNotificationsUtil::add("HelpReportAbuseAbuserLocationEmpty");
         return false;
     };
 
 
-    if ( getChild<LLUICtrl>("summary_edit")->getValue().asString().empty() )
+    if ( get_floater_child<LLUICtrl>(this, "summary_edit")->getValue().asString().empty() )
     {
         LLNotificationsUtil::add("HelpReportAbuseSummaryEmpty");
         return false;
     };
 
-    if ( getChild<LLUICtrl>("details_edit")->getValue().asString() == mDefaultSummary )
+    if ( get_floater_child<LLUICtrl>(this, "details_edit")->getValue().asString() == mDefaultSummary )
     {
         LLNotificationsUtil::add("HelpReportAbuseDetailsEmpty");
         return false;
@@ -771,7 +797,7 @@ LLSD LLFloaterReporter::gatherReport()
     }
 
     std::string category_name;
-    LLComboBox* combo = getChild<LLComboBox>( "category_combo");
+    LLComboBox* combo = get_floater_child<LLComboBox>(this,  "category_combo");
     if (combo)
     {
         category_name = combo->getSelectedItemLabel(); // want label, not value
@@ -791,17 +817,17 @@ LLSD LLFloaterReporter::gatherReport()
 
     summary << ""
         << " |" << regionp->getName() << "|"                                // region reporter is currently in.
-        << " (" << getChild<LLUICtrl>("abuse_location_edit")->getValue().asString() << ")"              // region abuse occured in (freeform text - no LLRegionPicker tool)
+        << " (" << get_floater_child<LLUICtrl>(this, "abuse_location_edit")->getValue().asString() << ")"              // region abuse occured in (freeform text - no LLRegionPicker tool)
         << " [" << category_name << "] "                                    // updated category
-        << " {" << getChild<LLUICtrl>("abuser_name_edit")->getValue().asString() << "} "                    // name of abuse entered in report (chosen using LLAvatarPicker)
-        << " \"" << getChild<LLUICtrl>("summary_edit")->getValue().asString() << "\"";      // summary as entered
+        << " {" << get_floater_child<LLUICtrl>(this, "abuser_name_edit")->getValue().asString() << "} "                    // name of abuse entered in report (chosen using LLAvatarPicker)
+        << " \"" << get_floater_child<LLUICtrl>(this, "summary_edit")->getValue().asString() << "\"";      // summary as entered
 
 
     std::ostringstream details;
 
     details << "V" << LLVersionInfo::instance().getVersion() << std::endl << std::endl; // client version moved to body of email for abuse reports
 
-    std::string object_name = getChild<LLUICtrl>("object_name")->getValue().asString();
+    std::string object_name = get_floater_child<LLUICtrl>(this, "object_name")->getValue().asString();
     if (!object_name.empty() && !mOwnerName.empty())
     {
         details << "Object: " << object_name << "\n";
@@ -809,10 +835,10 @@ LLSD LLFloaterReporter::gatherReport()
     }
 
 
-    details << "Abuser name: " << getChild<LLUICtrl>("abuser_name_edit")->getValue().asString() << " \n";
-    details << "Abuser location: " << getChild<LLUICtrl>("abuse_location_edit")->getValue().asString() << " \n";
+    details << "Abuser name: " << get_floater_child<LLUICtrl>(this, "abuser_name_edit")->getValue().asString() << " \n";
+    details << "Abuser location: " << get_floater_child<LLUICtrl>(this, "abuse_location_edit")->getValue().asString() << " \n";
 
-    details << getChild<LLUICtrl>("details_edit")->getValue().asString();
+    details << get_floater_child<LLUICtrl>(this, "details_edit")->getValue().asString();
 
     std::string version_string;
     version_string = llformat(
@@ -826,11 +852,11 @@ LLSD LLFloaterReporter::gatherReport()
     // only send a screenshot ID if we're asked to and the email is
     // going to LL - Estate Owners cannot see the screenshot asset
     LLUUID screenshot_id = LLUUID::null;
-    screenshot_id = getChild<LLUICtrl>("screenshot")->getValue();
+    screenshot_id = get_floater_child<LLUICtrl>(this, "screenshot")->getValue();
 
     LLSD report = LLSD::emptyMap();
     report["report-type"] = (U8) mReportType;
-    report["category"] = getChild<LLUICtrl>("category_combo")->getValue();
+    report["category"] = get_floater_child<LLUICtrl>(this, "category_combo")->getValue();
     report["position"] = mPosition.getValue();
     report["check-flags"] = (U8)0; // this is not used
     report["screenshot-id"] = screenshot_id;
@@ -943,7 +969,7 @@ void LLFloaterReporter::takeScreenshot(bool use_prev_screenshot)
     image_in_list->createGLTexture(0, mImageRaw, 0, true, LLGLTexture::OTHER);
 
     // the texture picker then uses that texture
-    LLTextureCtrl* texture = getChild<LLTextureCtrl>("screenshot");
+    LLTextureCtrl* texture = get_floater_child<LLTextureCtrl>(this, "screenshot");
     if (texture)
     {
         texture->setImageAssetID(mResourceDatap->mAssetInfo.mUuid);
@@ -1064,7 +1090,7 @@ void LLFloaterReporter::setPosBox(const LLVector3d &pos)
         pos_string = "";
     }
 //mk
-    getChild<LLUICtrl>("pos_field")->setValue(pos_string);
+    get_floater_child<LLUICtrl>(this, "pos_field")->setValue(pos_string);
 }
 
 void LLFloaterReporter::onClose(bool app_quitting)

@@ -41,6 +41,32 @@
 #include "llviewerregion.h"
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 #define SHOW_RECENT_TAB (0)
 LLFloaterExperiences::LLFloaterExperiences(const LLSD& data)
     :LLFloater(data)
@@ -50,7 +76,7 @@ LLFloaterExperiences::LLFloaterExperiences(const LLSD& data)
 LLPanelExperiences* LLFloaterExperiences::addTab(const std::string& name, bool select)
 {
     LLPanelExperiences* newPanel = LLPanelExperiences::create(name);
-    getChild<LLTabContainer>("xp_tabs")->addTabPanel(LLTabContainer::TabPanelParams().
+    get_floater_child<LLTabContainer>(this, "xp_tabs")->addTabPanel(LLTabContainer::TabPanelParams().
         panel(newPanel).
         label(LLTrans::getString(name)).
         select_tab(select));
@@ -60,7 +86,7 @@ LLPanelExperiences* LLFloaterExperiences::addTab(const std::string& name, bool s
 
 bool LLFloaterExperiences::postBuild()
 {
-    getChild<LLTabContainer>("xp_tabs")->addTabPanel(new LLPanelExperiencePicker());
+    get_floater_child<LLTabContainer>(this, "xp_tabs")->addTabPanel(new LLPanelExperiencePicker());
     addTab("Allowed_Experiences_Tab", true);
     addTab("Blocked_Experiences_Tab", false);
     addTab("Admin_Experiences_Tab", false);
@@ -71,7 +97,7 @@ bool LLFloaterExperiences::postBuild()
 #if SHOW_RECENT_TAB
     addTab("Recent_Experiences_Tab", false);
 #endif //SHOW_RECENT_TAB
-    getChild<LLTabContainer>("xp_tabs")->addTabPanel(new LLPanelExperienceLog());
+    get_floater_child<LLTabContainer>(this, "xp_tabs")->addTabPanel(new LLPanelExperienceLog());
     resizeToTabs();
 
     return true;
@@ -81,7 +107,7 @@ bool LLFloaterExperiences::postBuild()
 void LLFloaterExperiences::clearFromRecent(const LLSD& ids)
 {
 #if SHOW_RECENT_TAB
-    LLTabContainer* tabs = getChild<LLTabContainer>("xp_tabs");
+    LLTabContainer* tabs = get_floater_child<LLTabContainer>(this, "xp_tabs");
 
     LLPanelExperiences* tab = (LLPanelExperiences*)tabs->getPanelByName("Recent_Experiences_Tab");
     if(!tab)
@@ -94,7 +120,7 @@ void LLFloaterExperiences::clearFromRecent(const LLSD& ids)
 void LLFloaterExperiences::setupRecentTabs()
 {
 #if SHOW_RECENT_TAB
-    LLTabContainer* tabs = getChild<LLTabContainer>("xp_tabs");
+    LLTabContainer* tabs = get_floater_child<LLTabContainer>(this, "xp_tabs");
 
     LLPanelExperiences* tab = (LLPanelExperiences*)tabs->getPanelByName("Recent_Experiences_Tab");
     if(!tab)
@@ -123,7 +149,7 @@ void LLFloaterExperiences::resizeToTabs()
 {
     const S32 TAB_WIDTH_PADDING = 16;
 
-    LLTabContainer* tabs = getChild<LLTabContainer>("xp_tabs");
+    LLTabContainer* tabs = get_floater_child<LLTabContainer>(this, "xp_tabs");
     LLRect rect = getRect();
     if(rect.getWidth() < tabs->getTotalTabWidth() + TAB_WIDTH_PADDING)
     {
@@ -178,7 +204,7 @@ void LLFloaterExperiences::onOpen( const LLSD& key )
 
 bool LLFloaterExperiences::updatePermissions( const LLSD& permission )
 {
-    LLTabContainer* tabs = getChild<LLTabContainer>("xp_tabs");
+    LLTabContainer* tabs = get_floater_child<LLTabContainer>(this, "xp_tabs");
     LLUUID experience;
     std::string permission_string;
     if(permission.has("experience"))
@@ -297,7 +323,7 @@ void LLFloaterExperiences::sendPurchaseRequest()
         tabMap["experience_ids"] = tab_owned_name;
 
         // extract ids for experiences that we already have
-        LLTabContainer* tabs = getChild<LLTabContainer>("xp_tabs");
+        LLTabContainer* tabs = get_floater_child<LLTabContainer>(this, "xp_tabs");
         LLPanelExperiences* tab_owned = (LLPanelExperiences*)tabs->getPanelByName(tab_owned_name);
         mPrepurchaseIds.clear();
         if (tab_owned)
@@ -396,7 +422,7 @@ void LLFloaterExperiences::retrieveExperienceListCoro(std::string url,
         return;
 
     LLFloaterExperiences* parent = hparent.get();
-    LLTabContainer* tabs = parent->getChild<LLTabContainer>("xp_tabs");
+    LLTabContainer* tabs = get_floater_child<LLTabContainer>(parent, "xp_tabs");
 
     for (NameMap_t::iterator it = tabMapping.begin(); it != tabMapping.end(); ++it)
     {

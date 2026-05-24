@@ -31,6 +31,31 @@
 #include "lluictrlfactory.h"
 #include "llweb.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 
 LLFloaterAddPaymentMethod::LLFloaterAddPaymentMethod(const LLSD& key)
     :   LLFloater(key)
@@ -50,8 +75,8 @@ bool LLFloaterAddPaymentMethod::postBuild()
 
 void LLFloaterAddPaymentMethod::setupButtons()
 {
-    getChild<LLButton>("continue_btn")->setCommitCallback(boost::bind(&LLFloaterAddPaymentMethod::onContinueBtn, this));
-    getChild<LLButton>("close_btn")->setCommitCallback(boost::bind(&LLFloaterAddPaymentMethod::onCloseBtn, this));
+    get_floater_child<LLButton>(this, "continue_btn")->setCommitCallback(boost::bind(&LLFloaterAddPaymentMethod::onContinueBtn, this));
+    get_floater_child<LLButton>(this, "close_btn")->setCommitCallback(boost::bind(&LLFloaterAddPaymentMethod::onCloseBtn, this));
 }
 
 void LLFloaterAddPaymentMethod::onOpen(const LLSD& key)

@@ -48,6 +48,31 @@
 #include "llviewerwindow.h"
 #include "lltrans.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterBuy::LLFloaterBuy(const LLSD& key)
 :   LLFloater(key),
     mSelectionUpdateSlot()
@@ -69,11 +94,11 @@ bool LLFloaterBuy::postBuild()
 
 void LLFloaterBuy::setupControls()
 {
-    getChildView("object_list")->setEnabled(false);
-    getChildView("item_list")->setEnabled(false);
+    get_floater_view(this, "object_list")->setEnabled(false);
+    get_floater_view(this, "item_list")->setEnabled(false);
 
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuy::onClickCancel, this));
-    getChild<LLUICtrl>("buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuy::onClickBuy, this));
+    get_floater_child<LLUICtrl>(this, "cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuy::onClickCancel, this));
+    get_floater_child<LLUICtrl>(this, "buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuy::onClickBuy, this));
 
     setDefaultBtn("cancel_btn"); // to avoid accidental buy (SL-43130)
 }
@@ -91,7 +116,7 @@ void LLFloaterBuy::reset()
 
 void LLFloaterBuy::resetList(const std::string& list_name)
 {
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>(list_name);
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(this, list_name);
     if (list)
     {
         list->deleteAllItems();
@@ -117,8 +142,8 @@ void LLFloaterBuy::syncBuyTitle(const LLSaleInfo& sale_info, const std::string& 
 
 void LLFloaterBuy::syncBuyText(S32 price, const std::string& owner_name)
 {
-    getChild<LLUICtrl>("buy_text")->setTextArg("[AMOUNT]", llformat("%d", price));
-    getChild<LLUICtrl>("buy_name_text")->setTextArg("[NAME]", owner_name);
+    get_floater_child<LLUICtrl>(this, "buy_text")->setTextArg("[AMOUNT]", llformat("%d", price));
+    get_floater_child<LLUICtrl>(this, "buy_name_text")->setTextArg("[NAME]", owner_name);
 }
 
 // static
@@ -327,9 +352,9 @@ void LLFloaterBuy::onSelectionChanged()
 
 void LLFloaterBuy::showViews(bool show)
 {
-    getChild<LLUICtrl>("buy_btn")->setEnabled(show);
-    getChild<LLUICtrl>("buy_text")->setVisible(show);
-    getChild<LLUICtrl>("buy_name_text")->setVisible(show);
+    get_floater_child<LLUICtrl>(this, "buy_btn")->setEnabled(show);
+    get_floater_child<LLUICtrl>(this, "buy_text")->setVisible(show);
+    get_floater_child<LLUICtrl>(this, "buy_name_text")->setVisible(show);
 }
 
 void LLFloaterBuy::onClickBuy()

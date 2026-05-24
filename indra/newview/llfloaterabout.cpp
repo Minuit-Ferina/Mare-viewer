@@ -63,8 +63,34 @@
 #include "llcorehttputil.h"
 #include "lldir.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 #if LL_WINDOWS
 #include "lldxhardware.h"
+
 #endif
 
 extern LLMemoryInfo gSysMemory;
@@ -125,18 +151,18 @@ bool LLFloaterAbout::postBuild()
 {
     center();
     LLViewerTextEditor *support_widget =
-        getChild<LLViewerTextEditor>("support_editor", true);
+        get_floater_child<LLViewerTextEditor>(this, "support_editor", true);
 
     LLViewerTextEditor *contrib_names_widget =
-        getChild<LLViewerTextEditor>("contrib_names", true);
+        get_floater_child<LLViewerTextEditor>(this, "contrib_names", true);
 
     LLViewerTextEditor *licenses_widget =
-        getChild<LLViewerTextEditor>("licenses_editor", true);
+        get_floater_child<LLViewerTextEditor>(this, "licenses_editor", true);
 
-    getChild<LLUICtrl>("copy_btn")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "copy_btn")->setCommitCallback(
         boost::bind(&LLFloaterAbout::onClickCopyToClipboard, this));
 
-    getChild<LLUICtrl>("update_btn")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "update_btn")->setCommitCallback(
         boost::bind(&LLFloaterAbout::onClickUpdateCheck, this));
 
     static const LLUIColor about_color = LLUIColorTable::instance().getColor("TextFgReadOnlyColor");
@@ -308,7 +334,7 @@ static LLFloaterAboutListener floaterAboutListener;
 void LLFloaterAbout::onClickCopyToClipboard()
 {
     LLViewerTextEditor *support_widget =
-        getChild<LLViewerTextEditor>("support_editor", true);
+        get_floater_child<LLViewerTextEditor>(this, "support_editor", true);
     support_widget->selectAll();
     support_widget->copy();
     support_widget->deselect();
@@ -331,7 +357,7 @@ void LLFloaterAbout::setSupportText(const std::string& server_release_notes_url)
 #endif
 
     LLViewerTextEditor *support_widget =
-        getChild<LLViewerTextEditor>("support_editor", true);
+        get_floater_child<LLViewerTextEditor>(this, "support_editor", true);
 
     LLUIColor about_color = LLUIColorTable::instance().getColor("TextFgReadOnlyColor");
     support_widget->clear();

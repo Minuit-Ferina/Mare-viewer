@@ -35,6 +35,32 @@
 
 //MK
 #include "llagent.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //mk
 
 LLFloaterDestinations::LLFloaterDestinations(const LLSD& key)
@@ -49,7 +75,7 @@ LLFloaterDestinations::~LLFloaterDestinations()
 bool LLFloaterDestinations::postBuild()
 {
     enableResizeCtrls(true, true, false);
-    LLMediaCtrl* destinations = getChild<LLMediaCtrl>("destination_guide_contents");
+    LLMediaCtrl* destinations = get_floater_child<LLMediaCtrl>(this, "destination_guide_contents");
     destinations->setErrorPageURL(gSavedSettings.getString("GenericErrorPageURL"));
     std::string url = gSavedSettings.getString("DestinationGuideURL");
     url = LLWeb::expandURLSubstitutions(url, LLSD());

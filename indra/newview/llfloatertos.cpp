@@ -46,6 +46,32 @@
 #include "llcorehttputil.h"
 #include "llfloaterreg.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterTOS::LLFloaterTOS(const LLSD& data)
 :   LLModalDialog( data["message"].asString() ),
     mMessage(data["message"].asString()),
@@ -65,7 +91,7 @@ bool LLFloaterTOS::postBuild()
     if (hasChild("tos_text"))
     {
         // this displays the critical message
-        LLUICtrl *tos_text = getChild<LLUICtrl>("tos_text");
+        LLUICtrl *tos_text = get_floater_child<LLUICtrl>(this, "tos_text");
         tos_text->setEnabled(false);
         tos_text->setFocus(true);
         tos_text->setValue(LLSD(mMessage));
@@ -77,21 +103,21 @@ bool LLFloaterTOS::postBuild()
         updateAgreeEnabled(false);
 
     // hide the SL text widget if we're displaying TOS with using a browser widget.
-    LLUICtrl *editor = getChild<LLUICtrl>("tos_text");
+    LLUICtrl *editor = get_floater_child<LLUICtrl>(this, "tos_text");
     editor->setVisible(false);
 
-    LLMediaCtrl* web_browser = getChild<LLMediaCtrl>("tos_html");
+    LLMediaCtrl* web_browser = get_floater_child<LLMediaCtrl>(this, "tos_html");
     if ( web_browser )
     {
 // if we are forced to send users to an external site in their system browser
 // (e.g.) Linux users because of lack of media support for HTML ToS page
 // remove exisiting UI and replace with a link to external page where users can accept ToS
 #ifdef EXTERNAL_TOS
-        LLTextBox* header = getChild<LLTextBox>("tos_heading");
+        LLTextBox* header = get_floater_child<LLTextBox>(this, "tos_heading");
         if (header)
             header->setVisible(false);
 
-        LLTextBox* external_prompt = getChild<LLTextBox>("external_tos_required");
+        LLTextBox* external_prompt = get_floater_child<LLTextBox>(this, "external_tos_required");
         if (external_prompt)
             external_prompt->setVisible(true);
 
@@ -134,7 +160,7 @@ void LLFloaterTOS::setSiteIsAlive( bool alive )
             // navigate to the "real" page
             if(!mRealNavigateBegun && mSiteAlive)
             {
-                LLMediaCtrl* web_browser = getChild<LLMediaCtrl>("tos_html");
+                LLMediaCtrl* web_browser = get_floater_child<LLMediaCtrl>(this, "tos_html");
                 if(web_browser)
                 {
                     mRealNavigateBegun = true;
@@ -148,7 +174,7 @@ void LLFloaterTOS::setSiteIsAlive( bool alive )
             // normally this is set when navigation to TOS page navigation completes (so you can't accept before TOS loads)
             // but if the page is unavailable, we need to do this now
             updateAgreeEnabled(true);
-            LLTextBox* tos_list = getChild<LLTextBox>("agree_list");
+            LLTextBox* tos_list = get_floater_child<LLTextBox>(this, "agree_list");
             tos_list->setEnabled(true);
         }
     }
@@ -170,10 +196,10 @@ void LLFloaterTOS::draw()
 // update status of "Agree" checkbox and text
 void LLFloaterTOS::updateAgreeEnabled(bool enabled)
 {
-    LLCheckBoxCtrl* tos_agreement_agree_cb = getChild<LLCheckBoxCtrl>("agree_chk");
+    LLCheckBoxCtrl* tos_agreement_agree_cb = get_floater_child<LLCheckBoxCtrl>(this, "agree_chk");
     tos_agreement_agree_cb->setEnabled(enabled);
 
-    LLTextBox* tos_agreement_agree_text = getChild<LLTextBox>("agree_list");
+    LLTextBox* tos_agreement_agree_text = get_floater_child<LLTextBox>(this, "agree_list");
     tos_agreement_agree_text->setEnabled(enabled);
 }
 
@@ -181,8 +207,8 @@ void LLFloaterTOS::updateAgreeEnabled(bool enabled)
 void LLFloaterTOS::updateAgree(LLUICtrl*, void* userdata )
 {
     LLFloaterTOS* self = (LLFloaterTOS*) userdata;
-    bool agree = self->getChild<LLUICtrl>("agree_chk")->getValue().asBoolean();
-    self->getChildView("Continue")->setEnabled(agree);
+    bool agree = get_floater_child<LLUICtrl>(self, "agree_chk")->getValue().asBoolean();
+    get_floater_view(self, "Continue")->setEnabled(agree);
 }
 
 // static

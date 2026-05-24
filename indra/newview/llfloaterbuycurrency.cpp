@@ -44,6 +44,31 @@
 #include "llwindow.h"
 #include "llappviewer.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 static const S32 MINIMUM_BALANCE_AMOUNT = 0;
 
 class LLFloaterBuyCurrencyUI
@@ -124,7 +149,7 @@ void LLFloaterBuyCurrencyUI::target(const std::string& name, S32 price)
 
     if (!name.empty())
     {
-        getChild<LLUICtrl>("target_price_label")->setValue(name);
+        get_floater_child<LLUICtrl>(this, "target_price_label")->setValue(name);
     }
 
     S32 balance = gStatusBar->getBalance();
@@ -155,46 +180,46 @@ bool LLFloaterBuyCurrencyUI::postBuild()
 
 void LLFloaterBuyCurrencyUI::setupButtons()
 {
-    getChild<LLUICtrl>("buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuyCurrencyUI::onClickBuy, this));
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuyCurrencyUI::onClickCancel, this));
+    get_floater_child<LLUICtrl>(this, "buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuyCurrencyUI::onClickBuy, this));
+    get_floater_child<LLUICtrl>(this, "cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuyCurrencyUI::onClickCancel, this));
 }
 
 void LLFloaterBuyCurrencyUI::setBuyButtonEnabled(bool enabled)
 {
-    getChildView("buy_btn")->setEnabled(enabled);
+    get_floater_view(this, "buy_btn")->setEnabled(enabled);
 }
 
 void LLFloaterBuyCurrencyUI::hideStatusWidgets()
 {
-    getChildView("info_buying")->setVisible(false);
-    getChildView("info_need_more")->setVisible(false);
-    getChildView("purchase_warning_repurchase")->setVisible(false);
-    getChildView("purchase_warning_notenough")->setVisible(false);
-    getChildView("contacting")->setVisible(false);
+    get_floater_view(this, "info_buying")->setVisible(false);
+    get_floater_view(this, "info_need_more")->setVisible(false);
+    get_floater_view(this, "purchase_warning_repurchase")->setVisible(false);
+    get_floater_view(this, "purchase_warning_notenough")->setVisible(false);
+    get_floater_view(this, "contacting")->setVisible(false);
 }
 
 void LLFloaterBuyCurrencyUI::syncTargetAmounts()
 {
-    getChild<LLUICtrl>("target_price")->setTextArg("[AMT]", llformat("%d", mTargetPrice));
-    getChild<LLUICtrl>("required_amount")->setTextArg("[AMT]", llformat("%d", mRequiredAmount));
+    get_floater_child<LLUICtrl>(this, "target_price")->setTextArg("[AMT]", llformat("%d", mTargetPrice));
+    get_floater_child<LLUICtrl>(this, "required_amount")->setTextArg("[AMT]", llformat("%d", mRequiredAmount));
 }
 
 void LLFloaterBuyCurrencyUI::syncBalanceSummary()
 {
     S32 balance = gStatusBar->getBalance();
-    getChildView("balance_label")->setVisible(true);
-    getChildView("balance_amount")->setVisible(true);
-    getChild<LLUICtrl>("balance_amount")->setTextArg("[AMT]", llformat("%d", balance));
+    get_floater_view(this, "balance_label")->setVisible(true);
+    get_floater_view(this, "balance_amount")->setVisible(true);
+    get_floater_child<LLUICtrl>(this, "balance_amount")->setTextArg("[AMT]", llformat("%d", balance));
 
     S32 buying = mManager.getAmount();
-    getChildView("buying_label")->setVisible(true);
-    getChildView("buying_amount")->setVisible(true);
-    getChild<LLUICtrl>("buying_amount")->setTextArg("[AMT]", llformat("%d", buying));
+    get_floater_view(this, "buying_label")->setVisible(true);
+    get_floater_view(this, "buying_amount")->setVisible(true);
+    get_floater_child<LLUICtrl>(this, "buying_amount")->setTextArg("[AMT]", llformat("%d", buying));
 
     S32 total = balance + buying;
-    getChildView("total_label")->setVisible(true);
-    getChildView("total_amount")->setVisible(true);
-    getChild<LLUICtrl>("total_amount")->setTextArg("[AMT]", llformat("%d", total));
+    get_floater_view(this, "total_label")->setVisible(true);
+    get_floater_view(this, "total_amount")->setVisible(true);
+    get_floater_child<LLUICtrl>(this, "total_amount")->setTextArg("[AMT]", llformat("%d", total));
 }
 
 void LLFloaterBuyCurrencyUI::draw()
@@ -243,20 +268,20 @@ void LLFloaterBuyCurrencyUI::updateUI()
     else
     {
         // display the main Buy L$ interface
-        getChildView("normal_background")->setVisible(true);
+        get_floater_view(this, "normal_background")->setVisible(true);
 
         if (mHasTarget)
         {
-            getChildView("info_need_more")->setVisible(true);
+            get_floater_view(this, "info_need_more")->setVisible(true);
         }
         else
         {
-            getChildView("info_buying")->setVisible(true);
+            get_floater_view(this, "info_buying")->setVisible(true);
         }
 
         if (mManager.buying())
         {
-            getChildView("contacting")->setVisible( true);
+            get_floater_view(this, "contacting")->setVisible( true);
         }
         else
         {
@@ -270,28 +295,28 @@ void LLFloaterBuyCurrencyUI::updateUI()
 
         if (mHasTarget)
         {
-            getChildView("purchase_warning_repurchase")->setVisible( !getChildView("currency_links")->getVisible());
+            get_floater_view(this, "purchase_warning_repurchase")->setVisible( !get_floater_view(this, "currency_links")->getVisible());
         }
     }
 
-    getChildView("getting_data")->setVisible( !mManager.canBuy() && !hasError && !getChildView("currency_est")->getVisible());
+    get_floater_view(this, "getting_data")->setVisible( !mManager.canBuy() && !hasError && !get_floater_view(this, "currency_est")->getVisible());
 }
 
 void LLFloaterBuyCurrencyUI::collapsePanels(bool collapse)
 {
-    LLLayoutPanel* price_panel = getChild<LLLayoutPanel>("layout_panel_price");
+    LLLayoutPanel* price_panel = get_floater_child<LLLayoutPanel>(this, "layout_panel_price");
 
     if (price_panel->isCollapsed() == collapse)
         return;
 
-    LLLayoutStack* outer_stack = getChild<LLLayoutStack>("outer_stack");
-    LLLayoutPanel* required_panel = getChild<LLLayoutPanel>("layout_panel_required");
-    LLLayoutPanel* msg_panel = getChild<LLLayoutPanel>("layout_panel_msg");
+    LLLayoutStack* outer_stack = get_floater_child<LLLayoutStack>(this, "outer_stack");
+    LLLayoutPanel* required_panel = get_floater_child<LLLayoutPanel>(this, "layout_panel_required");
+    LLLayoutPanel* msg_panel = get_floater_child<LLLayoutPanel>(this, "layout_panel_msg");
 
     S32 delta_height = price_panel->getRect().getHeight() + required_panel->getRect().getHeight() + msg_panel->getRect().getHeight();
     delta_height *= (collapse ? -1 : 1);
 
-    LLIconCtrl* icon = getChild<LLIconCtrl>("normal_background");
+    LLIconCtrl* icon = get_floater_child<LLIconCtrl>(this, "normal_background");
     LLRect rect = icon->getRect();
     icon->setRect(rect.setOriginAndSize(rect.mLeft, rect.mBottom - delta_height, rect.getWidth(), rect.getHeight() + delta_height));
 

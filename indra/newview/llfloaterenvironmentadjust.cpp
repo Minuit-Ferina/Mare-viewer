@@ -39,6 +39,31 @@
 #include "pipeline.h"
 #include "llagent.h" // for RLV
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //=========================================================================
 namespace
 {
@@ -96,43 +121,43 @@ bool LLFloaterEnvironmentAdjust::postBuild()
 
 void LLFloaterEnvironmentAdjust::setupControlCallbacks()
 {
-    getChild<LLUICtrl>(FIELD_SKY_AMBIENT_LIGHT)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onAmbientLightChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_BLUE_HORIZON)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onBlueHorizonChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_BLUE_DENSITY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onBlueDensityChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_HAZE_HORIZON)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onHazeHorizonChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_HAZE_DENSITY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onHazeDensityChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_SCENE_GAMMA)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSceneGammaChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_AMBIENT_LIGHT)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onAmbientLightChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_BLUE_HORIZON)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onBlueHorizonChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_BLUE_DENSITY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onBlueDensityChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_HAZE_HORIZON)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onHazeHorizonChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_HAZE_DENSITY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onHazeDensityChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_SCENE_GAMMA)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSceneGammaChanged(); });
 
-    getChild<LLUICtrl>(FIELD_SKY_CLOUD_COLOR)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onCloudColorChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_CLOUD_COVERAGE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onCloudCoverageChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_CLOUD_SCALE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onCloudScaleChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_SUN_COLOR)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSunColorChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_CLOUD_COLOR)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onCloudColorChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_CLOUD_COVERAGE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onCloudCoverageChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_CLOUD_SCALE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onCloudScaleChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_SUN_COLOR)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSunColorChanged(); });
 
-    getChild<LLUICtrl>(FIELD_SKY_GLOW_FOCUS)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onGlowChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_GLOW_SIZE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onGlowChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_STAR_BRIGHTNESS)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onStarBrightnessChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_SUN_ROTATION)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSunRotationChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_SUN_AZIMUTH)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSunAzimElevChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_SUN_ELEVATION)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSunAzimElevChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_SUN_SCALE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSunScaleChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_GLOW_FOCUS)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onGlowChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_GLOW_SIZE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onGlowChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_STAR_BRIGHTNESS)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onStarBrightnessChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_SUN_ROTATION)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSunRotationChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_SUN_AZIMUTH)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSunAzimElevChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_SUN_ELEVATION)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSunAzimElevChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_SUN_SCALE)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onSunScaleChanged(); });
 
-    getChild<LLUICtrl>(FIELD_SKY_MOON_ROTATION)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onMoonRotationChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_MOON_AZIMUTH)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onMoonAzimElevChanged(); });
-    getChild<LLUICtrl>(FIELD_SKY_MOON_ELEVATION)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onMoonAzimElevChanged(); });
-    getChild<LLUICtrl>(BTN_RESET)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onButtonReset(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_MOON_ROTATION)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onMoonRotationChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_MOON_AZIMUTH)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onMoonAzimElevChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_SKY_MOON_ELEVATION)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onMoonAzimElevChanged(); });
+    get_floater_child<LLUICtrl>(this, BTN_RESET)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onButtonReset(); });
 
-    getChild<LLTextureCtrl>(FIELD_SKY_CLOUD_MAP)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onCloudMapChanged(); });
-    getChild<LLTextureCtrl>(FIELD_WATER_NORMAL_MAP)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onWaterMapChanged(); });
-    getChild<LLUICtrl>(FIELD_REFLECTION_PROBE_AMBIANCE)->setCommitCallback([this](LLUICtrl*, const LLSD&) { onReflectionProbeAmbianceChanged(); });
+    get_floater_child<LLTextureCtrl>(this, FIELD_SKY_CLOUD_MAP)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onCloudMapChanged(); });
+    get_floater_child<LLTextureCtrl>(this, FIELD_WATER_NORMAL_MAP)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onWaterMapChanged(); });
+    get_floater_child<LLUICtrl>(this, FIELD_REFLECTION_PROBE_AMBIANCE)->setCommitCallback([this](LLUICtrl*, const LLSD&) { onReflectionProbeAmbianceChanged(); });
 }
 
 void LLFloaterEnvironmentAdjust::setupTextureControls()
 {
-    getChild<LLTextureCtrl>(FIELD_SKY_CLOUD_MAP)->setDefaultImageAssetID(LLSettingsSky::GetDefaultCloudNoiseTextureId());
-    getChild<LLTextureCtrl>(FIELD_SKY_CLOUD_MAP)->setAllowNoTexture(true);
+    get_floater_child<LLTextureCtrl>(this, FIELD_SKY_CLOUD_MAP)->setDefaultImageAssetID(LLSettingsSky::GetDefaultCloudNoiseTextureId());
+    get_floater_child<LLTextureCtrl>(this, FIELD_SKY_CLOUD_MAP)->setAllowNoTexture(true);
 
-    getChild<LLTextureCtrl>(FIELD_WATER_NORMAL_MAP)->setDefaultImageAssetID(LLSettingsWater::GetDefaultWaterNormalAssetId());
-    getChild<LLTextureCtrl>(FIELD_WATER_NORMAL_MAP)->setBlankImageAssetID(BLANK_OBJECT_NORMAL);
+    get_floater_child<LLTextureCtrl>(this, FIELD_WATER_NORMAL_MAP)->setDefaultImageAssetID(LLSettingsWater::GetDefaultWaterNormalAssetId());
+    get_floater_child<LLTextureCtrl>(this, FIELD_WATER_NORMAL_MAP)->setBlankImageAssetID(BLANK_OBJECT_NORMAL);
 }
 
 void LLFloaterEnvironmentAdjust::onOpen(const LLSD& key)
@@ -239,47 +264,47 @@ void LLFloaterEnvironmentAdjust::syncMoonRotationControls(const LLQuaternion& ro
 
 F32 LLFloaterEnvironmentAdjust::getControlF32(const std::string& name)
 {
-    return (F32)getChild<LLUICtrl>(name)->getValue().asReal();
+    return (F32)get_floater_child<LLUICtrl>(this, name)->getValue().asReal();
 }
 
 void LLFloaterEnvironmentAdjust::setControlValue(const std::string& name, const LLSD& value)
 {
-    getChild<LLUICtrl>(name)->setValue(value);
+    get_floater_child<LLUICtrl>(this, name)->setValue(value);
 }
 
 const LLColor4& LLFloaterEnvironmentAdjust::getColorValue(const std::string& name)
 {
-    return getChild<LLColorSwatchCtrl>(name)->get();
+    return get_floater_child<LLColorSwatchCtrl>(this, name)->get();
 }
 
 void LLFloaterEnvironmentAdjust::setColorValue(const std::string& name, const LLColor4& value)
 {
-    getChild<LLColorSwatchCtrl>(name)->set(value);
+    get_floater_child<LLColorSwatchCtrl>(this, name)->set(value);
 }
 
 LLUUID LLFloaterEnvironmentAdjust::getTextureValue(const std::string& name)
 {
-    return getChild<LLTextureCtrl>(name)->getValue().asUUID();
+    return get_floater_child<LLTextureCtrl>(this, name)->getValue().asUUID();
 }
 
 void LLFloaterEnvironmentAdjust::setTextureValue(const std::string& name, const LLUUID& value)
 {
-    getChild<LLTextureCtrl>(name)->setValue(value);
+    get_floater_child<LLTextureCtrl>(this, name)->setValue(value);
 }
 
 LLQuaternion LLFloaterEnvironmentAdjust::getTrackballRotation(const std::string& name)
 {
-    return getChild<LLVirtualTrackball>(name)->getRotation();
+    return get_floater_child<LLVirtualTrackball>(this, name)->getRotation();
 }
 
 void LLFloaterEnvironmentAdjust::setTrackballRotation(const std::string& name, const LLQuaternion& rotation)
 {
-    getChild<LLVirtualTrackball>(name)->setRotation(rotation);
+    get_floater_child<LLVirtualTrackball>(this, name)->setRotation(rotation);
 }
 
 void LLFloaterEnvironmentAdjust::setControlTooltip(const std::string& name, const std::string& tooltip)
 {
-    getChild<LLUICtrl>(name)->setToolTip(tooltip);
+    get_floater_child<LLUICtrl>(this, name)->setToolTip(tooltip);
 }
 
 void LLFloaterEnvironmentAdjust::markLocalPreset()

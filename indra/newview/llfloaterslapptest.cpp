@@ -31,6 +31,32 @@
 #include "lllineeditor.h"
 #include "lltextbox.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterSLappTest::LLFloaterSLappTest(const LLSD& key)
     :   LLFloater("floater_test_slapp")
 {
@@ -41,10 +67,10 @@ LLFloaterSLappTest::~LLFloaterSLappTest()
 
 bool LLFloaterSLappTest::postBuild()
 {
-    getChild<LLLineEditor>("remove_folder_id")->setKeystrokeCallback([this](LLLineEditor* editor, void*)
+    get_floater_child<LLLineEditor>(this, "remove_folder_id")->setKeystrokeCallback([this](LLLineEditor* editor, void*)
         {
             std::string slapp(getString("remove_folder_slapp"));
-            getChild<LLTextBox>("remove_folder_txt")->setValue(slapp + editor->getValue().asString());
+            get_floater_child<LLTextBox>(this, "remove_folder_txt")->setValue(slapp + editor->getValue().asString());
         }, NULL);
 
     return true;

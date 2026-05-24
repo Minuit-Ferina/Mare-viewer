@@ -53,6 +53,32 @@
 
 //MK
 #include "llagentui.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //mk
 
 const F32 REFRESH_INTERVAL = 1.0f;
@@ -260,56 +286,56 @@ bool LLFloaterIMSessionTab::postBuild()
 {
     bool result;
 
-    mContentsView = getChild<LLView>("contents_view");
-    mBodyStack = getChild<LLLayoutStack>("main_stack");
-    mParticipantListAndHistoryStack = getChild<LLLayoutStack>("im_panels");
+    mContentsView = get_floater_child<LLView>(this, "contents_view");
+    mBodyStack = get_floater_child<LLLayoutStack>(this, "main_stack");
+    mParticipantListAndHistoryStack = get_floater_child<LLLayoutStack>(this, "im_panels");
 
-    mCloseBtn = getChild<LLButton>("close_btn");
+    mCloseBtn = get_floater_child<LLButton>(this, "close_btn");
     mCloseBtn->setCommitCallback([this](LLUICtrl*, const LLSD&) { onClickClose(this); });
 
-    mExpandCollapseBtn = getChild<LLButton>("expand_collapse_btn");
+    mExpandCollapseBtn = get_floater_child<LLButton>(this, "expand_collapse_btn");
     mExpandCollapseBtn->setClickedCallback([this](LLUICtrl*, const LLSD&) { onSlide(this); });
 
-    mExpandCollapseLineBtn = getChild<LLButton>("minz_btn");
+    mExpandCollapseLineBtn = get_floater_child<LLButton>(this, "minz_btn");
     mExpandCollapseLineBtn->setClickedCallback([this](LLUICtrl*, const LLSD&) { onCollapseToLine(this); });
 
-    mTearOffBtn = getChild<LLButton>("tear_off_btn");
+    mTearOffBtn = get_floater_child<LLButton>(this, "tear_off_btn");
     mTearOffBtn->setCommitCallback(boost::bind(&LLFloaterIMSessionTab::onTearOffClicked, this));
 
-    mEmojiRecentPanelToggleBtn = getChild<LLButton>("emoji_recent_panel_toggle_btn");
+    mEmojiRecentPanelToggleBtn = get_floater_child<LLButton>(this, "emoji_recent_panel_toggle_btn");
     mEmojiRecentPanelToggleBtn->setClickedCallback([this](LLUICtrl*, const LLSD&) { onEmojiRecentPanelToggleBtnClicked(); });
 
-    mEmojiRecentPanel = getChild<LLLayoutPanel>("emoji_recent_layout_panel");
+    mEmojiRecentPanel = get_floater_child<LLLayoutPanel>(this, "emoji_recent_layout_panel");
     mEmojiRecentPanel->setVisible(false);
 
-    mEmojiRecentEmptyText = getChild<LLTextBox>("emoji_recent_empty_text");
+    mEmojiRecentEmptyText = get_floater_child<LLTextBox>(this, "emoji_recent_empty_text");
     mEmojiRecentEmptyText->setToolTip(mEmojiRecentEmptyText->getText());
     mEmojiRecentEmptyText->setVisible(false);
 
-    mEmojiRecentContainer = getChild<LLPanel>("emoji_recent_container");
+    mEmojiRecentContainer = get_floater_child<LLPanel>(this, "emoji_recent_container");
     mEmojiRecentContainer->setVisible(false);
 
-    mEmojiRecentIconsCtrl = getChild<LLPanelEmojiComplete>("emoji_recent_icons_ctrl");
+    mEmojiRecentIconsCtrl = get_floater_child<LLPanelEmojiComplete>(this, "emoji_recent_icons_ctrl");
     mEmojiRecentIconsCtrl->setFocusReceivedCallback([this](LLFocusableElement*) { onEmojiRecentPanelFocusReceived(); });
     mEmojiRecentIconsCtrl->setFocusLostCallback([this](LLFocusableElement*) { onEmojiRecentPanelFocusLost(); });
     mEmojiRecentIconsCtrl->setCommitCallback([this](LLUICtrl*, const LLSD& value) { onRecentEmojiPicked(value); });
 
-    mEmojiPickerShowBtn = getChild<LLButton>("emoji_picker_show_btn");
+    mEmojiPickerShowBtn = get_floater_child<LLButton>(this, "emoji_picker_show_btn");
     mEmojiPickerShowBtn->setClickedCallback([this](LLUICtrl*, const LLSD&) { onEmojiPickerShowBtnClicked(); });
     mEmojiPickerShowBtn->setMouseDownCallback([this](LLUICtrl*, const LLSD&) { onEmojiPickerShowBtnDown(); });
     mEmojiCloseConn = LLEmojiHelper::instance().setCloseCallback([this](LLUICtrl*, const LLSD&) { onEmojiPickerClosed(); });
 
-    mGearBtn = getChild<LLButton>("gear_btn");
-    mAddBtn = getChild<LLButton>("add_btn");
-    mVoiceButton = getChild<LLButton>("voice_call_btn");
+    mGearBtn = get_floater_child<LLButton>(this, "gear_btn");
+    mAddBtn = get_floater_child<LLButton>(this, "add_btn");
+    mVoiceButton = get_floater_child<LLButton>(this, "voice_call_btn");
     mVoiceButton->setClickedCallback([this](LLUICtrl*, const LLSD&) { onCallButtonClicked(); });
 
-    mParticipantListPanel = getChild<LLLayoutPanel>("speakers_list_panel");
-    mRightPartPanel = getChild<LLLayoutPanel>("right_part_holder");
+    mParticipantListPanel = get_floater_child<LLLayoutPanel>(this, "speakers_list_panel");
+    mRightPartPanel = get_floater_child<LLLayoutPanel>(this, "right_part_holder");
 
-    mToolbarPanel = getChild<LLLayoutPanel>("toolbar_panel");
-    mContentPanel = getChild<LLLayoutPanel>("body_panel");
-    mInputButtonPanel = getChild<LLLayoutPanel>("input_button_layout_panel");
+    mToolbarPanel = get_floater_child<LLLayoutPanel>(this, "toolbar_panel");
+    mContentPanel = get_floater_child<LLLayoutPanel>(this, "body_panel");
+    mInputButtonPanel = get_floater_child<LLLayoutPanel>(this, "input_button_layout_panel");
     mInputButtonPanel->setVisible(false);
     // Add a scroller for the folder (participant) view
     LLRect scroller_view_rect = mParticipantListPanel->getRect();
@@ -322,12 +348,12 @@ bool LLFloaterIMSessionTab::postBuild()
     // Insert that scroller into the panel widgets hierarchy
     mParticipantListPanel->addChild(mScroller);
 
-    mChatHistory = getChild<LLChatHistory>("chat_history");
+    mChatHistory = get_floater_child<LLChatHistory>(this, "chat_history");
 
-    mInputEditor = getChild<LLChatEntry>("chat_editor");
+    mInputEditor = get_floater_child<LLChatEntry>(this, "chat_editor");
 
-    mChatLayoutPanel = getChild<LLLayoutPanel>("chat_layout_panel");
-    mInputPanels = getChild<LLLayoutStack>("input_panels");
+    mChatLayoutPanel = get_floater_child<LLLayoutPanel>(this, "chat_layout_panel");
+    mInputPanels = get_floater_child<LLLayoutStack>(this, "input_panels");
 
     mInputEditor->setTextExpandedCallback(boost::bind(&LLFloaterIMSessionTab::reshapeChatLayoutPanel, this));
     mInputEditor->setMouseUpCallback(boost::bind(&LLFloaterIMSessionTab::onInputEditorClicked, this));
@@ -1046,18 +1072,18 @@ void LLFloaterIMSessionTab::updateChatIcon(const LLUUID& id)
     {
         if (mSession->isP2PSessionType())
         {
-            LLAvatarIconCtrl* icon = getChild<LLAvatarIconCtrl>(ICN_AVATAR);
+            LLAvatarIconCtrl* icon = get_floater_child<LLAvatarIconCtrl>(this, ICN_AVATAR);
             icon->setVisible(true);
             icon->setValue(id);
         }
         if (mSession->isAdHocSessionType())
         {
-            LLGroupIconCtrl* icon = getChild<LLGroupIconCtrl>(ICN_GROUP);
+            LLGroupIconCtrl* icon = get_floater_child<LLGroupIconCtrl>(this, ICN_GROUP);
             icon->setVisible(true);
         }
         if (mSession->isGroupSessionType())
         {
-            LLGroupIconCtrl* icon = getChild<LLGroupIconCtrl>(ICN_GROUP);
+            LLGroupIconCtrl* icon = get_floater_child<LLGroupIconCtrl>(this, ICN_GROUP);
             icon->setVisible(true);
             icon->setValue(id);
         }
@@ -1066,7 +1092,7 @@ void LLFloaterIMSessionTab::updateChatIcon(const LLUUID& id)
     {
         if (mIsNearbyChat)
         {
-            LLIconCtrl* icon = getChild<LLIconCtrl>(ICN_NEARBY);
+            LLIconCtrl* icon = get_floater_child<LLIconCtrl>(this, ICN_NEARBY);
             icon->setVisible(true);
         }
     }

@@ -68,6 +68,32 @@
 #include "fscommon.h"
 #include "kokuarlvextras.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const F32 ME_TYPING_TIMEOUT = 4.0f;
 const F32 OTHER_TYPING_TIMEOUT = 9.0f;
 
@@ -389,7 +415,7 @@ bool LLFloaterIMSession::postBuild()
 
     setDocked(true);
 
-    LLButton* add_btn = getChild<LLButton>("add_btn");
+    LLButton* add_btn = get_floater_child<LLButton>(this, "add_btn");
 
     // Allow to add chat participants depending on the session type
     add_btn->setEnabled(isInviteAllowed());
@@ -830,7 +856,7 @@ void LLFloaterIMSession::sessionInitReplyReceived(const LLUUID& im_session_id)
         // Disable "Teleport" button if friend is offline
         if(LLAvatarActions::isFriend(mOtherParticipantUUID))
         {
-            getChildView("teleport_btn")->setEnabled(LLAvatarTracker::instance().isBuddyOnline(mOtherParticipantUUID));
+            get_floater_view(this, "teleport_btn")->setEnabled(LLAvatarTracker::instance().isBuddyOnline(mOtherParticipantUUID));
         }
 //mk
     }

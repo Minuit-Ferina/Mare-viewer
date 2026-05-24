@@ -37,6 +37,32 @@
 #include "lltoastpanel.h"
 #include "lltoastnotifypanel.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //---------------------------------------------------------------------------------
 LLFloaterNotificationsTabbed::LLFloaterNotificationsTabbed(const LLSD& key) : LLTransientDockableFloater(NULL, true,  key),
     mChannel(NULL),
@@ -60,20 +86,20 @@ LLFloaterNotificationsTabbed::LLFloaterNotificationsTabbed(const LLSD& key) : LL
 //---------------------------------------------------------------------------------
 bool LLFloaterNotificationsTabbed::postBuild()
 {
-    mGroupInviteMessageList = getChild<LLNotificationListView>("group_invite_notification_list");
-    mGroupNoticeMessageList = getChild<LLNotificationListView>("group_notice_notification_list");
-    mTransactionMessageList = getChild<LLNotificationListView>("transaction_notification_list");
-    mSystemMessageList = getChild<LLNotificationListView>("system_notification_list");
+    mGroupInviteMessageList = get_floater_child<LLNotificationListView>(this, "group_invite_notification_list");
+    mGroupNoticeMessageList = get_floater_child<LLNotificationListView>(this, "group_notice_notification_list");
+    mTransactionMessageList = get_floater_child<LLNotificationListView>(this, "transaction_notification_list");
+    mSystemMessageList = get_floater_child<LLNotificationListView>(this, "system_notification_list");
     mNotificationsSeparator->initTaggedList(LLNotificationListItem::getGroupInviteTypes(), mGroupInviteMessageList);
     mNotificationsSeparator->initTaggedList(LLNotificationListItem::getGroupNoticeTypes(), mGroupNoticeMessageList);
     mNotificationsSeparator->initTaggedList(LLNotificationListItem::getTransactionTypes(), mTransactionMessageList);
     mNotificationsSeparator->initUnTaggedList(mSystemMessageList);
-    mNotificationsTabContainer = getChild<LLTabContainer>("notifications_tab_container");
+    mNotificationsTabContainer = get_floater_child<LLTabContainer>(this, "notifications_tab_container");
 
-    mDeleteAllBtn = getChild<LLButton>("delete_all_button");
+    mDeleteAllBtn = get_floater_child<LLButton>(this, "delete_all_button");
     mDeleteAllBtn->setClickedCallback(boost::bind(&LLFloaterNotificationsTabbed::onClickDeleteAllBtn,this));
 
-    mCollapseAllBtn = getChild<LLButton>("collapse_all_button");
+    mCollapseAllBtn = get_floater_child<LLButton>(this, "collapse_all_button");
     mCollapseAllBtn->setClickedCallback(boost::bind(&LLFloaterNotificationsTabbed::onClickCollapseAllBtn,this));
 
     // get a corresponding channel
@@ -180,7 +206,7 @@ void LLFloaterNotificationsTabbed::setVisible(bool visible)
         if (NULL == getDockControl() && getDockTongue().notNull())
         {
             setDockControl(new LLDockControl(
-                LLChicletBar::getInstance()->getChild<LLView>(getAnchorViewName()), this,
+                get_floater_child<LLView>(LLChicletBar::getInstance(), getAnchorViewName()), this,
                 getDockTongue(), LLDockControl::BOTTOM));
         }
     }

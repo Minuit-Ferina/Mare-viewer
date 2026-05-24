@@ -35,6 +35,32 @@
 #include "llviewerregion.h"
 #include "llvoavatarself.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterHoverHeight::LLFloaterHoverHeight(const LLSD& key) : LLFloater(key)
 {
 }
@@ -44,7 +70,7 @@ void LLFloaterHoverHeight::syncFromPreferenceSetting(void *user_data, bool updat
     F32 value = gSavedPerAccountSettings.getF32("AvatarHoverOffsetZ");
 
     LLFloaterHoverHeight *self = static_cast<LLFloaterHoverHeight*>(user_data);
-    LLSliderCtrl* sldrCtrl = self->getChild<LLSliderCtrl>("HoverHeightSlider");
+    LLSliderCtrl* sldrCtrl = get_floater_child<LLSliderCtrl>(self, "HoverHeightSlider");
     sldrCtrl->setValue(value,false);
 
     if (isAgentAvatarValid() && update_offset)
@@ -58,7 +84,7 @@ void LLFloaterHoverHeight::syncFromPreferenceSetting(void *user_data, bool updat
 
 bool LLFloaterHoverHeight::postBuild()
 {
-    LLSliderCtrl* sldrCtrl = getChild<LLSliderCtrl>("HoverHeightSlider");
+    LLSliderCtrl* sldrCtrl = get_floater_child<LLSliderCtrl>(this, "HoverHeightSlider");
     sldrCtrl->setMinValue(MIN_HOVER_Z);
     sldrCtrl->setMaxValue(MAX_HOVER_Z);
     sldrCtrl->setSliderMouseUpCallback(boost::bind(&LLFloaterHoverHeight::onFinalCommit,this));
@@ -114,7 +140,7 @@ void LLFloaterHoverHeight::onSliderMoved(LLUICtrl* ctrl, void* userData)
 // value entered as text.
 void LLFloaterHoverHeight::onFinalCommit()
 {
-    LLSliderCtrl* sldrCtrl = getChild<LLSliderCtrl>("HoverHeightSlider");
+    LLSliderCtrl* sldrCtrl = get_floater_child<LLSliderCtrl>(this, "HoverHeightSlider");
     F32 value = sldrCtrl->getValueF32();
     gSavedPerAccountSettings.setF32("AvatarHoverOffsetZ",value);
 }
@@ -144,7 +170,7 @@ void LLFloaterHoverHeight::onSimulatorFeaturesReceived(const LLUUID &region_id)
 void LLFloaterHoverHeight::updateEditEnabled()
 {
     bool enabled = gAgent.getRegion() && gAgent.getRegion()->avatarHoverHeightEnabled();
-    LLSliderCtrl* sldrCtrl = getChild<LLSliderCtrl>("HoverHeightSlider");
+    LLSliderCtrl* sldrCtrl = get_floater_child<LLSliderCtrl>(this, "HoverHeightSlider");
     sldrCtrl->setEnabled(enabled);
     if (enabled)
     {

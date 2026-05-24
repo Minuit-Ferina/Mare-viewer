@@ -43,6 +43,32 @@
 #include "lltrans.h"
 #include "llviewerchat.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 namespace {
 // The following variables and constants are used for storing the floater state
 // between different lifecycles of the floater and different sissions of the viewer
@@ -306,11 +332,11 @@ LLFloaterEmojiPicker::LLFloaterEmojiPicker(const LLSD& key)
 
 bool LLFloaterEmojiPicker::postBuild()
 {
-    mGroups = getChild<LLPanel>("Groups");
-    mBadge = getChild<LLPanel>("Badge");
-    mEmojiScroll = getChild<LLScrollContainer>("EmojiGridContainer");
-    mEmojiGrid = getChild<LLScrollingPanelList>("EmojiGrid");
-    mDummy = getChild<LLTextBox>("Dummy");
+    mGroups = get_floater_child<LLPanel>(this, "Groups");
+    mBadge = get_floater_child<LLPanel>(this, "Badge");
+    mEmojiScroll = get_floater_child<LLScrollContainer>(this, "EmojiGridContainer");
+    mEmojiGrid = get_floater_child<LLScrollingPanelList>(this, "EmojiGrid");
+    mDummy = get_floater_child<LLTextBox>(this, "Dummy");
 
     mPreview = new LLEmojiPreviewPanel();
     mPreview->setVisible(false);

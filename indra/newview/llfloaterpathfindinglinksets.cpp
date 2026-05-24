@@ -54,6 +54,32 @@
 #include "v3math.h"
 #include "v4color.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 #define XUI_LINKSET_USE_NONE             0
 #define XUI_LINKSET_USE_WALKABLE         1
 #define XUI_LINKSET_USE_STATIC_OBSTACLE  2
@@ -115,11 +141,11 @@ bool LLFloaterPathfindingLinksets::postBuild()
 {
     mBeaconColor = LLUIColorTable::getInstance()->getColor("PathfindingLinksetBeaconColor");
 
-    mFilterByName = getChild<LLSearchEditor>("filter_by_name");
+    mFilterByName = get_floater_child<LLSearchEditor>(this, "filter_by_name");
     mFilterByName->setCommitCallback(boost::bind(&LLFloaterPathfindingLinksets::onApplyAllFilters, this));
     mFilterByName->setCommitOnFocusLost(true);
 
-    mFilterByDescription = getChild<LLSearchEditor>("filter_by_description");
+    mFilterByDescription = get_floater_child<LLSearchEditor>(this, "filter_by_description");
     mFilterByDescription->setCommitCallback(boost::bind(&LLFloaterPathfindingLinksets::onApplyAllFilters, this));
     mFilterByDescription->setCommitOnFocusLost(true);
 

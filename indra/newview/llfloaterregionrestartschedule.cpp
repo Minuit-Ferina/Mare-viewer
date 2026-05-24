@@ -36,6 +36,32 @@
 #include "llviewercontrol.h"
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 // match with values used by capability
 constexpr char CHECKBOX_PREFIXES[] =
 {
@@ -65,7 +91,7 @@ LLFloaterRegionRestartSchedule::~LLFloaterRegionRestartSchedule()
 
 bool LLFloaterRegionRestartSchedule::postBuild()
 {
-    mPMAMButton = getChild<LLButton>("am_pm_btn");
+    mPMAMButton = get_floater_child<LLButton>(this, "am_pm_btn");
     mPMAMButton->setClickedCallback([this](LLUICtrl*, const LLSD&) { onPMAMButtonClicked(); });
 
     // By default mPMAMButton is supposed to be visible.
@@ -77,30 +103,30 @@ bool LLFloaterRegionRestartSchedule::postBuild()
         if (use_24h_format)
         {
             mPMAMButton->setVisible(false);
-            LLUICtrl* lbl = getChild<LLUICtrl>("utc_label");
+            LLUICtrl* lbl = get_floater_child<LLUICtrl>(this, "utc_label");
             lbl->translate(-mPMAMButton->getRect().getWidth(), 0);
         }
     }
 
-    mSaveButton = getChild<LLButton>("save_btn");
+    mSaveButton = get_floater_child<LLButton>(this, "save_btn");
     mSaveButton->setClickedCallback([this](LLUICtrl*, const LLSD&) { onSaveButtonClicked(); });
 
-    mCancelButton = getChild<LLButton>("cancel_btn");
+    mCancelButton = get_floater_child<LLButton>(this, "cancel_btn");
     mCancelButton->setClickedCallback([this](LLUICtrl*, const LLSD&) { closeFloater(false); });
 
 
-    mHoursLineEditor = getChild<LLLineEditor>("hours_edt");
+    mHoursLineEditor = get_floater_child<LLLineEditor>(this, "hours_edt");
     mHoursLineEditor->setPrevalidate(LLTextValidate::validateNonNegativeS32);
     mHoursLineEditor->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& value) { onCommitHours(value); });
 
-    mMinutesLineEditor = getChild<LLLineEditor>("minutes_edt");
+    mMinutesLineEditor = get_floater_child<LLLineEditor>(this, "minutes_edt");
     mMinutesLineEditor->setPrevalidate(LLTextValidate::validateNonNegativeS32);
     mMinutesLineEditor->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& value) { onCommitMinutes(value); });
 
     for (char c : CHECKBOX_PREFIXES)
     {
         std::string name = c + CHECKBOX_NAME;
-        LLCheckBoxCtrl* chk = getChild<LLCheckBoxCtrl>(name);
+        LLCheckBoxCtrl* chk = get_floater_child<LLCheckBoxCtrl>(this, name);
         chk->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& value) { mSaveButton->setEnabled(true); });
     }
 
@@ -153,7 +179,7 @@ void LLFloaterRegionRestartSchedule::onSaveButtonClicked()
         for (char c : CHECKBOX_PREFIXES)
         {
             std::string name = c + CHECKBOX_NAME;
-            LLCheckBoxCtrl* chk = getChild<LLCheckBoxCtrl>(name);
+            LLCheckBoxCtrl* chk = get_floater_child<LLCheckBoxCtrl>(this, name);
             if (chk->getValue())
             {
                 days += c;
@@ -228,7 +254,7 @@ void LLFloaterRegionRestartSchedule::resetUI(bool enable_ui)
     for (char c : CHECKBOX_PREFIXES)
     {
         std::string name = c + CHECKBOX_NAME;
-        LLCheckBoxCtrl* chk = getChild<LLCheckBoxCtrl>(name);
+        LLCheckBoxCtrl* chk = get_floater_child<LLCheckBoxCtrl>(this, name);
         chk->setValue(false);
         chk->setEnabled(enable_ui);
     }
@@ -310,7 +336,7 @@ void LLFloaterRegionRestartSchedule::requestRegionShcheduleCoro(std::string url,
             {
                 bool enabled = days.find(c) != std::string::npos;
                 std::string name = c + CHECKBOX_NAME;
-                LLCheckBoxCtrl *chk = floater->getChild<LLCheckBoxCtrl>(name);
+                LLCheckBoxCtrl *chk = get_floater_child<LLCheckBoxCtrl>(floater, name);
                 chk->setValue(enabled);
                 chk->setEnabled(true);
             }
@@ -320,7 +346,7 @@ void LLFloaterRegionRestartSchedule::requestRegionShcheduleCoro(std::string url,
             for (char c : CHECKBOX_PREFIXES)
             {
                 std::string name = c + CHECKBOX_NAME;
-                LLCheckBoxCtrl* chk = floater->getChild<LLCheckBoxCtrl>(name);
+                LLCheckBoxCtrl* chk = get_floater_child<LLCheckBoxCtrl>(floater, name);
                 chk->setValue(true);
                 chk->setEnabled(true);
             }

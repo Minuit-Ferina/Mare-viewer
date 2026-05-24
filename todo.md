@@ -5,7 +5,7 @@ Upstream context: Firestorm Viewer.
 
 Current rule: phase 14 is active on branch `phase14`. Preserve the completed
 OpenGL containment and header guardrails. Apply the preview/UI ownership pattern
-across all registered preview dialogs, using targeted object builds and
+across the remaining floater surface, using targeted object builds and
 guardrails; do not run broad `mare-viewer` integration rebuilds unless
 explicitly selected for a branch checkpoint. Do not move source files, do not
 change runtime behavior without an explicit task, and do not start a direct
@@ -1906,8 +1906,16 @@ No open items in this section right now.
 - [x] Verify land transaction dialog objects with targeted builds, regenerated
       source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/399-land-transaction-dialog-helpers-summary.md`.
-- [ ] Treat `llfloaterbuyland.cpp`, `llfloaterland.cpp`, and
-      `llfloaterregioninfo.cpp` as isolated high-risk packets.
+- [x] Expand the phase 14 strategy to one broad mechanical sweep across the
+      remaining `llfloater*.cpp` files at the user's request.
+- [x] Move simple local UI lookup helpers across the remaining floater surface,
+      including the previously isolated high-count files.
+- [x] Verify the remaining floater sweep with targeted object builds for all
+      available floater object rules, regenerated source inventory, both GL
+      guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/400-all-remaining-floater-helper-sweep-summary.md`.
+- [ ] Decide whether phase 14 should close here or continue into non-floater
+      `LLPanel`/`LLView` UI ownership helpers.
 
 ## Post-Phase2 Guardrails
 

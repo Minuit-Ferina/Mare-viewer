@@ -37,6 +37,32 @@
 #include "llviewertexturelist.h"
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
  //////////////////////////////////////////////////////////////////////////
  // LLProfileImageCtrl
  //////////////////////////////////////////////////////////////////////////
@@ -200,10 +226,10 @@ LLFloaterProfileTexture::~LLFloaterProfileTexture()
 // virtual
 bool LLFloaterProfileTexture::postBuild()
 {
-    mProfileIcon = getChild<LLProfileImageCtrl>("profile_pic");
+    mProfileIcon = get_floater_child<LLProfileImageCtrl>(this, "profile_pic");
     mProfileIcon->setImageLoadedCallback([this](bool success, LLViewerFetchedTexture* imagep) {onImageLoaded(success, imagep); });
 
-    mCloseButton = getChild<LLButton>("close_btn");
+    mCloseButton = get_floater_child<LLButton>(this, "close_btn");
     mCloseButton->setCommitCallback([this](LLUICtrl*, void*) { closeFloater(); }, nullptr);
 
     return true;

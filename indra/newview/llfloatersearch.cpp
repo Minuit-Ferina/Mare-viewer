@@ -38,6 +38,32 @@
 #include "llviewernetwork.h"// </FS:AW  opensim search support>
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 // support secondlife:///app/search/{CATEGORY}/{QUERY} SLapps
 class LLSearchHandler : public LLCommandHandler {
     public:
@@ -177,8 +203,8 @@ bool LLFloaterSearch::postBuild()
     // which will also update search instance if it already exists.
     LLViewerMedia::getInstance()->getOpenIDCookie(mWebBrowser);
 
-    getChildView("address")->setEnabled(false);
-    getChildView("popexternal")->setEnabled(false);
+    get_floater_view(this, "address")->setEnabled(false);
+    get_floater_view(this, "popexternal")->setEnabled(false);
 
     // This call is actioned by the preload code in llViewerWindow
     // that creates the search floater during the login process

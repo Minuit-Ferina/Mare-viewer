@@ -36,6 +36,32 @@
 #include "lltrans.h"
 #include "llviewerregion.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 constexpr S32 SIZE_OF_ONE_KB = 1024;
 
 LLFloaterMyScripts::LLFloaterMyScripts(const LLSD& seed)
@@ -55,7 +81,7 @@ bool LLFloaterMyScripts::postBuild()
     childSetAction("refresh_list_btn", onClickRefresh, this);
 
     std::string msg_waiting = LLTrans::getString("ScriptLimitsRequestWaiting");
-    getChild<LLUICtrl>("loading_text")->setValue(LLSD(msg_waiting));
+    get_floater_child<LLUICtrl>(this, "loading_text")->setValue(LLSD(msg_waiting));
     mAttachmentDetailsRequested = requestAttachmentDetails();
     return true;
 }
@@ -115,9 +141,9 @@ void LLFloaterMyScripts::getAttachmentLimitsCoro(std::string url)
         return;
     }
 
-    instance->getChild<LLUICtrl>("loading_text")->setValue(LLSD(std::string("")));
+    get_floater_child<LLUICtrl>(instance, "loading_text")->setValue(LLSD(std::string("")));
 
-    LLButton* btn = instance->getChild<LLButton>("refresh_list_btn");
+    LLButton* btn = get_floater_child<LLButton>(instance, "refresh_list_btn");
     if (btn)
     {
         btn->setEnabled(true);
@@ -130,7 +156,7 @@ void LLFloaterMyScripts::getAttachmentLimitsCoro(std::string url)
 
 void LLFloaterMyScripts::setAttachmentDetails(LLSD content)
 {
-    LLScrollListCtrl *list = getChild<LLScrollListCtrl>("scripts_list");
+    LLScrollListCtrl *list = get_floater_child<LLScrollListCtrl>(this, "scripts_list");
 
     if(!list)
     {
@@ -191,9 +217,9 @@ void LLFloaterMyScripts::setAttachmentDetails(LLSD content)
 
     setAttachmentSummary(content);
 
-    getChild<LLUICtrl>("loading_text")->setValue(LLSD(std::string("")));
+    get_floater_child<LLUICtrl>(this, "loading_text")->setValue(LLSD(std::string("")));
 
-    LLButton* btn = getChild<LLButton>("refresh_list_btn");
+    LLButton* btn = get_floater_child<LLButton>(this, "refresh_list_btn");
     if(btn)
     {
         btn->setEnabled(true);
@@ -210,7 +236,7 @@ void LLFloaterMyScripts::clearList()
     }
 
     std::string msg_waiting = LLTrans::getString("ScriptLimitsRequestWaiting");
-    getChild<LLUICtrl>("loading_text")->setValue(LLSD(msg_waiting));
+    get_floater_child<LLUICtrl>(this, "loading_text")->setValue(LLSD(msg_waiting));
 }
 
 void LLFloaterMyScripts::setAttachmentSummary(LLSD content)
@@ -266,7 +292,7 @@ void LLFloaterMyScripts::setAttachmentSummary(LLSD content)
             translate_message = "ScriptLimitsMemoryUsed";
         }
 
-        getChild<LLUICtrl>("memory_used")->setValue(LLTrans::getString(translate_message, args_attachment_memory));
+        get_floater_child<LLUICtrl>(this, "memory_used")->setValue(LLTrans::getString(translate_message, args_attachment_memory));
     }
 
     if((mAttachmentURLsUsed >= 0) && (mAttachmentURLsMax >= 0))
@@ -278,7 +304,7 @@ void LLFloaterMyScripts::setAttachmentSummary(LLSD content)
         args_attachment_urls["[MAX]"] = llformat ("%d", mAttachmentURLsMax);
         args_attachment_urls["[AVAILABLE]"] = llformat ("%d", attachment_urls_available);
         std::string msg_attachment_urls = LLTrans::getString("ScriptLimitsURLsUsed", args_attachment_urls);
-        getChild<LLUICtrl>("urls_used")->setValue(LLSD(msg_attachment_urls));
+        get_floater_child<LLUICtrl>(this, "urls_used")->setValue(LLSD(msg_attachment_urls));
     }
 }
 
@@ -288,7 +314,7 @@ void LLFloaterMyScripts::onClickRefresh(void* userdata)
     LLFloaterMyScripts* instance = LLFloaterReg::getTypedInstance<LLFloaterMyScripts>("my_scripts");
     if(instance)
     {
-        LLButton* btn = instance->getChild<LLButton>("refresh_list_btn");
+        LLButton* btn = get_floater_child<LLButton>(instance, "refresh_list_btn");
 
         //To stop people from hammering the refesh button and accidentally dosing themselves - enough requests can crash the viewer!
         //turn the button off, then turn it on when we get a response

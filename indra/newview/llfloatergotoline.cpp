@@ -33,6 +33,32 @@
 #include "llscripteditor.h"
 #include "llviewerwindow.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterGotoLine* LLFloaterGotoLine::sInstance = NULL;
 
 LLFloaterGotoLine::LLFloaterGotoLine(LLScriptEdCore* editor_core)
@@ -60,10 +86,10 @@ LLFloaterGotoLine::LLFloaterGotoLine(LLScriptEdCore* editor_core)
 
 bool LLFloaterGotoLine::postBuild()
 {
-    mGotoBox = getChild<LLLineEditor>("goto_line");
+    mGotoBox = get_floater_child<LLLineEditor>(this, "goto_line");
     mGotoBox->setCommitCallback(boost::bind(&LLFloaterGotoLine::onGotoBoxCommit, this));
     mGotoBox->setCommitOnFocusLost(false);
-        getChild<LLLineEditor>("goto_line")->setPrevalidate(LLTextValidate::validateNonNegativeS32);
+        get_floater_child<LLLineEditor>(this, "goto_line")->setPrevalidate(LLTextValidate::validateNonNegativeS32);
         childSetAction("goto_btn", onBtnGoto,this);
         setDefaultBtn("goto_btn");
 
@@ -104,7 +130,7 @@ void LLFloaterGotoLine::handleBtnGoto()
 {
         S32 row = 0;
         S32 column = 0;
-        row = getChild<LLUICtrl>("goto_line")->getValue().asInteger();
+        row = get_floater_child<LLUICtrl>(this, "goto_line")->getValue().asInteger();
         if (row >= 0)
         {
                 if (mEditorCore && mEditorCore->mEditor)
@@ -140,7 +166,7 @@ void LLFloaterGotoLine::onGotoBoxCommit()
 {
         S32 row = 0;
         S32 column = 0;
-        row = getChild<LLUICtrl>("goto_line")->getValue().asInteger();
+        row = get_floater_child<LLUICtrl>(this, "goto_line")->getValue().asInteger();
         if (row >= 0)
         {
                 if (mEditorCore && mEditorCore->mEditor)

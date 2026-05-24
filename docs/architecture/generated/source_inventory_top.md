@@ -41,7 +41,7 @@
 | `indra/newview/llmanipscale.cpp` | render.opengl_touching | 2080 | 0 | 0 | 0 | 78 | 13 | 0 | 0 |
 | `indra/newview/llfasttimerview.cpp` | render.opengl_touching | 1669 | 0 | 0 | 0 | 75 | 7 | 0 | 1 |
 | `indra/newview/llmodelpreview.cpp` | render.opengl_touching | 3978 | 0 | 0 | 0 | 73 | 30 | 0 | 0 |
-| `indra/newview/llfloaterimagepreview.cpp` | render.draw_pool | 1150 | 0 | 0 | 0 | 72 | 8 | 0 | 0 |
+| `indra/newview/llfloaterimagepreview.cpp` | render.draw_pool | 1176 | 0 | 0 | 0 | 72 | 8 | 0 | 0 |
 | `indra/newview/llmaniprotate.cpp` | render.opengl_touching | 1976 | 0 | 0 | 0 | 70 | 13 | 0 | 0 |
 | `indra/newview/llreflectionmapmanager.cpp` | render.pipeline | 1637 | 0 | 0 | 0 | 69 | 17 | 13 | 1 |
 | `indra/newview/llsnapshotlivepreview.cpp` | assets.texture | 1105 | 0 | 0 | 0 | 64 | 3 | 0 | 0 |
@@ -54,7 +54,7 @@
 | `indra/newview/lltoolmorph.cpp` | render.opengl_touching | 428 | 0 | 0 | 0 | 37 | 4 | 0 | 0 |
 | `indra/newview/lldrawpoolwlsky.cpp` | render.pipeline | 523 | 0 | 0 | 0 | 36 | 11 | 5 | 0 |
 | `indra/newview/llvoicevisualizer.cpp` | render.opengl_touching | 616 | 0 | 0 | 0 | 36 | 4 | 0 | 0 |
-| `indra/newview/llfloaterbvhpreview.cpp` | render.draw_pool | 1223 | 0 | 0 | 0 | 32 | 2 | 0 | 0 |
+| `indra/newview/llfloaterbvhpreview.cpp` | render.draw_pool | 1249 | 0 | 0 | 0 | 32 | 2 | 0 | 0 |
 | `indra/newview/lljoystickbutton.cpp` | render.opengl_touching | 1129 | 0 | 0 | 0 | 32 | 2 | 0 | 0 |
 | `indra/newview/llmanip.cpp` | render.opengl_touching | 663 | 0 | 0 | 0 | 31 | 1 | 0 | 0 |
 | `indra/newview/llmediactrl.cpp` | render.opengl_touching | 1312 | 0 | 0 | 0 | 30 | 0 | 0 | 0 |

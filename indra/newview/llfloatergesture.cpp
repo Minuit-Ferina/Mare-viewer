@@ -51,6 +51,32 @@
 #include "llviewercontrol.h"
 #include "llfloaterperms.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 bool item_name_precedes( LLInventoryItem* a, LLInventoryItem* b )
 {
     return LLStringUtil::precedesDict( a->getName(), b->getName() );
@@ -102,7 +128,7 @@ public:
     {
         if(mFloater)
         {
-            mFloater->addGesture(inv_item,NULL,mFloater->getChild<LLScrollListCtrl>("gesture_list"));
+            mFloater->addGesture(inv_item,NULL,get_floater_child<LLScrollListCtrl>(mFloater, "gesture_list"));
 
             // EXP-1909 (Pasted gesture displayed twice)
             // The problem is that addGesture is called here for the second time for the same item (which is copied)
@@ -196,23 +222,23 @@ bool LLFloaterGesture::postBuild()
     label = getTitle();
 
     setTitle(label);
-    mGestureList = getChild<LLScrollListCtrl>("gesture_list");
+    mGestureList = get_floater_child<LLScrollListCtrl>(this, "gesture_list");
     mGestureList->setCommitCallback(boost::bind(&LLFloaterGesture::onCommitList, this));
     mGestureList->setDoubleClickCallback(boost::bind(&LLFloaterGesture::onClickPlay, this));
 
-    getChild<LLUICtrl>("edit_btn")->setCommitCallback(boost::bind(&LLFloaterGesture::onClickEdit, this));
+    get_floater_child<LLUICtrl>(this, "edit_btn")->setCommitCallback(boost::bind(&LLFloaterGesture::onClickEdit, this));
 
-    getChild<LLUICtrl>("play_btn")->setCommitCallback(boost::bind(&LLFloaterGesture::onClickPlay, this));
-    getChild<LLUICtrl>("stop_btn")->setCommitCallback(boost::bind(&LLFloaterGesture::onClickPlay, this));
-    getChild<LLButton>("activate_btn")->setClickedCallback(boost::bind(&LLFloaterGesture::onActivateBtnClick, this));
+    get_floater_child<LLUICtrl>(this, "play_btn")->setCommitCallback(boost::bind(&LLFloaterGesture::onClickPlay, this));
+    get_floater_child<LLUICtrl>(this, "stop_btn")->setCommitCallback(boost::bind(&LLFloaterGesture::onClickPlay, this));
+    get_floater_child<LLButton>(this, "activate_btn")->setClickedCallback(boost::bind(&LLFloaterGesture::onActivateBtnClick, this));
 
-    getChild<LLUICtrl>("FSShowOnlyActiveGestures")->setCommitCallback(boost::bind(&LLFloaterGesture::refreshForActiveSort, this)); // <FS:PP> FIRE-5646: Option to show only active gestures
+    get_floater_child<LLUICtrl>(this, "FSShowOnlyActiveGestures")->setCommitCallback(boost::bind(&LLFloaterGesture::refreshForActiveSort, this)); // <FS:PP> FIRE-5646: Option to show only active gestures
 
-    getChild<LLUICtrl>("new_gesture_btn")->setCommitCallback(boost::bind(&LLFloaterGesture::onClickNew, this));
-    getChild<LLButton>("del_btn")->setClickedCallback(boost::bind(&LLFloaterGesture::onDeleteSelected, this));
+    get_floater_child<LLUICtrl>(this, "new_gesture_btn")->setCommitCallback(boost::bind(&LLFloaterGesture::onClickNew, this));
+    get_floater_child<LLButton>(this, "del_btn")->setClickedCallback(boost::bind(&LLFloaterGesture::onDeleteSelected, this));
 
-    getChildView("play_btn")->setVisible( true);
-    getChildView("stop_btn")->setVisible( false);
+    get_floater_view(this, "play_btn")->setVisible( true);
+    get_floater_view(this, "stop_btn")->setVisible( false);
     setDefaultBtn("play_btn");
     mGestureFolderID = gInventory.findCategoryUUIDForType(LLFolderType::FT_GESTURE);
 
@@ -695,13 +721,13 @@ void LLFloaterGesture::onCommitList()
     mSelectedID = item_id;
     if (LLGestureMgr::instance().isGesturePlaying(item_id))
     {
-        getChildView("play_btn")->setVisible( false);
-        getChildView("stop_btn")->setVisible( true);
+        get_floater_view(this, "play_btn")->setVisible( false);
+        get_floater_view(this, "stop_btn")->setVisible( true);
     }
     else
     {
-        getChildView("play_btn")->setVisible( true);
-        getChildView("stop_btn")->setVisible( false);
+        get_floater_view(this, "play_btn")->setVisible( true);
+        get_floater_view(this, "stop_btn")->setVisible( false);
     }
 }
 

@@ -53,6 +53,31 @@
 #include "lltransactiontypes.h"
 #include "lluictrlfactory.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 ///----------------------------------------------------------------------------
 /// Local function declarations, constants, enums, and typedefs
 ///----------------------------------------------------------------------------
@@ -182,20 +207,20 @@ void LLFloaterPay::setupQuickPayButton(S32& index, const std::string& button_nam
     mCallbackData.push_back(info);
 
     childSetAction(button_name, boost::bind(LLFloaterPay::onGive, info));
-    getChildView(button_name)->setVisible(false);
+    get_floater_view(this, button_name)->setVisible(false);
 
-    mQuickPayButton[index] = getChild<LLButton>(button_name);
+    mQuickPayButton[index] = get_floater_child<LLButton>(this, button_name);
     mQuickPayInfo[index] = info;
     ++index;
 }
 
 void LLFloaterPay::setupAmountControls()
 {
-    getChildView("amount text")->setVisible(false);
-    getChildView("amount")->setVisible(false);
+    get_floater_view(this, "amount text")->setVisible(false);
+    get_floater_view(this, "amount")->setVisible(false);
 
-    getChild<LLLineEditor>("amount")->setKeystrokeCallback(&LLFloaterPay::onKeystroke, this);
-    getChild<LLLineEditor>("amount")->setPrevalidate(LLTextValidate::validateNonNegativeS32);
+    get_floater_child<LLLineEditor>(this, "amount")->setKeystrokeCallback(&LLFloaterPay::onKeystroke, this);
+    get_floater_child<LLLineEditor>(this, "amount")->setPrevalidate(LLTextValidate::validateNonNegativeS32);
 }
 
 void LLFloaterPay::setupPayButton()
@@ -205,20 +230,20 @@ void LLFloaterPay::setupPayButton()
 
     childSetAction("pay btn", boost::bind(LLFloaterPay::onGive, info));
     setDefaultBtn("pay btn");
-    getChildView("pay btn")->setVisible(false);
+    get_floater_view(this, "pay btn")->setVisible(false);
     setPayButtonEnabled(false);
 }
 
 void LLFloaterPay::setCustomPayControlsVisible(bool visible)
 {
-    getChildView("amount")->setVisible(visible);
-    getChildView("pay btn")->setVisible(visible);
-    getChildView("amount text")->setVisible(visible);
+    get_floater_view(this, "amount")->setVisible(visible);
+    get_floater_view(this, "pay btn")->setVisible(visible);
+    get_floater_view(this, "amount text")->setVisible(visible);
 }
 
 void LLFloaterPay::setPayButtonEnabled(bool enabled)
 {
-    getChildView("pay btn")->setEnabled(enabled);
+    get_floater_view(this, "pay btn")->setEnabled(enabled);
 }
 
 void LLFloaterPay::syncPayButtonFromAmount()
@@ -229,7 +254,7 @@ void LLFloaterPay::syncPayButtonFromAmount()
 
 std::string LLFloaterPay::getAmountText()
 {
-    return getChild<LLUICtrl>("amount")->getValue().asString();
+    return get_floater_child<LLUICtrl>(this, "amount")->getValue().asString();
 }
 
 S32 LLFloaterPay::getEnteredAmount()
@@ -239,12 +264,12 @@ S32 LLFloaterPay::getEnteredAmount()
 
 void LLFloaterPay::setObjectNameText(const std::string& object_name)
 {
-    getChild<LLUICtrl>("object_name_text")->setValue(object_name);
+    get_floater_child<LLUICtrl>(this, "object_name_text")->setValue(object_name);
 }
 
 void LLFloaterPay::focusAmountField()
 {
-    LLLineEditor* amount = getChild<LLLineEditor>("amount");
+    LLLineEditor* amount = get_floater_child<LLLineEditor>(this, "amount");
     amount->setFocus(true);
     amount->selectAll();
 }
@@ -290,7 +315,7 @@ void LLFloaterPay::processPayPriceReply(LLMessageSystem* msg, void **userdata)
             self->setCustomPayControlsVisible(true);
             self->setPayButtonEnabled(true);
 
-            self->getChild<LLUICtrl>("amount")->setValue(llformat("%d", llabs(price)));
+            get_floater_child<LLUICtrl>(self, "amount")->setValue(llformat("%d", llabs(price)));
         }
 
         S32 num_blocks = msg->getNumberOfBlocksFast(_PREHASH_ButtonData);
@@ -476,7 +501,7 @@ void LLFloaterPay::finishPayUI(const LLUUID& target_id, bool is_group)
         setTitle(getString("payee_resident"));
         slurl = LLSLURL("agent", target_id, "inspect").getSLURLString();
     }
-    getChild<LLTextBox>("payee_name")->setText(slurl);
+    get_floater_child<LLTextBox>(this, "payee_name")->setText(slurl);
 
     // Make sure the amount field has focus
     focusAmountField();
@@ -610,7 +635,7 @@ void LLFloaterPay::give(S32 amount)
         else
         {
             // just transfer the L$
-            std::string paymentMessage(getChild<LLLineEditor>("payment_message")->getValue().asString());
+            std::string paymentMessage(get_floater_child<LLLineEditor>(this, "payment_message")->getValue().asString());
 //MK
             // Don't allow to add a message to a payment to someone we cannot send an IM to.
             if (gRRenabled && gAgent.mRRInterface.containsWithoutException("sendim", mTargetUUID.asString()))

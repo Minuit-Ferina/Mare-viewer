@@ -41,6 +41,32 @@
 #include "lltrans.h"
 #include "llvoavatarself.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterSaveCameraPreset::LLFloaterSaveCameraPreset(const LLSD &key)
     : LLModalDialog(key)
 {
@@ -49,18 +75,18 @@ LLFloaterSaveCameraPreset::LLFloaterSaveCameraPreset(const LLSD &key)
 // virtual
 bool LLFloaterSaveCameraPreset::postBuild()
 {
-    mPresetCombo = getChild<LLComboBox>("preset_combo");
+    mPresetCombo = get_floater_child<LLComboBox>(this, "preset_combo");
 
-    mNameEditor = getChild<LLLineEditor>("preset_txt_editor");
+    mNameEditor = get_floater_child<LLLineEditor>(this, "preset_txt_editor");
     mNameEditor->setKeystrokeCallback(boost::bind(&LLFloaterSaveCameraPreset::onPresetNameEdited, this), NULL);
 
-    mSaveButton = getChild<LLButton>("save");
+    mSaveButton = get_floater_child<LLButton>(this, "save");
     mSaveButton->setCommitCallback(boost::bind(&LLFloaterSaveCameraPreset::onBtnSave, this));
 
-    mSaveRadioGroup = getChild<LLRadioGroup>("radio_save_preset");
+    mSaveRadioGroup = get_floater_child<LLRadioGroup>(this, "radio_save_preset");
     mSaveRadioGroup->setCommitCallback(boost::bind(&LLFloaterSaveCameraPreset::onSwitchSaveReplace, this));
 
-    getChild<LLButton>("cancel")->setCommitCallback(boost::bind(&LLFloaterSaveCameraPreset::onBtnCancel, this));
+    get_floater_child<LLButton>(this, "cancel")->setCommitCallback(boost::bind(&LLFloaterSaveCameraPreset::onBtnCancel, this));
 
     LLPresetsManager::instance().setPresetListChangeCallback(boost::bind(&LLFloaterSaveCameraPreset::onPresetsListChange, this));
 

@@ -100,6 +100,32 @@
 #include "llavatarnamecache.h"
 #include "llenvironment.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const S32 CORNER_COUNT = 4;
 
 const U32 MAX_LISTED_NAMES = 100;
@@ -235,7 +261,7 @@ LLFloaterRegionInfo::LLFloaterRegionInfo(const LLSD& seed)
 
 bool LLFloaterRegionInfo::postBuild()
 {
-    mTab = getChild<LLTabContainer>("region_panels");
+    mTab = get_floater_child<LLTabContainer>(this, "region_panels");
     mTab->setCommitCallback(boost::bind(&LLFloaterRegionInfo::onTabSelected, this, _2));
 
     // contruct the panels
@@ -356,11 +382,11 @@ void LLFloaterRegionInfo::requestRegionInfo()
     LLTabContainer* tab = findChild<LLTabContainer>("region_panels");
     if (tab)
     {
-        tab->getChild<LLPanel>("General")->setCtrlsEnabled(false);
-        tab->getChild<LLPanel>("Debug")->setCtrlsEnabled(false);
-        tab->getChild<LLPanel>("Terrain")->setAllChildrenEnabled(false, true);
-        tab->getChild<LLPanel>("Estate")->setCtrlsEnabled(false);
-        tab->getChild<LLPanel>("Access")->setCtrlsEnabled(false);
+        get_floater_child<LLPanel>(tab, "General")->setCtrlsEnabled(false);
+        get_floater_child<LLPanel>(tab, "Debug")->setCtrlsEnabled(false);
+        get_floater_child<LLPanel>(tab, "Terrain")->setAllChildrenEnabled(false, true);
+        get_floater_child<LLPanel>(tab, "Estate")->setCtrlsEnabled(false);
+        get_floater_child<LLPanel>(tab, "Access")->setCtrlsEnabled(false);
     }
 
     // Must allow anyone to request the RegionInfo data
@@ -428,7 +454,7 @@ void LLFloaterRegionInfo::processRegionInfo(LLMessageSystem* msg)
     // This is also the way to know about externally changed region environment.
     LLEnvManagerNew::instance().requestRegionSettings();
 #endif
-    LLTabContainer* tab = floater->getChild<LLTabContainer>("region_panels");
+    LLTabContainer* tab = get_floater_child<LLTabContainer>(floater, "region_panels");
 
     LLViewerRegion* region = gAgent.getRegion();
     bool allow_modify = gAgent.isGodlike() || (region && region->canManageEstate());
@@ -504,24 +530,24 @@ void LLFloaterRegionInfo::processRegionInfo(LLMessageSystem* msg)
     }
 
     // GENERAL PANEL
-    panel = tab->getChild<LLPanel>("General");
-    panel->getChild<LLUICtrl>("region_text")->setValue(LLSD(sim_name));
-    panel->getChild<LLUICtrl>("region_type")->setValue(LLSD(sim_type));
-    panel->getChild<LLUICtrl>("version_channel_text")->setValue(gLastVersionChannel);
+    panel = get_floater_child<LLPanel>(tab, "General");
+    get_floater_child<LLUICtrl>(panel, "region_text")->setValue(LLSD(sim_name));
+    get_floater_child<LLUICtrl>(panel, "region_type")->setValue(LLSD(sim_type));
+    get_floater_child<LLUICtrl>(panel, "version_channel_text")->setValue(gLastVersionChannel);
 
-    panel->getChild<LLUICtrl>("block_terraform_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_BLOCK_TERRAFORM));
-    panel->getChild<LLUICtrl>("block_fly_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_BLOCK_FLY));
-    panel->getChild<LLUICtrl>("block_fly_over_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_BLOCK_FLYOVER));
-    panel->getChild<LLUICtrl>("allow_damage_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_ALLOW_DAMAGE));
-    panel->getChild<LLUICtrl>("restrict_pushobject")->setValue(is_flag_set(region_flags, REGION_FLAGS_RESTRICT_PUSHOBJECT));
-    panel->getChild<LLUICtrl>("allow_land_resell_check")->setValue(!is_flag_set(region_flags, REGION_FLAGS_BLOCK_LAND_RESELL));
-    panel->getChild<LLUICtrl>("allow_parcel_changes_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_ALLOW_PARCEL_CHANGES));
-    panel->getChild<LLUICtrl>("block_parcel_search_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_BLOCK_PARCEL_SEARCH));
-    panel->getChild<LLUICtrl>("agent_limit_spin")->setValue(LLSD((F32)agent_limit));
-    panel->getChild<LLUICtrl>("object_bonus_spin")->setValue(LLSD(object_bonus_factor));
-    panel->getChild<LLUICtrl>("access_combo")->setValue(LLSD(sim_access));
+    get_floater_child<LLUICtrl>(panel, "block_terraform_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_BLOCK_TERRAFORM));
+    get_floater_child<LLUICtrl>(panel, "block_fly_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_BLOCK_FLY));
+    get_floater_child<LLUICtrl>(panel, "block_fly_over_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_BLOCK_FLYOVER));
+    get_floater_child<LLUICtrl>(panel, "allow_damage_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_ALLOW_DAMAGE));
+    get_floater_child<LLUICtrl>(panel, "restrict_pushobject")->setValue(is_flag_set(region_flags, REGION_FLAGS_RESTRICT_PUSHOBJECT));
+    get_floater_child<LLUICtrl>(panel, "allow_land_resell_check")->setValue(!is_flag_set(region_flags, REGION_FLAGS_BLOCK_LAND_RESELL));
+    get_floater_child<LLUICtrl>(panel, "allow_parcel_changes_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_ALLOW_PARCEL_CHANGES));
+    get_floater_child<LLUICtrl>(panel, "block_parcel_search_check")->setValue(is_flag_set(region_flags, REGION_FLAGS_BLOCK_PARCEL_SEARCH));
+    get_floater_child<LLUICtrl>(panel, "agent_limit_spin")->setValue(LLSD((F32)agent_limit));
+    get_floater_child<LLUICtrl>(panel, "object_bonus_spin")->setValue(LLSD(object_bonus_factor));
+    get_floater_child<LLUICtrl>(panel, "access_combo")->setValue(LLSD(sim_access));
 
-    panel->getChild<LLSpinCtrl>("agent_limit_spin")->setMaxValue((F32)hard_agent_limit);
+    get_floater_child<LLSpinCtrl>(panel, "agent_limit_spin")->setMaxValue((F32)hard_agent_limit);
 
     LLPanelRegionGeneralInfo* panel_general = LLFloaterRegionInfo::getPanelGeneral();
     if (panel)
@@ -534,26 +560,26 @@ void LLFloaterRegionInfo::processRegionInfo(LLMessageSystem* msg)
     U32 parent_estate_id;
     msg->getU32("RegionInfo", "ParentEstateID", parent_estate_id);
     bool teen_grid = (parent_estate_id == 5);  // *TODO add field to estate table and test that
-    panel->getChildView("access_combo")->setEnabled(gAgent.isGodlike() || (region && region->canManageEstate() && !teen_grid));
+    get_floater_view(panel, "access_combo")->setEnabled(gAgent.isGodlike() || (region && region->canManageEstate() && !teen_grid));
     panel->setCtrlsEnabled(allow_modify);
 
 
     // DEBUG PANEL
-    panel = tab->getChild<LLPanel>("Debug");
+    panel = get_floater_child<LLPanel>(tab, "Debug");
 
-    panel->getChild<LLUICtrl>("region_text")->setValue(LLSD(sim_name) );
-    panel->getChild<LLUICtrl>("disable_scripts_check")->setValue(LLSD((bool)(region_flags & REGION_FLAGS_SKIP_SCRIPTS)));
-    panel->getChild<LLUICtrl>("disable_collisions_check")->setValue(LLSD((bool)(region_flags & REGION_FLAGS_SKIP_COLLISIONS)));
-    panel->getChild<LLUICtrl>("disable_physics_check")->setValue(LLSD((bool)(region_flags & REGION_FLAGS_SKIP_PHYSICS)));
+    get_floater_child<LLUICtrl>(panel, "region_text")->setValue(LLSD(sim_name) );
+    get_floater_child<LLUICtrl>(panel, "disable_scripts_check")->setValue(LLSD((bool)(region_flags & REGION_FLAGS_SKIP_SCRIPTS)));
+    get_floater_child<LLUICtrl>(panel, "disable_collisions_check")->setValue(LLSD((bool)(region_flags & REGION_FLAGS_SKIP_COLLISIONS)));
+    get_floater_child<LLUICtrl>(panel, "disable_physics_check")->setValue(LLSD((bool)(region_flags & REGION_FLAGS_SKIP_PHYSICS)));
     panel->setCtrlsEnabled(allow_modify);
 
     // TERRAIN PANEL
-    panel = tab->getChild<LLPanel>("Terrain");
+    panel = get_floater_child<LLPanel>(tab, "Terrain");
 
-    panel->getChild<LLUICtrl>("region_text")->setValue(LLSD(sim_name));
-    panel->getChild<LLUICtrl>("water_height_spin")->setValue(region_info.mWaterHeight);
-    panel->getChild<LLUICtrl>("terrain_raise_spin")->setValue(region_info.mTerrainRaiseLimit);
-    panel->getChild<LLUICtrl>("terrain_lower_spin")->setValue(region_info.mTerrainLowerLimit);
+    get_floater_child<LLUICtrl>(panel, "region_text")->setValue(LLSD(sim_name));
+    get_floater_child<LLUICtrl>(panel, "water_height_spin")->setValue(region_info.mWaterHeight);
+    get_floater_child<LLUICtrl>(panel, "terrain_raise_spin")->setValue(region_info.mTerrainRaiseLimit);
+    get_floater_child<LLUICtrl>(panel, "terrain_lower_spin")->setValue(region_info.mTerrainLowerLimit);
 
     panel->setAllChildrenEnabled(allow_modify, true);
 
@@ -584,8 +610,8 @@ LLPanelEstateInfo* LLFloaterRegionInfo::getPanelEstate()
 {
     LLFloaterRegionInfo* floater = LLFloaterReg::getTypedInstance<LLFloaterRegionInfo>("region_info");
     if (!floater) return NULL;
-    LLTabContainer* tab = floater->getChild<LLTabContainer>("region_panels");
-    LLPanelEstateInfo* panel = (LLPanelEstateInfo*)tab->getChild<LLPanel>("Estate");
+    LLTabContainer* tab = get_floater_child<LLTabContainer>(floater, "region_panels");
+    LLPanelEstateInfo* panel = (LLPanelEstateInfo*)get_floater_child<LLPanel>(tab, "Estate");
     return panel;
 }
 
@@ -594,8 +620,8 @@ LLPanelEstateAccess* LLFloaterRegionInfo::getPanelAccess()
 {
     LLFloaterRegionInfo* floater = LLFloaterReg::getTypedInstance<LLFloaterRegionInfo>("region_info");
     if (!floater) return NULL;
-    LLTabContainer* tab = floater->getChild<LLTabContainer>("region_panels");
-    LLPanelEstateAccess* panel = (LLPanelEstateAccess*)tab->getChild<LLPanel>("Access");
+    LLTabContainer* tab = get_floater_child<LLTabContainer>(floater, "region_panels");
+    LLPanelEstateAccess* panel = (LLPanelEstateAccess*)get_floater_child<LLPanel>(tab, "Access");
     return panel;
 }
 
@@ -604,8 +630,8 @@ LLPanelEstateCovenant* LLFloaterRegionInfo::getPanelCovenant()
 {
     LLFloaterRegionInfo* floater = LLFloaterReg::getTypedInstance<LLFloaterRegionInfo>("region_info");
     if (!floater) return NULL;
-    LLTabContainer* tab = floater->getChild<LLTabContainer>("region_panels");
-    LLPanelEstateCovenant* panel = (LLPanelEstateCovenant*)tab->getChild<LLPanel>("Covenant");
+    LLTabContainer* tab = get_floater_child<LLTabContainer>(floater, "region_panels");
+    LLPanelEstateCovenant* panel = (LLPanelEstateCovenant*)get_floater_child<LLPanel>(tab, "Covenant");
     return panel;
 }
 
@@ -614,8 +640,8 @@ LLPanelRegionGeneralInfo* LLFloaterRegionInfo::getPanelGeneral()
 {
     LLFloaterRegionInfo* floater = LLFloaterReg::getTypedInstance<LLFloaterRegionInfo>("region_info");
     if (!floater) return NULL;
-    LLTabContainer* tab = floater->getChild<LLTabContainer>("region_panels");
-    LLPanelRegionGeneralInfo* panel = (LLPanelRegionGeneralInfo*)tab->getChild<LLPanel>("General");
+    LLTabContainer* tab = get_floater_child<LLTabContainer>(floater, "region_panels");
+    LLPanelRegionGeneralInfo* panel = (LLPanelRegionGeneralInfo*)get_floater_child<LLPanel>(tab, "General");
     return panel;
 }
 
@@ -624,8 +650,8 @@ LLPanelRegionEnvironment* LLFloaterRegionInfo::getPanelEnvironment()
 {
     LLFloaterRegionInfo* floater = LLFloaterReg::getTypedInstance<LLFloaterRegionInfo>("region_info");
     if (!floater) return NULL;
-    LLTabContainer* tab = floater->getChild<LLTabContainer>("region_panels");
-    LLPanelRegionEnvironment* panel = (LLPanelRegionEnvironment*)tab->getChild<LLPanel>("panel_env_info");
+    LLTabContainer* tab = get_floater_child<LLTabContainer>(floater, "region_panels");
+    LLPanelRegionEnvironment* panel = (LLPanelRegionEnvironment*)get_floater_child<LLPanel>(tab, "panel_env_info");
     return panel;
 }
 
@@ -649,9 +675,9 @@ LLPanelRegionTerrainInfo* LLFloaterRegionInfo::getPanelRegionTerrain()
         return NULL;
     }
 
-    LLTabContainer* tab_container = floater->getChild<LLTabContainer>("region_panels");
+    LLTabContainer* tab_container = get_floater_child<LLTabContainer>(floater, "region_panels");
     LLPanelRegionTerrainInfo* panel =
-        dynamic_cast<LLPanelRegionTerrainInfo*>(tab_container->getChild<LLPanel>("Terrain"));
+        dynamic_cast<LLPanelRegionTerrainInfo*>(get_floater_child<LLPanel>(tab_container, "Terrain"));
     llassert(panel);
     return panel;
 }
@@ -660,25 +686,25 @@ LLPanelRegionExperiences* LLFloaterRegionInfo::getPanelExperiences()
 {
     LLFloaterRegionInfo* floater = LLFloaterReg::getTypedInstance<LLFloaterRegionInfo>("region_info");
     if (!floater) return NULL;
-    LLTabContainer* tab = floater->getChild<LLTabContainer>("region_panels");
-    return (LLPanelRegionExperiences*)tab->getChild<LLPanel>("Experiences");
+    LLTabContainer* tab = get_floater_child<LLTabContainer>(floater, "region_panels");
+    return (LLPanelRegionExperiences*)get_floater_child<LLPanel>(tab, "Experiences");
 }
 
 void LLFloaterRegionInfo::disableTabCtrls()
 {
-    LLTabContainer* tab = getChild<LLTabContainer>("region_panels");
+    LLTabContainer* tab = get_floater_child<LLTabContainer>(this, "region_panels");
 
-    tab->getChild<LLPanel>("General")->setCtrlsEnabled(false);
-    tab->getChild<LLPanel>("Debug")->setCtrlsEnabled(false);
-    tab->getChild<LLPanel>("Terrain")->setAllChildrenEnabled(false, true);
-    tab->getChild<LLPanel>("panel_env_info")->setCtrlsEnabled(false);
-    tab->getChild<LLPanel>("Estate")->setCtrlsEnabled(false);
-    tab->getChild<LLPanel>("Access")->setCtrlsEnabled(false);
+    get_floater_child<LLPanel>(tab, "General")->setCtrlsEnabled(false);
+    get_floater_child<LLPanel>(tab, "Debug")->setCtrlsEnabled(false);
+    get_floater_child<LLPanel>(tab, "Terrain")->setAllChildrenEnabled(false, true);
+    get_floater_child<LLPanel>(tab, "panel_env_info")->setCtrlsEnabled(false);
+    get_floater_child<LLPanel>(tab, "Estate")->setCtrlsEnabled(false);
+    get_floater_child<LLPanel>(tab, "Access")->setCtrlsEnabled(false);
 }
 
 void LLFloaterRegionInfo::onTabSelected(const LLSD& param)
 {
-    LLPanel* active_panel = getChild<LLPanel>(param.asString());
+    LLPanel* active_panel = get_floater_child<LLPanel>(this, param.asString());
     active_panel->onOpen(LLSD());
 }
 
@@ -717,14 +743,14 @@ void LLFloaterRegionInfo::refresh()
 
 void LLFloaterRegionInfo::enableTopButtons()
 {
-    getChildView("top_colliders_btn")->setEnabled(true);
-    getChildView("top_scripts_btn")->setEnabled(true);
+    get_floater_view(this, "top_colliders_btn")->setEnabled(true);
+    get_floater_view(this, "top_scripts_btn")->setEnabled(true);
 }
 
 void LLFloaterRegionInfo::disableTopButtons()
 {
-    getChildView("top_colliders_btn")->setEnabled(false);
-    getChildView("top_scripts_btn")->setEnabled(false);
+    get_floater_view(this, "top_colliders_btn")->setEnabled(false);
+    get_floater_view(this, "top_scripts_btn")->setEnabled(false);
 }
 
 void LLFloaterRegionInfo::onGodLevelChange(U8 god_level)
@@ -855,7 +881,7 @@ void LLPanelRegionInfo::disableButton(const std::string& btn_name)
 
 void LLPanelRegionInfo::initCtrl(const std::string& name)
 {
-    getChild<LLUICtrl>(name)->setCommitCallback(boost::bind(&LLPanelRegionInfo::onChangeAnything, this));
+    get_floater_child<LLUICtrl>(this, name)->setCommitCallback(boost::bind(&LLPanelRegionInfo::onChangeAnything, this));
 }
 
 void LLPanelRegionInfo::initAndSetTexCtrl(LLTextureCtrl*& ctrl, const std::string& name)
@@ -905,16 +931,16 @@ bool LLPanelRegionGeneralInfo::refreshFromRegion(LLViewerRegion* region)
 {
     bool allow_modify = gAgent.isGodlike() || (region && region->canManageEstate());
     setCtrlsEnabled(allow_modify);
-    getChildView("apply_btn")->setEnabled(false);
-    getChildView("access_text")->setEnabled(allow_modify);
+    get_floater_view(this, "apply_btn")->setEnabled(false);
+    get_floater_view(this, "access_text")->setEnabled(allow_modify);
     // getChildView("access_combo")->setEnabled(allow_modify);
     // now set in processRegionInfo for teen grid detection
-    getChildView("kick_btn")->setEnabled(allow_modify);
-    getChildView("kick_all_btn")->setEnabled(allow_modify);
-    getChildView("im_btn")->setEnabled(allow_modify);
-    getChildView("manage_telehub_btn")->setEnabled(allow_modify);
-    getChildView("manage_restart_btn")->setEnabled(allow_modify);
-    getChildView("manage_restart_btn")->setVisible(LLFloaterRegionRestartSchedule::canUse());
+    get_floater_view(this, "kick_btn")->setEnabled(allow_modify);
+    get_floater_view(this, "kick_all_btn")->setEnabled(allow_modify);
+    get_floater_view(this, "im_btn")->setEnabled(allow_modify);
+    get_floater_view(this, "manage_telehub_btn")->setEnabled(allow_modify);
+    get_floater_view(this, "manage_restart_btn")->setEnabled(allow_modify);
+    get_floater_view(this, "manage_restart_btn")->setVisible(LLFloaterRegionRestartSchedule::canUse());
 
     // Data gets filled in by processRegionInfo
 
@@ -953,7 +979,7 @@ bool LLPanelRegionGeneralInfo::postBuild()
 
 void LLPanelRegionGeneralInfo::onBtnSet()
 {
-    if(mObjBonusFactor == getChild<LLUICtrl>("object_bonus_spin")->getValue().asReal())
+    if(mObjBonusFactor == get_floater_child<LLUICtrl>(this, "object_bonus_spin")->getValue().asReal())
     {
         if (sendUpdate())
         {
@@ -1102,17 +1128,17 @@ bool LLPanelRegionGeneralInfo::sendUpdate()
     std::string url = gAgent.getRegionCapability("DispatchRegionInfo");
     if (!url.empty())
     {
-        body["block_terraform"] = getChild<LLUICtrl>("block_terraform_check")->getValue();
-        body["block_fly"] = getChild<LLUICtrl>("block_fly_check")->getValue();
-        body["block_fly_over"] = getChild<LLUICtrl>("block_fly_over_check")->getValue();
-        body["allow_damage"] = getChild<LLUICtrl>("allow_damage_check")->getValue();
-        body["allow_land_resell"] = getChild<LLUICtrl>("allow_land_resell_check")->getValue();
-        body["agent_limit"] = getChild<LLUICtrl>("agent_limit_spin")->getValue();
-        body["prim_bonus"] = getChild<LLUICtrl>("object_bonus_spin")->getValue();
-        body["sim_access"] = getChild<LLUICtrl>("access_combo")->getValue();
-        body["restrict_pushobject"] = getChild<LLUICtrl>("restrict_pushobject")->getValue();
-        body["allow_parcel_changes"] = getChild<LLUICtrl>("allow_parcel_changes_check")->getValue();
-        body["block_parcel_search"] = getChild<LLUICtrl>("block_parcel_search_check")->getValue();
+        body["block_terraform"] = get_floater_child<LLUICtrl>(this, "block_terraform_check")->getValue();
+        body["block_fly"] = get_floater_child<LLUICtrl>(this, "block_fly_check")->getValue();
+        body["block_fly_over"] = get_floater_child<LLUICtrl>(this, "block_fly_over_check")->getValue();
+        body["allow_damage"] = get_floater_child<LLUICtrl>(this, "allow_damage_check")->getValue();
+        body["allow_land_resell"] = get_floater_child<LLUICtrl>(this, "allow_land_resell_check")->getValue();
+        body["agent_limit"] = get_floater_child<LLUICtrl>(this, "agent_limit_spin")->getValue();
+        body["prim_bonus"] = get_floater_child<LLUICtrl>(this, "object_bonus_spin")->getValue();
+        body["sim_access"] = get_floater_child<LLUICtrl>(this, "access_combo")->getValue();
+        body["restrict_pushobject"] = get_floater_child<LLUICtrl>(this, "restrict_pushobject")->getValue();
+        body["allow_parcel_changes"] = get_floater_child<LLUICtrl>(this, "allow_parcel_changes_check")->getValue();
+        body["block_parcel_search"] = get_floater_child<LLUICtrl>(this, "block_parcel_search_check")->getValue();
 
         LLCoreHttpUtil::HttpCoroutineAdapter::messageHttpPost(url, body,
             "Region info update posted.", "Region info update not posted.");
@@ -1122,33 +1148,33 @@ bool LLPanelRegionGeneralInfo::sendUpdate()
         strings_t strings;
         std::string buffer;
 
-        buffer = llformat("%s", (getChild<LLUICtrl>("block_terraform_check")->getValue().asBoolean() ? "Y" : "N"));
+        buffer = llformat("%s", (get_floater_child<LLUICtrl>(this, "block_terraform_check")->getValue().asBoolean() ? "Y" : "N"));
         strings.push_back(strings_t::value_type(buffer));
 
-        buffer = llformat("%s", (getChild<LLUICtrl>("block_fly_check")->getValue().asBoolean() ? "Y" : "N"));
+        buffer = llformat("%s", (get_floater_child<LLUICtrl>(this, "block_fly_check")->getValue().asBoolean() ? "Y" : "N"));
         strings.push_back(strings_t::value_type(buffer));
 
-        buffer = llformat("%s", (getChild<LLUICtrl>("allow_damage_check")->getValue().asBoolean() ? "Y" : "N"));
+        buffer = llformat("%s", (get_floater_child<LLUICtrl>(this, "allow_damage_check")->getValue().asBoolean() ? "Y" : "N"));
         strings.push_back(strings_t::value_type(buffer));
 
-        buffer = llformat("%s", (getChild<LLUICtrl>("allow_land_resell_check")->getValue().asBoolean() ? "Y" : "N"));
+        buffer = llformat("%s", (get_floater_child<LLUICtrl>(this, "allow_land_resell_check")->getValue().asBoolean() ? "Y" : "N"));
         strings.push_back(strings_t::value_type(buffer));
 
-        F32 value = (F32)getChild<LLUICtrl>("agent_limit_spin")->getValue().asReal();
+        F32 value = (F32)get_floater_child<LLUICtrl>(this, "agent_limit_spin")->getValue().asReal();
         buffer = llformat("%f", value);
         strings.push_back(strings_t::value_type(buffer));
 
-        value = (F32)getChild<LLUICtrl>("object_bonus_spin")->getValue().asReal();
+        value = (F32)get_floater_child<LLUICtrl>(this, "object_bonus_spin")->getValue().asReal();
         buffer = llformat("%f", value);
         strings.push_back(strings_t::value_type(buffer));
 
-        buffer = llformat("%d", getChild<LLUICtrl>("access_combo")->getValue().asInteger());
+        buffer = llformat("%d", get_floater_child<LLUICtrl>(this, "access_combo")->getValue().asInteger());
         strings.push_back(strings_t::value_type(buffer));
 
-        buffer = llformat("%s", (getChild<LLUICtrl>("restrict_pushobject")->getValue().asBoolean() ? "Y" : "N"));
+        buffer = llformat("%s", (get_floater_child<LLUICtrl>(this, "restrict_pushobject")->getValue().asBoolean() ? "Y" : "N"));
         strings.push_back(strings_t::value_type(buffer));
 
-        buffer = llformat("%s", (getChild<LLUICtrl>("allow_parcel_changes_check")->getValue().asBoolean() ? "Y" : "N"));
+        buffer = llformat("%s", (get_floater_child<LLUICtrl>(this, "allow_parcel_changes_check")->getValue().asBoolean() ? "Y" : "N"));
         strings.push_back(strings_t::value_type(buffer));
 
         LLUUID invoice(LLFloaterRegionInfo::getLastInvoice());
@@ -1157,7 +1183,7 @@ bool LLPanelRegionGeneralInfo::sendUpdate()
 
     // if we changed access levels, tell user about it
     LLViewerRegion* region = gAgent.getRegion();
-    if (region && (getChild<LLUICtrl>("access_combo")->getValue().asInteger() != region->getSimAccess()) )
+    if (region && (get_floater_child<LLUICtrl>(this, "access_combo")->getValue().asInteger() != region->getSimAccess()) )
     {
         LLNotificationsUtil::add("RegionMaturityChange");
     }
@@ -1191,22 +1217,22 @@ bool LLPanelRegionDebugInfo::refreshFromRegion(LLViewerRegion* region)
 {
     bool allow_modify = gAgent.isGodlike() || (region && region->canManageEstate());
     setCtrlsEnabled(allow_modify);
-    getChildView("apply_btn")->setEnabled(false);
-    getChildView("target_avatar_name")->setEnabled(false);
+    get_floater_view(this, "apply_btn")->setEnabled(false);
+    get_floater_view(this, "target_avatar_name")->setEnabled(false);
 
-    getChildView("choose_avatar_btn")->setEnabled(allow_modify);
-    getChildView("return_scripts")->setEnabled(allow_modify && !mTargetAvatar.isNull());
-    getChildView("return_other_land")->setEnabled(allow_modify && !mTargetAvatar.isNull());
-    getChildView("return_estate_wide")->setEnabled(allow_modify && !mTargetAvatar.isNull());
-    getChildView("return_btn")->setEnabled(allow_modify && !mTargetAvatar.isNull());
-    getChildView("top_colliders_btn")->setEnabled(allow_modify);
-    getChildView("top_scripts_btn")->setEnabled(allow_modify);
-    getChildView("restart_btn")->setEnabled(allow_modify);
-    getChildView("cancel_restart_btn")->setEnabled(allow_modify);
-    getChildView("region_debug_console_btn")->setEnabled(allow_modify);
-    getChildView("region_restart_delay")->setEnabled(allow_modify);
-    getChildView("region_restart_delay_label")->setEnabled(allow_modify);
-    getChildView("region_restart_delay_note")->setEnabled(allow_modify);
+    get_floater_view(this, "choose_avatar_btn")->setEnabled(allow_modify);
+    get_floater_view(this, "return_scripts")->setEnabled(allow_modify && !mTargetAvatar.isNull());
+    get_floater_view(this, "return_other_land")->setEnabled(allow_modify && !mTargetAvatar.isNull());
+    get_floater_view(this, "return_estate_wide")->setEnabled(allow_modify && !mTargetAvatar.isNull());
+    get_floater_view(this, "return_btn")->setEnabled(allow_modify && !mTargetAvatar.isNull());
+    get_floater_view(this, "top_colliders_btn")->setEnabled(allow_modify);
+    get_floater_view(this, "top_scripts_btn")->setEnabled(allow_modify);
+    get_floater_view(this, "restart_btn")->setEnabled(allow_modify);
+    get_floater_view(this, "cancel_restart_btn")->setEnabled(allow_modify);
+    get_floater_view(this, "region_debug_console_btn")->setEnabled(allow_modify);
+    get_floater_view(this, "region_restart_delay")->setEnabled(allow_modify);
+    get_floater_view(this, "region_restart_delay_label")->setEnabled(allow_modify);
+    get_floater_view(this, "region_restart_delay_note")->setEnabled(allow_modify);
 
     return LLPanelRegionInfo::refreshFromRegion(region);
 }
@@ -1218,13 +1244,13 @@ bool LLPanelRegionDebugInfo::sendUpdate()
     strings_t strings;
     std::string buffer;
 
-    buffer = llformat("%s", (getChild<LLUICtrl>("disable_scripts_check")->getValue().asBoolean() ? "Y" : "N"));
+    buffer = llformat("%s", (get_floater_child<LLUICtrl>(this, "disable_scripts_check")->getValue().asBoolean() ? "Y" : "N"));
     strings.push_back(buffer);
 
-    buffer = llformat("%s", (getChild<LLUICtrl>("disable_collisions_check")->getValue().asBoolean() ? "Y" : "N"));
+    buffer = llformat("%s", (get_floater_child<LLUICtrl>(this, "disable_collisions_check")->getValue().asBoolean() ? "Y" : "N"));
     strings.push_back(buffer);
 
-    buffer = llformat("%s", (getChild<LLUICtrl>("disable_physics_check")->getValue().asBoolean() ? "Y" : "N"));
+    buffer = llformat("%s", (get_floater_child<LLUICtrl>(this, "disable_physics_check")->getValue().asBoolean() ? "Y" : "N"));
     strings.push_back(buffer);
 
     LLUUID invoice(LLFloaterRegionInfo::getLastInvoice());
@@ -1249,7 +1275,7 @@ void LLPanelRegionDebugInfo::callbackAvatarID(const uuid_vec_t& ids, const std::
 {
     if (ids.empty() || names.empty()) return;
     mTargetAvatar = ids[0];
-    getChild<LLUICtrl>("target_avatar_name")->setValue(LLSD(names[0].getCompleteName()));
+    get_floater_child<LLUICtrl>(this, "target_avatar_name")->setValue(LLSD(names[0].getCompleteName()));
     refreshFromRegion( gAgent.getRegion() );
 }
 
@@ -1260,23 +1286,23 @@ void LLPanelRegionDebugInfo::onClickReturn(void* data)
     if (panelp->mTargetAvatar.isNull()) return;
 
     LLSD args;
-    args["USER_NAME"] = panelp->getChild<LLUICtrl>("target_avatar_name")->getValue().asString();
+    args["USER_NAME"] = get_floater_child<LLUICtrl>(panelp, "target_avatar_name")->getValue().asString();
     LLSD payload;
     payload["avatar_id"] = panelp->mTargetAvatar;
 
     U32 flags = SWD_ALWAYS_RETURN_OBJECTS;
 
-    if (panelp->getChild<LLUICtrl>("return_scripts")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(panelp, "return_scripts")->getValue().asBoolean())
     {
         flags |= SWD_SCRIPTED_ONLY;
     }
 
-    if (panelp->getChild<LLUICtrl>("return_other_land")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(panelp, "return_other_land")->getValue().asBoolean())
     {
         flags |= SWD_OTHERS_LAND_ONLY;
     }
     payload["flags"] = int(flags);
-    payload["return_estate_wide"] = panelp->getChild<LLUICtrl>("return_estate_wide")->getValue().asBoolean();
+    payload["return_estate_wide"] = get_floater_child<LLUICtrl>(panelp, "return_estate_wide")->getValue().asBoolean();
     LLNotificationsUtil::add("EstateObjectReturn", args, payload,
                                     boost::bind(&LLPanelRegionDebugInfo::callbackReturn, panelp, _1, _2));
 }
@@ -1325,8 +1351,8 @@ void LLPanelRegionDebugInfo::onClickTopColliders(void* data)
     instance->clearList();
     instance->disableRefreshBtn();
 
-    self->getChildView("top_colliders_btn")->setEnabled(false);
-    self->getChildView("top_scripts_btn")->setEnabled(false);
+    get_floater_view(self, "top_colliders_btn")->setEnabled(false);
+    get_floater_view(self, "top_scripts_btn")->setEnabled(false);
 
     self->sendEstateOwnerMessage(gMessageSystem, "colliders", invoice, strings);
 }
@@ -1344,8 +1370,8 @@ void LLPanelRegionDebugInfo::onClickTopScripts(void* data)
     instance->clearList();
     instance->disableRefreshBtn();
 
-    self->getChildView("top_colliders_btn")->setEnabled(false);
-    self->getChildView("top_scripts_btn")->setEnabled(false);
+    get_floater_view(self, "top_colliders_btn")->setEnabled(false);
+    get_floater_view(self, "top_scripts_btn")->setEnabled(false);
 
     self->sendEstateOwnerMessage(gMessageSystem, "scripts", invoice, strings);
 }
@@ -1575,7 +1601,7 @@ bool LLPanelRegionTerrainInfo::validateTextureHeights()
         std::string low = llformat("height_start_spin_%d", i);
         std::string high = llformat("height_range_spin_%d", i);
 
-        if (getChild<LLUICtrl>(low)->getValue().asReal() > getChild<LLUICtrl>(high)->getValue().asReal())
+        if (get_floater_child<LLUICtrl>(this, low)->getValue().asReal() > get_floater_child<LLUICtrl>(this, high)->getValue().asReal())
         {
             return false;
         }
@@ -1728,11 +1754,11 @@ bool LLPanelRegionTerrainInfo::refreshFromRegion(LLViewerRegion* region)
                         || (region && region->isEstateManager());
     setAllChildrenEnabled(owner_or_god_or_manager, true);
 
-    getChildView("apply_btn")->setEnabled(false);
+    get_floater_view(this, "apply_btn")->setEnabled(false);
 
     if (region)
     {
-        getChild<LLUICtrl>("region_text")->setValue(LLSD(region->getName()));
+        get_floater_child<LLUICtrl>(this, "region_text")->setValue(LLSD(region->getName()));
 
         LLVLComposition* compp = region->getComposition();
 
@@ -1846,23 +1872,23 @@ bool LLPanelRegionTerrainInfo::refreshFromRegion(LLViewerRegion* region)
         for(S32 i = 0; i < CORNER_COUNT; ++i)
         {
             buffer = llformat("height_start_spin_%d", i);
-            getChild<LLUICtrl>(buffer)->setValue(LLSD(compp->getStartHeight(i)));
+            get_floater_child<LLUICtrl>(this, buffer)->setValue(LLSD(compp->getStartHeight(i)));
             buffer = llformat("height_range_spin_%d", i);
-            getChild<LLUICtrl>(buffer)->setValue(LLSD(compp->getHeightRange(i)));
+            get_floater_child<LLUICtrl>(this, buffer)->setValue(LLSD(compp->getHeightRange(i)));
         }
     }
     else
     {
         LL_DEBUGS() << "no region set" << LL_ENDL;
-        getChild<LLUICtrl>("region_text")->setValue(LLSD(""));
+        get_floater_child<LLUICtrl>(this, "region_text")->setValue(LLSD(""));
     }
 
     // Update visibility of terrain swatches, etc
     refresh();
 
-    getChildView("download_raw_btn")->setEnabled(owner_or_god);
-    getChildView("upload_raw_btn")->setEnabled(owner_or_god);
-    getChildView("bake_terrain_btn")->setEnabled(owner_or_god);
+    get_floater_view(this, "download_raw_btn")->setEnabled(owner_or_god);
+    get_floater_view(this, "upload_raw_btn")->setEnabled(owner_or_god);
+    get_floater_view(this, "bake_terrain_btn")->setEnabled(owner_or_god);
 
     return LLPanelRegionInfo::refreshFromRegion(region);
 }
@@ -1873,7 +1899,7 @@ bool LLPanelRegionTerrainInfo::sendUpdate()
 {
     LL_INFOS() << __FUNCTION__ << LL_ENDL;
 
-    LLUICtrl* apply_btn = getChild<LLUICtrl>("apply_btn");
+    LLUICtrl* apply_btn = get_floater_child<LLUICtrl>(this, "apply_btn");
     if (apply_btn && !apply_btn->getEnabled())
     {
         LL_WARNS() << "Duplicate update, ignored" << LL_ENDL;
@@ -1913,9 +1939,9 @@ bool LLPanelRegionTerrainInfo::sendUpdate()
 
     // update the model
     LLRegionInfoModel& region_info = LLRegionInfoModel::instance();
-    region_info.mWaterHeight = (F32) getChild<LLUICtrl>("water_height_spin")->getValue().asReal();
-    region_info.mTerrainRaiseLimit = (F32) getChild<LLUICtrl>("terrain_raise_spin")->getValue().asReal();
-    region_info.mTerrainLowerLimit = (F32) getChild<LLUICtrl>("terrain_lower_spin")->getValue().asReal();
+    region_info.mWaterHeight = (F32) get_floater_child<LLUICtrl>(this, "water_height_spin")->getValue().asReal();
+    region_info.mTerrainRaiseLimit = (F32) get_floater_child<LLUICtrl>(this, "terrain_raise_spin")->getValue().asReal();
+    region_info.mTerrainLowerLimit = (F32) get_floater_child<LLUICtrl>(this, "terrain_lower_spin")->getValue().asReal();
 
     // and sync the region with it
     region_info.sendRegionTerrain(invoice);
@@ -1968,7 +1994,7 @@ bool LLPanelRegionTerrainInfo::sendUpdate()
     {
         buffer = llformat("height_start_spin_%d", i);
         std::string buffer2 = llformat("height_range_spin_%d", i);
-        std::string buffer3 = llformat("%d %f %f", i, (F32)getChild<LLUICtrl>(buffer)->getValue().asReal(), (F32)getChild<LLUICtrl>(buffer2)->getValue().asReal());
+        std::string buffer3 = llformat("%d %f %f", i, (F32)get_floater_child<LLUICtrl>(this, buffer)->getValue().asReal(), (F32)get_floater_child<LLUICtrl>(this, buffer2)->getValue().asReal());
         strings.push_back(buffer3);
     }
     sendEstateOwnerMessage(msg, "textureheights", invoice, strings);
@@ -2340,10 +2366,10 @@ void LLPanelEstateInfo::updateControls(LLViewerRegion* region)
     bool manager = (region && region->isEstateManager());
     setCtrlsEnabled(god || owner || manager);
 
-    getChildView("apply_btn")->setEnabled(false);
-    getChildView("estate_owner")->setEnabled(true);
-    getChildView("message_estate_btn")->setEnabled(god || owner || manager);
-    getChildView("kick_user_from_estate_btn")->setEnabled(god || owner || manager);
+    get_floater_view(this, "apply_btn")->setEnabled(false);
+    get_floater_view(this, "estate_owner")->setEnabled(true);
+    get_floater_view(this, "message_estate_btn")->setEnabled(god || owner || manager);
+    get_floater_view(this, "kick_user_from_estate_btn")->setEnabled(god || owner || manager);
 
     refresh();
 }
@@ -2400,11 +2426,11 @@ bool LLPanelEstateInfo::postBuild()
     childSetAction("message_estate_btn", boost::bind(&LLPanelEstateInfo::onClickMessageEstate, this));
     childSetAction("kick_user_from_estate_btn", boost::bind(&LLPanelEstateInfo::onClickKickUser, this));
 
-    getChild<LLUICtrl>("parcel_access_override")->setCommitCallback(boost::bind(&LLPanelEstateInfo::onChangeAccessOverride, this));
+    get_floater_child<LLUICtrl>(this, "parcel_access_override")->setCommitCallback(boost::bind(&LLPanelEstateInfo::onChangeAccessOverride, this));
 
-    getChild<LLUICtrl>("externally_visible_radio")->setFocus(true);
+    get_floater_child<LLUICtrl>(this, "externally_visible_radio")->setFocus(true);
 
-    getChild<LLTextBox>("estate_owner")->setIsFriendCallback(LLAvatarActions::isFriend);
+    get_floater_child<LLTextBox>(this, "estate_owner")->setIsFriendCallback(LLAvatarActions::isFriend);
 
     return LLPanelRegionInfo::postBuild();
 }
@@ -2412,18 +2438,18 @@ bool LLPanelEstateInfo::postBuild()
 void LLPanelEstateInfo::refresh()
 {
     // Disable access restriction controls if they make no sense.
-    bool public_access = ("estate_public_access" == getChild<LLUICtrl>("externally_visible_radio")->getValue().asString());
+    bool public_access = ("estate_public_access" == get_floater_child<LLUICtrl>(this, "externally_visible_radio")->getValue().asString());
 
-    getChildView("limit_payment")->setEnabled(public_access);
-    getChildView("limit_age_verified")->setEnabled(public_access);
-    getChildView("limit_bots")->setEnabled(public_access);
+    get_floater_view(this, "limit_payment")->setEnabled(public_access);
+    get_floater_view(this, "limit_age_verified")->setEnabled(public_access);
+    get_floater_view(this, "limit_bots")->setEnabled(public_access);
 
     // if this is set to false, then the limit fields are meaningless and should be turned off
     if (!public_access)
     {
-        getChild<LLUICtrl>("limit_payment")->setValue(false);
-        getChild<LLUICtrl>("limit_age_verified")->setValue(false);
-        getChild<LLUICtrl>("limit_bots")->setValue(false);
+        get_floater_child<LLUICtrl>(this, "limit_payment")->setValue(false);
+        get_floater_child<LLUICtrl>(this, "limit_age_verified")->setValue(false);
+        get_floater_child<LLUICtrl>(this, "limit_bots")->setValue(false);
     }
 }
 
@@ -2431,16 +2457,16 @@ void LLPanelEstateInfo::refreshFromEstate()
 {
     const LLEstateInfoModel& estate_info = LLEstateInfoModel::instance();
 
-    getChild<LLUICtrl>("estate_name")->setValue(estate_info.getName());
+    get_floater_child<LLUICtrl>(this, "estate_name")->setValue(estate_info.getName());
     setOwnerName(LLSLURL("agent", estate_info.getOwnerID(), "inspect").getSLURLString());
 
-    getChild<LLUICtrl>("externally_visible_radio")->setValue(estate_info.getIsExternallyVisible() ? "estate_public_access" : "estate_restricted_access");
-    getChild<LLUICtrl>("voice_chat_check")->setValue(estate_info.getAllowVoiceChat());
-    getChild<LLUICtrl>("allow_direct_teleport")->setValue(estate_info.getAllowDirectTeleport());
-    getChild<LLUICtrl>("limit_payment")->setValue(estate_info.getDenyAnonymous());
-    getChild<LLUICtrl>("limit_age_verified")->setValue(estate_info.getDenyAgeUnverified());
-    getChild<LLUICtrl>("parcel_access_override")->setValue(estate_info.getAllowAccessOverride());
-    getChild<LLUICtrl>("limit_bots")->setValue(estate_info.getDenyScriptedAgents());
+    get_floater_child<LLUICtrl>(this, "externally_visible_radio")->setValue(estate_info.getIsExternallyVisible() ? "estate_public_access" : "estate_restricted_access");
+    get_floater_child<LLUICtrl>(this, "voice_chat_check")->setValue(estate_info.getAllowVoiceChat());
+    get_floater_child<LLUICtrl>(this, "allow_direct_teleport")->setValue(estate_info.getAllowDirectTeleport());
+    get_floater_child<LLUICtrl>(this, "limit_payment")->setValue(estate_info.getDenyAnonymous());
+    get_floater_child<LLUICtrl>(this, "limit_age_verified")->setValue(estate_info.getDenyAgeUnverified());
+    get_floater_child<LLUICtrl>(this, "parcel_access_override")->setValue(estate_info.getAllowAccessOverride());
+    get_floater_child<LLUICtrl>(this, "limit_bots")->setValue(estate_info.getDenyScriptedAgents());
 
     // Ensure appriopriate state of the management UI
     updateControls(gAgent.getRegion());
@@ -2478,13 +2504,13 @@ bool LLPanelEstateInfo::callbackChangeLindenEstate(const LLSD& notification, con
 
             // update model
             estate_info.setUseFixedSun(false); // we don't support fixed sun estates anymore
-            estate_info.setIsExternallyVisible("estate_public_access" == getChild<LLUICtrl>("externally_visible_radio")->getValue().asString());
-            estate_info.setAllowDirectTeleport(getChild<LLUICtrl>("allow_direct_teleport")->getValue().asBoolean());
-            estate_info.setDenyAnonymous(getChild<LLUICtrl>("limit_payment")->getValue().asBoolean());
-            estate_info.setDenyAgeUnverified(getChild<LLUICtrl>("limit_age_verified")->getValue().asBoolean());
-            estate_info.setAllowVoiceChat(getChild<LLUICtrl>("voice_chat_check")->getValue().asBoolean());
-            estate_info.setAllowAccessOverride(getChild<LLUICtrl>("parcel_access_override")->getValue().asBoolean());
-            estate_info.setDenyScriptedAgents(getChild<LLUICtrl>("limit_bots")->getValue().asBoolean());
+            estate_info.setIsExternallyVisible("estate_public_access" == get_floater_child<LLUICtrl>(this, "externally_visible_radio")->getValue().asString());
+            estate_info.setAllowDirectTeleport(get_floater_child<LLUICtrl>(this, "allow_direct_teleport")->getValue().asBoolean());
+            estate_info.setDenyAnonymous(get_floater_child<LLUICtrl>(this, "limit_payment")->getValue().asBoolean());
+            estate_info.setDenyAgeUnverified(get_floater_child<LLUICtrl>(this, "limit_age_verified")->getValue().asBoolean());
+            estate_info.setAllowVoiceChat(get_floater_child<LLUICtrl>(this, "voice_chat_check")->getValue().asBoolean());
+            estate_info.setAllowAccessOverride(get_floater_child<LLUICtrl>(this, "parcel_access_override")->getValue().asBoolean());
+            estate_info.setDenyScriptedAgents(get_floater_child<LLUICtrl>(this, "limit_bots")->getValue().asBoolean());
             // JIGGLYPUFF
             //estate_info.setAllowAccessOverride(getChild<LLUICtrl>("")->getValue().asBoolean());
             // send the update to sim
@@ -2538,12 +2564,12 @@ void LLPanelEstateInfo::getEstateOwner()
 
 const std::string LLPanelEstateInfo::getOwnerName() const
 {
-    return getChild<LLUICtrl>("estate_owner")->getValue().asString();
+    return get_floater_child<LLUICtrl>(this, "estate_owner")->getValue().asString();
 }
 
 void LLPanelEstateInfo::setOwnerName(const std::string& name)
 {
-    getChild<LLUICtrl>("estate_owner")->setValue(LLSD(name));
+    get_floater_child<LLUICtrl>(this, "estate_owner")->setValue(LLSD(name));
 }
 
 // static
@@ -2573,7 +2599,7 @@ bool LLPanelEstateInfo::onMessageCommit(const LLSD& notification, const LLSD& re
 
 void LLPanelEstateInfo::onChangeAccessOverride()
 {
-    if (!getChild<LLUICtrl>("parcel_access_override")->getValue().asBoolean())
+    if (!get_floater_child<LLUICtrl>(this, "parcel_access_override")->getValue().asBoolean())
     {
         LLNotificationsUtil::add("EstateParcelAccessOverride");
     }
@@ -2589,13 +2615,13 @@ LLPanelEstateCovenant::LLPanelEstateCovenant()
 // virtual
 bool LLPanelEstateCovenant::refreshFromRegion(LLViewerRegion* region)
 {
-    LLTextBox* region_name = getChild<LLTextBox>("region_name_text");
+    LLTextBox* region_name = get_floater_child<LLTextBox>(this, "region_name_text");
     if (region_name)
     {
         region_name->setText(region->getName());
     }
 
-    LLTextBox* resellable_clause = getChild<LLTextBox>("resellable_clause");
+    LLTextBox* resellable_clause = get_floater_child<LLTextBox>(this, "resellable_clause");
     if (resellable_clause)
     {
         if (region->getRegionFlag(REGION_FLAGS_BLOCK_LAND_RESELL))
@@ -2608,7 +2634,7 @@ bool LLPanelEstateCovenant::refreshFromRegion(LLViewerRegion* region)
         }
     }
 
-    LLTextBox* changeable_clause = getChild<LLTextBox>("changeable_clause");
+    LLTextBox* changeable_clause = get_floater_child<LLTextBox>(this, "changeable_clause");
     if (changeable_clause)
     {
         if (region->getRegionFlag(REGION_FLAGS_ALLOW_PARCEL_CHANGES))
@@ -2621,16 +2647,16 @@ bool LLPanelEstateCovenant::refreshFromRegion(LLViewerRegion* region)
         }
     }
 
-    LLTextBox* region_maturity = getChild<LLTextBox>("region_maturity_text");
+    LLTextBox* region_maturity = get_floater_child<LLTextBox>(this, "region_maturity_text");
     if (region_maturity)
     {
         region_maturity->setText(region->getSimAccessString());
     }
 
-    LLTextBox* region_landtype = getChild<LLTextBox>("region_landtype_text");
+    LLTextBox* region_landtype = get_floater_child<LLTextBox>(this, "region_landtype_text");
     region_landtype->setText(region->getLocalizedSimProductName());
 
-    getChild<LLButton>("reset_covenant")->setEnabled(gAgent.isGodlike() || (region && region->canManageEstate()));
+    get_floater_child<LLButton>(this, "reset_covenant")->setEnabled(gAgent.isGodlike() || (region && region->canManageEstate()));
 
     // let the parent class handle the general data collection.
     bool rv = LLPanelRegionInfo::refreshFromRegion(region);
@@ -2653,12 +2679,12 @@ bool LLPanelEstateCovenant::estateUpdate(LLMessageSystem* msg)
 // virtual
 bool LLPanelEstateCovenant::postBuild()
 {
-    mEstateNameText = getChild<LLTextBox>("estate_name_text");
-    mEstateOwnerText = getChild<LLTextBox>("estate_owner_text");
+    mEstateNameText = get_floater_child<LLTextBox>(this, "estate_name_text");
+    mEstateOwnerText = get_floater_child<LLTextBox>(this, "estate_owner_text");
     mEstateOwnerText->setIsFriendCallback(LLAvatarActions::isFriend);
-    mLastModifiedText = getChild<LLTextBox>("covenant_timestamp_text");
-    mEditor = getChild<LLViewerTextEditor>("covenant_editor");
-    LLButton* reset_button = getChild<LLButton>("reset_covenant");
+    mLastModifiedText = get_floater_child<LLTextBox>(this, "covenant_timestamp_text");
+    mEditor = get_floater_child<LLViewerTextEditor>(this, "covenant_editor");
+    LLButton* reset_button = get_floater_child<LLButton>(this, "reset_covenant");
     reset_button->setEnabled(gAgent.canManageEstate());
     reset_button->setClickedCallback(LLPanelEstateCovenant::resetCovenantID, NULL);
 
@@ -3048,11 +3074,11 @@ bool LLPanelRegionExperiences::postBuild()
     mTrusted = setupList("panel_trusted", ESTATE_EXPERIENCE_TRUSTED_ADD, ESTATE_EXPERIENCE_TRUSTED_REMOVE);
     mBlocked = setupList("panel_blocked", ESTATE_EXPERIENCE_BLOCKED_ADD, ESTATE_EXPERIENCE_BLOCKED_REMOVE);
 
-    getChild<LLLayoutPanel>("trusted_layout_panel")->setVisible(true);
-    getChild<LLTextBox>("experiences_help_text")->setText(getString("estate_caption"));
-    getChild<LLTextBox>("trusted_text_help")->setText(getString("trusted_estate_text"));
-    getChild<LLTextBox>("allowed_text_help")->setText(getString("allowed_estate_text"));
-    getChild<LLTextBox>("blocked_text_help")->setText(getString("blocked_estate_text"));
+    get_floater_child<LLLayoutPanel>(this, "trusted_layout_panel")->setVisible(true);
+    get_floater_child<LLTextBox>(this, "experiences_help_text")->setText(getString("estate_caption"));
+    get_floater_child<LLTextBox>(this, "trusted_text_help")->setText(getString("trusted_estate_text"));
+    get_floater_child<LLTextBox>(this, "allowed_text_help")->setText(getString("allowed_estate_text"));
+    get_floater_child<LLTextBox>(this, "blocked_text_help")->setText(getString("blocked_estate_text"));
 
     return LLPanelRegionInfo::postBuild();
 }
@@ -3062,7 +3088,7 @@ LLPanelExperienceListEditor* LLPanelRegionExperiences::setupList( const char* co
     LLPanelExperienceListEditor* child = findChild<LLPanelExperienceListEditor>(control_name);
     if(child)
     {
-        child->getChild<LLTextBox>("text_name")->setText(child->getString(control_name));
+        get_floater_child<LLTextBox>(child, "text_name")->setText(child->getString(control_name));
         child->setMaxExperienceIDs(ESTATE_MAX_EXPERIENCE_IDS);
         child->setAddedCallback(  boost::bind(&LLPanelRegionExperiences::itemChanged, this, add_id, _1));
         child->setRemovedCallback(boost::bind(&LLPanelRegionExperiences::itemChanged, this, remove_id, _1));
@@ -3308,47 +3334,47 @@ LLPanelEstateAccess::LLPanelEstateAccess()
 
 bool LLPanelEstateAccess::postBuild()
 {
-    getChild<LLUICtrl>("allowed_avatar_name_list")->setCommitCallback(boost::bind(&LLPanelEstateInfo::onChangeChildCtrl, this, _1));
-    LLNameListCtrl *avatar_name_list = getChild<LLNameListCtrl>("allowed_avatar_name_list");
+    get_floater_child<LLUICtrl>(this, "allowed_avatar_name_list")->setCommitCallback(boost::bind(&LLPanelEstateInfo::onChangeChildCtrl, this, _1));
+    LLNameListCtrl *avatar_name_list = get_floater_child<LLNameListCtrl>(this, "allowed_avatar_name_list");
     if (avatar_name_list)
     {
         avatar_name_list->setCommitOnSelectionChange(true);
         avatar_name_list->setMaxItemCount(ESTATE_MAX_ACCESS_IDS);
     }
 
-    getChild<LLUICtrl>("allowed_search_input")->setCommitCallback(boost::bind(&LLPanelEstateAccess::onAllowedSearchEdit, this, _2));
+    get_floater_child<LLUICtrl>(this, "allowed_search_input")->setCommitCallback(boost::bind(&LLPanelEstateAccess::onAllowedSearchEdit, this, _2));
     childSetAction("add_allowed_avatar_btn", boost::bind(&LLPanelEstateAccess::onClickAddAllowedAgent, this));
     childSetAction("remove_allowed_avatar_btn", boost::bind(&LLPanelEstateAccess::onClickRemoveAllowedAgent, this));
     childSetAction("copy_allowed_list_btn", boost::bind(&LLPanelEstateAccess::onClickCopyAllowedList, this));
 
-    getChild<LLUICtrl>("allowed_group_name_list")->setCommitCallback(boost::bind(&LLPanelEstateInfo::onChangeChildCtrl, this, _1));
-    LLNameListCtrl* group_name_list = getChild<LLNameListCtrl>("allowed_group_name_list");
+    get_floater_child<LLUICtrl>(this, "allowed_group_name_list")->setCommitCallback(boost::bind(&LLPanelEstateInfo::onChangeChildCtrl, this, _1));
+    LLNameListCtrl* group_name_list = get_floater_child<LLNameListCtrl>(this, "allowed_group_name_list");
     if (group_name_list)
     {
         group_name_list->setCommitOnSelectionChange(true);
         group_name_list->setMaxItemCount(ESTATE_MAX_ACCESS_IDS);
     }
 
-    getChild<LLUICtrl>("allowed_group_search_input")->setCommitCallback(boost::bind(&LLPanelEstateAccess::onAllowedGroupsSearchEdit, this, _2));
-    getChild<LLUICtrl>("add_allowed_group_btn")->setCommitCallback(boost::bind(&LLPanelEstateAccess::onClickAddAllowedGroup, this));
+    get_floater_child<LLUICtrl>(this, "allowed_group_search_input")->setCommitCallback(boost::bind(&LLPanelEstateAccess::onAllowedGroupsSearchEdit, this, _2));
+    get_floater_child<LLUICtrl>(this, "add_allowed_group_btn")->setCommitCallback(boost::bind(&LLPanelEstateAccess::onClickAddAllowedGroup, this));
     childSetAction("remove_allowed_group_btn", boost::bind(&LLPanelEstateAccess::onClickRemoveAllowedGroup, this));
     childSetAction("copy_allowed_group_list_btn", boost::bind(&LLPanelEstateAccess::onClickCopyAllowedGroupList, this));
 
-    getChild<LLUICtrl>("banned_avatar_name_list")->setCommitCallback(boost::bind(&LLPanelEstateInfo::onChangeChildCtrl, this, _1));
-    LLNameListCtrl* banned_name_list = getChild<LLNameListCtrl>("banned_avatar_name_list");
+    get_floater_child<LLUICtrl>(this, "banned_avatar_name_list")->setCommitCallback(boost::bind(&LLPanelEstateInfo::onChangeChildCtrl, this, _1));
+    LLNameListCtrl* banned_name_list = get_floater_child<LLNameListCtrl>(this, "banned_avatar_name_list");
     if (banned_name_list)
     {
         banned_name_list->setCommitOnSelectionChange(true);
         banned_name_list->setMaxItemCount(ESTATE_MAX_BANNED_IDS);
     }
 
-    getChild<LLUICtrl>("banned_search_input")->setCommitCallback(boost::bind(&LLPanelEstateAccess::onBannedSearchEdit, this, _2));
+    get_floater_child<LLUICtrl>(this, "banned_search_input")->setCommitCallback(boost::bind(&LLPanelEstateAccess::onBannedSearchEdit, this, _2));
     childSetAction("add_banned_avatar_btn", boost::bind(&LLPanelEstateAccess::onClickAddBannedAgent, this));
     childSetAction("remove_banned_avatar_btn", boost::bind(&LLPanelEstateAccess::onClickRemoveBannedAgent, this));
     childSetAction("copy_banned_list_btn", boost::bind(&LLPanelEstateAccess::onClickCopyBannedList, this));
 
-    getChild<LLUICtrl>("estate_manager_name_list")->setCommitCallback(boost::bind(&LLPanelEstateInfo::onChangeChildCtrl, this, _1));
-    LLNameListCtrl* manager_name_list = getChild<LLNameListCtrl>("estate_manager_name_list");
+    get_floater_child<LLUICtrl>(this, "estate_manager_name_list")->setCommitCallback(boost::bind(&LLPanelEstateInfo::onChangeChildCtrl, this, _1));
+    LLNameListCtrl* manager_name_list = get_floater_child<LLNameListCtrl>(this, "estate_manager_name_list");
     if (manager_name_list)
     {
         manager_name_list->setCommitOnSelectionChange(true);
@@ -3369,22 +3395,22 @@ void LLPanelEstateAccess::updateControls(LLViewerRegion* region)
     bool enable_cotrols = god || owner || manager;
     setCtrlsEnabled(enable_cotrols);
 
-    LLNameListCtrl* allowedAvatars = getChild<LLNameListCtrl>("allowed_avatar_name_list");
-    LLNameListCtrl* allowedGroups = getChild<LLNameListCtrl>("allowed_group_name_list");
-    LLNameListCtrl* bannedAvatars = getChild<LLNameListCtrl>("banned_avatar_name_list");
-    LLNameListCtrl* estateManagers = getChild<LLNameListCtrl>("estate_manager_name_list");
+    LLNameListCtrl* allowedAvatars = get_floater_child<LLNameListCtrl>(this, "allowed_avatar_name_list");
+    LLNameListCtrl* allowedGroups = get_floater_child<LLNameListCtrl>(this, "allowed_group_name_list");
+    LLNameListCtrl* bannedAvatars = get_floater_child<LLNameListCtrl>(this, "banned_avatar_name_list");
+    LLNameListCtrl* estateManagers = get_floater_child<LLNameListCtrl>(this, "estate_manager_name_list");
 
     bool has_allowed_avatar = allowedAvatars->getFirstSelected();
     bool has_allowed_group = allowedGroups->getFirstSelected();
     bool has_banned_agent = bannedAvatars->getFirstSelected();
     bool has_estate_manager = estateManagers->getFirstSelected();
 
-    getChildView("add_allowed_avatar_btn")->setEnabled(enable_cotrols);
-    getChildView("remove_allowed_avatar_btn")->setEnabled(has_allowed_avatar && enable_cotrols);
+    get_floater_view(this, "add_allowed_avatar_btn")->setEnabled(enable_cotrols);
+    get_floater_view(this, "remove_allowed_avatar_btn")->setEnabled(has_allowed_avatar && enable_cotrols);
     allowedAvatars->setEnabled(enable_cotrols);
 
-    getChildView("add_allowed_group_btn")->setEnabled(enable_cotrols);
-    getChildView("remove_allowed_group_btn")->setEnabled(has_allowed_group && enable_cotrols);
+    get_floater_view(this, "add_allowed_group_btn")->setEnabled(enable_cotrols);
+    get_floater_view(this, "remove_allowed_group_btn")->setEnabled(has_allowed_group && enable_cotrols);
     allowedGroups->setEnabled(enable_cotrols);
 
     // Can't ban people from mainland, orientation islands, etc. because this
@@ -3392,13 +3418,13 @@ void LLPanelEstateAccess::updateControls(LLViewerRegion* region)
     // Disable their accounts in CSR tool instead.
     bool linden_estate = LLPanelEstateInfo::isLindenEstate();
     bool enable_ban = enable_cotrols && !linden_estate;
-    getChildView("add_banned_avatar_btn")->setEnabled(enable_ban);
-    getChildView("remove_banned_avatar_btn")->setEnabled(has_banned_agent && enable_ban);
+    get_floater_view(this, "add_banned_avatar_btn")->setEnabled(enable_ban);
+    get_floater_view(this, "remove_banned_avatar_btn")->setEnabled(has_banned_agent && enable_ban);
     bannedAvatars->setEnabled(enable_cotrols);
 
     // estate managers can't add estate managers
-    getChildView("add_estate_manager_btn")->setEnabled(god || owner);
-    getChildView("remove_estate_manager_btn")->setEnabled(has_estate_manager && (god || owner));
+    get_floater_view(this, "add_estate_manager_btn")->setEnabled(god || owner);
+    get_floater_view(this, "remove_estate_manager_btn")->setEnabled(has_estate_manager && (god || owner));
     estateManagers->setEnabled(god || owner);
 
     if (enable_cotrols != mCtrlsEnabled)
@@ -3548,7 +3574,7 @@ void LLPanelEstateAccess::addAllowedGroup2(LLUUID id)
     LLPanelEstateAccess* panel = LLFloaterRegionInfo::getPanelAccess();
     if (panel)
     {
-        LLNameListCtrl* group_list = panel->getChild<LLNameListCtrl>("allowed_group_name_list");
+        LLNameListCtrl* group_list = get_floater_child<LLNameListCtrl>(panel, "allowed_group_name_list");
         LLScrollListItem* item = group_list->getNameItemByAgentId(id);
         if (item)
         {
@@ -3673,7 +3699,7 @@ void LLPanelEstateAccess::accessAddCore3(const uuid_vec_t& ids, std::vector<LLAv
 
     if (change_info->mOperationFlag & ESTATE_ACCESS_ALLOWED_AGENT_ADD)
     {
-        LLNameListCtrl* name_list = panel->getChild<LLNameListCtrl>("allowed_avatar_name_list");
+        LLNameListCtrl* name_list = get_floater_child<LLNameListCtrl>(panel, "allowed_avatar_name_list");
         int currentCount = (name_list ? name_list->getItemCount() : 0);
         if (ids.size() + currentCount > ESTATE_MAX_ACCESS_IDS)
         {
@@ -3726,8 +3752,8 @@ void LLPanelEstateAccess::accessAddCore3(const uuid_vec_t& ids, std::vector<LLAv
     }
     if (change_info->mOperationFlag & ESTATE_ACCESS_BANNED_AGENT_ADD)
     {
-        LLNameListCtrl* name_list = panel->getChild<LLNameListCtrl>("banned_avatar_name_list");
-        LLNameListCtrl* em_list = panel->getChild<LLNameListCtrl>("estate_manager_name_list");
+        LLNameListCtrl* name_list = get_floater_child<LLNameListCtrl>(panel, "banned_avatar_name_list");
+        LLNameListCtrl* em_list = get_floater_child<LLNameListCtrl>(panel, "estate_manager_name_list");
         int currentCount = (name_list ? name_list->getItemCount() : 0);
         if (ids.size() + currentCount > ESTATE_MAX_BANNED_IDS)
         {
@@ -3829,7 +3855,7 @@ void LLPanelEstateAccess::accessRemoveCore(U32 operation_flag, const std::string
 {
     LLPanelEstateAccess* panel = LLFloaterRegionInfo::getPanelAccess();
     if (!panel) return;
-    LLNameListCtrl* name_list = panel->getChild<LLNameListCtrl>(list_ctrl_name);
+    LLNameListCtrl* name_list = get_floater_child<LLNameListCtrl>(panel, list_ctrl_name);
     if (!name_list) return;
 
     std::vector<LLScrollListItem*> list_vector = name_list->getAllSelected();
@@ -4090,14 +4116,14 @@ void LLPanelEstateAccess::requestEstateGetAccessCoro(std::string url)
     LLPanelEstateAccess* panel = LLFloaterRegionInfo::getPanelAccess();
     if (!panel) return;
 
-    LLNameListCtrl* allowed_agent_name_list = panel->getChild<LLNameListCtrl>("allowed_avatar_name_list");
+    LLNameListCtrl* allowed_agent_name_list = get_floater_child<LLNameListCtrl>(panel, "allowed_avatar_name_list");
     if (allowed_agent_name_list && result.has("AllowedAgents"))
     {
         LLStringUtil::format_map_t args;
         args["[ALLOWEDAGENTS]"] = llformat("%d", result["AllowedAgents"].size());
         args["[MAXACCESS]"] = llformat("%d", ESTATE_MAX_ACCESS_IDS);
         std::string msg = LLTrans::getString("RegionInfoAllowedResidents", args);
-        panel->getChild<LLUICtrl>("allow_resident_label")->setValue(LLSD(msg));
+        get_floater_child<LLUICtrl>(panel, "allow_resident_label")->setValue(LLSD(msg));
 
         allowed_agent_name_list->clearSortOrder();
         allowed_agent_name_list->deleteAllItems();
@@ -4109,14 +4135,14 @@ void LLPanelEstateAccess::requestEstateGetAccessCoro(std::string url)
         allowed_agent_name_list->sortByName(true);
     }
 
-    LLNameListCtrl* banned_agent_name_list = panel->getChild<LLNameListCtrl>("banned_avatar_name_list");
+    LLNameListCtrl* banned_agent_name_list = get_floater_child<LLNameListCtrl>(panel, "banned_avatar_name_list");
     if (banned_agent_name_list && result.has("BannedAgents"))
     {
         LLStringUtil::format_map_t args;
         args["[BANNEDAGENTS]"] = llformat("%d", result["BannedAgents"].size());
         args["[MAXBANNED]"] = llformat("%d", ESTATE_MAX_BANNED_IDS);
         std::string msg = LLTrans::getString("RegionInfoBannedResidents", args);
-        panel->getChild<LLUICtrl>("ban_resident_label")->setValue(LLSD(msg));
+        get_floater_child<LLUICtrl>(panel, "ban_resident_label")->setValue(LLSD(msg));
 
         banned_agent_name_list->clearSortOrder();
         banned_agent_name_list->deleteAllItems();
@@ -4152,14 +4178,14 @@ void LLPanelEstateAccess::requestEstateGetAccessCoro(std::string url)
         banned_agent_name_list->sortByName(true);
     }
 
-    LLNameListCtrl* allowed_group_name_list = panel->getChild<LLNameListCtrl>("allowed_group_name_list");
+    LLNameListCtrl* allowed_group_name_list = get_floater_child<LLNameListCtrl>(panel, "allowed_group_name_list");
     if (allowed_group_name_list && result.has("AllowedGroups"))
     {
         LLStringUtil::format_map_t args;
         args["[ALLOWEDGROUPS]"] = llformat("%d", result["AllowedGroups"].size());
         args["[MAXACCESS]"] = llformat("%d", ESTATE_MAX_GROUP_IDS);
         std::string msg = LLTrans::getString("RegionInfoAllowedGroups", args);
-        panel->getChild<LLUICtrl>("allow_group_label")->setValue(LLSD(msg));
+        get_floater_child<LLUICtrl>(panel, "allow_group_label")->setValue(LLSD(msg));
 
         allowed_group_name_list->clearSortOrder();
         allowed_group_name_list->deleteAllItems();
@@ -4171,14 +4197,14 @@ void LLPanelEstateAccess::requestEstateGetAccessCoro(std::string url)
         allowed_group_name_list->sortByName(true);
     }
 
-    LLNameListCtrl* estate_manager_name_list = panel->getChild<LLNameListCtrl>("estate_manager_name_list");
+    LLNameListCtrl* estate_manager_name_list = get_floater_child<LLNameListCtrl>(panel, "estate_manager_name_list");
     if (estate_manager_name_list && result.has("Managers"))
     {
         LLStringUtil::format_map_t args;
         args["[ESTATEMANAGERS]"] = llformat("%d", result["Managers"].size());
         args["[MAXMANAGERS]"] = llformat("%d", ESTATE_MAX_MANAGERS);
         std::string msg = LLTrans::getString("RegionInfoEstateManagers", args);
-        panel->getChild<LLUICtrl>("estate_manager_label")->setValue(LLSD(msg));
+        get_floater_child<LLUICtrl>(panel, "estate_manager_label")->setValue(LLSD(msg));
 
         estate_manager_name_list->clearSortOrder();
         estate_manager_name_list->deleteAllItems();
@@ -4201,7 +4227,7 @@ void LLPanelEstateAccess::onAllowedSearchEdit(const std::string& search_string)
 {
     LLPanelEstateAccess* panel = LLFloaterRegionInfo::getPanelAccess();
     if (!panel) return;
-    LLNameListCtrl* allowed_agent_name_list = panel->getChild<LLNameListCtrl>("allowed_avatar_name_list");
+    LLNameListCtrl* allowed_agent_name_list = get_floater_child<LLNameListCtrl>(panel, "allowed_avatar_name_list");
     searchAgent(allowed_agent_name_list, search_string);
 }
 
@@ -4209,7 +4235,7 @@ void LLPanelEstateAccess::onAllowedGroupsSearchEdit(const std::string& search_st
 {
     LLPanelEstateAccess* panel = LLFloaterRegionInfo::getPanelAccess();
     if (!panel) return;
-    LLNameListCtrl* allowed_group_name_list = panel->getChild<LLNameListCtrl>("allowed_group_name_list");
+    LLNameListCtrl* allowed_group_name_list = get_floater_child<LLNameListCtrl>(panel, "allowed_group_name_list");
     searchAgent(allowed_group_name_list, search_string);
 }
 
@@ -4217,7 +4243,7 @@ void LLPanelEstateAccess::onBannedSearchEdit(const std::string& search_string)
 {
     LLPanelEstateAccess* panel = LLFloaterRegionInfo::getPanelAccess();
     if (!panel) return;
-    LLNameListCtrl* banned_agent_name_list = panel->getChild<LLNameListCtrl>("banned_avatar_name_list");
+    LLNameListCtrl* banned_agent_name_list = get_floater_child<LLNameListCtrl>(panel, "banned_avatar_name_list");
     searchAgent(banned_agent_name_list, search_string);
 }
 
@@ -4240,7 +4266,7 @@ void LLPanelEstateAccess::copyListToClipboard(std::string list_name)
 {
     LLPanelEstateAccess* panel = LLFloaterRegionInfo::getPanelAccess();
     if (!panel) return;
-    LLNameListCtrl* name_list = panel->getChild<LLNameListCtrl>(list_name);
+    LLNameListCtrl* name_list = get_floater_child<LLNameListCtrl>(panel, list_name);
     if (!name_list) return;
 
     std::vector<LLScrollListItem*> list_vector = name_list->getAllData();
@@ -4329,11 +4355,11 @@ bool LLPanelRegionEnvironment::refreshFromRegion(LLViewerRegion* region)
         setNoSelection(true);
         setControlsEnabled(false);
         mCurEnvVersion = INVALID_PARCEL_ENVIRONMENT_VERSION;
-        getChild<LLUICtrl>("region_text")->setValue(LLSD(""));
+        get_floater_child<LLUICtrl>(this, "region_text")->setValue(LLSD(""));
     }
     else
     {
-        getChild<LLUICtrl>("region_text")->setValue(LLSD(region->getName()));
+        get_floater_child<LLUICtrl>(this, "region_text")->setValue(LLSD(region->getName()));
     }
     setNoSelection(false);
 

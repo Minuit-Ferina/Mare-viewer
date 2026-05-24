@@ -53,6 +53,32 @@
 #include "llworld.h"
 #include "pipeline.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const F32 REFRESH_INTERVAL = 1.0f;
 const S32 BAR_LEFT_PAD = 2;
 const S32 BAR_RIGHT_PAD = 5;
@@ -100,18 +126,18 @@ LLFloaterPerformance::~LLFloaterPerformance()
 
 bool LLFloaterPerformance::postBuild()
 {
-    mMainPanel = getChild<LLPanel>("panel_performance_main");
-    mNearbyPanel = getChild<LLPanel>("panel_performance_nearby");
-    mComplexityPanel = getChild<LLPanel>("panel_performance_complexity");
-    mSettingsPanel = getChild<LLPanel>("panel_performance_preferences");
-    mHUDsPanel = getChild<LLPanel>("panel_performance_huds");
-    mAutoadjustmentsPanel = getChild<LLPanel>("panel_performance_autoadjustments");
+    mMainPanel = get_floater_child<LLPanel>(this, "panel_performance_main");
+    mNearbyPanel = get_floater_child<LLPanel>(this, "panel_performance_nearby");
+    mComplexityPanel = get_floater_child<LLPanel>(this, "panel_performance_complexity");
+    mSettingsPanel = get_floater_child<LLPanel>(this, "panel_performance_preferences");
+    mHUDsPanel = get_floater_child<LLPanel>(this, "panel_performance_huds");
+    mAutoadjustmentsPanel = get_floater_child<LLPanel>(this, "panel_performance_autoadjustments");
 
-    getChild<LLPanel>("nearby_subpanel")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::showSelectedPanel, this, mNearbyPanel));
-    getChild<LLPanel>("complexity_subpanel")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::showSelectedPanel, this, mComplexityPanel));
-    getChild<LLPanel>("settings_subpanel")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::showSelectedPanel, this, mSettingsPanel));
-    getChild<LLPanel>("huds_subpanel")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::showSelectedPanel, this, mHUDsPanel));
-    getChild<LLPanel>("autoadjustments_subpanel")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::showSelectedPanel, this, mAutoadjustmentsPanel));
+    get_floater_child<LLPanel>(this, "nearby_subpanel")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::showSelectedPanel, this, mNearbyPanel));
+    get_floater_child<LLPanel>(this, "complexity_subpanel")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::showSelectedPanel, this, mComplexityPanel));
+    get_floater_child<LLPanel>(this, "settings_subpanel")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::showSelectedPanel, this, mSettingsPanel));
+    get_floater_child<LLPanel>(this, "huds_subpanel")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::showSelectedPanel, this, mHUDsPanel));
+    get_floater_child<LLPanel>(this, "autoadjustments_subpanel")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::showSelectedPanel, this, mAutoadjustmentsPanel));
 
     initBackBtn(mNearbyPanel);
     initBackBtn(mComplexityPanel);
@@ -119,30 +145,30 @@ bool LLFloaterPerformance::postBuild()
     initBackBtn(mHUDsPanel);
     initBackBtn(mAutoadjustmentsPanel);
 
-    mHUDList = mHUDsPanel->getChild<LLNameListCtrl>("hud_list");
+    mHUDList = get_floater_child<LLNameListCtrl>(mHUDsPanel, "hud_list");
     mHUDList->setNameListType(LLNameListCtrl::SPECIAL);
     mHUDList->setHoverIconName("StopReload_Off");
     mHUDList->setIconClickedCallback(boost::bind(&LLFloaterPerformance::detachObject, this, _1));
 
-    mObjectList = mComplexityPanel->getChild<LLNameListCtrl>("obj_list");
+    mObjectList = get_floater_child<LLNameListCtrl>(mComplexityPanel, "obj_list");
     mObjectList->setNameListType(LLNameListCtrl::SPECIAL);
     mObjectList->setHoverIconName("StopReload_Off");
     mObjectList->setIconClickedCallback(boost::bind(&LLFloaterPerformance::detachObject, this, _1));
 
-    mSettingsPanel->getChild<LLButton>("advanced_btn")->setCommitCallback(boost::bind(&LLFloaterPerformance::onClickAdvanced, this));
-    mSettingsPanel->getChild<LLButton>("defaults_btn")->setCommitCallback(boost::bind(&LLFloaterPerformance::onClickDefaults, this));
-    mSettingsPanel->getChild<LLRadioGroup>("graphics_quality")->setCommitCallback(boost::bind(&LLFloaterPerformance::onChangeQuality, this, _2));
-    mSettingsPanel->getChild<LLCheckBoxCtrl>("advanced_lighting_model")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::onClickAdvancedLighting, this));
-    mSettingsPanel->getChild<LLComboBox>("ShadowDetail")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::onClickShadows, this));
+    get_floater_child<LLButton>(mSettingsPanel, "advanced_btn")->setCommitCallback(boost::bind(&LLFloaterPerformance::onClickAdvanced, this));
+    get_floater_child<LLButton>(mSettingsPanel, "defaults_btn")->setCommitCallback(boost::bind(&LLFloaterPerformance::onClickDefaults, this));
+    get_floater_child<LLRadioGroup>(mSettingsPanel, "graphics_quality")->setCommitCallback(boost::bind(&LLFloaterPerformance::onChangeQuality, this, _2));
+    get_floater_child<LLCheckBoxCtrl>(mSettingsPanel, "advanced_lighting_model")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::onClickAdvancedLighting, this));
+    get_floater_child<LLComboBox>(mSettingsPanel, "ShadowDetail")->setMouseDownCallback(boost::bind(&LLFloaterPerformance::onClickShadows, this));
 
-    mNearbyPanel->getChild<LLButton>("exceptions_btn")->setCommitCallback(boost::bind(&LLFloaterPerformance::onClickExceptions, this));
-    mNearbyPanel->getChild<LLCheckBoxCtrl>("hide_avatars")->setCommitCallback(boost::bind(&LLFloaterPerformance::onClickHideAvatars, this));
-    mNearbyPanel->getChild<LLCheckBoxCtrl>("hide_avatars")->set(!LLPipeline::hasRenderTypeControl(LLPipeline::RENDER_TYPE_AVATAR));
-    mNearbyList = mNearbyPanel->getChild<LLNameListCtrl>("nearby_list");
+    get_floater_child<LLButton>(mNearbyPanel, "exceptions_btn")->setCommitCallback(boost::bind(&LLFloaterPerformance::onClickExceptions, this));
+    get_floater_child<LLCheckBoxCtrl>(mNearbyPanel, "hide_avatars")->setCommitCallback(boost::bind(&LLFloaterPerformance::onClickHideAvatars, this));
+    get_floater_child<LLCheckBoxCtrl>(mNearbyPanel, "hide_avatars")->set(!LLPipeline::hasRenderTypeControl(LLPipeline::RENDER_TYPE_AVATAR));
+    mNearbyList = get_floater_child<LLNameListCtrl>(mNearbyPanel, "nearby_list");
     mNearbyList->setRightMouseDownCallback(boost::bind(&LLFloaterPerformance::onAvatarListRightClick, this, _1, _2, _3));
 
     mMaxARTChangedSignal = gSavedSettings.getControl("RenderAvatarMaxART")->getCommitSignal()->connect(boost::bind(&LLFloaterPerformance::updateMaxRenderTime, this));
-    mNearbyPanel->getChild<LLSliderCtrl>("RenderAvatarMaxART")->setCommitCallback(boost::bind(&LLFloaterPerformance::updateMaxRenderTime, this));
+    get_floater_child<LLSliderCtrl>(mNearbyPanel, "RenderAvatarMaxART")->setCommitCallback(boost::bind(&LLFloaterPerformance::updateMaxRenderTime, this));
 
     if(!LLPerfStats::tunables.userAutoTuneEnabled)
     {
@@ -150,21 +176,21 @@ bool LLFloaterPerformance::postBuild()
     }
 
     LLStringExplicit fps_limit(llformat("%d", gViewerWindow->getWindow()->getRefreshRate()));
-    mAutoadjustmentsPanel->getChild<LLTextBox>("vsync_desc_limit")->setTextArg("[FPS_LIMIT]", fps_limit);
-    mAutoadjustmentsPanel->getChild<LLTextBox>("display_desc")->setTextArg("[FPS_LIMIT]", fps_limit);
-    mAutoadjustmentsPanel->getChild<LLButton>("defaults_btn")->setCommitCallback(boost::bind(&LLFloaterPerformance::onClickDefaults, this));
+    get_floater_child<LLTextBox>(mAutoadjustmentsPanel, "vsync_desc_limit")->setTextArg("[FPS_LIMIT]", fps_limit);
+    get_floater_child<LLTextBox>(mAutoadjustmentsPanel, "display_desc")->setTextArg("[FPS_LIMIT]", fps_limit);
+    get_floater_child<LLButton>(mAutoadjustmentsPanel, "defaults_btn")->setCommitCallback(boost::bind(&LLFloaterPerformance::onClickDefaults, this));
 
-    mStartAutotuneBtn = mAutoadjustmentsPanel->getChild<LLButton>("start_autotune");
-    mStopAutotuneBtn = mAutoadjustmentsPanel->getChild<LLButton>("stop_autotune");
+    mStartAutotuneBtn = get_floater_child<LLButton>(mAutoadjustmentsPanel, "start_autotune");
+    mStopAutotuneBtn = get_floater_child<LLButton>(mAutoadjustmentsPanel, "stop_autotune");
     mStartAutotuneBtn->setCommitCallback(boost::bind(&LLFloaterPerformance::startAutotune, this));
     mStopAutotuneBtn->setCommitCallback(boost::bind(&LLFloaterPerformance::stopAutotune, this));
 
-    mCheckTuneContinous = mAutoadjustmentsPanel->getChild<LLCheckBoxCtrl>("AutoTuneContinuous");
-    mTextWIPDesc = mAutoadjustmentsPanel->getChild<LLTextBox>("wip_desc");
-    mTextDisplayDesc = mAutoadjustmentsPanel->getChild<LLTextBox>("display_desc");
+    mCheckTuneContinous = get_floater_child<LLCheckBoxCtrl>(mAutoadjustmentsPanel, "AutoTuneContinuous");
+    mTextWIPDesc = get_floater_child<LLTextBox>(mAutoadjustmentsPanel, "wip_desc");
+    mTextDisplayDesc = get_floater_child<LLTextBox>(mAutoadjustmentsPanel, "display_desc");
 
-    mTextFPSLabel = getChild<LLTextBox>("fps_lbl");
-    mTextFPSValue = getChild<LLTextBox>("fps_value");
+    mTextFPSLabel = get_floater_child<LLTextBox>(this, "fps_lbl");
+    mTextFPSValue = get_floater_child<LLTextBox>(this, "fps_value");
 
     gSavedPerAccountSettings.declareBOOL("HadEnabledAutoFPS", false, "User had enabled AutoFPS at least once", LLControlVariable::PERSIST_ALWAYS);
 
@@ -174,8 +200,8 @@ bool LLFloaterPerformance::postBuild()
 void LLFloaterPerformance::refreshEnabledState()
 {
     // added so RLV can drive the ALM checkbox, fading it when needed
-    mSettingsPanel = getChild<LLPanel>("panel_performance_preferences");
-    mSettingsPanel->getChild<LLCheckBoxCtrl>("advanced_lighting_model")->setEnabled(! (gRRenabled && gAgent.mRRInterface.mContainsSetsphere));
+    mSettingsPanel = get_floater_child<LLPanel>(this, "panel_performance_preferences");
+    get_floater_child<LLCheckBoxCtrl>(mSettingsPanel, "advanced_lighting_model")->setEnabled(! (gRRenabled && gAgent.mRRInterface.mContainsSetsphere));
 }
 
 void LLFloaterPerformance::showSelectedPanel(LLPanel* selected_panel)
@@ -218,7 +244,7 @@ void LLFloaterPerformance::draw()
         else if (mNearbyPanel->getVisible())
         {
             populateNearbyList();
-            mNearbyPanel->getChild<LLCheckBoxCtrl>("hide_avatars")->set(!LLPipeline::hasRenderTypeControl(LLPipeline::RENDER_TYPE_AVATAR));
+            get_floater_child<LLCheckBoxCtrl>(mNearbyPanel, "hide_avatars")->set(!LLPipeline::hasRenderTypeControl(LLPipeline::RENDER_TYPE_AVATAR));
         }
         else if (mComplexityPanel->getVisible())
         {
@@ -249,11 +275,11 @@ void LLFloaterPerformance::hidePanels()
 
 void LLFloaterPerformance::initBackBtn(LLPanel* panel)
 {
-    panel->getChild<LLButton>("back_btn")->setCommitCallback(boost::bind(&LLFloaterPerformance::showMainPanel, this));
+    get_floater_child<LLButton>(panel, "back_btn")->setCommitCallback(boost::bind(&LLFloaterPerformance::showMainPanel, this));
 
-    panel->getChild<LLTextBox>("back_lbl")->setShowCursorHand(false);
-    panel->getChild<LLTextBox>("back_lbl")->setSoundFlags(LLView::MOUSE_UP);
-    panel->getChild<LLTextBox>("back_lbl")->setClickedCallback(boost::bind(&LLFloaterPerformance::showMainPanel, this));
+    get_floater_child<LLTextBox>(panel, "back_lbl")->setShowCursorHand(false);
+    get_floater_child<LLTextBox>(panel, "back_lbl")->setSoundFlags(LLView::MOUSE_UP);
+    get_floater_child<LLTextBox>(panel, "back_lbl")->setClickedCallback(boost::bind(&LLFloaterPerformance::showMainPanel, this));
 }
 
 void LLFloaterPerformance::populateHUDList()
@@ -581,8 +607,8 @@ void LLFloaterPerformance::onClickAdvanced()
         {
             // grab the 'graphics' panel from the preferences floater and
             // bring it the front!
-            LLTabContainer* tabcontainer = prefsfloater->getChild<LLTabContainer>("pref core");
-            LLPanel* graphicspanel = prefsfloater->getChild<LLPanel>("display");
+            LLTabContainer* tabcontainer = get_floater_child<LLTabContainer>(prefsfloater, "pref core");
+            LLPanel* graphicspanel = get_floater_child<LLPanel>(prefsfloater, "display");
             if (tabcontainer && graphicspanel)
             {
                 tabcontainer->selectTabPanel(graphicspanel);
@@ -624,8 +650,8 @@ void LLFloaterPerformance::onClickExceptions()
 void LLFloaterPerformance::updateMaxRenderTime()
 {
     LLAvatarComplexityControls::updateMaxRenderTime(
-        mNearbyPanel->getChild<LLSliderCtrl>("RenderAvatarMaxART"),
-        mNearbyPanel->getChild<LLTextBox>("RenderAvatarMaxARTText"),
+        get_floater_child<LLSliderCtrl>(mNearbyPanel, "RenderAvatarMaxART"),
+        get_floater_child<LLTextBox>(mNearbyPanel, "RenderAvatarMaxARTText"),
         true);
 }
 

@@ -51,6 +51,32 @@
 #include "roles_constants.h" // for GP_OBJECT_MANIPULATE
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterBulkPermission::LLFloaterBulkPermission(const LLSD& seed)
 :   LLFloater(seed),
     mDone(false)
@@ -90,7 +116,7 @@ bool LLFloaterBulkPermission::postBuild()
         mBulkChangeNextOwnerTransfer = true;
     }
 
-    mQueueOutputList = getChild<LLScrollListCtrl>("queue output");
+    mQueueOutputList = get_floater_child<LLScrollListCtrl>(this, "queue output");
     return true;
 }
 
@@ -118,7 +144,7 @@ void LLFloaterBulkPermission::doApply()
     private:
         std::vector<LLUUID>& mQueue;
     };
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("queue output");
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(this, "queue output");
     list->deleteAllItems();
     ModifiableGatherer gatherer(mObjectIDs);
     LLSelectMgr::getInstance()->getSelection()->applyToNodes(&gatherer);
@@ -217,7 +243,7 @@ void LLFloaterBulkPermission::onCommitCopy()
     {
         gSavedSettings.setBOOL("BulkChangeNextOwnerTransfer", true);
     }
-    LLCheckBoxCtrl* xfer =getChild<LLCheckBoxCtrl>("next_owner_transfer");
+    LLCheckBoxCtrl* xfer =get_floater_child<LLCheckBoxCtrl>(this, "next_owner_transfer");
     xfer->setEnabled(copyable);
 }
 

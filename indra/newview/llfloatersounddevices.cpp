@@ -35,6 +35,32 @@
 // Library includes
 #include "indra_constants.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 // protected
 LLFloaterSoundDevices::LLFloaterSoundDevices(const LLSD& key)
 :   LLTransientDockableFloater(NULL, false, key)
@@ -61,9 +87,9 @@ bool LLFloaterSoundDevices::postBuild()
     if (panel)
     {
         panel->setUseTuningMode(false);
-        getChild<LLUICtrl>("voice_input_device")->setCommitCallback(boost::bind(&LLPanelVoiceDeviceSettings::apply, panel));
-        getChild<LLUICtrl>("voice_output_device")->setCommitCallback(boost::bind(&LLPanelVoiceDeviceSettings::apply, panel));
-        getChild<LLUICtrl>("mic_volume_slider")->setCommitCallback(boost::bind(&LLPanelVoiceDeviceSettings::apply, panel));
+        get_floater_child<LLUICtrl>(this, "voice_input_device")->setCommitCallback(boost::bind(&LLPanelVoiceDeviceSettings::apply, panel));
+        get_floater_child<LLUICtrl>(this, "voice_output_device")->setCommitCallback(boost::bind(&LLPanelVoiceDeviceSettings::apply, panel));
+        get_floater_child<LLUICtrl>(this, "mic_volume_slider")->setCommitCallback(boost::bind(&LLPanelVoiceDeviceSettings::apply, panel));
     }
     return true;
 }

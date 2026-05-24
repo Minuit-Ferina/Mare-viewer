@@ -69,6 +69,32 @@
 #include "lltrans.h"
 #include "llimagedimensionsinfo.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const S32 PREVIEW_BORDER_WIDTH = 2;
 const S32 PREVIEW_RESIZE_HANDLE_SIZE = S32(RESIZE_HANDLE_WIDTH * OO_SQRT2) + PREVIEW_BORDER_WIDTH;
 const S32 PREVIEW_HPAD = PREVIEW_RESIZE_HANDLE_SIZE;
@@ -128,7 +154,7 @@ bool LLFloaterImagePreview::postBuild()
         {
             // We want "lossless_check" to be unchecked when it is disabled, regardless of
             // LosslessJ2CUpload state, so only assign control when enabling checkbox
-            LLCheckBoxCtrl* check_box = getChild<LLCheckBoxCtrl>("lossless_check");
+            LLCheckBoxCtrl* check_box = get_floater_child<LLCheckBoxCtrl>(this, "lossless_check");
             check_box->setEnabled(true);
             check_box->setControlVariable(gSavedSettings.getControl("LosslessJ2CUpload"));
         }
@@ -142,7 +168,7 @@ bool LLFloaterImagePreview::postBuild()
         setUploadButtonEnabled(false);
     }
 
-    getChild<LLUICtrl>("ok_btn")->setCommitCallback(boost::bind(&LLFloaterImagePreview::onBtnOK, this));
+    get_floater_child<LLUICtrl>(this, "ok_btn")->setCommitCallback(boost::bind(&LLFloaterImagePreview::onBtnOK, this));
 
     return true;
 }
@@ -418,37 +444,37 @@ S32 LLFloaterImagePreview::getPreviewDrawRight() const
 
 void LLFloaterImagePreview::setUploadButtonEnabled(bool enabled)
 {
-    getChildView("ok_btn")->setEnabled(enabled);
+    get_floater_view(this, "ok_btn")->setEnabled(enabled);
 }
 
 void LLFloaterImagePreview::hideBadImageStatus()
 {
-    getChildView("bad_image_text")->setVisible(false);
+    get_floater_view(this, "bad_image_text")->setVisible(false);
 }
 
 void LLFloaterImagePreview::showBadImageStatus()
 {
-    getChildView("bad_image_text")->setVisible(true);
+    get_floater_view(this, "bad_image_text")->setVisible(true);
 
     if(!mImageLoadError.empty())
     {
-        getChild<LLUICtrl>("bad_image_text")->setValue(mImageLoadError.c_str());
+        get_floater_child<LLUICtrl>(this, "bad_image_text")->setValue(mImageLoadError.c_str());
     }
 }
 
 void LLFloaterImagePreview::setPreviewTypeControlsEnabled(bool enabled)
 {
-    getChildView("clothing_type_combo")->setEnabled(enabled);
+    get_floater_view(this, "clothing_type_combo")->setEnabled(enabled);
 }
 
 std::string LLFloaterImagePreview::getUploadName()
 {
-    return getChild<LLUICtrl>("name_form")->getValue().asString();
+    return get_floater_child<LLUICtrl>(this, "name_form")->getValue().asString();
 }
 
 std::string LLFloaterImagePreview::getUploadDescription()
 {
-    return getChild<LLUICtrl>("description_form")->getValue().asString();
+    return get_floater_child<LLUICtrl>(this, "description_form")->getValue().asString();
 }
 
 

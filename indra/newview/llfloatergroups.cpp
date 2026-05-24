@@ -47,6 +47,32 @@
 #include "lluictrlfactory.h"
 #include "lltrans.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 using namespace LLOldEvents;
 
 // helper functions
@@ -71,13 +97,13 @@ LLFloaterGroupPicker::~LLFloaterGroupPicker()
 void LLFloaterGroupPicker::setPowersMask(U64 powers_mask)
 {
     mPowersMask = powers_mask;
-    init_group_list(getChild<LLScrollListCtrl>("group list"), gAgent.getGroupID(), mPowersMask);
+    init_group_list(get_floater_child<LLScrollListCtrl>(this, "group list"), gAgent.getGroupID(), mPowersMask);
 }
 
 
 bool LLFloaterGroupPicker::postBuild()
 {
-    LLScrollListCtrl* list_ctrl = getChild<LLScrollListCtrl>("group list");
+    LLScrollListCtrl* list_ctrl = get_floater_child<LLScrollListCtrl>(this, "group list");
     if (list_ctrl)
     {
         init_group_list(list_ctrl, gAgent.getGroupID(), mPowersMask);
@@ -91,7 +117,7 @@ bool LLFloaterGroupPicker::postBuild()
 
     setDefaultBtn("OK");
 
-    getChildView("OK")->setEnabled(true);
+    get_floater_view(this, "OK")->setEnabled(true);
 
     return true;
 }
@@ -101,7 +127,7 @@ void LLFloaterGroupPicker::removeNoneOption()
     // Remove group "none" from list. Group "none" is added in init_group_list().
     // Some UI elements use group "none", we need to manually delete it here.
     // Group "none" ID is LLUUID:null.
-    LLCtrlListInterface* group_list = getChild<LLScrollListCtrl>("group list")->getListInterface();
+    LLCtrlListInterface* group_list = get_floater_child<LLScrollListCtrl>(this, "group list")->getListInterface();
     if(group_list)
     {
         group_list->selectByValue(LLUUID::null);
@@ -172,10 +198,10 @@ void LLPanelGroups::reset()
     {
         group_list->operateOnAll(LLCtrlListInterface::OP_DELETE);
     }
-    getChild<LLUICtrl>("groupcount")->setTextArg("[COUNT]", llformat("%d",gAgent.mGroups.size()));
-    getChild<LLUICtrl>("groupcount")->setTextArg("[MAX]", llformat("%d",LLAgentBenefitsMgr::current().getGroupMembershipLimit()));
+    get_floater_child<LLUICtrl>(this, "groupcount")->setTextArg("[COUNT]", llformat("%d",gAgent.mGroups.size()));
+    get_floater_child<LLUICtrl>(this, "groupcount")->setTextArg("[MAX]", llformat("%d",LLAgentBenefitsMgr::current().getGroupMembershipLimit()));
 
-    init_group_list(getChild<LLScrollListCtrl>("group list"), gAgent.getGroupID());
+    init_group_list(get_floater_child<LLScrollListCtrl>(this, "group list"), gAgent.getGroupID());
     enableButtons();
 }
 
@@ -183,10 +209,10 @@ bool LLPanelGroups::postBuild()
 {
     childSetCommitCallback("group list", onGroupList, this);
 
-    getChild<LLUICtrl>("groupcount")->setTextArg("[COUNT]", llformat("%d",gAgent.mGroups.size()));
-    getChild<LLUICtrl>("groupcount")->setTextArg("[MAX]", llformat("%d",LLAgentBenefitsMgr::current().getGroupMembershipLimit()));
+    get_floater_child<LLUICtrl>(this, "groupcount")->setTextArg("[COUNT]", llformat("%d",gAgent.mGroups.size()));
+    get_floater_child<LLUICtrl>(this, "groupcount")->setTextArg("[MAX]", llformat("%d",LLAgentBenefitsMgr::current().getGroupMembershipLimit()));
 
-    LLScrollListCtrl *list = getChild<LLScrollListCtrl>("group list");
+    LLScrollListCtrl *list = get_floater_child<LLScrollListCtrl>(this, "group list");
     if (list)
     {
         init_group_list(list, gAgent.getGroupID());
@@ -224,25 +250,25 @@ void LLPanelGroups::enableButtons()
 
     if(group_id != gAgent.getGroupID())
     {
-        getChildView("Activate")->setEnabled(true);
+        get_floater_view(this, "Activate")->setEnabled(true);
     }
     else
     {
-        getChildView("Activate")->setEnabled(false);
+        get_floater_view(this, "Activate")->setEnabled(false);
     }
     if (group_id.notNull())
     {
-        getChildView("Info")->setEnabled(true);
-        getChildView("IM")->setEnabled(true);
-        getChildView("Leave")->setEnabled(true);
+        get_floater_view(this, "Info")->setEnabled(true);
+        get_floater_view(this, "IM")->setEnabled(true);
+        get_floater_view(this, "Leave")->setEnabled(true);
     }
     else
     {
-        getChildView("Info")->setEnabled(false);
-        getChildView("IM")->setEnabled(false);
-        getChildView("Leave")->setEnabled(false);
+        get_floater_view(this, "Info")->setEnabled(false);
+        get_floater_view(this, "IM")->setEnabled(false);
+        get_floater_view(this, "Leave")->setEnabled(false);
     }
-    getChildView("Create")->setEnabled(gAgent.canJoinGroups());
+    get_floater_view(this, "Create")->setEnabled(gAgent.canJoinGroups());
 }
 
 

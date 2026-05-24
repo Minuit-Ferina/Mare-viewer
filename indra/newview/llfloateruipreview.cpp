@@ -70,8 +70,34 @@
 #include <list>
 #include <map>
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 #if LL_DARWIN
 #include <CoreFoundation/CFURL.h>
+
 #endif
 
 // Static initialization
@@ -424,48 +450,48 @@ LLFloaterUIPreview::~LLFloaterUIPreview()
 // Perform post-build setup (defined in superclass)
 bool LLFloaterUIPreview::postBuild()
 {
-    LLPanel* main_panel_tmp = getChild<LLPanel>("main_panel");              // get a pointer to the main panel in order to...
-    mFileList = main_panel_tmp->getChild<LLScrollListCtrl>("name_list");    // save pointer to file list
+    LLPanel* main_panel_tmp = get_floater_child<LLPanel>(this, "main_panel");              // get a pointer to the main panel in order to...
+    mFileList = get_floater_child<LLScrollListCtrl>(main_panel_tmp, "name_list");    // save pointer to file list
     // Double-click opens the floater, for convenience
     mFileList->setDoubleClickCallback(boost::bind(&LLFloaterUIPreview::onClickDisplayFloater, this, PRIMARY_FLOATER));
 
     setDefaultBtn("display_floater");
     // get pointers to buttons and link to callbacks
-    mLanguageSelection = main_panel_tmp->getChild<LLComboBox>("language_select_combo");
+    mLanguageSelection = get_floater_child<LLComboBox>(main_panel_tmp, "language_select_combo");
     mLanguageSelection->setCommitCallback(boost::bind(&LLFloaterUIPreview::onLanguageComboSelect, this, mLanguageSelection));
-    mLanguageSelection_2 = main_panel_tmp->getChild<LLComboBox>("language_select_combo_2");
+    mLanguageSelection_2 = get_floater_child<LLComboBox>(main_panel_tmp, "language_select_combo_2");
     mLanguageSelection_2->setCommitCallback(boost::bind(&LLFloaterUIPreview::onLanguageComboSelect, this, mLanguageSelection));
-    LLPanel* editor_panel_tmp = main_panel_tmp->getChild<LLPanel>("editor_panel");
-    mDisplayFloaterBtn = main_panel_tmp->getChild<LLButton>("display_floater");
+    LLPanel* editor_panel_tmp = get_floater_child<LLPanel>(main_panel_tmp, "editor_panel");
+    mDisplayFloaterBtn = get_floater_child<LLButton>(main_panel_tmp, "display_floater");
     mDisplayFloaterBtn->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickDisplayFloater, this, PRIMARY_FLOATER));
-    mDisplayFloaterBtn_2 = main_panel_tmp->getChild<LLButton>("display_floater_2");
+    mDisplayFloaterBtn_2 = get_floater_child<LLButton>(main_panel_tmp, "display_floater_2");
     mDisplayFloaterBtn_2->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickDisplayFloater, this, SECONDARY_FLOATER));
-    mToggleOverlapButton = main_panel_tmp->getChild<LLButton>("toggle_overlap_panel");
+    mToggleOverlapButton = get_floater_child<LLButton>(main_panel_tmp, "toggle_overlap_panel");
     mToggleOverlapButton->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickToggleOverlapping, this));
-    mCloseOtherButton = main_panel_tmp->getChild<LLButton>("close_displayed_floater");
+    mCloseOtherButton = get_floater_child<LLButton>(main_panel_tmp, "close_displayed_floater");
     mCloseOtherButton->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickCloseDisplayedFloater, this, PRIMARY_FLOATER));
-    mCloseOtherButton_2 = main_panel_tmp->getChild<LLButton>("close_displayed_floater_2");
+    mCloseOtherButton_2 = get_floater_child<LLButton>(main_panel_tmp, "close_displayed_floater_2");
     mCloseOtherButton_2->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickCloseDisplayedFloater, this, SECONDARY_FLOATER));
-    mEditFloaterBtn = main_panel_tmp->getChild<LLButton>("edit_floater");
+    mEditFloaterBtn = get_floater_child<LLButton>(main_panel_tmp, "edit_floater");
     mEditFloaterBtn->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickEditFloater, this));
-    mExecutableBrowseButton = editor_panel_tmp->getChild<LLButton>("browse_for_executable");
-    LLPanel* vlt_panel_tmp = main_panel_tmp->getChild<LLPanel>("vlt_panel");
+    mExecutableBrowseButton = get_floater_child<LLButton>(editor_panel_tmp, "browse_for_executable");
+    LLPanel* vlt_panel_tmp = get_floater_child<LLPanel>(main_panel_tmp, "vlt_panel");
     mExecutableBrowseButton->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickBrowseForEditor, this));
-    mDiffBrowseButton = vlt_panel_tmp->getChild<LLButton>("browse_for_vlt_diffs");
+    mDiffBrowseButton = get_floater_child<LLButton>(vlt_panel_tmp, "browse_for_vlt_diffs");
     mDiffBrowseButton->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickBrowseForDiffs, this));
-    mToggleHighlightButton = vlt_panel_tmp->getChild<LLButton>("toggle_vlt_diff_highlight");
+    mToggleHighlightButton = get_floater_child<LLButton>(vlt_panel_tmp, "toggle_vlt_diff_highlight");
     mToggleHighlightButton->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickToggleDiffHighlighting, this));
-    main_panel_tmp->getChild<LLButton>("save_floater")->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickSaveFloater, this, PRIMARY_FLOATER));
-    main_panel_tmp->getChild<LLButton>("save_all_floaters")->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickSaveAll, this, PRIMARY_FLOATER));
+    get_floater_child<LLButton>(main_panel_tmp, "save_floater")->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickSaveFloater, this, PRIMARY_FLOATER));
+    get_floater_child<LLButton>(main_panel_tmp, "save_all_floaters")->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickSaveAll, this, PRIMARY_FLOATER));
 
-    getChild<LLButton>("export_schema")->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickExportSchema, this));
-    getChild<LLUICtrl>("show_rectangles")->setCommitCallback(
+    get_floater_child<LLButton>(this, "export_schema")->setClickedCallback(boost::bind(&LLFloaterUIPreview::onClickExportSchema, this));
+    get_floater_child<LLUICtrl>(this, "show_rectangles")->setCommitCallback(
         boost::bind(&LLFloaterUIPreview::onClickShowRectangles, this, _2));
 
     // get pointers to text fields
-    mEditorPathTextBox = editor_panel_tmp->getChild<LLLineEditor>("executable_path_field");
-    mEditorArgsTextBox = editor_panel_tmp->getChild<LLLineEditor>("executable_args_field");
-    mDiffPathTextBox = vlt_panel_tmp->getChild<LLLineEditor>("vlt_diff_path_field");
+    mEditorPathTextBox = get_floater_child<LLLineEditor>(editor_panel_tmp, "executable_path_field");
+    mEditorArgsTextBox = get_floater_child<LLLineEditor>(editor_panel_tmp, "executable_args_field");
+    mDiffPathTextBox = get_floater_child<LLLineEditor>(vlt_panel_tmp, "vlt_diff_path_field");
 
     // *HACK: restored saved editor path and args to textfields
     mEditorPathTextBox->setText(mSavedEditorPath);
@@ -473,9 +499,9 @@ bool LLFloaterUIPreview::postBuild()
     mDiffPathTextBox->setText(mSavedDiffPath);
 
     // Set up overlap panel
-    mOverlapPanel = getChild<LLOverlapPanel>("overlap_panel");
+    mOverlapPanel = get_floater_child<LLOverlapPanel>(this, "overlap_panel");
 
-    getChildView("overlap_scroll")->setVisible( mHighlightingOverlaps);
+    get_floater_view(this, "overlap_scroll")->setVisible( mHighlightingOverlaps);
 
     mDelim = gDirUtilp->getDirDelimiter();  // initialize delimiter to dir sep slash
 
@@ -1524,7 +1550,7 @@ void LLFloaterUIPreview::onClickToggleOverlapping()
         setRect(LLRect(getRect().mLeft,getRect().mTop,getRect().mRight + mOverlapPanel->getRect().getWidth(),getRect().mBottom));
         setResizeLimits(width + mOverlapPanel->getRect().getWidth(), height);
     }
-    getChildView("overlap_scroll")->setVisible( mHighlightingOverlaps);
+    get_floater_view(this, "overlap_scroll")->setVisible( mHighlightingOverlaps);
 }
 
 void LLFloaterUIPreview::findOverlapsInChildren(LLView* parent)

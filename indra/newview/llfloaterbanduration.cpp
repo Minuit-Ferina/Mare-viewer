@@ -30,6 +30,32 @@
 #include "llspinctrl.h"
 #include "llradiogroup.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterBanDuration::LLFloaterBanDuration(const LLSD& target)
     : LLFloater(target)
 {
@@ -40,9 +66,9 @@ bool LLFloaterBanDuration::postBuild()
     childSetAction("ok_btn", boost::bind(&LLFloaterBanDuration::onClickBan, this));
     childSetAction("cancel_btn", boost::bind(&LLFloaterBanDuration::onClickCancel, this));
 
-    getChild<LLUICtrl>("ban_duration_radio")->setCommitCallback(boost::bind(&LLFloaterBanDuration::onClickRadio, this));
-    getChild<LLRadioGroup>("ban_duration_radio")->setSelectedIndex(0);
-    getChild<LLUICtrl>("ban_hours")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "ban_duration_radio")->setCommitCallback(boost::bind(&LLFloaterBanDuration::onClickRadio, this));
+    get_floater_child<LLRadioGroup>(this, "ban_duration_radio")->setSelectedIndex(0);
+    get_floater_child<LLUICtrl>(this, "ban_hours")->setEnabled(false);
 
     return true;
 }
@@ -64,7 +90,7 @@ LLFloaterBanDuration* LLFloaterBanDuration::show(select_callback_t callback, uui
 
 void LLFloaterBanDuration::onClickRadio()
 {
-    getChild<LLUICtrl>("ban_hours")->setEnabled(getChild<LLRadioGroup>("ban_duration_radio")->getSelectedIndex() != 0);
+    get_floater_child<LLUICtrl>(this, "ban_hours")->setEnabled(get_floater_child<LLRadioGroup>(this, "ban_duration_radio")->getSelectedIndex() != 0);
 }
 
 void LLFloaterBanDuration::onClickCancel()
@@ -77,9 +103,9 @@ void LLFloaterBanDuration::onClickBan()
     if (mSelectionCallback)
     {
         S32 time = 0;
-        if (getChild<LLRadioGroup>("ban_duration_radio")->getSelectedIndex() != 0)
+        if (get_floater_child<LLRadioGroup>(this, "ban_duration_radio")->getSelectedIndex() != 0)
         {
-            LLSpinCtrl* hours_spin = getChild<LLSpinCtrl>("ban_hours");
+            LLSpinCtrl* hours_spin = get_floater_child<LLSpinCtrl>(this, "ban_hours");
             if (hours_spin)
             {
                 time = (S32)(LLDate::now().secondsSinceEpoch() + (hours_spin->getValue().asInteger() * 3600));

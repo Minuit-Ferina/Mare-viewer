@@ -52,6 +52,31 @@
 
 #include "llgroupactions.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const std::string LINDEN_HOMES_SKU = "131";
 bool LLFloaterLandHoldings::sHasLindenHome = false;
 
@@ -109,12 +134,12 @@ void LLFloaterLandHoldings::setupActions()
 
 LLScrollListCtrl* LLFloaterLandHoldings::getParcelList()
 {
-    return getChild<LLScrollListCtrl>("parcel list");
+    return get_floater_child<LLScrollListCtrl>(this, "parcel list");
 }
 
 LLScrollListCtrl* LLFloaterLandHoldings::getGrantList()
 {
-    return getChild<LLScrollListCtrl>("grant list");
+    return get_floater_child<LLScrollListCtrl>(this, "grant list");
 }
 
 
@@ -167,8 +192,8 @@ void LLFloaterLandHoldings::refresh()
 
 void LLFloaterLandHoldings::syncActionButtons(bool enabled)
 {
-    getChildView("Teleport")->setEnabled(enabled);
-    getChildView("Show on Map")->setEnabled(enabled);
+    get_floater_view(this, "Teleport")->setEnabled(enabled);
+    get_floater_view(this, "Show on Map")->setEnabled(enabled);
 }
 
 
@@ -374,7 +399,7 @@ void LLFloaterLandHoldings::refreshAggregates()
 
 void LLFloaterLandHoldings::syncAggregateText(S32 allowed_area, S32 current_area, S32 available_area)
 {
-    getChild<LLUICtrl>("allowed_text")->setTextArg("[AREA]", llformat("%d",allowed_area));
-    getChild<LLUICtrl>("current_text")->setTextArg("[AREA]", llformat("%d",current_area));
-    getChild<LLUICtrl>("available_text")->setTextArg("[AREA]", llformat("%d",available_area));
+    get_floater_child<LLUICtrl>(this, "allowed_text")->setTextArg("[AREA]", llformat("%d",allowed_area));
+    get_floater_child<LLUICtrl>(this, "current_text")->setTextArg("[AREA]", llformat("%d",current_area));
+    get_floater_child<LLUICtrl>(this, "available_text")->setTextArg("[AREA]", llformat("%d",available_area));
 }

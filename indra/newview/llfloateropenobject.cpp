@@ -51,6 +51,32 @@
 
 //MK
 #include "llagent.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //mk
 
 LLFloaterOpenObject::LLFloaterOpenObject(const LLSD& key)
@@ -70,8 +96,8 @@ LLFloaterOpenObject::~LLFloaterOpenObject()
 // virtual
 bool LLFloaterOpenObject::postBuild()
 {
-    getChild<LLUICtrl>("object_name")->setTextArg("[DESC]", std::string("Object") ); // *Note: probably do not want to translate this
-    mPanelInventoryObject = getChild<LLPanelObjectInventory>("object_contents");
+    get_floater_child<LLUICtrl>(this, "object_name")->setTextArg("[DESC]", std::string("Object") ); // *Note: probably do not want to translate this
+    mPanelInventoryObject = get_floater_child<LLPanelObjectInventory>(this, "object_contents");
 
     refresh();
     return true;
@@ -124,10 +150,10 @@ void LLFloaterOpenObject::refresh()
         enabled = false;
     }
 
-    getChild<LLUICtrl>("object_name")->setTextArg("[DESC]", name);
-    getChildView("copy_to_inventory_button")->setEnabled(enabled);
-    getChildView("copy_and_wear_button")->setEnabled(enabled);
-    getChildView("copy_and_replace_button")->setEnabled(enabled);
+    get_floater_child<LLUICtrl>(this, "object_name")->setTextArg("[DESC]", name);
+    get_floater_view(this, "copy_to_inventory_button")->setEnabled(enabled);
+    get_floater_view(this, "copy_and_wear_button")->setEnabled(enabled);
+    get_floater_view(this, "copy_and_replace_button")->setEnabled(enabled);
 
 }
 

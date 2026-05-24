@@ -86,6 +86,32 @@
 #include "llgroupactions.h"
 #include "llenvironment.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const F64 COVENANT_REFRESH_TIME_SEC = 60.0f;
 
 static std::string OWNER_ONLINE     = "0";
@@ -330,7 +356,7 @@ bool LLFloaterLand::postBuild()
 {
     setVisibleCallback(boost::bind(&LLFloaterLand::onVisibilityChanged, this, _2));
 
-    LLTabContainer* tab = getChild<LLTabContainer>("landtab");
+    LLTabContainer* tab = get_floater_child<LLTabContainer>(this, "landtab");
 
     mTabLand = (LLTabContainer*) tab;
 
@@ -454,11 +480,11 @@ LLPanelLandGeneral::LLPanelLandGeneral(LLParcelSelectionHandle& parcel)
 
 bool LLPanelLandGeneral::postBuild()
 {
-    mEditName = getChild<LLLineEditor>("Name");
+    mEditName = get_floater_child<LLLineEditor>(this, "Name");
     mEditName->setCommitCallback(onCommitAny, this);
-    getChild<LLLineEditor>("Name")->setPrevalidate(LLTextValidate::validateASCIIPrintableNoPipe);
+    get_floater_child<LLLineEditor>(this, "Name")->setPrevalidate(LLTextValidate::validateASCIIPrintableNoPipe);
 
-    mEditDesc = getChild<LLTextEditor>("Description");
+    mEditDesc = get_floater_child<LLTextEditor>(this, "Description");
     mEditDesc->setCommitOnFocusLost(true);
     mEditDesc->setCommitCallback(onCommitAny, this);
     mEditDesc->setContentTrusted(false);
@@ -466,89 +492,89 @@ bool LLPanelLandGeneral::postBuild()
     // allowing residents to put in characters like U+2661 WHITE HEART SUIT, so
     // preserve that ability.
 
-    mTextSalePending = getChild<LLTextBox>("SalePending");
-    mTextOwnerLabel = getChild<LLTextBox>("Owner:");
-    mTextOwner = getChild<LLTextBox>("OwnerText");
+    mTextSalePending = get_floater_child<LLTextBox>(this, "SalePending");
+    mTextOwnerLabel = get_floater_child<LLTextBox>(this, "Owner:");
+    mTextOwner = get_floater_child<LLTextBox>(this, "OwnerText");
     mTextOwner->setIsFriendCallback(LLAvatarActions::isFriend);
 
-    mContentRating = getChild<LLTextBox>("ContentRatingText");
-    mLandType = getChild<LLTextBox>("LandTypeText");
+    mContentRating = get_floater_child<LLTextBox>(this, "ContentRatingText");
+    mLandType = get_floater_child<LLTextBox>(this, "LandTypeText");
 
-    mBtnProfile = getChild<LLButton>("Profile...");
+    mBtnProfile = get_floater_child<LLButton>(this, "Profile...");
     mBtnProfile->setClickedCallback(boost::bind(&LLPanelLandGeneral::onClickProfile, this));
 
 
-    mTextGroupLabel = getChild<LLTextBox>("Group:");
-    mTextGroup = getChild<LLTextBox>("GroupText");
+    mTextGroupLabel = get_floater_child<LLTextBox>(this, "Group:");
+    mTextGroup = get_floater_child<LLTextBox>(this, "GroupText");
 
 
-    mBtnSetGroup = getChild<LLButton>("Set...");
+    mBtnSetGroup = get_floater_child<LLButton>(this, "Set...");
     mBtnSetGroup->setCommitCallback(boost::bind(&LLPanelLandGeneral::onClickSetGroup, this));
 
 
-    mCheckDeedToGroup = getChild<LLCheckBoxCtrl>( "check deed");
+    mCheckDeedToGroup = get_floater_child<LLCheckBoxCtrl>(this,  "check deed");
     childSetCommitCallback("check deed", onCommitAny, this);
 
 
-    mBtnDeedToGroup = getChild<LLButton>("Deed...");
+    mBtnDeedToGroup = get_floater_child<LLButton>(this, "Deed...");
     mBtnDeedToGroup->setClickedCallback(onClickDeed, this);
 
 
-    mCheckContributeWithDeed = getChild<LLCheckBoxCtrl>( "check contrib");
+    mCheckContributeWithDeed = get_floater_child<LLCheckBoxCtrl>(this,  "check contrib");
     childSetCommitCallback("check contrib", onCommitAny, this);
 
 
 
-    mSaleInfoNotForSale = getChild<LLTextBox>("Not for sale.");
+    mSaleInfoNotForSale = get_floater_child<LLTextBox>(this, "Not for sale.");
 
-    mSaleInfoForSale1 = getChild<LLTextBox>("For Sale: Price L$[PRICE].");
+    mSaleInfoForSale1 = get_floater_child<LLTextBox>(this, "For Sale: Price L$[PRICE].");
 
 
-    mBtnSellLand = getChild<LLButton>("Sell Land...");
+    mBtnSellLand = get_floater_child<LLButton>(this, "Sell Land...");
     mBtnSellLand->setClickedCallback(onClickSellLand, this);
 
-    mSaleInfoForSale2 = getChild<LLTextBox>("For sale to");
+    mSaleInfoForSale2 = get_floater_child<LLTextBox>(this, "For sale to");
 
-    mSaleInfoForSaleObjects = getChild<LLTextBox>("Sell with landowners objects in parcel.");
+    mSaleInfoForSaleObjects = get_floater_child<LLTextBox>(this, "Sell with landowners objects in parcel.");
 
-    mSaleInfoForSaleNoObjects = getChild<LLTextBox>("Selling with no objects in parcel.");
+    mSaleInfoForSaleNoObjects = get_floater_child<LLTextBox>(this, "Selling with no objects in parcel.");
 
 
-    mBtnStopSellLand = getChild<LLButton>("Cancel Land Sale");
+    mBtnStopSellLand = get_floater_child<LLButton>(this, "Cancel Land Sale");
     mBtnStopSellLand->setClickedCallback(onClickStopSellLand, this);
 
 
-    mTextClaimDateLabel = getChild<LLTextBox>("Claimed:");
-    mTextClaimDate = getChild<LLTextBox>("DateClaimText");
+    mTextClaimDateLabel = get_floater_child<LLTextBox>(this, "Claimed:");
+    mTextClaimDate = get_floater_child<LLTextBox>(this, "DateClaimText");
 
 
-    mTextPriceLabel = getChild<LLTextBox>("PriceLabel");
-    mTextPrice = getChild<LLTextBox>("PriceText");
+    mTextPriceLabel = get_floater_child<LLTextBox>(this, "PriceLabel");
+    mTextPrice = get_floater_child<LLTextBox>(this, "PriceText");
 
 
-    mTextDwell = getChild<LLTextBox>("DwellText");
+    mTextDwell = get_floater_child<LLTextBox>(this, "DwellText");
 
-    mBtnBuyLand = getChild<LLButton>("Buy Land...");
+    mBtnBuyLand = get_floater_child<LLButton>(this, "Buy Land...");
     mBtnBuyLand->setClickedCallback(onClickBuyLand, (void*)&BUY_PERSONAL_LAND);
 
 
-    mBtnBuyGroupLand = getChild<LLButton>("Buy For Group...");
+    mBtnBuyGroupLand = get_floater_child<LLButton>(this, "Buy For Group...");
     mBtnBuyGroupLand->setClickedCallback(onClickBuyLand, (void*)&BUY_GROUP_LAND);
 
 
-    mBtnBuyPass = getChild<LLButton>("Buy Pass...");
+    mBtnBuyPass = get_floater_child<LLButton>(this, "Buy Pass...");
     mBtnBuyPass->setClickedCallback(onClickBuyPass, this);
 
-    mBtnReleaseLand = getChild<LLButton>("Abandon Land...");
+    mBtnReleaseLand = get_floater_child<LLButton>(this, "Abandon Land...");
     mBtnReleaseLand->setClickedCallback(onClickRelease, NULL);
 
-    mBtnReclaimLand = getChild<LLButton>("Reclaim Land...");
+    mBtnReclaimLand = get_floater_child<LLButton>(this, "Reclaim Land...");
     mBtnReclaimLand->setClickedCallback(onClickReclaim, NULL);
 
-    mBtnStartAuction = getChild<LLButton>("Linden Sale...");
+    mBtnStartAuction = get_floater_child<LLButton>(this, "Linden Sale...");
     mBtnStartAuction->setClickedCallback(onClickStartAuction, this);
 
-    mBtnScriptLimits = getChild<LLButton>("Scripts...");
+    mBtnScriptLimits = get_floater_child<LLButton>(this, "Scripts...");
 
     if(gDisconnected)
     {
@@ -1210,50 +1236,50 @@ bool LLPanelLandObjects::postBuild()
 {
 
     mFirstReply = true;
-    mParcelObjectBonus = getChild<LLTextBox>("parcel_object_bonus");
-    mSWTotalObjects = getChild<LLTextBox>("objects_available");
-    mObjectContribution = getChild<LLTextBox>("object_contrib_text");
-    mTotalObjects = getChild<LLTextBox>("total_objects_text");
-    mOwnerObjects = getChild<LLTextBox>("owner_objects_text");
+    mParcelObjectBonus = get_floater_child<LLTextBox>(this, "parcel_object_bonus");
+    mSWTotalObjects = get_floater_child<LLTextBox>(this, "objects_available");
+    mObjectContribution = get_floater_child<LLTextBox>(this, "object_contrib_text");
+    mTotalObjects = get_floater_child<LLTextBox>(this, "total_objects_text");
+    mOwnerObjects = get_floater_child<LLTextBox>(this, "owner_objects_text");
 
-    mBtnShowOwnerObjects = getChild<LLButton>("ShowOwner");
+    mBtnShowOwnerObjects = get_floater_child<LLButton>(this, "ShowOwner");
     mBtnShowOwnerObjects->setClickedCallback(onClickShowOwnerObjects, this);
 
-    mBtnReturnOwnerObjects = getChild<LLButton>("ReturnOwner...");
+    mBtnReturnOwnerObjects = get_floater_child<LLButton>(this, "ReturnOwner...");
     mBtnReturnOwnerObjects->setClickedCallback(onClickReturnOwnerObjects, this);
 
-    mGroupObjects = getChild<LLTextBox>("group_objects_text");
-    mBtnShowGroupObjects = getChild<LLButton>("ShowGroup");
+    mGroupObjects = get_floater_child<LLTextBox>(this, "group_objects_text");
+    mBtnShowGroupObjects = get_floater_child<LLButton>(this, "ShowGroup");
     mBtnShowGroupObjects->setClickedCallback(onClickShowGroupObjects, this);
 
-    mBtnReturnGroupObjects = getChild<LLButton>("ReturnGroup...");
+    mBtnReturnGroupObjects = get_floater_child<LLButton>(this, "ReturnGroup...");
     mBtnReturnGroupObjects->setClickedCallback(onClickReturnGroupObjects, this);
 
-    mOtherObjects = getChild<LLTextBox>("other_objects_text");
-    mBtnShowOtherObjects = getChild<LLButton>("ShowOther");
+    mOtherObjects = get_floater_child<LLTextBox>(this, "other_objects_text");
+    mBtnShowOtherObjects = get_floater_child<LLButton>(this, "ShowOther");
     mBtnShowOtherObjects->setClickedCallback(onClickShowOtherObjects, this);
 
-    mBtnReturnOtherObjects = getChild<LLButton>("ReturnOther...");
+    mBtnReturnOtherObjects = get_floater_child<LLButton>(this, "ReturnOther...");
     mBtnReturnOtherObjects->setClickedCallback(onClickReturnOtherObjects, this);
 
-    mSelectedObjects = getChild<LLTextBox>("selected_objects_text");
-    mCleanOtherObjectsTime = getChild<LLLineEditor>("clean other time");
+    mSelectedObjects = get_floater_child<LLTextBox>(this, "selected_objects_text");
+    mCleanOtherObjectsTime = get_floater_child<LLLineEditor>(this, "clean other time");
 
     mCleanOtherObjectsTime->setFocusLostCallback(boost::bind(onLostFocus, _1, this));
     mCleanOtherObjectsTime->setCommitCallback(onCommitClean, this);
-    getChild<LLLineEditor>("clean other time")->setPrevalidate(LLTextValidate::validateNonNegativeS32);
+    get_floater_child<LLLineEditor>(this, "clean other time")->setPrevalidate(LLTextValidate::validateNonNegativeS32);
 
-    mBtnRefresh = getChild<LLButton>("Refresh List");
+    mBtnRefresh = get_floater_child<LLButton>(this, "Refresh List");
     mBtnRefresh->setClickedCallback(onClickRefresh, this);
 
-    mBtnReturnOwnerList = getChild<LLButton>("Return objects...");
+    mBtnReturnOwnerList = get_floater_child<LLButton>(this, "Return objects...");
     mBtnReturnOwnerList->setClickedCallback(onClickReturnOwnerList, this);
 
     mIconAvatarOnline = LLUIImageList::getInstance()->getUIImage("icon_avatar_online.tga", 0);
     mIconAvatarOffline = LLUIImageList::getInstance()->getUIImage("icon_avatar_offline.tga", 0);
     mIconGroup = LLUIImageList::getInstance()->getUIImage("icon_group.tga", 0);
 
-    mOwnerList = getChild<LLNameListCtrl>("owner list");
+    mOwnerList = get_floater_child<LLNameListCtrl>(this, "owner list");
     mOwnerList->setIsFriendCallback(LLAvatarActions::isFriend);
     mOwnerList->sortByColumnIndex(3, false);
     childSetCommitCallback("owner list", onCommitList, this);
@@ -1951,41 +1977,41 @@ LLPanelLandOptions::LLPanelLandOptions(LLParcelSelectionHandle& parcel)
 
 bool LLPanelLandOptions::postBuild()
 {
-    mCheckEditObjects = getChild<LLCheckBoxCtrl>( "edit objects check");
+    mCheckEditObjects = get_floater_child<LLCheckBoxCtrl>(this,  "edit objects check");
     childSetCommitCallback("edit objects check", onCommitAny, this);
 
-    mCheckEditGroupObjects = getChild<LLCheckBoxCtrl>( "edit group objects check");
+    mCheckEditGroupObjects = get_floater_child<LLCheckBoxCtrl>(this,  "edit group objects check");
     childSetCommitCallback("edit group objects check", onCommitAny, this);
 
-    mCheckAllObjectEntry = getChild<LLCheckBoxCtrl>( "all object entry check");
+    mCheckAllObjectEntry = get_floater_child<LLCheckBoxCtrl>(this,  "all object entry check");
     childSetCommitCallback("all object entry check", onCommitAny, this);
 
-    mCheckGroupObjectEntry = getChild<LLCheckBoxCtrl>( "group object entry check");
+    mCheckGroupObjectEntry = get_floater_child<LLCheckBoxCtrl>(this,  "group object entry check");
     childSetCommitCallback("group object entry check", onCommitAny, this);
 
-    mCheckGroupScripts = getChild<LLCheckBoxCtrl>( "check group scripts");
+    mCheckGroupScripts = get_floater_child<LLCheckBoxCtrl>(this,  "check group scripts");
     childSetCommitCallback("check group scripts", onCommitAny, this);
 
 
-    mCheckFly = getChild<LLCheckBoxCtrl>( "check fly");
+    mCheckFly = get_floater_child<LLCheckBoxCtrl>(this,  "check fly");
     childSetCommitCallback("check fly", onCommitAny, this);
 
 
-    mCheckOtherScripts = getChild<LLCheckBoxCtrl>( "check other scripts");
+    mCheckOtherScripts = get_floater_child<LLCheckBoxCtrl>(this,  "check other scripts");
     childSetCommitCallback("check other scripts", onCommitAny, this);
 
 
-    mCheckSafe = getChild<LLCheckBoxCtrl>( "check safe");
+    mCheckSafe = get_floater_child<LLCheckBoxCtrl>(this,  "check safe");
     childSetCommitCallback("check safe", onCommitAny, this);
 
 
-    mPushRestrictionCtrl = getChild<LLCheckBoxCtrl>( "PushRestrictCheck");
+    mPushRestrictionCtrl = get_floater_child<LLCheckBoxCtrl>(this,  "PushRestrictCheck");
     childSetCommitCallback("PushRestrictCheck", onCommitAny, this);
 
-    mSeeAvatarsCtrl = getChild<LLCheckBoxCtrl>( "SeeAvatarsCheck");
+    mSeeAvatarsCtrl = get_floater_child<LLCheckBoxCtrl>(this,  "SeeAvatarsCheck");
     childSetCommitCallback("SeeAvatarsCheck", onCommitAny, this);
 
-    mSeeAvatarsText = getChild<LLTextBox>("allow_see_label");
+    mSeeAvatarsText = get_floater_child<LLTextBox>(this, "allow_see_label");
     if (mSeeAvatarsText)
     {
         mSeeAvatarsText->setShowCursorHand(false);
@@ -1993,15 +2019,15 @@ bool LLPanelLandOptions::postBuild()
         mSeeAvatarsText->setClickedCallback(boost::bind(&toggleSeeAvatars, this));
     }
 
-    mCheckShowDirectory = getChild<LLCheckBoxCtrl>( "ShowDirectoryCheck");
+    mCheckShowDirectory = get_floater_child<LLCheckBoxCtrl>(this,  "ShowDirectoryCheck");
     childSetCommitCallback("ShowDirectoryCheck", onCommitAny, this);
 
 
-    mCategoryCombo = getChild<LLComboBox>( "land category");
+    mCategoryCombo = get_floater_child<LLComboBox>(this,  "land category");
     childSetCommitCallback("land category", onCommitAny, this);
 
 
-    mMatureCtrl = getChild<LLCheckBoxCtrl>( "MatureCheck");
+    mMatureCtrl = get_floater_child<LLCheckBoxCtrl>(this,  "MatureCheck");
     childSetCommitCallback("MatureCheck", onCommitAny, this);
 
     if (gAgent.wantsPGOnly())
@@ -2012,7 +2038,7 @@ bool LLPanelLandOptions::postBuild()
     }
 
 
-    mSnapshotCtrl = getChild<LLTextureCtrl>("snapshot_ctrl");
+    mSnapshotCtrl = get_floater_child<LLTextureCtrl>(this, "snapshot_ctrl");
     if (mSnapshotCtrl)
     {
         mSnapshotCtrl->setCommitCallback( onCommitAny, this );
@@ -2026,17 +2052,17 @@ bool LLPanelLandOptions::postBuild()
     }
 
 
-    mLocationText = getChild<LLTextBox>("landing_point");
+    mLocationText = get_floater_child<LLTextBox>(this, "landing_point");
 
-    mSetBtn = getChild<LLButton>("Set");
+    mSetBtn = get_floater_child<LLButton>(this, "Set");
     mSetBtn->setClickedCallback(onClickSet, this);
 
 
-    mClearBtn = getChild<LLButton>("Clear");
+    mClearBtn = get_floater_child<LLButton>(this, "Clear");
     mClearBtn->setClickedCallback(onClickClear, this);
 
 
-    mLandingTypeCombo = getChild<LLComboBox>( "landing type");
+    mLandingTypeCombo = get_floater_child<LLComboBox>(this,  "landing type");
     childSetCommitCallback("landing type", onCommitAny, this);
 
     return true;
@@ -2443,8 +2469,8 @@ void LLPanelLandOptions::toggleSeeAvatars(void* userdata)
     LLPanelLandOptions* self = (LLPanelLandOptions*)userdata;
     if (self)
     {
-        self->getChild<LLCheckBoxCtrl>("SeeAvatarsCheck")->toggle();
-        self->getChild<LLCheckBoxCtrl>("SeeAvatarsCheck")->setBtnFocus();
+        get_floater_child<LLCheckBoxCtrl>(self, "SeeAvatarsCheck")->toggle();
+        get_floater_child<LLCheckBoxCtrl>(self, "SeeAvatarsCheck")->setBtnFocus();
         self->onCommitAny(NULL, userdata);
     }
 }
@@ -2461,43 +2487,43 @@ LLPanelLandAccess::LLPanelLandAccess(LLParcelSelectionHandle& parcel)
 
 bool LLPanelLandAccess::postBuild()
 {
-    mPaymentInfoCheck = getChild<LLUICtrl>("limit_payment");
+    mPaymentInfoCheck = get_floater_child<LLUICtrl>(this, "limit_payment");
     mPaymentInfoCheck->setCommitCallback(onCommitAny, this);
-    mAgeVerifiedCheck = getChild<LLUICtrl>("limit_age_verified");
+    mAgeVerifiedCheck = get_floater_child<LLUICtrl>(this, "limit_age_verified");
     mAgeVerifiedCheck->setCommitCallback(onCommitAny, this);
-    mTemporaryPassCheck = getChild<LLUICtrl>("PassCheck");
+    mTemporaryPassCheck = get_floater_child<LLUICtrl>(this, "PassCheck");
     mTemporaryPassCheck->setCommitCallback(onCommitAny, this);
-    mPublicAccessCheck = getChild<LLUICtrl>("public_access");
+    mPublicAccessCheck = get_floater_child<LLUICtrl>(this, "public_access");
     mPublicAccessCheck->setCommitCallback(onCommitPublicAccess, this);
-    mGroupAccessCheck = getChild<LLUICtrl>("GroupCheck");
+    mGroupAccessCheck = get_floater_child<LLUICtrl>(this, "GroupCheck");
     mGroupAccessCheck->setCommitCallback(onCommitGroupCheck, this);
-    mTemporaryPassCombo = getChild<LLComboBox>("pass_combo");
+    mTemporaryPassCombo = get_floater_child<LLComboBox>(this, "pass_combo");
     mGroupAccessCheck->setCommitCallback(onCommitAny, this);
-    mTemporaryPassPriceSpin = getChild<LLUICtrl>("PriceSpin");
+    mTemporaryPassPriceSpin = get_floater_child<LLUICtrl>(this, "PriceSpin");
     mGroupAccessCheck->setCommitCallback(onCommitAny, this);
-    mTemporaryPassHourSpin = getChild<LLUICtrl>("HoursSpin");
+    mTemporaryPassHourSpin = get_floater_child<LLUICtrl>(this, "HoursSpin");
     mGroupAccessCheck->setCommitCallback(onCommitAny, this);
 
-    mAllowText = getChild<LLUICtrl>("AllowedText");
-    mBanText = getChild<LLUICtrl>("BanCheck");
+    mAllowText = get_floater_child<LLUICtrl>(this, "AllowedText");
+    mBanText = get_floater_child<LLUICtrl>(this, "BanCheck");
 
-    mBtnAddAllowed = getChild<LLButton>("add_allowed");
+    mBtnAddAllowed = get_floater_child<LLButton>(this, "add_allowed");
     mBtnAddAllowed->setCommitCallback(boost::bind(&LLPanelLandAccess::onClickAddAccess, this));
-    mBtnRemoveAllowed = getChild<LLButton>("remove_allowed");
+    mBtnRemoveAllowed = get_floater_child<LLButton>(this, "remove_allowed");
     mBtnRemoveAllowed->setCommitCallback(boost::bind(&LLPanelLandAccess::onClickRemoveAccess, this));
-    mBtnAddBanned = getChild<LLButton>("add_banned");
+    mBtnAddBanned = get_floater_child<LLButton>(this, "add_banned");
     mBtnAddBanned->setCommitCallback(boost::bind(&LLPanelLandAccess::onClickAddBanned, this));
-    mBtnRemoveBanned = getChild<LLButton>("remove_banned");
+    mBtnRemoveBanned = get_floater_child<LLButton>(this, "remove_banned");
     mBtnRemoveBanned->setCommitCallback(boost::bind(&LLPanelLandAccess::onClickRemoveBanned, this));
 
-    mListAccess = getChild<LLNameListCtrl>("AccessList");
+    mListAccess = get_floater_child<LLNameListCtrl>(this, "AccessList");
     if (mListAccess)
     {
         mListAccess->sortByColumnIndex(0, true); // ascending
         mListAccess->setContextMenu(LLScrollListCtrl::MENU_AVATAR);
     }
 
-    mListBanned = getChild<LLNameListCtrl>("BannedList");
+    mListBanned = get_floater_child<LLNameListCtrl>(this, "BannedList");
     if (mListBanned)
     {
         mListBanned->sortByColumnIndex(0, true); // ascending
@@ -3071,7 +3097,7 @@ bool LLPanelLandCovenant::postBuild()
 {
     mLastRegionID = LLUUID::null;
     mNextUpdateTime = 0;
-    mTextEstateOwner = getChild<LLTextBox>("estate_owner_text");
+    mTextEstateOwner = get_floater_child<LLTextBox>(this, "estate_owner_text");
     mTextEstateOwner->setIsFriendCallback(LLAvatarActions::isFriend);
     return true;
 }
@@ -3082,22 +3108,22 @@ void LLPanelLandCovenant::refresh()
     LLViewerRegion* region = LLViewerParcelMgr::getInstance()->getSelectionRegion();
     if(!region || gDisconnected) return;
 
-    LLTextBox* region_name = getChild<LLTextBox>("region_name_text");
+    LLTextBox* region_name = get_floater_child<LLTextBox>(this, "region_name_text");
     if (region_name)
     {
         region_name->setText(region->getName());
     }
 
-    LLTextBox* region_landtype = getChild<LLTextBox>("region_landtype_text");
+    LLTextBox* region_landtype = get_floater_child<LLTextBox>(this, "region_landtype_text");
     region_landtype->setText(region->getLocalizedSimProductName());
 
-    LLTextBox* region_maturity = getChild<LLTextBox>("region_maturity_text");
+    LLTextBox* region_maturity = get_floater_child<LLTextBox>(this, "region_maturity_text");
     if (region_maturity)
     {
         insert_maturity_into_textbox(region_maturity, gFloaterView->getParentFloater(this), MATURITY);
     }
 
-    LLTextBox* resellable_clause = getChild<LLTextBox>("resellable_clause");
+    LLTextBox* resellable_clause = get_floater_child<LLTextBox>(this, "resellable_clause");
     if (resellable_clause)
     {
         if (region->getRegionFlag(REGION_FLAGS_BLOCK_LAND_RESELL))
@@ -3110,7 +3136,7 @@ void LLPanelLandCovenant::refresh()
         }
     }
 
-    LLTextBox* changeable_clause = getChild<LLTextBox>("changeable_clause");
+    LLTextBox* changeable_clause = get_floater_child<LLTextBox>(this, "changeable_clause");
     if (changeable_clause)
     {
         if (region->getRegionFlag(REGION_FLAGS_ALLOW_PARCEL_CHANGES))
@@ -3146,7 +3172,7 @@ void LLPanelLandCovenant::updateCovenant(const LLTextBase* source)
 {
     if (LLPanelLandCovenant* self = LLFloaterLand::getCurrentPanelLandCovenant())
     {
-        LLViewerTextEditor* editor = self->getChild<LLViewerTextEditor>("covenant_editor");
+        LLViewerTextEditor* editor = get_floater_child<LLViewerTextEditor>(self, "covenant_editor");
         editor->copyContents(source);
     }
 }
@@ -3157,7 +3183,7 @@ void LLPanelLandCovenant::updateCovenantText(const std::string &string)
     LLPanelLandCovenant* self = LLFloaterLand::getCurrentPanelLandCovenant();
     if (self)
     {
-        LLViewerTextEditor* editor = self->getChild<LLViewerTextEditor>("covenant_editor");
+        LLViewerTextEditor* editor = get_floater_child<LLViewerTextEditor>(self, "covenant_editor");
         editor->setText(string);
     }
 }
@@ -3168,7 +3194,7 @@ void LLPanelLandCovenant::updateEstateName(const std::string& name)
     LLPanelLandCovenant* self = LLFloaterLand::getCurrentPanelLandCovenant();
     if (self)
     {
-        LLTextBox* editor = self->getChild<LLTextBox>("estate_name_text");
+        LLTextBox* editor = get_floater_child<LLTextBox>(self, "estate_name_text");
         if (editor) editor->setText(name);
     }
 }
@@ -3179,7 +3205,7 @@ void LLPanelLandCovenant::updateLastModified(const std::string& text)
     LLPanelLandCovenant* self = LLFloaterLand::getCurrentPanelLandCovenant();
     if (self)
     {
-        LLTextBox* editor = self->getChild<LLTextBox>("covenant_timestamp_text");
+        LLTextBox* editor = get_floater_child<LLTextBox>(self, "covenant_timestamp_text");
         if (editor) editor->setText(text);
     }
 }
@@ -3261,10 +3287,10 @@ bool LLPanelLandExperiences::postBuild()
     // no privileged ones
     mBlocked->addFilter(boost::bind(LLPanelExperiencePicker::FilterWithoutProperties, _1, LLExperienceCache::PROPERTY_PRIVILEGED|LLExperienceCache::PROPERTY_GRID));
 
-    getChild<LLLayoutPanel>("trusted_layout_panel")->setVisible(false);
-    getChild<LLTextBox>("experiences_help_text")->setVisible(false);
-    getChild<LLTextBox>("allowed_text_help")->setText(getString("allowed_parcel_text"));
-    getChild<LLTextBox>("blocked_text_help")->setText(getString("blocked_parcel_text"));
+    get_floater_child<LLLayoutPanel>(this, "trusted_layout_panel")->setVisible(false);
+    get_floater_child<LLTextBox>(this, "experiences_help_text")->setVisible(false);
+    get_floater_child<LLTextBox>(this, "allowed_text_help")->setText(getString("allowed_parcel_text"));
+    get_floater_child<LLTextBox>(this, "blocked_text_help")->setText(getString("blocked_parcel_text"));
 
     return LLPanel::postBuild();
 }
@@ -3274,7 +3300,7 @@ LLPanelExperienceListEditor* LLPanelLandExperiences::setupList( const char* cont
     LLPanelExperienceListEditor* child = findChild<LLPanelExperienceListEditor>(control_name);
     if(child)
     {
-        child->getChild<LLTextBox>("text_name")->setText(child->getString(control_name));
+        get_floater_child<LLTextBox>(child, "text_name")->setText(child->getString(control_name));
         child->setMaxExperienceIDs(PARCEL_MAX_EXPERIENCE_LIST);
         child->setAddedCallback(boost::bind(&LLPanelLandExperiences::experienceAdded, this, _1, xp_type, access_type));
         child->setRemovedCallback(boost::bind(&LLPanelLandExperiences::experienceRemoved, this, _1, access_type));

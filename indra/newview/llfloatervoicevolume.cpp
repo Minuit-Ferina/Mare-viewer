@@ -41,6 +41,32 @@
 #include "lltransientfloatermgr.h"
 #include "llvoiceclient.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 class LLAvatarName;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -106,10 +132,10 @@ LLFloaterVoiceVolume::~LLFloaterVoiceVolume()
 /*virtual*/
 bool LLFloaterVoiceVolume::postBuild(void)
 {
-    getChild<LLUICtrl>("mute_btn")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "mute_btn")->setCommitCallback(
         boost::bind(&LLFloaterVoiceVolume::onClickMuteVolume, this) );
 
-    getChild<LLUICtrl>("volume_slider")->setCommitCallback(
+    get_floater_child<LLUICtrl>(this, "volume_slider")->setCommitCallback(
         boost::bind(&LLFloaterVoiceVolume::onVolumeChange, this, _2));
 
     return true;
@@ -129,7 +155,7 @@ void LLFloaterVoiceVolume::onOpen(const LLSD& data)
 
     LLInspect::repositionInspector(data);
 
-    getChild<LLUICtrl>("avatar_name")->setValue("");
+    get_floater_child<LLUICtrl>(this, "avatar_name")->setValue("");
     updateVolumeControls();
 
     if (mAvatarNameCacheConnection.connected())
@@ -143,8 +169,8 @@ void LLFloaterVoiceVolume::updateVolumeControls()
 {
     bool voice_enabled = LLVoiceClient::getInstance()->getVoiceEnabled(mAvatarID);
 
-    LLUICtrl* mute_btn = getChild<LLUICtrl>("mute_btn");
-    LLUICtrl* volume_slider = getChild<LLUICtrl>("volume_slider");
+    LLUICtrl* mute_btn = get_floater_child<LLUICtrl>(this, "mute_btn");
+    LLUICtrl* volume_slider = get_floater_child<LLUICtrl>(this, "volume_slider");
 
     // Do not display volume slider and mute button if it
     // is ourself or we are not in a voice channel together
@@ -206,7 +232,7 @@ void LLFloaterVoiceVolume::onAvatarNameCache(
         return;
     }
 
-    getChild<LLUICtrl>("avatar_name")->setValue(av_name.getCompleteName());
+    get_floater_child<LLUICtrl>(this, "avatar_name")->setValue(av_name.getCompleteName());
     mAvatarName = av_name;
 }
 

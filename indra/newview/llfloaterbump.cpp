@@ -46,6 +46,32 @@
 #include "llviewermenu.h"
 #include "llviewerobjectlist.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 ///----------------------------------------------------------------------------
 /// Class LLFloaterBump
 ///----------------------------------------------------------------------------
@@ -82,7 +108,7 @@ LLFloaterBump::~LLFloaterBump()
 
 bool LLFloaterBump::postBuild()
 {
-    mList = getChild<LLScrollListCtrl>("bump_list");
+    mList = get_floater_child<LLScrollListCtrl>(this, "bump_list");
     mList->setAllowMultipleSelection(false);
     mList->setRightMouseDownCallback(boost::bind(&LLFloaterBump::onScrollListRightClicked, this, _1, _2, _3));
 
@@ -197,7 +223,7 @@ void LLFloaterBump::onScrollListRightClicked(LLUICtrl* ctrl, S32 x, S32 y)
             menu->updateParent(LLMenuGL::sMenuContainer);
 
             std::string mute_msg = (LLMuteList::getInstance()->isMuted(mItemUUID, mNames[mItemUUID])) ? "UnmuteAvatar" : "MuteAvatar";
-            menu->getChild<LLUICtrl>("Avatar Mute")->setValue(LLTrans::getString(mute_msg));
+            get_floater_child<LLUICtrl>(menu, "Avatar Mute")->setValue(LLTrans::getString(mute_msg));
             menu->setItemEnabled(std::string("Zoom In"), bool(gObjectList.findObject(mItemUUID)));
 
             menu->show(x, y);

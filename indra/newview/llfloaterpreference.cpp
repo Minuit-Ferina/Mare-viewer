@@ -144,6 +144,32 @@
 
 #include "lltoolbarview.h"
 #include "../llcrashlogger/llcrashlogger.h"
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const F32 BANDWIDTH_UPDATER_TIMEOUT = 0.5f;
 char const* const VISIBILITY_DEFAULT = "default";
 char const* const VISIBILITY_HIDDEN = "hidden";
@@ -234,7 +260,7 @@ bool callback_clear_browser_cache(const LLSD& notification, const LLSD& response
 
         LLSearchHistory::getInstance()->clearHistory();
         LLSearchHistory::getInstance()->save();
-        LLSearchComboBox* search_ctrl = LLNavigationBar::getInstance()->getChild<LLSearchComboBox>("search_combo_box");
+        LLSearchComboBox* search_ctrl = get_floater_child<LLSearchComboBox>(LLNavigationBar::getInstance(), "search_combo_box");
         search_ctrl->clearHistory();
 
         LLTeleportHistoryStorage::getInstance()->purgeItems();
@@ -325,8 +351,8 @@ public:
         if (prefsfloater)
         {
             // find 'controls' panel and bring it the front
-            LLTabContainer* tabcontainer = prefsfloater->getChild<LLTabContainer>("pref core");
-            LLPanel* panel = prefsfloater->getChild<LLPanel>("controls");
+            LLTabContainer* tabcontainer = get_floater_child<LLTabContainer>(prefsfloater, "pref core");
+            LLPanel* panel = get_floater_child<LLPanel>(prefsfloater, "controls");
             if (tabcontainer && panel)
             {
                 tabcontainer->selectTabPanel(panel);
@@ -439,14 +465,14 @@ void LLFloaterPreference::processProperties( void* pData, EAvatarProcessorType t
         {
             mAllowPublish = (bool)(pAvatarData->flags & AVATAR_ALLOW_PUBLISH);
             mAvatarDataInitialized = true;
-            getChild<LLUICtrl>("online_searchresults")->setValue(mAllowPublish);
+            get_floater_child<LLUICtrl>(this, "online_searchresults")->setValue(mAllowPublish);
         }
     }
 }
 
 void LLFloaterPreference::saveAvatarProperties( void )
 {
-    const bool allowPublish = getChild<LLUICtrl>("online_searchresults")->getValue();
+    const bool allowPublish = get_floater_child<LLUICtrl>(this, "online_searchresults")->getValue();
 
     if ((LLStartUp::getStartupState() == STATE_STARTED)
         && mAvatarDataInitialized
@@ -494,12 +520,12 @@ void LLFloaterPreference::saveAvatarPropertiesCoro(const std::string cap_url, bo
 
 bool LLFloaterPreference::postBuild()
 {
-    mDeleteTranscriptsBtn = getChild<LLButton>("delete_transcripts");
+    mDeleteTranscriptsBtn = get_floater_child<LLButton>(this, "delete_transcripts");
 
-    mEnabledPopups = getChild<LLScrollListCtrl>("enabled_popups");
-    mDisabledPopups = getChild<LLScrollListCtrl>("disabled_popups");
-    mEnablePopupBtn = getChild<LLButton>("enable_this_popup");
-    mDisablePopupBtn = getChild<LLButton>("disable_this_popup");
+    mEnabledPopups = get_floater_child<LLScrollListCtrl>(this, "enabled_popups");
+    mDisabledPopups = get_floater_child<LLScrollListCtrl>(this, "disabled_popups");
+    mEnablePopupBtn = get_floater_child<LLButton>(this, "enable_this_popup");
+    mDisablePopupBtn = get_floater_child<LLButton>(this, "disable_this_popup");
 
     gSavedSettings.getControl("ChatFontSize")->getSignal()->connect(boost::bind(&LLFloaterIMSessionTab::processChatHistoryStyleUpdate, false));
 
@@ -523,34 +549,34 @@ bool LLFloaterPreference::postBuild()
     gSavedPerAccountSettings.getControl("SoundUploadFolder")->getSignal()->connect(boost::bind(&LLFloaterPreference::onChangeSoundFolder, this));
     gSavedPerAccountSettings.getControl("AnimationUploadFolder")->getSignal()->connect(boost::bind(&LLFloaterPreference::onChangeAnimationFolder, this));
 
-    LLTabContainer* tabcontainer = getChild<LLTabContainer>("pref core");
+    LLTabContainer* tabcontainer = get_floater_child<LLTabContainer>(this, "pref core");
     if (!tabcontainer->selectTab(gSavedSettings.getS32("LastPrefTab")))
         tabcontainer->selectFirstTab();
 
-    getChild<LLUICtrl>("cache_location")->setEnabled(false); // make it read-only but selectable (STORM-227)
+    get_floater_child<LLUICtrl>(this, "cache_location")->setEnabled(false); // make it read-only but selectable (STORM-227)
     std::string cache_location = gDirUtilp->getExpandedFilename(LL_PATH_CACHE, "");
     setCacheLocation(cache_location);
 
-    getChild<LLUICtrl>("log_path_string")->setEnabled(false); // make it read-only but selectable
+    get_floater_child<LLUICtrl>(this, "log_path_string")->setEnabled(false); // make it read-only but selectable
 
-    getChild<LLComboBox>("language_combobox")->setCommitCallback(boost::bind(&LLFloaterPreference::onLanguageChange, this));
-    mTimeFormatCombobox = getChild<LLComboBox>("time_format_combobox");
+    get_floater_child<LLComboBox>(this, "language_combobox")->setCommitCallback(boost::bind(&LLFloaterPreference::onLanguageChange, this));
+    mTimeFormatCombobox = get_floater_child<LLComboBox>(this, "time_format_combobox");
     mTimeFormatCombobox->setCommitCallback(boost::bind(&LLFloaterPreference::onTimeFormatChange, this));
 
-    getChild<LLComboBox>("FriendIMOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"FriendIMOptions"));
-    getChild<LLComboBox>("NonFriendIMOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"NonFriendIMOptions"));
-    getChild<LLComboBox>("ConferenceIMOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"ConferenceIMOptions"));
-    getChild<LLComboBox>("GroupChatOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"GroupChatOptions"));
-    getChild<LLComboBox>("NearbyChatOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"NearbyChatOptions"));
-    getChild<LLComboBox>("ObjectIMOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"ObjectIMOptions"));
+    get_floater_child<LLComboBox>(this, "FriendIMOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"FriendIMOptions"));
+    get_floater_child<LLComboBox>(this, "NonFriendIMOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"NonFriendIMOptions"));
+    get_floater_child<LLComboBox>(this, "ConferenceIMOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"ConferenceIMOptions"));
+    get_floater_child<LLComboBox>(this, "GroupChatOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"GroupChatOptions"));
+    get_floater_child<LLComboBox>(this, "NearbyChatOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"NearbyChatOptions"));
+    get_floater_child<LLComboBox>(this, "ObjectIMOptions")->setCommitCallback(boost::bind(&LLFloaterPreference::onNotificationsChange, this,"ObjectIMOptions"));
 
     // if floater is opened before login set default localized do not disturb message
     if (LLStartUp::getStartupState() < STATE_STARTED)
     {
         gSavedPerAccountSettings.setString("DoNotDisturbModeResponse", LLTrans::getString("DoNotDisturbModeResponseDefault"));
     }
-    getChild<LLUICtrl>("WindowTitleAvatarName")->setEnabled(LLStartUp::getStartupState() < STATE_STARTED ? false : true);
-    getChild<LLUICtrl>("WindowTitleGridName")->setEnabled(LLStartUp::getStartupState() < STATE_STARTED ? false : true);
+    get_floater_child<LLUICtrl>(this, "WindowTitleAvatarName")->setEnabled(LLStartUp::getStartupState() < STATE_STARTED ? false : true);
+    get_floater_child<LLUICtrl>(this, "WindowTitleGridName")->setEnabled(LLStartUp::getStartupState() < STATE_STARTED ? false : true);
 
 // ## Zi: Pie menu
     gSavedSettings.getControl("OverridePieColors")->getSignal()->connect(boost::bind(&LLFloaterPreference::onPieColorsOverrideChanged, this));
@@ -586,41 +612,41 @@ bool LLFloaterPreference::postBuild()
 
     LLLogChat::getInstance()->setSaveHistorySignal(boost::bind(&LLFloaterPreference::onLogChatHistorySaved, this));
 
-    LLSliderCtrl* fov_slider = getChild<LLSliderCtrl>("camera_fov");
+    LLSliderCtrl* fov_slider = get_floater_child<LLSliderCtrl>(this, "camera_fov");
     fov_slider->setMinValue(LLViewerCamera::getInstance()->getMinView());
     fov_slider->setMaxValue(LLViewerCamera::getInstance()->getMaxView());
 
     updateComplexityMode(gSavedSettings.getS32("RenderAvatarComplexityMode"));
 #if RLV_ALWAYS_ON
     // leave the ShowRLVMenu control active, delete the rest, fade out enable RLV
-    getChild<LLCheckBoxCtrl>("EnableRLV")->setEnabled(FALSE);
-    delete getChild<LLUICtrl>("RlvBlinding");
-    delete getChild<LLUICtrl>("RlvCanOoc");
-    delete getChild<LLUICtrl>("KokuaRLVOOCChatIsRedirected");
-    delete getChild<LLUICtrl>("RlvNoBlacklist");
-    delete getChild<LLUICtrl>("RlvDefeatStandTP");
-    delete getChild<LLUICtrl>("RestrainedLoveHeadMouselookRenderRigged");
-    delete getChild<LLUICtrl>("KokuaRLVShowOtherNameTags");
-    delete getChild<LLUICtrl>("KokuaIMRestrictionWarning");
-    delete getChild<LLUICtrl>("KokuaRLVShowlocHidesMaturity");
-    delete getChild<LLUICtrl>("RestrainedLoveShowRedirectChatTyping");
+    get_floater_child<LLCheckBoxCtrl>(this, "EnableRLV")->setEnabled(FALSE);
+    delete get_floater_child<LLUICtrl>(this, "RlvBlinding");
+    delete get_floater_child<LLUICtrl>(this, "RlvCanOoc");
+    delete get_floater_child<LLUICtrl>(this, "KokuaRLVOOCChatIsRedirected");
+    delete get_floater_child<LLUICtrl>(this, "RlvNoBlacklist");
+    delete get_floater_child<LLUICtrl>(this, "RlvDefeatStandTP");
+    delete get_floater_child<LLUICtrl>(this, "RestrainedLoveHeadMouselookRenderRigged");
+    delete get_floater_child<LLUICtrl>(this, "KokuaRLVShowOtherNameTags");
+    delete get_floater_child<LLUICtrl>(this, "KokuaIMRestrictionWarning");
+    delete get_floater_child<LLUICtrl>(this, "KokuaRLVShowlocHidesMaturity");
+    delete get_floater_child<LLUICtrl>(this, "RestrainedLoveShowRedirectChatTyping");
 #else
     // set the controls depending on the status of RLV using gRRenabled, not the debug setting
-    getChild<LLUICtrl>("ShowRlvMenu")->setEnabled(gRRenabled);
-    getChild<LLUICtrl>("RlvBlinding")->setEnabled(gRRenabled);
-    getChild<LLUICtrl>("RlvCanOoc")->setEnabled(gRRenabled);
-    getChild<LLUICtrl>("KokuaRLVOOCChatIsRedirected")->setEnabled(gRRenabled);
-    getChild<LLUICtrl>("RlvNoBlacklist")->setEnabled(gRRenabled);
-    getChild<LLUICtrl>("RlvDefeatStandTP")->setEnabled(gRRenabled);
-    getChild<LLUICtrl>("RestrainedLoveHeadMouselookRenderRigged")->setEnabled(gRRenabled);
-    getChild<LLUICtrl>("KokuaRLVShowOtherNameTags")->setEnabled(gRRenabled);
-    getChild<LLUICtrl>("KokuaIMRestrictionWarning")->setEnabled(gRRenabled);
-    getChild<LLUICtrl>("KokuaRLVShowlocHidesMaturity")->setEnabled(gRRenabled);
-    getChild<LLUICtrl>("RestrainedLoveShowRedirectChatTyping")->setEnabled(gRRenabled);
+    get_floater_child<LLUICtrl>(this, "ShowRlvMenu")->setEnabled(gRRenabled);
+    get_floater_child<LLUICtrl>(this, "RlvBlinding")->setEnabled(gRRenabled);
+    get_floater_child<LLUICtrl>(this, "RlvCanOoc")->setEnabled(gRRenabled);
+    get_floater_child<LLUICtrl>(this, "KokuaRLVOOCChatIsRedirected")->setEnabled(gRRenabled);
+    get_floater_child<LLUICtrl>(this, "RlvNoBlacklist")->setEnabled(gRRenabled);
+    get_floater_child<LLUICtrl>(this, "RlvDefeatStandTP")->setEnabled(gRRenabled);
+    get_floater_child<LLUICtrl>(this, "RestrainedLoveHeadMouselookRenderRigged")->setEnabled(gRRenabled);
+    get_floater_child<LLUICtrl>(this, "KokuaRLVShowOtherNameTags")->setEnabled(gRRenabled);
+    get_floater_child<LLUICtrl>(this, "KokuaIMRestrictionWarning")->setEnabled(gRRenabled);
+    get_floater_child<LLUICtrl>(this, "KokuaRLVShowlocHidesMaturity")->setEnabled(gRRenabled);
+    get_floater_child<LLUICtrl>(this, "RestrainedLoveShowRedirectChatTyping")->setEnabled(gRRenabled);
 #endif
 
     // Hook up and init for filtering
-    mFilterEdit = getChild<LLSearchEditor>("search_prefs_edit");
+    mFilterEdit = get_floater_child<LLSearchEditor>(this, "search_prefs_edit");
     mFilterEdit->setKeystrokeCallback(boost::bind(&LLFloaterPreference::onUpdateFilterTerm, this, false));
 
     // Load and assign label for 'default language'
@@ -632,35 +658,35 @@ bool LLFloaterPreference::postBuild()
         std::map<std::string, std::string>::iterator iter = labels.find(system_lang);
         if (iter != labels.end())
         {
-            getChild<LLComboBox>("language_combobox")->add(iter->second, LLSD("default"), ADD_TOP, true);
+            get_floater_child<LLComboBox>(this, "language_combobox")->add(iter->second, LLSD("default"), ADD_TOP, true);
         }
         else
         {
             LL_WARNS() << "Language \"" << system_lang << "\" is not in default_languages.xml" << LL_ENDL;
-            getChild<LLComboBox>("language_combobox")->add("System default", LLSD("default"), ADD_TOP, true);
+            get_floater_child<LLComboBox>(this, "language_combobox")->add("System default", LLSD("default"), ADD_TOP, true);
         }
     }
     else
     {
         LL_WARNS() << "Failed to load labels from " << user_filename << ". Using default." << LL_ENDL;
-        getChild<LLComboBox>("language_combobox")->add("System default", LLSD("default"), ADD_TOP, true);
+        get_floater_child<LLComboBox>(this, "language_combobox")->add("System default", LLSD("default"), ADD_TOP, true);
     }
 
 #if !LL_WINDOWS
     // Make the theme selection combobox invisible on non-Windows platforms
-    getChild<LLUICtrl>("WindowsThemeMode")->setVisible(false);
+    get_floater_child<LLUICtrl>(this, "WindowsThemeMode")->setVisible(false);
 #endif
 
 #ifndef LL_DISCORD
-    LLPanel* panel = getChild<LLPanel>("privacy_preferences_discord");
-    getChild<LLTabContainer>("privacy_tab_container")->removeTabPanel(panel);
+    LLPanel* panel = get_floater_child<LLPanel>(this, "privacy_preferences_discord");
+    get_floater_child<LLTabContainer>(this, "privacy_tab_container")->removeTabPanel(panel);
 #endif
 
 // [SL:KB] - Patch: Viewer-CrashReporting | Checked: 2011-06-11 (Catznip-2.6.c) | Added: Catznip-2.6.0c
 
 #ifndef LL_SEND_CRASH_REPORTS
     // Hide the crash report tab if crash reporting isn't enabled
-    LLTabContainer* pTabContainer = getChild<LLTabContainer>("pref core");
+    LLTabContainer* pTabContainer = get_floater_child<LLTabContainer>(this, "pref core");
     if (pTabContainer)
     {
         LLPanel* pCrashReportPanel = pTabContainer->getPanelByName("crashreports");
@@ -680,10 +706,10 @@ void LLFloaterPreference::onPieColorsOverrideChanged()
 {
     bool enable=gSavedSettings.getBOOL("OverridePieColors");
 
-    getChild<LLColorSwatchCtrl>("pie_bg_color_override")->setEnabled(enable);
-    getChild<LLColorSwatchCtrl>("pie_selected_color_override")->setEnabled(enable);
-    getChild<LLSliderCtrl>("pie_menu_opacity")->setEnabled(enable);
-    getChild<LLSliderCtrl>("pie_menu_fade_out")->setEnabled(enable);
+    get_floater_child<LLColorSwatchCtrl>(this, "pie_bg_color_override")->setEnabled(enable);
+    get_floater_child<LLColorSwatchCtrl>(this, "pie_selected_color_override")->setEnabled(enable);
+    get_floater_child<LLSliderCtrl>(this, "pie_menu_opacity")->setEnabled(enable);
+    get_floater_child<LLSliderCtrl>(this, "pie_menu_fade_out")->setEnabled(enable);
 }
 // ## Zi: Pie menu
 
@@ -691,42 +717,42 @@ void LLFloaterPreference::onStreamMetadataAnnounceChanged()
 {
     bool enable = gSavedSettings.getBOOL("StreamMetadataAnnounceToChat");
 
-    getChild<LLSpinCtrl>("StreamMetadataAnnounceChannel")->setEnabled(enable);
+    get_floater_child<LLSpinCtrl>(this, "StreamMetadataAnnounceChannel")->setEnabled(enable);
 }
 
 void LLFloaterPreference::onMiniMapChatRingChanged()
 {
     bool enable = gSavedSettings.getBOOL("MiniMapChatRing");
 
-    getChild<LLColorSwatchCtrl>("netmap_chatring_color_swatch")->setEnabled(enable);
-    getChild<LLColorSwatchCtrl>("netmap_shoutring_color_swatch")->setEnabled(enable);
-    getChild<LLTextBox>("netmap_chatring_color_label")->setEnabled(enable);
-    getChild<LLTextBox>("netmap_shoutring_color_label")->setEnabled(enable);
+    get_floater_child<LLColorSwatchCtrl>(this, "netmap_chatring_color_swatch")->setEnabled(enable);
+    get_floater_child<LLColorSwatchCtrl>(this, "netmap_shoutring_color_swatch")->setEnabled(enable);
+    get_floater_child<LLTextBox>(this, "netmap_chatring_color_label")->setEnabled(enable);
+    get_floater_child<LLTextBox>(this, "netmap_shoutring_color_label")->setEnabled(enable);
 }
 
 void LLFloaterPreference::onShowLookAtChanged()
 {
     bool enable = gSavedSettings.getBOOL("ShowLookAt");
 
-    getChild<LLCheckBoxCtrl>("ShowLookAtNames")->setEnabled(enable);
-    getChild<LLCheckBoxCtrl>("ShowLookAtLimited")->setEnabled(enable);
+    get_floater_child<LLCheckBoxCtrl>(this, "ShowLookAtNames")->setEnabled(enable);
+    get_floater_child<LLCheckBoxCtrl>(this, "ShowLookAtLimited")->setEnabled(enable);
 }
 
 void LLFloaterPreference::onShowPointAtChanged()
 {
     bool enable = gSavedSettings.getBOOL("ShowPointAt");
 
-    getChild<LLCheckBoxCtrl>("ShowPointAtNames")->setEnabled(enable);
-    getChild<LLCheckBoxCtrl>("ShowPointAtLimited")->setEnabled(enable);
+    get_floater_child<LLCheckBoxCtrl>(this, "ShowPointAtNames")->setEnabled(enable);
+    get_floater_child<LLCheckBoxCtrl>(this, "ShowPointAtLimited")->setEnabled(enable);
 }
 
 void LLFloaterPreference::onNameTagShowAgeChanged()
 {
     bool enable = gSavedSettings.getBOOL("NameTagShowAge");
 
-    getChild<LLSpinCtrl>("NameTagShowAgeLimit")->setEnabled(enable);
-    getChild<LLTextBox>("nametag_show_age_limit_label")->setEnabled(enable);
-    getChild<LLTextBox>("nametag_show_age_limit_note")->setEnabled(enable);
+    get_floater_child<LLSpinCtrl>(this, "NameTagShowAgeLimit")->setEnabled(enable);
+    get_floater_child<LLTextBox>(this, "nametag_show_age_limit_label")->setEnabled(enable);
+    get_floater_child<LLTextBox>(this, "nametag_show_age_limit_note")->setEnabled(enable);
 
     handleNameTagOptionChanged(LLSD());
 }
@@ -746,7 +772,7 @@ void LLFloaterPreference::onDoNotDisturbResponseChanged()
     // set "DoNotDisturbResponseChanged" true if user edited message differs from default, false otherwise
     bool response_changed_flag =
             LLTrans::getString("DoNotDisturbModeResponseDefault")
-                    != getChild<LLUICtrl>("do_not_disturb_response")->getValue().asString();
+                    != get_floater_child<LLUICtrl>(this, "do_not_disturb_response")->getValue().asString();
 
     gSavedPerAccountSettings.setBOOL("DoNotDisturbResponseChanged", response_changed_flag );
 }
@@ -776,7 +802,7 @@ void LLFloaterPreference::draw()
 
 void LLFloaterPreference::saveSettings()
 {
-    LLTabContainer* tabcontainer = getChild<LLTabContainer>("pref core");
+    LLTabContainer* tabcontainer = get_floater_child<LLTabContainer>(this, "pref core");
     child_list_t::const_iterator iter = tabcontainer->getChildList()->begin();
     child_list_t::const_iterator end = tabcontainer->getChildList()->end();
     for ( ; iter != end; ++iter)
@@ -793,7 +819,7 @@ void LLFloaterPreference::apply()
 {
     LLAvatarPropertiesProcessor::getInstance()->addObserver( gAgent.getID(), this );
 
-    LLTabContainer* tabcontainer = getChild<LLTabContainer>("pref core");
+    LLTabContainer* tabcontainer = get_floater_child<LLTabContainer>(this, "pref core");
     if (sSkin != gSavedSettings.getString("SkinCurrent"))
     {
         LLNotificationsUtil::add("ChangeSkin");
@@ -811,26 +837,26 @@ void LLFloaterPreference::apply()
 
     gViewerWindow->requestResolutionUpdate(); // for UIScaleFactor
 
-    LLSliderCtrl* fov_slider = getChild<LLSliderCtrl>("camera_fov");
+    LLSliderCtrl* fov_slider = get_floater_child<LLSliderCtrl>(this, "camera_fov");
     fov_slider->setMinValue(LLViewerCamera::getInstance()->getMinView());
     fov_slider->setMaxValue(LLViewerCamera::getInstance()->getMaxView());
 
     std::string cache_location = gDirUtilp->getExpandedFilename(LL_PATH_CACHE, "");
     setCacheLocation(cache_location);
 
-    LLViewerMedia::getInstance()->setCookiesEnabled(getChild<LLUICtrl>("cookies_enabled")->getValue());
+    LLViewerMedia::getInstance()->setCookiesEnabled(get_floater_child<LLUICtrl>(this, "cookies_enabled")->getValue());
 
     if (hasChild("web_proxy_enabled", true) &&hasChild("web_proxy_editor", true) && hasChild("web_proxy_port", true))
     {
-        bool proxy_enable = getChild<LLUICtrl>("web_proxy_enabled")->getValue();
-        std::string proxy_address = getChild<LLUICtrl>("web_proxy_editor")->getValue();
-        int proxy_port = getChild<LLUICtrl>("web_proxy_port")->getValue();
+        bool proxy_enable = get_floater_child<LLUICtrl>(this, "web_proxy_enabled")->getValue();
+        std::string proxy_address = get_floater_child<LLUICtrl>(this, "web_proxy_editor")->getValue();
+        int proxy_port = get_floater_child<LLUICtrl>(this, "web_proxy_port")->getValue();
         LLViewerMedia::getInstance()->setProxyConfig(proxy_enable, proxy_address, proxy_port);
     }
 
     if (mGotPersonalInfo)
     {
-        bool new_hide_online = getChild<LLUICtrl>("online_visibility")->getValue().asBoolean();
+        bool new_hide_online = get_floater_child<LLUICtrl>(this, "online_visibility")->getValue().asBoolean();
 
         if (new_hide_online != mOriginalHideOnlineStatus)
         {
@@ -855,7 +881,7 @@ void LLFloaterPreference::apply()
 
 void LLFloaterPreference::cancel(const std::vector<std::string> settings_to_skip)
 {
-    LLTabContainer* tabcontainer = getChild<LLTabContainer>("pref core");
+    LLTabContainer* tabcontainer = get_floater_child<LLTabContainer>(this, "pref core");
     // Call cancel() on all panels that derive from LLPanelPreference
     for (child_list_t::const_iterator iter = tabcontainer->getChildList()->begin();
         iter != tabcontainer->getChildList()->end(); ++iter)
@@ -925,10 +951,10 @@ void LLFloaterPreference::onOpen(const LLSD& key)
         // do not disturb response message.
         gSavedPerAccountSettings.getControl("DoNotDisturbModeResponse")->getSignal()->connect(boost::bind(&LLFloaterPreference::onDoNotDisturbResponseChanged, this));
         // <FS:Ansariel> FIRE-17630: Properly disable per-account settings backup list
-        getChildView("restore_per_account_disable_cover")->setVisible(false);
+        get_floater_view(this, "restore_per_account_disable_cover")->setVisible(false);
 
         // <FS:Ansariel> Keyword settings are per-account; enable after logging in
-        LLPanel* keyword_panel = getChild<LLPanel>("ChatKeywordAlerts");
+        LLPanel* keyword_panel = get_floater_child<LLPanel>(this, "ChatKeywordAlerts");
         for (child_list_t::const_iterator iter = keyword_panel->getChildList()->begin();
              iter != keyword_panel->getChildList()->end(); ++iter)
         {
@@ -948,7 +974,7 @@ void LLFloaterPreference::onOpen(const LLSD& key)
         gAgent.getID().notNull() &&
         (gAgent.isMature() || gAgent.isGodlike());
 
-    LLComboBox* maturity_combo = getChild<LLComboBox>("maturity_desired_combobox");
+    LLComboBox* maturity_combo = get_floater_child<LLComboBox>(this, "maturity_desired_combobox");
     LLAvatarPropertiesProcessor::getInstance()->sendAvatarLegacyPropertiesRequest( gAgent.getID() );
     if (can_choose_maturity)
     {
@@ -962,13 +988,13 @@ void LLFloaterPreference::onOpen(const LLSD& key)
                 maturity_list->deleteItems(LLSD(SIM_ACCESS_ADULT));
             }
         }
-        getChildView("maturity_desired_combobox")->setEnabled( true);
-        getChildView("maturity_desired_textbox")->setVisible( false);
+        get_floater_view(this, "maturity_desired_combobox")->setEnabled( true);
+        get_floater_view(this, "maturity_desired_textbox")->setVisible( false);
     }
     else
     {
-        getChild<LLUICtrl>("maturity_desired_textbox")->setValue(maturity_combo->getSelectedItemLabel());
-        getChildView("maturity_desired_combobox")->setEnabled( false);
+        get_floater_child<LLUICtrl>(this, "maturity_desired_textbox")->setValue(maturity_combo->getSelectedItemLabel());
+        get_floater_view(this, "maturity_desired_combobox")->setEnabled( false);
     }
 
     // Forget previous language changes.
@@ -989,7 +1015,7 @@ void LLFloaterPreference::onOpen(const LLSD& key)
 
 #if LL_LINUX
     // Lixux doesn't support automatic mode
-    LLComboBox* combo = getChild<LLComboBox>("double_click_action_combo");
+    LLComboBox* combo = get_floater_child<LLComboBox>(this, "double_click_action_combo");
     S32 mode = gSavedSettings.getS32("MouseWarpMode");
     if (mode == 0)
     {
@@ -1057,7 +1083,7 @@ void LLFloaterPreference::onRenderOptionEnable()
 
 void LLFloaterPreference::updateObjectMeshDetailTextAdvanced()
 {
-    updateSliderTextAdvanced(getChild<LLSliderCtrl>("ObjectMeshDetail", true), getChild<LLTextBox>("ObjectMeshDetailText", true));
+    updateSliderTextAdvanced(get_floater_child<LLSliderCtrl>(this, "ObjectMeshDetail", true), get_floater_child<LLTextBox>(this, "ObjectMeshDetailText", true));
 }
 
 void LLFloaterPreference::onAvatarImpostorsEnable()
@@ -1081,7 +1107,7 @@ void LLFloaterPreference::updateShowFavoritesCheckbox(bool val)
     LLFloaterPreference* instance = LLFloaterReg::findTypedInstance<LLFloaterPreference>("preferences");
     if (instance)
     {
-        instance->getChild<LLUICtrl>("favorites_on_login_check")->setValue(val);
+        get_floater_child<LLUICtrl>(instance, "favorites_on_login_check")->setValue(val);
     }
 }
 
@@ -1110,7 +1136,7 @@ void LLFloaterPreference::setRecommendedSettings()
     gSavedSettings.setString("PresetGraphicActive", "");
     LLPresetsManager::getInstance()->triggerChangeSignal();
 
-    LLTabContainer* tabcontainer = getChild<LLTabContainer>("pref core");
+    LLTabContainer* tabcontainer = get_floater_child<LLTabContainer>(this, "pref core");
     child_list_t::const_iterator iter = tabcontainer->getChildList()->begin();
     child_list_t::const_iterator end = tabcontainer->getChildList()->end();
     for ( ; iter != end; ++iter)
@@ -1196,7 +1222,7 @@ void LLFloaterPreference::getControlNames(std::vector<std::string>& names)
 //virtual
 void LLFloaterPreference::onClose(bool app_quitting)
 {
-    gSavedSettings.setS32("LastPrefTab", getChild<LLTabContainer>("pref core")->getCurrentPanelIndex());
+    gSavedSettings.setS32("LastPrefTab", get_floater_child<LLTabContainer>(this, "pref core")->getCurrentPanelIndex());
     LLPanelLogin::setAlwaysRefresh(false);
     if (!app_quitting)
     {
@@ -1354,7 +1380,7 @@ void LLFloaterPreference::onTimeFormatChange()
 
 void LLFloaterPreference::onNotificationsChange(const std::string& OptionName)
 {
-    mNotificationOptions[OptionName] = getChild<LLComboBox>(OptionName)->getSelectedItemLabel();
+    mNotificationOptions[OptionName] = get_floater_child<LLComboBox>(this, OptionName)->getSelectedItemLabel();
 
     bool show_notifications_alert = true;
     for (notifications_map::iterator it_notification = mNotificationOptions.begin(); it_notification != mNotificationOptions.end(); it_notification++)
@@ -1366,7 +1392,7 @@ void LLFloaterPreference::onNotificationsChange(const std::string& OptionName)
         }
     }
 
-    getChild<LLTextBox>("notifications_alert")->setVisible(show_notifications_alert);
+    get_floater_child<LLTextBox>(this, "notifications_alert")->setVisible(show_notifications_alert);
 }
 
 void LLFloaterPreference::onNameTagOpacityChange(const LLSD& newvalue)
@@ -1510,7 +1536,7 @@ void LLFloaterPreference::onClickClearColorSettings()
 
 void LLFloaterPreference::onSelectSkin()
 {
-    std::string skin_selection = getChild<LLRadioGroup>("skin_selection")->getValue().asString();
+    std::string skin_selection = get_floater_child<LLRadioGroup>(this, "skin_selection")->getValue().asString();
     gSavedSettings.setString("SkinCurrent", skin_selection);
 }
 
@@ -1518,7 +1544,7 @@ void LLFloaterPreference::refreshSkin(void* data)
 {
     LLPanel*self = (LLPanel*)data;
     sSkin = gSavedSettings.getString("SkinCurrent");
-    self->getChild<LLRadioGroup>("skin_selection", true)->setValue(sSkin);
+    get_floater_child<LLRadioGroup>(self, "skin_selection", true)->setValue(sSkin);
 }
 
 void LLFloaterPreference::buildPopupLists()
@@ -1583,11 +1609,11 @@ void LLFloaterPreference::buildPopupLists()
 void LLFloaterPreference::refreshEnabledState()
 {
     // Cannot have floater active until caps have been received
-    getChild<LLButton>("default_creation_permissions")->setEnabled(LLStartUp::getStartupState() >= STATE_STARTED);
-    getChild<LLUICtrl>("WindowTitleAvatarName")->setEnabled(LLStartUp::getStartupState() < STATE_STARTED ? false : true);
-    getChild<LLUICtrl>("WindowTitleGridName")->setEnabled(LLStartUp::getStartupState() < STATE_STARTED ? false : true);
+    get_floater_child<LLButton>(this, "default_creation_permissions")->setEnabled(LLStartUp::getStartupState() >= STATE_STARTED);
+    get_floater_child<LLUICtrl>(this, "WindowTitleAvatarName")->setEnabled(LLStartUp::getStartupState() < STATE_STARTED ? false : true);
+    get_floater_child<LLUICtrl>(this, "WindowTitleGridName")->setEnabled(LLStartUp::getStartupState() < STATE_STARTED ? false : true);
 
-    getChildView("block_list")->setEnabled(LLLoginInstance::getInstance()->authSuccess());
+    get_floater_view(this, "block_list")->setEnabled(LLLoginInstance::getInstance()->authSuccess());
     refreshEnabledStateAdvanced();
 }
 
@@ -1595,8 +1621,8 @@ void LLFloaterPreference::refreshEnabledStateAdvanced()
 {
 // <FM>: Currently unavailable after moving from Advanced Graphics floater into main Preferences
 #if 0
-    LLComboBox* ctrl_reflections = getChild<LLComboBox>("Reflections");
-    LLTextBox* reflections_text = getChild<LLTextBox>("ReflectionsText");
+    LLComboBox* ctrl_reflections = get_floater_child<LLComboBox>(this, "Reflections");
+    LLTextBox* reflections_text = get_floater_child<LLTextBox>(this, "ReflectionsText");
 
     // Reflections
     bool reflections = LLCubeMap::sUseCubeMaps;
@@ -1604,15 +1630,15 @@ void LLFloaterPreference::refreshEnabledStateAdvanced()
     reflections_text->setEnabled(reflections);
 
     // Bump & Shiny
-    LLCheckBoxCtrl* bumpshiny_ctrl = getChild<LLCheckBoxCtrl>("BumpShiny");
+    LLCheckBoxCtrl* bumpshiny_ctrl = get_floater_child<LLCheckBoxCtrl>(this, "BumpShiny");
     bool bumpshiny = LLCubeMap::sUseCubeMaps && LLFeatureManager::getInstance()->isFeatureAvailable("RenderObjectBump");
     bumpshiny_ctrl->setEnabled(bumpshiny);
 
     // Avatar Mode
     // Enable Avatar Shaders
-    LLCheckBoxCtrl* ctrl_avatar_vp = getChild<LLCheckBoxCtrl>("AvatarVertexProgram");
+    LLCheckBoxCtrl* ctrl_avatar_vp = get_floater_child<LLCheckBoxCtrl>(this, "AvatarVertexProgram");
     // Avatar Render Mode
-    LLCheckBoxCtrl* ctrl_avatar_cloth = getChild<LLCheckBoxCtrl>("AvatarCloth");
+    LLCheckBoxCtrl* ctrl_avatar_cloth = get_floater_child<LLCheckBoxCtrl>(this, "AvatarCloth");
 
     bool avatar_vp_enabled = LLFeatureManager::getInstance()->isFeatureAvailable("RenderAvatarVP");
     if (LLViewerShaderMgr::sInitialized)
@@ -1627,8 +1653,8 @@ void LLFloaterPreference::refreshEnabledStateAdvanced()
 
     // Vertex Shaders, Global Shader Enable
     // SL-12594 Basic shaders are always enabled. DJH TODO clean up now-orphaned state handling code
-    LLSliderCtrl* terrain_detail = getChild<LLSliderCtrl>("TerrainDetail");   // can be linked with control var
-    LLTextBox* terrain_text = getChild<LLTextBox>("TerrainDetailText");
+    LLSliderCtrl* terrain_detail = get_floater_child<LLSliderCtrl>(this, "TerrainDetail");   // can be linked with control var
+    LLTextBox* terrain_text = get_floater_child<LLTextBox>(this, "TerrainDetailText");
 
     terrain_detail->setEnabled(false);
     terrain_text->setEnabled(false);
@@ -1637,15 +1663,15 @@ void LLFloaterPreference::refreshEnabledStateAdvanced()
     // WindLight
     //LLCheckBoxCtrl* ctrl_wind_light = getChild<LLCheckBoxCtrl>("WindLightUseAtmosShaders");
     //ctrl_wind_light->setEnabled(true);
-    LLSliderCtrl* sky = getChild<LLSliderCtrl>("SkyMeshDetail");
-    LLTextBox* sky_text = getChild<LLTextBox>("SkyMeshDetailText");
+    LLSliderCtrl* sky = get_floater_child<LLSliderCtrl>(this, "SkyMeshDetail");
+    LLTextBox* sky_text = get_floater_child<LLTextBox>(this, "SkyMeshDetailText");
     sky->setEnabled(true);
     sky_text->setEnabled(true);
 
     bool enabled = true;
 #if 0 // deferred always on now
     //Deferred/SSAO/Shadows
-    LLCheckBoxCtrl* ctrl_deferred = getChild<LLCheckBoxCtrl>("UseLightShaders");
+    LLCheckBoxCtrl* ctrl_deferred = get_floater_child<LLCheckBoxCtrl>(this, "UseLightShaders");
 
     enabled = LLFeatureManager::getInstance()->isFeatureAvailable("RenderDeferred") &&
         ((bumpshiny_ctrl && bumpshiny_ctrl->get()) ? true : false) &&
@@ -1656,16 +1682,16 @@ void LLFloaterPreference::refreshEnabledStateAdvanced()
 
 // <FM>: Currently unavailable after moving from Advanced Graphics floater into main Preferences
 #if 0
-    LLCheckBoxCtrl* ctrl_pbr = getChild<LLCheckBoxCtrl>("UsePBRShaders");
+    LLCheckBoxCtrl* ctrl_pbr = get_floater_child<LLCheckBoxCtrl>(this, "UsePBRShaders");
 
     //PBR
     ctrl_pbr->setEnabled(true);
 #endif
 
-    LLCheckBoxCtrl* ctrl_ssao = getChild<LLCheckBoxCtrl>("UseSSAO");
-    LLCheckBoxCtrl* ctrl_dof = getChild<LLCheckBoxCtrl>("UseDoF");
-    LLComboBox* ctrl_shadow = getChild<LLComboBox>("ShadowDetail");
-    LLTextBox* shadow_text = getChild<LLTextBox>("RenderShadowDetailText");
+    LLCheckBoxCtrl* ctrl_ssao = get_floater_child<LLCheckBoxCtrl>(this, "UseSSAO");
+    LLCheckBoxCtrl* ctrl_dof = get_floater_child<LLCheckBoxCtrl>(this, "UseDoF");
+    LLComboBox* ctrl_shadow = get_floater_child<LLComboBox>(this, "ShadowDetail");
+    LLTextBox* shadow_text = get_floater_child<LLTextBox>(this, "RenderShadowDetailText");
 
     // note, okay here to get from ctrl_deferred as it's twin, ctrl_deferred2 will alway match it
     enabled &= LLFeatureManager::getInstance()->isFeatureAvailable("RenderDeferredSSAO");// && (ctrl_deferred->get() ? true : false);
@@ -1684,23 +1710,23 @@ void LLFloaterPreference::refreshEnabledStateAdvanced()
 
     if (!LLFeatureManager::getInstance()->isFeatureAvailable("RenderVBOEnable"))
     {
-        getChildView("vbo")->setEnabled(false);
+        get_floater_view(this, "vbo")->setEnabled(false);
     }
 
     if (!LLFeatureManager::getInstance()->isFeatureAvailable("RenderCompressTextures"))
     {
-        getChildView("texture compression")->setEnabled(false);
+        get_floater_view(this, "texture compression")->setEnabled(false);
     }
 
 // <FM>: Currently unavailable after moving from Advanced Graphics floater into main Preferences
 #if 0
     // if no windlight shaders, turn off nighttime brightness, gamma, and fog distance
-    LLUICtrl* gamma_ctrl = getChild<LLUICtrl>("gamma");
+    LLUICtrl* gamma_ctrl = get_floater_child<LLUICtrl>(this, "gamma");
     gamma_ctrl->setEnabled(!gPipeline.canUseWindLightShaders());
-    getChildView("(brightness, lower is brighter)")->setEnabled(!gPipeline.canUseWindLightShaders());
-    getChildView("fog")->setEnabled(!gPipeline.canUseWindLightShaders());
+    get_floater_view(this, "(brightness, lower is brighter)")->setEnabled(!gPipeline.canUseWindLightShaders());
+    get_floater_view(this, "fog")->setEnabled(!gPipeline.canUseWindLightShaders());
 #endif
-    getChildView("antialiasing restart")->setVisible(!LLFeatureManager::getInstance()->isFeatureAvailable("RenderDeferred"));
+    get_floater_view(this, "antialiasing restart")->setVisible(!LLFeatureManager::getInstance()->isFeatureAvailable("RenderDeferred"));
 
     // now turn off any features that are unavailable
     disableUnavailableSettingsAdvanced();
@@ -1751,19 +1777,19 @@ void LLFloaterPreference::disableUnavailableSettingsAdvanced()
 {
 // <FM>: Currently unavailable after moving from Advanced Graphics floater into main Preferences
 #if 0
-    LLComboBox* ctrl_reflections   = getChild<LLComboBox>("Reflections");
-    LLTextBox* reflections_text = getChild<LLTextBox>("ReflectionsText");
-    LLCheckBoxCtrl* ctrl_avatar_cloth  = getChild<LLCheckBoxCtrl>("AvatarCloth");
-    LLCheckBoxCtrl* ctrl_wind_light    = getChild<LLCheckBoxCtrl>("WindLightUseAtmosShaders");
-    LLCheckBoxCtrl* ctrl_deferred = getChild<LLCheckBoxCtrl>("UseLightShaders");
+    LLComboBox* ctrl_reflections   = get_floater_child<LLComboBox>(this, "Reflections");
+    LLTextBox* reflections_text = get_floater_child<LLTextBox>(this, "ReflectionsText");
+    LLCheckBoxCtrl* ctrl_avatar_cloth  = get_floater_child<LLCheckBoxCtrl>(this, "AvatarCloth");
+    LLCheckBoxCtrl* ctrl_wind_light    = get_floater_child<LLCheckBoxCtrl>(this, "WindLightUseAtmosShaders");
+    LLCheckBoxCtrl* ctrl_deferred = get_floater_child<LLCheckBoxCtrl>(this, "UseLightShaders");
 #endif
-    LLComboBox* ctrl_shadows = getChild<LLComboBox>("ShadowDetail");
-    LLTextBox* shadows_text = getChild<LLTextBox>("RenderShadowDetailText");
-    LLCheckBoxCtrl* ctrl_ssao = getChild<LLCheckBoxCtrl>("UseSSAO");
-    LLCheckBoxCtrl* ctrl_dof = getChild<LLCheckBoxCtrl>("UseDoF");
-    LLSliderCtrl* sky = getChild<LLSliderCtrl>("SkyMeshDetail");
-    LLTextBox* sky_text = getChild<LLTextBox>("SkyMeshDetailText");
-    LLSliderCtrl* cas_slider = getChild<LLSliderCtrl>("RenderSharpness");
+    LLComboBox* ctrl_shadows = get_floater_child<LLComboBox>(this, "ShadowDetail");
+    LLTextBox* shadows_text = get_floater_child<LLTextBox>(this, "RenderShadowDetailText");
+    LLCheckBoxCtrl* ctrl_ssao = get_floater_child<LLCheckBoxCtrl>(this, "UseSSAO");
+    LLCheckBoxCtrl* ctrl_dof = get_floater_child<LLCheckBoxCtrl>(this, "UseDoF");
+    LLSliderCtrl* sky = get_floater_child<LLSliderCtrl>(this, "SkyMeshDetail");
+    LLTextBox* sky_text = get_floater_child<LLTextBox>(this, "SkyMeshDetailText");
+    LLSliderCtrl* cas_slider = get_floater_child<LLSliderCtrl>(this, "RenderSharpness");
 
     // disabled windlight
     if (!LLFeatureManager::getInstance()->isFeatureAvailable("WindLightUseAtmosShaders"))
@@ -1823,10 +1849,10 @@ void LLFloaterPreference::disableUnavailableSettingsAdvanced()
 
     // Vintage mode
     static LLCachedControl<bool> is_not_vintage(gSavedSettings, "RenderDisableVintageMode");
-    LLSliderCtrl*         tonemapMix    = getChild<LLSliderCtrl>("TonemapMix");
-    LLComboBox*           tonemapSelect = getChild<LLComboBox>("TonemapType");
-    LLTextBox*            tonemapLabel  = getChild<LLTextBox>("TonemapTypeText");
-    LLSliderCtrl*         exposureSlider = getChild<LLSliderCtrl>("RenderExposure");
+    LLSliderCtrl*         tonemapMix    = get_floater_child<LLSliderCtrl>(this, "TonemapMix");
+    LLComboBox*           tonemapSelect = get_floater_child<LLComboBox>(this, "TonemapType");
+    LLTextBox*            tonemapLabel  = get_floater_child<LLTextBox>(this, "TonemapTypeText");
+    LLSliderCtrl*         exposureSlider = get_floater_child<LLSliderCtrl>(this, "RenderExposure");
 
     tonemapSelect->setEnabled(is_not_vintage);
     tonemapLabel->setEnabled(is_not_vintage);
@@ -1858,7 +1884,7 @@ void LLFloaterPreference::refresh()
     LLPanel::refresh();
     setMaxNonImpostorsText(
         gSavedSettings.getU32("RenderAvatarMaxNonImpostors"),
-        getChild<LLTextBox>("IndirectMaxNonImpostorsTextAdvanced", true));
+        get_floater_child<LLTextBox>(this, "IndirectMaxNonImpostorsTextAdvanced", true));
 
     updateComplexityText();
     refreshEnabledState();
@@ -1873,15 +1899,15 @@ void LLFloaterPreference::refreshAdvanced()
     // sliders and their text boxes
     //  mPostProcess = gSavedSettings.getS32("RenderGlowResolutionPow");
     // slider text boxes
-    updateSliderTextAdvanced(getChild<LLSliderCtrl>("ObjectMeshDetail",     true), getChild<LLTextBox>("ObjectMeshDetailText",      true));
-    updateSliderTextAdvanced(getChild<LLSliderCtrl>("FlexibleMeshDetail",   true), getChild<LLTextBox>("FlexibleMeshDetailText",    true));
-    updateSliderTextAdvanced(getChild<LLSliderCtrl>("TreeMeshDetail",       true), getChild<LLTextBox>("TreeMeshDetailText",        true));
-    updateSliderTextAdvanced(getChild<LLSliderCtrl>("AvatarMeshDetail",     true), getChild<LLTextBox>("AvatarMeshDetailText",      true));
-    updateSliderTextAdvanced(getChild<LLSliderCtrl>("AvatarPhysicsDetail",  true), getChild<LLTextBox>("AvatarPhysicsDetailText",       true));
-    updateSliderTextAdvanced(getChild<LLSliderCtrl>("TerrainMeshDetail",    true), getChild<LLTextBox>("TerrainMeshDetailText",     true));
-    updateSliderTextAdvanced(getChild<LLSliderCtrl>("RenderPostProcess",    true), getChild<LLTextBox>("PostProcessText",           true));
-    updateSliderTextAdvanced(getChild<LLSliderCtrl>("SkyMeshDetail",        true), getChild<LLTextBox>("SkyMeshDetailText",         true));
-    updateSliderTextAdvanced(getChild<LLSliderCtrl>("TerrainDetail",        true), getChild<LLTextBox>("TerrainDetailText",         true));
+    updateSliderTextAdvanced(get_floater_child<LLSliderCtrl>(this, "ObjectMeshDetail",     true), get_floater_child<LLTextBox>(this, "ObjectMeshDetailText",      true));
+    updateSliderTextAdvanced(get_floater_child<LLSliderCtrl>(this, "FlexibleMeshDetail",   true), get_floater_child<LLTextBox>(this, "FlexibleMeshDetailText",    true));
+    updateSliderTextAdvanced(get_floater_child<LLSliderCtrl>(this, "TreeMeshDetail",       true), get_floater_child<LLTextBox>(this, "TreeMeshDetailText",        true));
+    updateSliderTextAdvanced(get_floater_child<LLSliderCtrl>(this, "AvatarMeshDetail",     true), get_floater_child<LLTextBox>(this, "AvatarMeshDetailText",      true));
+    updateSliderTextAdvanced(get_floater_child<LLSliderCtrl>(this, "AvatarPhysicsDetail",  true), get_floater_child<LLTextBox>(this, "AvatarPhysicsDetailText",       true));
+    updateSliderTextAdvanced(get_floater_child<LLSliderCtrl>(this, "TerrainMeshDetail",    true), get_floater_child<LLTextBox>(this, "TerrainMeshDetailText",     true));
+    updateSliderTextAdvanced(get_floater_child<LLSliderCtrl>(this, "RenderPostProcess",    true), get_floater_child<LLTextBox>(this, "PostProcessText",           true));
+    updateSliderTextAdvanced(get_floater_child<LLSliderCtrl>(this, "SkyMeshDetail",        true), get_floater_child<LLTextBox>(this, "SkyMeshDetailText",         true));
+    updateSliderTextAdvanced(get_floater_child<LLSliderCtrl>(this, "TerrainDetail",        true), get_floater_child<LLTextBox>(this, "TerrainDetailText",         true));
     LLAvatarComplexityControls::setIndirectControls();
 
     updateComplexityMode(gSavedSettings.getS32("RenderAvatarComplexityMode"));
@@ -1933,7 +1959,7 @@ void LLFloaterPreference::onClickSetSounds()
 {
     // Disable Enable gesture sounds checkbox if the master sound is disabled
     // or if sound effects are disabled.
-    getChild<LLCheckBoxCtrl>("gesture_audio_play_btn")->setEnabled(!gSavedSettings.getBOOL("MuteSounds"));
+    get_floater_child<LLCheckBoxCtrl>(this, "gesture_audio_play_btn")->setEnabled(!gSavedSettings.getBOOL("MuteSounds"));
 }
 // <FS:PP> FIRE-8190: Preview function for "UI Sounds" Panel
 void LLFloaterPreference::onClickPreviewUISound(const LLSD& ui_sound_id)
@@ -2099,40 +2125,40 @@ void LLFloaterPreference::setPersonalInfo(const std::string& visibility)
     if (visibility == VISIBILITY_DEFAULT)
     {
         mOriginalHideOnlineStatus = false;
-        getChildView("online_visibility")->setEnabled(true);
+        get_floater_view(this, "online_visibility")->setEnabled(true);
     }
     else if (visibility == VISIBILITY_HIDDEN)
     {
         mOriginalHideOnlineStatus = true;
-        getChildView("online_visibility")->setEnabled(true);
+        get_floater_view(this, "online_visibility")->setEnabled(true);
     }
     else
     {
         mOriginalHideOnlineStatus = true;
     }
 
-    getChild<LLUICtrl>("online_searchresults")->setEnabled(true);
-    getChildView("friends_online_notify_checkbox")->setEnabled(true);
-    getChild<LLUICtrl>("online_visibility")->setValue(mOriginalHideOnlineStatus);
-    getChild<LLUICtrl>("online_visibility")->setLabelArg("[DIR_VIS]", mDirectoryVisibility);
+    get_floater_child<LLUICtrl>(this, "online_searchresults")->setEnabled(true);
+    get_floater_view(this, "friends_online_notify_checkbox")->setEnabled(true);
+    get_floater_child<LLUICtrl>(this, "online_visibility")->setValue(mOriginalHideOnlineStatus);
+    get_floater_child<LLUICtrl>(this, "online_visibility")->setLabelArg("[DIR_VIS]", mDirectoryVisibility);
 
 
 //MK
     if (gRRenabled && gAgent.mRRInterface.containsWithoutException ("sendim"))
     {
-        getChildView("do_not_disturb_response")->setEnabled(false);
+        get_floater_view(this, "do_not_disturb_response")->setEnabled(false);
     }
 //mk
 
 
-    getChildView("favorites_on_login_check")->setEnabled(true);
-    getChildView("log_path_button")->setEnabled(true);
-    getChildView("chat_font_size")->setEnabled(true);
-    getChildView("conversation_log_combo")->setEnabled(true);
-    getChild<LLUICtrl>("voice_call_friends_only_check")->setEnabled(true);
-    getChild<LLUICtrl>("voice_call_friends_only_check")->setValue(gSavedPerAccountSettings.getBOOL("VoiceCallsFriendsOnly"));
+    get_floater_view(this, "favorites_on_login_check")->setEnabled(true);
+    get_floater_view(this, "log_path_button")->setEnabled(true);
+    get_floater_view(this, "chat_font_size")->setEnabled(true);
+    get_floater_view(this, "conversation_log_combo")->setEnabled(true);
+    get_floater_child<LLUICtrl>(this, "voice_call_friends_only_check")->setEnabled(true);
+    get_floater_child<LLUICtrl>(this, "voice_call_friends_only_check")->setValue(gSavedPerAccountSettings.getBOOL("VoiceCallsFriendsOnly"));
     // <FS:Ansariel> FIRE-18250: Option to disable default eye movement
-    getChildView("FSStaticEyes")->setEnabled(true);
+    get_floater_view(this, "FSStaticEyes")->setEnabled(true);
 
 }
 
@@ -2228,7 +2254,7 @@ void LLFloaterPreference::updateMaxNonImpostors()
 {
     // Called when the IndirectMaxNonImpostors control changes
     // Responsible for fixing the slider label (IndirectMaxNonImpostorsText) and setting RenderAvatarMaxNonImpostors
-    LLSliderCtrl* ctrl = getChild<LLSliderCtrl>("IndirectMaxNonImpostorsAdvanced", true);
+    LLSliderCtrl* ctrl = get_floater_child<LLSliderCtrl>(this, "IndirectMaxNonImpostorsAdvanced", true);
     U32 value = ctrl->getValue().asInteger();
 
     if (0 == value || LLVOAvatar::NON_IMPOSTORS_MAX_SLIDER <= value)
@@ -2248,7 +2274,7 @@ void LLFloaterPreference::updateIndirectMaxNonImpostors(const LLSD& newvalue)
     {
         gSavedSettings.setU32("IndirectMaxNonImpostors", value);
     }
-    setMaxNonImpostorsText(value, getChild<LLTextBox>("IndirectMaxNonImpostorsTextAdvanced"));
+    setMaxNonImpostorsText(value, get_floater_child<LLTextBox>(this, "IndirectMaxNonImpostorsTextAdvanced"));
 }
 
 void LLFloaterPreference::setMaxNonImpostorsText(U32 value, LLTextBox* text_box)
@@ -2274,19 +2300,19 @@ void LLFloaterPreference::updateMaxComplexity(LLUICtrl *ctrl)
 void LLFloaterPreference::updateComplexityText()
 {
     U32 max_complexity = gSavedSettings.getU32("RenderAvatarMaxComplexity");
-    LLAvatarComplexityControls::setText(max_complexity, getChild<LLTextBox>("IndirectMaxComplexityText", true));
-    LLAvatarComplexityControls::setText(max_complexity, getChild<LLTextBox>("IndirectMaxComplexityTextAdvanced", true));
+    LLAvatarComplexityControls::setText(max_complexity, get_floater_child<LLTextBox>(this, "IndirectMaxComplexityText", true));
+    LLAvatarComplexityControls::setText(max_complexity, get_floater_child<LLTextBox>(this, "IndirectMaxComplexityTextAdvanced", true));
 }
 
 void LLFloaterPreference::updateComplexityMode(U32 value)
 {
     bool enable_complexity = value != LLVOAvatar::AV_RENDER_ONLY_SHOW_FRIENDS;
-    getChild<LLSliderCtrl>("IndirectMaxComplexity")->setEnabled(enable_complexity);
-    getChild<LLSliderCtrl>("IndirectMaxComplexityText")->setEnabled(enable_complexity);
-    getChild<LLSliderCtrl>("IndirectMaxComplexityAdvanced")->setEnabled(enable_complexity);
-    getChild<LLSliderCtrl>("IndirectMaxComplexityTextAdvanced")->setEnabled(enable_complexity);
-    getChild<LLSliderCtrl>("IndirectMaxNonImpostorsAdvanced")->setEnabled(enable_complexity);
-    getChild<LLSliderCtrl>("IndirectMaxNonImpostorsTextAdvanced")->setEnabled(enable_complexity);
+    get_floater_child<LLSliderCtrl>(this, "IndirectMaxComplexity")->setEnabled(enable_complexity);
+    get_floater_child<LLSliderCtrl>(this, "IndirectMaxComplexityText")->setEnabled(enable_complexity);
+    get_floater_child<LLSliderCtrl>(this, "IndirectMaxComplexityAdvanced")->setEnabled(enable_complexity);
+    get_floater_child<LLSliderCtrl>(this, "IndirectMaxComplexityTextAdvanced")->setEnabled(enable_complexity);
+    get_floater_child<LLSliderCtrl>(this, "IndirectMaxNonImpostorsAdvanced")->setEnabled(enable_complexity);
+    get_floater_child<LLSliderCtrl>(this, "IndirectMaxNonImpostorsTextAdvanced")->setEnabled(enable_complexity);
 }
 
 bool LLFloaterPreference::loadFromFilename(const std::string& filename, std::map<std::string, std::string> &label_map)
@@ -2332,14 +2358,14 @@ void LLFloaterPreference::onChangeMaturity()
 {
     U8 sim_access = gSavedSettings.getU32("PreferredMaturity");
 
-    getChild<LLIconCtrl>("rating_icon_general")->setVisible(sim_access == SIM_ACCESS_PG
+    get_floater_child<LLIconCtrl>(this, "rating_icon_general")->setVisible(sim_access == SIM_ACCESS_PG
                                                             || sim_access == SIM_ACCESS_MATURE
                                                             || sim_access == SIM_ACCESS_ADULT);
 
-    getChild<LLIconCtrl>("rating_icon_moderate")->setVisible(sim_access == SIM_ACCESS_MATURE
+    get_floater_child<LLIconCtrl>(this, "rating_icon_moderate")->setVisible(sim_access == SIM_ACCESS_MATURE
                                                             || sim_access == SIM_ACCESS_ADULT);
 
-    getChild<LLIconCtrl>("rating_icon_adult")->setVisible(sim_access == SIM_ACCESS_ADULT);
+    get_floater_child<LLIconCtrl>(this, "rating_icon_adult")->setVisible(sim_access == SIM_ACCESS_ADULT);
 
     // Update Legacy Search maturity settings
     bool can_access_mature = gAgent.canAccessMature();
@@ -2373,7 +2399,7 @@ void LLFloaterPreference::onChangeModelFolder()
 {
     if (gInventory.isInventoryUsable())
     {
-        getChild<LLTextBox>("upload_models")->setText(get_category_path(LLFolderType::FT_OBJECT));
+        get_floater_child<LLTextBox>(this, "upload_models")->setText(get_category_path(LLFolderType::FT_OBJECT));
     }
 }
 
@@ -2381,7 +2407,7 @@ void LLFloaterPreference::onChangePBRFolder()
 {
     if (gInventory.isInventoryUsable())
     {
-        getChild<LLTextBox>("upload_pbr")->setText(get_category_path(LLFolderType::FT_MATERIAL));
+        get_floater_child<LLTextBox>(this, "upload_pbr")->setText(get_category_path(LLFolderType::FT_MATERIAL));
     }
 }
 
@@ -2389,7 +2415,7 @@ void LLFloaterPreference::onChangeTextureFolder()
 {
     if (gInventory.isInventoryUsable())
     {
-        getChild<LLTextBox>("upload_textures")->setText(get_category_path(LLFolderType::FT_TEXTURE));
+        get_floater_child<LLTextBox>(this, "upload_textures")->setText(get_category_path(LLFolderType::FT_TEXTURE));
     }
 }
 
@@ -2397,7 +2423,7 @@ void LLFloaterPreference::onChangeSoundFolder()
 {
     if (gInventory.isInventoryUsable())
     {
-        getChild<LLTextBox>("upload_sounds")->setText(get_category_path(LLFolderType::FT_SOUND));
+        get_floater_child<LLTextBox>(this, "upload_sounds")->setText(get_category_path(LLFolderType::FT_SOUND));
     }
 }
 
@@ -2405,7 +2431,7 @@ void LLFloaterPreference::onChangeAnimationFolder()
 {
     if (gInventory.isInventoryUsable())
     {
-        getChild<LLTextBox>("upload_animation")->setText(get_category_path(LLFolderType::FT_ANIMATION));
+        get_floater_child<LLTextBox>(this, "upload_animation")->setText(get_category_path(LLFolderType::FT_ANIMATION));
     }
 }
 
@@ -2461,7 +2487,7 @@ void LLFloaterPreference::onClickAdvanced()
 {
     LLFloaterReg::showInstance("prefs_graphics_advanced");
 
-    LLTabContainer* tabcontainer = getChild<LLTabContainer>("pref core");
+    LLTabContainer* tabcontainer = get_floater_child<LLTabContainer>(this, "pref core");
     for (child_list_t::const_iterator iter = tabcontainer->getChildList()->begin();
          iter != tabcontainer->getChildList()->end(); ++iter)
     {
@@ -2483,7 +2509,7 @@ void LLFloaterPreference::onAtmosShaderChange()
 {
 // <FM>: This control is not present currently after moving settings back from Advanced Graphics floater
 #if 0
-    LLCheckBoxCtrl* ctrl_alm = getChild<LLCheckBoxCtrl>("UseLightShaders");
+    LLCheckBoxCtrl* ctrl_alm = get_floater_child<LLCheckBoxCtrl>(this, "UseLightShaders");
     if(ctrl_alm)
     {
         //Deferred/SSAO/Shadows
@@ -2535,8 +2561,8 @@ void LLFloaterPreference::onLogChatHistorySaved()
 
 void LLFloaterPreference::updateClickActionControls()
 {
-    const int single_clk_action = getChild<LLComboBox>("single_click_action_combo")->getValue().asInteger();
-    const int double_clk_action = getChild<LLComboBox>("double_click_action_combo")->getValue().asInteger();
+    const int single_clk_action = get_floater_child<LLComboBox>(this, "single_click_action_combo")->getValue().asInteger();
+    const int double_clk_action = get_floater_child<LLComboBox>(this, "double_click_action_combo")->getValue().asInteger();
 
     // Todo: This is a very ugly way to get access to keybindings.
     // Reconsider possible options.
@@ -2545,7 +2571,7 @@ void LLFloaterPreference::updateClickActionControls()
     // mode, pointer should only exist so long as there are external users.
     // In such case we won't need to do this 'dynamic_cast' nightmare.
     // updateTable() can also be avoided
-    LLTabContainer* tabcontainer = getChild<LLTabContainer>("pref core");
+    LLTabContainer* tabcontainer = get_floater_child<LLTabContainer>(this, "pref core");
     for (child_list_t::const_iterator iter = tabcontainer->getChildList()->begin();
         iter != tabcontainer->getChildList()->end(); ++iter)
     {
@@ -2584,7 +2610,7 @@ void LLFloaterPreference::updateClickActionViews()
 
     // Todo: This is a very ugly way to get access to keybindings.
     // Reconsider possible options.
-    LLTabContainer* tabcontainer = getChild<LLTabContainer>("pref core");
+    LLTabContainer* tabcontainer = get_floater_child<LLTabContainer>(this, "pref core");
     for (child_list_t::const_iterator iter = tabcontainer->getChildList()->begin();
         iter != tabcontainer->getChildList()->end(); ++iter)
     {
@@ -2609,8 +2635,8 @@ void LLFloaterPreference::updateClickActionViews()
         }
     }
 
-    getChild<LLComboBox>("single_click_action_combo")->setValue((int)click_to_walk);
-    getChild<LLComboBox>("double_click_action_combo")->setValue(dbl_click_to_teleport ? 2 : (int)dbl_click_to_walk);
+    get_floater_child<LLComboBox>(this, "single_click_action_combo")->setValue((int)click_to_walk);
+    get_floater_child<LLComboBox>(this, "double_click_action_combo")->setValue(dbl_click_to_teleport ? 2 : (int)dbl_click_to_walk);
 }
 
 void LLFloaterPreference::updateSearchableItems()
@@ -2631,14 +2657,14 @@ void LLFloaterPreference::getUIColor(LLUICtrl* ctrl, const LLSD& param)
 
 void LLFloaterPreference::setCacheLocation(const LLStringExplicit& location)
 {
-    LLUICtrl* cache_location_editor = getChild<LLUICtrl>("cache_location");
+    LLUICtrl* cache_location_editor = get_floater_child<LLUICtrl>(this, "cache_location");
     cache_location_editor->setValue(location);
     cache_location_editor->setToolTip(location);
 }
 
 void LLFloaterPreference::selectPanel(const LLSD& name)
 {
-    LLTabContainer * tab_containerp = getChild<LLTabContainer>("pref core");
+    LLTabContainer * tab_containerp = get_floater_child<LLTabContainer>(this, "pref core");
     LLPanel * panel = tab_containerp->getPanelByName(name.asStringRef());
     if (NULL != panel)
     {
@@ -2660,7 +2686,7 @@ void LLFloaterPreference::changed()
 {
     if (LLConversationLog::instance().getIsLoggingEnabled())
     {
-    getChild<LLButton>("clear_log")->setEnabled(LLConversationLog::instance().getConversations().size() > 0);
+    get_floater_child<LLButton>(this, "clear_log")->setEnabled(LLConversationLog::instance().getConversations().size() > 0);
     }
     else
     {
@@ -2671,7 +2697,7 @@ void LLFloaterPreference::changed()
                         && LLFile::stat(LLConversationLog::instance().getFileName(), &st) == 0
                         && S_ISREG(st.st_mode)
                         && st.st_size > 0;
-        getChild<LLButton>("clear_log")->setEnabled(has_logs);
+        get_floater_child<LLButton>(this, "clear_log")->setEnabled(has_logs);
     }
 
     // set 'enable' property for 'Delete transcripts...' button
@@ -2758,7 +2784,7 @@ bool LLPanelPreference::postBuild()
     if (hasChild("display_names_check", true))
     {
         bool use_people_api = gSavedSettings.getBOOL("UsePeopleAPI");
-        LLCheckBoxCtrl* ctrl_display_name = getChild<LLCheckBoxCtrl>("display_names_check");
+        LLCheckBoxCtrl* ctrl_display_name = get_floater_child<LLCheckBoxCtrl>(this, "display_names_check");
         ctrl_display_name->setEnabled(use_people_api);
         if (!use_people_api)
         {
@@ -2770,8 +2796,8 @@ bool LLPanelPreference::postBuild()
     if (hasChild("voice_unavailable", true))
     {
         bool voice_disabled = gSavedSettings.getBOOL("CmdLineDisableVoice");
-        getChildView("voice_unavailable")->setVisible( voice_disabled);
-        getChildView("enable_voice_check")->setVisible( !voice_disabled);
+        get_floater_view(this, "voice_unavailable")->setVisible( voice_disabled);
+        get_floater_view(this, "enable_voice_check")->setVisible( !voice_disabled);
     }
 
     //////////////////////PanelSkins ///////////////////
@@ -2781,7 +2807,7 @@ bool LLPanelPreference::postBuild()
         LLFloaterPreference::refreshSkin(this);
 
         // if skin is set to a skin that no longer exists (silver) set back to default
-        if (getChild<LLRadioGroup>("skin_selection")->getSelectedIndex() < 0)
+        if (get_floater_child<LLRadioGroup>(this, "skin_selection")->getSelectedIndex() < 0)
         {
             gSavedSettings.setString("SkinCurrent", "default");
             LLFloaterPreference::refreshSkin(this);
@@ -2794,32 +2820,32 @@ bool LLPanelPreference::postBuild()
     {
         bool media_enabled = gSavedSettings.getBOOL("AudioStreamingMedia");
 
-        getChild<LLCheckBoxCtrl>("media_enabled")->set(media_enabled);
-        getChild<LLCheckBoxCtrl>("autoplay_enabled")->setEnabled(media_enabled);
+        get_floater_child<LLCheckBoxCtrl>(this, "media_enabled")->set(media_enabled);
+        get_floater_child<LLCheckBoxCtrl>(this, "autoplay_enabled")->setEnabled(media_enabled);
     }
     if (hasChild("music_enabled", true))
     {
-        getChild<LLCheckBoxCtrl>("music_enabled")->set(gSavedSettings.getBOOL("AudioStreamingMusic"));
+        get_floater_child<LLCheckBoxCtrl>(this, "music_enabled")->set(gSavedSettings.getBOOL("AudioStreamingMusic"));
     }
     if (hasChild("voice_call_friends_only_check", true))
     {
-        getChild<LLCheckBoxCtrl>("voice_call_friends_only_check")->setCommitCallback(boost::bind(&showFriendsOnlyWarning, _1, _2));
+        get_floater_child<LLCheckBoxCtrl>(this, "voice_call_friends_only_check")->setCommitCallback(boost::bind(&showFriendsOnlyWarning, _1, _2));
     }
     if (hasChild("allow_multiple_viewer_check", true))
     {
-        getChild<LLCheckBoxCtrl>("allow_multiple_viewer_check")->setCommitCallback(boost::bind(&showMultipleViewersWarning, _1, _2));
+        get_floater_child<LLCheckBoxCtrl>(this, "allow_multiple_viewer_check")->setCommitCallback(boost::bind(&showMultipleViewersWarning, _1, _2));
     }
     if (hasChild("favorites_on_login_check", true))
     {
-        getChild<LLCheckBoxCtrl>("favorites_on_login_check")->setCommitCallback(boost::bind(&handleFavoritesOnLoginChanged, _1, _2));
+        get_floater_child<LLCheckBoxCtrl>(this, "favorites_on_login_check")->setCommitCallback(boost::bind(&handleFavoritesOnLoginChanged, _1, _2));
         bool show_favorites_at_login = LLPanelLogin::getShowFavorites();
-        getChild<LLCheckBoxCtrl>("favorites_on_login_check")->setValue(show_favorites_at_login);
+        get_floater_child<LLCheckBoxCtrl>(this, "favorites_on_login_check")->setValue(show_favorites_at_login);
     }
     if (hasChild("mute_chb_label", true))
     {
-        getChild<LLTextBox>("mute_chb_label")->setShowCursorHand(false);
-        getChild<LLTextBox>("mute_chb_label")->setSoundFlags(LLView::MOUSE_UP);
-        getChild<LLTextBox>("mute_chb_label")->setClickedCallback(boost::bind(&toggleMuteWhenMinimized));
+        get_floater_child<LLTextBox>(this, "mute_chb_label")->setShowCursorHand(false);
+        get_floater_child<LLTextBox>(this, "mute_chb_label")->setSoundFlags(LLView::MOUSE_UP);
+        get_floater_child<LLTextBox>(this, "mute_chb_label")->setClickedCallback(boost::bind(&toggleMuteWhenMinimized));
     }
 
     //////////////////////PanelSetup ///////////////////
@@ -2830,7 +2856,7 @@ bool LLPanelPreference::postBuild()
     }
 
 #ifdef EXTERNAL_TOS
-    LLRadioGroup* ext_browser_settings = getChild<LLRadioGroup>("preferred_browser_behavior");
+    LLRadioGroup* ext_browser_settings = get_floater_child<LLRadioGroup>(this, "preferred_browser_behavior");
     if (ext_browser_settings)
     {
         // turn off ability to set external/internal browser
@@ -2948,7 +2974,7 @@ void LLPanelPreference::toggleMuteWhenMinimized()
     LLFloaterPreference* instance = LLFloaterReg::findTypedInstance<LLFloaterPreference>("preferences");
     if (instance)
     {
-        instance->getChild<LLCheckBoxCtrl>("mute_when_minimized")->setBtnFocus();
+        get_floater_child<LLCheckBoxCtrl>(instance, "mute_when_minimized")->setBtnFocus();
     }
 }
 
@@ -3003,16 +3029,16 @@ void LLPanelPreference::updateMediaAutoPlayCheckbox(LLUICtrl* ctrl)
     // "Streaming Music" and "Media" are unchecked. STORM-513.
     if ((name == "enable_media"))
     {
-        bool media_enabled = getChild<LLCheckBoxCtrl>("enable_media")->get();
+        bool media_enabled = get_floater_child<LLCheckBoxCtrl>(this, "enable_media")->get();
 
-        getChild<LLCheckBoxCtrl>("media_auto_play_combo")->setEnabled( media_enabled );
+        get_floater_child<LLCheckBoxCtrl>(this, "media_auto_play_combo")->setEnabled( media_enabled );
     }
     //enable_music is confusing it is any click of the enable check mark
     if ((name == "enable_music") )
     {
-        bool music_enabled = getChild<LLCheckBoxCtrl>("enable_music")->get();
+        bool music_enabled = get_floater_child<LLCheckBoxCtrl>(this, "enable_music")->get();
 
-        getChild<LLCheckBoxCtrl>("audio_auto_play_btn")->setEnabled( music_enabled );
+        get_floater_child<LLCheckBoxCtrl>(this, "audio_auto_play_btn")->setEnabled( music_enabled );
     }
     if (name == "enable_music" && LLViewerMedia::getInstance()->isParcelAudioPlaying())
     {
@@ -3097,7 +3123,7 @@ bool LLPanelPreferenceGraphics::postBuild()
     // Disable FSAA combo when shaders are not loaded
     //
     {
-        LLComboBox* combo = getChild<LLComboBox>("fsaa");
+        LLComboBox* combo = get_floater_child<LLComboBox>(this, "fsaa");
         if (!gFXAAProgram[0].isComplete())
             combo->remove("FXAA");
 
@@ -3107,12 +3133,12 @@ bool LLPanelPreferenceGraphics::postBuild()
         if (!gFXAAProgram[0].isComplete() && !gSMAAEdgeDetectProgram[0].isComplete())
         {
             combo->setEnabled(false);
-            getChild<LLComboBox>("fsaa quality")->setEnabled(false);
+            get_floater_child<LLComboBox>(this, "fsaa quality")->setEnabled(false);
         }
     }
 
 #if !LL_DARWIN
-    LLCheckBoxCtrl *use_HiDPI = getChild<LLCheckBoxCtrl>("use HiDPI");
+    LLCheckBoxCtrl *use_HiDPI = get_floater_child<LLCheckBoxCtrl>(this, "use HiDPI");
     use_HiDPI->setVisible(false);
 #endif
 
@@ -3145,7 +3171,7 @@ void LLPanelPreferenceGraphics::onPresetsListChange()
 
 void LLPanelPreferenceGraphics::setPresetText()
 {
-    LLTextBox* preset_text = getChild<LLTextBox>("preset_text");
+    LLTextBox* preset_text = get_floater_child<LLTextBox>(this, "preset_text");
 
     std::string preset_graphic_active = gSavedSettings.getString("PresetGraphicActive");
 
@@ -3300,12 +3326,12 @@ LLPanelPreferenceControls::~LLPanelPreferenceControls()
 bool LLPanelPreferenceControls::postBuild()
 {
     // populate list of controls
-    pControlsTable = getChild<LLScrollListCtrl>("controls_list");
-    pKeyModeBox = getChild<LLComboBox>("key_mode");
+    pControlsTable = get_floater_child<LLScrollListCtrl>(this, "controls_list");
+    pKeyModeBox = get_floater_child<LLComboBox>(this, "key_mode");
 
     pControlsTable->setCommitCallback(boost::bind(&LLPanelPreferenceControls::onListCommit, this));
     pKeyModeBox->setCommitCallback(boost::bind(&LLPanelPreferenceControls::onModeCommit, this));
-    getChild<LLButton>("restore_defaults")->setCommitCallback(boost::bind(&LLPanelPreferenceControls::onRestoreDefaultsBtn, this));
+    get_floater_child<LLButton>(this, "restore_defaults")->setCommitCallback(boost::bind(&LLPanelPreferenceControls::onRestoreDefaultsBtn, this));
 
     return true;
 }
@@ -3903,12 +3929,12 @@ bool LLFloaterPreference::postBuildAdvanced()
 #if !LL_DARWIN
     if (gGLManager.mIsIntel || gGLManager.mGLVersion < 3.f)
     { //remove FSAA settings above "4x"
-        LLComboBox* combo = getChild<LLComboBox>("fsaa");
+        LLComboBox* combo = get_floater_child<LLComboBox>(this, "fsaa");
         combo->remove("8x");
         combo->remove("16x");
     }
 
-    LLCheckBoxCtrl *use_HiDPI = getChild<LLCheckBoxCtrl>("use HiDPI");
+    LLCheckBoxCtrl *use_HiDPI = get_floater_child<LLCheckBoxCtrl>(this, "use HiDPI");
     use_HiDPI->setVisible(false);
 #endif
     mLODFactorChangedSignalAdvanced = gSavedSettings.getControl("RenderVolumeLODFactor")->getCommitSignal()->connect(
@@ -3926,22 +3952,22 @@ LLFloaterPreferenceProxy::~LLFloaterPreferenceProxy()
 
 bool LLFloaterPreferenceProxy::postBuild()
 {
-    LLRadioGroup* socksAuth = getChild<LLRadioGroup>("socks5_auth_type");
+    LLRadioGroup* socksAuth = get_floater_child<LLRadioGroup>(this, "socks5_auth_type");
     if (!socksAuth)
     {
         return false;
     }
     if (socksAuth->getSelectedValue().asString() == "None")
     {
-        getChild<LLLineEditor>("socks5_username")->setEnabled(false);
-        getChild<LLLineEditor>("socks5_password")->setEnabled(false);
+        get_floater_child<LLLineEditor>(this, "socks5_username")->setEnabled(false);
+        get_floater_child<LLLineEditor>(this, "socks5_password")->setEnabled(false);
     }
     else
     {
         // Populate the SOCKS 5 credential fields with protected values.
         LLPointer<LLCredential> socks_cred = gSecAPIHandler->loadCredential("SOCKS5");
-        getChild<LLLineEditor>("socks5_username")->setValue(socks_cred->getIdentifier()["username"].asString());
-        getChild<LLLineEditor>("socks5_password")->setValue(socks_cred->getAuthenticator()["creds"].asString());
+        get_floater_child<LLLineEditor>(this, "socks5_username")->setValue(socks_cred->getIdentifier()["username"].asString());
+        get_floater_child<LLLineEditor>(this, "socks5_password")->setValue(socks_cred->getAuthenticator()["creds"].asString());
     }
 
     return true;
@@ -4016,16 +4042,16 @@ void LLFloaterPreferenceProxy::onBtnOk()
     }
 
     // Save SOCKS proxy credentials securely if password auth is enabled
-    LLRadioGroup* socksAuth = getChild<LLRadioGroup>("socks5_auth_type");
+    LLRadioGroup* socksAuth = get_floater_child<LLRadioGroup>(this, "socks5_auth_type");
     if (socksAuth->getSelectedValue().asString() == "UserPass")
     {
         LLSD socks_id = LLSD::emptyMap();
         socks_id["type"] = "SOCKS5";
-        socks_id["username"] = getChild<LLLineEditor>("socks5_username")->getValue().asString();
+        socks_id["username"] = get_floater_child<LLLineEditor>(this, "socks5_username")->getValue().asString();
 
         LLSD socks_authenticator = LLSD::emptyMap();
         socks_authenticator["type"] = "SOCKS5";
-        socks_authenticator["creds"] = getChild<LLLineEditor>("socks5_password")->getValue().asString();
+        socks_authenticator["creds"] = get_floater_child<LLLineEditor>(this, "socks5_password")->getValue().asString();
 
         // Using "SOCKS5" as the "grid" argument since the same proxy
         // settings will be used for all grids and because there is no
@@ -4081,24 +4107,24 @@ void LLFloaterPreferenceProxy::onChangeSocksSettings()
 {
     mSocksSettingsDirty = true;
 
-    LLRadioGroup* socksAuth = getChild<LLRadioGroup>("socks5_auth_type");
+    LLRadioGroup* socksAuth = get_floater_child<LLRadioGroup>(this, "socks5_auth_type");
     if (socksAuth->getSelectedValue().asString() == "None")
     {
-        getChild<LLLineEditor>("socks5_username")->setEnabled(false);
-        getChild<LLLineEditor>("socks5_password")->setEnabled(false);
+        get_floater_child<LLLineEditor>(this, "socks5_username")->setEnabled(false);
+        get_floater_child<LLLineEditor>(this, "socks5_password")->setEnabled(false);
     }
     else
     {
-        getChild<LLLineEditor>("socks5_username")->setEnabled(true);
-        getChild<LLLineEditor>("socks5_password")->setEnabled(true);
+        get_floater_child<LLLineEditor>(this, "socks5_username")->setEnabled(true);
+        get_floater_child<LLLineEditor>(this, "socks5_password")->setEnabled(true);
     }
 
     // Check for invalid states for the other HTTP proxy radio
-    LLRadioGroup* otherHttpProxy = getChild<LLRadioGroup>("other_http_proxy_type");
+    LLRadioGroup* otherHttpProxy = get_floater_child<LLRadioGroup>(this, "other_http_proxy_type");
     if ((otherHttpProxy->getSelectedValue().asString() == "Socks" &&
-            !getChild<LLCheckBoxCtrl>("socks_proxy_enabled")->get())||(
+            !get_floater_child<LLCheckBoxCtrl>(this, "socks_proxy_enabled")->get())||(
                     otherHttpProxy->getSelectedValue().asString() == "Web" &&
-                    !getChild<LLCheckBoxCtrl>("web_proxy_enabled")->get()))
+                    !get_floater_child<LLCheckBoxCtrl>(this, "web_proxy_enabled")->get()))
     {
         otherHttpProxy->selectFirstItem();
     }
@@ -4127,7 +4153,7 @@ void LLFloaterPreference::onUpdateFilterTerm(bool force)
     mSearchData->mRootTab->hightlightAndHide( seachValue );
     filterIgnorableNotifications();
 
-    if (LLTabContainer* pRoot = getChild<LLTabContainer>("pref core"))
+    if (LLTabContainer* pRoot = get_floater_child<LLTabContainer>(this, "pref core"))
         pRoot->selectFirstTab();
 }
 
@@ -4138,7 +4164,7 @@ void LLFloaterPreference::filterIgnorableNotifications()
 
     if (visible)
     {
-        getChildRef<LLTabContainer>("pref core").setTabVisibility( getChild<LLPanel>("msgs"), true );
+        getChildRef<LLTabContainer>("pref core").setTabVisibility( get_floater_child<LLPanel>(this, "msgs"), true );
     }
 }
 
@@ -4213,7 +4239,7 @@ void collectChildren( LLView const *aView, ll::prefs::PanelDataPtr aParentPanel,
 void LLFloaterPreference::collectSearchableItems()
 {
     mSearchData.reset( nullptr );
-    LLTabContainer *pRoot = getChild< LLTabContainer >( "pref core" );
+    LLTabContainer *pRoot = get_floater_child< LLTabContainer >(this,  "pref core" );
     if( mFilterEdit && pRoot )
     {
         mSearchData = std::make_unique<ll::prefs::SearchData>();
@@ -4265,23 +4291,23 @@ bool LLPanelPreferenceCrashReports::postBuild()
 {
     S32 nCrashSubmitBehavior = gCrashSettings.getS32("CrashSubmitBehavior");
 
-    LLCheckBoxCtrl* pSendCrashReports = getChild<LLCheckBoxCtrl>("checkSendCrashReports");
+    LLCheckBoxCtrl* pSendCrashReports = get_floater_child<LLCheckBoxCtrl>(this, "checkSendCrashReports");
     pSendCrashReports->set(CRASH_BEHAVIOR_NEVER_SEND != nCrashSubmitBehavior);
     pSendCrashReports->setCommitCallback(boost::bind(&LLPanelPreferenceCrashReports::refresh, this));
 
-    LLCheckBoxCtrl* pSendAlwaysAsk = getChild<LLCheckBoxCtrl>("checkSendCrashReportsAlwaysAsk");
+    LLCheckBoxCtrl* pSendAlwaysAsk = get_floater_child<LLCheckBoxCtrl>(this, "checkSendCrashReportsAlwaysAsk");
     pSendAlwaysAsk->set(CRASH_BEHAVIOR_ASK == nCrashSubmitBehavior);
 
-    LLCheckBoxCtrl* pSendSettings = getChild<LLCheckBoxCtrl>("checkSendSettings");
+    LLCheckBoxCtrl* pSendSettings = get_floater_child<LLCheckBoxCtrl>(this, "checkSendSettings");
     pSendSettings->set(gCrashSettings.getBOOL("CrashSubmitSettings"));
 
-    LLCheckBoxCtrl* pSendLog = getChild<LLCheckBoxCtrl>("checkSendLog");
+    LLCheckBoxCtrl* pSendLog = get_floater_child<LLCheckBoxCtrl>(this, "checkSendLog");
     pSendLog->set(gCrashSettings.getBOOL("CrashSubmitLog"));
 
-    LLCheckBoxCtrl* pSendName = getChild<LLCheckBoxCtrl>("checkSendName");
+    LLCheckBoxCtrl* pSendName = get_floater_child<LLCheckBoxCtrl>(this, "checkSendName");
     pSendName->set(gCrashSettings.getBOOL("CrashSubmitName"));
 
-    getChild<LLTextBox>("textInformation4")->setTextArg("[URL]", getString("PrivacyPolicyUrl"));
+    get_floater_child<LLTextBox>(this, "textInformation4")->setTextArg("[URL]", getString("PrivacyPolicyUrl"));
 
 #if LL_SEND_CRASH_REPORTS && defined(LL_BUGSPLAT)
     childSetVisible("textRestartRequired", true);
@@ -4294,32 +4320,32 @@ bool LLPanelPreferenceCrashReports::postBuild()
 
 void LLPanelPreferenceCrashReports::refresh()
 {
-    LLCheckBoxCtrl* pSendCrashReports = getChild<LLCheckBoxCtrl>("checkSendCrashReports");
+    LLCheckBoxCtrl* pSendCrashReports = get_floater_child<LLCheckBoxCtrl>(this, "checkSendCrashReports");
     pSendCrashReports->setEnabled(true);
 
     bool fEnable = pSendCrashReports->get();
-    getChild<LLUICtrl>("checkSendCrashReportsAlwaysAsk")->setEnabled(fEnable);
-    getChild<LLUICtrl>("checkSendSettings")->setEnabled(fEnable);
-    getChild<LLUICtrl>("checkSendLog")->setEnabled(fEnable);
-    getChild<LLUICtrl>("checkSendName")->setEnabled(fEnable);
+    get_floater_child<LLUICtrl>(this, "checkSendCrashReportsAlwaysAsk")->setEnabled(fEnable);
+    get_floater_child<LLUICtrl>(this, "checkSendSettings")->setEnabled(fEnable);
+    get_floater_child<LLUICtrl>(this, "checkSendLog")->setEnabled(fEnable);
+    get_floater_child<LLUICtrl>(this, "checkSendName")->setEnabled(fEnable);
 }
 
 void LLPanelPreferenceCrashReports::apply()
 {
-    LLCheckBoxCtrl* pSendCrashReports = getChild<LLCheckBoxCtrl>("checkSendCrashReports");
-    LLCheckBoxCtrl* pSendAlwaysAsk = getChild<LLCheckBoxCtrl>("checkSendCrashReportsAlwaysAsk");
+    LLCheckBoxCtrl* pSendCrashReports = get_floater_child<LLCheckBoxCtrl>(this, "checkSendCrashReports");
+    LLCheckBoxCtrl* pSendAlwaysAsk = get_floater_child<LLCheckBoxCtrl>(this, "checkSendCrashReportsAlwaysAsk");
     if (pSendCrashReports->get())
         gCrashSettings.setS32("CrashSubmitBehavior", (pSendAlwaysAsk->get()) ? CRASH_BEHAVIOR_ASK : CRASH_BEHAVIOR_ALWAYS_SEND);
     else
         gCrashSettings.setS32("CrashSubmitBehavior", CRASH_BEHAVIOR_NEVER_SEND);
 
-    LLCheckBoxCtrl* pSendSettings = getChild<LLCheckBoxCtrl>("checkSendSettings");
+    LLCheckBoxCtrl* pSendSettings = get_floater_child<LLCheckBoxCtrl>(this, "checkSendSettings");
     gCrashSettings.setBOOL("CrashSubmitSettings", pSendSettings->get());
 
-    LLCheckBoxCtrl* pSendLog = getChild<LLCheckBoxCtrl>("checkSendLog");
+    LLCheckBoxCtrl* pSendLog = get_floater_child<LLCheckBoxCtrl>(this, "checkSendLog");
     gCrashSettings.setBOOL("CrashSubmitLog", pSendLog->get());
 
-    LLCheckBoxCtrl* pSendName = getChild<LLCheckBoxCtrl>("checkSendName");
+    LLCheckBoxCtrl* pSendName = get_floater_child<LLCheckBoxCtrl>(this, "checkSendName");
     gCrashSettings.setBOOL("CrashSubmitName", pSendName->get());
 }
 
@@ -4378,7 +4404,7 @@ bool FSPanelPreferenceBackup::postBuild()
     // <FS:Zi> Backup Settings
     // Apparently, line editors don't update with their settings controls, so do that manually here
     std::string dir_name = gSavedSettings.getString("SettingsBackupPath");
-    getChild<LLLineEditor>("settings_backup_path")->setValue(dir_name);
+    get_floater_child<LLLineEditor>(this, "settings_backup_path")->setValue(dir_name);
     // </FS:Zi>
 
     return LLPanelPreference::postBuild();
@@ -4396,7 +4422,7 @@ void FSPanelPreferenceBackup::changeBackupSettingsPath(const std::vector<std::st
     if (!dir_name.empty() && dir_name != proposed_name)
     {
         gSavedSettings.setString("SettingsBackupPath", dir_name);
-        getChild<LLLineEditor>("settings_backup_path")->setValue(dir_name);
+        get_floater_child<LLLineEditor>(this, "settings_backup_path")->setValue(dir_name);
     }
 }
 
@@ -4503,7 +4529,7 @@ void FSPanelPreferenceBackup::doBackupSettings(const LLSD& notification, const L
     backup_global_controls.saveToFile(backup_global_name, false);
 
     // Get scroll list control that holds the list of global files
-    LLScrollListCtrl* globalScrollList = getChild<LLScrollListCtrl>("restore_global_files_list");
+    LLScrollListCtrl* globalScrollList = get_floater_child<LLScrollListCtrl>(this, "restore_global_files_list");
     // Pull out all data
     std::vector<LLScrollListItem*> globalFileList = globalScrollList->getAllData();
     // Go over each entry
@@ -4556,7 +4582,7 @@ void FSPanelPreferenceBackup::doBackupSettings(const LLSD& notification, const L
             backup_per_account_controls.saveToFile(backup_per_account_name, false);
 
             // Get scroll list control that holds the list of per account files
-            LLScrollListCtrl* perAccountScrollList = getChild<LLScrollListCtrl>("restore_per_account_files_list");
+            LLScrollListCtrl* perAccountScrollList = get_floater_child<LLScrollListCtrl>(this, "restore_per_account_files_list");
             // Pull out all data
             std::vector<LLScrollListItem*> perAccountFileList = perAccountScrollList->getAllData();
             // Go over each entry
@@ -4582,7 +4608,7 @@ void FSPanelPreferenceBackup::doBackupSettings(const LLSD& notification, const L
     }
 
     // Get scroll list control that holds the list of global folders
-    LLScrollListCtrl* globalFoldersScrollList = getChild<LLScrollListCtrl>("restore_global_folders_list");
+    LLScrollListCtrl* globalFoldersScrollList = get_floater_child<LLScrollListCtrl>(this, "restore_global_folders_list");
     // Pull out all data
     std::vector<LLScrollListItem*> globalFoldersList = globalFoldersScrollList->getAllData();
     // Go over each entry
@@ -4740,7 +4766,7 @@ void FSPanelPreferenceBackup:: doRestoreSettings(const LLSD& notification, const
     }
 
     // Get scroll list control that holds the list of global files
-    LLScrollListCtrl* globalScrollList = getChild<LLScrollListCtrl>("restore_global_files_list");
+    LLScrollListCtrl* globalScrollList = get_floater_child<LLScrollListCtrl>(this, "restore_global_files_list");
     // Pull out all data
     std::vector<LLScrollListItem*> globalFileList = globalScrollList->getAllData();
     // Go over each entry
@@ -4787,7 +4813,7 @@ void FSPanelPreferenceBackup:: doRestoreSettings(const LLSD& notification, const
         }
 
         // Get scroll list control that holds the list of per account files
-        LLScrollListCtrl* perAccountScrollList = getChild<LLScrollListCtrl>("restore_per_account_files_list");
+        LLScrollListCtrl* perAccountScrollList = get_floater_child<LLScrollListCtrl>(this, "restore_per_account_files_list");
         // Pull out all data
         std::vector<LLScrollListItem*> perAccountFileList = perAccountScrollList->getAllData();
         // Go over each entry
@@ -4832,7 +4858,7 @@ void FSPanelPreferenceBackup:: doRestoreSettings(const LLSD& notification, const
     }
 
     // Get scroll list control that holds the list of global folders
-    LLScrollListCtrl* globalFoldersScrollList = getChild<LLScrollListCtrl>("restore_global_folders_list");
+    LLScrollListCtrl* globalFoldersScrollList = get_floater_child<LLScrollListCtrl>(this, "restore_global_folders_list");
     // Pull out all data
     std::vector<LLScrollListItem*> globalFoldersList = globalFoldersScrollList->getAllData();
     // Go over each entry
@@ -4949,11 +4975,11 @@ void FSPanelPreferenceBackup::onClickDeselectAll()
 void FSPanelPreferenceBackup::doSelect(bool all)
 {
     // Get scroll list control that holds the list of global files
-    LLScrollListCtrl* globalScrollList = getChild<LLScrollListCtrl>("restore_global_files_list");
+    LLScrollListCtrl* globalScrollList = get_floater_child<LLScrollListCtrl>(this, "restore_global_files_list");
     // Get scroll list control that holds the list of per account files
-    LLScrollListCtrl* perAccountScrollList = getChild<LLScrollListCtrl>("restore_per_account_files_list");
+    LLScrollListCtrl* perAccountScrollList = get_floater_child<LLScrollListCtrl>(this, "restore_per_account_files_list");
     // Get scroll list control that holds the list of global folders
-    LLScrollListCtrl* globalFoldersScrollList = getChild<LLScrollListCtrl>("restore_global_folders_list");
+    LLScrollListCtrl* globalFoldersScrollList = get_floater_child<LLScrollListCtrl>(this, "restore_global_folders_list");
 
     applySelection(globalScrollList, all);
     applySelection(perAccountScrollList, all);
@@ -5020,7 +5046,7 @@ void LLFloaterPreference::loadFontPresetsFromDir(const std::string& dir, LLCombo
 
 void LLFloaterPreference::populateFontSelectionCombo()
 {
-    LLComboBox* font_selection_combo = getChild<LLComboBox>("Fontsettingsfile");
+    LLComboBox* font_selection_combo = get_floater_child<LLComboBox>(this, "Fontsettingsfile");
     if (font_selection_combo)
     {
         const std::string fontDir(gDirUtilp->getExpandedFilename(LL_PATH_FONTS, "", ""));

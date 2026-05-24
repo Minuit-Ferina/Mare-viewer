@@ -51,6 +51,32 @@
 #include "llnotifications.h"
 #include "llfloaterreporter.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 #define XML_PANEL_EXPERIENCE_PROFILE "floater_experienceprofile.xml"
 #define TF_NAME "experience_title"
 #define TF_DESC "experience_description"
@@ -168,17 +194,17 @@ bool LLFloaterExperienceProfile::postBuild()
     childSetAction(BTN_SET_GROUP, boost::bind(&LLFloaterExperienceProfile::onPickGroup, this));
     childSetAction(BTN_REPORT, boost::bind(&LLFloaterExperienceProfile::onReportExperience, this));
 
-    getChild<LLTextEditor>(EDIT TF_DESC)->setKeystrokeCallback(boost::bind(&LLFloaterExperienceProfile::onFieldChanged, this));
-    getChild<LLUICtrl>(EDIT TF_MATURITY)->setCommitCallback(boost::bind(&LLFloaterExperienceProfile::onFieldChanged, this));
-    getChild<LLLineEditor>(EDIT TF_MRKT)->setKeystrokeCallback(boost::bind(&LLFloaterExperienceProfile::onFieldChanged, this), NULL);
-    getChild<LLLineEditor>(EDIT TF_NAME)->setKeystrokeCallback(boost::bind(&LLFloaterExperienceProfile::onFieldChanged, this), NULL);
+    get_floater_child<LLTextEditor>(this, EDIT TF_DESC)->setKeystrokeCallback(boost::bind(&LLFloaterExperienceProfile::onFieldChanged, this));
+    get_floater_child<LLUICtrl>(this, EDIT TF_MATURITY)->setCommitCallback(boost::bind(&LLFloaterExperienceProfile::onFieldChanged, this));
+    get_floater_child<LLLineEditor>(this, EDIT TF_MRKT)->setKeystrokeCallback(boost::bind(&LLFloaterExperienceProfile::onFieldChanged, this), NULL);
+    get_floater_child<LLLineEditor>(this, EDIT TF_NAME)->setKeystrokeCallback(boost::bind(&LLFloaterExperienceProfile::onFieldChanged, this), NULL);
 
     childSetCommitCallback(EDIT BTN_ENABLE, boost::bind(&LLFloaterExperienceProfile::onFieldChanged, this), NULL);
     childSetCommitCallback(EDIT BTN_PRIVATE, boost::bind(&LLFloaterExperienceProfile::onFieldChanged, this), NULL);
 
     childSetCommitCallback(EDIT IMG_LOGO, boost::bind(&LLFloaterExperienceProfile::onFieldChanged, this), NULL);
 
-    getChild<LLTextEditor>(EDIT TF_DESC)->setCommitOnFocusLost(true);
+    get_floater_child<LLTextEditor>(this, EDIT TF_DESC)->setCommitOnFocusLost(true);
 
 
     LLEventPumps::instance().obtain("experience_permission").listen(mExperienceId.asString()+"-profile",
@@ -307,11 +333,11 @@ void LLFloaterExperienceProfile::refreshExperience( const LLSD& experience )
     mPackage = experience;
 
 
-    LLLayoutPanel* imagePanel = getChild<LLLayoutPanel>(PNL_IMAGE);
-    LLLayoutPanel* descriptionPanel = getChild<LLLayoutPanel>(PNL_DESC);
-    LLLayoutPanel* locationPanel = getChild<LLLayoutPanel>(PNL_LOC);
-    LLLayoutPanel* marketplacePanel = getChild<LLLayoutPanel>(PNL_MRKT);
-    LLLayoutPanel* topPanel = getChild<LLLayoutPanel>(PNL_TOP);
+    LLLayoutPanel* imagePanel = get_floater_child<LLLayoutPanel>(this, PNL_IMAGE);
+    LLLayoutPanel* descriptionPanel = get_floater_child<LLLayoutPanel>(this, PNL_DESC);
+    LLLayoutPanel* locationPanel = get_floater_child<LLLayoutPanel>(this, PNL_LOC);
+    LLLayoutPanel* marketplacePanel = get_floater_child<LLLayoutPanel>(this, PNL_MRKT);
+    LLLayoutPanel* topPanel = get_floater_child<LLLayoutPanel>(this, PNL_TOP);
 
 
     imagePanel->setVisible(false);
@@ -321,23 +347,23 @@ void LLFloaterExperienceProfile::refreshExperience( const LLSD& experience )
     topPanel->setVisible(false);
 
 
-    LLTextBox* child = getChild<LLTextBox>(TF_NAME);
+    LLTextBox* child = get_floater_child<LLTextBox>(this, TF_NAME);
     //child->setText(experience[LLExperienceCache::NAME].asString());
     child->setText(LLSLURL("experience", experience[LLExperienceCache::EXPERIENCE_ID], "profile").getSLURLString());
 
-    LLLineEditor* linechild = getChild<LLLineEditor>(EDIT TF_NAME);
+    LLLineEditor* linechild = get_floater_child<LLLineEditor>(this, EDIT TF_NAME);
     linechild->setText(experience[LLExperienceCache::NAME].asString());
 
     std::string value = experience[LLExperienceCache::DESCRIPTION].asString();
-    LLExpandableTextBox* exchild = getChild<LLExpandableTextBox>(TF_DESC);
+    LLExpandableTextBox* exchild = get_floater_child<LLExpandableTextBox>(this, TF_DESC);
     exchild->setText(value);
     descriptionPanel->setVisible(value.length()>0);
 
-    LLTextEditor* edit_child = getChild<LLTextEditor>(EDIT TF_DESC);
+    LLTextEditor* edit_child = get_floater_child<LLTextEditor>(this, EDIT TF_DESC);
     edit_child->setText(value);
 
     mLocationSLURL = experience[LLExperienceCache::SLURL].asString();
-    child = getChild<LLTextBox>(TF_SLURL);
+    child = get_floater_child<LLTextBox>(this, TF_SLURL);
     bool has_slurl = mLocationSLURL.length()>0;
     locationPanel->setVisible(has_slurl);
     mLocationSLURL = LLSLURL(mLocationSLURL).getSLURLString();
@@ -351,7 +377,7 @@ void LLFloaterExperienceProfile::refreshExperience( const LLSD& experience )
     child->setText(mLocationSLURL);
 
 
-    child = getChild<LLTextBox>(EDIT TF_SLURL);
+    child = get_floater_child<LLTextBox>(this, EDIT TF_SLURL);
 
     if(has_slurl)
     {
@@ -362,34 +388,34 @@ void LLFloaterExperienceProfile::refreshExperience( const LLSD& experience )
         child->setText(getString("empty_slurl"));
     }
 
-    setMaturityString((U8)(experience[LLExperienceCache::MATURITY].asInteger()), getChild<LLTextBox>(TF_MATURITY), getChild<LLComboBox>(EDIT TF_MATURITY));
+    setMaturityString((U8)(experience[LLExperienceCache::MATURITY].asInteger()), get_floater_child<LLTextBox>(this, TF_MATURITY), get_floater_child<LLComboBox>(this, EDIT TF_MATURITY));
 
     LLUUID id = experience[LLExperienceCache::AGENT_ID].asUUID();
-    child = getChild<LLTextBox>(TF_OWNER);
+    child = get_floater_child<LLTextBox>(this, TF_OWNER);
     value = LLSLURL("agent", id, "inspect").getSLURLString();
     child->setText(value);
 
 
     id = experience[LLExperienceCache::GROUP_ID].asUUID();
     bool id_null = id.isNull();
-    child = getChild<LLTextBox>(TF_GROUP);
+    child = get_floater_child<LLTextBox>(this, TF_GROUP);
     value = LLSLURL("group", id, "inspect").getSLURLString();
     child->setText(value);
-    getChild<LLLayoutPanel>(PNL_GROUP)->setVisible(!id_null);
+    get_floater_child<LLLayoutPanel>(this, PNL_GROUP)->setVisible(!id_null);
 
     setEditGroup(id);
 
-    getChild<LLButton>(BTN_SET_GROUP)->setEnabled(experience[LLExperienceCache::AGENT_ID].asUUID() == gAgent.getID());
+    get_floater_child<LLButton>(this, BTN_SET_GROUP)->setEnabled(experience[LLExperienceCache::AGENT_ID].asUUID() == gAgent.getID());
 
-    LLCheckBoxCtrl* enable = getChild<LLCheckBoxCtrl>(EDIT BTN_ENABLE);
+    LLCheckBoxCtrl* enable = get_floater_child<LLCheckBoxCtrl>(this, EDIT BTN_ENABLE);
     S32 properties = mExperienceDetails[LLExperienceCache::PROPERTIES].asInteger();
     enable->set(!(properties & LLExperienceCache::PROPERTY_DISABLED));
 
-    enable = getChild<LLCheckBoxCtrl>(EDIT BTN_PRIVATE);
+    enable = get_floater_child<LLCheckBoxCtrl>(this, EDIT BTN_PRIVATE);
     enable->set(properties & LLExperienceCache::PROPERTY_PRIVATE);
 
     topPanel->setVisible(true);
-    child=getChild<LLTextBox>(TF_GRID_WIDE);
+    child=get_floater_child<LLTextBox>(this, TF_GRID_WIDE);
     child->setVisible(true);
 
     if(properties & LLExperienceCache::PROPERTY_GRID)
@@ -401,14 +427,14 @@ void LLFloaterExperienceProfile::refreshExperience( const LLSD& experience )
         child->setText(LLTrans::getString("Land-Scope"));
     }
 
-    if(getChild<LLButton>(BTN_EDIT)->getVisible())
+    if(get_floater_child<LLButton>(this, BTN_EDIT)->getVisible())
     {
         topPanel->setVisible(true);
     }
 
     if(properties & LLExperienceCache::PROPERTY_PRIVILEGED)
     {
-        child = getChild<LLTextBox>(TF_PRIVILEGED);
+        child = get_floater_child<LLTextBox>(this, TF_PRIVILEGED);
         child->setVisible(true);
     }
     else
@@ -437,7 +463,7 @@ void LLFloaterExperienceProfile::refreshExperience( const LLSD& experience )
         {
             value=data[TF_MRKT].asString();
 
-            child = getChild<LLTextBox>(TF_MRKT);
+            child = get_floater_child<LLTextBox>(this, TF_MRKT);
             child->setText(value);
             if(value.size())
             {
@@ -453,18 +479,18 @@ void LLFloaterExperienceProfile::refreshExperience( const LLSD& experience )
             marketplacePanel->setVisible(false);
         }
 
-        linechild = getChild<LLLineEditor>(EDIT TF_MRKT);
+        linechild = get_floater_child<LLLineEditor>(this, EDIT TF_MRKT);
         linechild->setText(value);
 
         if(data.has(IMG_LOGO))
         {
-            LLTextureCtrl* logo = getChild<LLTextureCtrl>(IMG_LOGO);
+            LLTextureCtrl* logo = get_floater_child<LLTextureCtrl>(this, IMG_LOGO);
 
             LLUUID id = data[IMG_LOGO].asUUID();
             logo->setImageAssetID(id);
             imagePanel->setVisible(true);
 
-            logo = getChild<LLTextureCtrl>(EDIT IMG_LOGO);
+            logo = get_floater_child<LLTextureCtrl>(this, EDIT IMG_LOGO);
             logo->setImageAssetID(data[IMG_LOGO].asUUID());
 
             imagePanel->setVisible(id.notNull());
@@ -478,7 +504,7 @@ void LLFloaterExperienceProfile::refreshExperience( const LLSD& experience )
 
     mDirty=false;
     mForceClose = false;
-    getChild<LLButton>(BTN_SAVE)->setEnabled(mDirty);
+    get_floater_child<LLButton>(this, BTN_SAVE)->setEnabled(mDirty);
 }
 
 void LLFloaterExperienceProfile::setPreferences( const LLSD& content )
@@ -518,7 +544,7 @@ void LLFloaterExperienceProfile::onFieldChanged()
 {
     updatePackage();
 
-    if(!getChild<LLButton>(BTN_EDIT)->getVisible())
+    if(!get_floater_child<LLButton>(this, BTN_EDIT)->getVisible())
     {
         return;
     }
@@ -537,7 +563,7 @@ void LLFloaterExperienceProfile::onFieldChanged()
         mDirty = true;
     }
 
-    getChild<LLButton>(BTN_SAVE)->setEnabled(mDirty);
+    get_floater_child<LLButton>(this, BTN_SAVE)->setEnabled(mDirty);
 }
 
 
@@ -662,7 +688,7 @@ void LLFloaterExperienceProfile::onSaveComplete( const LLSD& content )
 
     if(mSaveCompleteAction==VIEW)
     {
-        LLTabContainer* tabs = getChild<LLTabContainer>("tab_container");
+        LLTabContainer* tabs = get_floater_child<LLTabContainer>(this, "tab_container");
         tabs->selectTabByName("panel_experience_info");
     }
     else if(mSaveCompleteAction == CLOSE)
@@ -676,7 +702,7 @@ void LLFloaterExperienceProfile::changeToView()
     if(mForceClose || !mDirty)
     {
         refreshExperience(mExperienceDetails);
-        LLTabContainer* tabs = getChild<LLTabContainer>("tab_container");
+        LLTabContainer* tabs = get_floater_child<LLTabContainer>(this, "tab_container");
 
         tabs->selectTabByName("panel_experience_info");
     }
@@ -689,7 +715,7 @@ void LLFloaterExperienceProfile::changeToView()
 
 void LLFloaterExperienceProfile::changeToEdit()
 {
-    LLTabContainer* tabs = getChild<LLTabContainer>("tab_container");
+    LLTabContainer* tabs = get_floater_child<LLTabContainer>(this, "tab_container");
 
     tabs->selectTabByName("edit_panel_experience_info");
 }
@@ -699,7 +725,7 @@ void LLFloaterExperienceProfile::onClickLocation()
     LLViewerRegion* region = gAgent.getRegion();
     if(region)
     {
-        LLTextBox* child = getChild<LLTextBox>(EDIT TF_SLURL);
+        LLTextBox* child = get_floater_child<LLTextBox>(this, EDIT TF_SLURL);
         mLocationSLURL = LLSLURL(region->getName(), gAgent.getPositionGlobal()).getSLURLString();
         child->setText(mLocationSLURL);
         onFieldChanged();
@@ -708,7 +734,7 @@ void LLFloaterExperienceProfile::onClickLocation()
 
 void LLFloaterExperienceProfile::onClickClear()
 {
-    LLTextBox* child = getChild<LLTextBox>(EDIT TF_SLURL);
+    LLTextBox* child = get_floater_child<LLTextBox>(this, EDIT TF_SLURL);
     mLocationSLURL = "";
     child->setText(getString("empty_slurl"));
     onFieldChanged();
@@ -745,37 +771,37 @@ void LLFloaterExperienceProfile::updatePermission( const LLSD& permission )
 
 void LLFloaterExperienceProfile::experienceAllowed()
 {
-    LLButton* button=getChild<LLButton>(BTN_ALLOW);
+    LLButton* button=get_floater_child<LLButton>(this, BTN_ALLOW);
     button->setEnabled(false);
 
-    button=getChild<LLButton>(BTN_FORGET);
+    button=get_floater_child<LLButton>(this, BTN_FORGET);
     button->setEnabled(true);
 
-    button=getChild<LLButton>(BTN_BLOCK);
+    button=get_floater_child<LLButton>(this, BTN_BLOCK);
     button->setEnabled(true);
 }
 
 void LLFloaterExperienceProfile::experienceForgotten()
 {
-    LLButton* button=getChild<LLButton>(BTN_ALLOW);
+    LLButton* button=get_floater_child<LLButton>(this, BTN_ALLOW);
     button->setEnabled(true);
 
-    button=getChild<LLButton>(BTN_FORGET);
+    button=get_floater_child<LLButton>(this, BTN_FORGET);
     button->setEnabled(false);
 
-    button=getChild<LLButton>(BTN_BLOCK);
+    button=get_floater_child<LLButton>(this, BTN_BLOCK);
     button->setEnabled(true);
 }
 
 void LLFloaterExperienceProfile::experienceBlocked()
 {
-    LLButton* button=getChild<LLButton>(BTN_ALLOW);
+    LLButton* button=get_floater_child<LLButton>(this, BTN_ALLOW);
     button->setEnabled(true);
 
-    button=getChild<LLButton>(BTN_FORGET);
+    button=get_floater_child<LLButton>(this, BTN_FORGET);
     button->setEnabled(true);
 
-    button=getChild<LLButton>(BTN_BLOCK);
+    button=get_floater_child<LLButton>(this, BTN_BLOCK);
     button->setEnabled(false);
 }
 
@@ -787,8 +813,8 @@ void LLFloaterExperienceProfile::onClose( bool app_quitting )
 
 void LLFloaterExperienceProfile::updatePackage()
 {
-    mPackage[LLExperienceCache::NAME] = getChild<LLLineEditor>(EDIT TF_NAME)->getText();
-    mPackage[LLExperienceCache::DESCRIPTION] = getChild<LLTextEditor>(EDIT TF_DESC)->getText();
+    mPackage[LLExperienceCache::NAME] = get_floater_child<LLLineEditor>(this, EDIT TF_NAME)->getText();
+    mPackage[LLExperienceCache::DESCRIPTION] = get_floater_child<LLTextEditor>(this, EDIT TF_DESC)->getText();
     if(mLocationSLURL.empty())
     {
         mPackage[LLExperienceCache::SLURL] = LLStringUtil::null;
@@ -798,12 +824,12 @@ void LLFloaterExperienceProfile::updatePackage()
         mPackage[LLExperienceCache::SLURL] = mLocationSLURL;
     }
 
-    mPackage[LLExperienceCache::MATURITY] = getChild<LLComboBox>(EDIT TF_MATURITY)->getSelectedValue().asInteger();
+    mPackage[LLExperienceCache::MATURITY] = get_floater_child<LLComboBox>(this, EDIT TF_MATURITY)->getSelectedValue().asInteger();
 
     LLSD metadata;
 
-    metadata[TF_MRKT] = getChild<LLLineEditor>(EDIT TF_MRKT)->getText();
-    metadata[IMG_LOGO] = getChild<LLTextureCtrl>(EDIT IMG_LOGO)->getImageAssetID();
+    metadata[TF_MRKT] = get_floater_child<LLLineEditor>(this, EDIT TF_MRKT)->getText();
+    metadata[IMG_LOGO] = get_floater_child<LLTextureCtrl>(this, EDIT IMG_LOGO)->getImageAssetID();
 
     LLPointer<LLSDXMLFormatter> formatter = new LLSDXMLFormatter();
 
@@ -814,7 +840,7 @@ void LLFloaterExperienceProfile::updatePackage()
     }
 
     int properties = mPackage[LLExperienceCache::PROPERTIES].asInteger();
-    LLCheckBoxCtrl* enable = getChild<LLCheckBoxCtrl>(EDIT BTN_ENABLE);
+    LLCheckBoxCtrl* enable = get_floater_child<LLCheckBoxCtrl>(this, EDIT BTN_ENABLE);
     if(enable->get())
     {
         properties &= ~LLExperienceCache::PROPERTY_DISABLED;
@@ -824,7 +850,7 @@ void LLFloaterExperienceProfile::updatePackage()
         properties |= LLExperienceCache::PROPERTY_DISABLED;
     }
 
-    enable = getChild<LLCheckBoxCtrl>(EDIT BTN_PRIVATE);
+    enable = get_floater_child<LLCheckBoxCtrl>(this, EDIT BTN_PRIVATE);
     if(enable->get())
     {
         properties |= LLExperienceCache::PROPERTY_PRIVATE;
@@ -856,7 +882,7 @@ void LLFloaterExperienceProfile::onPickGroup()
 
 void LLFloaterExperienceProfile::setEditGroup( LLUUID group_id )
 {
-    LLTextBox* child = getChild<LLTextBox>(EDIT TF_GROUP);
+    LLTextBox* child = get_floater_child<LLTextBox>(this, EDIT TF_GROUP);
     std::string value = LLSLURL("group", group_id, "inspect").getSLURLString();
     child->setText(value);
     mPackage[LLExperienceCache::GROUP_ID] = group_id;
@@ -926,8 +952,8 @@ void LLFloaterExperienceProfile::experienceIsAdmin(LLHandle<LLFloaterExperienceP
     }
     if (enabled && result["status"].asBoolean())
     {
-        parent->getChild<LLLayoutPanel>(PNL_TOP)->setVisible(true);
-        parent->getChild<LLButton>(BTN_EDIT)->setVisible(true);
+        get_floater_child<LLLayoutPanel>(parent, PNL_TOP)->setVisible(true);
+        get_floater_child<LLButton>(parent, BTN_EDIT)->setVisible(true);
     }
 }
 

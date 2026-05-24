@@ -60,6 +60,32 @@
 #include "llviewerobjectlist.h"
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const S32 EVENTS_PER_IDLE_LOOP_CURRENT_SESSION = 80;
 const S32 EVENTS_PER_IDLE_LOOP_BACKGROUND = 40;
 const F32 EVENTS_PER_IDLE_LOOP_MIN_PERCENTAGE = 0.01f; // process a minimum of 1% of total events per frame
@@ -204,16 +230,16 @@ bool LLFloaterIMContainer::postBuild()
     // Do not call base postBuild to not connect to mCloseSignal to not close all floaters via Close button
     // mTabContainer will be initialized in LLMultiFloater::addChild()
 
-    setTabContainer(getChild<LLTabContainer>("im_box_tab_container"));
-    mStubPanel = getChild<LLPanel>("stub_panel");
-    mStubTextBox = getChild<LLTextBox>("stub_textbox");
+    setTabContainer(get_floater_child<LLTabContainer>(this, "im_box_tab_container"));
+    mStubPanel = get_floater_child<LLPanel>(this, "stub_panel");
+    mStubTextBox = get_floater_child<LLTextBox>(this, "stub_textbox");
     mStubTextBox->setURLClickedCallback(boost::bind(&LLFloaterIMContainer::returnFloaterToHost, this));
 
-    mConversationsStack = getChild<LLLayoutStack>("conversations_stack");
-    mConversationsPane = getChild<LLLayoutPanel>("conversations_layout_panel");
-    mMessagesPane = getChild<LLLayoutPanel>("messages_layout_panel");
+    mConversationsStack = get_floater_child<LLLayoutStack>(this, "conversations_stack");
+    mConversationsPane = get_floater_child<LLLayoutPanel>(this, "conversations_layout_panel");
+    mMessagesPane = get_floater_child<LLLayoutPanel>(this, "messages_layout_panel");
 
-    mConversationsListPanel = getChild<LLPanel>("conversations_list_panel");
+    mConversationsListPanel = get_floater_child<LLPanel>(this, "conversations_list_panel");
 
     // Open IM session with selected participant on double click event
     mConversationsListPanel->setDoubleClickCallback(boost::bind(&LLFloaterIMContainer::doToSelected, this, LLSD("im")));
@@ -245,7 +271,7 @@ bool LLFloaterIMContainer::postBuild()
     // a scroller for folder view
     LLRect scroller_view_rect = mConversationsListPanel->getRect();
     scroller_view_rect.translate(-scroller_view_rect.mLeft, -scroller_view_rect.mBottom);
-    scroller_view_rect.mBottom += getChild<LLLayoutStack>("conversations_pane_buttons_stack")->getRect().getHeight();
+    scroller_view_rect.mBottom += get_floater_child<LLLayoutStack>(this, "conversations_pane_buttons_stack")->getRect().getHeight();
     LLScrollContainer::Params scroller_params(LLUICtrlFactory::getDefaultParams<LLFolderViewScrollContainer>());
     scroller_params.rect(scroller_view_rect);
 
@@ -259,11 +285,11 @@ bool LLFloaterIMContainer::postBuild()
 
     addConversationListItem(LLUUID()); // manually add nearby chat
 
-    mExpandCollapseBtn = getChild<LLButton>("expand_collapse_btn");
+    mExpandCollapseBtn = get_floater_child<LLButton>(this, "expand_collapse_btn");
     mExpandCollapseBtn->setClickedCallback(boost::bind(&LLFloaterIMContainer::onExpandCollapseButtonClicked, this));
-    mStubCollapseBtn = getChild<LLButton>("stub_collapse_btn");
+    mStubCollapseBtn = get_floater_child<LLButton>(this, "stub_collapse_btn");
     mStubCollapseBtn->setClickedCallback(boost::bind(&LLFloaterIMContainer::onStubCollapseButtonClicked, this));
-    mSpeakBtn = getChild<LLButton>("speak_btn");
+    mSpeakBtn = get_floater_child<LLButton>(this, "speak_btn");
 
     mSpeakBtn->setMouseDownCallback(boost::bind(&LLFloaterIMContainer::onSpeakButtonPressed, this));
     mSpeakBtn->setMouseUpCallback(boost::bind(&LLFloaterIMContainer::onSpeakButtonReleased, this));
@@ -925,7 +951,7 @@ void LLFloaterIMContainer::collapseConversationsPane(bool collapse, bool save_is
         return;
     }
 
-    LLView* button_panel = getChild<LLView>("conversations_pane_buttons_expanded");
+    LLView* button_panel = get_floater_child<LLView>(this, "conversations_pane_buttons_expanded");
     button_panel->setVisible(!collapse);
     mExpandCollapseBtn->setImageOverlay(getString(collapse ? "expand_icon" : "collapse_icon"));
 

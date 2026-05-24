@@ -31,6 +31,32 @@
 #include "llcolorswatch.h"
 #include "llviewercontrol.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterInventorySettings::LLFloaterInventorySettings(const LLSD& key)
   : LLFloater(key)
 {
@@ -43,20 +69,20 @@ LLFloaterInventorySettings::~LLFloaterInventorySettings()
 
 bool LLFloaterInventorySettings::postBuild()
 {
-    getChild<LLButton>("ok_btn")->setCommitCallback(boost::bind(&LLFloater::closeFloater, this, false));
+    get_floater_child<LLButton>(this, "ok_btn")->setCommitCallback(boost::bind(&LLFloater::closeFloater, this, false));
 
-    getChild<LLUICtrl>("favorites_color")->setCommitCallback(boost::bind(&LLFloaterInventorySettings::updateColorSwatch, this));
+    get_floater_child<LLUICtrl>(this, "favorites_color")->setCommitCallback(boost::bind(&LLFloaterInventorySettings::updateColorSwatch, this));
 
     bool enable_color = gSavedSettings.getBOOL("InventoryFavoritesColorText");
-    getChild<LLUICtrl>("favorites_swatch")->setEnabled(enable_color);
+    get_floater_child<LLUICtrl>(this, "favorites_swatch")->setEnabled(enable_color);
 
     return true;
 }
 
 void LLFloaterInventorySettings::updateColorSwatch()
 {
-    bool val = getChild<LLUICtrl>("favorites_color")->getValue();
-    getChild<LLUICtrl>("favorites_swatch")->setEnabled(val);
+    bool val = get_floater_child<LLUICtrl>(this, "favorites_color")->getValue();
+    get_floater_child<LLUICtrl>(this, "favorites_swatch")->setEnabled(val);
 }
 
 void LLFloaterInventorySettings::applyUIColor(LLUICtrl* ctrl, const LLSD& param)

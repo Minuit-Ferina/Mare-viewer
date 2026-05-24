@@ -43,6 +43,32 @@
 #include "lltrans.h"
 #include "llviewerparcelmgr.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //=========================================================================
 namespace
 {
@@ -101,7 +127,7 @@ LLFloaterMyEnvironment::~LLFloaterMyEnvironment()
 
 bool LLFloaterMyEnvironment::postBuild()
 {
-    mInventoryList = getChild<LLInventoryPanel>(PANEL_SETTINGS);
+    mInventoryList = get_floater_child<LLInventoryPanel>(this, PANEL_SETTINGS);
 
     if (mInventoryList)
     {
@@ -120,7 +146,7 @@ bool LLFloaterMyEnvironment::postBuild()
     childSetCommitCallback(CHECK_WATER, [this](LLUICtrl*, void*) { onFilterCheckChange(); }, nullptr);
     childSetCommitCallback(CHECK_SHOWFOLDERS, [this](LLUICtrl*, void*) { onShowFoldersChange(); }, nullptr);
 
-    mFilterEdit = getChild<LLFilterEditor>(FLT_SEARCH);
+    mFilterEdit = get_floater_child<LLFilterEditor>(this, FLT_SEARCH);
     mFilterEdit->setCommitCallback([this](LLUICtrl*, const LLSD& param){ onFilterEdit(param.asString()); });
 
     childSetCommitCallback(BUTTON_DELETE, [this](LLUICtrl *, void*) { onDeleteSelected(); }, nullptr);
@@ -130,11 +156,11 @@ bool LLFloaterMyEnvironment::postBuild()
 
 void LLFloaterMyEnvironment::refresh()
 {
-    getChild<LLCheckBoxCtrl>(CHECK_SHOWFOLDERS)->setValue(LLSD::Boolean(mShowFolders == LLInventoryFilter::SHOW_ALL_FOLDERS));
+    get_floater_child<LLCheckBoxCtrl>(this, CHECK_SHOWFOLDERS)->setValue(LLSD::Boolean(mShowFolders == LLInventoryFilter::SHOW_ALL_FOLDERS));
 
-    getChild<LLCheckBoxCtrl>(CHECK_DAYS)->setValue(LLSD::Boolean(mTypeFilter & (0x01 << static_cast<U64>(LLSettingsType::ST_DAYCYCLE))));
-    getChild<LLCheckBoxCtrl>(CHECK_SKIES)->setValue(LLSD::Boolean(mTypeFilter & (0x01 << static_cast<U64>(LLSettingsType::ST_SKY))));
-    getChild<LLCheckBoxCtrl>(CHECK_WATER)->setValue(LLSD::Boolean(mTypeFilter & (0x01 << static_cast<U64>(LLSettingsType::ST_WATER))));
+    get_floater_child<LLCheckBoxCtrl>(this, CHECK_DAYS)->setValue(LLSD::Boolean(mTypeFilter & (0x01 << static_cast<U64>(LLSettingsType::ST_DAYCYCLE))));
+    get_floater_child<LLCheckBoxCtrl>(this, CHECK_SKIES)->setValue(LLSD::Boolean(mTypeFilter & (0x01 << static_cast<U64>(LLSettingsType::ST_SKY))));
+    get_floater_child<LLCheckBoxCtrl>(this, CHECK_WATER)->setValue(LLSD::Boolean(mTypeFilter & (0x01 << static_cast<U64>(LLSettingsType::ST_WATER))));
 
     refreshButtonStates();
 
@@ -174,7 +200,7 @@ void LLFloaterMyEnvironment::onOpen(const LLSD& key)
 //-------------------------------------------------------------------------
 void LLFloaterMyEnvironment::onShowFoldersChange()
 {
-    bool show_check(getChild<LLCheckBoxCtrl>(CHECK_SHOWFOLDERS)->getValue().asBoolean());
+    bool show_check(get_floater_child<LLCheckBoxCtrl>(this, CHECK_SHOWFOLDERS)->getValue().asBoolean());
 
     mShowFolders = (show_check) ? LLInventoryFilter::SHOW_ALL_FOLDERS : LLInventoryFilter::SHOW_NON_EMPTY_FOLDERS;
 
@@ -186,11 +212,11 @@ void LLFloaterMyEnvironment::onFilterCheckChange()
 {
     mTypeFilter = 0x0;
 
-    if (getChild<LLCheckBoxCtrl>(CHECK_DAYS)->getValue().asBoolean())
+    if (get_floater_child<LLCheckBoxCtrl>(this, CHECK_DAYS)->getValue().asBoolean())
         mTypeFilter |= 0x01 << static_cast<U64>(LLSettingsType::ST_DAYCYCLE);
-    if (getChild<LLCheckBoxCtrl>(CHECK_SKIES)->getValue().asBoolean())
+    if (get_floater_child<LLCheckBoxCtrl>(this, CHECK_SKIES)->getValue().asBoolean())
         mTypeFilter |= 0x01 << static_cast<U64>(LLSettingsType::ST_SKY);
-    if (getChild<LLCheckBoxCtrl>(CHECK_WATER)->getValue().asBoolean())
+    if (get_floater_child<LLCheckBoxCtrl>(this, CHECK_WATER)->getValue().asBoolean())
         mTypeFilter |= 0x01 << static_cast<U64>(LLSettingsType::ST_WATER);
 
     if (mInventoryList)
@@ -441,8 +467,8 @@ void LLFloaterMyEnvironment::refreshButtonStates()
     uuid_vec_t selected;
     getSelectedIds(selected);
 
-    getChild<LLUICtrl>(BUTTON_GEAR)->setEnabled(settings_ok);
-    getChild<LLUICtrl>(BUTTON_NEWSETTINGS)->setEnabled(true);
+    get_floater_child<LLUICtrl>(this, BUTTON_GEAR)->setEnabled(settings_ok);
+    get_floater_child<LLUICtrl>(this, BUTTON_NEWSETTINGS)->setEnabled(true);
 
     bool enable_delete = false;
     if(settings_ok && !selected.empty())
@@ -450,7 +476,7 @@ void LLFloaterMyEnvironment::refreshButtonStates()
         enable_delete = can_delete(selected.front());
     }
 
-    getChild<LLUICtrl>(BUTTON_DELETE)->setEnabled(enable_delete);
+    get_floater_child<LLUICtrl>(this, BUTTON_DELETE)->setEnabled(enable_delete);
 }
 
 //-------------------------------------------------------------------------

@@ -53,6 +53,32 @@
 #include "llviewerwindow.h"
 #include "llfloaterregioninfo.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //LLFloaterTopObjects* LLFloaterTopObjects::sInstance = NULL;
 
 // Globals
@@ -95,7 +121,7 @@ LLFloaterTopObjects::~LLFloaterTopObjects()
 // virtual
 bool LLFloaterTopObjects::postBuild()
 {
-    mObjectsScrollList = getChild<LLScrollListCtrl>("objects_list");
+    mObjectsScrollList = get_floater_child<LLScrollListCtrl>(this, "objects_list");
     mObjectsScrollList->setFocus(true);
     mObjectsScrollList->setDoubleClickCallback(onDoubleClickObjectsList, this);
     mObjectsScrollList->setCommitOnSelectionChange(true);
@@ -153,7 +179,7 @@ void LLFloaterTopObjects::handleReply(LLMessageSystem *msg, void** data)
     msg->getU32Fast(_PREHASH_RequestData, _PREHASH_TotalObjectCount, total_count);
     msg->getU32Fast(_PREHASH_RequestData, _PREHASH_ReportType, mCurrentMode);
 
-    LLScrollListCtrl *list = getChild<LLScrollListCtrl>("objects_list");
+    LLScrollListCtrl *list = get_floater_child<LLScrollListCtrl>(this, "objects_list");
 
     S32 block_count = msg->getNumberOfBlocks("ReportData");
     for (S32 block = 0; block < block_count; ++block)
@@ -290,7 +316,7 @@ void LLFloaterTopObjects::handleReply(LLMessageSystem *msg, void** data)
         format.setArg("[MEMORY]", llformat("%ld", total_memory));
         format.setArg("[COUNT]", llformat("%d", total_count));
         format.setArg("[TIME]", llformat("%0.3f", mtotalScore));
-        getChild<LLUICtrl>("title_text")->setValue(LLSD(format));
+        get_floater_child<LLUICtrl>(this, "title_text")->setValue(LLSD(format));
         list->setColumnLabel("URLs", getString("URLs"));
         list->setColumnLabel("memory", getString("memory"));
     }
@@ -302,7 +328,7 @@ void LLFloaterTopObjects::handleReply(LLMessageSystem *msg, void** data)
         list->setColumnLabel("memory", "");
         LLUIString format = getString("top_colliders_text");
         format.setArg("[COUNT]", llformat("%d", total_count));
-        getChild<LLUICtrl>("title_text")->setValue(LLSD(format));
+        get_floater_child<LLUICtrl>(this, "title_text")->setValue(LLSD(format));
     }
 
     LLFloaterRegionInfo* region_info_floater = LLFloaterReg::getTypedInstance<LLFloaterRegionInfo>("region_info");
@@ -310,7 +336,7 @@ void LLFloaterTopObjects::handleReply(LLMessageSystem *msg, void** data)
     {
         region_info_floater->enableTopButtons();
     }
-    getChildView("refresh_btn")->setEnabled(true);
+    get_floater_view(this, "refresh_btn")->setEnabled(true);
 }
 
 void LLFloaterTopObjects::onCommitObjectsList()
@@ -320,7 +346,7 @@ void LLFloaterTopObjects::onCommitObjectsList()
 
 void LLFloaterTopObjects::updateSelectionInfo()
 {
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("objects_list");
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(this, "objects_list");
 
     if (!list) return;
 
@@ -329,14 +355,14 @@ void LLFloaterTopObjects::updateSelectionInfo()
 
     std::string object_id_string = object_id.asString();
 
-    getChild<LLUICtrl>("id_editor")->setValue(LLSD(object_id_string));
+    get_floater_child<LLUICtrl>(this, "id_editor")->setValue(LLSD(object_id_string));
     LLScrollListItem* sli = list->getFirstSelected();
     llassert(sli);
     if (sli)
     {
-        getChild<LLUICtrl>("object_name_editor")->setValue(sli->getColumn(1)->getValue().asString());
-        getChild<LLUICtrl>("owner_name_editor")->setValue(sli->getColumn(2)->getValue().asString());
-        getChild<LLUICtrl>("parcel_name_editor")->setValue(sli->getColumn(4)->getValue().asString());
+        get_floater_child<LLUICtrl>(this, "object_name_editor")->setValue(sli->getColumn(1)->getValue().asString());
+        get_floater_child<LLUICtrl>(this, "owner_name_editor")->setValue(sli->getColumn(2)->getValue().asString());
+        get_floater_child<LLUICtrl>(this, "parcel_name_editor")->setValue(sli->getColumn(4)->getValue().asString());
     }
 }
 
@@ -360,7 +386,7 @@ void LLFloaterTopObjects::returnObjects(bool all)
     LLViewerRegion* region = gAgent.getRegion();
     if (!region) return;
 
-    LLCtrlListInterface *list = getChild<LLUICtrl>("objects_list")->getListInterface();
+    LLCtrlListInterface *list = get_floater_child<LLUICtrl>(this, "objects_list")->getListInterface();
     if (!list || list->getItemCount() == 0) return;
 
     uuid_vec_t::iterator id_itor;
@@ -482,20 +508,20 @@ void LLFloaterTopObjects::onRefresh()
 
 void LLFloaterTopObjects::disableRefreshBtn()
 {
-    getChildView("refresh_btn")->setEnabled(false);
+    get_floater_view(this, "refresh_btn")->setEnabled(false);
 }
 
 void LLFloaterTopObjects::onGetByObjectName()
 {
     mFlags  = STAT_FILTER_BY_OBJECT;
-    mFilter = getChild<LLUICtrl>("object_name_editor")->getValue().asString();
+    mFilter = get_floater_child<LLUICtrl>(this, "object_name_editor")->getValue().asString();
     onRefresh();
 }
 
 void LLFloaterTopObjects::onGetByOwnerName()
 {
     mFlags  = STAT_FILTER_BY_OWNER;
-    mFilter = getChild<LLUICtrl>("owner_name_editor")->getValue().asString();
+    mFilter = get_floater_child<LLUICtrl>(this, "owner_name_editor")->getValue().asString();
     onRefresh();
 }
 
@@ -503,14 +529,14 @@ void LLFloaterTopObjects::onGetByOwnerName()
 void LLFloaterTopObjects::onGetByParcelName()
 {
     mFlags  = STAT_FILTER_BY_PARCEL_NAME;
-    mFilter = getChild<LLUICtrl>("parcel_name_editor")->getValue().asString();
+    mFilter = get_floater_child<LLUICtrl>(this, "parcel_name_editor")->getValue().asString();
     onRefresh();
 }
 
 
 void LLFloaterTopObjects::showBeacon()
 {
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("objects_list");
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(this, "objects_list");
     if (!list) return;
 
     LLScrollListItem* first_selected = list->getFirstSelected();
@@ -561,5 +587,5 @@ void LLFloaterTopObjects::teleportToSelectedObject()
 
 void LLFloaterTopObjects::onSelectionChanged()
 {
-    getChildView("teleport_btn")->setEnabled(mObjectsScrollList->getNumSelected() == 1);
+    get_floater_view(this, "teleport_btn")->setEnabled(mObjectsScrollList->getNumSelected() == 1);
 }

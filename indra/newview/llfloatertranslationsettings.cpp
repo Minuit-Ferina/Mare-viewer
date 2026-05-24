@@ -42,6 +42,31 @@
 #include "llnotificationsutil.h"
 #include "llradiogroup.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterTranslationSettings::LLFloaterTranslationSettings(const LLSD& key)
 :   LLFloater(key)
 ,   mMachineTranslationCB(NULL)
@@ -63,19 +88,19 @@ bool LLFloaterTranslationSettings::postBuild()
 
 void LLFloaterTranslationSettings::setupControls()
 {
-    mMachineTranslationCB = getChild<LLCheckBoxCtrl>("translate_chat_checkbox");
-    mLanguageCombo = getChild<LLComboBox>("translate_language_combo");
-    mTranslationServiceRadioGroup = getChild<LLRadioGroup>("translation_service_rg");
-    mAzureAPIEndpointEditor = getChild<LLComboBox>("azure_api_endpoint_combo");
-    mAzureAPIKeyEditor = getChild<LLLineEditor>("azure_api_key");
-    mAzureAPIRegionEditor = getChild<LLLineEditor>("azure_api_region");
-    mGoogleAPIKeyEditor = getChild<LLLineEditor>("google_api_key");
-    mDeepLAPIDomainCombo = getChild<LLComboBox>("deepl_api_domain_combo");
-    mDeepLAPIKeyEditor = getChild<LLLineEditor>("deepl_api_key");
-    mAzureVerifyBtn = getChild<LLButton>("verify_azure_api_key_btn");
-    mGoogleVerifyBtn = getChild<LLButton>("verify_google_api_key_btn");
-    mDeepLVerifyBtn = getChild<LLButton>("verify_deepl_api_key_btn");
-    mOKBtn = getChild<LLButton>("ok_btn");
+    mMachineTranslationCB = get_floater_child<LLCheckBoxCtrl>(this, "translate_chat_checkbox");
+    mLanguageCombo = get_floater_child<LLComboBox>(this, "translate_language_combo");
+    mTranslationServiceRadioGroup = get_floater_child<LLRadioGroup>(this, "translation_service_rg");
+    mAzureAPIEndpointEditor = get_floater_child<LLComboBox>(this, "azure_api_endpoint_combo");
+    mAzureAPIKeyEditor = get_floater_child<LLLineEditor>(this, "azure_api_key");
+    mAzureAPIRegionEditor = get_floater_child<LLLineEditor>(this, "azure_api_region");
+    mGoogleAPIKeyEditor = get_floater_child<LLLineEditor>(this, "google_api_key");
+    mDeepLAPIDomainCombo = get_floater_child<LLComboBox>(this, "deepl_api_domain_combo");
+    mDeepLAPIKeyEditor = get_floater_child<LLLineEditor>(this, "deepl_api_key");
+    mAzureVerifyBtn = get_floater_child<LLButton>(this, "verify_azure_api_key_btn");
+    mGoogleVerifyBtn = get_floater_child<LLButton>(this, "verify_google_api_key_btn");
+    mDeepLVerifyBtn = get_floater_child<LLButton>(this, "verify_deepl_api_key_btn");
+    mOKBtn = get_floater_child<LLButton>(this, "ok_btn");
 }
 
 void LLFloaterTranslationSettings::setupCallbacks()
@@ -83,7 +108,7 @@ void LLFloaterTranslationSettings::setupCallbacks()
     mMachineTranslationCB->setCommitCallback(boost::bind(&LLFloaterTranslationSettings::updateControlsEnabledState, this));
     mTranslationServiceRadioGroup->setCommitCallback(boost::bind(&LLFloaterTranslationSettings::updateControlsEnabledState, this));
     mOKBtn->setClickedCallback(boost::bind(&LLFloaterTranslationSettings::onBtnOK, this));
-    getChild<LLButton>("cancel_btn")->setClickedCallback(boost::bind(&LLFloater::closeFloater, this, false));
+    get_floater_child<LLButton>(this, "cancel_btn")->setClickedCallback(boost::bind(&LLFloater::closeFloater, this, false));
     mAzureVerifyBtn->setClickedCallback(boost::bind(&LLFloaterTranslationSettings::onBtnAzureVerify, this));
     mGoogleVerifyBtn->setClickedCallback(boost::bind(&LLFloaterTranslationSettings::onBtnGoogleVerify, this));
     mDeepLVerifyBtn->setClickedCallback(boost::bind(&LLFloaterTranslationSettings::onBtnDeepLVerify, this));
@@ -324,7 +349,7 @@ void LLFloaterTranslationSettings::updateControlsEnabledState()
 
 void LLFloaterTranslationSettings::setLabelEnabled(const std::string& name, bool enabled)
 {
-    getChild<LLTextBox>(name)->setEnabled(enabled);
+    get_floater_child<LLTextBox>(this, name)->setEnabled(enabled);
 }
 
 /*static*/

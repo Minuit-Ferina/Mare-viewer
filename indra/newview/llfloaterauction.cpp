@@ -57,6 +57,31 @@
 #include "lltrans.h"
 #include "llcorehttputil.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 ///----------------------------------------------------------------------------
 /// Local function declarations, constants, enums, and typedefs
 ///----------------------------------------------------------------------------
@@ -138,29 +163,29 @@ void LLFloaterAuction::initialize()
 
 void LLFloaterAuction::setParcelText(const LLSD& value)
 {
-    getChild<LLUICtrl>("parcel_text")->setValue(value);
+    get_floater_child<LLUICtrl>(this, "parcel_text")->setValue(value);
 }
 
 LLSD LLFloaterAuction::getParcelText()
 {
-    return getChild<LLUICtrl>("parcel_text")->getValue();
+    return get_floater_child<LLUICtrl>(this, "parcel_text")->getValue();
 }
 
 bool LLFloaterAuction::getFenceEnabled()
 {
-    return getChild<LLUICtrl>("fence_check")->getValue().asBoolean();
+    return get_floater_child<LLUICtrl>(this, "fence_check")->getValue().asBoolean();
 }
 
 void LLFloaterAuction::setAuctionButtonsEnabled(bool enabled)
 {
-    getChildView("snapshot_btn")->setEnabled(enabled);
-    getChildView("reset_parcel_btn")->setEnabled(enabled);
-    getChildView("start_auction_btn")->setEnabled(enabled);
+    get_floater_view(this, "snapshot_btn")->setEnabled(enabled);
+    get_floater_view(this, "reset_parcel_btn")->setEnabled(enabled);
+    get_floater_view(this, "start_auction_btn")->setEnabled(enabled);
 }
 
 void LLFloaterAuction::setSellToAnyoneEnabled(bool enabled)
 {
-    getChildView("sell_to_anyone_btn")->setEnabled(enabled);
+    get_floater_view(this, "sell_to_anyone_btn")->setEnabled(enabled);
 }
 
 void LLFloaterAuction::draw()

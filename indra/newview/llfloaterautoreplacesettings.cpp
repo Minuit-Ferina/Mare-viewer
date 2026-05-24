@@ -65,6 +65,31 @@
 #include "llnotificationmanager.h"
 #include "llnotificationsutil.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 
 LLFloaterAutoReplaceSettings::LLFloaterAutoReplaceSettings(const LLSD& key)
  : LLFloater(key)
@@ -105,36 +130,36 @@ void LLFloaterAutoReplaceSettings::setupSettingsSnapshot()
 void LLFloaterAutoReplaceSettings::setupControls()
 {
     // global checkbox for whether or not autoreplace is active
-    LLUICtrl* enabledCheckbox = getChild<LLUICtrl>("autoreplace_enable");
+    LLUICtrl* enabledCheckbox = get_floater_child<LLUICtrl>(this, "autoreplace_enable");
     enabledCheckbox->setValue(LLSD(mEnabled));
 
-    mListNames = getChild<LLScrollListCtrl>("autoreplace_list_name");
-    mKeyword     = getChild<LLLineEditor>("autoreplace_keyword");
-    mReplacement = getChild<LLLineEditor>("autoreplace_replacement");
-    mReplacementsList = getChild<LLScrollListCtrl>("autoreplace_list_replacements");
+    mListNames = get_floater_child<LLScrollListCtrl>(this, "autoreplace_list_name");
+    mKeyword     = get_floater_child<LLLineEditor>(this, "autoreplace_keyword");
+    mReplacement = get_floater_child<LLLineEditor>(this, "autoreplace_replacement");
+    mReplacementsList = get_floater_child<LLScrollListCtrl>(this, "autoreplace_list_replacements");
 }
 
 void LLFloaterAutoReplaceSettings::setupCallbacks()
 {
-    getChild<LLUICtrl>("autoreplace_enable")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onAutoReplaceToggled, this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_enable")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onAutoReplaceToggled, this));
 
-    getChild<LLUICtrl>("autoreplace_import_list")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onImportList,this));
-    getChild<LLUICtrl>("autoreplace_export_list")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onExportList,this));
-    getChild<LLUICtrl>("autoreplace_new_list")->setCommitCallback(   boost::bind(&LLFloaterAutoReplaceSettings::onNewList,this));
-    getChild<LLUICtrl>("autoreplace_delete_list")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onDeleteList,this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_import_list")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onImportList,this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_export_list")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onExportList,this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_new_list")->setCommitCallback(   boost::bind(&LLFloaterAutoReplaceSettings::onNewList,this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_delete_list")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onDeleteList,this));
 
     mListNames->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onSelectList, this));
     mListNames->setCommitOnSelectionChange(true);
 
-    getChild<LLUICtrl>("autoreplace_list_up")->setCommitCallback(  boost::bind(&LLFloaterAutoReplaceSettings::onListUp,this));
-    getChild<LLUICtrl>("autoreplace_list_down")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onListDown,this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_list_up")->setCommitCallback(  boost::bind(&LLFloaterAutoReplaceSettings::onListUp,this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_list_down")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onListDown,this));
 
-    getChild<LLUICtrl>("autoreplace_add_entry")->setCommitCallback(   boost::bind(&LLFloaterAutoReplaceSettings::onAddEntry,this));
-    getChild<LLUICtrl>("autoreplace_delete_entry")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onDeleteEntry,this));
-    getChild<LLUICtrl>("autoreplace_save_entry")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onSaveEntry, this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_add_entry")->setCommitCallback(   boost::bind(&LLFloaterAutoReplaceSettings::onAddEntry,this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_delete_entry")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onDeleteEntry,this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_save_entry")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onSaveEntry, this));
 
-    getChild<LLUICtrl>("autoreplace_save_changes")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onSaveChanges, this));
-    getChild<LLUICtrl>("autoreplace_cancel")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onCancel, this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_save_changes")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onSaveChanges, this));
+    get_floater_child<LLUICtrl>(this, "autoreplace_cancel")->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onCancel, this));
 
     mReplacementsList->setCommitCallback(boost::bind(&LLFloaterAutoReplaceSettings::onSelectEntry, this));
     mReplacementsList->setCommitOnSelectionChange(true);
@@ -185,8 +210,8 @@ void LLFloaterAutoReplaceSettings::updateListNamesControls()
     {
         // Enable the controls that operate on the selected list
         setListActionControlsEnabled(true);
-        getChild<LLButton>("autoreplace_list_up")->setEnabled(!selectedListIsFirst());
-        getChild<LLButton>("autoreplace_list_down")->setEnabled(!selectedListIsLast());
+        get_floater_child<LLButton>(this, "autoreplace_list_up")->setEnabled(!selectedListIsFirst());
+        get_floater_child<LLButton>(this, "autoreplace_list_down")->setEnabled(!selectedListIsLast());
     }
 }
 
@@ -243,7 +268,7 @@ void LLFloaterAutoReplaceSettings::updateReplacementsList()
     if ( mSelectedListName.empty() )
     {
         setReplacementListEnabled(false);
-        getChild<LLButton>("autoreplace_add_entry")->setEnabled(false);
+        get_floater_child<LLButton>(this, "autoreplace_add_entry")->setEnabled(false);
         disableReplacementEntry();
     }
     else
@@ -268,7 +293,7 @@ void LLFloaterAutoReplaceSettings::updateReplacementsList()
         mReplacementsList->deselectAllItems(false /* don't call commit */);
         setReplacementListEnabled(true);
 
-        getChild<LLButton>("autoreplace_add_entry")->setEnabled(true);
+        get_floater_child<LLButton>(this, "autoreplace_add_entry")->setEnabled(true);
         disableReplacementEntry();
     }
 }
@@ -298,10 +323,10 @@ void LLFloaterAutoReplaceSettings::onAutoReplaceToggled()
 
 void LLFloaterAutoReplaceSettings::setListActionControlsEnabled(bool enabled)
 {
-    getChild<LLButton>("autoreplace_export_list")->setEnabled(enabled);
-    getChild<LLButton>("autoreplace_delete_list")->setEnabled(enabled);
-    getChild<LLButton>("autoreplace_list_up")->setEnabled(enabled);
-    getChild<LLButton>("autoreplace_list_down")->setEnabled(enabled);
+    get_floater_child<LLButton>(this, "autoreplace_export_list")->setEnabled(enabled);
+    get_floater_child<LLButton>(this, "autoreplace_delete_list")->setEnabled(enabled);
+    get_floater_child<LLButton>(this, "autoreplace_list_up")->setEnabled(enabled);
+    get_floater_child<LLButton>(this, "autoreplace_list_down")->setEnabled(enabled);
 }
 
 void LLFloaterAutoReplaceSettings::setReplacementListEnabled(bool enabled)
@@ -313,8 +338,8 @@ void LLFloaterAutoReplaceSettings::setReplacementEntryControlsEnabled(bool enabl
 {
     mKeyword->setEnabled(enabled);
     mReplacement->setEnabled(enabled);
-    getChild<LLButton>("autoreplace_save_entry")->setEnabled(enabled);
-    getChild<LLButton>("autoreplace_delete_entry")->setEnabled(enabled);
+    get_floater_child<LLButton>(this, "autoreplace_save_entry")->setEnabled(enabled);
+    get_floater_child<LLButton>(this, "autoreplace_delete_entry")->setEnabled(enabled);
 }
 
 bool LLFloaterAutoReplaceSettings::getAutoReplaceEnabled()

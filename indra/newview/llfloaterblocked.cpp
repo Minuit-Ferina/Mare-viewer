@@ -42,6 +42,32 @@
 
 #include <boost/algorithm/string.hpp>
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 // ============================================================================
 // Constants
 //
@@ -408,7 +434,7 @@ void LLPanelDerenderList::onColumnSortChange()
 void LLPanelDerenderList::onSelectionChange()
 {
     bool hasSelected = (NULL != m_pDerenderList->getFirstSelected());
-    getChildView("derender_trash_btn")->setEnabled(hasSelected);
+    get_floater_view(this, "derender_trash_btn")->setEnabled(hasSelected);
 }
 
 void LLPanelDerenderList::onSelectionRemove()

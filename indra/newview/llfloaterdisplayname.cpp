@@ -40,6 +40,32 @@
 #include "llagent.h"
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 class LLFloaterDisplayName : public LLFloater
 {
 public:
@@ -66,8 +92,8 @@ LLFloaterDisplayName::LLFloaterDisplayName(const LLSD& key) :
 
 void LLFloaterDisplayName::onOpen(const LLSD& key)
 {
-    getChild<LLUICtrl>("display_name_editor")->clear();
-    getChild<LLUICtrl>("display_name_confirm")->clear();
+    get_floater_child<LLUICtrl>(this, "display_name_editor")->clear();
+    get_floater_child<LLUICtrl>(this, "display_name_confirm")->clear();
 
     LLAvatarName av_name;
     LLAvatarNameCache::get(gAgent.getID(), &av_name);
@@ -83,29 +109,29 @@ void LLFloaterDisplayName::onOpen(const LLSD& key)
         // display as "July 18 12:17 PM"
         std::string next_update_string =
         next_update_local.toHTTPDateString("%B %d %I:%M %p");
-        getChild<LLUICtrl>("lockout_text")->setTextArg("[TIME]", next_update_string);
-        getChild<LLUICtrl>("lockout_text")->setVisible(true);
-        getChild<LLUICtrl>("save_btn")->setEnabled(false);
-        getChild<LLUICtrl>("display_name_editor")->setEnabled(false);
-        getChild<LLUICtrl>("display_name_confirm")->setEnabled(false);
-        getChild<LLUICtrl>("cancel_btn")->setFocus(true);
+        get_floater_child<LLUICtrl>(this, "lockout_text")->setTextArg("[TIME]", next_update_string);
+        get_floater_child<LLUICtrl>(this, "lockout_text")->setVisible(true);
+        get_floater_child<LLUICtrl>(this, "save_btn")->setEnabled(false);
+        get_floater_child<LLUICtrl>(this, "display_name_editor")->setEnabled(false);
+        get_floater_child<LLUICtrl>(this, "display_name_confirm")->setEnabled(false);
+        get_floater_child<LLUICtrl>(this, "cancel_btn")->setFocus(true);
 
     }
     else
     {
-        getChild<LLUICtrl>("lockout_text")->setVisible(false);
-        getChild<LLUICtrl>("save_btn")->setEnabled(true);
-        getChild<LLUICtrl>("display_name_editor")->setEnabled(true);
-        getChild<LLUICtrl>("display_name_confirm")->setEnabled(true);
+        get_floater_child<LLUICtrl>(this, "lockout_text")->setVisible(false);
+        get_floater_child<LLUICtrl>(this, "save_btn")->setEnabled(true);
+        get_floater_child<LLUICtrl>(this, "display_name_editor")->setEnabled(true);
+        get_floater_child<LLUICtrl>(this, "display_name_confirm")->setEnabled(true);
 
     }
 }
 
 bool LLFloaterDisplayName::postBuild()
 {
-    getChild<LLUICtrl>("reset_btn")->setCommitCallback(boost::bind(&LLFloaterDisplayName::onReset, this));
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback(boost::bind(&LLFloaterDisplayName::onCancel, this));
-    getChild<LLUICtrl>("save_btn")->setCommitCallback(boost::bind(&LLFloaterDisplayName::onSave, this));
+    get_floater_child<LLUICtrl>(this, "reset_btn")->setCommitCallback(boost::bind(&LLFloaterDisplayName::onReset, this));
+    get_floater_child<LLUICtrl>(this, "cancel_btn")->setCommitCallback(boost::bind(&LLFloaterDisplayName::onCancel, this));
+    get_floater_child<LLUICtrl>(this, "save_btn")->setCommitCallback(boost::bind(&LLFloaterDisplayName::onSave, this));
 
     center();
 
@@ -175,29 +201,29 @@ void LLFloaterDisplayName::onReset()
     {
         return;
     }
-    getChild<LLUICtrl>("display_name_editor")->setValue(av_name.getUserName());
+    get_floater_child<LLUICtrl>(this, "display_name_editor")->setValue(av_name.getUserName());
 
     if (mIsLockedOut)
     {
         // UI is disabled.
         // We should allow resetting even if user already
         // set a display name, enable save button
-        getChild<LLUICtrl>("display_name_confirm")->setValue(av_name.getUserName());
-        getChild<LLUICtrl>("save_btn")->setEnabled(true);
+        get_floater_child<LLUICtrl>(this, "display_name_confirm")->setValue(av_name.getUserName());
+        get_floater_child<LLUICtrl>(this, "save_btn")->setEnabled(true);
     }
     else
     {
         // UI is enabled, focus on the confirm field
-        getChild<LLUICtrl>("display_name_confirm")->clear();
-        getChild<LLUICtrl>("display_name_confirm")->setFocus(true);
+        get_floater_child<LLUICtrl>(this, "display_name_confirm")->clear();
+        get_floater_child<LLUICtrl>(this, "display_name_confirm")->setFocus(true);
     }
 }
 
 
 void LLFloaterDisplayName::onSave()
 {
-    std::string display_name_utf8 = getChild<LLUICtrl>("display_name_editor")->getValue().asString();
-    std::string display_name_confirm = getChild<LLUICtrl>("display_name_confirm")->getValue().asString();
+    std::string display_name_utf8 = get_floater_child<LLUICtrl>(this, "display_name_editor")->getValue().asString();
+    std::string display_name_confirm = get_floater_child<LLUICtrl>(this, "display_name_confirm")->getValue().asString();
 
     if (display_name_utf8.compare(display_name_confirm))
     {

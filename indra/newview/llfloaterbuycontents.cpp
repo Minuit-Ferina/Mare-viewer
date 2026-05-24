@@ -52,6 +52,31 @@
 #include "lluictrlfactory.h"
 #include "llviewerwindow.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterBuyContents::LLFloaterBuyContents(const LLSD& key)
 :   LLFloater(key)
 {
@@ -72,10 +97,10 @@ bool LLFloaterBuyContents::postBuild()
 
 void LLFloaterBuyContents::setupControls()
 {
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuyContents::onClickCancel, this));
-    getChild<LLUICtrl>("buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuyContents::onClickBuy, this));
+    get_floater_child<LLUICtrl>(this, "cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuyContents::onClickCancel, this));
+    get_floater_child<LLUICtrl>(this, "buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuyContents::onClickBuy, this));
 
-    getChildView("item_list")->setEnabled(false);
+    get_floater_view(this, "item_list")->setEnabled(false);
     setBuyButtonEnabled(false);
     syncWearOption(false);
 
@@ -84,7 +109,7 @@ void LLFloaterBuyContents::setupControls()
 
 void LLFloaterBuyContents::resetItemList()
 {
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("item_list");
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(this, "item_list");
     if (list)
     {
         list->deleteAllItems();
@@ -93,27 +118,27 @@ void LLFloaterBuyContents::resetItemList()
 
 void LLFloaterBuyContents::syncPurchaseText(const std::string& object_name, S32 price, const std::string& owner_name)
 {
-    getChild<LLUICtrl>("contains_text")->setTextArg("[NAME]", object_name);
-    getChild<LLUICtrl>("buy_text")->setTextArg("[AMOUNT]", llformat("%d", price));
-    getChild<LLUICtrl>("buy_text")->setTextArg("[NAME]", owner_name);
+    get_floater_child<LLUICtrl>(this, "contains_text")->setTextArg("[NAME]", object_name);
+    get_floater_child<LLUICtrl>(this, "buy_text")->setTextArg("[AMOUNT]", llformat("%d", price));
+    get_floater_child<LLUICtrl>(this, "buy_text")->setTextArg("[NAME]", owner_name);
 }
 
 void LLFloaterBuyContents::setBuyButtonEnabled(bool enabled)
 {
-    getChildView("buy_btn")->setEnabled(enabled);
+    get_floater_view(this, "buy_btn")->setEnabled(enabled);
 }
 
 bool LLFloaterBuyContents::isBuyButtonEnabled()
 {
-    return getChildView("buy_btn")->getEnabled();
+    return get_floater_view(this, "buy_btn")->getEnabled();
 }
 
 void LLFloaterBuyContents::syncWearOption(bool enabled)
 {
-    getChildView("wear_check")->setEnabled(enabled);
+    get_floater_view(this, "wear_check")->setEnabled(enabled);
     if (enabled)
     {
-        getChild<LLUICtrl>("wear_check")->setValue(LLSD(false));
+        get_floater_child<LLUICtrl>(this, "wear_check")->setValue(LLSD(false));
     }
 }
 
@@ -183,7 +208,7 @@ void LLFloaterBuyContents::inventoryChanged(LLViewerObject* obj,
         return;
     }
 
-    LLScrollListCtrl* item_list = getChild<LLScrollListCtrl>("item_list");
+    LLScrollListCtrl* item_list = get_floater_child<LLScrollListCtrl>(this, "item_list");
     if (!item_list)
     {
         removeVOInventoryListener();
@@ -307,7 +332,7 @@ void LLFloaterBuyContents::onClickBuy()
     }
 
     // We may want to wear this item
-    if (getChild<LLUICtrl>("wear_check")->getValue())
+    if (get_floater_child<LLUICtrl>(this, "wear_check")->getValue())
     {
         LLInventoryState::sWearNewClothing = true;
     }

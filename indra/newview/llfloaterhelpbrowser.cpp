@@ -42,6 +42,32 @@
 #include "llviewerhelp.h"
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterHelpBrowser::LLFloaterHelpBrowser(const LLSD& key)
     : LLFloater(key)
 {
@@ -49,7 +75,7 @@ LLFloaterHelpBrowser::LLFloaterHelpBrowser(const LLSD& key)
 
 bool LLFloaterHelpBrowser::postBuild()
 {
-    mBrowser = getChild<LLMediaCtrl>("browser");
+    mBrowser = get_floater_child<LLMediaCtrl>(this, "browser");
     mBrowser->addObserver(this);
     mBrowser->setErrorPageURL(gSavedSettings.getString("GenericErrorPageURL"));
 
@@ -100,11 +126,11 @@ void LLFloaterHelpBrowser::handleMediaEvent(LLPluginClassMedia* self, EMediaEven
         break;
 
     case MEDIA_EVENT_NAVIGATE_BEGIN:
-        getChild<LLUICtrl>("status_text")->setValue(getString("loading_text"));
+        get_floater_child<LLUICtrl>(this, "status_text")->setValue(getString("loading_text"));
         break;
 
     case MEDIA_EVENT_NAVIGATE_COMPLETE:
-        getChild<LLUICtrl>("status_text")->setValue(getString("done_text"));
+        get_floater_child<LLUICtrl>(this, "status_text")->setValue(getString("done_text"));
         break;
 
     default:

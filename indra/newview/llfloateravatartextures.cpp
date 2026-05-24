@@ -40,6 +40,32 @@
 #include "lllocaltextureobject.h"
 #include "RRInterface.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 using namespace LLAvatarAppearanceDefines;
 
 LLFloaterAvatarTextures::LLFloaterAvatarTextures(const LLSD& id)
@@ -57,7 +83,7 @@ bool LLFloaterAvatarTextures::postBuild()
     for (U32 i=0; i < TEX_NUM_INDICES; i++)
     {
         const std::string tex_name = LLAvatarAppearance::getDictionary()->getTexture(ETextureIndex(i))->mName;
-        mTextures[i] = getChild<LLTextureCtrl>(tex_name);
+        mTextures[i] = get_floater_child<LLTextureCtrl>(this, tex_name);
         // <FS:Ansariel> Mask avatar textures and disable
         mTextures[i]->setIsMasked(TRUE);
         mTextures[i]->setEnabled(FALSE);

@@ -30,6 +30,31 @@
 #include "llfloaterbigpreview.h"
 #include "llsnapshotlivepreview.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 ///////////////////////
 //LLFloaterBigPreview//
 ///////////////////////
@@ -63,7 +88,7 @@ void LLFloaterBigPreview::closeOnFloaterOwnerClosing(LLFloater* floaterp)
 
 bool LLFloaterBigPreview::postBuild()
 {
-    mPreviewPlaceholder = getChild<LLUICtrl>("big_preview_placeholder");
+    mPreviewPlaceholder = get_floater_child<LLUICtrl>(this, "big_preview_placeholder");
     return LLFloater::postBuild();
 }
 

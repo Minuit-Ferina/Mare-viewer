@@ -29,6 +29,32 @@
 #include "llfloaternewfeaturenotification.h"
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterNewFeatureNotification::LLFloaterNewFeatureNotification(const LLSD& key)
   : LLFloater(key)
 {
@@ -41,7 +67,7 @@ LLFloaterNewFeatureNotification::~LLFloaterNewFeatureNotification()
 bool LLFloaterNewFeatureNotification::postBuild()
 {
     setCanDrag(false);
-    getChild<LLButton>("close_btn")->setCommitCallback(boost::bind(&LLFloaterNewFeatureNotification::onCloseBtn, this));
+    get_floater_child<LLButton>(this, "close_btn")->setCommitCallback(boost::bind(&LLFloaterNewFeatureNotification::onCloseBtn, this));
 
     if (getKey().isString())
     {
@@ -51,8 +77,8 @@ bool LLFloaterNewFeatureNotification::postBuild()
         std::string feature = "_" + getKey().asString();
         if (hasString(title_txt + feature))
         {
-            getChild<LLUICtrl>(title_txt)->setValue(getString(title_txt + feature));
-            getChild<LLUICtrl>(dsc_txt)->setValue(getString(dsc_txt + feature));
+            get_floater_child<LLUICtrl>(this, title_txt)->setValue(getString(title_txt + feature));
+            get_floater_child<LLUICtrl>(this, dsc_txt)->setValue(getString(dsc_txt + feature));
         }
         else
         {

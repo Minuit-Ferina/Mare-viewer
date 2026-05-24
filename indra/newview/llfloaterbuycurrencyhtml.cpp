@@ -30,6 +30,32 @@
 #include "llhttpconstants.h"
 #include "llstatusbar.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 LLFloaterBuyCurrencyHTML::LLFloaterBuyCurrencyHTML( const LLSD& key ):
@@ -45,7 +71,7 @@ LLFloaterBuyCurrencyHTML::LLFloaterBuyCurrencyHTML( const LLSD& key ):
 bool LLFloaterBuyCurrencyHTML::postBuild()
 {
     // observer media events
-    mBrowser = getChild<LLMediaCtrl>( "browser" );
+    mBrowser = get_floater_child<LLMediaCtrl>(this,  "browser" );
     mBrowser->addObserver( this );
 
     return true;

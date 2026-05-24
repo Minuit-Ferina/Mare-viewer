@@ -45,6 +45,32 @@
 #include "llviewerparcelmgr.h"
 #include "llviewerregion.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 typedef std::pair<LLUUID, std::string> folder_pair_t;
 
 class LLLandmarksInventoryObserver : public LLInventoryObserver
@@ -119,13 +145,13 @@ LLFloaterCreateLandmark::~LLFloaterCreateLandmark()
 
 bool LLFloaterCreateLandmark::postBuild()
 {
-    mFolderCombo = getChild<LLComboBox>("folder_combo");
-    mLandmarkTitleEditor = getChild<LLLineEditor>("title_editor");
-    mNotesEditor = getChild<LLTextEditor>("notes_editor");
+    mFolderCombo = get_floater_child<LLComboBox>(this, "folder_combo");
+    mLandmarkTitleEditor = get_floater_child<LLLineEditor>(this, "title_editor");
+    mNotesEditor = get_floater_child<LLTextEditor>(this, "notes_editor");
 
-    getChild<LLTextBox>("new_folder_textbox")->setURLClickedCallback(boost::bind(&LLFloaterCreateLandmark::onCreateFolderClicked, this));
-    getChild<LLButton>("ok_btn")->setClickedCallback(boost::bind(&LLFloaterCreateLandmark::onSaveClicked, this));
-    getChild<LLButton>("cancel_btn")->setClickedCallback(boost::bind(&LLFloaterCreateLandmark::onCancelClicked, this));
+    get_floater_child<LLTextBox>(this, "new_folder_textbox")->setURLClickedCallback(boost::bind(&LLFloaterCreateLandmark::onCreateFolderClicked, this));
+    get_floater_child<LLButton>(this, "ok_btn")->setClickedCallback(boost::bind(&LLFloaterCreateLandmark::onSaveClicked, this));
+    get_floater_child<LLButton>(this, "cancel_btn")->setClickedCallback(boost::bind(&LLFloaterCreateLandmark::onCancelClicked, this));
 
     mLandmarkTitleEditor->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) { onCommitTextChanges(); });
     mNotesEditor->setCommitCallback([this](LLUICtrl* ctrl, const LLSD& param) { onCommitTextChanges(); });

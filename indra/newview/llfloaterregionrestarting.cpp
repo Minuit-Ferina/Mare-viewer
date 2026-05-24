@@ -35,6 +35,31 @@
 #include "llagentcamera.h"
 #include "llviewerwindow.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 static S32 sSeconds;
 static U32 sShakeState;
 
@@ -71,7 +96,7 @@ void LLFloaterRegionRestarting::setupRegionName()
 
     args["[NAME]"] = mName;
     text = getString("RegionName", args);
-    LLTextBox* textbox = getChild<LLTextBox>("region_name");
+    LLTextBox* textbox = get_floater_child<LLTextBox>(this, "region_name");
     textbox->setValue(text);
 }
 
@@ -123,7 +148,7 @@ void LLFloaterRegionRestarting::refresh()
 
 void LLFloaterRegionRestarting::syncCountdownText(const std::string& countdown)
 {
-    getChild<LLTextBox>("restart_seconds")->setValue(countdown);
+    get_floater_child<LLTextBox>(this, "restart_seconds")->setValue(countdown);
 }
 
 void LLFloaterRegionRestarting::advanceCountdown()

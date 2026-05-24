@@ -52,6 +52,32 @@
 
 #include <iterator>
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloater360Capture::LLFloater360Capture(const LLSD& key)
     :   LLFloater(key)
 {
@@ -94,21 +120,21 @@ LLFloater360Capture::~LLFloater360Capture()
 
 bool LLFloater360Capture::postBuild()
 {
-    mCaptureBtn = getChild<LLUICtrl>("capture_button");
+    mCaptureBtn = get_floater_child<LLUICtrl>(this, "capture_button");
     mCaptureBtn->setCommitCallback(boost::bind(&LLFloater360Capture::onCapture360ImagesBtn, this));
 
-    mSaveLocalBtn = getChild<LLUICtrl>("save_local_button");
+    mSaveLocalBtn = get_floater_child<LLUICtrl>(this, "save_local_button");
     mSaveLocalBtn->setCommitCallback(boost::bind(&LLFloater360Capture::onSaveLocalBtn, this));
     mSaveLocalBtn->setEnabled(false);
 
-    mWebBrowser = getChild<LLMediaCtrl>("360capture_contents");
+    mWebBrowser = get_floater_child<LLMediaCtrl>(this, "360capture_contents");
     mWebBrowser->addObserver(this);
     mWebBrowser->setAllowFileDownload(true);
 
     // There is a group of radio buttons that define the quality
     // by each having a 'value' that is returns equal to the pixel
     // size (width == height)
-    mQualityRadioGroup = getChild<LLRadioGroup>("360_quality_selection");
+    mQualityRadioGroup = get_floater_child<LLRadioGroup>(this, "360_quality_selection");
     mQualityRadioGroup->setCommitCallback(boost::bind(&LLFloater360Capture::onChooseQualityRadioGroup, this));
 
     // UX/UI called for preview mode (always the first index/option)

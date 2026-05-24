@@ -73,6 +73,32 @@
 #include "llwindow.h"
 #include "message.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //
 // Constants
 //
@@ -124,7 +150,7 @@ BOOL LLFloaterChat::postBuild()
     // Hide the chat overlay when our history is visible.
     setVisibleCallback(boost::bind(&LLFloaterChat::updateConsoleVisibility, this));
 
-    mPanel = (LLPanelActiveSpeakers*)getChild<LLPanel>("active_speakers_panel");
+    mPanel = (LLPanelActiveSpeakers*)get_floater_child<LLPanel>(this, "active_speakers_panel");
 
     childSetCommitCallback("show mutes",onClickToggleShowMute,this); //show mutes
     childSetVisible("Chat History Editor with mute",FALSE);
@@ -212,8 +238,8 @@ void LLFloaterChat::addChatHistory(const LLChat& chat, bool log_to_file)
 
     // could flash the chat button in the status bar here. JC
     LLFloaterChat* chat_floater = LLFloaterChat::getInstance();
-    LLViewerTextEditor* history_editor = chat_floater->getChild<LLViewerTextEditor>("Chat History Editor");
-    LLViewerTextEditor* history_editor_with_mute = chat_floater->getChild<LLViewerTextEditor>("Chat History Editor with mute");
+    LLViewerTextEditor* history_editor = get_floater_child<LLViewerTextEditor>(chat_floater, "Chat History Editor");
+    LLViewerTextEditor* history_editor_with_mute = get_floater_child<LLViewerTextEditor>(chat_floater, "Chat History Editor with mute");
 
     if (!chat.mMuted)
     {
@@ -243,8 +269,8 @@ void LLFloaterChat::addChatHistory(const LLChat& chat, bool log_to_file)
 // static
 void LLFloaterChat::setHistoryCursorAndScrollToEnd()
 {
-    LLViewerTextEditor* history_editor = LLFloaterChat::getInstance()->getChild<LLViewerTextEditor>("Chat History Editor");
-    LLViewerTextEditor* history_editor_with_mute = LLFloaterChat::getInstance()->getChild<LLViewerTextEditor>("Chat History Editor with mute");
+    LLViewerTextEditor* history_editor = get_floater_child<LLViewerTextEditor>(LLFloaterChat::getInstance(), "Chat History Editor");
+    LLViewerTextEditor* history_editor_with_mute = get_floater_child<LLViewerTextEditor>(LLFloaterChat::getInstance(), "Chat History Editor with mute");
 
     if (history_editor)
     {
@@ -262,7 +288,7 @@ void LLFloaterChat::onClickMute(void *data)
 {
     LLFloaterChat* self = (LLFloaterChat*)data;
 
-    LLComboBox* chatter_combo = self->getChild<LLComboBox>("chatter combobox");
+    LLComboBox* chatter_combo = get_floater_child<LLComboBox>(self, "chatter combobox");
 
     const std::string& name = chatter_combo->getSimple();
     LLUUID id = chatter_combo->getCurrentID();
@@ -282,9 +308,9 @@ void LLFloaterChat::onClickToggleShowMute(LLUICtrl* caller, void *data)
 
 
     //LLCheckBoxCtrl*
-    BOOL show_mute = floater->getChild<LLCheckBoxCtrl>("show mutes")->get();
-    LLViewerTextEditor* history_editor = floater->getChild<LLViewerTextEditor>("Chat History Editor");
-    LLViewerTextEditor* history_editor_with_mute = floater->getChild<LLViewerTextEditor>("Chat History Editor with mute");
+    BOOL show_mute = get_floater_child<LLCheckBoxCtrl>(floater, "show mutes")->get();
+    LLViewerTextEditor* history_editor = get_floater_child<LLViewerTextEditor>(floater, "Chat History Editor");
+    LLViewerTextEditor* history_editor_with_mute = get_floater_child<LLViewerTextEditor>(floater, "Chat History Editor with mute");
 
     if (!history_editor || !history_editor_with_mute)
         return;

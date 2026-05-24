@@ -61,6 +61,32 @@
 #include <sstream>
 #include <iomanip>
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // Class LLFloaterColorPicker
@@ -202,20 +228,20 @@ void LLFloaterColorPicker::showUI ()
 // called after the dialog is rendered
 bool LLFloaterColorPicker::postBuild()
 {
-    mCancelBtn = getChild<LLButton>( "cancel_btn" );
+    mCancelBtn = get_floater_child<LLButton>(this,  "cancel_btn" );
     mCancelBtn->setClickedCallback ( onClickCancel, this );
 
-    mSelectBtn = getChild<LLButton>( "select_btn");
+    mSelectBtn = get_floater_child<LLButton>(this,  "select_btn");
     mSelectBtn->setClickedCallback ( onClickSelect, this );
     mSelectBtn->setFocus ( true );
 
-    mPipetteBtn = getChild<LLButton>("color_pipette" );
+    mPipetteBtn = get_floater_child<LLButton>(this, "color_pipette" );
 
     mPipetteBtn->setImages(std::string("eye_button_inactive.tga"), std::string("eye_button_active.tga"));
 
     mPipetteBtn->setCommitCallback( boost::bind(&LLFloaterColorPicker::onClickPipette, this ));
 
-    mApplyImmediateCheck = getChild<LLCheckBoxCtrl>("apply_immediate");
+    mApplyImmediateCheck = get_floater_child<LLCheckBoxCtrl>(this, "apply_immediate");
     mApplyImmediateCheck->set(gSavedSettings.getBOOL("ApplyColorImmediately"));
     mApplyImmediateCheck->setCommitCallback(onImmediateCheck, this);
 
@@ -673,12 +699,12 @@ void LLFloaterColorPicker::drawPalette ()
 void LLFloaterColorPicker::updateTextEntry ()
 {
     // set values in spinners
-    getChild<LLUICtrl>("rspin")->setValue(( getCurR () * 255.0f ) );
-    getChild<LLUICtrl>("gspin")->setValue(( getCurG () * 255.0f ) );
-    getChild<LLUICtrl>("bspin")->setValue(( getCurB () * 255.0f ) );
-    getChild<LLUICtrl>("hspin")->setValue(( getCurH () * 360.0f ) );
-    getChild<LLUICtrl>("sspin")->setValue(( getCurS () * 100.0f ) );
-    getChild<LLUICtrl>("lspin")->setValue(( getCurL () * 100.0f ) );
+    get_floater_child<LLUICtrl>(this, "rspin")->setValue(( getCurR () * 255.0f ) );
+    get_floater_child<LLUICtrl>(this, "gspin")->setValue(( getCurG () * 255.0f ) );
+    get_floater_child<LLUICtrl>(this, "bspin")->setValue(( getCurB () * 255.0f ) );
+    get_floater_child<LLUICtrl>(this, "hspin")->setValue(( getCurH () * 360.0f ) );
+    get_floater_child<LLUICtrl>(this, "sspin")->setValue(( getCurS () * 100.0f ) );
+    get_floater_child<LLUICtrl>(this, "lspin")->setValue(( getCurL () * 100.0f ) );
 }
 
 //////////////////////////////////////////////////////////////////////////////

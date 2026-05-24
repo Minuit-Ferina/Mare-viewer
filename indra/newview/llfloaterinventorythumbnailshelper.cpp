@@ -43,6 +43,32 @@
 
 #include "llfloaterinventorythumbnailshelper.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterInventoryThumbnailsHelper::LLFloaterInventoryThumbnailsHelper(const LLSD& key)
     :   LLFloater("floater_inventory_thumbnails_helper")
 {
@@ -54,29 +80,29 @@ LLFloaterInventoryThumbnailsHelper::~LLFloaterInventoryThumbnailsHelper()
 
 bool LLFloaterInventoryThumbnailsHelper::postBuild()
 {
-    mInventoryThumbnailsList = getChild<LLScrollListCtrl>("inventory_thumbnails_list");
+    mInventoryThumbnailsList = get_floater_child<LLScrollListCtrl>(this, "inventory_thumbnails_list");
     mInventoryThumbnailsList->setAllowMultipleSelection(true);
 
-    mOutputLog = getChild<LLTextEditor>("output_log");
+    mOutputLog = get_floater_child<LLTextEditor>(this, "output_log");
     mOutputLog->setMaxTextLength(0xffff * 0x10);
 
-    mPasteItemsBtn = getChild<LLUICtrl>("paste_items_btn");
+    mPasteItemsBtn = get_floater_child<LLUICtrl>(this, "paste_items_btn");
     mPasteItemsBtn->setCommitCallback(boost::bind(&LLFloaterInventoryThumbnailsHelper::onPasteItems, this));
     mPasteItemsBtn->setEnabled(true);
 
-    mPasteTexturesBtn = getChild<LLUICtrl>("paste_textures_btn");
+    mPasteTexturesBtn = get_floater_child<LLUICtrl>(this, "paste_textures_btn");
     mPasteTexturesBtn->setCommitCallback(boost::bind(&LLFloaterInventoryThumbnailsHelper::onPasteTextures, this));
     mPasteTexturesBtn->setEnabled(true);
 
-    mWriteThumbnailsBtn = getChild<LLUICtrl>("write_thumbnails_btn");
+    mWriteThumbnailsBtn = get_floater_child<LLUICtrl>(this, "write_thumbnails_btn");
     mWriteThumbnailsBtn->setCommitCallback(boost::bind(&LLFloaterInventoryThumbnailsHelper::onWriteThumbnails, this));
     mWriteThumbnailsBtn->setEnabled(false);
 
-    mLogMissingThumbnailsBtn = getChild<LLUICtrl>("log_missing_thumbnails_btn");
+    mLogMissingThumbnailsBtn = get_floater_child<LLUICtrl>(this, "log_missing_thumbnails_btn");
     mLogMissingThumbnailsBtn->setCommitCallback(boost::bind(&LLFloaterInventoryThumbnailsHelper::onLogMissingThumbnails, this));
     mLogMissingThumbnailsBtn->setEnabled(false);
 
-    mClearThumbnailsBtn = getChild<LLUICtrl>("clear_thumbnails_btn");
+    mClearThumbnailsBtn = get_floater_child<LLUICtrl>(this, "clear_thumbnails_btn");
     mClearThumbnailsBtn->setCommitCallback(boost::bind(&LLFloaterInventoryThumbnailsHelper::onClearThumbnails, this));
     mClearThumbnailsBtn->setEnabled(false);
 

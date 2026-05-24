@@ -43,6 +43,32 @@
 #include "lltoolmgr.h"
 #include "llwebprofile.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 ///----------------------------------------------------------------------------
 /// Local function declarations, constants, enums, and typedefs
 ///----------------------------------------------------------------------------
@@ -58,7 +84,7 @@ static LLDefaultChildRegistry::Register<LLSnapshotFloaterView> r("snapshot_float
 // virtual
 LLPanelSnapshot* LLFloaterSnapshot::Impl::getActivePanel(LLFloaterSnapshotBase* floater, bool ok_if_not_found)
 {
-    LLSideTrayPanelContainer* panel_container = floater->getChild<LLSideTrayPanelContainer>("panel_container");
+    LLSideTrayPanelContainer* panel_container = get_floater_child<LLSideTrayPanelContainer>(floater, "panel_container");
     LLPanelSnapshot* active_panel = dynamic_cast<LLPanelSnapshot*>(panel_container->getCurrentPanel());
 
     if (!ok_if_not_found)
@@ -96,13 +122,13 @@ LLSnapshotModel::ESnapshotFormat LLFloaterSnapshot::Impl::getImageFormat(LLFloat
 LLSpinCtrl* LLFloaterSnapshot::Impl::getWidthSpinner(LLFloaterSnapshotBase* floater)
 {
     LLPanelSnapshot* active_panel = getActivePanel(floater);
-    return active_panel ? active_panel->getWidthSpinner() : floater->getChild<LLSpinCtrl>("snapshot_width");
+    return active_panel ? active_panel->getWidthSpinner() : get_floater_child<LLSpinCtrl>(floater, "snapshot_width");
 }
 
 LLSpinCtrl* LLFloaterSnapshot::Impl::getHeightSpinner(LLFloaterSnapshotBase* floater)
 {
     LLPanelSnapshot* active_panel = getActivePanel(floater);
-    return active_panel ? active_panel->getHeightSpinner() : floater->getChild<LLSpinCtrl>("snapshot_height");
+    return active_panel ? active_panel->getHeightSpinner() : get_floater_child<LLSpinCtrl>(floater, "snapshot_height");
 }
 
 void LLFloaterSnapshot::Impl::enableAspectRatioCheckbox(LLFloaterSnapshotBase* floater, bool enable)
@@ -119,7 +145,7 @@ void LLFloaterSnapshot::Impl::setAspectRatioCheckboxValue(LLFloaterSnapshotBase*
     LLPanelSnapshot* active_panel = getActivePanel(floater);
     if (active_panel)
     {
-        active_panel->getChild<LLUICtrl>(active_panel->getAspectRatioCBName())->setValue(checked);
+        get_floater_child<LLUICtrl>(active_panel, active_panel->getAspectRatioCBName())->setValue(checked);
     }
 }
 
@@ -138,7 +164,7 @@ LLSnapshotLivePreview* LLFloaterSnapshotBase::ImplBase::getPreviewView()
 LLSnapshotModel::ESnapshotLayerType LLFloaterSnapshot::Impl::getLayerType(LLFloaterSnapshotBase* floater)
 {
     LLSnapshotModel::ESnapshotLayerType type = LLSnapshotModel::SNAPSHOT_TYPE_COLOR;
-    LLSD value = floater->getChild<LLUICtrl>("layer_types")->getValue();
+    LLSD value = get_floater_child<LLUICtrl>(floater, "layer_types")->getValue();
     const std::string id = value.asString();
     if (id == "colors")
         type = LLSnapshotModel::SNAPSHOT_TYPE_COLOR;
@@ -156,7 +182,7 @@ LLSnapshotModel::ESnapshotLayerType LLFloaterSnapshot::Impl::getLayerType(LLFloa
 
 void LLFloaterSnapshot::Impl::setResolution(LLFloaterSnapshotBase* floater, const std::string& comboname)
 {
-    LLComboBox* combo = floater->getChild<LLComboBox>(comboname);
+    LLComboBox* combo = get_floater_child<LLComboBox>(floater, comboname);
         combo->setVisible(true);
     updateResolution(combo, floater, false); // to sync spinners with combo
 }
@@ -186,14 +212,14 @@ void LLFloaterSnapshotBase::ImplBase::updateLayout(LLFloaterSnapshotBase* floate
         floater_width = floater_width + (S32)panel_width;
     }
 
-    LLUICtrl* thumbnail_placeholder = floaterp->getChild<LLUICtrl>("thumbnail_placeholder");
+    LLUICtrl* thumbnail_placeholder = get_floater_child<LLUICtrl>(floaterp, "thumbnail_placeholder");
     thumbnail_placeholder->setVisible(mAdvanced);
 
-    floaterp->getChild<LLUICtrl>("image_res_text")->setVisible(mAdvanced);
-    floaterp->getChild<LLUICtrl>("file_size_label")->setVisible(mAdvanced);
+    get_floater_child<LLUICtrl>(floaterp, "image_res_text")->setVisible(mAdvanced);
+    get_floater_child<LLUICtrl>(floaterp, "file_size_label")->setVisible(mAdvanced);
     if (floaterp->hasChild("360_label", true))
     {
-        floaterp->getChild<LLUICtrl>("360_label")->setVisible(mAdvanced);
+        get_floater_child<LLUICtrl>(floaterp, "360_label")->setVisible(mAdvanced);
     }
     if (!mSkipReshaping)
     {
@@ -275,8 +301,8 @@ void LLFloaterSnapshot::Impl::updateControls(LLFloaterSnapshotBase* floater)
     LLSnapshotModel::ESnapshotFormat shot_format = (LLSnapshotModel::ESnapshotFormat)gSavedSettings.getS32("SnapshotFormat");
     LLSnapshotModel::ESnapshotLayerType layer_type = getLayerType(floater);
 
-    floater->getChild<LLComboBox>("local_format_combo")->selectNthItem(gSavedSettings.getS32("SnapshotFormat"));
-    floater->getChildView("layer_types")->setEnabled(shot_type == LLSnapshotModel::SNAPSHOT_LOCAL);
+    get_floater_child<LLComboBox>(floater, "local_format_combo")->selectNthItem(gSavedSettings.getS32("SnapshotFormat"));
+    get_floater_view(floater, "layer_types")->setEnabled(shot_type == LLSnapshotModel::SNAPSHOT_LOCAL);
 
     LLPanelSnapshot* active_panel = getActivePanel(floater);
     if (active_panel)
@@ -346,7 +372,7 @@ void LLFloaterSnapshot::Impl::updateControls(LLFloaterSnapshotBase* floater)
     }
 
     // Update displayed image resolution.
-    LLTextBox* image_res_tb = floater->getChild<LLTextBox>("image_res_text");
+    LLTextBox* image_res_tb = get_floater_child<LLTextBox>(floater, "image_res_text");
     image_res_tb->setVisible(got_snap);
     if (got_snap)
     {
@@ -354,7 +380,7 @@ void LLFloaterSnapshot::Impl::updateControls(LLFloaterSnapshotBase* floater)
         image_res_tb->setTextArg("[HEIGHT]", llformat("%d", previewp->getEncodedImageHeight()));
     }
 
-    LLTextBox* file_size_label = floater->getChild<LLTextBox>("file_size_label");
+    LLTextBox* file_size_label = get_floater_child<LLTextBox>(floater, "file_size_label");
     file_size_label->setTextArg("[SIZE]", got_snap ? bytes_string : floater->getString("unknown"));
 
     LLUIColor color = LLUIColorTable::instance().getColor( "LabelTextColor" );
@@ -379,17 +405,17 @@ void LLFloaterSnapshot::Impl::updateControls(LLFloaterSnapshotBase* floater)
     {
       case LLSnapshotModel::SNAPSHOT_WEB:
         layer_type = LLSnapshotModel::SNAPSHOT_TYPE_COLOR;
-        floater->getChild<LLUICtrl>("layer_types")->setValue("colors");
+        get_floater_child<LLUICtrl>(floater, "layer_types")->setValue("colors");
         setResolution(floater, "profile_size_combo");
         break;
       case LLSnapshotModel::SNAPSHOT_POSTCARD:
         layer_type = LLSnapshotModel::SNAPSHOT_TYPE_COLOR;
-        floater->getChild<LLUICtrl>("layer_types")->setValue("colors");
+        get_floater_child<LLUICtrl>(floater, "layer_types")->setValue("colors");
         setResolution(floater, "postcard_size_combo");
         break;
       case LLSnapshotModel::SNAPSHOT_TEXTURE:
         layer_type = LLSnapshotModel::SNAPSHOT_TYPE_COLOR;
-        floater->getChild<LLUICtrl>("layer_types")->setValue("colors");
+        get_floater_child<LLUICtrl>(floater, "layer_types")->setValue("colors");
         setResolution(floater, "texture_size_combo");
         break;
       case  LLSnapshotModel::SNAPSHOT_LOCAL:
@@ -527,7 +553,7 @@ void LLFloaterSnapshotBase::ImplBase::onClickFilter(LLUICtrl *ctrl, void* data)
         {
             view->impl->checkAutoSnapshot(previewp);
             // Note : index 0 of the filter drop down is assumed to be "No filter" in whichever locale
-            LLComboBox* filterbox = static_cast<LLComboBox *>(view->getChild<LLComboBox>("filters_combobox"));
+            LLComboBox* filterbox = static_cast<LLComboBox *>(get_floater_child<LLComboBox>(view, "filters_combobox"));
             std::string filter_name = (filterbox->getCurrentIndex() ? filterbox->getSimple() : "");
             previewp->setFilter(filter_name);
             previewp->updateSnapshot(true);
@@ -565,7 +591,7 @@ void LLFloaterSnapshot::Impl::applyKeepAspectCheck(LLFloaterSnapshotBase* view, 
         LLPanelSnapshot* active_panel = getActivePanel(view);
         if (checked && active_panel)
         {
-            LLComboBox* combo = view->getChild<LLComboBox>(active_panel->getImageSizeComboName());
+            LLComboBox* combo = get_floater_child<LLComboBox>(view, active_panel->getImageSizeComboName());
             combo->setCurrentByIndex(combo->getItemCount() - 1); // "custom" is always the last index
         }
 
@@ -648,9 +674,9 @@ void LLFloaterSnapshot::Impl::checkAspectRatio(LLFloaterSnapshotBase *view, S32 
 // Show/hide upload progress indicators.
 void LLFloaterSnapshotBase::ImplBase::setWorking(bool working)
 {
-    LLUICtrl* working_lbl = mFloater->getChild<LLUICtrl>("working_lbl");
+    LLUICtrl* working_lbl = get_floater_child<LLUICtrl>(mFloater, "working_lbl");
     working_lbl->setVisible(working);
-    mFloater->getChild<LLUICtrl>("working_indicator")->setVisible(working);
+    get_floater_child<LLUICtrl>(mFloater, "working_indicator")->setVisible(working);
 
     // All controls should be disabled while posting.
     mFloater->setCtrlsEnabled(!working);
@@ -682,7 +708,7 @@ void LLFloaterSnapshot::Impl::setFinished(bool finished, bool ok, const std::str
 
     if (finished)
     {
-        LLUICtrl* finished_lbl = mFloater->getChild<LLUICtrl>(ok ? "succeeded_lbl" : "failed_lbl");
+        LLUICtrl* finished_lbl = get_floater_child<LLUICtrl>(mFloater, ok ? "succeeded_lbl" : "failed_lbl");
         std::string result_text = mFloater->getString(msg + "_" + (ok ? "succeeded_str" : "failed_str"));
         finished_lbl->setValue(result_text);
     }
@@ -843,7 +869,7 @@ void LLFloaterSnapshot::Impl::onImageFormatChange(LLFloaterSnapshotBase* view)
 // Sets the named size combo to "custom" mode.
 void LLFloaterSnapshot::Impl::comboSetCustom(LLFloaterSnapshotBase* floater, const std::string& comboname)
 {
-    LLComboBox* combo = floater->getChild<LLComboBox>(comboname);
+    LLComboBox* combo = get_floater_child<LLComboBox>(floater, comboname);
     combo->setCurrentByIndex(combo->getItemCount() - 1); // "custom" is always the last index
     checkAspectRatio(floater, -1); // -1 means custom
 }
@@ -1001,11 +1027,11 @@ LLFloaterSnapshot::~LLFloaterSnapshot()
 // virtual
 bool LLFloaterSnapshot::postBuild()
 {
-    mRefreshBtn = getChild<LLUICtrl>("new_snapshot_btn");
+    mRefreshBtn = get_floater_child<LLUICtrl>(this, "new_snapshot_btn");
     childSetAction("new_snapshot_btn", ImplBase::onClickNewSnapshot, this);
-    mRefreshLabel = getChild<LLUICtrl>("refresh_lbl");
-    mSucceessLblPanel = getChild<LLUICtrl>("succeeded_panel");
-    mFailureLblPanel = getChild<LLUICtrl>("failed_panel");
+    mRefreshLabel = get_floater_child<LLUICtrl>(this, "refresh_lbl");
+    mSucceessLblPanel = get_floater_child<LLUICtrl>(this, "succeeded_panel");
+    mFailureLblPanel = get_floater_child<LLUICtrl>(this, "failed_panel");
 
     childSetCommitCallback("ui_check", ImplBase::onClickDisplaySetting, this);
     childSetCommitCallback("balance_check", ImplBase::onClickDisplaySetting, this);
@@ -1013,13 +1039,13 @@ bool LLFloaterSnapshot::postBuild()
 //MK
     if (gRRenabled && gAgent.mRRInterface.mHasLockedHuds)
     {
-        getChild<LLUICtrl>("hud_check")->setValue(TRUE);
+        get_floater_child<LLUICtrl>(this, "hud_check")->setValue(TRUE);
         gSavedSettings.setBOOL( "RenderHUDInSnapshot", TRUE );
-        getChild<LLUICtrl>("hud_check")->setEnabled(FALSE);
+        get_floater_child<LLUICtrl>(this, "hud_check")->setEnabled(FALSE);
     }
     else
     {
-        getChild<LLUICtrl>("hud_check")->setEnabled(TRUE);
+        get_floater_child<LLUICtrl>(this, "hud_check")->setEnabled(TRUE);
 
     }
     mRlvBehaviorCallbackConnection = gAgent.mRRInterface.setBehaviourCallback(boost::bind(&LLFloaterSnapshot::updateRlvRestrictions, this, _1, _2));
@@ -1028,28 +1054,28 @@ bool LLFloaterSnapshot::postBuild()
     ((Impl*)impl)->setAspectRatioCheckboxValue(this, gSavedSettings.getBOOL("KeepAspectForSnapshot"));
 
     childSetCommitCallback("layer_types", Impl::onCommitLayerTypes, this);
-    getChild<LLUICtrl>("layer_types")->setValue("colors");
-    getChildView("layer_types")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "layer_types")->setValue("colors");
+    get_floater_view(this, "layer_types")->setEnabled(false);
 
-    mFreezeFrameCheck = getChild<LLUICtrl>("freeze_frame_check");
+    mFreezeFrameCheck = get_floater_child<LLUICtrl>(this, "freeze_frame_check");
     mFreezeFrameCheck->setValue(gSavedSettings.getBOOL("UseFreezeFrame"));
     mFreezeFrameCheck->setCommitCallback(&ImplBase::onCommitFreezeFrame, this);
 
-    getChild<LLUICtrl>("auto_snapshot_check")->setValue(gSavedSettings.getBOOL("AutoSnapshot"));
+    get_floater_child<LLUICtrl>(this, "auto_snapshot_check")->setValue(gSavedSettings.getBOOL("AutoSnapshot"));
     childSetCommitCallback("auto_snapshot_check", ImplBase::onClickAutoSnap, this);
 
-    getChild<LLUICtrl>("no_post_check")->setValue(gSavedSettings.getBOOL("RenderSnapshotNoPost"));
+    get_floater_child<LLUICtrl>(this, "no_post_check")->setValue(gSavedSettings.getBOOL("RenderSnapshotNoPost"));
     childSetCommitCallback("no_post_check", ImplBase::onClickNoPost, this);
 
-    getChild<LLButton>("retract_btn")->setCommitCallback(boost::bind(&LLFloaterSnapshot::onExtendFloater, this));
-    getChild<LLButton>("extend_btn")->setCommitCallback(boost::bind(&LLFloaterSnapshot::onExtendFloater, this));
+    get_floater_child<LLButton>(this, "retract_btn")->setCommitCallback(boost::bind(&LLFloaterSnapshot::onExtendFloater, this));
+    get_floater_child<LLButton>(this, "extend_btn")->setCommitCallback(boost::bind(&LLFloaterSnapshot::onExtendFloater, this));
 
-    getChild<LLTextBox>("360_label")->setSoundFlags(LLView::MOUSE_UP);
-    getChild<LLTextBox>("360_label")->setShowCursorHand(false);
-    getChild<LLTextBox>("360_label")->setClickedCallback(boost::bind(&LLFloaterSnapshot::on360Snapshot, this));
+    get_floater_child<LLTextBox>(this, "360_label")->setSoundFlags(LLView::MOUSE_UP);
+    get_floater_child<LLTextBox>(this, "360_label")->setShowCursorHand(false);
+    get_floater_child<LLTextBox>(this, "360_label")->setClickedCallback(boost::bind(&LLFloaterSnapshot::on360Snapshot, this));
 
     // Filters
-    LLComboBox* filterbox = getChild<LLComboBox>("filters_combobox");
+    LLComboBox* filterbox = get_floater_child<LLComboBox>(this, "filters_combobox");
     std::vector<std::string> filter_list = LLImageFiltersManager::getInstance()->getFiltersList();
     for (U32 i = 0; i < filter_list.size(); i++)
     {
@@ -1060,7 +1086,7 @@ bool LLFloaterSnapshot::postBuild()
     LLWebProfile::setImageUploadResultCallback(boost::bind(&Impl::onSnapshotUploadFinished, this, _1));
     LLPostCard::setPostResultCallback(boost::bind(&Impl::onSendingPostcardFinished, this, _1));
 
-    mThumbnailPlaceholder = getChild<LLUICtrl>("thumbnail_placeholder");
+    mThumbnailPlaceholder = get_floater_child<LLUICtrl>(this, "thumbnail_placeholder");
 
     // create preview window
     LLRect full_screen_rect = getRootView()->getRect();
@@ -1079,11 +1105,11 @@ bool LLFloaterSnapshot::postBuild()
     gSnapshotFloaterView->addChild(this);
 
     // Pre-select "Current Window" resolution.
-    getChild<LLComboBox>("profile_size_combo")->selectNthItem(0);
-    getChild<LLComboBox>("postcard_size_combo")->selectNthItem(0);
-    getChild<LLComboBox>("texture_size_combo")->selectNthItem(0);
-    getChild<LLComboBox>("local_size_combo")->selectNthItem(8);
-    getChild<LLComboBox>("local_format_combo")->selectNthItem(0);
+    get_floater_child<LLComboBox>(this, "profile_size_combo")->selectNthItem(0);
+    get_floater_child<LLComboBox>(this, "postcard_size_combo")->selectNthItem(0);
+    get_floater_child<LLComboBox>(this, "texture_size_combo")->selectNthItem(0);
+    get_floater_child<LLComboBox>(this, "local_size_combo")->selectNthItem(8);
+    get_floater_child<LLComboBox>(this, "local_format_combo")->selectNthItem(0);
 
     impl->mPreviewHandle = previewp->getHandle();
     previewp->setContainer(this);
@@ -1171,7 +1197,7 @@ void LLFloaterSnapshot::onOpen(const LLSD& key)
     impl->updateLayout(this);
 
     // Initialize default tab.
-    getChild<LLSideTrayPanelContainer>("panel_container")->getCurrentPanel()->onOpen(LLSD());
+    get_floater_child<LLSideTrayPanelContainer>(this, "panel_container")->getCurrentPanel()->onOpen(LLSD());
 }
 
 void LLFloaterSnapshot::onExtendFloater()
@@ -1266,7 +1292,7 @@ S32 LLFloaterSnapshot::notify(const LLSD& info)
     if (info.has("combo-res-change"))
     {
         std::string combo_name = info["combo-res-change"]["control-name"].asString();
-        ((Impl*)impl)->updateResolution(getChild<LLUICtrl>(combo_name), this);
+        ((Impl*)impl)->updateResolution(get_floater_child<LLUICtrl>(this, combo_name), this);
         return 1;
     }
 
@@ -1441,7 +1467,7 @@ void LLFloaterSnapshot::setAgentEmail(const std::string& email)
     LLFloaterSnapshot* instance = findInstance();
     if (instance)
     {
-        LLSideTrayPanelContainer* panel_container = instance->getChild<LLSideTrayPanelContainer>("panel_container");
+        LLSideTrayPanelContainer* panel_container = get_floater_child<LLSideTrayPanelContainer>(instance, "panel_container");
         LLPanel* postcard_panel = panel_container->getPanelByName("panel_snapshot_postcard");
         postcard_panel->notify(LLSD().with("agent-email", email));
     }

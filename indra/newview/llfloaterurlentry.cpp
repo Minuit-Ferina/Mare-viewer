@@ -40,6 +40,31 @@
 #include "llviewerwindow.h"
 #include "llcorehttputil.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 static LLFloaterURLEntry* sInstance = NULL;
 
 //-----------------------------------------------------------------------------
@@ -62,7 +87,7 @@ LLFloaterURLEntry::~LLFloaterURLEntry()
 
 bool LLFloaterURLEntry::postBuild()
 {
-    mMediaURLEdit = getChild<LLComboBox>("media_entry");
+    mMediaURLEdit = get_floater_child<LLComboBox>(this, "media_entry");
     setupButtons();
     syncClearButton();
     setDefaultBtn("ok_btn");
@@ -86,20 +111,20 @@ void LLFloaterURLEntry::syncClearButton()
 {
     LLSD parcel_history = LLURLHistory::getURLHistory("parcel");
     bool enable_clear_button = parcel_history.size() > 0;
-    getChildView("clear_btn")->setEnabled(enable_clear_button );
+    get_floater_view(this, "clear_btn")->setEnabled(enable_clear_button );
 }
 
 void LLFloaterURLEntry::setLoadingVisible(bool visible)
 {
-    getChildView("loading_label")->setVisible(visible);
+    get_floater_view(this, "loading_label")->setVisible(visible);
 }
 
 void LLFloaterURLEntry::setEntryControlsEnabled(bool enabled)
 {
-    getChildView("ok_btn")->setEnabled(enabled);
-    getChildView("cancel_btn")->setEnabled(enabled);
-    getChildView("media_entry")->setEnabled(enabled);
-    getChildView("clear_btn")->setEnabled(enabled);
+    get_floater_view(this, "ok_btn")->setEnabled(enabled);
+    get_floater_view(this, "cancel_btn")->setEnabled(enabled);
+    get_floater_view(this, "media_entry")->setEnabled(enabled);
+    get_floater_view(this, "clear_btn")->setEnabled(enabled);
 }
 
 std::string LLFloaterURLEntry::getMediaURL() const

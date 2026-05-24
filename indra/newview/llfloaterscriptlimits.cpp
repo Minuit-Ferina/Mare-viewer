@@ -52,6 +52,31 @@
 #include "llviewerwindow.h"
 #include "llcorehttputil.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 ///----------------------------------------------------------------------------
 /// LLFloaterScriptLimits
 ///----------------------------------------------------------------------------
@@ -65,6 +90,7 @@
 #ifdef DUMP_REPLIES_TO_LLINFOS
 #include "llsdserialize.h"
 #include "llwindow.h"
+
 #endif
 
 // use fake LLSD responses to check the viewer side is working correctly
@@ -90,7 +116,7 @@ LLFloaterScriptLimits::LLFloaterScriptLimits(const LLSD& seed)
 
 bool LLFloaterScriptLimits::postBuild()
 {
-    mTab = getChild<LLTabContainer>("scriptlimits_panels");
+    mTab = get_floater_child<LLTabContainer>(this, "scriptlimits_panels");
 
     if(!mTab)
     {
@@ -243,23 +269,23 @@ void LLPanelScriptLimitsRegionMemory::getLandScriptSummaryCoro(std::string url)
         return;
     }
 
-    LLTabContainer* tab = instance->getChild<LLTabContainer>("scriptlimits_panels");
+    LLTabContainer* tab = get_floater_child<LLTabContainer>(instance, "scriptlimits_panels");
     if (!tab)
     {
         LL_WARNS() << "Unable to access script limits tab" << LL_ENDL;
         return;
     }
 
-    LLPanelScriptLimitsRegionMemory* panelMemory = (LLPanelScriptLimitsRegionMemory*)tab->getChild<LLPanel>("script_limits_region_memory_panel");
+    LLPanelScriptLimitsRegionMemory* panelMemory = (LLPanelScriptLimitsRegionMemory*)get_floater_child<LLPanel>(tab, "script_limits_region_memory_panel");
     if (!panelMemory)
     {
         LL_WARNS() << "Unable to get memory panel." << LL_ENDL;
         return;
     }
 
-    panelMemory->getChild<LLUICtrl>("loading_text")->setValue(LLSD(std::string("")));
+    get_floater_child<LLUICtrl>(panelMemory, "loading_text")->setValue(LLSD(std::string("")));
 
-    LLButton* btn = panelMemory->getChild<LLButton>("refresh_list_btn");
+    LLButton* btn = get_floater_child<LLButton>(panelMemory, "refresh_list_btn");
     if (btn)
     {
         btn->setEnabled(true);
@@ -296,14 +322,14 @@ void LLPanelScriptLimitsRegionMemory::getLandScriptDetailsCoro(std::string url)
         return;
     }
 
-    LLTabContainer* tab = instance->getChild<LLTabContainer>("scriptlimits_panels");
+    LLTabContainer* tab = get_floater_child<LLTabContainer>(instance, "scriptlimits_panels");
     if (!tab)
     {
         LL_WARNS() << "Unable to access script limits tab" << LL_ENDL;
         return;
     }
 
-    LLPanelScriptLimitsRegionMemory* panelMemory = (LLPanelScriptLimitsRegionMemory*)tab->getChild<LLPanel>("script_limits_region_memory_panel");
+    LLPanelScriptLimitsRegionMemory* panelMemory = (LLPanelScriptLimitsRegionMemory*)get_floater_child<LLPanel>(tab, "script_limits_region_memory_panel");
 
     if (!panelMemory)
     {
@@ -320,12 +346,12 @@ void LLPanelScriptLimitsRegionMemory::processParcelInfo(const LLParcelData& parc
     if(!getLandScriptResources())
     {
         std::string msg_error = LLTrans::getString("ScriptLimitsRequestError");
-        getChild<LLUICtrl>("loading_text")->setValue(LLSD(msg_error));
+        get_floater_child<LLUICtrl>(this, "loading_text")->setValue(LLSD(msg_error));
     }
     else
     {
         std::string msg_waiting = LLTrans::getString("ScriptLimitsRequestWaiting");
-        getChild<LLUICtrl>("loading_text")->setValue(LLSD(msg_waiting));
+        get_floater_child<LLUICtrl>(this, "loading_text")->setValue(LLSD(msg_waiting));
     }
 }
 
@@ -345,7 +371,7 @@ void LLPanelScriptLimitsRegionMemory::setParcelID(const LLUUID& parcel_id)
     else
     {
         std::string msg_error = LLTrans::getString("ScriptLimitsRequestError");
-        getChild<LLUICtrl>("loading_text")->setValue(LLSD(msg_error));
+        get_floater_child<LLUICtrl>(this, "loading_text")->setValue(LLSD(msg_error));
     }
 }
 
@@ -368,7 +394,7 @@ void LLPanelScriptLimitsRegionMemory::onNameCache(
                          const LLUUID& id,
                          const std::string& full_name)
 {
-    LLScrollListCtrl *list = getChild<LLScrollListCtrl>("scripts_list");
+    LLScrollListCtrl *list = get_floater_child<LLScrollListCtrl>(this, "scripts_list");
     if(!list)
     {
         return;
@@ -395,7 +421,7 @@ void LLPanelScriptLimitsRegionMemory::onNameCache(
 
 void LLPanelScriptLimitsRegionMemory::setRegionDetails(LLSD content)
 {
-    LLScrollListCtrl *list = getChild<LLScrollListCtrl>("scripts_list");
+    LLScrollListCtrl *list = get_floater_child<LLScrollListCtrl>(this, "scripts_list");
 
     if(!list)
     {
@@ -408,7 +434,7 @@ void LLPanelScriptLimitsRegionMemory::setRegionDetails(LLSD content)
     LLStringUtil::format_map_t args_parcels;
     args_parcels["[PARCELS]"] = llformat ("%d", number_parcels);
     std::string msg_parcels = LLTrans::getString("ScriptLimitsParcelsOwned", args_parcels);
-    getChild<LLUICtrl>("parcels_listed")->setValue(LLSD(msg_parcels));
+    get_floater_child<LLUICtrl>(this, "parcels_listed")->setValue(LLSD(msg_parcels));
 
     uuid_vec_t names_requested;
 
@@ -550,7 +576,7 @@ void LLPanelScriptLimitsRegionMemory::setRegionDetails(LLSD content)
 
     if (has_locations)
     {
-        LLButton* btn = getChild<LLButton>("highlight_btn");
+        LLButton* btn = get_floater_child<LLButton>(this, "highlight_btn");
         if(btn)
         {
             btn->setVisible(true);
@@ -559,7 +585,7 @@ void LLPanelScriptLimitsRegionMemory::setRegionDetails(LLSD content)
 
     if (has_local_ids)
     {
-        LLButton* btn = getChild<LLButton>("return_btn");
+        LLButton* btn = get_floater_child<LLButton>(this, "return_btn");
         if(btn)
         {
             btn->setVisible(true);
@@ -624,7 +650,7 @@ void LLPanelScriptLimitsRegionMemory::setRegionSummary(LLSD content)
         }
 
         std::string msg_parcel_memory = LLTrans::getString(translate_message, args_parcel_memory);
-        getChild<LLUICtrl>("memory_used")->setValue(LLSD(msg_parcel_memory));
+        get_floater_child<LLUICtrl>(this, "memory_used")->setValue(LLSD(msg_parcel_memory));
     }
 
     if((mParcelURLsUsed >= 0) && (mParcelURLsMax >= 0))
@@ -636,7 +662,7 @@ void LLPanelScriptLimitsRegionMemory::setRegionSummary(LLSD content)
         args_parcel_urls["[MAX]"] = llformat ("%d", mParcelURLsMax);
         args_parcel_urls["[AVAILABLE]"] = llformat ("%d", parcel_urls_available);
         std::string msg_parcel_urls = LLTrans::getString("ScriptLimitsURLsUsed", args_parcel_urls);
-        getChild<LLUICtrl>("urls_used")->setValue(LLSD(msg_parcel_urls));
+        get_floater_child<LLUICtrl>(this, "urls_used")->setValue(LLSD(msg_parcel_urls));
     }
 }
 
@@ -647,9 +673,9 @@ bool LLPanelScriptLimitsRegionMemory::postBuild()
     childSetAction("return_btn", onClickReturn, this);
 
     std::string msg_waiting = LLTrans::getString("ScriptLimitsRequestWaiting");
-    getChild<LLUICtrl>("loading_text")->setValue(LLSD(msg_waiting));
+    get_floater_child<LLUICtrl>(this, "loading_text")->setValue(LLSD(msg_waiting));
 
-    LLScrollListCtrl *list = getChild<LLScrollListCtrl>("scripts_list");
+    LLScrollListCtrl *list = get_floater_child<LLScrollListCtrl>(this, "scripts_list");
     if(!list)
     {
         return false;
@@ -674,7 +700,7 @@ bool LLPanelScriptLimitsRegionMemory::StartRequestChain()
     LLFloaterLand* instance = LLFloaterReg::getTypedInstance<LLFloaterLand>("about_land");
     if(!instance)
     {
-        getChild<LLUICtrl>("loading_text")->setValue(LLSD(std::string("")));
+        get_floater_child<LLUICtrl>(this, "loading_text")->setValue(LLSD(std::string("")));
         //might have to do parent post build here
         //if not logic below could use early outs
         return false;
@@ -692,7 +718,7 @@ bool LLPanelScriptLimitsRegionMemory::StartRequestChain()
         if(region_id != current_region_id)
         {
             std::string msg_wrong_region = LLTrans::getString("ScriptLimitsRequestWrongRegion");
-            getChild<LLUICtrl>("loading_text")->setValue(LLSD(msg_wrong_region));
+            get_floater_child<LLUICtrl>(this, "loading_text")->setValue(LLSD(msg_wrong_region));
             return false;
         }
 
@@ -712,13 +738,13 @@ bool LLPanelScriptLimitsRegionMemory::StartRequestChain()
                     << " does not support RemoteParcelRequest" << LL_ENDL;
 
             std::string msg_waiting = LLTrans::getString("ScriptLimitsRequestError");
-            getChild<LLUICtrl>("loading_text")->setValue(LLSD(msg_waiting));
+            get_floater_child<LLUICtrl>(this, "loading_text")->setValue(LLSD(msg_waiting));
         }
     }
     else
     {
         std::string msg_waiting = LLTrans::getString("ScriptLimitsRequestNoParcelSelected");
-        getChild<LLUICtrl>("loading_text")->setValue(LLSD(msg_waiting));
+        get_floater_child<LLUICtrl>(this, "loading_text")->setValue(LLSD(msg_waiting));
     }
 
     return LLPanelScriptLimitsInfo::postBuild();
@@ -740,9 +766,9 @@ void LLPanelScriptLimitsRegionMemory::clearList()
 
     LLStringUtil::format_map_t args_parcel_memory;
     std::string msg_empty_string("");
-    getChild<LLUICtrl>("memory_used")->setValue(LLSD(msg_empty_string));
-    getChild<LLUICtrl>("urls_used")->setValue(LLSD(msg_empty_string));
-    getChild<LLUICtrl>("parcels_listed")->setValue(LLSD(msg_empty_string));
+    get_floater_child<LLUICtrl>(this, "memory_used")->setValue(LLSD(msg_empty_string));
+    get_floater_child<LLUICtrl>(this, "urls_used")->setValue(LLSD(msg_empty_string));
+    get_floater_child<LLUICtrl>(this, "parcels_listed")->setValue(LLSD(msg_empty_string));
 
     mObjectListItems.clear();
     checkButtonsEnabled();
@@ -750,9 +776,9 @@ void LLPanelScriptLimitsRegionMemory::clearList()
 
 void LLPanelScriptLimitsRegionMemory::checkButtonsEnabled()
 {
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("scripts_list");
-    getChild<LLButton>("highlight_btn")->setEnabled(list->getNumSelected() > 0);
-    getChild<LLButton>("return_btn")->setEnabled(list->getNumSelected() > 0);
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(this, "scripts_list");
+    get_floater_child<LLButton>(this, "highlight_btn")->setEnabled(list->getNumSelected() > 0);
+    get_floater_child<LLButton>(this, "return_btn")->setEnabled(list->getNumSelected() > 0);
 }
 
 // static
@@ -761,15 +787,15 @@ void LLPanelScriptLimitsRegionMemory::onClickRefresh(void* userdata)
     LLFloaterScriptLimits* instance = LLFloaterReg::getTypedInstance<LLFloaterScriptLimits>("script_limits");
     if(instance)
     {
-        LLTabContainer* tab = instance->getChild<LLTabContainer>("scriptlimits_panels");
+        LLTabContainer* tab = get_floater_child<LLTabContainer>(instance, "scriptlimits_panels");
         if(tab)
         {
-            LLPanelScriptLimitsRegionMemory* panel_memory = (LLPanelScriptLimitsRegionMemory*)tab->getChild<LLPanel>("script_limits_region_memory_panel");
+            LLPanelScriptLimitsRegionMemory* panel_memory = (LLPanelScriptLimitsRegionMemory*)get_floater_child<LLPanel>(tab, "script_limits_region_memory_panel");
             if(panel_memory)
             {
                 //To stop people from hammering the refesh button and accidentally dosing themselves - enough requests can crash the viewer!
                 //turn the button off, then turn it on when we get a response
-                LLButton* btn = panel_memory->getChild<LLButton>("refresh_list_btn");
+                LLButton* btn = get_floater_child<LLButton>(panel_memory, "refresh_list_btn");
                 if(btn)
                 {
                     btn->setEnabled(false);
@@ -790,7 +816,7 @@ void LLPanelScriptLimitsRegionMemory::onClickRefresh(void* userdata)
 
 void LLPanelScriptLimitsRegionMemory::showBeacon()
 {
-    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("scripts_list");
+    LLScrollListCtrl* list = get_floater_child<LLScrollListCtrl>(this, "scripts_list");
     if (!list) return;
 
     LLScrollListItem* first_selected = list->getFirstSelected();
@@ -816,10 +842,10 @@ void LLPanelScriptLimitsRegionMemory::onClickHighlight(void* userdata)
     LLFloaterScriptLimits* instance = LLFloaterReg::getTypedInstance<LLFloaterScriptLimits>("script_limits");
     if(instance)
     {
-        LLTabContainer* tab = instance->getChild<LLTabContainer>("scriptlimits_panels");
+        LLTabContainer* tab = get_floater_child<LLTabContainer>(instance, "scriptlimits_panels");
         if(tab)
         {
-            LLPanelScriptLimitsRegionMemory* panel = (LLPanelScriptLimitsRegionMemory*)tab->getChild<LLPanel>("script_limits_region_memory_panel");
+            LLPanelScriptLimitsRegionMemory* panel = (LLPanelScriptLimitsRegionMemory*)get_floater_child<LLPanel>(tab, "script_limits_region_memory_panel");
             if(panel)
             {
                 panel->showBeacon();
@@ -921,10 +947,10 @@ void LLPanelScriptLimitsRegionMemory::onClickReturn(void* userdata)
     LLFloaterScriptLimits* instance = LLFloaterReg::getTypedInstance<LLFloaterScriptLimits>("script_limits");
     if(instance)
     {
-        LLTabContainer* tab = instance->getChild<LLTabContainer>("scriptlimits_panels");
+        LLTabContainer* tab = get_floater_child<LLTabContainer>(instance, "scriptlimits_panels");
         if(tab)
         {
-            LLPanelScriptLimitsRegionMemory* panel = (LLPanelScriptLimitsRegionMemory*)tab->getChild<LLPanel>("script_limits_region_memory_panel");
+            LLPanelScriptLimitsRegionMemory* panel = (LLPanelScriptLimitsRegionMemory*)get_floater_child<LLPanel>(tab, "script_limits_region_memory_panel");
             if(panel)
             {
                 panel->returnObjects();

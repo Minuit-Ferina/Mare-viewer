@@ -73,6 +73,32 @@
 #include "lltransfertargetfile.h"
 #include "lltransfersourcefile.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 const F32 SECONDS_BETWEEN_UPDATE_REQUESTS = 5.0f;
 
 //*****************************************************************************
@@ -127,7 +153,7 @@ LLFloaterGodTools::LLFloaterGodTools(const LLSD& key)
 bool LLFloaterGodTools::postBuild()
 {
     sendRegionInfoRequest();
-    getChild<LLTabContainer>("GodTools Tabs")->selectTabByName("region");
+    get_floater_child<LLTabContainer>(this, "GodTools Tabs")->selectTabByName("region");
     return true;
 }
 // static
@@ -196,9 +222,9 @@ void LLFloaterGodTools::draw()
 
 void LLFloaterGodTools::showPanel(const std::string& panel_name)
 {
-    getChild<LLTabContainer>("GodTools Tabs")->selectTabByName(panel_name);
+    get_floater_child<LLTabContainer>(this, "GodTools Tabs")->selectTabByName(panel_name);
     openFloater();
-    LLPanel *panel = getChild<LLTabContainer>("GodTools Tabs")->getCurrentPanel();
+    LLPanel *panel = get_floater_child<LLTabContainer>(this, "GodTools Tabs")->getCurrentPanel();
     if (panel)
         panel->setFocus(true);
 }
@@ -444,18 +470,18 @@ LLPanelRegionTools::LLPanelRegionTools()
 
 bool LLPanelRegionTools::postBuild()
 {
-    getChild<LLLineEditor>("region name")->setKeystrokeCallback(onChangeSimName, this);
-    getChild<LLLineEditor>("region name")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
-    getChild<LLLineEditor>("estate")->setPrevalidate(&LLTextValidate::validatePositiveS32);
-    getChild<LLLineEditor>("parentestate")->setPrevalidate(&LLTextValidate::validatePositiveS32);
-    getChildView("parentestate")->setEnabled(false);
-    getChild<LLLineEditor>("gridposx")->setPrevalidate(&LLTextValidate::validatePositiveS32);
-    getChildView("gridposx")->setEnabled(false);
-    getChild<LLLineEditor>("gridposy")->setPrevalidate(&LLTextValidate::validatePositiveS32);
-    getChildView("gridposy")->setEnabled(false);
+    get_floater_child<LLLineEditor>(this, "region name")->setKeystrokeCallback(onChangeSimName, this);
+    get_floater_child<LLLineEditor>(this, "region name")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
+    get_floater_child<LLLineEditor>(this, "estate")->setPrevalidate(&LLTextValidate::validatePositiveS32);
+    get_floater_child<LLLineEditor>(this, "parentestate")->setPrevalidate(&LLTextValidate::validatePositiveS32);
+    get_floater_view(this, "parentestate")->setEnabled(false);
+    get_floater_child<LLLineEditor>(this, "gridposx")->setPrevalidate(&LLTextValidate::validatePositiveS32);
+    get_floater_view(this, "gridposx")->setEnabled(false);
+    get_floater_child<LLLineEditor>(this, "gridposy")->setPrevalidate(&LLTextValidate::validatePositiveS32);
+    get_floater_view(this, "gridposy")->setEnabled(false);
 
-    getChild<LLLineEditor>("redirectx")->setPrevalidate(&LLTextValidate::validatePositiveS32);
-    getChild<LLLineEditor>("redirecty")->setPrevalidate(&LLTextValidate::validatePositiveS32);
+    get_floater_child<LLLineEditor>(this, "redirectx")->setPrevalidate(&LLTextValidate::validatePositiveS32);
+    get_floater_child<LLLineEditor>(this, "redirecty")->setPrevalidate(&LLTextValidate::validatePositiveS32);
 
     return true;
 }
@@ -482,42 +508,42 @@ void LLPanelRegionTools::refresh()
 void LLPanelRegionTools::clearAllWidgets()
 {
     // clear all widgets
-    getChild<LLUICtrl>("region name")->setValue("unknown");
-    getChild<LLUICtrl>("region name")->setFocus( false);
+    get_floater_child<LLUICtrl>(this, "region name")->setValue("unknown");
+    get_floater_child<LLUICtrl>(this, "region name")->setFocus( false);
 
-    getChild<LLUICtrl>("check prelude")->setValue(false);
-    getChildView("check prelude")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "check prelude")->setValue(false);
+    get_floater_view(this, "check prelude")->setEnabled(false);
 
-    getChild<LLUICtrl>("check fixed sun")->setValue(false);
-    getChildView("check fixed sun")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "check fixed sun")->setValue(false);
+    get_floater_view(this, "check fixed sun")->setEnabled(false);
 
-    getChild<LLUICtrl>("check reset home")->setValue(false);
-    getChildView("check reset home")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "check reset home")->setValue(false);
+    get_floater_view(this, "check reset home")->setEnabled(false);
 
-    getChild<LLUICtrl>("check damage")->setValue(false);
-    getChildView("check damage")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "check damage")->setValue(false);
+    get_floater_view(this, "check damage")->setEnabled(false);
 
-    getChild<LLUICtrl>("check visible")->setValue(false);
-    getChildView("check visible")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "check visible")->setValue(false);
+    get_floater_view(this, "check visible")->setEnabled(false);
 
-    getChild<LLUICtrl>("block terraform")->setValue(false);
-    getChildView("block terraform")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "block terraform")->setValue(false);
+    get_floater_view(this, "block terraform")->setEnabled(false);
 
-    getChild<LLUICtrl>("block dwell")->setValue(false);
-    getChildView("block dwell")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "block dwell")->setValue(false);
+    get_floater_view(this, "block dwell")->setEnabled(false);
 
-    getChild<LLUICtrl>("is sandbox")->setValue(false);
-    getChildView("is sandbox")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "is sandbox")->setValue(false);
+    get_floater_view(this, "is sandbox")->setEnabled(false);
 
-    getChild<LLUICtrl>("billable factor")->setValue(BILLABLE_FACTOR_DEFAULT);
-    getChildView("billable factor")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "billable factor")->setValue(BILLABLE_FACTOR_DEFAULT);
+    get_floater_view(this, "billable factor")->setEnabled(false);
 
-    getChild<LLUICtrl>("land cost")->setValue(PRICE_PER_METER_DEFAULT);
-    getChildView("land cost")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "land cost")->setValue(PRICE_PER_METER_DEFAULT);
+    get_floater_view(this, "land cost")->setEnabled(false);
 
-    getChildView("Apply")->setEnabled(false);
-    getChildView("Bake Terrain")->setEnabled(false);
-    getChildView("Autosave now")->setEnabled(false);
+    get_floater_view(this, "Apply")->setEnabled(false);
+    get_floater_view(this, "Bake Terrain")->setEnabled(false);
+    get_floater_view(this, "Autosave now")->setEnabled(false);
 }
 
 
@@ -525,21 +551,21 @@ void LLPanelRegionTools::enableAllWidgets()
 {
     // enable all of the widgets
 
-    getChildView("check prelude")->setEnabled(true);
-    getChildView("check fixed sun")->setEnabled(true);
-    getChildView("check reset home")->setEnabled(true);
-    getChildView("check damage")->setEnabled(true);
-    getChildView("check visible")->setEnabled(false); // use estates to update...
-    getChildView("block terraform")->setEnabled(true);
-    getChildView("block dwell")->setEnabled(true);
-    getChildView("is sandbox")->setEnabled(true);
+    get_floater_view(this, "check prelude")->setEnabled(true);
+    get_floater_view(this, "check fixed sun")->setEnabled(true);
+    get_floater_view(this, "check reset home")->setEnabled(true);
+    get_floater_view(this, "check damage")->setEnabled(true);
+    get_floater_view(this, "check visible")->setEnabled(false); // use estates to update...
+    get_floater_view(this, "block terraform")->setEnabled(true);
+    get_floater_view(this, "block dwell")->setEnabled(true);
+    get_floater_view(this, "is sandbox")->setEnabled(true);
 
-    getChildView("billable factor")->setEnabled(true);
-    getChildView("land cost")->setEnabled(true);
+    get_floater_view(this, "billable factor")->setEnabled(true);
+    get_floater_view(this, "land cost")->setEnabled(true);
 
-    getChildView("Apply")->setEnabled(false);   // don't enable this one
-    getChildView("Bake Terrain")->setEnabled(true);
-    getChildView("Autosave now")->setEnabled(true);
+    get_floater_view(this, "Apply")->setEnabled(false);   // don't enable this one
+    get_floater_view(this, "Bake Terrain")->setEnabled(true);
+    get_floater_view(this, "Autosave now")->setEnabled(true);
 }
 
 void LLPanelRegionTools::onSaveState(void* userdata)
@@ -559,74 +585,74 @@ void LLPanelRegionTools::onSaveState(void* userdata)
 
 const std::string LLPanelRegionTools::getSimName() const
 {
-    return getChild<LLUICtrl>("region name")->getValue();
+    return get_floater_child<LLUICtrl>(this, "region name")->getValue();
 }
 
 U32 LLPanelRegionTools::getEstateID() const
 {
-    U32 id = (U32)getChild<LLUICtrl>("estate")->getValue().asInteger();
+    U32 id = (U32)get_floater_child<LLUICtrl>(this, "estate")->getValue().asInteger();
     return id;
 }
 
 U32 LLPanelRegionTools::getParentEstateID() const
 {
-    U32 id = (U32)getChild<LLUICtrl>("parentestate")->getValue().asInteger();
+    U32 id = (U32)get_floater_child<LLUICtrl>(this, "parentestate")->getValue().asInteger();
     return id;
 }
 
 S32 LLPanelRegionTools::getRedirectGridX() const
 {
-    return getChild<LLUICtrl>("redirectx")->getValue().asInteger();
+    return get_floater_child<LLUICtrl>(this, "redirectx")->getValue().asInteger();
 }
 
 S32 LLPanelRegionTools::getRedirectGridY() const
 {
-    return getChild<LLUICtrl>("redirecty")->getValue().asInteger();
+    return get_floater_child<LLUICtrl>(this, "redirecty")->getValue().asInteger();
 }
 
 S32 LLPanelRegionTools::getGridPosX() const
 {
-    return getChild<LLUICtrl>("gridposx")->getValue().asInteger();
+    return get_floater_child<LLUICtrl>(this, "gridposx")->getValue().asInteger();
 }
 
 S32 LLPanelRegionTools::getGridPosY() const
 {
-    return getChild<LLUICtrl>("gridposy")->getValue().asInteger();
+    return get_floater_child<LLUICtrl>(this, "gridposy")->getValue().asInteger();
 }
 
 U64 LLPanelRegionTools::getRegionFlags() const
 {
     U64 flags = 0x0;
-    flags = getChild<LLUICtrl>("check prelude")->getValue().asBoolean()
+    flags = get_floater_child<LLUICtrl>(this, "check prelude")->getValue().asBoolean()
                     ? set_prelude_flags(flags)
                     : unset_prelude_flags(flags);
 
     // override prelude
-    if (getChild<LLUICtrl>("check fixed sun")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(this, "check fixed sun")->getValue().asBoolean())
     {
         flags |= REGION_FLAGS_SUN_FIXED;
     }
-    if (getChild<LLUICtrl>("check reset home")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(this, "check reset home")->getValue().asBoolean())
     {
         flags |= REGION_FLAGS_RESET_HOME_ON_TELEPORT;
     }
-    if (getChild<LLUICtrl>("check visible")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(this, "check visible")->getValue().asBoolean())
     {
         flags |= REGION_FLAGS_EXTERNALLY_VISIBLE;
     }
-    if (getChild<LLUICtrl>("check damage")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(this, "check damage")->getValue().asBoolean())
     {
         flags |= REGION_FLAGS_ALLOW_DAMAGE;
     }
-    if (getChild<LLUICtrl>("block terraform")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(this, "block terraform")->getValue().asBoolean())
     {
         flags |= REGION_FLAGS_BLOCK_TERRAFORM;
     }
-    if (getChild<LLUICtrl>("block dwell")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(this, "block dwell")->getValue().asBoolean())
     {
         flags |= REGION_FLAGS_BLOCK_DWELL;
     }
-    if (getChild<LLUICtrl>("is sandbox")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(this, "is sandbox")->getValue().asBoolean())
     {
         flags |= REGION_FLAGS_SANDBOX;
     }
@@ -636,35 +662,35 @@ U64 LLPanelRegionTools::getRegionFlags() const
 U64 LLPanelRegionTools::getRegionFlagsMask() const
 {
     U64 flags = 0xFFFFFFFFFFFFFFFFULL;
-    flags = getChild<LLUICtrl>("check prelude")->getValue().asBoolean()
+    flags = get_floater_child<LLUICtrl>(this, "check prelude")->getValue().asBoolean()
                 ? set_prelude_flags(flags)
                 : unset_prelude_flags(flags);
 
-    if (!getChild<LLUICtrl>("check fixed sun")->getValue().asBoolean())
+    if (!get_floater_child<LLUICtrl>(this, "check fixed sun")->getValue().asBoolean())
     {
         flags &= ~REGION_FLAGS_SUN_FIXED;
     }
-    if (!getChild<LLUICtrl>("check reset home")->getValue().asBoolean())
+    if (!get_floater_child<LLUICtrl>(this, "check reset home")->getValue().asBoolean())
     {
         flags &= ~REGION_FLAGS_RESET_HOME_ON_TELEPORT;
     }
-    if (!getChild<LLUICtrl>("check visible")->getValue().asBoolean())
+    if (!get_floater_child<LLUICtrl>(this, "check visible")->getValue().asBoolean())
     {
         flags &= ~REGION_FLAGS_EXTERNALLY_VISIBLE;
     }
-    if (!getChild<LLUICtrl>("check damage")->getValue().asBoolean())
+    if (!get_floater_child<LLUICtrl>(this, "check damage")->getValue().asBoolean())
     {
         flags &= ~REGION_FLAGS_ALLOW_DAMAGE;
     }
-    if (!getChild<LLUICtrl>("block terraform")->getValue().asBoolean())
+    if (!get_floater_child<LLUICtrl>(this, "block terraform")->getValue().asBoolean())
     {
         flags &= ~REGION_FLAGS_BLOCK_TERRAFORM;
     }
-    if (!getChild<LLUICtrl>("block dwell")->getValue().asBoolean())
+    if (!get_floater_child<LLUICtrl>(this, "block dwell")->getValue().asBoolean())
     {
         flags &= ~REGION_FLAGS_BLOCK_DWELL;
     }
-    if (!getChild<LLUICtrl>("is sandbox")->getValue().asBoolean())
+    if (!get_floater_child<LLUICtrl>(this, "is sandbox")->getValue().asBoolean())
     {
         flags &= ~REGION_FLAGS_SANDBOX;
     }
@@ -673,12 +699,12 @@ U64 LLPanelRegionTools::getRegionFlagsMask() const
 
 F32 LLPanelRegionTools::getBillableFactor() const
 {
-    return (F32)getChild<LLUICtrl>("billable factor")->getValue().asReal();
+    return (F32)get_floater_child<LLUICtrl>(this, "billable factor")->getValue().asReal();
 }
 
 S32 LLPanelRegionTools::getPricePerMeter() const
 {
-    return getChild<LLUICtrl>("land cost")->getValue();
+    return get_floater_child<LLUICtrl>(this, "land cost")->getValue();
 }
 
 void LLPanelRegionTools::setSimName(const std::string& name)
@@ -686,83 +712,83 @@ void LLPanelRegionTools::setSimName(const std::string& name)
 //MK
     if (gRRenabled && gAgent.mRRInterface.mContainsShowloc)
     {
-        getChild<LLUICtrl>("region name")->setVisible(false);
+        get_floater_child<LLUICtrl>(this, "region name")->setVisible(false);
     }
     else
     {
-        getChild<LLUICtrl>("region name")->setVisible(true);
+        get_floater_child<LLUICtrl>(this, "region name")->setVisible(true);
     }
 //mk
-    getChild<LLUICtrl>("region name")->setValue(name);
+    get_floater_child<LLUICtrl>(this, "region name")->setValue(name);
 }
 
 void LLPanelRegionTools::setEstateID(U32 id)
 {
-    getChild<LLUICtrl>("estate")->setValue((S32)id);
+    get_floater_child<LLUICtrl>(this, "estate")->setValue((S32)id);
 }
 
 void LLPanelRegionTools::setGridPosX(S32 pos)
 {
-    getChild<LLUICtrl>("gridposx")->setValue(pos);
+    get_floater_child<LLUICtrl>(this, "gridposx")->setValue(pos);
 }
 
 void LLPanelRegionTools::setGridPosY(S32 pos)
 {
-    getChild<LLUICtrl>("gridposy")->setValue(pos);
+    get_floater_child<LLUICtrl>(this, "gridposy")->setValue(pos);
 }
 
 void LLPanelRegionTools::setRedirectGridX(S32 pos)
 {
-    getChild<LLUICtrl>("redirectx")->setValue(pos);
+    get_floater_child<LLUICtrl>(this, "redirectx")->setValue(pos);
 }
 
 void LLPanelRegionTools::setRedirectGridY(S32 pos)
 {
-    getChild<LLUICtrl>("redirecty")->setValue(pos);
+    get_floater_child<LLUICtrl>(this, "redirecty")->setValue(pos);
 }
 
 void LLPanelRegionTools::setParentEstateID(U32 id)
 {
-    getChild<LLUICtrl>("parentestate")->setValue((S32)id);
+    get_floater_child<LLUICtrl>(this, "parentestate")->setValue((S32)id);
 }
 
 void LLPanelRegionTools::setCheckFlags(U64 flags)
 {
-    getChild<LLUICtrl>("check prelude")->setValue(is_prelude(flags));
-    getChild<LLUICtrl>("check fixed sun")->setValue(is_flag_set(flags, REGION_FLAGS_SUN_FIXED));
-    getChild<LLUICtrl>("check reset home")->setValue(is_flag_set(flags, REGION_FLAGS_RESET_HOME_ON_TELEPORT));
-    getChild<LLUICtrl>("check damage")->setValue(is_flag_set(flags, REGION_FLAGS_ALLOW_DAMAGE));
-    getChild<LLUICtrl>("check visible")->setValue(is_flag_set(flags, REGION_FLAGS_EXTERNALLY_VISIBLE));
-    getChild<LLUICtrl>("block terraform")->setValue(is_flag_set(flags, REGION_FLAGS_BLOCK_TERRAFORM));
-    getChild<LLUICtrl>("block dwell")->setValue(is_flag_set(flags, REGION_FLAGS_BLOCK_DWELL));
-    getChild<LLUICtrl>("is sandbox")->setValue(is_flag_set(flags, REGION_FLAGS_SANDBOX));
+    get_floater_child<LLUICtrl>(this, "check prelude")->setValue(is_prelude(flags));
+    get_floater_child<LLUICtrl>(this, "check fixed sun")->setValue(is_flag_set(flags, REGION_FLAGS_SUN_FIXED));
+    get_floater_child<LLUICtrl>(this, "check reset home")->setValue(is_flag_set(flags, REGION_FLAGS_RESET_HOME_ON_TELEPORT));
+    get_floater_child<LLUICtrl>(this, "check damage")->setValue(is_flag_set(flags, REGION_FLAGS_ALLOW_DAMAGE));
+    get_floater_child<LLUICtrl>(this, "check visible")->setValue(is_flag_set(flags, REGION_FLAGS_EXTERNALLY_VISIBLE));
+    get_floater_child<LLUICtrl>(this, "block terraform")->setValue(is_flag_set(flags, REGION_FLAGS_BLOCK_TERRAFORM));
+    get_floater_child<LLUICtrl>(this, "block dwell")->setValue(is_flag_set(flags, REGION_FLAGS_BLOCK_DWELL));
+    get_floater_child<LLUICtrl>(this, "is sandbox")->setValue(is_flag_set(flags, REGION_FLAGS_SANDBOX));
 }
 
 void LLPanelRegionTools::setBillableFactor(F32 billable_factor)
 {
-    getChild<LLUICtrl>("billable factor")->setValue(billable_factor);
+    get_floater_child<LLUICtrl>(this, "billable factor")->setValue(billable_factor);
 }
 
 void LLPanelRegionTools::setPricePerMeter(S32 price)
 {
-    getChild<LLUICtrl>("land cost")->setValue(price);
+    get_floater_child<LLUICtrl>(this, "land cost")->setValue(price);
 }
 
 void LLPanelRegionTools::onChangeAnything()
 {
     if (gAgent.isGodlike())
     {
-        getChildView("Apply")->setEnabled(true);
+        get_floater_view(this, "Apply")->setEnabled(true);
     }
 }
 
 void LLPanelRegionTools::onChangePrelude()
 {
     // checking prelude auto-checks fixed sun
-    if (getChild<LLUICtrl>("check prelude")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(this, "check prelude")->getValue().asBoolean())
     {
-        getChild<LLUICtrl>("check fixed sun")->setValue(true);
-        getChild<LLUICtrl>("check reset home")->setValue(true);
+        get_floater_child<LLUICtrl>(this, "check fixed sun")->setValue(true);
+        get_floater_child<LLUICtrl>(this, "check reset home")->setValue(true);
         onChangeAnything();
     }
     // pass on to default onChange handler
@@ -775,7 +801,7 @@ void LLPanelRegionTools::onChangeSimName(LLLineEditor* caller, void* userdata )
     if (userdata && gAgent.isGodlike())
     {
         LLPanelRegionTools* region_tools = (LLPanelRegionTools*) userdata;
-        region_tools->getChildView("Apply")->setEnabled(true);
+        get_floater_view(region_tools, "Apply")->setEnabled(true);
     }
 }
 
@@ -800,7 +826,7 @@ void LLPanelRegionTools::onApplyChanges()
     LLViewerRegion *region = gAgent.getRegion();
     if (region && gAgent.isGodlike())
     {
-        getChildView("Apply")->setEnabled(false);
+        get_floater_view(this, "Apply")->setEnabled(false);
         god_tools->sendGodUpdateRegionInfo();
         //LLFloaterReg::getTypedInstance<LLFloaterGodTools>("god_tools")->sendGodUpdateRegionInfo();
     }
@@ -967,7 +993,7 @@ void LLPanelObjectTools::setTargetAvatar(const LLUUID &target_id)
     mTargetAvatar = target_id;
     if (target_id.isNull())
     {
-        getChild<LLUICtrl>("target_avatar_name")->setValue(getString("no_target"));
+        get_floater_child<LLUICtrl>(this, "target_avatar_name")->setValue(getString("no_target"));
     }
 }
 
@@ -987,14 +1013,14 @@ void LLPanelObjectTools::refresh()
     LLViewerRegion *regionp = gAgent.getRegion();
     if (regionp)
     {
-        getChild<LLUICtrl>("region name")->setValue(regionp->getName());
+        get_floater_child<LLUICtrl>(this, "region name")->setValue(regionp->getName());
     }
 }
 
 
 U64 LLPanelObjectTools::computeRegionFlags(U64 flags) const
 {
-    if (getChild<LLUICtrl>("disable scripts")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(this, "disable scripts")->getValue().asBoolean())
     {
         flags |= REGION_FLAGS_SKIP_SCRIPTS;
     }
@@ -1002,7 +1028,7 @@ U64 LLPanelObjectTools::computeRegionFlags(U64 flags) const
     {
         flags &= ~REGION_FLAGS_SKIP_SCRIPTS;
     }
-    if (getChild<LLUICtrl>("disable collisions")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(this, "disable collisions")->getValue().asBoolean())
     {
         flags |= REGION_FLAGS_SKIP_COLLISIONS;
     }
@@ -1010,7 +1036,7 @@ U64 LLPanelObjectTools::computeRegionFlags(U64 flags) const
     {
         flags &= ~REGION_FLAGS_SKIP_COLLISIONS;
     }
-    if (getChild<LLUICtrl>("disable physics")->getValue().asBoolean())
+    if (get_floater_child<LLUICtrl>(this, "disable physics")->getValue().asBoolean())
     {
         flags |= REGION_FLAGS_SKIP_PHYSICS;
     }
@@ -1024,36 +1050,36 @@ U64 LLPanelObjectTools::computeRegionFlags(U64 flags) const
 
 void LLPanelObjectTools::setCheckFlags(U64 flags)
 {
-    getChild<LLUICtrl>("disable scripts")->setValue(is_flag_set(flags, REGION_FLAGS_SKIP_SCRIPTS));
-    getChild<LLUICtrl>("disable collisions")->setValue(is_flag_set(flags, REGION_FLAGS_SKIP_COLLISIONS));
-    getChild<LLUICtrl>("disable physics")->setValue(is_flag_set(flags, REGION_FLAGS_SKIP_PHYSICS));
+    get_floater_child<LLUICtrl>(this, "disable scripts")->setValue(is_flag_set(flags, REGION_FLAGS_SKIP_SCRIPTS));
+    get_floater_child<LLUICtrl>(this, "disable collisions")->setValue(is_flag_set(flags, REGION_FLAGS_SKIP_COLLISIONS));
+    get_floater_child<LLUICtrl>(this, "disable physics")->setValue(is_flag_set(flags, REGION_FLAGS_SKIP_PHYSICS));
 }
 
 
 void LLPanelObjectTools::clearAllWidgets()
 {
-    getChild<LLUICtrl>("disable scripts")->setValue(false);
-    getChildView("disable scripts")->setEnabled(false);
+    get_floater_child<LLUICtrl>(this, "disable scripts")->setValue(false);
+    get_floater_view(this, "disable scripts")->setEnabled(false);
 
-    getChildView("Apply")->setEnabled(false);
-    getChildView("Set Target")->setEnabled(false);
-    getChildView("Delete Target's Scripted Objects On Others Land")->setEnabled(false);
-    getChildView("Delete Target's Scripted Objects On *Any* Land")->setEnabled(false);
-    getChildView("Delete *ALL* Of Target's Objects")->setEnabled(false);
+    get_floater_view(this, "Apply")->setEnabled(false);
+    get_floater_view(this, "Set Target")->setEnabled(false);
+    get_floater_view(this, "Delete Target's Scripted Objects On Others Land")->setEnabled(false);
+    get_floater_view(this, "Delete Target's Scripted Objects On *Any* Land")->setEnabled(false);
+    get_floater_view(this, "Delete *ALL* Of Target's Objects")->setEnabled(false);
 }
 
 
 void LLPanelObjectTools::enableAllWidgets()
 {
-    getChildView("disable scripts")->setEnabled(true);
+    get_floater_view(this, "disable scripts")->setEnabled(true);
 
-    getChildView("Apply")->setEnabled(false);   // don't enable this one
-    getChildView("Set Target")->setEnabled(true);
-    getChildView("Delete Target's Scripted Objects On Others Land")->setEnabled(true);
-    getChildView("Delete Target's Scripted Objects On *Any* Land")->setEnabled(true);
-    getChildView("Delete *ALL* Of Target's Objects")->setEnabled(true);
-    getChildView("Get Top Colliders")->setEnabled(true);
-    getChildView("Get Top Scripts")->setEnabled(true);
+    get_floater_view(this, "Apply")->setEnabled(false);   // don't enable this one
+    get_floater_view(this, "Set Target")->setEnabled(true);
+    get_floater_view(this, "Delete Target's Scripted Objects On Others Land")->setEnabled(true);
+    get_floater_view(this, "Delete Target's Scripted Objects On *Any* Land")->setEnabled(true);
+    get_floater_view(this, "Delete *ALL* Of Target's Objects")->setEnabled(true);
+    get_floater_view(this, "Get Top Colliders")->setEnabled(true);
+    get_floater_view(this, "Get Top Scripts")->setEnabled(true);
 }
 
 
@@ -1103,7 +1129,7 @@ void LLPanelObjectTools::onClickDeletePublicOwnedBy()
             SWD_SCRIPTED_ONLY | SWD_OTHERS_LAND_ONLY;
 
         LLSD args;
-        args["AVATAR_NAME"] = getChild<LLUICtrl>("target_avatar_name")->getValue().asString();
+        args["AVATAR_NAME"] = get_floater_child<LLUICtrl>(this, "target_avatar_name")->getValue().asString();
         LLSD payload;
         payload["avatar_id"] = mTargetAvatar;
         payload["flags"] = (S32)mSimWideDeletesFlags;
@@ -1123,7 +1149,7 @@ void LLPanelObjectTools::onClickDeleteAllScriptedOwnedBy()
         mSimWideDeletesFlags = SWD_SCRIPTED_ONLY;
 
         LLSD args;
-        args["AVATAR_NAME"] = getChild<LLUICtrl>("target_avatar_name")->getValue().asString();
+        args["AVATAR_NAME"] = get_floater_child<LLUICtrl>(this, "target_avatar_name")->getValue().asString();
         LLSD payload;
         payload["avatar_id"] = mTargetAvatar;
         payload["flags"] = (S32)mSimWideDeletesFlags;
@@ -1143,7 +1169,7 @@ void LLPanelObjectTools::onClickDeleteAllOwnedBy()
         mSimWideDeletesFlags = 0;
 
         LLSD args;
-        args["AVATAR_NAME"] = getChild<LLUICtrl>("target_avatar_name")->getValue().asString();
+        args["AVATAR_NAME"] = get_floater_child<LLUICtrl>(this, "target_avatar_name")->getValue().asString();
         LLSD payload;
         payload["avatar_id"] = mTargetAvatar;
         payload["flags"] = (S32)mSimWideDeletesFlags;
@@ -1200,14 +1226,14 @@ void LLPanelObjectTools::onClickSetBySelection(void* data)
     args["[OBJECT]"] = node->mName;
     args["[OWNER]"] = owner_name;
     std::string name = LLTrans::getString("GodToolsObjectOwnedBy", args);
-    panelp->getChild<LLUICtrl>("target_avatar_name")->setValue(name);
+    get_floater_child<LLUICtrl>(panelp, "target_avatar_name")->setValue(name);
 }
 
 void LLPanelObjectTools::callbackAvatarID(const uuid_vec_t& ids, const std::vector<LLAvatarName> names)
 {
     if (ids.empty() || names.empty()) return;
     mTargetAvatar = ids[0];
-    getChild<LLUICtrl>("target_avatar_name")->setValue(names[0].getCompleteName());
+    get_floater_child<LLUICtrl>(this, "target_avatar_name")->setValue(names[0].getCompleteName());
     refresh();
 }
 
@@ -1215,7 +1241,7 @@ void LLPanelObjectTools::onChangeAnything()
 {
     if (gAgent.isGodlike())
     {
-        getChildView("Apply")->setEnabled(true);
+        get_floater_view(this, "Apply")->setEnabled(true);
     }
 }
 
@@ -1227,7 +1253,7 @@ void LLPanelObjectTools::onApplyChanges()
     if (region && gAgent.isGodlike())
     {
         // TODO -- implement this
-        getChildView("Apply")->setEnabled(false);
+        get_floater_view(this, "Apply")->setEnabled(false);
         god_tools->sendGodUpdateRegionInfo();
         //LLFloaterReg::getTypedInstance<LLFloaterGodTools>("god_tools")->sendGodUpdateRegionInfo();
     }
@@ -1260,7 +1286,7 @@ bool LLPanelRequestTools::postBuild()
 
 void LLPanelRequestTools::refresh()
 {
-    std::string buffer = getChild<LLUICtrl>("destination")->getValue();
+    std::string buffer = get_floater_child<LLUICtrl>(this, "destination")->getValue();
     LLCtrlListInterface *list = childGetListInterface("destination");
     if (!list) return;
 
@@ -1321,12 +1347,12 @@ void LLPanelRequestTools::sendRequest(const std::string& request,
 
 void LLPanelRequestTools::onClickRequest()
 {
-    const std::string dest = getChild<LLUICtrl>("destination")->getValue().asString();
+    const std::string dest = get_floater_child<LLUICtrl>(this, "destination")->getValue().asString();
     if(dest == SELECTION)
     {
-        std::string req =getChild<LLUICtrl>("request")->getValue();
+        std::string req =get_floater_child<LLUICtrl>(this, "request")->getValue();
         req = req.substr(0, req.find_first_of(" "));
-        std::string param = getChild<LLUICtrl>("parameter")->getValue();
+        std::string param = get_floater_child<LLUICtrl>(this, "parameter")->getValue();
         LLSelectMgr::getInstance()->sendGodlikeRequest(req, param);
     }
     else if(dest == AGENT_REGION)
@@ -1365,7 +1391,7 @@ void LLPanelRequestTools::sendRequest(const LLHost& host)
 {
 
     // intercept viewer local actions here
-    std::string req = getChild<LLUICtrl>("request")->getValue();
+    std::string req = get_floater_child<LLUICtrl>(this, "request")->getValue();
     if (req == "terrain download")
     {
         gXferManager->requestFile(std::string("terrain.raw"), std::string("terrain.raw"), LL_PATH_NONE,
@@ -1377,7 +1403,7 @@ void LLPanelRequestTools::sendRequest(const LLHost& host)
     else
     {
         req = req.substr(0, req.find_first_of(" "));
-        sendRequest(req, getChild<LLUICtrl>("parameter")->getValue().asString(), host);
+        sendRequest(req, get_floater_child<LLUICtrl>(this, "parameter")->getValue().asString(), host);
     }
 }
 

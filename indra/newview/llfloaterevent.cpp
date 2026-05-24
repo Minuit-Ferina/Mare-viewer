@@ -57,6 +57,32 @@
 #include "lltrans.h"
 
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterEvent::LLFloaterEvent(const LLSD& key)
     : LLFloater(key),
       LLViewerMediaObserver(),
@@ -73,7 +99,7 @@ LLFloaterEvent::~LLFloaterEvent()
 
 bool LLFloaterEvent::postBuild()
 {
-    mBrowser = getChild<LLMediaCtrl>("browser");
+    mBrowser = get_floater_child<LLMediaCtrl>(this, "browser");
     if (mBrowser)
     {
         mBrowser->addObserver(this);
@@ -87,11 +113,11 @@ void LLFloaterEvent::handleMediaEvent(LLPluginClassMedia *self, EMediaEvent even
     switch (event)
     {
         case MEDIA_EVENT_NAVIGATE_BEGIN:
-            getChild<LLUICtrl>("status_text")->setValue(getString("loading_text"));
+            get_floater_child<LLUICtrl>(this, "status_text")->setValue(getString("loading_text"));
             break;
 
         case MEDIA_EVENT_NAVIGATE_COMPLETE:
-            getChild<LLUICtrl>("status_text")->setValue(getString("done_text"));
+            get_floater_child<LLUICtrl>(this, "status_text")->setValue(getString("done_text"));
             break;
 
         default:

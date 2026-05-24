@@ -31,6 +31,32 @@
 #include "llfloaterreg.h"
 #include "llmenubutton.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterConversationLog::LLFloaterConversationLog(const LLSD& key)
 :   LLFloater(key),
     mConversationLogList(NULL)
@@ -41,7 +67,7 @@ LLFloaterConversationLog::LLFloaterConversationLog(const LLSD& key)
 
 bool LLFloaterConversationLog::postBuild()
 {
-    mConversationLogList = getChild<LLConversationLogList>("conversation_log_list");
+    mConversationLogList = get_floater_child<LLConversationLogList>(this, "conversation_log_list");
 
     switch (gSavedSettings.getU32("CallLogSortOrder"))
     {
@@ -55,14 +81,14 @@ bool LLFloaterConversationLog::postBuild()
     }
 
     // Use the context menu of the Conversation list for the Conversation tab gear menu.
-    mConversationsGearBtn = getChild<LLMenuButton>("conversations_gear_btn");
+    mConversationsGearBtn = get_floater_child<LLMenuButton>(this, "conversations_gear_btn");
     LLToggleableMenu* conversations_gear_menu = mConversationLogList->getContextMenu();
     if (conversations_gear_menu)
     {
         mConversationsGearBtn->setMenu(conversations_gear_menu, LLMenuButton::MP_BOTTOM_LEFT);
     }
 
-    getChild<LLFilterEditor>("people_filter_input")->setCommitCallback(boost::bind(&LLFloaterConversationLog::onFilterEdit, this, _2));
+    get_floater_child<LLFilterEditor>(this, "people_filter_input")->setCommitCallback(boost::bind(&LLFloaterConversationLog::onFilterEdit, this, _2));
 
     return LLFloater::postBuild();
 }

@@ -43,6 +43,31 @@
 #include "llviewerwindow.h"
 #include "lltrans.h"
 
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 class LLAvatarName;
 
 // defined in llfloaterland.cpp
@@ -176,7 +201,7 @@ bool LLFloaterSellLandUI::postBuild()
 {
     setupCallbacks();
     center();
-    getChild<LLUICtrl>("profile_scroll")->setTabStop(true);
+    get_floater_child<LLUICtrl>(this, "profile_scroll")->setTabStop(true);
     return true;
 }
 
@@ -184,10 +209,10 @@ void LLFloaterSellLandUI::setupCallbacks()
 {
     childSetCommitCallback("sell_to", onChangeValue, this);
     childSetCommitCallback("price", onChangeValue, this);
-    getChild<LLLineEditor>("price")->setPrevalidate(LLTextValidate::validateNonNegativeS32);
+    get_floater_child<LLLineEditor>(this, "price")->setPrevalidate(LLTextValidate::validateNonNegativeS32);
     //KKA-672 - New L$/sqm entry field
     childSetCommitCallback("price_sqm", onChangeValue, this);
-    getChild<LLLineEditor>("price_sqm")->setPrevalidate(LLTextValidate::validateNonNegativeFloat);
+    get_floater_child<LLLineEditor>(this, "price_sqm")->setPrevalidate(LLTextValidate::validateNonNegativeFloat);
     childSetCommitCallback("sell_objects", onChangeValue, this);
     childSetAction("sell_to_select_agent", boost::bind( &LLFloaterSellLandUI::doSelectAgent, this));
     childSetAction("cancel_btn", doCancel, this);
@@ -197,7 +222,7 @@ void LLFloaterSellLandUI::setupCallbacks()
 
 LLSD LLFloaterSellLandUI::getControlValue(const std::string& name)
 {
-    return getChild<LLUICtrl>(name)->getValue();
+    return get_floater_child<LLUICtrl>(this, name)->getValue();
 }
 
 std::string LLFloaterSellLandUI::getControlString(const std::string& name)
@@ -207,17 +232,17 @@ std::string LLFloaterSellLandUI::getControlString(const std::string& name)
 
 void LLFloaterSellLandUI::setControlValue(const std::string& name, const LLSD& value)
 {
-    getChild<LLUICtrl>(name)->setValue(value);
+    get_floater_child<LLUICtrl>(this, name)->setValue(value);
 }
 
 void LLFloaterSellLandUI::setViewVisible(const std::string& name, bool visible)
 {
-    getChildView(name)->setVisible(visible);
+    get_floater_view(this, name)->setVisible(visible);
 }
 
 void LLFloaterSellLandUI::setSellButtonEnabled(bool enabled)
 {
-    getChildView("sell_btn")->setEnabled(enabled);
+    get_floater_view(this, "sell_btn")->setEnabled(enabled);
 }
 
 S32 LLFloaterSellLandUI::getPriceValue()
@@ -298,7 +323,7 @@ void LLFloaterSellLandUI::onBuyerNameCache(const LLAvatarName& av_name)
     mAvatarNameCacheConnection.disconnect();
 
     setControlValue("sell_to_agent", av_name.getCompleteName());
-    getChild<LLUICtrl>("sell_to_agent")->setToolTip(av_name.getUserName());
+    get_floater_child<LLUICtrl>(this, "sell_to_agent")->setToolTip(av_name.getUserName());
 }
 
 void LLFloaterSellLandUI::setBadge(const char* id, Badge badge)
@@ -325,11 +350,11 @@ void LLFloaterSellLandUI::refreshUI()
     LLParcel* parcelp = mParcelSelection->getParcel();
     if (!parcelp) return;
 
-    LLTextureCtrl* snapshot = getChild<LLTextureCtrl>("info_image");
+    LLTextureCtrl* snapshot = get_floater_child<LLTextureCtrl>(this, "info_image");
     snapshot->setImageAssetID(mParcelSnapshot);
 
-    getChild<LLUICtrl>("info_parcel")->setValue(parcelp->getName());
-    getChild<LLUICtrl>("info_size")->setTextArg("[AREA]", llformat("%d", mParcelActualArea));
+    get_floater_child<LLUICtrl>(this, "info_parcel")->setValue(parcelp->getName());
+    get_floater_child<LLUICtrl>(this, "info_size")->setTextArg("[AREA]", llformat("%d", mParcelActualArea));
 
     std::string price_str = getControlString("price");
     bool valid_price = !price_str.empty() && LLTextValidate::validateNonNegativeS32.validate(price_str);
@@ -337,7 +362,7 @@ void LLFloaterSellLandUI::refreshUI()
     {
         F32 per_meter_price = 0;
         per_meter_price = F32(mParcelPrice) / F32(mParcelActualArea);
-        getChild<LLUICtrl>("price_per_m")->setTextArg("[PER_METER]", llformat("%0.2f", per_meter_price));
+        get_floater_child<LLUICtrl>(this, "price_per_m")->setTextArg("[PER_METER]", llformat("%0.2f", per_meter_price));
         setViewVisible("price_per_m", true);
         // KKA-672 also set new L$/sqm entry field
         setControlValue("price_sqm", llformat("%0.2f", per_meter_price));
@@ -432,8 +457,8 @@ void LLFloaterSellLandUI::onChangeValue(LLUICtrl *ctrl, void *userdata)
     }
 
     // KKA_672 - we now need to check which price entry field was modified so that the other can get updated from it
-    if (ctrl == self->getChild<LLUICtrl>("price")) self->mParcelPrice = self->getPriceValue();
-    if (ctrl == self->getChild<LLUICtrl>("price_sqm"))
+    if (ctrl == get_floater_child<LLUICtrl>(self, "price")) self->mParcelPrice = self->getPriceValue();
+    if (ctrl == get_floater_child<LLUICtrl>(self, "price_sqm"))
     {
         self->mParcelPrice = (S32)((F32)self->mParcelActualArea * (F32)self->getControlValue("price_sqm").asReal());
         // refreshUI works by reading back the price value, so we need to update that ourselves

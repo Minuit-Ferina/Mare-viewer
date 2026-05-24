@@ -36,6 +36,32 @@
 #include "llpresetsmanager.h"
 #include "lltrans.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterSavePrefPreset::LLFloaterSavePrefPreset(const LLSD &key)
     : LLFloater(key)
 {
@@ -50,16 +76,16 @@ bool LLFloaterSavePrefPreset::postBuild()
         preferences->addDependentFloater(this);
     }
 
-    getChild<LLComboBox>("preset_combo")->setTextEntryCallback(boost::bind(&LLFloaterSavePrefPreset::onPresetNameEdited, this));
-    getChild<LLComboBox>("preset_combo")->setCommitCallback(boost::bind(&LLFloaterSavePrefPreset::onPresetNameEdited, this));
-    getChild<LLButton>("save")->setCommitCallback(boost::bind(&LLFloaterSavePrefPreset::onBtnSave, this));
+    get_floater_child<LLComboBox>(this, "preset_combo")->setTextEntryCallback(boost::bind(&LLFloaterSavePrefPreset::onPresetNameEdited, this));
+    get_floater_child<LLComboBox>(this, "preset_combo")->setCommitCallback(boost::bind(&LLFloaterSavePrefPreset::onPresetNameEdited, this));
+    get_floater_child<LLButton>(this, "save")->setCommitCallback(boost::bind(&LLFloaterSavePrefPreset::onBtnSave, this));
 
-    getChild<LLButton>("cancel")->setCommitCallback(boost::bind(&LLFloaterSavePrefPreset::onBtnCancel, this));
+    get_floater_child<LLButton>(this, "cancel")->setCommitCallback(boost::bind(&LLFloaterSavePrefPreset::onBtnCancel, this));
 
     LLPresetsManager::instance().setPresetListChangeCallback(boost::bind(&LLFloaterSavePrefPreset::onPresetsListChange, this));
 
-    mSaveButton = getChild<LLButton>("save");
-    mPresetCombo = getChild<LLComboBox>("preset_combo");
+    mSaveButton = get_floater_child<LLButton>(this, "save");
+    mPresetCombo = get_floater_child<LLComboBox>(this, "preset_combo");
 
     return true;
 }

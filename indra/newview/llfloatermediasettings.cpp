@@ -37,6 +37,32 @@
 #include "llselectmgr.h"
 #include "llsdutil.h"
 
+
+namespace
+{
+template <typename T>
+[[maybe_unused]] T* get_floater_child(LLView* owner, const std::string& name, bool recurse = false)
+{
+    return owner->getChild<T>(name, recurse);
+}
+
+template <typename T>
+[[maybe_unused]] T* get_floater_child(const LLView* owner, const std::string& name, bool recurse = false)
+{
+    return const_cast<LLView*>(owner)->getChild<T>(name, recurse);
+}
+
+[[maybe_unused]] LLView* get_floater_view(LLView* owner, const std::string& name)
+{
+    return owner->getChildView(name);
+}
+
+[[maybe_unused]] LLView* get_floater_view(const LLView* owner, const std::string& name)
+{
+    return const_cast<LLView*>(owner)->getChildView(name);
+}
+}
+
 LLFloaterMediaSettings* LLFloaterMediaSettings::sInstance = NULL;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -82,16 +108,16 @@ LLFloaterMediaSettings::~LLFloaterMediaSettings()
 //
 bool LLFloaterMediaSettings::postBuild()
 {
-    mApplyBtn = getChild<LLButton>("Apply");
+    mApplyBtn = get_floater_child<LLButton>(this, "Apply");
     mApplyBtn->setClickedCallback(onBtnApply, this);
 
-    mCancelBtn = getChild<LLButton>("Cancel");
+    mCancelBtn = get_floater_child<LLButton>(this, "Cancel");
     mCancelBtn->setClickedCallback(onBtnCancel, this);
 
-    mOKBtn = getChild<LLButton>("OK");
+    mOKBtn = get_floater_child<LLButton>(this, "OK");
     mOKBtn->setClickedCallback(onBtnOK, this);
 
-    mTabContainer = getChild<LLTabContainer>( "tab_container" );
+    mTabContainer = get_floater_child<LLTabContainer>(this,  "tab_container" );
 
     mPanelMediaSettingsGeneral = new LLPanelMediaSettingsGeneral();
     mTabContainer->addTabPanel(
