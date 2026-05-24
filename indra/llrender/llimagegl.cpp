@@ -40,6 +40,7 @@
 #include "llglcontainment.h"
 #include "llglslshader.h"
 #include "llrender.h"
+#include "llrenderbackend.h"
 #include "llwindow.h"
 #include "llframetimer.h"
 #include <unordered_set>
@@ -2665,7 +2666,10 @@ bool LLImageGL::scaleDown(S32 desired_discard)
 
     if (gGLManager.mDownScaleMethod == 0)
     { // use an FBO to downscale the texture
-        LLGLContainment::setViewport(0, 0, desired_width, desired_height);
+        LLRenderViewport viewport;
+        viewport.mWidth = static_cast<F32>(desired_width);
+        viewport.mHeight = static_cast<F32>(desired_height);
+        getOpenGLRenderBackend().setViewport(viewport);
 
         // draw a full screen triangle
         if (gGL.getTexUnit(0)->bind(this, true, true))
