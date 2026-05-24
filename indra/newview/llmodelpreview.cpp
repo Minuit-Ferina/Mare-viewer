@@ -3383,15 +3383,6 @@ bool LLModelPreview::updateSkinPreviewControls(LLFloaterModelPreview* fmp, bool&
 {
     bool has_skin_weights = false;
 
-    if (upload_joints != mLastJointUpdate)
-    {
-        mLastJointUpdate = upload_joints;
-        if (fmp)
-        {
-            fmp->clearAvatarTab();
-        }
-    }
-
     for (LLModelLoader::scene::iterator iter = mScene[mPreviewLOD].begin(); iter != mScene[mPreviewLOD].end(); ++iter)
     {
         for (LLModelLoader::model_instance_list::iterator model_iter = iter->second.begin(); model_iter != iter->second.end(); ++model_iter)
@@ -3406,96 +3397,9 @@ bool LLModelPreview::updateSkinPreviewControls(LLFloaterModelPreview* fmp, bool&
         }
     }
 
-    if (has_skin_weights && lodsReady())
-    { //model has skin weights, enable view options for skin weights and joint positions
-        U32 flags = getLegacyRigFlags();
-        if (fmp)
-        {
-            if (flags == LEGACY_RIG_OK)
-            {
-                if (mFirstSkinUpdate)
-                {
-                    // auto enable weight upload if weights are present
-                    // (note: all these UI updates need to be somewhere that is not render)
-                    fmp->childSetValue("upload_skin", true);
-                    mFirstSkinUpdate = false;
-                    upload_skin = true;
-                    show_skin_weight = true;
-                    mViewOption["show_skin_weight"] = true;
-                }
-
-                fmp->enableViewOption("show_skin_weight");
-                fmp->setViewOptionEnabled("show_joint_overrides", show_skin_weight);
-                fmp->setViewOptionEnabled("show_joint_positions", show_skin_weight);
-                mFMP->childEnable("upload_skin");
-                mFMP->childSetValue("show_skin_weight", show_skin_weight);
-
-            }
-            else if ((flags & LEGACY_RIG_FLAG_TOO_MANY_JOINTS) > 0)
-            {
-                mFMP->childSetVisible("skin_too_many_joints", true);
-            }
-            else if ((flags & LEGACY_RIG_FLAG_UNKNOWN_JOINT) > 0)
-            {
-                mFMP->childSetVisible("skin_unknown_joint", true);
-            }
-        }
-    }
-    else
-    {
-        mFMP->childDisable("upload_skin");
-        if (fmp)
-        {
-            mViewOption["show_skin_weight"] = false;
-            fmp->disableViewOption("show_skin_weight");
-            fmp->disableViewOption("show_joint_overrides");
-            fmp->disableViewOption("show_joint_positions");
-
-            show_skin_weight = false;
-            mFMP->childSetValue("show_skin_weight", false);
-            fmp->setViewOptionEnabled("show_skin_weight", show_skin_weight);
-        }
-    }
-
-    if (upload_skin && !has_skin_weights)
-    { //can't upload skin weights if model has no skin weights
-        mFMP->childSetValue("upload_skin", false);
-        upload_skin = false;
-    }
-
-    if (!upload_skin && upload_joints)
-    { //can't upload joints if not uploading skin weights
-        mFMP->childSetValue("upload_joints", false);
-        upload_joints = false;
-    }
-
     if (fmp)
     {
-        if (upload_skin)
-        {
-            // will populate list of joints
-            fmp->updateAvatarTab(upload_joints);
-        }
-        else
-        {
-            fmp->clearAvatarTab();
-        }
-    }
-
-    if (upload_skin && upload_joints)
-    {
-        mFMP->childEnable("lock_scale_if_joint_position");
-    }
-    else
-    {
-        mFMP->childDisable("lock_scale_if_joint_position");
-        mFMP->childSetValue("lock_scale_if_joint_position", false);
-    }
-
-    //Only enable joint offsets if it passed the earlier critiquing
-    if (isRigValidForJointPositionUpload())
-    {
-        mFMP->childSetEnabled("upload_joints", upload_skin);
+        fmp->syncSkinPreviewControls(has_skin_weights, upload_skin, upload_joints, show_skin_weight);
     }
 
     return has_skin_weights;

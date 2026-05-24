@@ -45,7 +45,7 @@
 | `indra/newview/llreflectionmapmanager.cpp` | render.pipeline | 1637 | 0 | 0 | 0 | 69 | 17 | 13 | 1 |
 | `indra/newview/llsnapshotlivepreview.cpp` | assets.texture | 1105 | 0 | 0 | 0 | 64 | 3 | 0 | 0 |
 | `indra/newview/gltfscenemanager.cpp` | render.pipeline | 1210 | 0 | 0 | 0 | 56 | 38 | 8 | 0 |
-| `indra/newview/llmodelpreview.cpp` | render.opengl_touching | 4190 | 0 | 0 | 0 | 56 | 30 | 0 | 0 |
+| `indra/newview/llmodelpreview.cpp` | render.opengl_touching | 4094 | 0 | 0 | 0 | 56 | 30 | 0 | 0 |
 | `indra/newview/lldrawpoolbump.cpp` | render.pipeline | 1083 | 0 | 0 | 0 | 47 | 23 | 8 | 1 |
 | `indra/newview/lldrawpoolavatar.cpp` | render.pipeline | 991 | 0 | 0 | 0 | 46 | 4 | 17 | 0 |
 | `indra/newview/llviewerwindow.cpp` | render.pipeline | 6505 | 0 | 0 | 0 | 44 | 18 | 63 | 2 |
@@ -69,7 +69,7 @@
 | `indra/newview/lldrawpool.cpp` | render.draw_pool | 920 | 0 | 0 | 0 | 21 | 13 | 0 | 0 |
 | `indra/llrender/llfontgl.cpp` | render.legacy_low_level | 1424 | 0 | 0 | 0 | 21 | 0 | 0 | 0 |
 | `indra/newview/llhudeffectblob.cpp` | render.opengl_touching | 106 | 0 | 0 | 0 | 19 | 1 | 0 | 0 |
-| `indra/newview/llfloatermodelpreview.cpp` | ui | 2124 | 0 | 0 | 0 | 17 | 0 | 0 | 0 |
+| `indra/newview/llfloatermodelpreview.cpp` | ui | 2218 | 0 | 0 | 0 | 17 | 0 | 0 | 0 |
 | `indra/newview/animationexplorer.cpp` | render.opengl_touching | 564 | 0 | 0 | 0 | 17 | 0 | 0 | 0 |
 | `indra/newview/llhudeffectlookat.cpp` | render.opengl_touching | 827 | 0 | 0 | 0 | 16 | 4 | 0 | 0 |
 | `indra/newview/llhudicon.cpp` | assets.texture | 354 | 0 | 0 | 0 | 16 | 3 | 0 | 0 |

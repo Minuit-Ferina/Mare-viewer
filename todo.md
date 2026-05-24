@@ -1630,12 +1630,12 @@ task, and do not start a direct Vulkan port.
       mutation from render work before moving code.
 - [x] Add `docs/architecture/337-model-preview-ui-render-boundary-map.md`.
 - [x] Add `docs/architecture/338-model-preview-skin-ui-sync-task.md`.
-- [ ] Move skin preview UI control synchronization ownership to
+- [x] Move skin preview UI control synchronization ownership to
       `LLFloaterModelPreview` while keeping call order unchanged.
-- [ ] Verify the skin UI sync ownership packet with targeted
+- [x] Verify the skin UI sync ownership packet with targeted
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
-- [ ] Add `docs/architecture/339-model-preview-skin-ui-sync-summary.md`.
+- [x] Add `docs/architecture/339-model-preview-skin-ui-sync-summary.md`.
 - [ ] Map the remaining `reset_btn` render-path mutation before moving it.
 - [ ] Do not start another helper-only phase unless it directly supports that
       separation.

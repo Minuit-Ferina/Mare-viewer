@@ -462,6 +462,101 @@ void LLFloaterModelPreview::disableViewOption(const std::string& option)
     setViewOptionEnabled(option, false);
 }
 
+void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
+{
+    if (!mModelPreview)
+    {
+        return;
+    }
+
+    if (upload_joints != mModelPreview->mLastJointUpdate)
+    {
+        mModelPreview->mLastJointUpdate = upload_joints;
+        clearAvatarTab();
+    }
+
+    if (has_skin_weights && mModelPreview->lodsReady())
+    { //model has skin weights, enable view options for skin weights and joint positions
+        U32 flags = mModelPreview->getLegacyRigFlags();
+        if (flags == LEGACY_RIG_OK)
+        {
+            if (mModelPreview->mFirstSkinUpdate)
+            {
+                // auto enable weight upload if weights are present
+                childSetValue("upload_skin", true);
+                mModelPreview->mFirstSkinUpdate = false;
+                upload_skin = true;
+                show_skin_weight = true;
+                mModelPreview->mViewOption["show_skin_weight"] = true;
+            }
+
+            enableViewOption("show_skin_weight");
+            setViewOptionEnabled("show_joint_overrides", show_skin_weight);
+            setViewOptionEnabled("show_joint_positions", show_skin_weight);
+            childEnable("upload_skin");
+            childSetValue("show_skin_weight", show_skin_weight);
+        }
+        else if ((flags & LEGACY_RIG_FLAG_TOO_MANY_JOINTS) > 0)
+        {
+            childSetVisible("skin_too_many_joints", true);
+        }
+        else if ((flags & LEGACY_RIG_FLAG_UNKNOWN_JOINT) > 0)
+        {
+            childSetVisible("skin_unknown_joint", true);
+        }
+    }
+    else
+    {
+        childDisable("upload_skin");
+        mModelPreview->mViewOption["show_skin_weight"] = false;
+        disableViewOption("show_skin_weight");
+        disableViewOption("show_joint_overrides");
+        disableViewOption("show_joint_positions");
+
+        show_skin_weight = false;
+        childSetValue("show_skin_weight", false);
+        setViewOptionEnabled("show_skin_weight", show_skin_weight);
+    }
+
+    if (upload_skin && !has_skin_weights)
+    { //can't upload skin weights if model has no skin weights
+        childSetValue("upload_skin", false);
+        upload_skin = false;
+    }
+
+    if (!upload_skin && upload_joints)
+    { //can't upload joints if not uploading skin weights
+        childSetValue("upload_joints", false);
+        upload_joints = false;
+    }
+
+    if (upload_skin)
+    {
+        // will populate list of joints
+        updateAvatarTab(upload_joints);
+    }
+    else
+    {
+        clearAvatarTab();
+    }
+
+    if (upload_skin && upload_joints)
+    {
+        childEnable("lock_scale_if_joint_position");
+    }
+    else
+    {
+        childDisable("lock_scale_if_joint_position");
+        childSetValue("lock_scale_if_joint_position", false);
+    }
+
+    //Only enable joint offsets if it passed the earlier critiquing
+    if (mModelPreview->isRigValidForJointPositionUpload())
+    {
+        childSetEnabled("upload_joints", upload_skin);
+    }
+}
+
 void LLFloaterModelPreview::loadHighLodModel()
 {
     mModelPreview->mLookUpLodFiles = true;
@@ -2120,4 +2215,3 @@ bool LLFloaterModelPreview::isModelLoading()
     }
     return false;
 }
-
