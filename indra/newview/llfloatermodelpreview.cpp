@@ -793,6 +793,42 @@ LLRect LLFloaterModelPreview::getModelPreviewPanelRect() const
     return getChildView("preview_panel")->getRect();
 }
 
+void LLFloaterModelPreview::syncModelPreviewLoadStatus()
+{
+    if (!mModelPreview || mModelPreview->mLoading)
+    {
+        return;
+    }
+
+    if (mModelPreview->getLoadState() == LLModelLoader::ERROR_MATERIALS)
+    {
+        childSetTextArg("status", "[STATUS]", getString("status_material_mismatch"));
+    }
+    else if (mModelPreview->getLoadState() > LLModelLoader::ERROR_MODEL)
+    {
+        childSetTextArg("status", "[STATUS]", getString(LLModel::getStatusString(mModelPreview->getLoadState() - LLModelLoader::ERROR_MODEL)));
+    }
+    else if (mModelPreview->getLoadState() == LLModelLoader::ERROR_PARSING)
+    {
+        childSetTextArg("status", "[STATUS]", getString("status_parse_error"));
+        toggleCalculateButton(false);
+    }
+    else if (mModelPreview->getLoadState() == LLModelLoader::WARNING_BIND_SHAPE_ORIENTATION)
+    {
+        childSetTextArg("status", "[STATUS]", getString("status_bind_shape_orientation"));
+    }
+    else
+    {
+        childSetTextArg("status", "[STATUS]", getString("status_idle"));
+    }
+}
+
+void LLFloaterModelPreview::setModelPreviewUploadPermissionWarningsVisible(bool visible)
+{
+    getChild<LLTextBox>("warning_title")->setVisible(visible);
+    getChild<LLTextBox>("warning_message")->setVisible(visible);
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)
@@ -1257,33 +1293,7 @@ void LLFloaterModelPreview::draw()
 
     mModelPreview->update();
 
-    if (!mModelPreview->mLoading)
-    {
-        if ( mModelPreview->getLoadState() == LLModelLoader::ERROR_MATERIALS )
-        {
-            childSetTextArg("status", "[STATUS]", getString("status_material_mismatch"));
-        }
-        else
-        if ( mModelPreview->getLoadState() > LLModelLoader::ERROR_MODEL )
-        {
-            childSetTextArg("status", "[STATUS]", getString(LLModel::getStatusString(mModelPreview->getLoadState() - LLModelLoader::ERROR_MODEL)));
-        }
-        else
-        if ( mModelPreview->getLoadState() == LLModelLoader::ERROR_PARSING )
-        {
-            childSetTextArg("status", "[STATUS]", getString("status_parse_error"));
-            toggleCalculateButton(false);
-        }
-        else
-        if (mModelPreview->getLoadState() == LLModelLoader::WARNING_BIND_SHAPE_ORIENTATION)
-        {
-            childSetTextArg("status", "[STATUS]", getString("status_bind_shape_orientation"));
-        }
-        else
-        {
-            childSetTextArg("status", "[STATUS]", getString("status_idle"));
-        }
-    }
+    syncModelPreviewLoadStatus();
 
     if (!isMinimized() && mModelPreview->lodsReady())
     {
@@ -2508,8 +2518,7 @@ void LLFloaterModelPreview::onPermissionsReceived(const LLSD& result)
 
     // isModelUploadAllowed() includes mHasUploadPerm
     mUploadBtn->setEnabled(isModelUploadAllowed());
-    getChild<LLTextBox>("warning_title")->setVisible(!mHasUploadPerm);
-    getChild<LLTextBox>("warning_message")->setVisible(!mHasUploadPerm);
+    setModelPreviewUploadPermissionWarningsVisible(!mHasUploadPerm);
 }
 
 void LLFloaterModelPreview::setPermissonsErrorStatus(S32 status, const std::string& reason)

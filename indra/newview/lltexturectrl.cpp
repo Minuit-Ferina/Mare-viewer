@@ -257,7 +257,7 @@ void LLFloaterTexturePicker::setImageID(const LLUUID& image_id, bool set_selecti
                 if (itemp && !itemp->getPermissions().allowCopyBy(gAgent.getID()))
                 {
                     // no copy texture
-                    getChild<LLUICtrl>("apply_immediate_check")->setValue(false);
+                    setApplyImmediatelyControlValue(false);
                     mNoCopyTextureSelected = true;
                 }
             }
@@ -285,7 +285,7 @@ void LLFloaterTexturePicker::setImageIDFromItem(const LLInventoryItem* itemp, bo
 
 void LLFloaterTexturePicker::setActive( bool active )
 {
-    if (!active && getChild<LLUICtrl>("Pipette")->getValue().asBoolean())
+    if (!active && isPipetteControlChecked())
     {
         stopUsingPipette();
     }
@@ -296,9 +296,7 @@ void LLFloaterTexturePicker::setCanApplyImmediately(bool b)
 {
     mCanApplyImmediately = b;
 
-    LLUICtrl *apply_checkbox = getChild<LLUICtrl>("apply_immediate_check");
-    apply_checkbox->setValue(mCanApplyImmediately && gSavedSettings.getBOOL("TextureLivePreview"));
-    apply_checkbox->setEnabled(mCanApplyImmediately);
+    syncApplyImmediatelyControl();
 }
 
 void LLFloaterTexturePicker::stopUsingPipette()
@@ -660,9 +658,8 @@ bool LLFloaterTexturePicker::postBuild()
 
     mNoCopyTextureSelected = false;
 
-    getChild<LLUICtrl>("apply_immediate_check")->setValue(mCanApplyImmediately && gSavedSettings.getBOOL("TextureLivePreview"));
+    syncApplyImmediatelyControl();
     childSetCommitCallback("apply_immediate_check", onApplyImmediateCheck, this);
-    getChildView("apply_immediate_check")->setEnabled(mCanApplyImmediately);
 
     getChild<LLUICtrl>("Pipette")->setCommitCallback( boost::bind(&LLFloaterTexturePicker::onBtnPipette, this));
     childSetAction("Cancel", LLFloaterTexturePicker::onBtnCancel,this);
@@ -844,6 +841,28 @@ void LLFloaterTexturePicker::getPreviewWidgetDrawRects(LLRect& border, LLRect& i
     border = mPreviewWidget->getRect();
     interior = border;
     interior.stretch(-1);
+}
+
+bool LLFloaterTexturePicker::isPipetteControlChecked() const
+{
+    return getChild<LLUICtrl>("Pipette")->getValue().asBoolean();
+}
+
+void LLFloaterTexturePicker::setApplyImmediatelyControlValue(bool value)
+{
+    getChild<LLUICtrl>("apply_immediate_check")->setValue(value);
+}
+
+void LLFloaterTexturePicker::syncApplyImmediatelyControl()
+{
+    LLUICtrl* apply_checkbox = getChild<LLUICtrl>("apply_immediate_check");
+    apply_checkbox->setValue(mCanApplyImmediately && gSavedSettings.getBOOL("TextureLivePreview"));
+    apply_checkbox->setEnabled(mCanApplyImmediately);
+}
+
+void LLFloaterTexturePicker::setApplyImmediatelyControlVisible(bool visible)
+{
+    getChildRef<LLUICtrl>("apply_immediate_check").setVisible(visible);
 }
 
 LLViewerInventoryItem* LLFloaterTexturePicker::findInvItem(const LLUUID& asset_id, bool copyable_only, bool ignore_library) const
@@ -1095,7 +1114,7 @@ void LLFloaterTexturePicker::onBtnSelect(void* userdata)
 
 void LLFloaterTexturePicker::onBtnPipette()
 {
-    bool pipette_active = getChild<LLUICtrl>("Pipette")->getValue().asBoolean();
+    bool pipette_active = isPipetteControlChecked();
     pipette_active = !pipette_active;
     if (pipette_active)
     {
@@ -1377,7 +1396,7 @@ void LLFloaterTexturePicker::setCanApply(bool can_preview, bool can_apply, bool 
 {
     mSelectBtn->setEnabled(can_apply && !getTentative()); // will be updated on draw
     getChildRef<LLUICtrl>("preview_disabled").setVisible(!can_preview && inworld_image);
-    getChildRef<LLUICtrl>("apply_immediate_check").setVisible(can_preview);
+    setApplyImmediatelyControlVisible(can_preview);
 
     mCanApply = can_apply;
     mCanPreview = can_preview ? (mCanApplyImmediately && gSavedSettings.getBOOL("TextureLivePreview")) : false;
@@ -2522,6 +2541,4 @@ namespace LLInitParam
         declare("material", PICK_MATERIAL);
     }
 }
-
-
 

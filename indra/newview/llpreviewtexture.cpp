@@ -144,40 +144,20 @@ bool LLPreviewTexture::postBuild()
     mDimensionsText = getChild<LLUICtrl>("dimensions");
     mAspectRatioText = getChild<LLUICtrl>("aspect_ratio");
 
-    if (mCopyToInv)
-    {
-        getChild<LLButton>("Keep")->setLabel(getString("Copy"));
-        childSetAction("Keep",LLPreview::onBtnCopyToInv,this);
-        getChildView("Discard")->setVisible( false);
-    }
-    else if (mShowKeepDiscard)
-    {
-        childSetAction("Keep",onKeepBtn,this);
-        childSetAction("Discard",onDiscardBtn,this);
-    }
-    else
-    {
-        getChildView("Keep")->setVisible( false);
-        getChildView("Discard")->setVisible( false);
-    }
+    syncKeepDiscardControls();
 
     childSetAction("save_tex_btn", LLPreviewTexture::onSaveAsBtn, this);
     getChildView("save_tex_btn")->setVisible( true);
-    getChildView("save_tex_btn")->setEnabled(canSaveAs());
+    syncSaveTextureButton();
 
     const LLInventoryItem* item = getItem();
     if (item)
     {
-        if (!mCopyToInv)
-        {
-            childSetCommitCallback("desc", LLPreview::onText, this);
-            getChild<LLUICtrl>("desc")->setValue(item->getDescription());
-            getChild<LLLineEditor>("desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
-        }
+        syncDescriptionField(item);
         bool source_library = mObjectUUID.isNull() && gInventory.isObjectDescendentOf(item->getUUID(), gInventory.getLibraryRootFolderID());
         if (source_library)
         {
-            getChildView("Discard")->setEnabled(false);
+            setDiscardButtonEnabled(false);
         }
     }
 
@@ -363,6 +343,53 @@ void LLPreviewTexture::getTexturePreviewDrawRects(LLRect& border, LLRect& interi
     interior.stretch(-PREVIEW_BORDER_WIDTH);
 }
 
+void LLPreviewTexture::syncKeepDiscardControls()
+{
+    if (mCopyToInv)
+    {
+        getChild<LLButton>("Keep")->setLabel(getString("Copy"));
+        childSetAction("Keep",LLPreview::onBtnCopyToInv,this);
+        getChildView("Discard")->setVisible( false);
+    }
+    else if (mShowKeepDiscard)
+    {
+        childSetAction("Keep",onKeepBtn,this);
+        childSetAction("Discard",onDiscardBtn,this);
+    }
+    else
+    {
+        getChildView("Keep")->setVisible( false);
+        getChildView("Discard")->setVisible( false);
+    }
+}
+
+void LLPreviewTexture::syncDescriptionField(const LLInventoryItem* item)
+{
+    if (!item || mCopyToInv)
+    {
+        return;
+    }
+
+    childSetCommitCallback("desc", LLPreview::onText, this);
+    getChild<LLUICtrl>("desc")->setValue(item->getDescription());
+    getChild<LLLineEditor>("desc")->setPrevalidate(&LLTextValidate::validateASCIIPrintableNoPipe);
+}
+
+void LLPreviewTexture::syncSaveTextureButton()
+{
+    getChildView("save_tex_btn")->setEnabled(canSaveAs());
+}
+
+void LLPreviewTexture::setDiscardButtonEnabled(bool enabled)
+{
+    getChildView("Discard")->setEnabled(enabled);
+}
+
+void LLPreviewTexture::resetAspectRatioSelection()
+{
+    getChild<LLComboBox>("combo_aspect_ratio")->setCurrentByIndex(0); //unconstrained
+}
+
 // virtual
 void LLPreviewTexture::reshape(S32 width, S32 height, bool called_from_parent)
 {
@@ -433,7 +460,7 @@ void LLPreviewTexture::hideCtrlButtons()
     getChildView("desc")->setVisible(false);
     getChild<LLLayoutStack>("preview_stack")->collapsePanel(mButtonsPanel, true);
     mButtonsPanel->setVisible(false);
-    getChild<LLComboBox>("combo_aspect_ratio")->setCurrentByIndex(0); //unconstrained
+    resetAspectRatioSelection();
     reshape(getRect().getWidth(), getRect().getHeight());
 }
 
@@ -675,7 +702,7 @@ void LLPreviewTexture::loadAsset()
     mAssetStatus = PREVIEW_ASSET_LOADING;
     mUpdateDimensions = true;
     updateDimensions();
-    getChildView("save_tex_btn")->setEnabled(canSaveAs());
+    syncSaveTextureButton();
     if (mObjectUUID.notNull())
     {
         // check that we can copy inworld items into inventory
@@ -687,7 +714,7 @@ void LLPreviewTexture::loadAsset()
         bool source_library = gInventory.isObjectDescendentOf(mItemUUID, gInventory.getLibraryRootFolderID());
         if (source_library)
         {
-            getChildView("Discard")->setEnabled(false);
+            setDiscardButtonEnabled(false);
         }
     }
 }

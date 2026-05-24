@@ -33,6 +33,7 @@
 #include "llviewertexture.h"
 
 class LLComboBox;
+class LLInventoryItem;
 class LLImageRaw;
 class LLLayoutPanel;
 
@@ -83,6 +84,11 @@ private:
     void                updateImageID(); // set what image is being uploaded.
     void                updateDimensions();
     void                getTexturePreviewDrawRects(LLRect& border, LLRect& interior) const;
+    void                syncKeepDiscardControls();
+    void                syncDescriptionField(const LLInventoryItem* item);
+    void                syncSaveTextureButton();
+    void                setDiscardButtonEnabled(bool enabled);
+    void                resetAspectRatioSelection();
     LLUUID              mImageID;
     LLPointer<LLViewerFetchedTexture>       mImage;
     S32                 mImageOldBoostLevel;

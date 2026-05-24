@@ -409,6 +409,10 @@ protected:
     void setImageIDFromItem(const LLInventoryItem* itemp, bool set_selection = true);
     LLViewerInventoryItem* findInvItem(const LLUUID& asset_id, bool copyable_only, bool ignore_library = false) const;
     void getPreviewWidgetDrawRects(LLRect& border, LLRect& interior) const;
+    bool isPipetteControlChecked() const;
+    void setApplyImmediatelyControlValue(bool value);
+    void syncApplyImmediatelyControl();
+    void setApplyImmediatelyControlVisible(bool visible);
 
     LLPointer<LLViewerTexture> mTexturep;
     LLPointer<LLFetchedGLTFMaterial> mGLTFMaterial;

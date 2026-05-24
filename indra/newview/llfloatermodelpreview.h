@@ -177,6 +177,8 @@ protected:
                                                    S32 phys_points,
                                                    const std::string& mesh_status_na);
     LLRect      getModelPreviewPanelRect() const;
+    void        syncModelPreviewLoadStatus();
+    void        setModelPreviewUploadPermissionWarningsVisible(bool visible);
     void        syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
 
     void        onDescriptionKeystroke(LLUICtrl*);

@@ -143,6 +143,12 @@ protected:
     void            draw() override;
     bool            loadImage(const std::string& filename);
     S32             getPreviewDrawRight() const;
+    void            setUploadButtonEnabled(bool enabled);
+    void            hideBadImageStatus();
+    void            showBadImageStatus();
+    void            setPreviewTypeControlsEnabled(bool enabled);
+    std::string     getUploadName();
+    std::string     getUploadDescription();
 
     LLPointer<LLImageRaw> mRawImagep;
     LLPointer<LLImagePreviewAvatar> mAvatarPreview;

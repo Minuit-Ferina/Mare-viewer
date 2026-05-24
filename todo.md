@@ -1847,6 +1847,12 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the first phase 13 source packet with targeted object builds,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add a summary document for the first phase 13 source packet.
+- [x] Add `docs/architecture/389-preview-status-field-sync-task.md`.
+- [x] Move a multi-file preview status/control sync packet behind UI owner
+      methods without changing behavior.
+- [x] Verify the preview status/control sync packet with targeted object builds,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add a summary document for the preview status/control sync packet.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

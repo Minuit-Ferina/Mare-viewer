@@ -38,7 +38,7 @@ indra/llappearance/lltexlayer.cpp,render.opengl_touching,1991,18,0,0,0,0,85,20,1
 indra/newview/llmanipscale.cpp,render.opengl_touching,2080,32,0,0,0,0,78,13,7,0,0,0,0,0,0
 indra/newview/llfasttimerview.cpp,render.opengl_touching,1669,27,0,0,0,0,75,7,12,0,0,1,0,0,0
 indra/newview/llmodelpreview.cpp,render.opengl_touching,3978,42,0,0,0,0,73,30,18,0,0,0,0,0,0
-indra/newview/llfloaterimagepreview.cpp,render.draw_pool,1120,39,0,0,0,0,72,8,11,0,2,0,0,0,0
+indra/newview/llfloaterimagepreview.cpp,render.draw_pool,1150,39,0,0,0,0,72,8,11,0,2,0,0,0,0
 indra/newview/llmaniprotate.cpp,render.opengl_touching,1976,33,0,0,0,0,70,13,6,0,0,0,0,0,1
 indra/newview/llreflectionmapmanager.cpp,render.pipeline,1637,16,0,0,0,0,69,17,3,13,0,1,3,0,0
 indra/newview/llsnapshotlivepreview.cpp,assets.texture,1105,30,0,0,0,0,64,3,3,0,0,0,0,3,0
@@ -119,7 +119,7 @@ indra/newview/llvosky.cpp,render.pipeline,1600,26,0,0,0,0,2,11,6,7,11,0,0,2,0
 indra/newview/llviewerjoint.cpp,render.pipeline,174,9,0,0,0,0,2,6,0,2,0,0,0,0,0
 indra/newview/llhudtext.cpp,render.opengl_touching,719,22,0,0,0,0,2,6,0,0,0,0,0,0,0
 indra/llrender/llcubemaparray.cpp,render.legacy_low_level,247,13,0,0,0,0,2,5,0,0,0,0,2,0,0
-indra/newview/llpreviewtexture.cpp,assets.texture,805,30,0,0,0,0,2,4,0,0,0,0,0,1,0
+indra/newview/llpreviewtexture.cpp,assets.texture,832,30,0,0,0,0,2,4,0,0,0,0,0,1,0
 indra/newview/rlveffects.cpp,render.opengl_touching,334,11,0,0,0,0,2,4,1,0,0,0,0,0,0
 indra/newview/lldrawpooltree.cpp,render.draw_pool,157,14,0,0,0,0,2,3,2,0,14,0,0,3,0
 indra/newview/llhudnametag.cpp,render.opengl_touching,949,21,0,0,0,0,2,2,0,0,0,0,0,0,0
@@ -198,7 +198,7 @@ indra/newview/llfetchedgltfmaterial.h,assets.texture,89,3,0,0,0,0,0,6,0,0,0,0,0,
 indra/newview/llviewercontrol.cpp,render.pipeline,1273,56,0,0,0,0,0,5,0,28,3,0,2,0,0
 indra/newview/llappviewer.cpp,render.pipeline,6744,198,0,0,0,0,0,5,3,6,0,4,3,0,3
 indra/newview/llsettingsvo.cpp,render.pipeline,1670,30,0,0,0,0,0,5,1,1,4,0,0,0,0
-indra/newview/lltexturectrl.cpp,assets.texture,2528,47,0,0,0,0,0,5,0,0,0,0,0,5,0
+indra/newview/lltexturectrl.cpp,assets.texture,2545,47,0,0,0,0,0,5,0,0,0,0,0,5,0
 indra/newview/gltf/primitive.cpp,render.opengl_touching,813,6,0,0,0,0,0,5,10,0,0,0,0,0,0
 indra/newview/tests/llworldmap_test.cpp,render.opengl_touching,522,10,0,0,0,0,0,5,0,0,0,0,0,0,0
 indra/newview/gltf/animation.cpp,render.opengl_touching,495,5,0,0,0,0,0,5,0,0,0,0,0,0,0
@@ -333,7 +333,7 @@ indra/newview/llsnapshotlivepreview.h,assets.texture,187,3,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterinspect.cpp,ui,831,27,0,0,0,0,0,0,0,0,0,0,0,5,0
 indra/newview/llviewerparcelmgr.h,assets.texture,403,7,0,0,0,0,0,0,0,0,0,0,0,5,0
 indra/newview/llmeshrepository.cpp,assets.texture,6258,57,0,0,0,0,0,0,0,0,0,0,0,4,0
-indra/newview/lltexturectrl.h,assets.texture,480,14,0,0,0,0,0,0,0,0,0,0,0,4,0
+indra/newview/lltexturectrl.h,assets.texture,484,14,0,0,0,0,0,0,0,0,0,0,0,4,0
 indra/newview/llviewerpartsource.h,assets.texture,212,5,0,0,0,0,0,0,0,0,0,0,0,4,0
 indra/newview/llnetmap.h,assets.texture,208,7,0,0,0,0,0,0,0,0,0,0,0,4,0
 indra/newview/lldrawpooltree.h,render.draw_pool,67,1,0,0,0,0,0,0,0,0,3,0,0,4,0
@@ -355,7 +355,7 @@ indra/newview/llagentbenefits.cpp,assets.texture,314,3,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/lloutfitgallery.h,assets.texture,304,7,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/llfloatercolorpicker.h,ui,203,5,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/app_settings/shaders/class1/deferred/pbropaqueF.glsl,assets.texture,168,0,0,0,0,0,0,0,0,0,0,0,0,1,0
-indra/newview/llfloaterimagepreview.h,ui,160,4,0,0,0,0,0,0,0,0,0,0,0,1,0
+indra/newview/llfloaterimagepreview.h,ui,166,4,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/llfloaterreporter.h,ui,154,4,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/llfloaterinspect.h,ui,110,3,0,0,0,0,0,0,0,0,0,0,0,1,0
 indra/newview/llfloaterauction.h,ui,87,4,0,0,0,0,0,0,0,0,0,0,0,1,0
@@ -394,7 +394,7 @@ indra/llprimitive/lldaeloader.cpp,unknown,2597,29,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterimcontainer.cpp,ui,2593,30,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/CASF.glsl,viewer.misc,2576,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llgroupmgr.cpp,viewer.misc,2569,23,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloatermodelpreview.cpp,ui,2530,37,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloatermodelpreview.cpp,ui,2539,37,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelpeople.cpp,ui,2528,53,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelprofile.cpp,ui,2523,48,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/aoengine.cpp,viewer.misc,2494,15,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1142,6 +1142,7 @@ indra/newview/llfloaterworldmap.h,ui,285,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/lltrace.h,core,285,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llfilesystem/lldir_mac.cpp,unknown,285,10,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llwebprofile.cpp,viewer.misc,284,10,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llfloatermodelpreview.h,ui,284,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/lltraceaccumulators.cpp,core,284,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/bufferstream.cpp,unknown,284,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/app_settings/shaders/class1/deferred/multiSpotLightF.glsl,viewer.misc,284,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1149,7 +1150,6 @@ indra/newview/llviewerassetstats.h,viewer.misc,283,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lllegacyatmospherics.h,viewer.misc,283,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llfilesystem/lldir.h,unknown,283,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llui/lluictrlfactory.cpp,unknown,283,11,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llfloatermodelpreview.h,ui,282,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloatertos.cpp,ui,282,16,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcorehttp/_httpoperation.h,unknown,282,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/tests/llinstancetracker_test.cpp,core,282,8,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1870,6 +1870,7 @@ indra/llmessage/fscorehttputil.cpp,network,122,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llcolorswatch.h,viewer.misc,122,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llviewermediafocus.h,viewer.misc,122,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llrecentpeople.cpp,viewer.misc,122,4,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llpreviewtexture.h,assets.texture,122,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterbulkpermission.h,ui,122,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpresetsmanager.h,viewer.misc,122,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llinventory/llsaleinfo.h,unknown,122,3,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1921,7 +1922,6 @@ indra/newview/llslurl.h,viewer.misc,116,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lllogininstance.h,viewer.misc,116,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/lltoolindividual.cpp,viewer.misc,116,7,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llimhandler.cpp,viewer.misc,116,6,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llpreviewtexture.h,assets.texture,116,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llimagefiltersmanager.cpp,viewer.misc,116,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloatersaveprefpreset.cpp,ui,116,9,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloatertopobjects.h,ui,116,1,0,0,0,0,0,0,0,0,0,0,0,0,0

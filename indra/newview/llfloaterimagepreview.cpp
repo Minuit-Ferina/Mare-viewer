@@ -114,7 +114,7 @@ bool LLFloaterImagePreview::postBuild()
         PREVIEW_HPAD + PREF_BUTTON_HEIGHT + PREVIEW_HPAD);
     mPreviewImageRect.set(0.f, 1.f, 1.f, 0.f);
 
-    getChildView("bad_image_text")->setVisible(false);
+    hideBadImageStatus();
 
     if (mRawImagep.notNull() && gAgent.getRegion() != NULL)
     {
@@ -137,14 +137,9 @@ bool LLFloaterImagePreview::postBuild()
     {
         mAvatarPreview = NULL;
         mSculptedPreview = NULL;
-        getChildView("bad_image_text")->setVisible(true);
-        getChildView("clothing_type_combo")->setEnabled(false);
-        getChildView("ok_btn")->setEnabled(false);
-
-        if(!mImageLoadError.empty())
-        {
-            getChild<LLUICtrl>("bad_image_text")->setValue(mImageLoadError.c_str());
-        }
+        showBadImageStatus();
+        setPreviewTypeControlsEnabled(false);
+        setUploadButtonEnabled(false);
     }
 
     getChild<LLUICtrl>("ok_btn")->setCommitCallback(boost::bind(&LLFloaterImagePreview::onBtnOK, this));
@@ -255,7 +250,7 @@ void LLFloaterImagePreview::clearAllPreviewTextures()
 //-----------------------------------------------------------------------------
 void LLFloaterImagePreview::onBtnOK()
 {
-    getChildView("ok_btn")->setEnabled(false); // don't allow inadvertent extra uploads
+    setUploadButtonEnabled(false); // don't allow inadvertent extra uploads
 
     S32 expected_upload_cost = getExpectedUploadCost();
     if (can_afford_transaction(expected_upload_cost))
@@ -283,8 +278,8 @@ void LLFloaterImagePreview::onBtnOK()
 
             LLResourceUploadInfo::ptr_t assetUploadInfo = std::make_shared<LLResourceUploadInfo>(
                 tid, LLAssetType::AT_TEXTURE,
-                getChild<LLUICtrl>("name_form")->getValue().asString(),
-                getChild<LLUICtrl>("description_form")->getValue().asString(),
+                getUploadName(),
+                getUploadDescription(),
                 0,
                 LLFolderType::FT_NONE, LLInventoryType::IT_NONE,
                 LLFloaterPerms::getNextOwnerPerms("Uploads"),
@@ -419,6 +414,41 @@ void LLFloaterImagePreview::draw()
 S32 LLFloaterImagePreview::getPreviewDrawRight() const
 {
     return getRect().getWidth() - PREVIEW_HPAD;
+}
+
+void LLFloaterImagePreview::setUploadButtonEnabled(bool enabled)
+{
+    getChildView("ok_btn")->setEnabled(enabled);
+}
+
+void LLFloaterImagePreview::hideBadImageStatus()
+{
+    getChildView("bad_image_text")->setVisible(false);
+}
+
+void LLFloaterImagePreview::showBadImageStatus()
+{
+    getChildView("bad_image_text")->setVisible(true);
+
+    if(!mImageLoadError.empty())
+    {
+        getChild<LLUICtrl>("bad_image_text")->setValue(mImageLoadError.c_str());
+    }
+}
+
+void LLFloaterImagePreview::setPreviewTypeControlsEnabled(bool enabled)
+{
+    getChildView("clothing_type_combo")->setEnabled(enabled);
+}
+
+std::string LLFloaterImagePreview::getUploadName()
+{
+    return getChild<LLUICtrl>("name_form")->getValue().asString();
+}
+
+std::string LLFloaterImagePreview::getUploadDescription()
+{
+    return getChild<LLUICtrl>("description_form")->getValue().asString();
 }
 
 
