@@ -3,12 +3,13 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 13 is active on branch `phase13`. Preserve the completed
-OpenGL containment and header guardrails. Prefer breadth-first multi-file
-preview/UI-render ownership packets, targeted object builds, and guardrails; do
-not run broad `mare-viewer` integration rebuilds unless explicitly selected for
-a branch checkpoint. Do not move source files, do not change runtime behavior
-without an explicit task, and do not start a direct Vulkan port.
+Current rule: phase 13 is complete on branch `phase13`. Preserve the completed
+OpenGL containment and header guardrails. For the next phase, keep using
+breadth-first multi-file preview/UI-render ownership packets, targeted object
+builds, and guardrails; do not run broad `mare-viewer` integration rebuilds
+unless explicitly selected for a branch checkpoint. Do not move source files, do
+not change runtime behavior without an explicit task, and do not start a direct
+Vulkan port.
 
 ## Done
 
@@ -1853,10 +1854,11 @@ without an explicit task, and do not start a direct Vulkan port.
 - [x] Verify the preview status/control sync packet with targeted object builds,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add a summary document for the preview status/control sync packet.
-- [ ] Prefer source packets that remove actual cross-owner coupling, not
+- [x] Add `docs/architecture/391-phase13-completion-summary.md`.
+- [x] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
-- [ ] Use targeted object builds and guardrails by default.
-- [ ] Run broad `mare-viewer` integration builds only when explicitly selected
+- [x] Use targeted object builds and guardrails by default.
+- [x] Run broad `mare-viewer` integration builds only when explicitly selected
       for a branch checkpoint.
 
 ## Phase 1 Inventory
