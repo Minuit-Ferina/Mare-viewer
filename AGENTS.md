@@ -15,8 +15,13 @@ General rules:
 - Changes must remain small and easy to revert.
 
 Current phase:
+- Phase 11 is active on branch `phase11`.
+- Goal: start a behavior-preserving UI/render separation boundary for model
+  upload preview without moving source files.
+- Phase 11 starts with `LLModelPreview` and `LLFloaterModelPreview` in
+  `indra/newview/llmodelpreview.*` and
+  `indra/newview/llfloatermodelpreview.*`.
 - Phase 10 is complete on branch `phase10`.
-- No new phase is active yet.
 - Phase 10 split the model upload preview owner in
   `indra/newview/llmodelpreview.*`.
 - Phase 9 split the BVH animation preview owner in
@@ -33,9 +38,7 @@ Current phase:
   `docs/architecture/320-phase9-completion-summary.md`.
 - Phase 10 is summarized in
   `docs/architecture/335-phase10-completion-summary.md`.
-- The next phase should start with a docs-first plan and should target a real
-  behavior-preserving UI/render separation boundary, not another helper-only
-  cleanup phase unless that cleanup directly supports the separation.
+- Phase 11 starts with `docs/architecture/336-phase11-plan.md`.
 - Keep using the completed OpenGL containment boundary as a guardrail.
 - Start new work with contracts and maps. Source changes are allowed only after
   a task-specific document names the exact owner, ordering, state, risk, and
@@ -58,6 +61,9 @@ Exception:
   unless a later task explicitly reopens a narrow missing call family.
 - Existing owner files may be touched only when the task names the exact
   behavior, owner state, ordering, and verification plan.
+- During phase 11, UI control mutation should move toward
+  `LLFloaterModelPreview`; model preview code should keep model/render state
+  ownership and avoid gaining new UI control responsibilities.
 
 OpenGL rules:
 - No new code should call OpenGL directly.

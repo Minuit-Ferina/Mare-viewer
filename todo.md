@@ -3,12 +3,11 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 10 is complete on branch `phase10`. Preserve the completed
-OpenGL containment and header guardrails. Start the next phase with a
-docs-first plan that targets a real behavior-preserving UI/render separation
-boundary, not another helper-only cleanup phase unless that cleanup directly
-supports the separation. Do not move source files, do not change runtime
-behavior without an explicit task, and do not start a direct Vulkan port.
+Current rule: phase 11 is active on branch `phase11`. Preserve the completed
+OpenGL containment and header guardrails. Move UI control mutation toward
+`LLFloaterModelPreview` while keeping model/render state in `LLModelPreview`.
+Do not move source files, do not change runtime behavior without an explicit
+task, and do not start a direct Vulkan port.
 
 ## Done
 
@@ -1624,9 +1623,20 @@ behavior without an explicit task, and do not start a direct Vulkan port.
 
 ## Phase 11 Candidate Backlog
 
-- [ ] Start phase 11 with a docs-first plan before any source edits.
-- [ ] Map a real behavior-preserving separation of `LLModelPreview` UI
+- [x] Create branch `phase11` from completed `phase10`.
+- [x] Start phase 11 with a docs-first plan before any source edits.
+- [x] Add `docs/architecture/336-phase11-plan.md`.
+- [x] Map a real behavior-preserving separation of `LLModelPreview` UI
       mutation from render work before moving code.
+- [x] Add `docs/architecture/337-model-preview-ui-render-boundary-map.md`.
+- [x] Add `docs/architecture/338-model-preview-skin-ui-sync-task.md`.
+- [ ] Move skin preview UI control synchronization ownership to
+      `LLFloaterModelPreview` while keeping call order unchanged.
+- [ ] Verify the skin UI sync ownership packet with targeted
+      `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [ ] Add `docs/architecture/339-model-preview-skin-ui-sync-summary.md`.
+- [ ] Map the remaining `reset_btn` render-path mutation before moving it.
 - [ ] Do not start another helper-only phase unless it directly supports that
       separation.
 - [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
