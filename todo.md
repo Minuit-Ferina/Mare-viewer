@@ -1644,6 +1644,14 @@ task, and do not start a direct Vulkan port.
       targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
       both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/341-model-preview-reset-control-summary.md`.
+- [x] Map remaining render-time UI control reads before moving them.
+- [x] Add `docs/architecture/342-model-preview-render-option-read-task.md`.
+- [ ] Move render-time upload/physics control reads behind a
+      `LLFloaterModelPreview` owner method without changing timing.
+- [ ] Verify the render option read packet with targeted `llmodelpreview.cpp.o`,
+      targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
+      both GL guardrails, and `git diff --check`.
+- [ ] Add `docs/architecture/343-model-preview-render-option-read-summary.md`.
 - [ ] Do not start another helper-only phase unless it directly supports that
       separation.
 - [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
