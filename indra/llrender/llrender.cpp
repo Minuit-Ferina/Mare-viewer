@@ -36,6 +36,7 @@
 #include "llglslshader.h"
 #include "llimagegl.h"
 #include "llrendertarget.h"
+#include "llrenderbackend.h"
 #include "lltexture.h"
 #include "llshadermgr.h"
 #include "hbxxh.h"
@@ -103,21 +104,35 @@ static const GLint sGLAddressMode[] =
 
 const U32 immediate_mask = LLVertexBuffer::MAP_VERTEX | LLVertexBuffer::MAP_COLOR | LLVertexBuffer::MAP_TEXCOORD0;
 
-static const GLenum sGLBlendFactor[] =
+static LLRenderBlendFactor to_render_blend_factor(LLRender::eBlendFactor factor)
 {
-    GL_ONE,
-    GL_ZERO,
-    GL_DST_COLOR,
-    GL_SRC_COLOR,
-    GL_ONE_MINUS_DST_COLOR,
-    GL_ONE_MINUS_SRC_COLOR,
-    GL_DST_ALPHA,
-    GL_SRC_ALPHA,
-    GL_ONE_MINUS_DST_ALPHA,
-    GL_ONE_MINUS_SRC_ALPHA,
-
-    GL_ZERO // 'BF_UNDEF'
-};
+    switch (factor)
+    {
+    case LLRender::BF_ONE:
+        return LLRenderBlendFactor::One;
+    case LLRender::BF_ZERO:
+        return LLRenderBlendFactor::Zero;
+    case LLRender::BF_DEST_COLOR:
+        return LLRenderBlendFactor::DestinationColor;
+    case LLRender::BF_SOURCE_COLOR:
+        return LLRenderBlendFactor::SourceColor;
+    case LLRender::BF_ONE_MINUS_DEST_COLOR:
+        return LLRenderBlendFactor::OneMinusDestinationColor;
+    case LLRender::BF_ONE_MINUS_SOURCE_COLOR:
+        return LLRenderBlendFactor::OneMinusSourceColor;
+    case LLRender::BF_DEST_ALPHA:
+        return LLRenderBlendFactor::DestinationAlpha;
+    case LLRender::BF_SOURCE_ALPHA:
+        return LLRenderBlendFactor::SourceAlpha;
+    case LLRender::BF_ONE_MINUS_DEST_ALPHA:
+        return LLRenderBlendFactor::OneMinusDestinationAlpha;
+    case LLRender::BF_ONE_MINUS_SOURCE_ALPHA:
+        return LLRenderBlendFactor::OneMinusSourceAlpha;
+    case LLRender::BF_UNDEF:
+    default:
+        return LLRenderBlendFactor::Zero;
+    }
+}
 
 LLTexUnit::LLTexUnit(S32 index)
     : mCurrTexType(TT_NONE),
@@ -1391,11 +1406,12 @@ void LLRender::setColorMask(bool writeColorR, bool writeColorG, bool writeColorB
         mCurrColorMask[2] = writeColorB;
         mCurrColorMask[3] = writeAlpha;
 
-        LLGLContainment::setColorMask(
-            writeColorR ? GL_TRUE : GL_FALSE,
-            writeColorG ? GL_TRUE : GL_FALSE,
-            writeColorB ? GL_TRUE : GL_FALSE,
-            writeAlpha ? GL_TRUE : GL_FALSE);
+        LLRenderColorMask mask;
+        mask.mRed = writeColorR;
+        mask.mGreen = writeColorG;
+        mask.mBlue = writeColorB;
+        mask.mAlpha = writeAlpha;
+        getOpenGLRenderBackend().setColorMask(mask);
     }
 }
 
@@ -1442,7 +1458,12 @@ void LLRender::blendFunc(eBlendFactor sfactor, eBlendFactor dfactor)
         mCurrBlendColorDFactor = dfactor;
         mCurrBlendAlphaDFactor = dfactor;
         flush();
-        LLGLContainment::setBlendFunction(sGLBlendFactor[sfactor], sGLBlendFactor[dfactor]);
+        LLRenderBlendState blend;
+        blend.mColorSource = to_render_blend_factor(sfactor);
+        blend.mColorDestination = to_render_blend_factor(dfactor);
+        blend.mAlphaSource = blend.mColorSource;
+        blend.mAlphaDestination = blend.mColorDestination;
+        getOpenGLRenderBackend().setBlendState(blend);
     }
 }
 
@@ -1463,11 +1484,12 @@ void LLRender::blendFunc(eBlendFactor color_sfactor, eBlendFactor color_dfactor,
         mCurrBlendAlphaDFactor = alpha_dfactor;
         flush();
 
-        LLGLContainment::setSeparateBlendFunction(
-            sGLBlendFactor[color_sfactor],
-            sGLBlendFactor[color_dfactor],
-            sGLBlendFactor[alpha_sfactor],
-            sGLBlendFactor[alpha_dfactor]);
+        LLRenderBlendState blend;
+        blend.mColorSource = to_render_blend_factor(color_sfactor);
+        blend.mColorDestination = to_render_blend_factor(color_dfactor);
+        blend.mAlphaSource = to_render_blend_factor(alpha_sfactor);
+        blend.mAlphaDestination = to_render_blend_factor(alpha_dfactor);
+        getOpenGLRenderBackend().setBlendState(blend);
     }
 }
 
@@ -1524,7 +1546,7 @@ void LLRender::setLineWidth(F32 line_width)
             flush();
         }
         mLineWidth = line_width;
-        LLGLContainment::setLineWidth(line_width);
+        getOpenGLRenderBackend().setLineWidth(line_width);
     }
 }
 // </FS>

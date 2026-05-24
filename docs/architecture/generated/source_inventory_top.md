@@ -7,7 +7,7 @@
 | `indra/llrender/llglheaders.h` | render.legacy_low_level | 1076 | 0 | 762 | 0 | 0 | 1 | 0 | 0 |
 | `indra/llrender/llgl.h` | render.legacy_low_level | 485 | 0 | 24 | 0 | 0 | 63 | 0 | 0 |
 | `indra/llrender/llimagegl.cpp` | render.legacy_low_level | 2841 | 0 | 13 | 0 | 32 | 81 | 0 | 0 |
-| `indra/llrender/llpostprocess.cpp` | render.legacy_low_level | 474 | 0 | 7 | 0 | 18 | 16 | 0 | 0 |
+| `indra/llrender/llpostprocess.cpp` | render.legacy_low_level | 480 | 0 | 7 | 0 | 18 | 14 | 0 | 0 |
 | `indra/llrender/llshadermgr.cpp` | render.legacy_low_level | 1564 | 0 | 7 | 0 | 0 | 60 | 0 | 0 |
 | `indra/llrender/llvertexbuffer.cpp` | render.legacy_low_level | 1966 | 0 | 5 | 0 | 33 | 22 | 0 | 0 |
 | `indra/llui/llui.cpp` | unknown | 764 | 0 | 4 | 4 | 0 | 0 | 0 | 0 |
@@ -21,7 +21,7 @@
 | `indra/llui/llui.h` | unknown | 476 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
 | `indra/llwindow/llwindowmacosx-objc.h` | unknown | 187 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
 | `indra/newview/app_settings/shaders/class1/deferred/textureUtilV.glsl` | assets.texture | 185 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
-| `indra/llrender/llrender2dutils.cpp` | render.legacy_low_level | 1872 | 0 | 1 | 0 | 577 | 3 | 0 | 2 |
+| `indra/llrender/llrender2dutils.cpp` | render.legacy_low_level | 1873 | 0 | 1 | 0 | 577 | 1 | 0 | 2 |
 | `indra/newview/lldrawpoolterrain.cpp` | render.pipeline | 1124 | 0 | 1 | 1 | 189 | 85 | 1 | 0 |
 | `indra/newview/llselectmgr.cpp` | render.pipeline | 9001 | 0 | 1 | 1 | 68 | 51 | 1 | 0 |
 | `indra/llrender/llcubemap.cpp` | render.legacy_low_level | 346 | 0 | 1 | 0 | 21 | 4 | 0 | 0 |
@@ -49,7 +49,7 @@
 | `indra/newview/lldrawpoolbump.cpp` | render.pipeline | 1083 | 0 | 0 | 0 | 47 | 23 | 8 | 1 |
 | `indra/newview/lldrawpoolavatar.cpp` | render.pipeline | 991 | 0 | 0 | 0 | 46 | 4 | 17 | 0 |
 | `indra/newview/llviewerwindow.cpp` | render.pipeline | 6530 | 0 | 0 | 0 | 44 | 18 | 63 | 2 |
-| `indra/llrender/llrender.cpp` | render.legacy_low_level | 2174 | 0 | 0 | 0 | 39 | 111 | 0 | 2 |
+| `indra/llrender/llrender.cpp` | render.legacy_low_level | 2196 | 0 | 0 | 0 | 39 | 107 | 0 | 2 |
 | `indra/newview/lltracker.cpp` | render.opengl_touching | 928 | 0 | 0 | 0 | 39 | 3 | 0 | 0 |
 | `indra/newview/lltoolmorph.cpp` | render.opengl_touching | 428 | 0 | 0 | 0 | 37 | 4 | 0 | 0 |
 | `indra/newview/lldrawpoolwlsky.cpp` | render.pipeline | 523 | 0 | 0 | 0 | 36 | 11 | 5 | 0 |

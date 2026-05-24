@@ -1969,6 +1969,12 @@ No open items in this section right now.
       `llrender` build, regenerated source inventory, both GL guardrails, and
       `git diff --check`.
 - [x] Add `docs/architecture/409-rendertarget-backend-clear-summary.md`.
+- [x] Route simple render-state intents through the backend: clear color,
+      color mask, blend state, and line width.
+- [x] Verify the simple render-state backend packet with targeted `llrender`
+      build, regenerated source inventory, both GL guardrails, and
+      `git diff --check`.
+- [x] Add `docs/architecture/410-llrender-backend-state-summary.md`.
 
 ## Post-Phase2 Guardrails
 

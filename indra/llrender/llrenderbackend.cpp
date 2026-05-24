@@ -24,9 +24,39 @@
 #include "llrenderbackend.h"
 
 #include "llglcontainment.h"
+#include "llglheaders.h"
 
 namespace
 {
+LLGLenum to_opengl_blend_factor(LLRenderBlendFactor factor)
+{
+    switch (factor)
+    {
+    case LLRenderBlendFactor::One:
+        return GL_ONE;
+    case LLRenderBlendFactor::Zero:
+        return GL_ZERO;
+    case LLRenderBlendFactor::DestinationColor:
+        return GL_DST_COLOR;
+    case LLRenderBlendFactor::SourceColor:
+        return GL_SRC_COLOR;
+    case LLRenderBlendFactor::OneMinusDestinationColor:
+        return GL_ONE_MINUS_DST_COLOR;
+    case LLRenderBlendFactor::OneMinusSourceColor:
+        return GL_ONE_MINUS_SRC_COLOR;
+    case LLRenderBlendFactor::DestinationAlpha:
+        return GL_DST_ALPHA;
+    case LLRenderBlendFactor::SourceAlpha:
+        return GL_SRC_ALPHA;
+    case LLRenderBlendFactor::OneMinusDestinationAlpha:
+        return GL_ONE_MINUS_DST_ALPHA;
+    case LLRenderBlendFactor::OneMinusSourceAlpha:
+        return GL_ONE_MINUS_SRC_ALPHA;
+    default:
+        return GL_ZERO;
+    }
+}
+
 class LLNullRenderBackend final : public LLRenderBackend
 {
 public:
@@ -43,6 +73,10 @@ public:
     void setViewport(const LLRenderViewport&) override {}
     void setScissor(const LLRenderScissor&) override {}
     void clear(const LLRenderPassDesc&) override {}
+    void setClearColor(const LLRenderClearColor&) override {}
+    void setColorMask(const LLRenderColorMask&) override {}
+    void setBlendState(const LLRenderBlendState&) override {}
+    void setLineWidth(F32) override {}
 };
 
 class LLOpenGLRenderBackend final : public LLRenderBackend
@@ -87,6 +121,34 @@ public:
             (desc.mClearMask & LL_RENDER_CLEAR_COLOR) != 0,
             (desc.mClearMask & LL_RENDER_CLEAR_DEPTH) != 0,
             (desc.mClearMask & LL_RENDER_CLEAR_STENCIL) != 0);
+    }
+
+    void setClearColor(const LLRenderClearColor& color) override
+    {
+        LLGLContainment::setClearColor(color.mRed, color.mGreen, color.mBlue, color.mAlpha);
+    }
+
+    void setColorMask(const LLRenderColorMask& mask) override
+    {
+        LLGLContainment::setColorMask(
+            static_cast<LLGLboolean>(mask.mRed),
+            static_cast<LLGLboolean>(mask.mGreen),
+            static_cast<LLGLboolean>(mask.mBlue),
+            static_cast<LLGLboolean>(mask.mAlpha));
+    }
+
+    void setBlendState(const LLRenderBlendState& blend) override
+    {
+        LLGLContainment::setSeparateBlendFunction(
+            to_opengl_blend_factor(blend.mColorSource),
+            to_opengl_blend_factor(blend.mColorDestination),
+            to_opengl_blend_factor(blend.mAlphaSource),
+            to_opengl_blend_factor(blend.mAlphaDestination));
+    }
+
+    void setLineWidth(F32 width) override
+    {
+        LLGLContainment::setLineWidth(width);
     }
 };
 }

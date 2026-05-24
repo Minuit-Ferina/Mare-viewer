@@ -33,6 +33,7 @@
 #include "llimagegl.h"
 #include "llsdserialize.h"
 #include "llrender.h"
+#include "llrenderbackend.h"
 
 static LLStaticHashedString sRenderTexture("RenderTexture");
 static LLStaticHashedString sBrightness("brightness");
@@ -309,8 +310,13 @@ void LLPostProcess::doEffects(void)
     }
 
     /// Clear the frame buffer.
-    LLGLContainment::setClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT);
+    LLRenderClearColor clear_color;
+    clear_color.mAlpha = 1.0f;
+    getOpenGLRenderBackend().setClearColor(clear_color);
+
+    LLRenderPassDesc clear_desc;
+    clear_desc.mClearMask = LL_RENDER_CLEAR_COLOR;
+    getOpenGLRenderBackend().clear(clear_desc);
 
     /// Change to an orthogonal view
     viewOrthogonal(screenW, screenH);

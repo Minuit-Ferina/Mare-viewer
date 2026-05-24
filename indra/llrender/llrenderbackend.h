@@ -46,6 +46,20 @@ enum class LLRenderStoreAction : U8
     DontCare,
 };
 
+enum class LLRenderBlendFactor : U8
+{
+    One,
+    Zero,
+    DestinationColor,
+    SourceColor,
+    OneMinusDestinationColor,
+    OneMinusSourceColor,
+    DestinationAlpha,
+    SourceAlpha,
+    OneMinusDestinationAlpha,
+    OneMinusSourceAlpha,
+};
+
 enum LLRenderClearMask : U32
 {
     LL_RENDER_CLEAR_NONE = 0,
@@ -85,6 +99,22 @@ struct LLRenderClearColor
     F32 mGreen = 0.f;
     F32 mBlue = 0.f;
     F32 mAlpha = 0.f;
+};
+
+struct LLRenderColorMask
+{
+    bool mRed = true;
+    bool mGreen = true;
+    bool mBlue = true;
+    bool mAlpha = true;
+};
+
+struct LLRenderBlendState
+{
+    LLRenderBlendFactor mColorSource = LLRenderBlendFactor::One;
+    LLRenderBlendFactor mColorDestination = LLRenderBlendFactor::Zero;
+    LLRenderBlendFactor mAlphaSource = LLRenderBlendFactor::One;
+    LLRenderBlendFactor mAlphaDestination = LLRenderBlendFactor::Zero;
 };
 
 struct LLRenderTargetDesc
@@ -134,6 +164,10 @@ public:
     virtual void setViewport(const LLRenderViewport& viewport) = 0;
     virtual void setScissor(const LLRenderScissor& scissor) = 0;
     virtual void clear(const LLRenderPassDesc& desc) = 0;
+    virtual void setClearColor(const LLRenderClearColor& color) = 0;
+    virtual void setColorMask(const LLRenderColorMask& mask) = 0;
+    virtual void setBlendState(const LLRenderBlendState& blend) = 0;
+    virtual void setLineWidth(F32 width) = 0;
 };
 
 const char* getRenderBackendTypeName(LLRenderBackendType type);

@@ -32,6 +32,7 @@
 #include "v4color.h"
 #include "llfontgl.h"
 #include "llrender.h"
+#include "llrenderbackend.h"
 #include "llglcontainment.h"
 #include "llrect.h"
 #include "llgl.h"
@@ -836,7 +837,7 @@ void gl_line_3d( const LLVector3& start, const LLVector3& end, const LLColor4& c
     gGL.color4f(color.mV[VRED], color.mV[VGREEN], color.mV[VBLUE], color.mV[VALPHA]);
 
     gGL.flush();
-    LLGLContainment::setLineWidth(2.5f);
+    getOpenGLRenderBackend().setLineWidth(2.5f);
 
     gGL.begin(LLRender::LINES);
     {
@@ -1809,7 +1810,7 @@ void LLRender2D::setLineWidth(F32 width)
         LLGLContainment::getFloat(GL_SMOOTH_LINE_WIDTH_RANGE, range);
     }
     width *= lerp(LLRender::sUIGLScaleFactor.mV[VX], LLRender::sUIGLScaleFactor.mV[VY], 0.5f);
-    LLGLContainment::setLineWidth(llclamp(width, range[0], range[1]));
+    getOpenGLRenderBackend().setLineWidth(llclamp(width, range[0], range[1]));
 }
 
 LLPointer<LLUIImage> LLRender2D::getUIImageByID(const LLUUID& image_id, S32 priority)
