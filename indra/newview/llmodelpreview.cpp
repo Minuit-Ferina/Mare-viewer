@@ -2504,8 +2504,11 @@ void LLModelPreview::updateStatusMessages()
         LL_INFOS() << "Loader returned errors, model can't be uploaded" << LL_ENDL;
     }
 
-    bool uploadingSkin = mFMP->childGetValue("upload_skin").asBoolean();
-    bool uploadingJointPositions = mFMP->childGetValue("upload_joints").asBoolean();
+    LLFloaterModelPreview* upload_options_fmp = (LLFloaterModelPreview*)mFMP;
+    bool uploadingSkin = false;
+    bool uploadingJointPositions = false;
+    bool uploadingTextures = false;
+    upload_options_fmp->getModelPreviewUploadStatusOptions(uploadingSkin, uploadingJointPositions, uploadingTextures);
 
     if (uploadingSkin)
     {
@@ -2521,7 +2524,7 @@ void LLModelPreview::updateStatusMessages()
         LLMutexLock lock(this);
         if (mModelLoader)
         {
-            if (!areTexturesReady() && mFMP->childGetValue("upload_textures").asBoolean())
+            if (!areTexturesReady() && uploadingTextures)
             {
                 // Some textures are still loading, prevent upload until they are done
                 mModelNoErrors = false;
