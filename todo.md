@@ -1761,6 +1761,14 @@ do not start a direct Vulkan port.
       targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
       both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/367-model-preview-upload-button-summary.md`.
+- [x] Map model preview LOD control synchronization before moving it.
+- [x] Add `docs/architecture/368-model-preview-lod-control-sync-task.md`.
+- [x] Move LOD control reads and widget synchronization behind
+      `LLFloaterModelPreview` owner methods without changing conditions.
+- [x] Verify the LOD control sync packet with targeted `llmodelpreview.cpp.o`,
+      targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
+      both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/369-model-preview-lod-control-sync-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

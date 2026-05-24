@@ -154,6 +154,15 @@ protected:
     void        setModelPreviewDefaultRequestedName(const std::string& model_name);
     void        setModelPreviewCalculateButtonEnabled(bool enabled);
     void        setModelPreviewUploadButtonEnabled(bool enabled);
+    S32         getModelPreviewLODSourceMode(S32 lod);
+    void        setModelPreviewLODMode(S32 lod, S32 mode);
+    void        syncModelPreviewLODFileControls(S32 lod, bool visible);
+    void        syncModelPreviewLODGenerateControlsVisible(S32 lod, bool visible);
+    void        syncModelPreviewLODGenerateControls(S32 lod,
+                                                     U32 max_triangle_limit,
+                                                     S32 requested_triangle_count,
+                                                     F32 requested_error_threshold,
+                                                     U32 requested_lod_mode);
     void        syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
 
     void        onDescriptionKeystroke(LLUICtrl*);

@@ -542,6 +542,83 @@ void LLFloaterModelPreview::setModelPreviewUploadButtonEnabled(bool enabled)
     childSetEnabled("ok_btn", enabled);
 }
 
+S32 LLFloaterModelPreview::getModelPreviewLODSourceMode(S32 lod)
+{
+    LLComboBox* lod_combo = findChild<LLComboBox>("lod_source_" + lod_name[lod]);
+    if (!lod_combo)
+    {
+        return -1;
+    }
+    return lod_combo->getCurrentIndex();
+}
+
+void LLFloaterModelPreview::setModelPreviewLODMode(S32 lod, S32 mode)
+{
+    mLODMode[lod] = mode;
+}
+
+void LLFloaterModelPreview::syncModelPreviewLODFileControls(S32 lod, bool visible)
+{
+    const char* file_controls[] =
+    {
+        "lod_browse_",
+        "lod_file_",
+    };
+    const U32 num_file_controls = sizeof(file_controls) / sizeof(char*);
+
+    for (U32 i = 0; i < num_file_controls; ++i)
+    {
+        childSetVisible(file_controls[i] + lod_name[lod], visible);
+    }
+}
+
+void LLFloaterModelPreview::syncModelPreviewLODGenerateControlsVisible(S32 lod, bool visible)
+{
+    const char* lod_controls[] =
+    {
+        "lod_mode_",
+        "lod_triangle_limit_",
+        "lod_error_threshold_"
+    };
+    const U32 num_lod_controls = sizeof(lod_controls) / sizeof(char*);
+
+    for (U32 i = 0; i < num_lod_controls; ++i)
+    {
+        childSetVisible(lod_controls[i] + lod_name[lod], visible);
+    }
+}
+
+void LLFloaterModelPreview::syncModelPreviewLODGenerateControls(S32 lod,
+                                                                U32 max_triangle_limit,
+                                                                S32 requested_triangle_count,
+                                                                F32 requested_error_threshold,
+                                                                U32 requested_lod_mode)
+{
+    LLSpinCtrl* threshold = getChild<LLSpinCtrl>("lod_error_threshold_" + lod_name[lod]);
+    LLSpinCtrl* limit = getChild<LLSpinCtrl>("lod_triangle_limit_" + lod_name[lod]);
+
+    limit->setMaxValue((F32)max_triangle_limit);
+    limit->forceSetValue(requested_triangle_count);
+
+    threshold->forceSetValue(requested_error_threshold);
+
+    getChild<LLComboBox>("lod_mode_" + lod_name[lod])->selectNthItem(requested_lod_mode);
+
+    if (requested_lod_mode == 0)
+    {
+        limit->setVisible(true);
+        threshold->setVisible(false);
+
+        limit->setMaxValue((F32)max_triangle_limit);
+        limit->setIncrement((F32)llmax((U32)1, max_triangle_limit / 32));
+    }
+    else
+    {
+        limit->setVisible(false);
+        threshold->setVisible(true);
+    }
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

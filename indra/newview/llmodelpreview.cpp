@@ -2748,53 +2748,23 @@ void LLModelPreview::updateLodControls(S32 lod)
         return;
     }
 
-    const char* lod_controls[] =
-    {
-        "lod_mode_",
-        "lod_triangle_limit_",
-        "lod_error_threshold_"
-    };
-    const U32 num_lod_controls = sizeof(lod_controls) / sizeof(char*);
-
-    const char* file_controls[] =
-    {
-        "lod_browse_",
-        "lod_file_",
-    };
-    const U32 num_file_controls = sizeof(file_controls) / sizeof(char*);
-
     LLFloaterModelPreview* fmp = LLFloaterModelPreview::sInstance;
     if (!fmp) return;
 
-    LLComboBox* lod_combo = mFMP->findChild<LLComboBox>("lod_source_" + lod_name[lod]);
-    if (!lod_combo) return;
+    S32 lod_mode = fmp->getModelPreviewLODSourceMode(lod);
+    if (lod_mode < 0) return;
 
-    S32 lod_mode = lod_combo->getCurrentIndex();
     if (lod_mode == LOD_FROM_FILE) // LoD from file
     {
-        fmp->mLODMode[lod] = LOD_FROM_FILE;
-        for (U32 i = 0; i < num_file_controls; ++i)
-        {
-            mFMP->childSetVisible(file_controls[i] + lod_name[lod], true);
-        }
-
-        for (U32 i = 0; i < num_lod_controls; ++i)
-        {
-            mFMP->childSetVisible(lod_controls[i] + lod_name[lod], false);
-        }
+        fmp->setModelPreviewLODMode(lod, LOD_FROM_FILE);
+        fmp->syncModelPreviewLODFileControls(lod, true);
+        fmp->syncModelPreviewLODGenerateControlsVisible(lod, false);
     }
     else if (lod_mode == USE_LOD_ABOVE) // use LoD above
     {
-        fmp->mLODMode[lod] = USE_LOD_ABOVE;
-        for (U32 i = 0; i < num_file_controls; ++i)
-        {
-            mFMP->childSetVisible(file_controls[i] + lod_name[lod], false);
-        }
-
-        for (U32 i = 0; i < num_lod_controls; ++i)
-        {
-            mFMP->childSetVisible(lod_controls[i] + lod_name[lod], false);
-        }
+        fmp->setModelPreviewLODMode(lod, USE_LOD_ABOVE);
+        fmp->syncModelPreviewLODFileControls(lod, false);
+        fmp->syncModelPreviewLODGenerateControlsVisible(lod, false);
 
         if (lod < LLModel::LOD_HIGH)
         {
@@ -2811,45 +2781,18 @@ void LLModelPreview::updateLodControls(S32 lod)
     }
     else // auto generate, the default case for all LoDs except High
     {
-        fmp->mLODMode[lod] = MESH_OPTIMIZER_AUTO;
+        fmp->setModelPreviewLODMode(lod, MESH_OPTIMIZER_AUTO);
 
         //don't actually regenerate lod when refreshing UI
         mLODFrozen = true;
 
-        for (U32 i = 0; i < num_file_controls; ++i)
-        {
-            mFMP->getChildView(file_controls[i] + lod_name[lod])->setVisible(false);
-        }
-
-        for (U32 i = 0; i < num_lod_controls; ++i)
-        {
-            mFMP->getChildView(lod_controls[i] + lod_name[lod])->setVisible(true);
-        }
-
-
-        LLSpinCtrl* threshold = mFMP->getChild<LLSpinCtrl>("lod_error_threshold_" + lod_name[lod]);
-        LLSpinCtrl* limit = mFMP->getChild<LLSpinCtrl>("lod_triangle_limit_" + lod_name[lod]);
-
-        limit->setMaxValue((F32)mMaxTriangleLimit);
-        limit->forceSetValue(mRequestedTriangleCount[lod]);
-
-        threshold->forceSetValue(mRequestedErrorThreshold[lod]);
-
-        mFMP->getChild<LLComboBox>("lod_mode_" + lod_name[lod])->selectNthItem(mRequestedLoDMode[lod]);
-
-        if (mRequestedLoDMode[lod] == 0)
-        {
-            limit->setVisible(true);
-            threshold->setVisible(false);
-
-            limit->setMaxValue((F32)mMaxTriangleLimit);
-            limit->setIncrement((F32)llmax((U32)1, mMaxTriangleLimit / 32));
-        }
-        else
-        {
-            limit->setVisible(false);
-            threshold->setVisible(true);
-        }
+        fmp->syncModelPreviewLODFileControls(lod, false);
+        fmp->syncModelPreviewLODGenerateControlsVisible(lod, true);
+        fmp->syncModelPreviewLODGenerateControls(lod,
+                                                 mMaxTriangleLimit,
+                                                 mRequestedTriangleCount[lod],
+                                                 mRequestedErrorThreshold[lod],
+                                                 mRequestedLoDMode[lod]);
 
         mLODFrozen = false;
     }
