@@ -1,6 +1,6 @@
 path,category_guess,lines,includes,gl_calls,gl_raw_refs,gl_call_exprs,gl_known_false_refs,gGL,LLGL,LLRender,LLPipeline,LLDrawPool,LLRenderTarget,LLImageGL,LLViewerTexture,LLViewerWindow
 indra/llrender/llglcontainment.cpp,render.legacy_low_level,1159,3,160,161,160,0,0,321,0,0,0,0,0,0,0
-indra/llrender/llgl.cpp,render.legacy_low_level,2948,20,0,2134,0,0,31,164,9,0,0,0,2,0,2
+indra/llrender/llgl.cpp,render.legacy_low_level,2970,21,0,2134,0,0,31,156,9,0,0,0,2,0,2
 indra/llrender/llglheaders.h,render.legacy_low_level,1076,16,0,762,0,0,0,1,0,0,0,0,0,0,0
 indra/llrender/llgl.h,render.legacy_low_level,485,15,0,24,0,0,0,63,0,0,0,0,0,0,0
 indra/llrender/llimagegl.cpp,render.legacy_low_level,2845,14,0,13,0,0,32,80,3,0,0,0,123,0,0
@@ -21,7 +21,7 @@ indra/newview/app_settings/shaders/class1/deferred/textureUtilV.glsl,assets.text
 indra/llrender/llrender2dutils.cpp,render.legacy_low_level,1873,15,0,1,0,0,577,1,33,0,0,2,0,0,0
 indra/newview/lldrawpoolterrain.cpp,render.pipeline,1124,24,0,1,0,1,189,85,31,1,30,0,0,22,0
 indra/newview/llselectmgr.cpp,render.pipeline,9001,71,0,1,0,1,68,51,14,1,0,0,0,3,0
-indra/llrender/llcubemap.cpp,render.legacy_low_level,346,13,0,1,0,0,21,4,4,0,0,0,6,0,0
+indra/llrender/llcubemap.cpp,render.legacy_low_level,347,14,0,1,0,0,21,3,4,0,0,0,6,0,0
 indra/newview/llfetchedgltfmaterial.cpp,render.pipeline,265,8,0,1,0,1,0,16,0,2,0,0,0,4,0
 indra/newview/llscenemonitor.h,assets.texture,130,6,0,1,0,1,0,1,0,0,0,5,0,2,0
 indra/newview/app_settings/shaders/class2/interface/irradianceGenF.glsl,viewer.misc,215,0,0,1,0,1,0,0,0,0,0,0,0,0,0
@@ -46,7 +46,7 @@ indra/newview/gltfscenemanager.cpp,render.pipeline,1210,23,0,0,0,0,56,38,5,8,0,0
 indra/newview/lldrawpoolbump.cpp,render.pipeline,1083,23,0,0,0,0,47,23,9,8,26,1,3,8,0
 indra/newview/lldrawpoolavatar.cpp,render.pipeline,991,27,0,0,0,0,46,4,1,17,59,0,0,1,0
 indra/newview/llviewerwindow.cpp,render.pipeline,6530,171,0,0,0,0,44,18,13,63,2,2,5,4,174
-indra/llrender/llrender.cpp,render.legacy_low_level,2196,15,0,0,0,0,39,107,113,0,0,2,7,0,0
+indra/llrender/llrender.cpp,render.legacy_low_level,2196,15,0,0,0,0,39,104,113,0,0,2,7,0,0
 indra/newview/lltracker.cpp,render.opengl_touching,928,33,0,0,0,0,39,3,3,0,0,0,0,0,0
 indra/newview/lltoolmorph.cpp,render.opengl_touching,428,28,0,0,0,0,37,4,7,0,0,0,0,0,0
 indra/newview/lldrawpoolwlsky.cpp,render.pipeline,523,18,0,0,0,0,36,11,8,5,19,0,1,12,0
@@ -165,12 +165,12 @@ indra/newview/gltf/llgltfloader.cpp,assets.texture,1841,13,0,0,0,0,0,36,0,0,0,0,
 indra/newview/llviewerobject.cpp,render.pipeline,7848,80,0,0,0,0,0,29,2,1,0,0,0,47,0
 indra/newview/llfloatergltfasseteditor.cpp,ui,649,8,0,0,0,0,0,27,0,0,0,0,0,0,0
 indra/llrender/llimagegl.h,render.legacy_low_level,369,11,0,0,0,0,0,26,0,0,0,0,14,0,0
+indra/llrender/llrenderbackend.cpp,render.legacy_low_level,279,4,0,0,0,0,0,26,0,0,0,0,0,0,0
 indra/newview/llvlcomposition.cpp,assets.texture,609,15,0,0,0,0,0,23,0,0,0,0,0,2,0
 indra/llrender/llgltexture.h,render.legacy_low_level,205,5,0,0,0,0,0,22,0,0,0,0,5,2,0
 indra/newview/llgltffoldermodel.cpp,render.opengl_touching,74,3,0,0,0,0,0,19,0,0,0,0,0,0,0
 indra/llprimitive/llgltfmaterial.h,render.opengl_touching,287,10,0,0,0,0,0,17,0,0,0,0,0,0,0
 indra/newview/llgltffoldermodel.h,render.opengl_touching,92,2,0,0,0,0,0,17,0,0,0,0,0,0,0
-indra/llrender/llrenderbackend.cpp,render.legacy_low_level,187,4,0,0,0,0,0,16,0,0,0,0,0,0,0
 indra/newview/llviewertexturelist.h,assets.texture,302,6,0,0,0,0,0,15,0,0,0,0,0,11,0
 indra/newview/llgltffolderitem.cpp,render.opengl_touching,165,3,0,0,0,0,0,15,0,0,0,0,0,0,0
 indra/newview/llvocache.cpp,assets.texture,2029,10,0,0,0,0,0,13,0,0,0,0,0,2,0
@@ -1378,6 +1378,7 @@ indra/llcommon/stdtypes.h,core,209,6,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llbitpack.h,core,209,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/llavatarnamecache.h,world.avatar,208,4,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmessage/llregionflags.h,network,208,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/llrender/llrenderbackend.h,render.legacy_low_level,208,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelavatar.cpp,ui,208,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/threadpool.cpp,core,208,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/test/lltut.cpp,unknown,207,7,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -1492,7 +1493,6 @@ indra/newview/llpanelclassified.h,ui,179,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcharacter/llmotion.cpp,unknown,179,3,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llqueuedthread.h,core,179,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llmath/llbbox.cpp,unknown,179,3,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/llrender/llrenderbackend.h,render.legacy_low_level,178,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llpanelpresetscamerapulldown.cpp,ui,178,13,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llkeyconflict.h,viewer.misc,178,2,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llimage/llimagepng.cpp,unknown,178,7,0,0,0,0,0,0,0,0,0,0,0,0,0

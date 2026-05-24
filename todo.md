@@ -1980,6 +1980,12 @@ No open items in this section right now.
       build, regenerated source inventory, both GL guardrails, and
       `git diff --check`.
 - [x] Add `docs/architecture/411-llimagegl-backend-viewport-summary.md`.
+- [x] Route named capability and depth-state intents through the backend,
+      while leaving generic `LLGLState(GLenum)` as explicitly OpenGL-specific.
+- [x] Verify the capability/depth backend packet with targeted `llrender`
+      build, regenerated source inventory, both GL guardrails, and
+      `git diff --check`.
+- [x] Add `docs/architecture/412-llrender-backend-capability-depth-summary.md`.
 
 ## Post-Phase2 Guardrails
 

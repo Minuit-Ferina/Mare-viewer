@@ -57,6 +57,61 @@ LLGLenum to_opengl_blend_factor(LLRenderBlendFactor factor)
     }
 }
 
+LLGLenum to_opengl_capability(LLRenderCapability capability)
+{
+    switch (capability)
+    {
+    case LLRenderCapability::DebugOutputSynchronous:
+        return GL_DEBUG_OUTPUT_SYNCHRONOUS;
+    case LLRenderCapability::DepthTest:
+        return GL_DEPTH_TEST;
+    case LLRenderCapability::Multisample:
+        return GL_MULTISAMPLE;
+    case LLRenderCapability::TextureCubeMapSeamless:
+        return GL_TEXTURE_CUBE_MAP_SEAMLESS;
+    default:
+        return 0;
+    }
+}
+
+LLGLenum to_opengl_cull_face(LLRenderCullFace face)
+{
+    switch (face)
+    {
+    case LLRenderCullFace::Front:
+        return GL_FRONT;
+    case LLRenderCullFace::Back:
+        return GL_BACK;
+    case LLRenderCullFace::FrontAndBack:
+        return GL_FRONT_AND_BACK;
+    default:
+        return GL_BACK;
+    }
+}
+
+LLGLenum to_opengl_depth_function(LLRenderDepthFunction function)
+{
+    switch (function)
+    {
+    case LLRenderDepthFunction::Always:
+        return GL_ALWAYS;
+    case LLRenderDepthFunction::Less:
+        return GL_LESS;
+    case LLRenderDepthFunction::LessEqual:
+        return GL_LEQUAL;
+    case LLRenderDepthFunction::Equal:
+        return GL_EQUAL;
+    case LLRenderDepthFunction::NotEqual:
+        return GL_NOTEQUAL;
+    case LLRenderDepthFunction::GreaterEqual:
+        return GL_GEQUAL;
+    case LLRenderDepthFunction::Greater:
+        return GL_GREATER;
+    default:
+        return GL_LESS;
+    }
+}
+
 class LLNullRenderBackend final : public LLRenderBackend
 {
 public:
@@ -77,6 +132,10 @@ public:
     void setColorMask(const LLRenderColorMask&) override {}
     void setBlendState(const LLRenderBlendState&) override {}
     void setLineWidth(F32) override {}
+    void setCapability(LLRenderCapability, bool) override {}
+    void setCullFace(LLRenderCullFace) override {}
+    void setDepthFunction(LLRenderDepthFunction) override {}
+    void setDepthWriteEnabled(bool) override {}
 };
 
 class LLOpenGLRenderBackend final : public LLRenderBackend
@@ -149,6 +208,39 @@ public:
     void setLineWidth(F32 width) override
     {
         LLGLContainment::setLineWidth(width);
+    }
+
+    void setCapability(LLRenderCapability capability, bool enabled) override
+    {
+        LLGLenum gl_capability = to_opengl_capability(capability);
+        if (!gl_capability)
+        {
+            return;
+        }
+
+        if (enabled)
+        {
+            LLGLContainment::enableCapability(gl_capability);
+        }
+        else
+        {
+            LLGLContainment::disableCapability(gl_capability);
+        }
+    }
+
+    void setCullFace(LLRenderCullFace face) override
+    {
+        LLGLContainment::setCullFace(to_opengl_cull_face(face));
+    }
+
+    void setDepthFunction(LLRenderDepthFunction function) override
+    {
+        LLGLContainment::setDepthFunction(to_opengl_depth_function(function));
+    }
+
+    void setDepthWriteEnabled(bool enabled) override
+    {
+        LLGLContainment::setDepthMask(static_cast<LLGLboolean>(enabled));
     }
 };
 }

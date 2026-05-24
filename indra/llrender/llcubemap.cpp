@@ -36,6 +36,7 @@
 #include "m4math.h"
 
 #include "llrender.h"
+#include "llrenderbackend.h"
 #include "llglslshader.h"
 
 #include "llglcontainment.h"
@@ -222,7 +223,7 @@ void LLCubeMap::initEnvironmentMap(const std::vector<LLPointer<LLImageRaw> >& ra
     enableTexture(0);
     bind();
     mImages[0]->setFilteringOption(LLTexUnit::TFO_ANISOTROPIC);
-    LLGLContainment::enableCapability(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    getOpenGLRenderBackend().setCapability(LLRenderCapability::TextureCubeMapSeamless, true);
     LLGLContainment::generateTextureMipmap(GL_TEXTURE_CUBE_MAP);
     gGL.getTexUnit(0)->disable();
     disable();

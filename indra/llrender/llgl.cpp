@@ -39,6 +39,7 @@
 #include "llglcontainment.h"
 #include "llglstates.h"
 #include "llrender.h"
+#include "llrenderbackend.h"
 
 #include "llerror.h"
 #include "llerrorcontrol.h"
@@ -2386,6 +2387,29 @@ LLGLboolean LLGLDepthTest::sDepthEnabled = GL_FALSE; // OpenGL default
 LLGLenum LLGLDepthTest::sDepthFunc = GL_LESS; // OpenGL default
 LLGLboolean LLGLDepthTest::sWriteEnabled = GL_TRUE; // OpenGL default
 
+static LLRenderDepthFunction to_render_depth_function(LLGLenum depth_func)
+{
+    switch (depth_func)
+    {
+    case GL_ALWAYS:
+        return LLRenderDepthFunction::Always;
+    case GL_LESS:
+        return LLRenderDepthFunction::Less;
+    case GL_LEQUAL:
+        return LLRenderDepthFunction::LessEqual;
+    case GL_EQUAL:
+        return LLRenderDepthFunction::Equal;
+    case GL_NOTEQUAL:
+        return LLRenderDepthFunction::NotEqual;
+    case GL_GEQUAL:
+        return LLRenderDepthFunction::GreaterEqual;
+    case GL_GREATER:
+        return LLRenderDepthFunction::Greater;
+    default:
+        return LLRenderDepthFunction::Less;
+    }
+}
+
 //static
 void LLGLState::initClass()
 {
@@ -2394,7 +2418,7 @@ void LLGLState::initClass()
 
     //make sure multisample defaults to disabled
     sStateMap[GL_MULTISAMPLE] = GL_FALSE;
-    LLGLContainment::disableCapability(GL_MULTISAMPLE);
+    getOpenGLRenderBackend().setCapability(LLRenderCapability::Multisample, false);
 }
 
 //static
@@ -2758,20 +2782,19 @@ LLGLDepthTest::LLGLDepthTest(LLGLboolean depth_enabled, LLGLboolean write_enable
     if (depth_enabled != sDepthEnabled)
     {
         gGL.flush();
-        if (depth_enabled) LLGLContainment::enableCapability(GL_DEPTH_TEST);
-        else LLGLContainment::disableCapability(GL_DEPTH_TEST);
+        getOpenGLRenderBackend().setCapability(LLRenderCapability::DepthTest, depth_enabled != GL_FALSE);
         sDepthEnabled = depth_enabled;
     }
     if (depth_func != sDepthFunc)
     {
         gGL.flush();
-        LLGLContainment::setDepthFunction(depth_func);
+        getOpenGLRenderBackend().setDepthFunction(to_render_depth_function(depth_func));
         sDepthFunc = depth_func;
     }
     if (write_enabled != sWriteEnabled)
     {
         gGL.flush();
-        LLGLContainment::setDepthMask(write_enabled);
+        getOpenGLRenderBackend().setDepthWriteEnabled(write_enabled != GL_FALSE);
         sWriteEnabled = write_enabled;
     }
 }
@@ -2783,20 +2806,19 @@ LLGLDepthTest::~LLGLDepthTest()
     if (sDepthEnabled != mPrevDepthEnabled )
     {
         gGL.flush();
-        if (mPrevDepthEnabled) LLGLContainment::enableCapability(GL_DEPTH_TEST);
-        else LLGLContainment::disableCapability(GL_DEPTH_TEST);
+        getOpenGLRenderBackend().setCapability(LLRenderCapability::DepthTest, mPrevDepthEnabled != GL_FALSE);
         sDepthEnabled = mPrevDepthEnabled;
     }
     if (sDepthFunc != mPrevDepthFunc)
     {
         gGL.flush();
-        LLGLContainment::setDepthFunction(mPrevDepthFunc);
+        getOpenGLRenderBackend().setDepthFunction(to_render_depth_function(mPrevDepthFunc));
         sDepthFunc = mPrevDepthFunc;
     }
     if (sWriteEnabled != mPrevWriteEnabled )
     {
         gGL.flush();
-        LLGLContainment::setDepthMask(mPrevWriteEnabled);
+        getOpenGLRenderBackend().setDepthWriteEnabled(mPrevWriteEnabled != GL_FALSE);
         sWriteEnabled = mPrevWriteEnabled;
     }
 }

@@ -60,6 +60,32 @@ enum class LLRenderBlendFactor : U8
     OneMinusSourceAlpha,
 };
 
+enum class LLRenderCapability : U8
+{
+    DebugOutputSynchronous,
+    DepthTest,
+    Multisample,
+    TextureCubeMapSeamless,
+};
+
+enum class LLRenderCullFace : U8
+{
+    Front,
+    Back,
+    FrontAndBack,
+};
+
+enum class LLRenderDepthFunction : U8
+{
+    Always,
+    Less,
+    LessEqual,
+    Equal,
+    NotEqual,
+    GreaterEqual,
+    Greater,
+};
+
 enum LLRenderClearMask : U32
 {
     LL_RENDER_CLEAR_NONE = 0,
@@ -168,6 +194,10 @@ public:
     virtual void setColorMask(const LLRenderColorMask& mask) = 0;
     virtual void setBlendState(const LLRenderBlendState& blend) = 0;
     virtual void setLineWidth(F32 width) = 0;
+    virtual void setCapability(LLRenderCapability capability, bool enabled) = 0;
+    virtual void setCullFace(LLRenderCullFace face) = 0;
+    virtual void setDepthFunction(LLRenderDepthFunction function) = 0;
+    virtual void setDepthWriteEnabled(bool enabled) = 0;
 };
 
 const char* getRenderBackendTypeName(LLRenderBackendType type);

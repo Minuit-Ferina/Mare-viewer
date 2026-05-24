@@ -872,7 +872,7 @@ bool LLRender::init(bool needs_vertex_buffer)
     { //setup debug output callback
         // Debug message filtering remains intentionally disabled here.
         LLGLContainment::setDebugMessageCallback(reinterpret_cast<LLGLContainment::DebugMessageCallback>(gl_debug_callback), NULL);
-        LLGLContainment::enableCapability(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        getOpenGLRenderBackend().setCapability(LLRenderCapability::DebugOutputSynchronous, true);
     }
 #endif
 
@@ -882,10 +882,10 @@ bool LLRender::init(bool needs_vertex_buffer)
     gGL.setSceneBlendType(LLRender::BT_ALPHA);
     gGL.setAmbientLightColor(LLColor4::black);
 
-    LLGLContainment::setCullFace(GL_BACK);
+    getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Back);
 
     // necessary for reflection maps
-    LLGLContainment::enableCapability(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    getOpenGLRenderBackend().setCapability(LLRenderCapability::TextureCubeMapSeamless, true);
 
 #if LL_WINDOWS
     if (!LLGLContainment::hasVertexArrayGenerator())
