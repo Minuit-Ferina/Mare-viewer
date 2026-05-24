@@ -41,7 +41,7 @@ indra/newview/llfloaterimagepreview.cpp,render.draw_pool,1116,39,0,0,0,0,72,8,11
 indra/newview/llmaniprotate.cpp,render.opengl_touching,1976,33,0,0,0,0,70,13,6,0,0,0,0,0,1
 indra/newview/llreflectionmapmanager.cpp,render.pipeline,1637,16,0,0,0,0,69,17,3,13,0,1,3,0,0
 indra/newview/llsnapshotlivepreview.cpp,assets.texture,1105,30,0,0,0,0,64,3,3,0,0,0,0,3,0
-indra/newview/llmodelpreview.cpp,render.opengl_touching,4172,42,0,0,0,0,58,30,17,0,0,0,0,0,0
+indra/newview/llmodelpreview.cpp,render.opengl_touching,4175,42,0,0,0,0,58,30,17,0,0,0,0,0,0
 indra/newview/gltfscenemanager.cpp,render.pipeline,1210,23,0,0,0,0,56,38,5,8,0,0,0,2,0
 indra/newview/lldrawpoolbump.cpp,render.pipeline,1083,23,0,0,0,0,47,23,9,8,26,1,3,8,0
 indra/newview/lldrawpoolavatar.cpp,render.pipeline,991,27,0,0,0,0,46,4,1,17,59,0,0,1,0
@@ -990,8 +990,8 @@ indra/newview/llpanellandaudio.cpp,ui,356,20,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llstatusbar.h,viewer.misc,356,1,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llfloaterlandholdings.cpp,ui,356,23,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llregistry.h,core,354,3,0,0,0,0,0,0,0,0,0,0,0,0,0
+indra/newview/llmodelpreview.h,viewer.misc,353,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llfilesystem/lldir_linux.cpp,unknown,353,10,0,0,0,0,0,0,0,0,0,0,0,0,0
-indra/newview/llmodelpreview.h,viewer.misc,352,5,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/newview/llviewerthrottle.cpp,viewer.misc,352,8,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llmemory.cpp,core,352,16,0,0,0,0,0,0,0,0,0,0,0,0,0
 indra/llcommon/llstringtable.cpp,core,352,3,0,0,0,0,0,0,0,0,0,0,0,0,0

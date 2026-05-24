@@ -3,7 +3,7 @@
 Project base: Kokua Viewer.
 Upstream context: Firestorm Viewer.
 
-Current rule: phase 9 is complete on branch `phase9`. Preserve the completed
+Current rule: phase 10 is active on branch `phase10`. Preserve the completed
 OpenGL containment and header guardrails, then prepare the next renderer
 boundaries with docs-first, small, reviewable packets. Do not move source
 files, do not change runtime behavior without an explicit task, and do not
@@ -1574,10 +1574,20 @@ start a direct Vulkan port.
 
 ## Phase 10 Candidate Backlog
 
-- [ ] Start phase 10 with a docs-first plan before any source edits.
-- [ ] Choose between mapping `LLGLTFPreviewTexture`, mapping
+- [x] Create branch `phase10` from completed `phase9`.
+- [x] Start phase 10 with a docs-first plan before any source edits.
+- [x] Add `docs/architecture/321-phase10-plan.md`.
+- [x] Choose between mapping `LLGLTFPreviewTexture`, mapping
       `LLModelPreview`, or investigating `LLPreviewAnimation::needsRender()`
       as an explicit behavior task.
+- [x] Choose `LLModelPreview` because `LLGLTFPreviewTexture` was already split
+      in phase 5 and `LLPreviewAnimation::needsRender()` is behavior work.
+- [x] Add `docs/architecture/322-model-preview-owner-map.md`.
+- [x] Add `docs/architecture/323-model-preview-canvas-task.md`.
+- [x] Verify the `LLModelPreview::render()` canvas helper split with targeted
+      `llmodelpreview.cpp.o`, regenerated source inventory, both GL guardrails,
+      and `git diff --check`.
+- [x] Add `docs/architecture/324-model-preview-canvas-summary.md`.
 - [ ] Keep any `needsRender()` override out of wrapper-only packets.
 - [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
       multi-window, and multi-login work out of phase 10 unless explicitly

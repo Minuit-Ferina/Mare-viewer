@@ -3305,29 +3305,7 @@ bool LLModelPreview::render()
     LLGLEnable cull(GL_CULL_FACE);
     LLGLDepthTest depth(GL_FALSE); // SL-12781 disable z-buffer to render background color
 
-    {
-        gUIProgram.bind();
-
-        //clear background to grey
-        gGL.matrixMode(LLRender::MM_PROJECTION);
-        gGL.pushMatrix();
-        gGL.loadIdentity();
-        gGL.ortho(0.0f, (F32)width, 0.0f, (F32)height, -1.0f, 1.0f);
-
-        gGL.matrixMode(LLRender::MM_MODELVIEW);
-        gGL.pushMatrix();
-        gGL.loadIdentity();
-
-        gGL.color4fv(PREVIEW_CANVAS_COL.mV);
-        gl_rect_2d_simple(width, height);
-
-        gGL.matrixMode(LLRender::MM_PROJECTION);
-        gGL.popMatrix();
-
-        gGL.matrixMode(LLRender::MM_MODELVIEW);
-        gGL.popMatrix();
-        gUIProgram.unbind();
-    }
+    drawPreviewCanvas(width, height);
 
     LLFloaterModelPreview* fmp = LLFloaterModelPreview::sInstance;
 
@@ -3981,6 +3959,31 @@ bool LLModelPreview::render()
     gGL.popMatrix();
 
     return true;
+}
+
+void LLModelPreview::drawPreviewCanvas(S32 width, S32 height)
+{
+    gUIProgram.bind();
+
+    //clear background to grey
+    gGL.matrixMode(LLRender::MM_PROJECTION);
+    gGL.pushMatrix();
+    gGL.loadIdentity();
+    gGL.ortho(0.0f, (F32)width, 0.0f, (F32)height, -1.0f, 1.0f);
+
+    gGL.matrixMode(LLRender::MM_MODELVIEW);
+    gGL.pushMatrix();
+    gGL.loadIdentity();
+
+    gGL.color4fv(PREVIEW_CANVAS_COL.mV);
+    gl_rect_2d_simple(width, height);
+
+    gGL.matrixMode(LLRender::MM_PROJECTION);
+    gGL.popMatrix();
+
+    gGL.matrixMode(LLRender::MM_MODELVIEW);
+    gGL.popMatrix();
+    gUIProgram.unbind();
 }
 
 void LLModelPreview::renderGroundPlane(float z_offset)
