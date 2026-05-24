@@ -95,14 +95,43 @@ static const GLenum sGLTextureType[] =
     GL_TEXTURE_3D
 };
 
-static const GLint sGLAddressMode[] =
-{
-    GL_REPEAT,
-    GL_MIRRORED_REPEAT,
-    GL_CLAMP_TO_EDGE
-};
-
 const U32 immediate_mask = LLVertexBuffer::MAP_VERTEX | LLVertexBuffer::MAP_COLOR | LLVertexBuffer::MAP_TEXCOORD0;
+
+static LLRenderTextureTarget to_render_texture_target(LLTexUnit::eTextureType type)
+{
+    switch (type)
+    {
+    case LLTexUnit::TT_TEXTURE:
+        return LLRenderTextureTarget::Texture2D;
+    case LLTexUnit::TT_RECT_TEXTURE:
+        return LLRenderTextureTarget::TextureRectangle;
+    case LLTexUnit::TT_CUBE_MAP:
+        return LLRenderTextureTarget::TextureCubeMap;
+    case LLTexUnit::TT_CUBE_MAP_ARRAY:
+        return LLRenderTextureTarget::TextureCubeMapArray;
+    case LLTexUnit::TT_MULTISAMPLE_TEXTURE:
+        return LLRenderTextureTarget::Texture2DMultisample;
+    case LLTexUnit::TT_TEXTURE_3D:
+        return LLRenderTextureTarget::Texture3D;
+    case LLTexUnit::TT_NONE:
+    default:
+        return LLRenderTextureTarget::Texture2D;
+    }
+}
+
+static LLRenderTextureAddressMode to_render_texture_address_mode(LLTexUnit::eTextureAddressMode mode)
+{
+    switch (mode)
+    {
+    case LLTexUnit::TAM_WRAP:
+        return LLRenderTextureAddressMode::Repeat;
+    case LLTexUnit::TAM_MIRROR:
+        return LLRenderTextureAddressMode::MirroredRepeat;
+    case LLTexUnit::TAM_CLAMP:
+    default:
+        return LLRenderTextureAddressMode::ClampToEdge;
+    }
+}
 
 static LLRenderBlendFactor to_render_blend_factor(LLRender::eBlendFactor factor)
 {
@@ -156,15 +185,15 @@ void LLTexUnit::refreshState(void)
 
     gGL.flush();
 
-    LLGLContainment::setActiveTexture(GL_TEXTURE0 + mIndex);
+    getOpenGLRenderBackend().setActiveTextureUnit(mIndex);
 
     if (mCurrTexType != TT_NONE)
     {
-        LLGLContainment::bindTexture(sGLTextureType[mCurrTexType], mCurrTexture);
+        getOpenGLRenderBackend().bindTexture(to_render_texture_target(mCurrTexType), mCurrTexture);
     }
     else
     {
-        LLGLContainment::bindTexture(GL_TEXTURE_2D, 0);
+        getOpenGLRenderBackend().bindTexture(LLRenderTextureTarget::Texture2D, 0);
     }
 }
 
@@ -175,7 +204,7 @@ void LLTexUnit::activate(void)
     if ((S32)gGL.mCurrTextureUnitIndex != mIndex || gGL.mDirty)
     {
         gGL.flush();
-        LLGLContainment::setActiveTexture(GL_TEXTURE0 + mIndex);
+        getOpenGLRenderBackend().setActiveTextureUnit(mIndex);
         gGL.mCurrTextureUnitIndex = mIndex;
     }
 }
@@ -212,7 +241,7 @@ void LLTexUnit::bindFast(LLTexture* texture)
 {
     LLImageGL* gl_tex = texture->getGLTexture();
     texture->setActive();
-    LLGLContainment::setActiveTexture(GL_TEXTURE0 + mIndex);
+    getOpenGLRenderBackend().setActiveTextureUnit(mIndex);
     gGL.mCurrTextureUnitIndex = mIndex;
     mCurrTexture = gl_tex->getTexName();
     if (!mCurrTexture)
@@ -223,7 +252,7 @@ void LLTexUnit::bindFast(LLTexture* texture)
         gl_tex->forceUpdateBindStats();
         texture->bindDefaultImage(mIndex);
     }
-    LLGLContainment::bindTexture(sGLTextureType[gl_tex->getTarget()], mCurrTexture);
+    getOpenGLRenderBackend().bindTexture(to_render_texture_target(gl_tex->getTarget()), mCurrTexture);
     mHasMipMaps = gl_tex->mHasMipMaps;
     if (gl_tex->mTexOptionsDirty)
     {
@@ -253,7 +282,7 @@ bool LLTexUnit::bind(LLTexture* texture, bool for_rendering, bool forceBind)
                     activate();
                     enable(gl_tex->getTarget());
                     mCurrTexture = gl_tex->getTexName();
-                    LLGLContainment::bindTexture(sGLTextureType[gl_tex->getTarget()], mCurrTexture);
+                    getOpenGLRenderBackend().bindTexture(to_render_texture_target(gl_tex->getTarget()), mCurrTexture);
                     if(gl_tex->updateBindStats())
                     {
                         texture->setActive() ;
@@ -330,7 +359,7 @@ bool LLTexUnit::bind(LLImageGL* texture, bool for_rendering, bool forceBind, S32
         enable(texture->getTarget());
         stop_glerror();
         mCurrTexture = texname;
-        LLGLContainment::bindTexture(sGLTextureType[texture->getTarget()], mCurrTexture);
+        getOpenGLRenderBackend().bindTexture(to_render_texture_target(texture->getTarget()), mCurrTexture);
         stop_glerror();
         texture->updateBindStats();
         mHasMipMaps = texture->mHasMipMaps;
@@ -368,7 +397,7 @@ bool LLTexUnit::bind(LLCubeMap* cubeMap)
             activate();
             enable(LLTexUnit::TT_CUBE_MAP);
             mCurrTexture = cubeMap->mImages[0]->getTexName();
-            LLGLContainment::bindTexture(GL_TEXTURE_CUBE_MAP, mCurrTexture);
+            getOpenGLRenderBackend().bindTexture(LLRenderTextureTarget::TextureCubeMap, mCurrTexture);
             mHasMipMaps = cubeMap->mImages[0]->mHasMipMaps;
             cubeMap->mImages[0]->updateBindStats();
             if (cubeMap->mImages[0]->mTexOptionsDirty)
@@ -423,7 +452,7 @@ bool LLTexUnit::bindManual(eTextureType type, U32 texture, bool hasMips)
         activate();
         enable(type);
         mCurrTexture = texture;
-        LLGLContainment::bindTexture(sGLTextureType[type], texture);
+        getOpenGLRenderBackend().bindTexture(to_render_texture_target(type), texture);
         mHasMipMaps = hasMips;
     }
     return true;
@@ -447,11 +476,11 @@ void LLTexUnit::unbind(eTextureType type)
 
         if (type == LLTexUnit::TT_TEXTURE)
         {
-            LLGLContainment::bindTexture(sGLTextureType[type], sWhiteTexture);
+            getOpenGLRenderBackend().bindTexture(to_render_texture_target(type), sWhiteTexture);
         }
         else
         {
-            LLGLContainment::bindTexture(sGLTextureType[type], 0);
+            getOpenGLRenderBackend().bindTexture(to_render_texture_target(type), 0);
         }
         stop_glerror();
     }
@@ -468,11 +497,11 @@ void LLTexUnit::unbindFast(eTextureType type)
 
         if (type == LLTexUnit::TT_TEXTURE)
         {
-            LLGLContainment::bindTexture(sGLTextureType[type], sWhiteTexture);
+            getOpenGLRenderBackend().bindTexture(to_render_texture_target(type), sWhiteTexture);
         }
         else
         {
-            LLGLContainment::bindTexture(sGLTextureType[type], 0);
+            getOpenGLRenderBackend().bindTexture(to_render_texture_target(type), 0);
         }
     }
 }
@@ -490,14 +519,9 @@ void LLTexUnit::setTextureAddressMode(eTextureAddressMode mode)
 
 void LLTexUnit::setTextureAddressModeFast(eTextureAddressMode mode, eTextureType tex_type)
 {
-    const LLGLenum target = sGLTextureType[tex_type];
-
-    LLGLContainment::setTextureParameterInteger(target, GL_TEXTURE_WRAP_S, sGLAddressMode[mode]);
-    LLGLContainment::setTextureParameterInteger(target, GL_TEXTURE_WRAP_T, sGLAddressMode[mode]);
-    if (tex_type == TT_CUBE_MAP || tex_type == TT_CUBE_MAP_ARRAY || tex_type == TT_TEXTURE_3D)
-    {
-        LLGLContainment::setTextureParameterInteger(target, GL_TEXTURE_WRAP_R, sGLAddressMode[mode]);
-    }
+    getOpenGLRenderBackend().setTextureAddressMode(
+        to_render_texture_target(tex_type),
+        to_render_texture_address_mode(mode));
 }
 
 void LLTexUnit::setTextureFilteringOption(LLTexUnit::eTextureFilterOptions option)
@@ -511,53 +535,61 @@ void LLTexUnit::setTextureFilteringOption(LLTexUnit::eTextureFilterOptions optio
 
 void LLTexUnit::setTextureFilteringOptionFast(LLTexUnit::eTextureFilterOptions option, eTextureType tex_type)
 {
-    const LLGLenum target = sGLTextureType[tex_type];
+    LLRenderTextureFilter mag_filter = LLRenderTextureFilter::Linear;
+    LLRenderTextureFilter min_filter = LLRenderTextureFilter::Linear;
 
     if (option == TFO_POINT)
     {
-        LLGLContainment::setTextureParameterInteger(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        mag_filter = LLRenderTextureFilter::Nearest;
     }
     else
     {
-        LLGLContainment::setTextureParameterInteger(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        mag_filter = LLRenderTextureFilter::Linear;
     }
 
     if (option >= TFO_TRILINEAR && mHasMipMaps)
     {
-        LLGLContainment::setTextureParameterInteger(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        min_filter = LLRenderTextureFilter::LinearMipmapLinear;
     }
     else if (option >= TFO_BILINEAR)
     {
         if (mHasMipMaps)
         {
-            LLGLContainment::setTextureParameterInteger(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+            min_filter = LLRenderTextureFilter::LinearMipmapNearest;
         }
         else
         {
-            LLGLContainment::setTextureParameterInteger(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            min_filter = LLRenderTextureFilter::Linear;
         }
     }
     else
     {
         if (mHasMipMaps)
         {
-            LLGLContainment::setTextureParameterInteger(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+            min_filter = LLRenderTextureFilter::NearestMipmapNearest;
         }
         else
         {
-            LLGLContainment::setTextureParameterInteger(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            min_filter = LLRenderTextureFilter::Nearest;
         }
     }
+
+    getOpenGLRenderBackend().setTextureFilter(
+        to_render_texture_target(tex_type),
+        min_filter,
+        mag_filter);
 
     if (gGLManager.mHasAnisotropic)
     {
         if (LLImageGL::sGlobalUseAnisotropic && option == TFO_ANISOTROPIC)
         {
-            LLGLContainment::setTextureParameterFloat(target, GL_TEXTURE_MAX_ANISOTROPY, gGLManager.mMaxAnisotropy);
+            getOpenGLRenderBackend().setTextureMaxAnisotropy(
+                to_render_texture_target(tex_type),
+                gGLManager.mMaxAnisotropy);
         }
         else
         {
-            LLGLContainment::setTextureParameterFloat(target, GL_TEXTURE_MAX_ANISOTROPY, 1.f);
+            getOpenGLRenderBackend().setTextureMaxAnisotropy(to_render_texture_target(tex_type), 1.f);
         }
     }
 }
@@ -644,12 +676,10 @@ void LLTexUnit::debugTextureUnit(void)
 {
     if (mIndex < 0) return;
 
-    GLint activeTexture;
-    LLGLContainment::getInteger(GL_ACTIVE_TEXTURE, &activeTexture);
-    if ((GL_TEXTURE0 + mIndex) != activeTexture)
+    S32 active_texture_unit = getOpenGLRenderBackend().getActiveTextureUnit();
+    if (mIndex != active_texture_unit)
     {
-        U32 set_unit = (activeTexture - GL_TEXTURE0);
-        LL_WARNS() << "Incorrect Texture Unit!  Expected: " << set_unit << " Actual: " << mIndex << LL_ENDL;
+        LL_WARNS() << "Incorrect Texture Unit!  Expected: " << active_texture_unit << " Actual: " << mIndex << LL_ENDL;
     }
 }
 
@@ -871,13 +901,15 @@ bool LLRender::init(bool needs_vertex_buffer)
     if (gGLManager.mHasDebugOutput && gDebugGL)
     { //setup debug output callback
         // Debug message filtering remains intentionally disabled here.
-        LLGLContainment::setDebugMessageCallback(reinterpret_cast<LLGLContainment::DebugMessageCallback>(gl_debug_callback), NULL);
+        getOpenGLRenderBackend().setDebugMessageCallback(
+            reinterpret_cast<LLRenderDebugMessageCallback>(gl_debug_callback),
+            NULL);
         getOpenGLRenderBackend().setCapability(LLRenderCapability::DebugOutputSynchronous, true);
     }
 #endif
 
-    LLGLContainment::setPixelStoreInteger(GL_PACK_ALIGNMENT, 1);
-    LLGLContainment::setPixelStoreInteger(GL_UNPACK_ALIGNMENT, 1);
+    getOpenGLRenderBackend().setPixelStoreInteger(LLRenderPixelStoreParameter::PackAlignment, 1);
+    getOpenGLRenderBackend().setPixelStoreInteger(LLRenderPixelStoreParameter::UnpackAlignment, 1);
 
     gGL.setSceneBlendType(LLRender::BT_ALPHA);
     gGL.setAmbientLightColor(LLColor4::black);
@@ -888,7 +920,7 @@ bool LLRender::init(bool needs_vertex_buffer)
     getOpenGLRenderBackend().setCapability(LLRenderCapability::TextureCubeMapSeamless, true);
 
 #if LL_WINDOWS
-    if (!LLGLContainment::hasVertexArrayGenerator())
+    if (!getOpenGLRenderBackend().hasVertexArraySupport())
     {
         return false;
     }
@@ -896,8 +928,8 @@ bool LLRender::init(bool needs_vertex_buffer)
 
     { //bind a dummy vertex array object so we're core profile compliant
         U32 ret;
-        LLGLContainment::generateVertexArrays(1, &ret);
-        LLGLContainment::bindVertexArray(ret);
+        getOpenGLRenderBackend().generateVertexArrays(1, &ret);
+        getOpenGLRenderBackend().bindVertexArray(ret);
     }
 
     if (needs_vertex_buffer)
@@ -919,13 +951,12 @@ void LLRender::initVertexBuffer()
     stop_glerror();
 
     // <FS:Ansariel> Don't ignore OpenGL max line width
-    GLint range[2];
-    LLGLContainment::getInteger(GL_ALIASED_LINE_WIDTH_RANGE, range);
+    LLRenderFloatRange range = getOpenGLRenderBackend().getLineWidthRange(false);
     stop_glerror();
-    mMaxLineWidthAliased = F32(range[1]);
-    LLGLContainment::getInteger(GL_SMOOTH_LINE_WIDTH_RANGE, range);
+    mMaxLineWidthAliased = range.mMaximum;
+    range = getOpenGLRenderBackend().getLineWidthRange(true);
     stop_glerror();
-    mMaxLineWidthSmooth = F32(range[1]);
+    mMaxLineWidthSmooth = range.mMaximum;
     // </FS:Ansariel>
 }
 
@@ -1537,7 +1568,7 @@ void LLRender::setLineWidth(F32 line_width)
     {
         line_width = llmin(
             line_width,
-            LLGLContainment::isCapabilityEnabled(GL_LINE_SMOOTH) ? mMaxLineWidthSmooth : mMaxLineWidthAliased);
+            getOpenGLRenderBackend().isCapabilityEnabled(LLRenderCapability::LineSmooth) ? mMaxLineWidthSmooth : mMaxLineWidthAliased);
     }
     if (mLineWidth != line_width || mDirty)
     {
@@ -1566,7 +1597,7 @@ bool LLRender::verifyTexUnitActive(U32 unitToVerify)
 
 void LLRender::clearErrors()
 {
-    while (LLGLContainment::getError())
+    while (getOpenGLRenderBackend().hasError())
     {
         //loop until no more error flags left
     }

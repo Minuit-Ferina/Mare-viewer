@@ -33,7 +33,6 @@
 #include "llfontgl.h"
 #include "llrender.h"
 #include "llrenderbackend.h"
-#include "llglcontainment.h"
 #include "llrect.h"
 #include "llgl.h"
 #include "llglslshader.h"
@@ -1807,7 +1806,9 @@ void LLRender2D::setLineWidth(F32 width)
     static F32 range[2]{0.0};
     if (range[1] == 0)
     {
-        LLGLContainment::getFloat(GL_SMOOTH_LINE_WIDTH_RANGE, range);
+        LLRenderFloatRange line_width_range = getOpenGLRenderBackend().getLineWidthRange(true);
+        range[0] = line_width_range.mMinimum;
+        range[1] = line_width_range.mMaximum;
     }
     width *= lerp(LLRender::sUIGLScaleFactor.mV[VX], LLRender::sUIGLScaleFactor.mV[VY], 0.5f);
     getOpenGLRenderBackend().setLineWidth(llclamp(width, range[0], range[1]));

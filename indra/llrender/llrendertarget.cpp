@@ -29,7 +29,6 @@
 #include "llrendertarget.h"
 #include "llrender.h"
 #include "llgl.h"
-#include "llglcontainment.h"
 #include "llrenderbackend.h"
 
 LLRenderTarget* LLRenderTarget::sBoundTarget = NULL;
@@ -46,19 +45,57 @@ U32 LLRenderTarget::sCurResY = 0;
 
 namespace
 {
+LLRenderTextureTarget to_render_texture_target(LLTexUnit::eTextureType type)
+{
+    switch (type)
+    {
+    case LLTexUnit::TT_TEXTURE:
+        return LLRenderTextureTarget::Texture2D;
+    case LLTexUnit::TT_RECT_TEXTURE:
+        return LLRenderTextureTarget::TextureRectangle;
+    case LLTexUnit::TT_CUBE_MAP:
+        return LLRenderTextureTarget::TextureCubeMap;
+    case LLTexUnit::TT_CUBE_MAP_ARRAY:
+        return LLRenderTextureTarget::TextureCubeMapArray;
+    case LLTexUnit::TT_MULTISAMPLE_TEXTURE:
+        return LLRenderTextureTarget::Texture2DMultisample;
+    case LLTexUnit::TT_TEXTURE_3D:
+        return LLRenderTextureTarget::Texture3D;
+    case LLTexUnit::TT_NONE:
+    default:
+        llassert(false);
+        return LLRenderTextureTarget::Texture2D;
+    }
+}
+
+LLRenderFramebufferAttachment to_render_framebuffer_attachment(GLenum attachment)
+{
+    switch (attachment)
+    {
+    case GL_COLOR_ATTACHMENT0:
+        return LLRenderFramebufferAttachment::Color0;
+    case GL_COLOR_ATTACHMENT1:
+        return LLRenderFramebufferAttachment::Color1;
+    case GL_COLOR_ATTACHMENT2:
+        return LLRenderFramebufferAttachment::Color2;
+    case GL_COLOR_ATTACHMENT3:
+        return LLRenderFramebufferAttachment::Color3;
+    case GL_DEPTH_ATTACHMENT:
+        return LLRenderFramebufferAttachment::Depth;
+    default:
+        llassert(false);
+        return LLRenderFramebufferAttachment::Color0;
+    }
+}
+
 void check_current_draw_framebuffer_status()
 {
     if (gDebugGL)
     {
-        U32 status = LLGLContainment::getDrawFramebufferStatus();
-        switch (status)
+        if (!getOpenGLRenderBackend().isDrawFramebufferComplete())
         {
-        case GL_FRAMEBUFFER_COMPLETE:
-            break;
-        default:
-            LL_WARNS() << "check_framebuffer_status failed -- " << std::hex << status << LL_ENDL;
+            LL_WARNS() << "check_framebuffer_status failed" << LL_ENDL;
             ll_fail("check_framebuffer_status failed");
-            break;
         }
     }
 }
@@ -87,36 +124,36 @@ void restore_default_framebuffer_viewport()
 
 void bind_render_target_fbo(U32 fbo)
 {
-    LLGLContainment::bindReadWriteFramebuffer(fbo);
+    getOpenGLRenderBackend().bindReadWriteFramebuffer(fbo);
     LLRenderTarget::sCurFBO = fbo;
 }
 
 void bind_attachment_fbo(U32 fbo)
 {
-    LLGLContainment::bindReadWriteFramebuffer(fbo);
+    getOpenGLRenderBackend().bindReadWriteFramebuffer(fbo);
 }
 
 void generate_framebuffer_name(U32* fbo)
 {
-    LLGLContainment::generateFramebuffers(1, fbo);
+    getOpenGLRenderBackend().generateFramebuffers(1, fbo);
 }
 
 void delete_framebuffer_name(U32* fbo)
 {
-    LLGLContainment::deleteFramebuffers(1, fbo);
+    getOpenGLRenderBackend().deleteFramebuffers(1, fbo);
 }
 
 void restore_tracked_fbo_binding()
 {
-    LLGLContainment::bindReadWriteFramebuffer(LLRenderTarget::sCurFBO);
+    getOpenGLRenderBackend().bindReadWriteFramebuffer(LLRenderTarget::sCurFBO);
 }
 
 void set_framebuffer_texture_attachment(GLenum attachment, LLTexUnit::eTextureType usage, U32 texture)
 {
-    LLGLContainment::setReadWriteFramebufferTexture2D(
-        static_cast<LLGLenum>(attachment),
-        static_cast<LLGLenum>(LLTexUnit::getInternalType(usage)),
-        static_cast<LLGLuint>(texture),
+    getOpenGLRenderBackend().attachFramebufferTexture2D(
+        to_render_framebuffer_attachment(attachment),
+        to_render_texture_target(usage),
+        texture,
         0);
 }
 
@@ -127,39 +164,24 @@ void clear_framebuffer_texture_attachment(GLenum attachment, LLTexUnit::eTexture
 
 void bind_default_framebuffer_for_flush()
 {
-    LLGLContainment::bindReadWriteFramebuffer(0);
+    getOpenGLRenderBackend().bindReadWriteFramebuffer(0);
     LLRenderTarget::sCurFBO = 0;
 }
 
 void forget_current_fbo_and_bind_default()
 {
     LLRenderTarget::sCurFBO = 0;
-    LLGLContainment::bindReadWriteFramebuffer(0);
+    getOpenGLRenderBackend().bindReadWriteFramebuffer(0);
 }
 
 void set_render_target_buffer_routing(U32 color_attachment_count)
 {
-    LLGLenum drawbuffers[] = {GL_COLOR_ATTACHMENT0,
-                              GL_COLOR_ATTACHMENT1,
-                              GL_COLOR_ATTACHMENT2,
-                              GL_COLOR_ATTACHMENT3};
-
-    if (color_attachment_count == 0)
-    {
-        LLGLContainment::setDrawBuffer(GL_NONE);
-        LLGLContainment::setReadBuffer(GL_NONE);
-    }
-    else
-    {
-        LLGLContainment::setDrawBuffers(static_cast<S32>(color_attachment_count), drawbuffers);
-        LLGLContainment::setReadBuffer(GL_COLOR_ATTACHMENT0);
-    }
+    getOpenGLRenderBackend().setFramebufferBufferRouting(color_attachment_count);
 }
 
 void restore_default_framebuffer_buffer_routing()
 {
-    LLGLContainment::setReadBuffer(GL_BACK);
-    LLGLContainment::setDrawBuffer(GL_BACK);
+    getOpenGLRenderBackend().restoreDefaultFramebufferBufferRouting();
 }
 
 void generate_bound_render_target_mipmaps()
@@ -196,7 +218,7 @@ void set_render_target_scissor(U32 width, U32 height)
 
 bool render_target_texture_allocation_failed()
 {
-    return LLGLContainment::getError() != GL_NO_ERROR;
+    return getOpenGLRenderBackend().hasError();
 }
 }
 

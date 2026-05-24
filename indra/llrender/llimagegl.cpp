@@ -612,12 +612,14 @@ static bool check_power_of_two(S32 dim)
 
 static void set_texture_unpack_swap_bytes_enabled(bool enabled)
 {
-    LLGLContainment::setPixelStoreInteger(GL_UNPACK_SWAP_BYTES, enabled ? 1 : 0);
+    getOpenGLRenderBackend().setPixelStoreInteger(
+        LLRenderPixelStoreParameter::UnpackSwapBytes,
+        enabled ? 1 : 0);
 }
 
 static void set_texture_unpack_row_length(S32 row_length)
 {
-    LLGLContainment::setPixelStoreInteger(GL_UNPACK_ROW_LENGTH, row_length);
+    getOpenGLRenderBackend().setPixelStoreInteger(LLRenderPixelStoreParameter::UnpackRowLength, row_length);
 }
 
 static void query_texture_level_parameter(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value)
@@ -644,7 +646,7 @@ static void ensure_scratch_pbo_created(U32& pbo, U32& pbo_size)
 {
     if (pbo == 0)
     {
-        LLGLContainment::generateBufferObjects(1, &pbo);
+        getOpenGLRenderBackend().generateBuffers(1, &pbo);
         pbo_size = 0;
     }
 }
@@ -653,7 +655,7 @@ static void delete_scratch_pbo(U32& pbo, U32& pbo_size)
 {
     if (pbo != 0)
     {
-        LLGLContainment::deleteBufferObjects(1, &pbo);
+        getOpenGLRenderBackend().deleteBuffers(1, &pbo);
         pbo = 0;
         pbo_size = 0;
     }
@@ -661,27 +663,31 @@ static void delete_scratch_pbo(U32& pbo, U32& pbo_size)
 
 static void bind_scratch_pbo_for_pixel_pack(U32 pbo)
 {
-    LLGLContainment::bindBufferObject(GL_PIXEL_PACK_BUFFER, pbo);
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::PixelPack, pbo);
 }
 
 static void unbind_pixel_pack_buffer()
 {
-    LLGLContainment::bindBufferObject(GL_PIXEL_PACK_BUFFER, 0);
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::PixelPack, 0);
 }
 
 static void bind_scratch_pbo_for_pixel_unpack(U32 pbo)
 {
-    LLGLContainment::bindBufferObject(GL_PIXEL_UNPACK_BUFFER, pbo);
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::PixelUnpack, pbo);
 }
 
 static void unbind_pixel_unpack_buffer()
 {
-    LLGLContainment::bindBufferObject(GL_PIXEL_UNPACK_BUFFER, 0);
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::PixelUnpack, 0);
 }
 
 static void resize_pixel_pack_buffer(U64 size)
 {
-    LLGLContainment::allocateBufferObjectStorage(GL_PIXEL_PACK_BUFFER, size, NULL, GL_STREAM_COPY);
+    getOpenGLRenderBackend().allocateBufferStorage(
+        LLRenderBufferTarget::PixelPack,
+        size,
+        NULL,
+        LLRenderBufferUsage::StreamCopy);
 }
 
 static GLsync create_texture_upload_sync()
@@ -1402,7 +1408,7 @@ void LLImageGL::generateTextures(S32 numTextures, U32 *textures)
     {
         LL_PROFILE_ZONE_NAMED("iglgt - reup pool");
         // pool is emtpy, refill it
-        LLGLContainment::generateTextures(pool_size, name_pool);
+        getOpenGLRenderBackend().generateTextures(pool_size, name_pool);
         name_count = pool_size;
     }
 
@@ -1415,7 +1421,7 @@ void LLImageGL::generateTextures(S32 numTextures, U32 *textures)
     else
     {
         LL_PROFILE_ZONE_NAMED("iglgt - pool miss");
-        LLGLContainment::generateTextures(numTextures, textures);
+        getOpenGLRenderBackend().generateTextures(numTextures, textures);
     }
 }
 
@@ -1434,7 +1440,7 @@ void LLImageGL::updateClass()
     if (!sFreeList[idx].empty())
     {
         free_tex_images((GLsizei) sFreeList[idx].size(), sFreeList[idx].data());
-        LLGLContainment::deleteTextures(
+        getOpenGLRenderBackend().deleteTextures(
             static_cast<S32>(sFreeList[idx].size()),
             sFreeList[idx].data());
         sFreeList[idx].resize(0);
@@ -2674,7 +2680,7 @@ bool LLImageGL::scaleDown(S32 desired_discard)
         // draw a full screen triangle
         if (gGL.getTexUnit(0)->bind(this, true, true))
         {
-            LLGLContainment::drawVertexBufferArrays(GL_TRIANGLES, 0, 3);
+            getOpenGLRenderBackend().drawArrays(LLRenderPrimitiveType::Triangles, 0, 3);
 
             free_tex_image(mTexName);
             LLGLContainment::setTextureImage2D(
@@ -2696,7 +2702,7 @@ bool LLImageGL::scaleDown(S32 desired_discard)
             { // generate mipmaps if needed
                 LL_PROFILE_ZONE_NAMED_CATEGORY_TEXTURE("scaleDown - glGenerateMipmap");
                 gGL.getTexUnit(0)->bind(this);
-                LLGLContainment::generateTextureMipmap(mTarget);
+                getOpenGLRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
                 gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
             }
         }
@@ -2746,7 +2752,7 @@ bool LLImageGL::scaleDown(S32 desired_discard)
         if (mHasMipMaps)
         {
             LL_PROFILE_ZONE_NAMED_CATEGORY_TEXTURE("scaleDown - glGenerateMipmap");
-            LLGLContainment::generateTextureMipmap(mTarget);
+            getOpenGLRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
         }
 
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);

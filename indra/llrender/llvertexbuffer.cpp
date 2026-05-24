@@ -28,12 +28,12 @@
 
 #include "llfasttimer.h"
 #include "llgl.h"
-#include "llglcontainment.h"
 #include "llsys.h"
 #include "llvertexbuffer.h"
 // #include "llrender.h"
 #include "llglheaders.h"
 #include "llrender.h"
+#include "llrenderbackend.h"
 #include "llvector4a.h"
 #include "llshadermgr.h"
 #include "llglslshader.h"
@@ -259,59 +259,164 @@ static GLWorkQueue* sQueue = nullptr;
 //============================================================================
 // Pool of reusable VertexBuffer state
 
+static LLRenderBufferTarget to_render_buffer_target(GLenum target)
+{
+    switch (target)
+    {
+    case GL_ARRAY_BUFFER:
+        return LLRenderBufferTarget::Vertex;
+    case GL_ELEMENT_ARRAY_BUFFER:
+        return LLRenderBufferTarget::Index;
+    default:
+        llassert(false);
+        return LLRenderBufferTarget::Vertex;
+    }
+}
+
+static LLRenderBufferUsage to_render_buffer_usage(GLenum usage)
+{
+    switch (usage)
+    {
+    case GL_STATIC_DRAW:
+        return LLRenderBufferUsage::StaticDraw;
+    case GL_DYNAMIC_DRAW:
+        return LLRenderBufferUsage::DynamicDraw;
+    default:
+        llassert(false);
+        return LLRenderBufferUsage::StaticDraw;
+    }
+}
+
+static LLRenderPrimitiveType to_render_primitive_type(GLenum mode)
+{
+    switch (mode)
+    {
+    case GL_TRIANGLES:
+        return LLRenderPrimitiveType::Triangles;
+    case GL_TRIANGLE_STRIP:
+        return LLRenderPrimitiveType::TriangleStrip;
+    case GL_TRIANGLE_FAN:
+        return LLRenderPrimitiveType::TriangleFan;
+    case GL_POINTS:
+        return LLRenderPrimitiveType::Points;
+    case GL_LINES:
+        return LLRenderPrimitiveType::Lines;
+    case GL_LINE_STRIP:
+        return LLRenderPrimitiveType::LineStrip;
+    case GL_LINE_LOOP:
+        return LLRenderPrimitiveType::LineLoop;
+    default:
+        llassert(false);
+        return LLRenderPrimitiveType::Triangles;
+    }
+}
+
+static LLRenderIndexType to_render_index_type(GLenum type)
+{
+    switch (type)
+    {
+    case GL_UNSIGNED_SHORT:
+        return LLRenderIndexType::UnsignedShort;
+    case GL_UNSIGNED_INT:
+        return LLRenderIndexType::UnsignedInt;
+    default:
+        llassert(false);
+        return LLRenderIndexType::UnsignedShort;
+    }
+}
+
+static LLRenderVertexAttributeType to_render_vertex_attribute_type(GLenum type)
+{
+    switch (type)
+    {
+    case GL_FLOAT:
+        return LLRenderVertexAttributeType::Float32;
+    case GL_UNSIGNED_BYTE:
+        return LLRenderVertexAttributeType::UnsignedByte;
+    case GL_UNSIGNED_SHORT:
+        return LLRenderVertexAttributeType::UnsignedShort;
+    case GL_UNSIGNED_INT:
+        return LLRenderVertexAttributeType::UnsignedInt;
+    default:
+        llassert(false);
+        return LLRenderVertexAttributeType::Float32;
+    }
+}
+
 static void generate_vertex_buffer_names(GLsizei count, GLuint* buffers)
 {
-    LLGLContainment::generateBufferObjects(count, buffers);
+    getOpenGLRenderBackend().generateBuffers(count, buffers);
 }
 
 static void delete_vertex_buffer_names(GLsizei count, const GLuint* buffers)
 {
-    LLGLContainment::deleteBufferObjects(count, buffers);
+    getOpenGLRenderBackend().deleteBuffers(count, buffers);
 }
 
 static void bind_vertex_buffer_target(GLenum target, GLuint buffer)
 {
-    LLGLContainment::bindBufferObject(target, buffer);
+    getOpenGLRenderBackend().bindBuffer(to_render_buffer_target(target), buffer);
 }
 
 static void allocate_vertex_buffer_storage(GLenum target, U32 size, const void* data, GLenum usage)
 {
-    LLGLContainment::allocateBufferObjectStorage(target, size, data, usage);
+    getOpenGLRenderBackend().allocateBufferStorage(
+        to_render_buffer_target(target),
+        size,
+        data,
+        to_render_buffer_usage(usage));
 }
 
 static void upload_vertex_buffer_sub_data(GLenum target, U32 offset, U32 size, const void* data)
 {
-    LLGLContainment::updateBufferObjectSubData(target, offset, size, data);
+    getOpenGLRenderBackend().updateBufferSubData(to_render_buffer_target(target), offset, size, data);
 }
 
 static void enable_vertex_attribute_array(GLuint location)
 {
-    LLGLContainment::enableVertexAttributeArray(location);
+    getOpenGLRenderBackend().enableVertexAttributeArray(location);
 }
 
 static void disable_vertex_attribute_array(GLuint location)
 {
-    LLGLContainment::disableVertexAttributeArray(location);
+    getOpenGLRenderBackend().disableVertexAttributeArray(location);
 }
 
 static void set_vertex_attribute_pointer(GLuint location, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void* pointer)
 {
-    LLGLContainment::setVertexAttributePointer(location, size, type, normalized, stride, pointer);
+    getOpenGLRenderBackend().setVertexAttributePointer(
+        location,
+        size,
+        to_render_vertex_attribute_type(type),
+        normalized == GL_TRUE,
+        stride,
+        pointer);
 }
 
 static void set_integer_vertex_attribute_pointer(GLuint location, GLint size, GLenum type, GLsizei stride, const void* pointer)
 {
-    LLGLContainment::setIntegerVertexAttributePointer(location, size, type, stride, pointer);
+    getOpenGLRenderBackend().setIntegerVertexAttributePointer(
+        location,
+        size,
+        to_render_vertex_attribute_type(type),
+        stride,
+        pointer);
 }
 
 static void draw_vertex_buffer_range(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum index_type, const void* indices)
 {
-    LLGLContainment::drawVertexBufferRange(mode, start, end, count, index_type, indices);
+    getOpenGLRenderBackend().drawIndexedRange(
+        to_render_primitive_type(mode),
+        start,
+        end,
+        count,
+        to_render_index_type(index_type),
+        indices);
 }
 
 static void draw_vertex_buffer_arrays(GLenum mode, GLint first, GLsizei count)
 {
-    LLGLContainment::drawVertexBufferArrays(mode, first, count);
+    getOpenGLRenderBackend().drawArrays(to_render_primitive_type(mode), first, count);
 }
 
 // batch buffer object name generation

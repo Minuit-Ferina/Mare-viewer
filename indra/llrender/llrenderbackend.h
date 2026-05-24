@@ -24,6 +24,8 @@
 
 #include "stdtypes.h"
 
+using LLRenderDebugMessageCallback = void (*)();
+
 enum class LLRenderBackendType : U8
 {
     Unknown,
@@ -64,6 +66,7 @@ enum class LLRenderCapability : U8
 {
     DebugOutputSynchronous,
     DepthTest,
+    LineSmooth,
     Multisample,
     TextureCubeMapSeamless,
 };
@@ -89,7 +92,85 @@ enum class LLRenderDepthFunction : U8
 enum class LLRenderTextureTarget : U8
 {
     Texture2D,
+    TextureRectangle,
     TextureCubeMap,
+    TextureCubeMapArray,
+    Texture2DMultisample,
+    Texture3D,
+};
+
+enum class LLRenderTextureAddressMode : U8
+{
+    Repeat,
+    MirroredRepeat,
+    ClampToEdge,
+};
+
+enum class LLRenderTextureFilter : U8
+{
+    Nearest,
+    Linear,
+    LinearMipmapLinear,
+    LinearMipmapNearest,
+    NearestMipmapNearest,
+};
+
+enum class LLRenderPixelStoreParameter : U8
+{
+    PackAlignment,
+    UnpackAlignment,
+    UnpackSwapBytes,
+    UnpackRowLength,
+};
+
+enum class LLRenderBufferTarget : U8
+{
+    Vertex,
+    Index,
+    PixelPack,
+    PixelUnpack,
+    Uniform,
+};
+
+enum class LLRenderBufferUsage : U8
+{
+    StaticDraw,
+    DynamicDraw,
+    StreamCopy,
+};
+
+enum class LLRenderPrimitiveType : U8
+{
+    Triangles,
+    TriangleStrip,
+    TriangleFan,
+    Points,
+    Lines,
+    LineStrip,
+    LineLoop,
+};
+
+enum class LLRenderIndexType : U8
+{
+    UnsignedShort,
+    UnsignedInt,
+};
+
+enum class LLRenderVertexAttributeType : U8
+{
+    Float32,
+    UnsignedByte,
+    UnsignedShort,
+    UnsignedInt,
+};
+
+enum class LLRenderFramebufferAttachment : U8
+{
+    Color0,
+    Color1,
+    Color2,
+    Color3,
+    Depth,
 };
 
 enum LLRenderClearMask : U32
@@ -104,6 +185,12 @@ struct LLRenderExtent2D
 {
     S32 mWidth = 0;
     S32 mHeight = 0;
+};
+
+struct LLRenderFloatRange
+{
+    F32 mMinimum = 0.f;
+    F32 mMaximum = 0.f;
 };
 
 struct LLRenderViewport
@@ -201,10 +288,78 @@ public:
     virtual void setBlendState(const LLRenderBlendState& blend) = 0;
     virtual void setLineWidth(F32 width) = 0;
     virtual void setCapability(LLRenderCapability capability, bool enabled) = 0;
+    virtual bool isCapabilityEnabled(LLRenderCapability capability) const = 0;
     virtual void setCullFace(LLRenderCullFace face) = 0;
     virtual void setDepthFunction(LLRenderDepthFunction function) = 0;
     virtual void setDepthWriteEnabled(bool enabled) = 0;
+    virtual LLRenderFloatRange getLineWidthRange(bool smooth) const = 0;
+    virtual void setPixelStoreInteger(LLRenderPixelStoreParameter parameter, S32 value) = 0;
+    virtual S32 getActiveTextureUnit() const = 0;
+    virtual void setActiveTextureUnit(S32 unit) = 0;
+    virtual void bindTexture(LLRenderTextureTarget target, U32 texture) = 0;
+    virtual void setTextureAddressMode(
+        LLRenderTextureTarget target,
+        LLRenderTextureAddressMode mode) = 0;
+    virtual void setTextureFilter(
+        LLRenderTextureTarget target,
+        LLRenderTextureFilter min_filter,
+        LLRenderTextureFilter mag_filter) = 0;
+    virtual void setTextureMaxAnisotropy(LLRenderTextureTarget target, F32 anisotropy) = 0;
     virtual void generateMipmaps(LLRenderTextureTarget target) = 0;
+    virtual void generateTextures(S32 count, U32* textures) = 0;
+    virtual void deleteTextures(S32 count, const U32* textures) = 0;
+    virtual void generateBuffers(S32 count, U32* buffers) = 0;
+    virtual void deleteBuffers(S32 count, const U32* buffers) = 0;
+    virtual void bindBuffer(LLRenderBufferTarget target, U32 buffer) = 0;
+    virtual void allocateBufferStorage(
+        LLRenderBufferTarget target,
+        U64 size,
+        const void* data,
+        LLRenderBufferUsage usage) = 0;
+    virtual void updateBufferSubData(
+        LLRenderBufferTarget target,
+        U32 offset,
+        U32 size,
+        const void* data) = 0;
+    virtual void enableVertexAttributeArray(U32 location) = 0;
+    virtual void disableVertexAttributeArray(U32 location) = 0;
+    virtual void setVertexAttributePointer(
+        U32 location,
+        S32 size,
+        LLRenderVertexAttributeType type,
+        bool normalized,
+        S32 stride,
+        const void* pointer) = 0;
+    virtual void setIntegerVertexAttributePointer(
+        U32 location,
+        S32 size,
+        LLRenderVertexAttributeType type,
+        S32 stride,
+        const void* pointer) = 0;
+    virtual void drawIndexedRange(
+        LLRenderPrimitiveType mode,
+        U32 start,
+        U32 end,
+        S32 count,
+        LLRenderIndexType index_type,
+        const void* indices) = 0;
+    virtual void drawArrays(LLRenderPrimitiveType mode, S32 first, S32 count) = 0;
+    virtual void generateFramebuffers(S32 count, U32* framebuffers) = 0;
+    virtual void deleteFramebuffers(S32 count, const U32* framebuffers) = 0;
+    virtual void bindReadWriteFramebuffer(U32 framebuffer) = 0;
+    virtual bool isDrawFramebufferComplete() const = 0;
+    virtual void attachFramebufferTexture2D(
+        LLRenderFramebufferAttachment attachment,
+        LLRenderTextureTarget target,
+        U32 texture,
+        S32 mip_level) = 0;
+    virtual void setFramebufferBufferRouting(U32 color_attachment_count) = 0;
+    virtual void restoreDefaultFramebufferBufferRouting() = 0;
+    virtual bool hasError() = 0;
+    virtual void setDebugMessageCallback(LLRenderDebugMessageCallback callback, void* user_param) = 0;
+    virtual bool hasVertexArraySupport() const = 0;
+    virtual void generateVertexArrays(S32 count, U32* arrays) = 0;
+    virtual void bindVertexArray(U32 array) = 0;
 };
 
 const char* getRenderBackendTypeName(LLRenderBackendType type);
