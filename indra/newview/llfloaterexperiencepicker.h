@@ -56,6 +56,8 @@ private:
     LLPanelExperiencePicker* mSearchPanel;
 
     void drawFrustum();
+    void setupSearchPanel();
+    void configureSearchPanel(select_callback_t callback, bool allow_multiple, bool close_on_select, filter_list filters);
     LLHandle <LLView>   mFrustumOrigin;
     F32                 mContextConeOpacity;
     F32                 mContextConeInAlpha;
@@ -64,4 +66,3 @@ private:
 };
 
 #endif // LL_LLFLOATEREXPERIENCEPICKER_H
-

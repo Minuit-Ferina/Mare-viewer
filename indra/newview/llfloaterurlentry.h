@@ -50,6 +50,12 @@ public:
 private:
     LLFloaterURLEntry(LLHandle<LLPanel> parent);
     /*virtual*/ ~LLFloaterURLEntry();
+    void setupButtons();
+    void syncClearButton();
+    void setLoadingVisible(bool visible);
+    void setEntryControlsEnabled(bool enabled);
+    std::string getMediaURL() const;
+    void syncPanelMediaType(const std::string& mime_type);
     void buildURLHistory();
 
 private:

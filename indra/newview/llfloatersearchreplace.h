@@ -57,6 +57,11 @@ public:
     LLTextEditor* getEditor() const;
 
 protected:
+    void          setupEditors();
+    void          setupOptions();
+    void          setupButtons();
+    void          syncEditorSelection(LLTextEditor* editor);
+    void          syncReplaceControls(bool can_replace);
     void          refreshHighlight();
     void          onSearchClick();
     void          onSearchKeystroke();

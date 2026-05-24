@@ -1874,7 +1874,12 @@ No open items in this section right now.
 - [x] Verify affected preview dialog objects with targeted builds, regenerated
       source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add a summary document for the first all-dialog ownership packet.
-- [ ] Map the next broad dialog family before source edits.
+- [x] Map the next broad dialog family before source edits.
+- [x] Move simple UI ownership helpers across picker/search dialogs.
+- [x] Verify picker/search dialog objects with targeted builds, regenerated
+      source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/394-picker-search-dialog-helpers-summary.md`.
+- [ ] Continue with the next broad dialog family.
 
 ## Post-Phase2 Guardrails
 

@@ -49,6 +49,10 @@ private:
     void onOpen(const LLSD& key) override;
     void onClose(bool app_quitting) override;
     virtual bool handleKey(KEY key, MASK mask, bool called_from_parent) override;
+    void setupAvatarList();
+    void applyNameFilter(const LLSD& key);
+    void selectFirstAvatarIfNeeded();
+    void hideMentionHelper();
     void selectResident(const LLUUID& id);
 
     static LLUUID sSessionID;

@@ -46,6 +46,13 @@ LLFloaterChatMentionPicker::LLFloaterChatMentionPicker(const LLSD& key)
 bool LLFloaterChatMentionPicker::postBuild()
 {
     mAvatarList = getChild<LLAvatarList>("avatar_list");
+    setupAvatarList();
+
+    return LLFloater::postBuild();
+}
+
+void LLFloaterChatMentionPicker::setupAvatarList()
+{
     mAvatarList->setShowCompleteName(true, true);
     mAvatarList->setFocusOnItemClicked(false);
     mAvatarList->setItemClickedCallback([this](LLUICtrl* ctrl, S32 x, S32 y, MASK mask)
@@ -57,21 +64,34 @@ bool LLFloaterChatMentionPicker::postBuild()
     });
     mAvatarList->setRefreshCompleteCallback([this](LLUICtrl* ctrl, const LLSD& param)
     {
-        if (mAvatarList->numSelected() == 0)
-        {
-            mAvatarList->selectFirstItem();
-        }
+        selectFirstAvatarIfNeeded();
     });
-
-    return LLFloater::postBuild();
 }
 
 void LLFloaterChatMentionPicker::onOpen(const LLSD& key)
 {
     buildAvatarList();
-    mAvatarList->setNameFilter(key.has("av_name") ? key["av_name"].asString() : "");
+    applyNameFilter(key);
 
     gFloaterView->adjustToFitScreen(this, false);
+}
+
+void LLFloaterChatMentionPicker::applyNameFilter(const LLSD& key)
+{
+    mAvatarList->setNameFilter(key.has("av_name") ? key["av_name"].asString() : "");
+}
+
+void LLFloaterChatMentionPicker::selectFirstAvatarIfNeeded()
+{
+    if (mAvatarList->numSelected() == 0)
+    {
+        mAvatarList->selectFirstItem();
+    }
+}
+
+void LLFloaterChatMentionPicker::hideMentionHelper()
+{
+    LLChatMentionHelper::instance().hideHelper();
 }
 
 uuid_vec_t LLFloaterChatMentionPicker::getParticipantIds()
@@ -113,14 +133,14 @@ void LLFloaterChatMentionPicker::selectResident(const LLUUID& id)
 
     setValue(stringize("secondlife:///app/agent/", id.asString(), "/mention "));
     onCommit();
-    LLChatMentionHelper::instance().hideHelper();
+    hideMentionHelper();
 }
 
 void LLFloaterChatMentionPicker::onClose(bool app_quitting)
 {
     if (!app_quitting)
     {
-        LLChatMentionHelper::instance().hideHelper();
+        hideMentionHelper();
     }
 }
 
@@ -138,7 +158,7 @@ bool LLFloaterChatMentionPicker::handleKey(KEY key, MASK mask, bool called_from_
                 selectResident(mAvatarList->getSelectedUUID());
                 return true;
             case KEY_ESCAPE:
-                LLChatMentionHelper::instance().hideHelper();
+                hideMentionHelper();
                 return true;
             case KEY_LEFT:
             case KEY_RIGHT:
@@ -152,7 +172,7 @@ bool LLFloaterChatMentionPicker::handleKey(KEY key, MASK mask, bool called_from_
 
 void LLFloaterChatMentionPicker::goneFromFront()
 {
-    LLChatMentionHelper::instance().hideHelper();
+    hideMentionHelper();
 }
 
 void LLFloaterChatMentionPicker::updateSessionID(LLUUID session_id)

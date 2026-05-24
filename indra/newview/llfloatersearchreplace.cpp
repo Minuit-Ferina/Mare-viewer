@@ -43,16 +43,31 @@ LLFloaterSearchReplace::~LLFloaterSearchReplace()
 
 bool LLFloaterSearchReplace::postBuild()
 {
+    setupEditors();
+    setupOptions();
+    setupButtons();
+
+    return true;
+}
+
+void LLFloaterSearchReplace::setupEditors()
+{
     m_pSearchEditor = getChild<LLLineEditor>("search_text");
     m_pSearchEditor->setCommitCallback(boost::bind(&LLFloaterSearchReplace::onSearchClick, this));
     m_pSearchEditor->setCommitOnFocusLost(false);
     m_pSearchEditor->setKeystrokeCallback(boost::bind(&LLFloaterSearchReplace::refreshHighlight, this), NULL);
     m_pReplaceEditor = getChild<LLLineEditor>("replace_text");
+}
 
+void LLFloaterSearchReplace::setupOptions()
+{
     m_pCaseInsensitiveCheck = getChild<LLCheckBoxCtrl>("case_text");
     m_pCaseInsensitiveCheck->setCommitCallback(boost::bind(&LLFloaterSearchReplace::refreshHighlight, this));
     m_pSearchUpCheck = getChild<LLCheckBoxCtrl>("find_previous");
+}
 
+void LLFloaterSearchReplace::setupButtons()
+{
     LLButton* pSearchBtn = getChild<LLButton>("search_btn");
     pSearchBtn->setCommitCallback(boost::bind(&LLFloaterSearchReplace::onSearchClick, this));
     setDefaultBtn(pSearchBtn);
@@ -62,8 +77,6 @@ bool LLFloaterSearchReplace::postBuild()
 
     LLButton* pReplaceAllBtn = getChild<LLButton>("replace_all_btn");
     pReplaceAllBtn->setCommitCallback(boost::bind(&LLFloaterSearchReplace::onReplaceAllClick, this));
-
-    return true;
 }
 
 void LLFloaterSearchReplace::onOpen(const LLSD& sdKey)
@@ -71,19 +84,29 @@ void LLFloaterSearchReplace::onOpen(const LLSD& sdKey)
     LLTextEditor* pEditor = getEditor();
     if (pEditor)
     {
-        // HACK-Catznip: hasSelection() is inaccessible but canCopy() is (currently) a synonym *sighs*
-        if (pEditor->canCopy())
-        {
-            m_pSearchEditor->setText(pEditor->getSelectionString());
-            m_pSearchEditor->setCursorToEnd();
-        }
+        syncEditorSelection(pEditor);
         pEditor->setHighlightWord(m_pSearchEditor->getText(), m_pCaseInsensitiveCheck->get());
 
-        m_pReplaceEditor->setEnabled( (pEditor) && (!pEditor->getReadOnly()) );
-        getChild<LLButton>("replace_btn")->setEnabled( (pEditor) && (!pEditor->getReadOnly()) );
-        getChild<LLButton>("replace_all_btn")->setEnabled( (pEditor) && (!pEditor->getReadOnly()) );
+        syncReplaceControls(!pEditor->getReadOnly());
     }
     m_pSearchEditor->setFocus(TRUE);
+}
+
+void LLFloaterSearchReplace::syncEditorSelection(LLTextEditor* editor)
+{
+    // HACK-Catznip: hasSelection() is inaccessible but canCopy() is (currently) a synonym *sighs*
+    if (editor->canCopy())
+    {
+        m_pSearchEditor->setText(editor->getSelectionString());
+        m_pSearchEditor->setCursorToEnd();
+    }
+}
+
+void LLFloaterSearchReplace::syncReplaceControls(bool can_replace)
+{
+    m_pReplaceEditor->setEnabled(can_replace);
+    getChild<LLButton>("replace_btn")->setEnabled(can_replace);
+    getChild<LLButton>("replace_all_btn")->setEnabled(can_replace);
 }
 
 void LLFloaterSearchReplace::onClose(bool fQuiting)
@@ -223,8 +246,6 @@ void LLFloaterSearchReplace::onReplaceAllClick()
 
 void LLFloaterSearchReplace::setCanReplace(bool can_replace)
 {
-    m_pReplaceEditor->setEnabled(can_replace);
-    getChild<LLButton>("replace_btn")->setEnabled(can_replace);
-    getChild<LLButton>("replace_all_btn")->setEnabled(can_replace);
+    syncReplaceControls(can_replace);
 }
 // ============================================================================

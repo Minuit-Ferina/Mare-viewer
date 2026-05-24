@@ -56,12 +56,7 @@ LLFloaterExperiencePicker* LLFloaterExperiencePicker::show( select_callback_t ca
 
     if (floater->mSearchPanel)
     {
-        floater->mSearchPanel->mSelectionCallback = callback;
-        floater->mSearchPanel->mCloseOnSelect = close_on_select;
-        floater->mSearchPanel->setAllowMultiple(allow_multiple);
-        floater->mSearchPanel->setDefaultFilters();
-        floater->mSearchPanel->addFilters(filters.begin(), filters.end());
-        floater->mSearchPanel->filterContent();
+        floater->configureSearchPanel(callback, allow_multiple, close_on_select, filters);
     }
 
     if(frustumOrigin)
@@ -101,8 +96,23 @@ LLFloaterExperiencePicker::~LLFloaterExperiencePicker()
 
 bool LLFloaterExperiencePicker::postBuild()
 {
+    setupSearchPanel();
+    return LLFloater::postBuild();
+}
+
+void LLFloaterExperiencePicker::setupSearchPanel()
+{
     mSearchPanel = new LLPanelExperiencePicker();
     addChild(mSearchPanel);
     mSearchPanel->setOrigin(0, 0);
-    return LLFloater::postBuild();
+}
+
+void LLFloaterExperiencePicker::configureSearchPanel(select_callback_t callback, bool allow_multiple, bool close_on_select, filter_list filters)
+{
+    mSearchPanel->mSelectionCallback = callback;
+    mSearchPanel->mCloseOnSelect = close_on_select;
+    mSearchPanel->setAllowMultiple(allow_multiple);
+    mSearchPanel->setDefaultFilters();
+    mSearchPanel->addFilters(filters.begin(), filters.end());
+    mSearchPanel->filterContent();
 }
