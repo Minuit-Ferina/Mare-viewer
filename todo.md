@@ -1785,6 +1785,14 @@ do not start a direct Vulkan port.
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/373-model-preview-crease-control-sync-summary.md`.
+- [x] Map model preview load status/file-field UI mutations before moving them.
+- [x] Add `docs/architecture/374-model-preview-load-file-fields-task.md`.
+- [x] Move load status/file-field mutations behind `LLFloaterModelPreview`
+      owner methods without changing conditions.
+- [x] Verify the load file-field packet with targeted `llmodelpreview.cpp.o`,
+      targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
+      both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/375-model-preview-load-file-fields-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

@@ -166,6 +166,9 @@ protected:
     void        getModelPreviewPhysicsLODMode(S32& which_mode, S32& file_mode);
     void        syncModelPreviewPhysicsFileControls(bool enabled);
     void        syncModelPreviewCreaseControl(F32 requested_crease_angle);
+    void        setModelPreviewReadingFileStatus();
+    void        setModelPreviewLODFile(S32 lod, const std::string& filename);
+    void        setModelPreviewPhysicsFile(const std::string& filename);
     void        syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight);
 
     void        onDescriptionKeystroke(LLUICtrl*);

@@ -651,6 +651,21 @@ void LLFloaterModelPreview::syncModelPreviewCreaseControl(F32 requested_crease_a
     }
 }
 
+void LLFloaterModelPreview::setModelPreviewReadingFileStatus()
+{
+    childSetTextArg("status", "[STATUS]", getString("status_reading_file"));
+}
+
+void LLFloaterModelPreview::setModelPreviewLODFile(S32 lod, const std::string& filename)
+{
+    childSetValue("lod_file_" + lod_name[lod], filename);
+}
+
+void LLFloaterModelPreview::setModelPreviewPhysicsFile(const std::string& filename)
+{
+    childSetValue("physics_file", filename);
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)

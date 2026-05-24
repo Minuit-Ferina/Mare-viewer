@@ -868,24 +868,24 @@ void LLModelPreview::loadModel(std::string filename, S32 lod, bool force_disable
     }
     mModelLoader->start();
 
-    mFMP->childSetTextArg("status", "[STATUS]", mFMP->getString("status_reading_file"));
+    LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+    fmp->setModelPreviewReadingFileStatus();
 
     setPreviewLOD(lod);
 
     if (getLoadState() >= LLModelLoader::ERROR_PARSING)
     {
-        LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
         fmp->setModelPreviewUploadButtonEnabled(false);
         fmp->setModelPreviewCalculateButtonEnabled(false);
     }
 
     if (lod == mPreviewLOD)
     {
-        mFMP->childSetValue("lod_file_" + lod_name[lod], mLODFile[lod]);
+        fmp->setModelPreviewLODFile(lod, mLODFile[lod]);
     }
     else if (lod == LLModel::LOD_PHYSICS)
     {
-        mFMP->childSetValue("physics_file", mLODFile[lod]);
+        fmp->setModelPreviewPhysicsFile(mLODFile[lod]);
     }
 
     mFMP->openFloater();
@@ -901,7 +901,8 @@ void LLModelPreview::setPhysicsFromLOD(S32 lod)
         mModel[LLModel::LOD_PHYSICS] = mModel[lod];
         mScene[LLModel::LOD_PHYSICS] = mScene[lod];
         mLODFile[LLModel::LOD_PHYSICS].clear();
-        mFMP->childSetValue("physics_file", mLODFile[LLModel::LOD_PHYSICS]);
+        LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->setModelPreviewPhysicsFile(mLODFile[LLModel::LOD_PHYSICS]);
         mVertexBuffer[LLModel::LOD_PHYSICS].clear();
         rebuildUploadData();
         refresh();
@@ -3941,7 +3942,8 @@ void LLModelPreview::setPreviewLOD(S32 lod)
 
         LLComboBox* combo_box = mFMP->getChild<LLComboBox>("preview_lod_combo");
         combo_box->setCurrentByIndex((NUM_LOD - 1) - mPreviewLOD); // combo box list of lods is in reverse order
-        mFMP->childSetValue("lod_file_" + lod_name[mPreviewLOD], mLODFile[mPreviewLOD]);
+        LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+        fmp->setModelPreviewLODFile(mPreviewLOD, mLODFile[mPreviewLOD]);
 
         LLColor4 highlight_color = LLUIColorTable::instance().getColor("MeshImportTableHighlightColor");
         LLColor4 normal_color = LLUIColorTable::instance().getColor("MeshImportTableNormalColor");
@@ -3956,7 +3958,6 @@ void LLModelPreview::setPreviewLOD(S32 lod)
             mFMP->childSetColor(lod_vertices_name[i], color);
         }
 
-        LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
         if (fmp)
         {
             // make preview repopulate tab
