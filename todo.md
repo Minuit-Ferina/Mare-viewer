@@ -1598,6 +1598,11 @@ start a direct Vulkan port.
       `llmodelpreview.cpp.o`, regenerated source inventory, both GL guardrails,
       and `git diff --check`.
 - [x] Add `docs/architecture/328-model-preview-camera-summary.md`.
+- [x] Add `docs/architecture/329-model-preview-nonskinned-task.md`.
+- [x] Verify the `LLModelPreview::render()` non-skinned model helper split
+      with targeted `llmodelpreview.cpp.o`, regenerated source inventory, both
+      GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/330-model-preview-nonskinned-summary.md`.
 - [ ] Keep any `needsRender()` override out of wrapper-only packets.
 - [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
       multi-window, and multi-login work out of phase 10 unless explicitly

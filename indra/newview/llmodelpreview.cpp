@@ -3334,49 +3334,7 @@ bool LLModelPreview::render()
 
         if (!show_skin_weight)
         {
-            for (LLMeshUploadThread::instance_list_t::iterator iter = mUploadData.begin(); iter != mUploadData.end(); ++iter)
-            {
-                LLModelInstance& instance = *iter;
-
-                LLModel* model = instance.mLOD[mPreviewLOD];
-
-                if (!model)
-                {
-                    continue;
-                }
-
-                gGL.pushMatrix();
-
-                LLMatrix4 mat = instance.mTransform;
-
-                gGL.multMatrix((GLfloat*)mat.mMatrix);
-
-                auto num_models = mVertexBuffer[mPreviewLOD][model].size();
-                for (size_t i = 0; i < num_models; ++i)
-                {
-                    applyPreviewMaterial(instance, i, show_textures);
-
-                    // Zero this variable for an obligatory buffer initialization
-                    // See https://github.com/secondlife/viewer/issues/912
-                    LLVertexBuffer::sGLRenderBuffer = 0;
-                    LLVertexBuffer* buffer = mVertexBuffer[mPreviewLOD][model][i];
-                    buffer->setBuffer();
-                    buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
-
-                    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-                    gGL.diffuseColor4fv(PREVIEW_EDGE_COL.mV);
-                    if (show_edges)
-                    {
-                        LLGLContainment::setLineWidth(PREVIEW_EDGE_WIDTH);
-                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                        buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
-                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                        LLGLContainment::setLineWidth(1.f);
-                    }
-                    buffer->unmapBuffer();
-                }
-                gGL.popMatrix();
-            }
+            renderNonSkinnedModels(show_textures, show_edges);
 
             if (show_physics)
             {
@@ -3984,6 +3942,53 @@ LLModelPreview::PreviewCameraState LLModelPreview::setupPreviewCamera(bool show_
     stop_glerror();
 
     return camera_state;
+}
+
+void LLModelPreview::renderNonSkinnedModels(bool show_textures, bool show_edges)
+{
+    for (LLMeshUploadThread::instance_list_t::iterator iter = mUploadData.begin(); iter != mUploadData.end(); ++iter)
+    {
+        LLModelInstance& instance = *iter;
+
+        LLModel* model = instance.mLOD[mPreviewLOD];
+
+        if (!model)
+        {
+            continue;
+        }
+
+        gGL.pushMatrix();
+
+        LLMatrix4 mat = instance.mTransform;
+
+        gGL.multMatrix((GLfloat*)mat.mMatrix);
+
+        auto num_models = mVertexBuffer[mPreviewLOD][model].size();
+        for (size_t i = 0; i < num_models; ++i)
+        {
+            applyPreviewMaterial(instance, i, show_textures);
+
+            // Zero this variable for an obligatory buffer initialization
+            // See https://github.com/secondlife/viewer/issues/912
+            LLVertexBuffer::sGLRenderBuffer = 0;
+            LLVertexBuffer* buffer = mVertexBuffer[mPreviewLOD][model][i];
+            buffer->setBuffer();
+            buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
+
+            gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+            gGL.diffuseColor4fv(PREVIEW_EDGE_COL.mV);
+            if (show_edges)
+            {
+                LLGLContainment::setLineWidth(PREVIEW_EDGE_WIDTH);
+                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
+                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                LLGLContainment::setLineWidth(1.f);
+            }
+            buffer->unmapBuffer();
+        }
+        gGL.popMatrix();
+    }
 }
 
 void LLModelPreview::renderGroundPlane(float z_offset)
