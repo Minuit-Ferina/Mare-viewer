@@ -1825,6 +1825,11 @@ do not start a direct Vulkan port.
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/383-model-preview-physics-summary-text-summary.md`.
+- [x] Close phase 12 as a `LLModelPreview` ownership-split prototype rather
+      than continuing line-by-line cleanup.
+- [x] Add `docs/architecture/384-phase12-completion-summary.md`.
+- [x] Decide that phase 13 should switch to breadth-first multi-file packets
+      across preview/UI-render hotspots.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.
