@@ -1712,6 +1712,14 @@ do not start a direct Vulkan port.
       `llmodelpreview.cpp.o`, targeted `llfloatermodelpreview.cpp.o`,
       regenerated source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/355-model-preview-upload-data-options-summary.md`.
+- [x] Map model preview crease-angle UI read before moving it.
+- [x] Add `docs/architecture/356-model-preview-crease-angle-task.md`.
+- [x] Move crease-angle UI read behind a `LLFloaterModelPreview` owner method
+      without changing timing.
+- [x] Verify the crease-angle packet with targeted `llmodelpreview.cpp.o`,
+      targeted `llfloatermodelpreview.cpp.o`, regenerated source inventory,
+      both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/357-model-preview-crease-angle-summary.md`.
 - [ ] Prefer source packets that remove actual cross-owner coupling, not
       helper-only extraction.
 - [ ] Use targeted object builds and guardrails by default.

@@ -1325,7 +1325,8 @@ void LLModelPreview::generateNormals()
         return;
     }
 
-    F32 angle_cutoff = (F32)mFMP->childGetValue("crease_angle").asReal();
+    LLFloaterModelPreview* fmp = (LLFloaterModelPreview*)mFMP;
+    F32 angle_cutoff = fmp->getModelPreviewCreaseAngle();
 
     mRequestedCreaseAngle[which_lod] = angle_cutoff;
 

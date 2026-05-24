@@ -477,6 +477,11 @@ void LLFloaterModelPreview::getModelPreviewUploadDataOptions(bool& upload_skin, 
     upload_textures = childGetValue("upload_textures").asBoolean();
 }
 
+F32 LLFloaterModelPreview::getModelPreviewCreaseAngle() const
+{
+    return (F32)childGetValue("crease_angle").asReal();
+}
+
 void LLFloaterModelPreview::syncSkinPreviewControls(bool has_skin_weights, bool& upload_skin, bool& upload_joints, bool& show_skin_weight)
 {
     if (!mModelPreview)
