@@ -1603,6 +1603,11 @@ start a direct Vulkan port.
       with targeted `llmodelpreview.cpp.o`, regenerated source inventory, both
       GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/330-model-preview-nonskinned-summary.md`.
+- [x] Add `docs/architecture/331-model-preview-physics-task.md`.
+- [x] Verify the `LLModelPreview::render()` physics helper split with targeted
+      `llmodelpreview.cpp.o`, regenerated source inventory, both GL guardrails,
+      and `git diff --check`.
+- [x] Add `docs/architecture/332-model-preview-physics-summary.md`.
 - [ ] Keep any `needsRender()` override out of wrapper-only packets.
 - [ ] Keep broad `llui`, `pipeline`, app lifecycle, SDL, Vulkan, Metal,
       multi-window, and multi-login work out of phase 10 unless explicitly

@@ -3338,213 +3338,7 @@ bool LLModelPreview::render()
 
             if (show_physics)
             {
-                LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
-
-                for (U32 pass = 0; pass < 2; pass++)
-                {
-                    if (pass == 0)
-                    { //depth only pass
-                        gGL.setColorMask(false, false);
-                    }
-                    else
-                    {
-                        gGL.setColorMask(true, true);
-                    }
-
-                    //enable alpha blending on second pass but not first pass
-                    LLGLState blend(GL_BLEND, pass);
-
-                    gGL.blendFunc(LLRender::BF_SOURCE_ALPHA, LLRender::BF_ONE_MINUS_SOURCE_ALPHA);
-
-                    for (LLMeshUploadThread::instance_list_t::iterator iter = mUploadData.begin(); iter != mUploadData.end(); ++iter)
-                    {
-                        LLModelInstance& instance = *iter;
-
-                        LLModel* model = instance.mLOD[LLModel::LOD_PHYSICS];
-
-                        if (!model)
-                        {
-                            continue;
-                        }
-
-                        gGL.pushMatrix();
-                        LLMatrix4 mat = instance.mTransform;
-
-                        gGL.multMatrix((GLfloat*)mat.mMatrix);
-
-
-                        bool render_mesh = true;
-                        LLPhysicsDecomp* decomp = gMeshRepo.mDecompThread;
-                        if (decomp)
-                        {
-                            LLMutexLock(decomp->mMutex);
-
-                            LLModel::Decomposition& physics = model->mPhysics;
-
-                            if (!physics.mHull.empty())
-                            {
-                                render_mesh = false;
-
-                                if (physics.mMesh.empty())
-                                { //build vertex buffer for physics mesh
-                                    gMeshRepo.buildPhysicsMesh(physics);
-                                }
-
-                                if (!physics.mMesh.empty())
-                                { //render hull instead of mesh
-                                    // SL-16993 physics.mMesh[i].mNormals were being used to light the exploded
-                                    // analyzed physics shape but the drawArrays() interface changed
-                                    //  causing normal data <0,0,0> to be passed to the shader.
-                                    // The Phyics Preview shader uses plain vertex coloring so the physics hull is full lit.
-                                    // We could also use interface/ui shaders.
-                                    gObjectPreviewProgram.unbind();
-                                    gPhysicsPreviewProgram.bind();
-
-                                    for (U32 i = 0; i < physics.mMesh.size(); ++i)
-                                    {
-                                        if (physics_explode > 0.f)
-                                        {
-                                            gGL.pushMatrix();
-
-                                            LLVector3 offset = model->mHullCenter[i] - model->mCenterOfHullCenters;
-                                            offset *= physics_explode;
-
-                                            gGL.translatef(offset.mV[0], offset.mV[1], offset.mV[2]);
-                                        }
-
-                                        static std::vector<LLColor4U> hull_colors;
-
-                                        if (i + 1 >= hull_colors.size())
-                                        {
-                                            hull_colors.push_back(LLColor4U(rand() % 128 + 127, rand() % 128 + 127, rand() % 128 + 127, 128));
-                                        }
-
-                                        gGL.diffuseColor4ubv(hull_colors[i].mV);
-                                        LLVertexBuffer::drawArrays(LLRender::TRIANGLES, physics.mMesh[i].mPositions);
-
-                                        if (physics_explode > 0.f)
-                                        {
-                                            gGL.popMatrix();
-                                        }
-                                    }
-
-                                    gPhysicsPreviewProgram.unbind();
-                                    gObjectPreviewProgram.bind();
-                                }
-                            }
-                        }
-
-                        if (render_mesh)
-                        {
-                            auto num_models = mVertexBuffer[LLModel::LOD_PHYSICS][model].size();
-                            if (pass > 0)
-                            {
-                                for (size_t i = 0; i < num_models; ++i)
-                                {
-                                    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-                                    gGL.diffuseColor4fv(PREVIEW_PSYH_FILL_COL.mV);
-
-                                    // Zero this variable for an obligatory buffer initialization
-                                    // See https://github.com/secondlife/viewer/issues/912
-                                    LLVertexBuffer::sGLRenderBuffer = 0;
-                                    LLVertexBuffer* buffer = mVertexBuffer[LLModel::LOD_PHYSICS][model][i];
-                                    buffer->setBuffer();
-                                    buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
-
-                                    gGL.diffuseColor4fv(PREVIEW_PSYH_EDGE_COL.mV);
-                                    LLGLContainment::setLineWidth(PREVIEW_PSYH_EDGE_WIDTH);
-                                    LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                                    buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
-
-                                    LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                                    LLGLContainment::setLineWidth(1.f);
-
-                                    buffer->unmapBuffer();
-                                }
-                            }
-                        }
-                        gGL.popMatrix();
-                    }
-
-                    // only do this if mDegenerate was set in the preceding mesh checks [Check this if the ordering ever breaks]
-                    if (mHasDegenerate)
-                    {
-                        LLGLContainment::setLineWidth(PREVIEW_DEG_EDGE_WIDTH);
-                        LLGLContainment::setPointSize(PREVIEW_DEG_POINT_SIZE);
-                        gPipeline.enableLightsFullbright();
-                        //show degenerate triangles
-                        LLGLDepthTest depth(GL_TRUE, GL_TRUE, GL_ALWAYS);
-                        LLGLDisable cull(GL_CULL_FACE);
-                        gGL.diffuseColor4f(1.f, 0.f, 0.f, 1.f);
-                        const LLVector4a scale(0.5f);
-
-                        for (LLMeshUploadThread::instance_list_t::iterator iter = mUploadData.begin(); iter != mUploadData.end(); ++iter)
-                        {
-                            LLModelInstance& instance = *iter;
-
-                            LLModel* model = instance.mLOD[LLModel::LOD_PHYSICS];
-
-                            if (!model)
-                            {
-                                continue;
-                            }
-
-                            gGL.pushMatrix();
-                            LLMatrix4 mat = instance.mTransform;
-
-                            gGL.multMatrix((GLfloat*)mat.mMatrix);
-
-
-                            LLPhysicsDecomp* decomp = gMeshRepo.mDecompThread;
-                            if (decomp)
-                            {
-                                LLMutexLock(decomp->mMutex);
-
-                                LLModel::Decomposition& physics = model->mPhysics;
-
-                                if (physics.mHull.empty())
-                                {
-                                    auto num_models = mVertexBuffer[LLModel::LOD_PHYSICS][model].size();
-                                    for (size_t v = 0; v < num_models; ++v)
-                                    {
-                                        // Zero this variable for an obligatory buffer initialization
-                                        // See https://github.com/secondlife/viewer/issues/912
-                                        LLVertexBuffer::sGLRenderBuffer = 0;
-                                        LLVertexBuffer* buffer = mVertexBuffer[LLModel::LOD_PHYSICS][model][v];
-                                        buffer->setBuffer();
-                                        LLStrider<LLVector3> pos_strider;
-                                        buffer->getVertexStrider(pos_strider, 0);
-                                        LLVector4a* pos = (LLVector4a*)pos_strider.get();
-
-                                        LLStrider<U16> idx;
-                                        buffer->getIndexStrider(idx, 0);
-
-                                        for (U32 i = 0; i < buffer->getNumIndices(); i += 3)
-                                        {
-                                            LLVector4a v1; v1.setMul(pos[*idx++], scale);
-                                            LLVector4a v2; v2.setMul(pos[*idx++], scale);
-                                            LLVector4a v3; v3.setMul(pos[*idx++], scale);
-
-                                            if (ll_is_degenerate(v1, v2, v3))
-                                            {
-                                                buffer->draw(LLRender::LINE_LOOP, 3, i);
-                                                buffer->draw(LLRender::POINTS, 3, i);
-                                            }
-                                        }
-
-                                        buffer->unmapBuffer();
-                                    }
-                                }
-                            }
-
-                            gGL.popMatrix();
-                        }
-                        LLGLContainment::setLineWidth(1.f);
-                        LLGLContainment::setPointSize(1.f);
-                        gPipeline.enableLightsPreview();
-                        gGL.setSceneBlendType(LLRender::BT_ALPHA);
-                    }
-                }
+                renderPhysicsPreview(physics_explode);
             }
         }
         else
@@ -3988,6 +3782,217 @@ void LLModelPreview::renderNonSkinnedModels(bool show_textures, bool show_edges)
             buffer->unmapBuffer();
         }
         gGL.popMatrix();
+    }
+}
+
+void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
+{
+    LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
+
+    for (U32 pass = 0; pass < 2; pass++)
+    {
+        if (pass == 0)
+        { //depth only pass
+            gGL.setColorMask(false, false);
+        }
+        else
+        {
+            gGL.setColorMask(true, true);
+        }
+
+        //enable alpha blending on second pass but not first pass
+        LLGLState blend(GL_BLEND, pass);
+
+        gGL.blendFunc(LLRender::BF_SOURCE_ALPHA, LLRender::BF_ONE_MINUS_SOURCE_ALPHA);
+
+        for (LLMeshUploadThread::instance_list_t::iterator iter = mUploadData.begin(); iter != mUploadData.end(); ++iter)
+        {
+            LLModelInstance& instance = *iter;
+
+            LLModel* model = instance.mLOD[LLModel::LOD_PHYSICS];
+
+            if (!model)
+            {
+                continue;
+            }
+
+            gGL.pushMatrix();
+            LLMatrix4 mat = instance.mTransform;
+
+            gGL.multMatrix((GLfloat*)mat.mMatrix);
+
+
+            bool render_mesh = true;
+            LLPhysicsDecomp* decomp = gMeshRepo.mDecompThread;
+            if (decomp)
+            {
+                LLMutexLock(decomp->mMutex);
+
+                LLModel::Decomposition& physics = model->mPhysics;
+
+                if (!physics.mHull.empty())
+                {
+                    render_mesh = false;
+
+                    if (physics.mMesh.empty())
+                    { //build vertex buffer for physics mesh
+                        gMeshRepo.buildPhysicsMesh(physics);
+                    }
+
+                    if (!physics.mMesh.empty())
+                    { //render hull instead of mesh
+                        // SL-16993 physics.mMesh[i].mNormals were being used to light the exploded
+                        // analyzed physics shape but the drawArrays() interface changed
+                        //  causing normal data <0,0,0> to be passed to the shader.
+                        // The Phyics Preview shader uses plain vertex coloring so the physics hull is full lit.
+                        // We could also use interface/ui shaders.
+                        gObjectPreviewProgram.unbind();
+                        gPhysicsPreviewProgram.bind();
+
+                        for (U32 i = 0; i < physics.mMesh.size(); ++i)
+                        {
+                            if (physics_explode > 0.f)
+                            {
+                                gGL.pushMatrix();
+
+                                LLVector3 offset = model->mHullCenter[i] - model->mCenterOfHullCenters;
+                                offset *= physics_explode;
+
+                                gGL.translatef(offset.mV[0], offset.mV[1], offset.mV[2]);
+                            }
+
+                            static std::vector<LLColor4U> hull_colors;
+
+                            if (i + 1 >= hull_colors.size())
+                            {
+                                hull_colors.push_back(LLColor4U(rand() % 128 + 127, rand() % 128 + 127, rand() % 128 + 127, 128));
+                            }
+
+                            gGL.diffuseColor4ubv(hull_colors[i].mV);
+                            LLVertexBuffer::drawArrays(LLRender::TRIANGLES, physics.mMesh[i].mPositions);
+
+                            if (physics_explode > 0.f)
+                            {
+                                gGL.popMatrix();
+                            }
+                        }
+
+                        gPhysicsPreviewProgram.unbind();
+                        gObjectPreviewProgram.bind();
+                    }
+                }
+            }
+
+            if (render_mesh)
+            {
+                auto num_models = mVertexBuffer[LLModel::LOD_PHYSICS][model].size();
+                if (pass > 0)
+                {
+                    for (size_t i = 0; i < num_models; ++i)
+                    {
+                        gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+                        gGL.diffuseColor4fv(PREVIEW_PSYH_FILL_COL.mV);
+
+                        // Zero this variable for an obligatory buffer initialization
+                        // See https://github.com/secondlife/viewer/issues/912
+                        LLVertexBuffer::sGLRenderBuffer = 0;
+                        LLVertexBuffer* buffer = mVertexBuffer[LLModel::LOD_PHYSICS][model][i];
+                        buffer->setBuffer();
+                        buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
+
+                        gGL.diffuseColor4fv(PREVIEW_PSYH_EDGE_COL.mV);
+                        LLGLContainment::setLineWidth(PREVIEW_PSYH_EDGE_WIDTH);
+                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                        buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
+
+                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                        LLGLContainment::setLineWidth(1.f);
+
+                        buffer->unmapBuffer();
+                    }
+                }
+            }
+            gGL.popMatrix();
+        }
+
+        // only do this if mDegenerate was set in the preceding mesh checks [Check this if the ordering ever breaks]
+        if (mHasDegenerate)
+        {
+            LLGLContainment::setLineWidth(PREVIEW_DEG_EDGE_WIDTH);
+            LLGLContainment::setPointSize(PREVIEW_DEG_POINT_SIZE);
+            gPipeline.enableLightsFullbright();
+            //show degenerate triangles
+            LLGLDepthTest depth(GL_TRUE, GL_TRUE, GL_ALWAYS);
+            LLGLDisable cull(GL_CULL_FACE);
+            gGL.diffuseColor4f(1.f, 0.f, 0.f, 1.f);
+            const LLVector4a scale(0.5f);
+
+            for (LLMeshUploadThread::instance_list_t::iterator iter = mUploadData.begin(); iter != mUploadData.end(); ++iter)
+            {
+                LLModelInstance& instance = *iter;
+
+                LLModel* model = instance.mLOD[LLModel::LOD_PHYSICS];
+
+                if (!model)
+                {
+                    continue;
+                }
+
+                gGL.pushMatrix();
+                LLMatrix4 mat = instance.mTransform;
+
+                gGL.multMatrix((GLfloat*)mat.mMatrix);
+
+
+                LLPhysicsDecomp* decomp = gMeshRepo.mDecompThread;
+                if (decomp)
+                {
+                    LLMutexLock(decomp->mMutex);
+
+                    LLModel::Decomposition& physics = model->mPhysics;
+
+                    if (physics.mHull.empty())
+                    {
+                        auto num_models = mVertexBuffer[LLModel::LOD_PHYSICS][model].size();
+                        for (size_t v = 0; v < num_models; ++v)
+                        {
+                            // Zero this variable for an obligatory buffer initialization
+                            // See https://github.com/secondlife/viewer/issues/912
+                            LLVertexBuffer::sGLRenderBuffer = 0;
+                            LLVertexBuffer* buffer = mVertexBuffer[LLModel::LOD_PHYSICS][model][v];
+                            buffer->setBuffer();
+                            LLStrider<LLVector3> pos_strider;
+                            buffer->getVertexStrider(pos_strider, 0);
+                            LLVector4a* pos = (LLVector4a*)pos_strider.get();
+
+                            LLStrider<U16> idx;
+                            buffer->getIndexStrider(idx, 0);
+
+                            for (U32 i = 0; i < buffer->getNumIndices(); i += 3)
+                            {
+                                LLVector4a v1; v1.setMul(pos[*idx++], scale);
+                                LLVector4a v2; v2.setMul(pos[*idx++], scale);
+                                LLVector4a v3; v3.setMul(pos[*idx++], scale);
+
+                                if (ll_is_degenerate(v1, v2, v3))
+                                {
+                                    buffer->draw(LLRender::LINE_LOOP, 3, i);
+                                    buffer->draw(LLRender::POINTS, 3, i);
+                                }
+                            }
+
+                            buffer->unmapBuffer();
+                        }
+                    }
+                }
+
+                gGL.popMatrix();
+            }
+            LLGLContainment::setLineWidth(1.f);
+            LLGLContainment::setPointSize(1.f);
+            gPipeline.enableLightsPreview();
+            gGL.setSceneBlendType(LLRender::BT_ALPHA);
+        }
     }
 }
 

@@ -45,7 +45,7 @@
 | `indra/newview/llreflectionmapmanager.cpp` | render.pipeline | 1637 | 0 | 0 | 0 | 69 | 17 | 13 | 1 |
 | `indra/newview/llsnapshotlivepreview.cpp` | assets.texture | 1105 | 0 | 0 | 0 | 64 | 3 | 0 | 0 |
 | `indra/newview/gltfscenemanager.cpp` | render.pipeline | 1210 | 0 | 0 | 0 | 56 | 38 | 8 | 0 |
-| `indra/newview/llmodelpreview.cpp` | render.opengl_touching | 4180 | 0 | 0 | 0 | 56 | 30 | 0 | 0 |
+| `indra/newview/llmodelpreview.cpp` | render.opengl_touching | 4185 | 0 | 0 | 0 | 56 | 30 | 0 | 0 |
 | `indra/newview/lldrawpoolbump.cpp` | render.pipeline | 1083 | 0 | 0 | 0 | 47 | 23 | 8 | 1 |
 | `indra/newview/lldrawpoolavatar.cpp` | render.pipeline | 991 | 0 | 0 | 0 | 46 | 4 | 17 | 0 |
 | `indra/newview/llviewerwindow.cpp` | render.pipeline | 6505 | 0 | 0 | 0 | 44 | 18 | 63 | 2 |

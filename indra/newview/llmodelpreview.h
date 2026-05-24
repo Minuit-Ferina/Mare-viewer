@@ -240,6 +240,7 @@ private:
     void        applyPreviewMaterial(LLModelInstance& instance, size_t material_index, bool show_textures);
     PreviewCameraState setupPreviewCamera(bool show_skin_weight, S32 width, S32 height);
     void        renderNonSkinnedModels(bool show_textures, bool show_edges);
+    void        renderPhysicsPreview(F32 physics_explode);
     LLVector3   mGroundPlane[4];
     void        renderGroundPlane(float z_offset = 0.0f);
     /// Indicates whether we should warn of high-lod meshes that do not have a corresponding physics mesh.
