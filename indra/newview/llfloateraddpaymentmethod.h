@@ -41,6 +41,9 @@ private:
     LLFloaterAddPaymentMethod(const LLSD& key);
 
     void centerOnScreen();
+    void setupButtons();
+    void showAddPaymentNotification();
+    std::string getContinueURL();
 
     void onCloseBtn();
     void onContinueBtn();

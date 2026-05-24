@@ -51,6 +51,13 @@ public:
     bool postBuild() override;
 
 protected:
+    void setupControls();
+    void resetItemList();
+    void syncPurchaseText(const std::string& object_name, S32 price, const std::string& owner_name);
+    void setBuyButtonEnabled(bool enabled);
+    bool isBuyButtonEnabled();
+    void syncWearOption(bool enabled);
+
     void inventoryChanged(LLViewerObject* obj,
         LLInventoryObject::object_list_t* inv,
         S32 serial_num,

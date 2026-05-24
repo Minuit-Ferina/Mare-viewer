@@ -59,15 +59,7 @@ LLFloaterBuyContents::LLFloaterBuyContents(const LLSD& key)
 
 bool LLFloaterBuyContents::postBuild()
 {
-
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuyContents::onClickCancel, this));
-    getChild<LLUICtrl>("buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuyContents::onClickBuy, this));
-
-    getChildView("item_list")->setEnabled(false);
-    getChildView("buy_btn")->setEnabled(false);
-    getChildView("wear_check")->setEnabled(false);
-
-    setDefaultBtn("cancel_btn"); // to avoid accidental buy (SL-43130)
+    setupControls();
 
     // Always center the dialog.  User can change the size,
     // but purchases are important and should be center screen.
@@ -76,6 +68,53 @@ bool LLFloaterBuyContents::postBuild()
     center();
 
     return true;
+}
+
+void LLFloaterBuyContents::setupControls()
+{
+    getChild<LLUICtrl>("cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuyContents::onClickCancel, this));
+    getChild<LLUICtrl>("buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuyContents::onClickBuy, this));
+
+    getChildView("item_list")->setEnabled(false);
+    setBuyButtonEnabled(false);
+    syncWearOption(false);
+
+    setDefaultBtn("cancel_btn"); // to avoid accidental buy (SL-43130)
+}
+
+void LLFloaterBuyContents::resetItemList()
+{
+    LLScrollListCtrl* list = getChild<LLScrollListCtrl>("item_list");
+    if (list)
+    {
+        list->deleteAllItems();
+    }
+}
+
+void LLFloaterBuyContents::syncPurchaseText(const std::string& object_name, S32 price, const std::string& owner_name)
+{
+    getChild<LLUICtrl>("contains_text")->setTextArg("[NAME]", object_name);
+    getChild<LLUICtrl>("buy_text")->setTextArg("[AMOUNT]", llformat("%d", price));
+    getChild<LLUICtrl>("buy_text")->setTextArg("[NAME]", owner_name);
+}
+
+void LLFloaterBuyContents::setBuyButtonEnabled(bool enabled)
+{
+    getChildView("buy_btn")->setEnabled(enabled);
+}
+
+bool LLFloaterBuyContents::isBuyButtonEnabled()
+{
+    return getChildView("buy_btn")->getEnabled();
+}
+
+void LLFloaterBuyContents::syncWearOption(bool enabled)
+{
+    getChildView("wear_check")->setEnabled(enabled);
+    if (enabled)
+    {
+        getChild<LLUICtrl>("wear_check")->setValue(LLSD(false));
+    }
 }
 
 LLFloaterBuyContents::~LLFloaterBuyContents()
@@ -99,9 +138,7 @@ void LLFloaterBuyContents::show(const LLSaleInfo& sale_info)
     if (!floater)
         return;
 
-    LLScrollListCtrl* list = floater->getChild<LLScrollListCtrl>("item_list");
-    if (list)
-        list->deleteAllItems();
+    floater->resetItemList();
 
     floater->mObjectSelection = LLSelectMgr::getInstance()->getEditSelection();
 
@@ -124,9 +161,7 @@ void LLFloaterBuyContents::show(const LLSaleInfo& sale_info)
         gCacheName->getGroupName(owner_id, owner_name);
     }
 
-    floater->getChild<LLUICtrl>("contains_text")->setTextArg("[NAME]", node->mName);
-    floater->getChild<LLUICtrl>("buy_text")->setTextArg("[AMOUNT]", llformat("%d", sale_info.getSalePrice()));
-    floater->getChild<LLUICtrl>("buy_text")->setTextArg("[NAME]", owner_name);
+    floater->syncPurchaseText(node->mName, sale_info.getSalePrice(), owner_name);
 
     // Must do this after the floater is created, because
     // sometimes the inventory is already there and
@@ -166,8 +201,7 @@ void LLFloaterBuyContents::inventoryChanged(LLViewerObject* obj,
     }
 
     // default to turning off the buy button.
-    LLView* buy_btn = getChildView("buy_btn");
-    buy_btn->setEnabled(false);
+    setBuyButtonEnabled(false);
 
     LLUUID owner_id;
     bool is_group_owned;
@@ -208,7 +242,7 @@ void LLFloaterBuyContents::inventoryChanged(LLViewerObject* obj,
 
         // There will be at least one item shown in the display, so go
         // ahead and enable the buy button.
-        buy_btn->setEnabled(true);
+        setBuyButtonEnabled(true);
 
         // Create the line in the list
         LLSD row;
@@ -256,8 +290,7 @@ void LLFloaterBuyContents::inventoryChanged(LLViewerObject* obj,
 
     if (wearable_count > 0)
     {
-        getChildView("wear_check")->setEnabled(true);
-        getChild<LLUICtrl>("wear_check")->setValue(LLSD(false) );
+        syncWearOption(true);
     }
 }
 
@@ -266,7 +299,7 @@ void LLFloaterBuyContents::onClickBuy()
 {
     // Make sure this wasn't selected through other mechanisms
     // (ie, being the default button and pressing enter.
-    if(!getChildView("buy_btn")->getEnabled())
+    if(!isBuyButtonEnabled())
     {
         // We shouldn't be enabled.  Just close.
         closeFloater();

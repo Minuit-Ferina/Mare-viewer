@@ -44,9 +44,14 @@ LLFloaterAddPaymentMethod::~LLFloaterAddPaymentMethod()
 bool LLFloaterAddPaymentMethod::postBuild()
 {
     setCanDrag(false);
+    setupButtons();
+    return true;
+}
+
+void LLFloaterAddPaymentMethod::setupButtons()
+{
     getChild<LLButton>("continue_btn")->setCommitCallback(boost::bind(&LLFloaterAddPaymentMethod::onContinueBtn, this));
     getChild<LLButton>("close_btn")->setCommitCallback(boost::bind(&LLFloaterAddPaymentMethod::onCloseBtn, this));
-    return true;
 }
 
 void LLFloaterAddPaymentMethod::onOpen(const LLSD& key)
@@ -57,15 +62,25 @@ void LLFloaterAddPaymentMethod::onOpen(const LLSD& key)
 void LLFloaterAddPaymentMethod::onContinueBtn()
 {
     closeFloater();
+    showAddPaymentNotification();
+}
+
+void LLFloaterAddPaymentMethod::showAddPaymentNotification()
+{
     LLNotificationsUtil::add("AddPaymentMethod", LLSD(), LLSD(),
         [this](const LLSD&notif, const LLSD&resp)
     {
         S32 opt = LLNotificationsUtil::getSelectedOption(notif, resp);
         if (opt == 0)
         {
-            LLWeb::loadURL(this->getString("continue_url"));
+            LLWeb::loadURL(getContinueURL());
         }
     });
+}
+
+std::string LLFloaterAddPaymentMethod::getContinueURL()
+{
+    return getString("continue_url");
 }
 
 void LLFloaterAddPaymentMethod::onCloseBtn()
@@ -78,4 +93,3 @@ void LLFloaterAddPaymentMethod::centerOnScreen()
     LLVector2 window_size = LLUI::getInstance()->getWindowSize();
     centerWithin(LLRect(0, 0, ll_round(window_size.mV[VX]), ll_round(window_size.mV[VY])));
 }
-

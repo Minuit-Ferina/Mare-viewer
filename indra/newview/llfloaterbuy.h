@@ -56,6 +56,10 @@ public:
 
 protected:
     void reset();
+    void setupControls();
+    void resetList(const std::string& list_name);
+    void syncBuyTitle(const LLSaleInfo& sale_info, const std::string& object_name);
+    void syncBuyText(S32 price, const std::string& owner_name);
 
     void inventoryChanged(LLViewerObject* obj,
         LLInventoryObject::object_list_t* inv,

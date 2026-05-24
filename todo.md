@@ -1879,7 +1879,12 @@ No open items in this section right now.
 - [x] Verify picker/search dialog objects with targeted builds, regenerated
       source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/394-picker-search-dialog-helpers-summary.md`.
-- [ ] Continue with the next broad dialog family.
+- [x] Continue with the next broad dialog family.
+- [x] Move simple UI ownership helpers across payment/buy dialogs.
+- [x] Verify payment/buy dialog objects with targeted builds, regenerated
+      source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/395-payment-buy-dialog-helpers-summary.md`.
+- [ ] Continue with settings/preference or environment/camera dialog families.
 
 ## Post-Phase2 Guardrails
 

@@ -70,6 +70,11 @@ public:
 
     void updateUI();
     void collapsePanels(bool collapse);
+    void setupButtons();
+    void setBuyButtonEnabled(bool enabled);
+    void hideStatusWidgets();
+    void syncTargetAmounts();
+    void syncBalanceSummary();
 
     virtual void draw();
     virtual bool canClose();
@@ -139,14 +144,57 @@ bool LLFloaterBuyCurrencyUI::postBuild()
 {
     mManager.prepare();
 
-    getChild<LLUICtrl>("buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuyCurrencyUI::onClickBuy, this));
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuyCurrencyUI::onClickCancel, this));
+    setupButtons();
 
     center();
 
     updateUI();
 
     return true;
+}
+
+void LLFloaterBuyCurrencyUI::setupButtons()
+{
+    getChild<LLUICtrl>("buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuyCurrencyUI::onClickBuy, this));
+    getChild<LLUICtrl>("cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuyCurrencyUI::onClickCancel, this));
+}
+
+void LLFloaterBuyCurrencyUI::setBuyButtonEnabled(bool enabled)
+{
+    getChildView("buy_btn")->setEnabled(enabled);
+}
+
+void LLFloaterBuyCurrencyUI::hideStatusWidgets()
+{
+    getChildView("info_buying")->setVisible(false);
+    getChildView("info_need_more")->setVisible(false);
+    getChildView("purchase_warning_repurchase")->setVisible(false);
+    getChildView("purchase_warning_notenough")->setVisible(false);
+    getChildView("contacting")->setVisible(false);
+}
+
+void LLFloaterBuyCurrencyUI::syncTargetAmounts()
+{
+    getChild<LLUICtrl>("target_price")->setTextArg("[AMT]", llformat("%d", mTargetPrice));
+    getChild<LLUICtrl>("required_amount")->setTextArg("[AMT]", llformat("%d", mRequiredAmount));
+}
+
+void LLFloaterBuyCurrencyUI::syncBalanceSummary()
+{
+    S32 balance = gStatusBar->getBalance();
+    getChildView("balance_label")->setVisible(true);
+    getChildView("balance_amount")->setVisible(true);
+    getChild<LLUICtrl>("balance_amount")->setTextArg("[AMT]", llformat("%d", balance));
+
+    S32 buying = mManager.getAmount();
+    getChildView("buying_label")->setVisible(true);
+    getChildView("buying_amount")->setVisible(true);
+    getChild<LLUICtrl>("buying_amount")->setTextArg("[AMT]", llformat("%d", buying));
+
+    S32 total = balance + buying;
+    getChildView("total_label")->setVisible(true);
+    getChildView("total_amount")->setVisible(true);
+    getChild<LLUICtrl>("total_amount")->setTextArg("[AMT]", llformat("%d", total));
 }
 
 void LLFloaterBuyCurrencyUI::draw()
@@ -164,7 +212,7 @@ void LLFloaterBuyCurrencyUI::draw()
     }
 
     // disable the Buy button when we are not able to buy
-    getChildView("buy_btn")->setEnabled(mManager.canBuy());
+    setBuyButtonEnabled(mManager.canBuy());
 
     LLFloater::draw();
 }
@@ -180,11 +228,7 @@ void LLFloaterBuyCurrencyUI::updateUI()
     mManager.updateUI(!hasError && !mManager.buying());
 
     // hide most widgets - we'll turn them on as needed next
-    getChildView("info_buying")->setVisible(false);
-    getChildView("info_need_more")->setVisible(false);
-    getChildView("purchase_warning_repurchase")->setVisible(false);
-    getChildView("purchase_warning_notenough")->setVisible(false);
-    getChildView("contacting")->setVisible(false);
+    hideStatusWidgets();
 
     if (hasError)
     {
@@ -218,25 +262,11 @@ void LLFloaterBuyCurrencyUI::updateUI()
         {
             if (mHasTarget)
             {
-                getChild<LLUICtrl>("target_price")->setTextArg("[AMT]", llformat("%d", mTargetPrice));
-                getChild<LLUICtrl>("required_amount")->setTextArg("[AMT]", llformat("%d", mRequiredAmount));
+                syncTargetAmounts();
             }
         }
 
-        S32 balance = gStatusBar->getBalance();
-        getChildView("balance_label")->setVisible(true);
-        getChildView("balance_amount")->setVisible(true);
-        getChild<LLUICtrl>("balance_amount")->setTextArg("[AMT]", llformat("%d", balance));
-
-        S32 buying = mManager.getAmount();
-        getChildView("buying_label")->setVisible(true);
-        getChildView("buying_amount")->setVisible(true);
-        getChild<LLUICtrl>("buying_amount")->setTextArg("[AMT]", llformat("%d", buying));
-
-        S32 total = balance + buying;
-        getChildView("total_label")->setVisible(true);
-        getChildView("total_amount")->setVisible(true);
-        getChild<LLUICtrl>("total_amount")->setTextArg("[AMT]", llformat("%d", total));
+        syncBalanceSummary();
 
         if (mHasTarget)
         {

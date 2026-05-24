@@ -102,6 +102,16 @@ private:
     static void onCancel(void* data);
     static void onKeystroke(LLLineEditor* editor, void* data);
     static void onGive(give_money_ptr info);
+    void setupQuickPayButton(S32& index, const std::string& button_name, S32 default_amount);
+    void setupAmountControls();
+    void setupPayButton();
+    void setCustomPayControlsVisible(bool visible);
+    void setPayButtonEnabled(bool enabled);
+    void syncPayButtonFromAmount();
+    std::string getAmountText();
+    S32 getEnteredAmount();
+    void setObjectNameText(const std::string& object_name);
+    void focusAmountField();
     void give(S32 amount);
     static void processPayPriceReply(LLMessageSystem* msg, void **userdata);
     void finishPayUI(const LLUUID& target_id, bool is_group);
@@ -153,65 +163,90 @@ LLFloaterPay::~LLFloaterPay()
 bool LLFloaterPay::postBuild()
 {
     S32 i = 0;
+    setupQuickPayButton(i, "fastpay 1", PAY_BUTTON_DEFAULT_0);
+    setupQuickPayButton(i, "fastpay 5", PAY_BUTTON_DEFAULT_1);
+    setupQuickPayButton(i, "fastpay 10", PAY_BUTTON_DEFAULT_2);
+    setupQuickPayButton(i, "fastpay 20", PAY_BUTTON_DEFAULT_3);
 
-    give_money_ptr info = std::make_shared<LLGiveMoneyInfo>(this, PAY_BUTTON_DEFAULT_0);
+    setupAmountControls();
+    setupPayButton();
+
+    childSetAction("cancel btn",&LLFloaterPay::onCancel,this);
+
+    return true;
+}
+
+void LLFloaterPay::setupQuickPayButton(S32& index, const std::string& button_name, S32 default_amount)
+{
+    give_money_ptr info = std::make_shared<LLGiveMoneyInfo>(this, default_amount);
     mCallbackData.push_back(info);
 
-    childSetAction("fastpay 1", boost::bind(LLFloaterPay::onGive, info));
-    getChildView("fastpay 1")->setVisible(false);
+    childSetAction(button_name, boost::bind(LLFloaterPay::onGive, info));
+    getChildView(button_name)->setVisible(false);
 
-    mQuickPayButton[i] = getChild<LLButton>("fastpay 1");
-    mQuickPayInfo[i] = info;
-    ++i;
+    mQuickPayButton[index] = getChild<LLButton>(button_name);
+    mQuickPayInfo[index] = info;
+    ++index;
+}
 
-    info = std::make_shared<LLGiveMoneyInfo>(this, PAY_BUTTON_DEFAULT_1);
-    mCallbackData.push_back(info);
-
-    childSetAction("fastpay 5", boost::bind(LLFloaterPay::onGive, info));
-    getChildView("fastpay 5")->setVisible(false);
-
-    mQuickPayButton[i] = getChild<LLButton>("fastpay 5");
-    mQuickPayInfo[i] = info;
-    ++i;
-
-    info = std::make_shared<LLGiveMoneyInfo>(this, PAY_BUTTON_DEFAULT_2);
-    mCallbackData.push_back(info);
-
-    childSetAction("fastpay 10", boost::bind(LLFloaterPay::onGive, info));
-    getChildView("fastpay 10")->setVisible(false);
-
-    mQuickPayButton[i] = getChild<LLButton>("fastpay 10");
-    mQuickPayInfo[i] = info;
-    ++i;
-
-    info = std::make_shared<LLGiveMoneyInfo>(this, PAY_BUTTON_DEFAULT_3);
-    mCallbackData.push_back(info);
-
-    childSetAction("fastpay 20", boost::bind(LLFloaterPay::onGive, info));
-    getChildView("fastpay 20")->setVisible(false);
-
-    mQuickPayButton[i] = getChild<LLButton>("fastpay 20");
-    mQuickPayInfo[i] = info;
-    ++i;
-
-
+void LLFloaterPay::setupAmountControls()
+{
     getChildView("amount text")->setVisible(false);
     getChildView("amount")->setVisible(false);
 
     getChild<LLLineEditor>("amount")->setKeystrokeCallback(&LLFloaterPay::onKeystroke, this);
     getChild<LLLineEditor>("amount")->setPrevalidate(LLTextValidate::validateNonNegativeS32);
+}
 
-    info = give_money_ptr(new LLGiveMoneyInfo(this, 0));
+void LLFloaterPay::setupPayButton()
+{
+    give_money_ptr info = give_money_ptr(new LLGiveMoneyInfo(this, 0));
     mCallbackData.push_back(info);
 
     childSetAction("pay btn", boost::bind(LLFloaterPay::onGive, info));
     setDefaultBtn("pay btn");
     getChildView("pay btn")->setVisible(false);
-    getChildView("pay btn")->setEnabled(false);
+    setPayButtonEnabled(false);
+}
 
-    childSetAction("cancel btn",&LLFloaterPay::onCancel,this);
+void LLFloaterPay::setCustomPayControlsVisible(bool visible)
+{
+    getChildView("amount")->setVisible(visible);
+    getChildView("pay btn")->setVisible(visible);
+    getChildView("amount text")->setVisible(visible);
+}
 
-    return true;
+void LLFloaterPay::setPayButtonEnabled(bool enabled)
+{
+    getChildView("pay btn")->setEnabled(enabled);
+}
+
+void LLFloaterPay::syncPayButtonFromAmount()
+{
+    std::string amtstr = getAmountText();
+    setPayButtonEnabled(!amtstr.empty() && atoi(amtstr.c_str()) > 0);
+}
+
+std::string LLFloaterPay::getAmountText()
+{
+    return getChild<LLUICtrl>("amount")->getValue().asString();
+}
+
+S32 LLFloaterPay::getEnteredAmount()
+{
+    return atoi(getAmountText().c_str());
+}
+
+void LLFloaterPay::setObjectNameText(const std::string& object_name)
+{
+    getChild<LLUICtrl>("object_name_text")->setValue(object_name);
+}
+
+void LLFloaterPay::focusAmountField()
+{
+    LLLineEditor* amount = getChild<LLLineEditor>("amount");
+    amount->setFocus(true);
+    amount->selectAll();
 }
 
 // virtual
@@ -241,25 +276,19 @@ void LLFloaterPay::processPayPriceReply(LLMessageSystem* msg, void **userdata)
 
         if (PAY_PRICE_HIDE == price)
         {
-            self->getChildView("amount")->setVisible(false);
-            self->getChildView("pay btn")->setVisible(false);
-            self->getChildView("amount text")->setVisible(false);
+            self->setCustomPayControlsVisible(false);
         }
         else if (PAY_PRICE_DEFAULT == price)
         {
-            self->getChildView("amount")->setVisible(true);
-            self->getChildView("pay btn")->setVisible(true);
-            self->getChildView("amount text")->setVisible(true);
+            self->setCustomPayControlsVisible(true);
         }
         else
         {
             // PAY_PRICE_HIDE and PAY_PRICE_DEFAULT are negative values
             // So we take the absolute value here after we have checked for those cases
 
-            self->getChildView("amount")->setVisible(true);
-            self->getChildView("pay btn")->setVisible(true);
-            self->getChildView("pay btn")->setEnabled(true);
-            self->getChildView("amount text")->setVisible(true);
+            self->setCustomPayControlsVisible(true);
+            self->setPayButtonEnabled(true);
 
             self->getChild<LLUICtrl>("amount")->setValue(llformat("%d", llabs(price)));
         }
@@ -391,7 +420,7 @@ void LLFloaterPay::payViaObject(money_callback callback, LLSafeHandle<LLObjectSe
     bool is_group = false;
     node->mPermissions->getOwnership(owner_id, is_group);
 
-    floater->getChild<LLUICtrl>("object_name_text")->setValue(node->mName);
+    floater->setObjectNameText(node->mName);
 
     floater->finishPayUI(owner_id, is_group);
 }
@@ -407,9 +436,7 @@ void LLFloaterPay::payDirectly(money_callback callback,
     floater->setCallback(callback);
     floater->mObjectSelection = NULL;
 
-    floater->getChildView("amount")->setVisible(true);
-    floater->getChildView("pay btn")->setVisible(true);
-    floater->getChildView("amount text")->setVisible(true);
+    floater->setCustomPayControlsVisible(true);
 
     for(S32 i=0;i<MAX_PAY_BUTTONS;++i)
     {
@@ -452,10 +479,7 @@ void LLFloaterPay::finishPayUI(const LLUUID& target_id, bool is_group)
     getChild<LLTextBox>("payee_name")->setText(slurl);
 
     // Make sure the amount field has focus
-
-    LLLineEditor* amount = getChild<LLLineEditor>("amount");
-    amount->setFocus(true);
-    amount->selectAll();
+    focusAmountField();
 
     mTargetIsGroup = is_group;
 }
@@ -477,8 +501,7 @@ void LLFloaterPay::onKeystroke(LLLineEditor*, void* data)
     if(self)
     {
         // enable the Pay button when amount is non-empty and positive, disable otherwise
-        std::string amtstr = self->getChild<LLUICtrl>("amount")->getValue().asString();
-        self->getChildView("pay btn")->setEnabled(!amtstr.empty() && atoi(amtstr.c_str()) > 0);
+        self->syncPayButtonFromAmount();
     }
 }
 
@@ -494,12 +517,7 @@ void LLFloaterPay::onGive(give_money_ptr info)
     S32 amount = info->mAmount;
     if (amount == 0)
     {
-        LLUICtrl* text_field = floater->getChild<LLUICtrl>("amount");
-        if (!text_field)
-        {
-            return;
-        }
-        amount = atoi(text_field->getValue().asString().c_str());
+        amount = floater->getEnteredAmount();
     }
 
     if (amount > PAY_AMOUNT_NOTIFICATION && gStatusBar && gStatusBar->getBalance() > amount)
@@ -548,7 +566,7 @@ void LLFloaterPay::give(S32 amount)
         // text field.
         if(amount == 0)
         {
-            amount = atoi(getChild<LLUICtrl>("amount")->getValue().asString().c_str());
+            amount = getEnteredAmount();
         }
 
         // Try to pay an object.

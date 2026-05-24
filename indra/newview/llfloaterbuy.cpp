@@ -56,13 +56,7 @@ LLFloaterBuy::LLFloaterBuy(const LLSD& key)
 
 bool LLFloaterBuy::postBuild()
 {
-    getChildView("object_list")->setEnabled(false);
-    getChildView("item_list")->setEnabled(false);
-
-    getChild<LLUICtrl>("cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuy::onClickCancel, this));
-    getChild<LLUICtrl>("buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuy::onClickBuy, this));
-
-    setDefaultBtn("cancel_btn"); // to avoid accidental buy (SL-43130)
+    setupControls();
 
     // Always center the dialog.  User can change the size,
     // but purchases are important and should be center screen.
@@ -73,6 +67,17 @@ bool LLFloaterBuy::postBuild()
     return true;
 }
 
+void LLFloaterBuy::setupControls()
+{
+    getChildView("object_list")->setEnabled(false);
+    getChildView("item_list")->setEnabled(false);
+
+    getChild<LLUICtrl>("cancel_btn")->setCommitCallback( boost::bind(&LLFloaterBuy::onClickCancel, this));
+    getChild<LLUICtrl>("buy_btn")->setCommitCallback( boost::bind(&LLFloaterBuy::onClickBuy, this));
+
+    setDefaultBtn("cancel_btn"); // to avoid accidental buy (SL-43130)
+}
+
 LLFloaterBuy::~LLFloaterBuy()
 {
     mObjectSelection = nullptr;
@@ -80,11 +85,40 @@ LLFloaterBuy::~LLFloaterBuy()
 
 void LLFloaterBuy::reset()
 {
-    LLScrollListCtrl* object_list = getChild<LLScrollListCtrl>("object_list");
-    if (object_list) object_list->deleteAllItems();
+    resetList("object_list");
+    resetList("item_list");
+}
 
-    LLScrollListCtrl* item_list = getChild<LLScrollListCtrl>("item_list");
-    if (item_list) item_list->deleteAllItems();
+void LLFloaterBuy::resetList(const std::string& list_name)
+{
+    LLScrollListCtrl* list = getChild<LLScrollListCtrl>(list_name);
+    if (list)
+    {
+        list->deleteAllItems();
+    }
+}
+
+void LLFloaterBuy::syncBuyTitle(const LLSaleInfo& sale_info, const std::string& object_name)
+{
+    LLUIString title;
+    switch (sale_info.getSaleType())
+    {
+      case LLSaleInfo::FS_ORIGINAL:
+        title = getString("title_buy_text");
+        break;
+      case LLSaleInfo::FS_COPY:
+      default:
+        title = getString("title_buy_copy_text");
+        break;
+    }
+    title.setArg("[NAME]", object_name);
+    setTitle(title);
+}
+
+void LLFloaterBuy::syncBuyText(S32 price, const std::string& owner_name)
+{
+    getChild<LLUICtrl>("buy_text")->setTextArg("[AMOUNT]", llformat("%d", price));
+    getChild<LLUICtrl>("buy_name_text")->setTextArg("[NAME]", owner_name);
 }
 
 // static
@@ -111,20 +145,7 @@ void LLFloaterBuy::show(const LLSaleInfo& sale_info)
     if (!node)
         return;
 
-    // Set title based on sale type
-    LLUIString title;
-    switch (sale_info.getSaleType())
-    {
-      case LLSaleInfo::FS_ORIGINAL:
-        title = floater->getString("title_buy_text");
-        break;
-      case LLSaleInfo::FS_COPY:
-      default:
-        title = floater->getString("title_buy_copy_text");
-        break;
-    }
-    title.setArg("[NAME]", node->mName);
-    floater->setTitle(title);
+    floater->syncBuyTitle(sale_info, node->mName);
 
     LLUUID owner_id;
     std::string owner_name;
@@ -177,8 +198,7 @@ void LLFloaterBuy::show(const LLSaleInfo& sale_info)
     // Add after columns added so appropriate heights are correct.
     object_list->addElement(row);
 
-    floater->getChild<LLUICtrl>("buy_text")->setTextArg("[AMOUNT]", llformat("%d", sale_info.getSalePrice()));
-    floater->getChild<LLUICtrl>("buy_name_text")->setTextArg("[NAME]", owner_name);
+    floater->syncBuyText(sale_info.getSalePrice(), owner_name);
 
     floater->showViews(true);
 
