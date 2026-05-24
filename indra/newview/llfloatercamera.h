@@ -112,6 +112,13 @@ private:
 
     F32 getCurrentTransparency();
 
+    void setupChildControls();
+    void setupAdvancedControls();
+    void syncSavePresetVisibility(S32 height);
+    bool isMouseOverFloater();
+    void syncFadeState(bool faded);
+    void setCameraItemSelected(const std::string& item_name, bool selected);
+
     void onViewButtonClick(const LLSD& user_data);
 
     ECameraControlMode determineMode();

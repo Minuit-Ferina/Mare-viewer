@@ -63,6 +63,11 @@ protected:
     virtual void            refresh()                   override;
     void                    setEditSettingsAndUpdate(const LLSettingsBase::ptr_t &settings) override;
     virtual void            syncronizeTabs();
+    void                    setupBaseControls();
+    void                    setupFlyoutControl();
+    void                    refreshFlyoutActions(bool is_inventory_avail);
+    void                    refreshSettingsName();
+    void                    refreshTabPanels();
 
     virtual LLFloaterSettingsPicker *getSettingsPicker() override;
 
@@ -112,6 +117,7 @@ protected:
     void                    loadWaterSettingFromFile(const std::vector<std::string>& filenames);
 
 private:
+    void                    addWaterTab();
 };
 
 class LLFloaterFixedEnvironmentSky : public LLFloaterFixedEnvironment
@@ -133,6 +139,9 @@ protected:
     void                    loadSkySettingFromFile(const std::vector<std::string>& filenames);
 
 private:
+    void                    addSkyAtmosTab();
+    void                    addSkyCloudTab();
+    void                    addSkySunMoonTab();
 };
 
 #endif // LL_FLOATERFIXEDENVIRONMENT_H

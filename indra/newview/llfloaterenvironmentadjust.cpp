@@ -87,6 +87,15 @@ LLFloaterEnvironmentAdjust::~LLFloaterEnvironmentAdjust()
 //-------------------------------------------------------------------------
 bool LLFloaterEnvironmentAdjust::postBuild()
 {
+    setupControlCallbacks();
+    setupTextureControls();
+
+    refresh();
+    return true;
+}
+
+void LLFloaterEnvironmentAdjust::setupControlCallbacks()
+{
     getChild<LLUICtrl>(FIELD_SKY_AMBIENT_LIGHT)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onAmbientLightChanged(); });
     getChild<LLUICtrl>(FIELD_SKY_BLUE_HORIZON)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onBlueHorizonChanged(); });
     getChild<LLUICtrl>(FIELD_SKY_BLUE_DENSITY)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onBlueDensityChanged(); });
@@ -113,17 +122,17 @@ bool LLFloaterEnvironmentAdjust::postBuild()
     getChild<LLUICtrl>(BTN_RESET)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onButtonReset(); });
 
     getChild<LLTextureCtrl>(FIELD_SKY_CLOUD_MAP)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onCloudMapChanged(); });
+    getChild<LLTextureCtrl>(FIELD_WATER_NORMAL_MAP)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onWaterMapChanged(); });
+    getChild<LLUICtrl>(FIELD_REFLECTION_PROBE_AMBIANCE)->setCommitCallback([this](LLUICtrl*, const LLSD&) { onReflectionProbeAmbianceChanged(); });
+}
+
+void LLFloaterEnvironmentAdjust::setupTextureControls()
+{
     getChild<LLTextureCtrl>(FIELD_SKY_CLOUD_MAP)->setDefaultImageAssetID(LLSettingsSky::GetDefaultCloudNoiseTextureId());
     getChild<LLTextureCtrl>(FIELD_SKY_CLOUD_MAP)->setAllowNoTexture(true);
 
     getChild<LLTextureCtrl>(FIELD_WATER_NORMAL_MAP)->setDefaultImageAssetID(LLSettingsWater::GetDefaultWaterNormalAssetId());
     getChild<LLTextureCtrl>(FIELD_WATER_NORMAL_MAP)->setBlankImageAssetID(BLANK_OBJECT_NORMAL);
-    getChild<LLTextureCtrl>(FIELD_WATER_NORMAL_MAP)->setCommitCallback([this](LLUICtrl *, const LLSD &) { onWaterMapChanged(); });
-
-    getChild<LLUICtrl>(FIELD_REFLECTION_PROBE_AMBIANCE)->setCommitCallback([this](LLUICtrl*, const LLSD&) { onReflectionProbeAmbianceChanged(); });
-
-    refresh();
-    return true;
 }
 
 void LLFloaterEnvironmentAdjust::onOpen(const LLSD& key)
@@ -171,51 +180,114 @@ void LLFloaterEnvironmentAdjust::refresh()
 
     setEnabled(true);
     setAllChildrenEnabled(true);
+    syncEnvironmentControls();
+}
 
-    getChild<LLColorSwatchCtrl>(FIELD_SKY_AMBIENT_LIGHT)->set(mLiveSky->getAmbientColor() / SLIDER_SCALE_SUN_AMBIENT);
-    getChild<LLColorSwatchCtrl>(FIELD_SKY_BLUE_HORIZON)->set(mLiveSky->getBlueHorizon() / SLIDER_SCALE_BLUE_HORIZON_DENSITY);
-    getChild<LLColorSwatchCtrl>(FIELD_SKY_BLUE_DENSITY)->set(mLiveSky->getBlueDensity() / SLIDER_SCALE_BLUE_HORIZON_DENSITY);
-    getChild<LLUICtrl>(FIELD_SKY_HAZE_HORIZON)->setValue(mLiveSky->getHazeHorizon());
-    getChild<LLUICtrl>(FIELD_SKY_HAZE_DENSITY)->setValue(mLiveSky->getHazeDensity());
-    getChild<LLUICtrl>(FIELD_SKY_SCENE_GAMMA)->setValue(mLiveSky->getGamma());
-    getChild<LLColorSwatchCtrl>(FIELD_SKY_CLOUD_COLOR)->set(mLiveSky->getCloudColor());
-    getChild<LLUICtrl>(FIELD_SKY_CLOUD_COVERAGE)->setValue(mLiveSky->getCloudShadow());
-    getChild<LLUICtrl>(FIELD_SKY_CLOUD_SCALE)->setValue(mLiveSky->getCloudScale());
-    getChild<LLColorSwatchCtrl>(FIELD_SKY_SUN_COLOR)->set(mLiveSky->getSunlightColor() / SLIDER_SCALE_SUN_AMBIENT);
+void LLFloaterEnvironmentAdjust::syncEnvironmentControls()
+{
+    setColorValue(FIELD_SKY_AMBIENT_LIGHT, mLiveSky->getAmbientColor() / SLIDER_SCALE_SUN_AMBIENT);
+    setColorValue(FIELD_SKY_BLUE_HORIZON, mLiveSky->getBlueHorizon() / SLIDER_SCALE_BLUE_HORIZON_DENSITY);
+    setColorValue(FIELD_SKY_BLUE_DENSITY, mLiveSky->getBlueDensity() / SLIDER_SCALE_BLUE_HORIZON_DENSITY);
+    setControlValue(FIELD_SKY_HAZE_HORIZON, mLiveSky->getHazeHorizon());
+    setControlValue(FIELD_SKY_HAZE_DENSITY, mLiveSky->getHazeDensity());
+    setControlValue(FIELD_SKY_SCENE_GAMMA, mLiveSky->getGamma());
+    setColorValue(FIELD_SKY_CLOUD_COLOR, mLiveSky->getCloudColor());
+    setControlValue(FIELD_SKY_CLOUD_COVERAGE, mLiveSky->getCloudShadow());
+    setControlValue(FIELD_SKY_CLOUD_SCALE, mLiveSky->getCloudScale());
+    setColorValue(FIELD_SKY_SUN_COLOR, mLiveSky->getSunlightColor() / SLIDER_SCALE_SUN_AMBIENT);
 
-    getChild<LLTextureCtrl>(FIELD_SKY_CLOUD_MAP)->setValue(mLiveSky->getCloudNoiseTextureId());
-    getChild<LLTextureCtrl>(FIELD_WATER_NORMAL_MAP)->setValue(mLiveWater->getNormalMapID());
+    setTextureValue(FIELD_SKY_CLOUD_MAP, mLiveSky->getCloudNoiseTextureId());
+    setTextureValue(FIELD_WATER_NORMAL_MAP, mLiveWater->getNormalMapID());
 
     static LLCachedControl<bool> should_auto_adjust(gSavedSettings, "RenderSkyAutoAdjustLegacy", false);
-    getChild<LLUICtrl>(FIELD_REFLECTION_PROBE_AMBIANCE)->setValue(mLiveSky->getReflectionProbeAmbiance(should_auto_adjust));
+    setControlValue(FIELD_REFLECTION_PROBE_AMBIANCE, mLiveSky->getReflectionProbeAmbiance(should_auto_adjust));
 
     LLColor3 glow(mLiveSky->getGlow());
 
     // takes 40 - 0.2 range -> 0 - 1.99 UI range
-    getChild<LLUICtrl>(FIELD_SKY_GLOW_SIZE)->setValue(2.0 - (glow.mV[0] / SLIDER_SCALE_GLOW_R));
-    getChild<LLUICtrl>(FIELD_SKY_GLOW_FOCUS)->setValue(glow.mV[2] / SLIDER_SCALE_GLOW_B);
-    getChild<LLUICtrl>(FIELD_SKY_STAR_BRIGHTNESS)->setValue(mLiveSky->getStarBrightness());
-    getChild<LLUICtrl>(FIELD_SKY_SUN_SCALE)->setValue(mLiveSky->getSunScale());
+    setControlValue(FIELD_SKY_GLOW_SIZE, 2.0 - (glow.mV[0] / SLIDER_SCALE_GLOW_R));
+    setControlValue(FIELD_SKY_GLOW_FOCUS, glow.mV[2] / SLIDER_SCALE_GLOW_B);
+    setControlValue(FIELD_SKY_STAR_BRIGHTNESS, mLiveSky->getStarBrightness());
+    setControlValue(FIELD_SKY_SUN_SCALE, mLiveSky->getSunScale());
 
-    // Sun rotation
-    LLQuaternion quat = mLiveSky->getSunRotation();
+    syncSunRotationControls(mLiveSky->getSunRotation());
+    syncMoonRotationControls(mLiveSky->getMoonRotation());
+    updateGammaLabel();
+}
+
+void LLFloaterEnvironmentAdjust::syncSunRotationControls(const LLQuaternion& rotation)
+{
     F32 azimuth;
     F32 elevation;
-    LLVirtualTrackball::getAzimuthAndElevationDeg(quat, azimuth, elevation);
+    LLVirtualTrackball::getAzimuthAndElevationDeg(rotation, azimuth, elevation);
 
-    getChild<LLUICtrl>(FIELD_SKY_SUN_AZIMUTH)->setValue(azimuth);
-    getChild<LLUICtrl>(FIELD_SKY_SUN_ELEVATION)->setValue(elevation);
-    getChild<LLVirtualTrackball>(FIELD_SKY_SUN_ROTATION)->setRotation(quat);
+    setControlValue(FIELD_SKY_SUN_AZIMUTH, azimuth);
+    setControlValue(FIELD_SKY_SUN_ELEVATION, elevation);
+    setTrackballRotation(FIELD_SKY_SUN_ROTATION, rotation);
+}
 
-    // Moon rotation
-    quat = mLiveSky->getMoonRotation();
-    LLVirtualTrackball::getAzimuthAndElevationDeg(quat, azimuth, elevation);
+void LLFloaterEnvironmentAdjust::syncMoonRotationControls(const LLQuaternion& rotation)
+{
+    F32 azimuth;
+    F32 elevation;
+    LLVirtualTrackball::getAzimuthAndElevationDeg(rotation, azimuth, elevation);
 
-    getChild<LLUICtrl>(FIELD_SKY_MOON_AZIMUTH)->setValue(azimuth);
-    getChild<LLUICtrl>(FIELD_SKY_MOON_ELEVATION)->setValue(elevation);
-    getChild<LLVirtualTrackball>(FIELD_SKY_MOON_ROTATION)->setRotation(quat);
+    setControlValue(FIELD_SKY_MOON_AZIMUTH, azimuth);
+    setControlValue(FIELD_SKY_MOON_ELEVATION, elevation);
+    setTrackballRotation(FIELD_SKY_MOON_ROTATION, rotation);
+}
 
-    updateGammaLabel();
+F32 LLFloaterEnvironmentAdjust::getControlF32(const std::string& name)
+{
+    return (F32)getChild<LLUICtrl>(name)->getValue().asReal();
+}
+
+void LLFloaterEnvironmentAdjust::setControlValue(const std::string& name, const LLSD& value)
+{
+    getChild<LLUICtrl>(name)->setValue(value);
+}
+
+const LLColor4& LLFloaterEnvironmentAdjust::getColorValue(const std::string& name)
+{
+    return getChild<LLColorSwatchCtrl>(name)->get();
+}
+
+void LLFloaterEnvironmentAdjust::setColorValue(const std::string& name, const LLColor4& value)
+{
+    getChild<LLColorSwatchCtrl>(name)->set(value);
+}
+
+LLUUID LLFloaterEnvironmentAdjust::getTextureValue(const std::string& name)
+{
+    return getChild<LLTextureCtrl>(name)->getValue().asUUID();
+}
+
+void LLFloaterEnvironmentAdjust::setTextureValue(const std::string& name, const LLUUID& value)
+{
+    getChild<LLTextureCtrl>(name)->setValue(value);
+}
+
+LLQuaternion LLFloaterEnvironmentAdjust::getTrackballRotation(const std::string& name)
+{
+    return getChild<LLVirtualTrackball>(name)->getRotation();
+}
+
+void LLFloaterEnvironmentAdjust::setTrackballRotation(const std::string& name, const LLQuaternion& rotation)
+{
+    getChild<LLVirtualTrackball>(name)->setRotation(rotation);
+}
+
+void LLFloaterEnvironmentAdjust::setControlTooltip(const std::string& name, const std::string& tooltip)
+{
+    getChild<LLUICtrl>(name)->setToolTip(tooltip);
+}
+
+void LLFloaterEnvironmentAdjust::markLocalPreset()
+{
+//MK
+    // Clear the name of the preset
+    gAgent.mRRInterface.setLastLoadedPreset("Local");
+//mk
 }
 
 
@@ -273,115 +345,88 @@ void LLFloaterEnvironmentAdjust::onAmbientLightChanged()
 {
     if (!mLiveSky)
         return;
-    mLiveSky->setAmbientColor(LLColor3(getChild<LLColorSwatchCtrl>(FIELD_SKY_AMBIENT_LIGHT)->get() * SLIDER_SCALE_SUN_AMBIENT));
+    mLiveSky->setAmbientColor(LLColor3(getColorValue(FIELD_SKY_AMBIENT_LIGHT) * SLIDER_SCALE_SUN_AMBIENT));
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onBlueHorizonChanged()
 {
     if (!mLiveSky)
         return;
-    mLiveSky->setBlueHorizon(LLColor3(getChild<LLColorSwatchCtrl>(FIELD_SKY_BLUE_HORIZON)->get() * SLIDER_SCALE_BLUE_HORIZON_DENSITY));
+    mLiveSky->setBlueHorizon(LLColor3(getColorValue(FIELD_SKY_BLUE_HORIZON) * SLIDER_SCALE_BLUE_HORIZON_DENSITY));
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onBlueDensityChanged()
 {
     if (!mLiveSky)
         return;
-    mLiveSky->setBlueDensity(LLColor3(getChild<LLColorSwatchCtrl>(FIELD_SKY_BLUE_DENSITY)->get() * SLIDER_SCALE_BLUE_HORIZON_DENSITY));
+    mLiveSky->setBlueDensity(LLColor3(getColorValue(FIELD_SKY_BLUE_DENSITY) * SLIDER_SCALE_BLUE_HORIZON_DENSITY));
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onHazeHorizonChanged()
 {
     if (!mLiveSky)
         return;
-    mLiveSky->setHazeHorizon((F32)getChild<LLUICtrl>(FIELD_SKY_HAZE_HORIZON)->getValue().asReal());
+    mLiveSky->setHazeHorizon(getControlF32(FIELD_SKY_HAZE_HORIZON));
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onHazeDensityChanged()
 {
     if (!mLiveSky)
         return;
-    mLiveSky->setHazeDensity((F32)getChild<LLUICtrl>(FIELD_SKY_HAZE_DENSITY)->getValue().asReal());
+    mLiveSky->setHazeDensity(getControlF32(FIELD_SKY_HAZE_DENSITY));
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onSceneGammaChanged()
 {
     if (!mLiveSky)
         return;
-    mLiveSky->setGamma((F32)getChild<LLUICtrl>(FIELD_SKY_SCENE_GAMMA)->getValue().asReal());
+    mLiveSky->setGamma(getControlF32(FIELD_SKY_SCENE_GAMMA));
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onCloudColorChanged()
 {
     if (!mLiveSky)
         return;
-    mLiveSky->setCloudColor(LLColor3(getChild<LLColorSwatchCtrl>(FIELD_SKY_CLOUD_COLOR)->get()));
+    mLiveSky->setCloudColor(LLColor3(getColorValue(FIELD_SKY_CLOUD_COLOR)));
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onCloudCoverageChanged()
 {
     if (!mLiveSky)
         return;
-    mLiveSky->setCloudShadow((F32)getChild<LLUICtrl>(FIELD_SKY_CLOUD_COVERAGE)->getValue().asReal());
+    mLiveSky->setCloudShadow(getControlF32(FIELD_SKY_CLOUD_COVERAGE));
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onCloudScaleChanged()
 {
     if (!mLiveSky)
         return;
-    mLiveSky->setCloudScale((F32)getChild<LLUICtrl>(FIELD_SKY_CLOUD_SCALE)->getValue().asReal());
+    mLiveSky->setCloudScale(getControlF32(FIELD_SKY_CLOUD_SCALE));
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onGlowChanged()
 {
     if (!mLiveSky)
         return;
-    LLColor3 glow((F32)getChild<LLUICtrl>(FIELD_SKY_GLOW_SIZE)->getValue().asReal(), 0.0f, (F32)getChild<LLUICtrl>(FIELD_SKY_GLOW_FOCUS)->getValue().asReal());
+    LLColor3 glow(getControlF32(FIELD_SKY_GLOW_SIZE), 0.0f, getControlF32(FIELD_SKY_GLOW_FOCUS));
 
     // takes 0 - 1.99 UI range -> 40 -> 0.2 range
     glow.mV[0] = (2.0f - glow.mV[0]) * SLIDER_SCALE_GLOW_R;
@@ -389,32 +434,26 @@ void LLFloaterEnvironmentAdjust::onGlowChanged()
 
     mLiveSky->setGlow(glow);
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onStarBrightnessChanged()
 {
     if (!mLiveSky)
         return;
-    mLiveSky->setStarBrightness((F32)getChild<LLUICtrl>(FIELD_SKY_STAR_BRIGHTNESS)->getValue().asReal());
+    mLiveSky->setStarBrightness(getControlF32(FIELD_SKY_STAR_BRIGHTNESS));
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onSunRotationChanged()
 {
-    LLQuaternion quat = getChild<LLVirtualTrackball>(FIELD_SKY_SUN_ROTATION)->getRotation();
+    LLQuaternion quat = getTrackballRotation(FIELD_SKY_SUN_ROTATION);
     F32 azimuth;
     F32 elevation;
     LLVirtualTrackball::getAzimuthAndElevationDeg(quat, azimuth, elevation);
-    getChild<LLUICtrl>(FIELD_SKY_SUN_AZIMUTH)->setValue(azimuth);
-    getChild<LLUICtrl>(FIELD_SKY_SUN_ELEVATION)->setValue(elevation);
+    setControlValue(FIELD_SKY_SUN_AZIMUTH, azimuth);
+    setControlValue(FIELD_SKY_SUN_ELEVATION, elevation);
     if (mLiveSky)
     {
         mLiveSky->setSunRotation(quat);
@@ -424,8 +463,8 @@ void LLFloaterEnvironmentAdjust::onSunRotationChanged()
 
 void LLFloaterEnvironmentAdjust::onSunAzimElevChanged()
 {
-    F32 azimuth = (F32)getChild<LLUICtrl>(FIELD_SKY_SUN_AZIMUTH)->getValue().asReal();
-    F32 elevation = (F32)getChild<LLUICtrl>(FIELD_SKY_SUN_ELEVATION)->getValue().asReal();
+    F32 azimuth = getControlF32(FIELD_SKY_SUN_AZIMUTH);
+    F32 elevation = getControlF32(FIELD_SKY_SUN_ELEVATION);
     LLQuaternion quat;
 
     azimuth *= DEG_TO_RAD;
@@ -441,39 +480,33 @@ void LLFloaterEnvironmentAdjust::onSunAzimElevChanged()
     az_quat.setAngleAxis(F_TWO_PI - azimuth, 0, 0, 1);
     quat *= az_quat;
 
-    getChild<LLVirtualTrackball>(FIELD_SKY_SUN_ROTATION)->setRotation(quat);
+    setTrackballRotation(FIELD_SKY_SUN_ROTATION, quat);
 
     if (mLiveSky)
     {
         mLiveSky->setSunRotation(quat);
         mLiveSky->update();
     }
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onSunScaleChanged()
 {
     if (!mLiveSky)
         return;
-    mLiveSky->setSunScale((F32)(getChild<LLUICtrl>(FIELD_SKY_SUN_SCALE)->getValue().asReal()));
+    mLiveSky->setSunScale(getControlF32(FIELD_SKY_SUN_SCALE));
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onMoonRotationChanged()
 {
-    LLQuaternion quat = getChild<LLVirtualTrackball>(FIELD_SKY_MOON_ROTATION)->getRotation();
+    LLQuaternion quat = getTrackballRotation(FIELD_SKY_MOON_ROTATION);
     F32 azimuth;
     F32 elevation;
     LLVirtualTrackball::getAzimuthAndElevationDeg(quat, azimuth, elevation);
-    getChild<LLUICtrl>(FIELD_SKY_MOON_AZIMUTH)->setValue(azimuth);
-    getChild<LLUICtrl>(FIELD_SKY_MOON_ELEVATION)->setValue(elevation);
+    setControlValue(FIELD_SKY_MOON_AZIMUTH, azimuth);
+    setControlValue(FIELD_SKY_MOON_ELEVATION, elevation);
     if (mLiveSky)
     {
         mLiveSky->setMoonRotation(quat);
@@ -483,8 +516,8 @@ void LLFloaterEnvironmentAdjust::onMoonRotationChanged()
 
 void LLFloaterEnvironmentAdjust::onMoonAzimElevChanged()
 {
-    F32 azimuth = (F32)getChild<LLUICtrl>(FIELD_SKY_MOON_AZIMUTH)->getValue().asReal();
-    F32 elevation = (F32)getChild<LLUICtrl>(FIELD_SKY_MOON_ELEVATION)->getValue().asReal();
+    F32 azimuth = getControlF32(FIELD_SKY_MOON_AZIMUTH);
+    F32 elevation = getControlF32(FIELD_SKY_MOON_ELEVATION);
     LLQuaternion quat;
 
     azimuth *= DEG_TO_RAD;
@@ -500,17 +533,14 @@ void LLFloaterEnvironmentAdjust::onMoonAzimElevChanged()
     az_quat.setAngleAxis(F_TWO_PI - azimuth, 0, 0, 1);
     quat *= az_quat;
 
-    getChild<LLVirtualTrackball>(FIELD_SKY_MOON_ROTATION)->setRotation(quat);
+    setTrackballRotation(FIELD_SKY_MOON_ROTATION, quat);
 
     if (mLiveSky)
     {
         mLiveSky->setMoonRotation(quat);
         mLiveSky->update();
     }
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onCloudMapChanged()
@@ -520,9 +550,7 @@ void LLFloaterEnvironmentAdjust::onCloudMapChanged()
         return;
     }
 
-    LLTextureCtrl* picker_ctrl = getChild<LLTextureCtrl>(FIELD_SKY_CLOUD_MAP);
-
-    LLUUID new_texture_id = picker_ctrl->getValue().asUUID();
+    LLUUID new_texture_id = getTextureValue(FIELD_SKY_CLOUD_MAP);
 
     LLEnvironment::instance().setSelectedEnvironment(LLEnvironment::ENV_LOCAL);
 
@@ -538,45 +566,36 @@ void LLFloaterEnvironmentAdjust::onCloudMapChanged()
 
     LLEnvironment::instance().updateEnvironment(LLEnvironment::TRANSITION_INSTANT, true);
 
-    picker_ctrl->setValue(new_texture_id);
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    setTextureValue(FIELD_SKY_CLOUD_MAP, new_texture_id);
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onWaterMapChanged()
 {
     if (!mLiveWater)
         return;
-    mLiveWater->setNormalMapID(getChild<LLTextureCtrl>(FIELD_WATER_NORMAL_MAP)->getValue().asUUID());
+    mLiveWater->setNormalMapID(getTextureValue(FIELD_WATER_NORMAL_MAP));
     mLiveWater->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onSunColorChanged()
 {
     if (!mLiveSky)
         return;
-    LLColor3 color(getChild<LLColorSwatchCtrl>(FIELD_SKY_SUN_COLOR)->get());
+    LLColor3 color(getColorValue(FIELD_SKY_SUN_COLOR));
 
     color *= SLIDER_SCALE_SUN_AMBIENT;
 
     mLiveSky->setSunlightColor(color);
     mLiveSky->update();
-//MK
-    // Clear the name of the preset
-    gAgent.mRRInterface.setLastLoadedPreset("Local");
-//mk
+    markLocalPreset();
 }
 
 void LLFloaterEnvironmentAdjust::onReflectionProbeAmbianceChanged()
 {
     if (!mLiveSky) return;
-    F32 ambiance = (F32)getChild<LLUICtrl>(FIELD_REFLECTION_PROBE_AMBIANCE)->getValue().asReal();
+    F32 ambiance = getControlF32(FIELD_REFLECTION_PROBE_AMBIANCE);
     mLiveSky->setReflectionProbeAmbiance(ambiance);
 
     updateGammaLabel();
@@ -592,12 +611,12 @@ void LLFloaterEnvironmentAdjust::updateGammaLabel()
     if (ambiance != 0.f)
     {
         childSetValue("scene_gamma_label", getString("hdr_string"));
-        getChild<LLUICtrl>(FIELD_SKY_SCENE_GAMMA)->setToolTip(getString("hdr_tooltip"));
+        setControlTooltip(FIELD_SKY_SCENE_GAMMA, getString("hdr_tooltip"));
     }
     else
     {
         childSetValue("scene_gamma_label", getString("brightness_string"));
-        getChild<LLUICtrl>(FIELD_SKY_SCENE_GAMMA)->setToolTip(std::string());
+        setControlTooltip(FIELD_SKY_SCENE_GAMMA, std::string());
     }
 }
 

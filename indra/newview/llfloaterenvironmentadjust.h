@@ -28,9 +28,12 @@
 #define LL_FLOATERENVIRONMENTADJUST_H
 
 #include "llfloater.h"
+#include "llquaternion.h"
 #include "llsettingsbase.h"
 #include "llsettingssky.h"
+#include "lluuid.h"
 #include "llenvironment.h"
+#include "v4color.h"
 
 #include "boost/signals2.hpp"
 
@@ -87,6 +90,22 @@ private:
     void                        onButtonReset();
 
     void                        onEnvironmentUpdated(LLEnvironment::EnvSelection_t env, S32 version);
+
+    void                        setupControlCallbacks();
+    void                        setupTextureControls();
+    void                        syncEnvironmentControls();
+    void                        syncSunRotationControls(const LLQuaternion& rotation);
+    void                        syncMoonRotationControls(const LLQuaternion& rotation);
+    F32                         getControlF32(const std::string& name);
+    void                        setControlValue(const std::string& name, const LLSD& value);
+    const LLColor4&             getColorValue(const std::string& name);
+    void                        setColorValue(const std::string& name, const LLColor4& value);
+    LLUUID                      getTextureValue(const std::string& name);
+    void                        setTextureValue(const std::string& name, const LLUUID& value);
+    LLQuaternion                getTrackballRotation(const std::string& name);
+    void                        setTrackballRotation(const std::string& name, const LLQuaternion& rotation);
+    void                        setControlTooltip(const std::string& name, const std::string& tooltip);
+    void                        markLocalPreset();
 
     LLSettingsSky::ptr_t        mLiveSky;
     LLSettingsWater::ptr_t      mLiveWater;

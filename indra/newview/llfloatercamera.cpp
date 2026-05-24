@@ -87,6 +87,10 @@ protected:
     void    onCameraTrack();
     void    onCameraRotate();
     F32     getOrbitRate(F32 time);
+    void    setupControls();
+    void    syncSliderFromCamera();
+    void    syncJoystickShapes();
+    void    resizeJoystickToPanel(const char* panel_name, const char* stick_name);
 
 private:
     LLButton*   mPlusBtn { nullptr };
@@ -140,6 +144,16 @@ void set_view_visible(LLView* parent, const std::string& name, bool visible)
     parent->getChildView(name)->setVisible(visible);
 }
 
+void LLPanelCameraItem::setValue(const LLSD& value)
+{
+    if (!value.isMap()) return;;
+    if (!value.has("selected")) return;
+    const bool selected = value["selected"].asBoolean();
+    getChildView("selected_icon")->setVisible(selected);
+    getChildView("picture")->setVisible(!selected);
+    getChildView("selected_picture")->setVisible(selected);
+}
+
 bool LLPanelCameraItem::postBuild()
 {
     setMouseEnterCallback(boost::bind(set_view_visible, this, "hovered_icon", true));
@@ -152,15 +166,6 @@ bool LLPanelCameraItem::postBuild()
 void LLPanelCameraItem::onAnyMouseClick()
 {
     if (mCommitSignal) (*mCommitSignal)(this, LLSD());
-}
-
-void LLPanelCameraItem::setValue(const LLSD& value)
-{
-    if (!value.isMap()) return;;
-    if (!value.has("selected")) return;
-    getChildView("selected_icon")->setVisible( value["selected"]);
-    getChildView("picture")->setVisible( !value["selected"]);
-    getChildView("selected_picture")->setVisible( value["selected"]);
 }
 
 
@@ -181,10 +186,15 @@ void LLPanelCameraZoom::onCreate()
 
 bool LLPanelCameraZoom::postBuild()
 {
+    setupControls();
+    return LLPanel::postBuild();
+}
+
+void LLPanelCameraZoom::setupControls()
+{
     mPlusBtn  = getChild<LLButton>("zoom_plus_btn");
     mMinusBtn = getChild<LLButton>("zoom_minus_btn");
     mSlider   = getChild<LLSlider>("zoom_slider");
-    return LLPanel::postBuild();
 }
 
 void LLPanelCameraZoom::draw()
@@ -199,25 +209,8 @@ void LLPanelCameraZoom::draw()
     // camera never orbits.  We use min(pw,ph) so the widget scales with the
     // floater.  Only resize when no drag is active — changing the rect
     // mid-drag shifts the coordinate origin and breaks input.
-    if (!gFocusMgr.getMouseCapture())
-    {
-        auto square_joy = [this](const char* panel_name, const char* stick_name)
-        {
-            LLView* panel = findChildView(panel_name, true);
-            LLView* stick = findChildView(stick_name, true);
-            if (!panel || !stick) return;
-            S32 pw = panel->getRect().getWidth();
-            S32 ph = panel->getRect().getHeight();
-            S32 sz = llmin(pw, ph);
-            S32 ox = (pw - sz) / 2;
-            S32 oy = (ph - sz) / 2;
-            stick->setShape(LLRect(ox, ph - oy, ox + sz, ph - oy - sz));
-        };
-        square_joy("rotate_panel", "cam_rotate_stick");
-        square_joy("track_panel",  "cam_track_stick");
-    }
-
-    mSlider->setValue(gAgentCamera.getCameraZoomFraction());
+    syncJoystickShapes();
+    syncSliderFromCamera();
     LLPanel::draw();
 }
 
@@ -275,6 +268,39 @@ void  LLPanelCameraZoom::onSliderValueChanged()
 {
     F32 zoom_level = mSlider->getValueF32();
     gAgentCamera.setCameraZoomFraction(zoom_level);
+}
+
+void LLPanelCameraZoom::syncSliderFromCamera()
+{
+    mSlider->setValue(gAgentCamera.getCameraZoomFraction());
+}
+
+void LLPanelCameraZoom::syncJoystickShapes()
+{
+    if (gFocusMgr.getMouseCapture())
+    {
+        return;
+    }
+
+    resizeJoystickToPanel("rotate_panel", "cam_rotate_stick");
+    resizeJoystickToPanel("track_panel",  "cam_track_stick");
+}
+
+void LLPanelCameraZoom::resizeJoystickToPanel(const char* panel_name, const char* stick_name)
+{
+    LLView* panel = findChildView(panel_name, true);
+    LLView* stick = findChildView(stick_name, true);
+    if (!panel || !stick)
+    {
+        return;
+    }
+
+    S32 pw = panel->getRect().getWidth();
+    S32 ph = panel->getRect().getHeight();
+    S32 sz = llmin(pw, ph);
+    S32 ox = (pw - sz) / 2;
+    S32 oy = (ph - sz) / 2;
+    stick->setShape(LLRect(ox, ph - oy, ox + sz, ph - oy - sz));
 }
 
 void activate_camera_tool()
@@ -467,11 +493,7 @@ void LLFloaterCamera::reshape(S32 width, S32 height, bool called_from_parent)
     // Let the XML follows= system handle all panel sizing/positioning.
     LLFloater::reshape(width, height, called_from_parent);
 
-    // Hide "Save as preset…" when the floater is too short for two rows.
-    S32 ch = height - getHeaderHeight();
-    LLView* save_btn = findChildView("save_preset_btn", true);
-    if (save_btn)
-        save_btn->setVisible(ch >= 180);
+    syncSavePresetVisibility(height);
 }
 
 void LLFloaterCamera::onOpen(const LLSD& key)
@@ -540,30 +562,8 @@ bool LLFloaterCamera::postBuild()
 {
     updateTransparency(TT_ACTIVE); // force using active floater transparency (STORM-730)
 
-    mAgentCameraInfo = getChild<LLPanel>("agent_camera_info");
-    mViewerCameraInfo = getChild<LLPanel>("viewer_camera_info");
-    mRotate = getChild<LLJoystickCameraRotate>(ORBIT);
-    mZoom = getChild<LLPanelCameraZoom>(ZOOM);
-    mTrack = getChild<LLJoystickCameraTrack>(PAN);
-    mPresetCombo = getChild<LLComboBox>("preset_combo");
-    if (hasString("use_flat_ui"))
-    {
-        mUseFlatUI = true;
-    }
-    else
-    {
-
-        mPreciseCtrls = getChild<LLTextBox>("precise_ctrs_label");
-
-        mPreciseCtrls->setShowCursorHand(false);
-        mPreciseCtrls->setSoundFlags(LLView::MOUSE_UP);
-    mPreciseCtrls->setClickedCallback(boost::bind(&LLFloaterReg::showInstance, "prefs_view_advanced", LLSD(), false));
-
-
-        mPresetCombo->setCommitCallback(boost::bind(&LLFloaterCamera::onCustomPresetSelected, this));
-        LLPresetsManager::getInstance()->setPresetListChangeCameraCallback(boost::bind(&LLFloaterCamera::populatePresetCombo, this));
-        // KokuaCameraPresetsHidden signal handler removed — expand/contract dropped (MARE v1.1.0)
-    }
+    setupChildControls();
+    setupAdvancedControls();
 
     update();
 
@@ -571,6 +571,47 @@ bool LLFloaterCamera::postBuild()
     handleAvatarEditingAppearance(sAppearanceEditing);
 
     return LLFloater::postBuild();
+}
+
+void LLFloaterCamera::setupChildControls()
+{
+    mAgentCameraInfo = getChild<LLPanel>("agent_camera_info");
+    mViewerCameraInfo = getChild<LLPanel>("viewer_camera_info");
+    mRotate = getChild<LLJoystickCameraRotate>(ORBIT);
+    mZoom = getChild<LLPanelCameraZoom>(ZOOM);
+    mTrack = getChild<LLJoystickCameraTrack>(PAN);
+    mPresetCombo = getChild<LLComboBox>("preset_combo");
+}
+
+void LLFloaterCamera::setupAdvancedControls()
+{
+    if (hasString("use_flat_ui"))
+    {
+        mUseFlatUI = true;
+        return;
+    }
+
+    mPreciseCtrls = getChild<LLTextBox>("precise_ctrs_label");
+
+    mPreciseCtrls->setShowCursorHand(false);
+    mPreciseCtrls->setSoundFlags(LLView::MOUSE_UP);
+    mPreciseCtrls->setClickedCallback(boost::bind(&LLFloaterReg::showInstance, "prefs_view_advanced", LLSD(), false));
+
+
+    mPresetCombo->setCommitCallback(boost::bind(&LLFloaterCamera::onCustomPresetSelected, this));
+    LLPresetsManager::getInstance()->setPresetListChangeCameraCallback(boost::bind(&LLFloaterCamera::populatePresetCombo, this));
+    // KokuaCameraPresetsHidden signal handler removed — expand/contract dropped (MARE v1.1.0)
+}
+
+void LLFloaterCamera::syncSavePresetVisibility(S32 height)
+{
+    // Hide "Save as preset…" when the floater is too short for two rows.
+    S32 ch = height - getHeaderHeight();
+    LLView* save_btn = findChildView("save_preset_btn", true);
+    if (save_btn)
+    {
+        save_btn->setVisible(ch >= 180);
+    }
 }
 
 F32 LLFloaterCamera::getCurrentTransparency()
@@ -606,10 +647,7 @@ void LLFloaterCamera::idleCB(void* user_data)
 
     F32 dt = llclamp(LLFrameTimer::getFrameDeltaTimeF32(), 0.f, 0.1f);
 
-    // Check whether the mouse is currently over the floater.
-    S32 mx, my;
-    LLUI::getInstance()->getMousePositionLocal(self, &mx, &my);
-    bool hovered = self->getLocalRect().pointInRect(mx, my);
+    bool hovered = self->isMouseOverFloater();
 
     if (hovered)
     {
@@ -621,14 +659,24 @@ void LLFloaterCamera::idleCB(void* user_data)
         self->mFadeAlpha = llmax(self->mFadeAlpha - FADE_SPEED * dt, 0.f);
     }
 
-    bool faded = (self->mFadeAlpha < 0.99f);
+    self->syncFadeState(self->mFadeAlpha < 0.99f);
+}
 
-    LLView* buttons = self->findChildView("buttons_panel",        false);
-    LLView* preset  = self->findChildView("preset_buttons_panel", false);
+bool LLFloaterCamera::isMouseOverFloater()
+{
+    S32 mx, my;
+    LLUI::getInstance()->getMousePositionLocal(this, &mx, &my);
+    return getLocalRect().pointInRect(mx, my);
+}
+
+void LLFloaterCamera::syncFadeState(bool faded)
+{
+    LLView* buttons = findChildView("buttons_panel",        false);
+    LLView* preset  = findChildView("preset_buttons_panel", false);
 
     if (buttons) buttons->setVisible(!faded);
     if (preset)  preset->setVisible(!faded);
-    self->setBackgroundVisible(!faded);  // hide gray frame when faded
+    setBackgroundVisible(!faded);  // hide gray frame when faded
     // mZoom always stays visible — joystick input is never interrupted.
 }
 
@@ -752,19 +800,20 @@ void LLFloaterCamera::updateState()
 void LLFloaterCamera::updateItemsSelection()
 {
     ECameraPreset preset = (ECameraPreset) gSavedSettings.getU32("CameraPresetType");
-    LLSD argument;
-    argument["selected"] = (preset == CAMERA_PRESET_REAR_VIEW) && !sFreeCamera;
-    getChild<LLPanelCameraItem>("rear_view")->setValue(argument);
-    argument["selected"] = (preset == CAMERA_PRESET_GROUP_VIEW) && !sFreeCamera;
-    getChild<LLPanelCameraItem>("group_view")->setValue(argument);
-    argument["selected"] = (preset == CAMERA_PRESET_FRONT_VIEW) && !sFreeCamera;
-    getChild<LLPanelCameraItem>("front_view")->setValue(argument);
-    argument["selected"] = gAgentCamera.getCameraMode() == CAMERA_MODE_MOUSELOOK;
-    getChild<LLPanelCameraItem>("mouselook_view")->setValue(argument);
+    setCameraItemSelected("rear_view", (preset == CAMERA_PRESET_REAR_VIEW) && !sFreeCamera);
+    setCameraItemSelected("group_view", (preset == CAMERA_PRESET_GROUP_VIEW) && !sFreeCamera);
+    setCameraItemSelected("front_view", (preset == CAMERA_PRESET_FRONT_VIEW) && !sFreeCamera);
+    setCameraItemSelected("mouselook_view", gAgentCamera.getCameraMode() == CAMERA_MODE_MOUSELOOK);
     //KKA-748 include sFreeCamera in the validation so that the item will deselect as sFreeCamera toggles
     //argument["selected"] = mCurrMode == CAMERA_CTRL_MODE_FREE_CAMERA;
-    argument["selected"] = (sFreeCamera && mCurrMode == CAMERA_CTRL_MODE_FREE_CAMERA);
-    getChild<LLPanelCameraItem>("object_view")->setValue(argument);
+    setCameraItemSelected("object_view", sFreeCamera && mCurrMode == CAMERA_CTRL_MODE_FREE_CAMERA);
+}
+
+void LLFloaterCamera::setCameraItemSelected(const std::string& item_name, bool selected)
+{
+    LLSD argument;
+    argument["selected"] = selected;
+    getChild<LLPanelCameraItem>(item_name)->setValue(argument);
 }
 
 // static

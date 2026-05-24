@@ -48,6 +48,10 @@ private:
     virtual void draw();
     virtual void regionChange();
 
+    void setupRegionName();
+    void syncCountdownText(const std::string& countdown);
+    void advanceCountdown();
+
     std::string mName;
     U32 mShakeIterations;
     F32 mShakeMagnitude;

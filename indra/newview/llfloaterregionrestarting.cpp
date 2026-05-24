@@ -55,6 +55,17 @@ bool LLFloaterRegionRestarting::postBuild()
 {
     mRegionChangedConnection = gAgent.addRegionChangedCallback(boost::bind(&LLFloaterRegionRestarting::regionChange, this));
 
+    setupRegionName();
+
+    sShakeState = SHAKE_START;
+
+    refresh();
+
+    return true;
+}
+
+void LLFloaterRegionRestarting::setupRegionName()
+{
     LLStringUtil::format_map_t args;
     std::string text;
 
@@ -62,12 +73,6 @@ bool LLFloaterRegionRestarting::postBuild()
     text = getString("RegionName", args);
     LLTextBox* textbox = getChild<LLTextBox>("region_name");
     textbox->setValue(text);
-
-    sShakeState = SHAKE_START;
-
-    refresh();
-
-    return true;
 }
 
 void LLFloaterRegionRestarting::regionChange()
@@ -111,8 +116,18 @@ void LLFloaterRegionRestarting::refresh()
     LLStringUtil::format_map_t args;
     args["[COUNTDOWN]"] = LLTrans::getString(format, format_args);
 
-    getChild<LLTextBox>("restart_seconds")->setValue(getString("RestartCountdown", args));
+    syncCountdownText(getString("RestartCountdown", args));
 
+    advanceCountdown();
+}
+
+void LLFloaterRegionRestarting::syncCountdownText(const std::string& countdown)
+{
+    getChild<LLTextBox>("restart_seconds")->setValue(countdown);
+}
+
+void LLFloaterRegionRestarting::advanceCountdown()
+{
     sSeconds = sSeconds - 1;
     if(sSeconds < 0.0)
     {

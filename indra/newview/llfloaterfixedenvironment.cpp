@@ -94,6 +94,14 @@ LLFloaterFixedEnvironment::~LLFloaterFixedEnvironment()
 
 bool LLFloaterFixedEnvironment::postBuild()
 {
+    setupBaseControls();
+    setupFlyoutControl();
+
+    return true;
+}
+
+void LLFloaterFixedEnvironment::setupBaseControls()
+{
     mTab = getChild<LLTabContainer>(CONTROL_TAB_AREA);
     mTxtName = getChild<LLLineEditor>(FIELD_SETTINGS_NAME);
 
@@ -103,12 +111,13 @@ bool LLFloaterFixedEnvironment::postBuild()
     getChild<LLButton>(BUTTON_NAME_IMPORT)->setClickedCallback([this](LLUICtrl *, const LLSD &) { onButtonImport(); });
     getChild<LLButton>(BUTTON_NAME_CANCEL)->setClickedCallback([this](LLUICtrl *, const LLSD &) { onClickCloseBtn(); });
     getChild<LLButton>(BUTTON_NAME_LOAD)->setClickedCallback([this](LLUICtrl *, const LLSD &) { onButtonLoad(); });
+}
 
+void LLFloaterFixedEnvironment::setupFlyoutControl()
+{
     mFlyoutControl = new LLFlyoutComboBtnCtrl(this, BUTTON_NAME_COMMIT, BUTTON_NAME_FLYOUT, XML_FLYOUTMENU_FILE, false);
     mFlyoutControl->setAction([this](LLUICtrl *ctrl, const LLSD &data) { onButtonApply(ctrl, data); });
     mFlyoutControl->setMenuItemVisible(ACTION_COMMIT, false);
-
-    return true;
 }
 
 void LLFloaterFixedEnvironment::onOpen(const LLSD& key)
@@ -161,15 +170,27 @@ void LLFloaterFixedEnvironment::refresh()
     }
 
     bool is_inventory_avail = canUseInventory();
+    refreshFlyoutActions(is_inventory_avail);
+    refreshSettingsName();
+    refreshTabPanels();
+}
 
+void LLFloaterFixedEnvironment::refreshFlyoutActions(bool is_inventory_avail)
+{
     mFlyoutControl->setMenuItemEnabled(ACTION_SAVE, is_inventory_avail && mCanMod && !mInventoryId.isNull());
     mFlyoutControl->setMenuItemEnabled(ACTION_SAVEAS, is_inventory_avail && mCanCopy);
     mFlyoutControl->setMenuItemEnabled(ACTION_APPLY_PARCEL, canApplyParcel());
     mFlyoutControl->setMenuItemEnabled(ACTION_APPLY_REGION, canApplyRegion());
+}
 
+void LLFloaterFixedEnvironment::refreshSettingsName()
+{
     mTxtName->setValue(mSettings->getName());
     mTxtName->setEnabled(mCanMod);
+}
 
+void LLFloaterFixedEnvironment::refreshTabPanels()
+{
     S32 count = mTab->getTabCount();
 
     for (S32 idx = 0; idx < count; ++idx)
@@ -213,6 +234,46 @@ void LLFloaterFixedEnvironment::syncronizeTabs()
         if (panel)
             panel->setSettings(mSettings);
     }
+}
+
+void LLFloaterFixedEnvironmentWater::addWaterTab()
+{
+    LLPanelSettingsWater * panel;
+    panel = new LLPanelSettingsWaterMainTab;
+    panel->buildFromFile("panel_settings_water.xml");
+    panel->setWater(std::static_pointer_cast<LLSettingsWater>(mSettings));
+    panel->setOnDirtyFlagChanged( [this] (LLPanel *, bool value) { onPanelDirtyFlagChanged(value); });
+    mTab->addTabPanel(LLTabContainer::TabPanelParams().panel(panel).select_tab(true));
+}
+
+void LLFloaterFixedEnvironmentSky::addSkyAtmosTab()
+{
+    LLPanelSettingsSky * panel;
+    panel = new LLPanelSettingsSkyAtmosTab;
+    panel->buildFromFile("panel_settings_sky_atmos.xml");
+    panel->setSky(std::static_pointer_cast<LLSettingsSky>(mSettings));
+    panel->setOnDirtyFlagChanged([this](LLPanel *, bool value) { onPanelDirtyFlagChanged(value); });
+    mTab->addTabPanel(LLTabContainer::TabPanelParams().panel(panel).select_tab(true));
+}
+
+void LLFloaterFixedEnvironmentSky::addSkyCloudTab()
+{
+    LLPanelSettingsSky * panel;
+    panel = new LLPanelSettingsSkyCloudTab;
+    panel->buildFromFile("panel_settings_sky_clouds.xml");
+    panel->setSky(std::static_pointer_cast<LLSettingsSky>(mSettings));
+    panel->setOnDirtyFlagChanged([this](LLPanel *, bool value) { onPanelDirtyFlagChanged(value); });
+    mTab->addTabPanel(LLTabContainer::TabPanelParams().panel(panel).select_tab(false));
+}
+
+void LLFloaterFixedEnvironmentSky::addSkySunMoonTab()
+{
+    LLPanelSettingsSky * panel;
+    panel = new LLPanelSettingsSkySunMoonTab;
+    panel->buildFromFile("panel_settings_sky_sunmoon.xml");
+    panel->setSky(std::static_pointer_cast<LLSettingsSky>(mSettings));
+    panel->setOnDirtyFlagChanged([this](LLPanel *, bool value) { onPanelDirtyFlagChanged(value); });
+    mTab->addTabPanel(LLTabContainer::TabPanelParams().panel(panel).select_tab(false));
 }
 
 LLFloaterSettingsPicker * LLFloaterFixedEnvironment::getSettingsPicker()
@@ -427,12 +488,7 @@ bool LLFloaterFixedEnvironmentWater::postBuild()
     if (!LLFloaterFixedEnvironment::postBuild())
         return false;
 
-    LLPanelSettingsWater * panel;
-    panel = new LLPanelSettingsWaterMainTab;
-    panel->buildFromFile("panel_settings_water.xml");
-    panel->setWater(std::static_pointer_cast<LLSettingsWater>(mSettings));
-    panel->setOnDirtyFlagChanged( [this] (LLPanel *, bool value) { onPanelDirtyFlagChanged(value); });
-    mTab->addTabPanel(LLTabContainer::TabPanelParams().panel(panel).select_tab(true));
+    addWaterTab();
 
     return true;
 }
@@ -494,24 +550,9 @@ bool LLFloaterFixedEnvironmentSky::postBuild()
     if (!LLFloaterFixedEnvironment::postBuild())
         return false;
 
-    LLPanelSettingsSky * panel;
-    panel = new LLPanelSettingsSkyAtmosTab;
-    panel->buildFromFile("panel_settings_sky_atmos.xml");
-    panel->setSky(std::static_pointer_cast<LLSettingsSky>(mSettings));
-    panel->setOnDirtyFlagChanged([this](LLPanel *, bool value) { onPanelDirtyFlagChanged(value); });
-    mTab->addTabPanel(LLTabContainer::TabPanelParams().panel(panel).select_tab(true));
-
-    panel = new LLPanelSettingsSkyCloudTab;
-    panel->buildFromFile("panel_settings_sky_clouds.xml");
-    panel->setSky(std::static_pointer_cast<LLSettingsSky>(mSettings));
-    panel->setOnDirtyFlagChanged([this](LLPanel *, bool value) { onPanelDirtyFlagChanged(value); });
-    mTab->addTabPanel(LLTabContainer::TabPanelParams().panel(panel).select_tab(false));
-
-    panel = new LLPanelSettingsSkySunMoonTab;
-    panel->buildFromFile("panel_settings_sky_sunmoon.xml");
-    panel->setSky(std::static_pointer_cast<LLSettingsSky>(mSettings));
-    panel->setOnDirtyFlagChanged([this](LLPanel *, bool value) { onPanelDirtyFlagChanged(value); });
-    mTab->addTabPanel(LLTabContainer::TabPanelParams().panel(panel).select_tab(false));
+    addSkyAtmosTab();
+    addSkyCloudTab();
+    addSkySunMoonTab();
 
     return true;
 }

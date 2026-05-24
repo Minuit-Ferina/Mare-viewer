@@ -1884,7 +1884,13 @@ No open items in this section right now.
 - [x] Verify payment/buy dialog objects with targeted builds, regenerated
       source inventory, both GL guardrails, and `git diff --check`.
 - [x] Add `docs/architecture/395-payment-buy-dialog-helpers-summary.md`.
-- [ ] Continue with settings/preference or environment/camera dialog families.
+- [x] Continue with settings/preference or environment/camera dialog families.
+- [x] Move simple UI ownership helpers across camera and environment dialogs.
+- [x] Verify camera/environment dialog objects with targeted builds,
+      regenerated source inventory, both GL guardrails, and `git diff --check`.
+- [x] Add `docs/architecture/396-camera-environment-dialog-helpers-summary.md`.
+- [ ] Continue with the next broad dialog/floater family, keeping
+      `llfloaterpreference.cpp` as an isolated packet because of its size.
 
 ## Post-Phase2 Guardrails
 
