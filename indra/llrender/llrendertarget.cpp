@@ -241,7 +241,7 @@ void LLRenderTarget::resize(U32 resx, U32 resy)
 
     for (U32 i = 0; i < mTex.size(); ++i)
     { //resize color attachments
-        gGL.getTexUnit(0)->bindManual(mUsage, mTex[i].asLegacyName());
+        gGL.getTexUnit(0)->bindManual(mUsage, mTex[i]);
         LLImageGL::setManualImage(
             to_render_texture_target(mUsage),
             0,
@@ -257,7 +257,7 @@ void LLRenderTarget::resize(U32 resx, U32 resy)
 
     if (mDepth)
     {
-        gGL.getTexUnit(0)->bindManual(mUsage, mDepth.asLegacyName());
+        gGL.getTexUnit(0)->bindManual(mUsage, mDepth);
         LLImageGL::setManualImage(
             to_render_texture_target(mUsage),
             0,
@@ -405,7 +405,7 @@ bool LLRenderTarget::addColorAttachment(LLRenderTextureFormat color_fmt)
     U32 texture_name = 0;
     LLImageGL::generateTextures(1, &texture_name);
     LLRenderTextureHandle texture(texture_name);
-    gGL.getTexUnit(0)->bindManual(mUsage, texture.asLegacyName());
+    gGL.getTexUnit(0)->bindManual(mUsage, texture);
 
     stop_glerror();
 
@@ -487,7 +487,7 @@ bool LLRenderTarget::allocateDepth()
     U32 depth_name = 0;
     LLImageGL::generateTextures(1, &depth_name);
     mDepth = LLRenderTextureHandle(depth_name);
-    gGL.getTexUnit(0)->bindManual(mUsage, mDepth.asLegacyName());
+    gGL.getTexUnit(0)->bindManual(mUsage, mDepth);
 
     stop_glerror();
     clear_glerror();
@@ -680,7 +680,7 @@ void LLRenderTarget::bindTexture(U32 index, S32 channel, LLTexUnit::eTextureFilt
 {
     gGL.getTexUnit(channel)->bindManual(
         mUsage,
-        getTextureHandle(index).asLegacyName(),
+        getTextureHandle(index),
         filter_options == LLTexUnit::TFO_TRILINEAR || filter_options == LLTexUnit::TFO_ANISOTROPIC);
     gGL.getTexUnit(channel)->setTextureFilteringOption(filter_options);
 }

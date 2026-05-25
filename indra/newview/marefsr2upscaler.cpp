@@ -401,7 +401,7 @@ void MAREFSR2Upscaler::apply(
 
         static LLStaticHashedString sCopyMap("colorMap");
         gDeferredTAACopyProgram.uniform1i(sCopyMap, 0);
-        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, mRCASBuffer.asLegacyName());
+        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, mRCASBuffer);
 
         {
             LLGLDisable   blend(LLRenderCapability::Blend);

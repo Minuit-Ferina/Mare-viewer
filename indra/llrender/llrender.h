@@ -52,6 +52,7 @@ class LLVertexBuffer;
 class LLCubeMap;
 class LLImageGL;
 class LLRenderTarget;
+struct LLRenderTextureHandle;
 class LLTexture;
 class LLVertexBufferData;
 
@@ -196,6 +197,7 @@ public:
     // Manually binds a texture to the texture unit
     // (automatically enables the tex unit for the given texture type)
     bool bindManual(eTextureType type, U32 texture, bool hasMips = false);
+    bool bindManual(eTextureType type, LLRenderTextureHandle texture, bool hasMips = false);
 
     // Unbinds the currently bound texture of the given type
     // (only if there's a texture of the given type currently bound)

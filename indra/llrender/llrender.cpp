@@ -428,14 +428,19 @@ bool LLTexUnit::bind(LLRenderTarget* renderTarget, bool bindDepth)
         LLRenderTextureHandle texture = renderTarget->getDepthHandle();
         llassert(texture); // target MUST have a depth buffer attachment
 
-        bindManual(renderTarget->getUsage(), texture.asLegacyName());
+        bindManual(renderTarget->getUsage(), texture);
     }
     else
     {
-        bindManual(renderTarget->getUsage(), renderTarget->getTextureHandle().asLegacyName());
+        bindManual(renderTarget->getUsage(), renderTarget->getTextureHandle());
     }
 
     return true;
+}
+
+bool LLTexUnit::bindManual(eTextureType type, LLRenderTextureHandle texture, bool hasMips)
+{
+    return bindManual(type, texture.asLegacyName(), hasMips);
 }
 
 bool LLTexUnit::bindManual(eTextureType type, U32 texture, bool hasMips)

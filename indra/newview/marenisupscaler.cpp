@@ -62,7 +62,7 @@ void MARENISUpscaler::apply(
         gDeferredNISProgram.uniform1i(sColorMap, 0);
         gDeferredNISProgram.uniform1f(sSharpenStrength, (F32)sharpenStrength);
 
-        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, colorSrc->getTexture());
+        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, colorSrc->getTextureHandle());
 
         {
             LLGLDisable   blend(LLRenderCapability::Blend);
@@ -86,7 +86,7 @@ void MARENISUpscaler::apply(
         static LLStaticHashedString sCopyMap("colorMap");
         gDeferredTAACopyProgram.uniform1i(sCopyMap, 0);
 
-        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, mNISBuffer.getTexture());
+        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, mNISBuffer.getTextureHandle());
 
         {
             LLGLDisable   blend(LLRenderCapability::Blend);

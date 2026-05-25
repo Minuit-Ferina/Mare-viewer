@@ -126,9 +126,9 @@ void MARETAAUpscaler::apply(
         gDeferredTAAProgram.uniform1i(sCameraCut, doCut ? 1 : 0);
 
         // Bind textures to their respective units.
-        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, colorSrc->getTexture());
-        gGL.getTexUnit(1)->bindManual(LLTexUnit::TT_TEXTURE, mAccumBuffer[histIdx].getTexture());
-        gGL.getTexUnit(2)->bindManual(LLTexUnit::TT_TEXTURE, velocitySrc->getTexture());
+        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, colorSrc->getTextureHandle());
+        gGL.getTexUnit(1)->bindManual(LLTexUnit::TT_TEXTURE, mAccumBuffer[histIdx].getTextureHandle());
+        gGL.getTexUnit(2)->bindManual(LLTexUnit::TT_TEXTURE, velocitySrc->getTextureHandle());
 
         {
             LLGLDisable   blend(LLRenderCapability::Blend);
@@ -160,7 +160,7 @@ void MARETAAUpscaler::apply(
         static LLStaticHashedString sCopyMap("colorMap");
         gDeferredTAACopyProgram.uniform1i(sCopyMap, 0);
 
-        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, mAccumBuffer[outIdx].getTexture());
+        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, mAccumBuffer[outIdx].getTextureHandle());
 
         {
             LLGLDisable   blend(LLRenderCapability::Blend);
