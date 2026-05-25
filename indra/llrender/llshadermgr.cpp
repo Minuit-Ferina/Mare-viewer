@@ -456,7 +456,7 @@ void LLShaderMgr::dumpObjectLog(LLGLuint ret, bool warns, const std::string& fil
     }
  }
 
-LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_level, LLRenderShaderStage stage, std::map<std::string, std::string>* defines, S32 texture_index_channels)
+LLRenderShaderHandle LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_level, LLRenderShaderStage stage, std::map<std::string, std::string>* defines, S32 texture_index_channels)
 {
 
 // endsure work-around for missing GLSL funcs gets propogated to feature shader files (e.g. srgbF.glsl)
@@ -478,7 +478,7 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
     if (filename.empty())
     {
         LL_WARNS("ShaderLoading") << "tried loading empty filename" << LL_ENDL;
-        return 0;
+        return LLRenderShaderHandle();
     }
 
 
@@ -551,7 +551,7 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
         {
             LL_WARNS("ShaderLoading") << "GLSL Shader file not found: " << open_file_name << LL_ENDL;
         }
-        return 0;
+        return LLRenderShaderHandle();
     }
 
     //we can't have any lines longer than 1024 characters
@@ -851,7 +851,7 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
     fclose(file);
 
     //create shader object
-    LLGLuint ret = getOpenGLRenderBackend().createShader(stage);
+    LLRenderShaderHandle ret = getOpenGLRenderBackend().createShaderHandle(stage);
 
     error = getOpenGLRenderBackend().getErrorCode();
     if (error != GL_NO_ERROR)
@@ -860,7 +860,7 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
         if (ret)
         {
             getOpenGLRenderBackend().deleteShader(ret); //no longer need handle
-            ret = 0;
+            ret = LLRenderShaderHandle();
         }
     }
 
@@ -875,14 +875,14 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
         {
             LL_WARNS("ShaderLoading") << "GL ERROR in glShaderSource: " << error << " for file: " << open_file_name << LL_ENDL;
             getOpenGLRenderBackend().deleteShader(ret); //no longer need handle
-            ret = 0;
+            ret = LLRenderShaderHandle();
         }
     }
 
     //compile source
     if (ret)
     {
-        LL_DEBUGS("ShaderLoading") << "glShaderSource done" << U32(ret) << LL_ENDL;
+        LL_DEBUGS("ShaderLoading") << "glShaderSource done" << ret.asLegacyName() << LL_ENDL;
         getOpenGLRenderBackend().compileShader(ret);
 
         error = getOpenGLRenderBackend().getErrorCode();
@@ -890,14 +890,14 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
         {
             LL_WARNS("ShaderLoading") << "GL ERROR in glCompileShader: " << error << " for file: " << open_file_name << LL_ENDL;
             getOpenGLRenderBackend().deleteShader(ret); //no longer need handle
-            ret = 0;
+            ret = LLRenderShaderHandle();
         }
     }
 
     if (error == GL_NO_ERROR)
     {
         //check for errors
-        LL_DEBUGS("ShaderLoading") << "glCompileShader done" << U32(ret) << LL_ENDL;
+        LL_DEBUGS("ShaderLoading") << "glCompileShader done" << ret.asLegacyName() << LL_ENDL;
         LLGLint success = GL_TRUE;
         getOpenGLRenderBackend().getShaderInteger(ret, LLRenderShaderParameter::CompileStatus, &success);
 
@@ -906,16 +906,16 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
         {
             //an error occured, print log
             LL_WARNS("ShaderLoading") << "GLSL Compilation Error:" << LL_ENDL;
-            dumpObjectLog(ret, true, open_file_name);
+            dumpObjectLog(ret.asLegacyName(), true, open_file_name);
             dumpShaderSource(shader_code_count, shader_code_text);
             getOpenGLRenderBackend().deleteShader(ret); //no longer need handle
-            ret = 0;
+            ret = LLRenderShaderHandle();
         }
     }
     else
     {
-        LL_DEBUGS("ShaderLoading") << "loadShaderFile() completed, ret: " << U32(ret) << LL_ENDL;
-        ret = 0;
+        LL_DEBUGS("ShaderLoading") << "loadShaderFile() completed, ret: " << ret.asLegacyName() << LL_ENDL;
+        ret = LLRenderShaderHandle();
     }
     stop_glerror();
 
@@ -947,7 +947,7 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
         LL_WARNS("ShaderLoading") << "Failed to load " << filename << LL_ENDL;
     }
 
-    LL_DEBUGS("ShaderLoading") << "loadShaderFile() completed, ret: " << U32(ret) << LL_ENDL;
+    LL_DEBUGS("ShaderLoading") << "loadShaderFile() completed, ret: " << ret.asLegacyName() << LL_ENDL;
     return ret;
 }
 

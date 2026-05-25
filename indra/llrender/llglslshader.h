@@ -201,8 +201,8 @@ public:
     bool createShader();
     bool attachFragmentObject(std::string object);
     bool attachVertexObject(std::string object);
-    void attachObject(LLGLuint object);
-    void attachObjects(LLGLuint* objects = NULL, S32 count = 0);
+    void attachObject(LLRenderShaderHandle object);
+    void attachObjects(LLRenderShaderHandle* objects = NULL, S32 count = 0);
     bool mapAttributes();
     bool mapUniforms();
     void mapUniform(LLGLint index);

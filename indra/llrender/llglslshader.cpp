@@ -457,7 +457,7 @@ bool LLGLSLShader::createShader()
         vector< pair<string, LLRenderShaderStage> >::iterator fileIter = mShaderFiles.begin();
         for (; fileIter != mShaderFiles.end(); fileIter++)
         {
-            LLGLuint shaderhandle = LLShaderMgr::instance()->loadShaderFile((*fileIter).first, mShaderLevel, (*fileIter).second, &mDefines, mFeatures.mIndexedTextureChannels);
+            LLRenderShaderHandle shaderhandle = LLShaderMgr::instance()->loadShaderFile((*fileIter).first, mShaderLevel, (*fileIter).second, &mDefines, mFeatures.mIndexedTextureChannels);
             LL_DEBUGS("ShaderLoading") << "SHADER FILE: " << (*fileIter).first << " mShaderLevel=" << mShaderLevel << LL_ENDL;
             if (shaderhandle)
             {
@@ -619,12 +619,12 @@ bool LLGLSLShader::attachFragmentObject(std::string object_path)
     }
 }
 
-void LLGLSLShader::attachObject(LLGLuint object)
+void LLGLSLShader::attachObject(LLRenderShaderHandle object)
 {
     if(mUsingBinaryProgram)
         return;
 
-    if (object != 0)
+    if (object)
     {
         stop_glerror();
         getOpenGLRenderBackend().attachShader(mProgramObject, object);
@@ -640,7 +640,7 @@ void LLGLSLShader::attachObject(LLGLuint object)
     }
 }
 
-void LLGLSLShader::attachObjects(LLGLuint* objects, S32 count)
+void LLGLSLShader::attachObjects(LLRenderShaderHandle* objects, S32 count)
 {
     if(mUsingBinaryProgram)
         return;

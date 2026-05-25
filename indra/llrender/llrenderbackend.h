@@ -1070,9 +1070,49 @@ public:
         }
     }
 
+    bool isShader(LLRenderShaderHandle shader) const
+    {
+        return isShader(shader.asLegacyName());
+    }
+
+    bool isProgram(LLRenderProgramHandle program) const
+    {
+        return isProgram(program.asLegacyName());
+    }
+
     void attachShader(LLRenderProgramHandle program, LLRenderShaderHandle shader)
     {
         attachShader(program.asLegacyName(), shader.asLegacyName());
+    }
+
+    void attachShader(U32 program, LLRenderShaderHandle shader)
+    {
+        attachShader(program, shader.asLegacyName());
+    }
+
+    void detachShader(LLRenderProgramHandle program, LLRenderShaderHandle shader)
+    {
+        detachShader(program.asLegacyName(), shader.asLegacyName());
+    }
+
+    void detachShader(U32 program, LLRenderShaderHandle shader)
+    {
+        detachShader(program, shader.asLegacyName());
+    }
+
+    void getAttachedShaders(
+        LLRenderProgramHandle program,
+        S32 max_count,
+        S32* count,
+        LLRenderShaderHandle* shaders)
+    {
+        std::vector<U32> legacy_names(max_count);
+        getAttachedShaders(program.asLegacyName(), max_count, count, legacy_names.data());
+        S32 shader_count = count ? *count : max_count;
+        for (S32 i = 0; i < shader_count; ++i)
+        {
+            shaders[i] = LLRenderShaderHandle(legacy_names[i]);
+        }
     }
 
     void setShaderSource(LLRenderShaderHandle shader, S32 count, const char* const* strings)
@@ -1088,6 +1128,11 @@ public:
     void linkProgram(LLRenderProgramHandle program)
     {
         linkProgram(program.asLegacyName());
+    }
+
+    void validateProgram(LLRenderProgramHandle program)
+    {
+        validateProgram(program.asLegacyName());
     }
 
     void useProgram(LLRenderProgramHandle program)
@@ -1118,6 +1163,65 @@ public:
     S32 getUniformLocation(LLRenderProgramHandle program, const char* name)
     {
         return getUniformLocation(program.asLegacyName(), name);
+    }
+
+    S32 getAttributeLocation(LLRenderProgramHandle program, const char* name)
+    {
+        return getAttributeLocation(program.asLegacyName(), name);
+    }
+
+    void bindAttributeLocation(LLRenderProgramHandle program, U32 index, const char* name)
+    {
+        bindAttributeLocation(program.asLegacyName(), index, name);
+    }
+
+    void getActiveUniform(
+        LLRenderProgramHandle program,
+        U32 index,
+        S32 buffer_size,
+        S32* length,
+        S32* size,
+        U32* type,
+        char* name)
+    {
+        getActiveUniform(program.asLegacyName(), index, buffer_size, length, size, type, name);
+    }
+
+    U32 getUniformBlockIndex(LLRenderProgramHandle program, const char* name)
+    {
+        return getUniformBlockIndex(program.asLegacyName(), name);
+    }
+
+    void bindUniformBlock(LLRenderProgramHandle program, U32 block_index, U32 binding)
+    {
+        bindUniformBlock(program.asLegacyName(), block_index, binding);
+    }
+
+    void setProgramParameterInteger(
+        LLRenderProgramHandle program,
+        LLRenderProgramSetting parameter,
+        S32 value)
+    {
+        setProgramParameterInteger(program.asLegacyName(), parameter, value);
+    }
+
+    void setProgramBinary(
+        LLRenderProgramHandle program,
+        U32 binary_format,
+        const void* binary,
+        S32 length)
+    {
+        setProgramBinary(program.asLegacyName(), binary_format, binary, length);
+    }
+
+    void getProgramBinary(
+        LLRenderProgramHandle program,
+        S32 buffer_size,
+        S32* length,
+        U32* binary_format,
+        void* binary)
+    {
+        getProgramBinary(program.asLegacyName(), buffer_size, length, binary_format, binary);
     }
 
     virtual void setUniformInteger(S32 location, S32 value) = 0;

@@ -367,7 +367,7 @@ public:
     void dumpShaderSource(U32 shader_code_count, char** shader_code_text);
     bool    linkProgramObject(LLGLuint obj, bool suppress_errors = false);
     bool    validateProgramObject(LLGLuint obj);
-    LLGLuint loadShaderFile(const std::string& filename, S32 & shader_level, LLRenderShaderStage stage, std::map<std::string, std::string>* defines = NULL, S32 texture_index_channels = -1);
+    LLRenderShaderHandle loadShaderFile(const std::string& filename, S32 & shader_level, LLRenderShaderStage stage, std::map<std::string, std::string>* defines = NULL, S32 texture_index_channels = -1);
 
     // Implemented in the application to actually point to the shader directory.
     virtual std::string getShaderDirPrefix(void) = 0; // Pure Virtual
@@ -384,8 +384,8 @@ public:
 
 public:
     // Map of shader names to compiled
-    std::map<std::string, LLGLuint> mVertexShaderObjects;
-    std::map<std::string, LLGLuint> mFragmentShaderObjects;
+    std::map<std::string, LLRenderShaderHandle> mVertexShaderObjects;
+    std::map<std::string, LLRenderShaderHandle> mFragmentShaderObjects;
 
     //global (reserved slot) shader parameters
     std::vector<std::string> mReservedAttribs;

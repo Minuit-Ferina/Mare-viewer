@@ -883,7 +883,7 @@ std::string LLViewerShaderMgr::loadBasicShaders()
     for (U32 i = 0; i < shaders.size(); i++)
     {
         // Note usage of LLRenderShaderStage::Vertex
-        if (loadShaderFile(shaders[i].first, shaders[i].second, LLRenderShaderStage::Vertex, &attribs) == 0)
+        if (!loadShaderFile(shaders[i].first, shaders[i].second, LLRenderShaderStage::Vertex, &attribs))
         {
             LL_WARNS("Shader") << "Failed to load basic vertex shader " << i << ": " << shaders[i].first << LL_ENDL;
             return shaders[i].first;
@@ -926,7 +926,7 @@ std::string LLViewerShaderMgr::loadBasicShaders()
     for (U32 i = 0; i < shaders.size(); i++)
     {
         // Note usage of LLRenderShaderStage::Fragment
-        if (loadShaderFile(shaders[i].first, shaders[i].second, LLRenderShaderStage::Fragment, &attribs, index_channels[i]) == 0)
+        if (!loadShaderFile(shaders[i].first, shaders[i].second, LLRenderShaderStage::Fragment, &attribs, index_channels[i]))
         {
             LL_WARNS("Shader") << "Failed to load fragment shader " << shaders[i].first << LL_ENDL;
             return shaders[i].first;
@@ -3750,4 +3750,3 @@ LLViewerShaderMgr::shader_iter LLViewerShaderMgr::endShaders() const
 {
     return mShaderList.end();
 }
-
