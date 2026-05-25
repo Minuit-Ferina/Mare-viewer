@@ -33,10 +33,9 @@
 
 #include "llviewercontrol.h"
 
-#include "llgl.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llrender.h"
-#include "llglheaders.h"
+
 #include "llparcel.h"
 #include "llui.h"
 
@@ -67,6 +66,8 @@
 #include "llviewershadermgr.h"
 
 #include <vector>
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 // Height of the yellow selection highlight posts for land
 constexpr F32 PARCEL_POST_HEIGHT = 0.666f;
@@ -310,16 +311,13 @@ void LLWind::renderVectors()
     gGL.popMatrix();
 }
 
-
-
-
 // Used by lltoolselectland
 void LLViewerParcelMgr::renderRect(const LLVector3d &west_south_bottom_global,
                                    const LLVector3d &east_north_top_global)
 {
     LLGLSUIDefault gls_ui;
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-    LLGLDepthTest gls_depth(GL_TRUE);
+    LLGLDepthTest gls_depth(true);
 
     LLVector3 west_south_bottom_agent = gAgent.getPosAgentFromGlobal(west_south_bottom_global);
     F32 west    = west_south_bottom_agent.mV[VX];
@@ -383,7 +381,6 @@ void LLViewerParcelMgr::renderRect(const LLVector3d &west_south_bottom_global,
 
     LLUI::setLineWidth(1.f);
 }
-
 
 // north = a wall going north/south.  Need that info to set up texture
 // coordinates correctly.
@@ -465,7 +462,6 @@ void LLViewerParcelMgr::renderOneSegment(F32 x1, F32 y1, F32 x2, F32 y2, F32 hei
             tex_coord2 = x1;
         }
 
-
         gGL.texCoord2f(tex_coord1 * 0.5f + 0.5f, z1 * 0.5f);
         gGL.vertex3f(x1, y1, z1);
 
@@ -491,7 +487,6 @@ void LLViewerParcelMgr::renderOneSegment(F32 x1, F32 y1, F32 x2, F32 y2, F32 hei
     }
 }
 
-
 void LLViewerParcelMgr::renderHighlightSegments(const U8* segments, LLViewerRegion* regionp)
 {
     S32 x, y;
@@ -502,9 +497,9 @@ void LLViewerParcelMgr::renderHighlightSegments(const U8* segments, LLViewerRegi
     LLGLSUIDefault gls_ui;
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
     // <FS:Ansariel> FIRE-10546: Show parcel boundary up to max. build level
-    //LLGLDepthTest gls_depth(GL_TRUE);
-    LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
-    LLGLDisable cull(GL_CULL_FACE);
+    //LLGLDepthTest gls_depth(true);
+    LLGLDepthTest gls_depth(true, false);
+    LLGLDisable cull(LLRenderCapability::CullFace);
 
     static LLCachedControl<bool> fsRenderParcelSelectionToMaxBuildHeight(gSavedSettings, "FSRenderParcelSelectionToMaxBuildHeight");
     F32 height = fsRenderParcelSelectionToMaxBuildHeight ? REGION_HEIGHT_METERS + PARCEL_POST_HEIGHT : PARCEL_POST_HEIGHT;
@@ -515,7 +510,6 @@ void LLViewerParcelMgr::renderHighlightSegments(const U8* segments, LLViewerRegi
     const S32 STRIDE = (mParcelsPerEdge+1);
 
     // Cheat and give this the same pick-name as land
-
 
     for (y = 0; y < STRIDE; y++)
     {
@@ -569,7 +563,6 @@ void LLViewerParcelMgr::renderHighlightSegments(const U8* segments, LLViewerRegi
     }
 }
 
-
 void LLViewerParcelMgr::renderCollisionSegments(U8* segments, bool use_pass, LLViewerRegion* regionp)
 {
 
@@ -589,8 +582,8 @@ void LLViewerParcelMgr::renderCollisionSegments(U8* segments, bool use_pass, LLV
     F32 pos_y = pos.mV[VY];
 
     LLGLSUIDefault gls_ui;
-    LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
-    LLGLDisable cull(GL_CULL_FACE);
+    LLGLDepthTest gls_depth(true, false);
+    LLGLDisable cull(LLRenderCapability::CullFace);
 
     if (mCollisionBanned == BA_BANNED ||
         regionp->getRegionFlag(REGION_FLAGS_BLOCK_FLYOVER))
@@ -601,7 +594,6 @@ void LLViewerParcelMgr::renderCollisionSegments(U8* segments, bool use_pass, LLV
     {
         collision_height = PARCEL_HEIGHT;
     }
-
 
     if (use_pass && (mCollisionBanned == BA_NOT_ON_LIST))
     {
@@ -779,7 +771,7 @@ void LLViewerObjectList::renderObjectBeacons()
             if (line_width != last_line_width)
             {
                 gGL.flush();
-                LLGLContainment::setLineWidth((F32)line_width);
+                getOpenGLRenderBackend().setLineWidth((F32)line_width);
                 last_line_width = line_width;
             }
 
@@ -796,7 +788,7 @@ void LLViewerObjectList::renderObjectBeacons()
 
     {
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-        LLGLDepthTest gls_depth(GL_TRUE);
+        LLGLDepthTest gls_depth(true);
 
         S32 last_line_width = -1;
         // gGL.begin(LLRender::LINES); // Always happens in (line_width != last_line_width)
@@ -809,7 +801,7 @@ void LLViewerObjectList::renderObjectBeacons()
             if (line_width != last_line_width)
             {
                 gGL.flush();
-                LLGLContainment::setLineWidth((F32)line_width);
+                getOpenGLRenderBackend().setLineWidth((F32)line_width);
                 last_line_width = line_width;
             }
 
@@ -823,7 +815,7 @@ void LLViewerObjectList::renderObjectBeacons()
         }
 
         gGL.flush();
-        LLGLContainment::setLineWidth(1.f);
+        getOpenGLRenderBackend().setLineWidth(1.f);
 
         for (std::vector<LLDebugBeacon>::iterator iter = mDebugBeacons.begin(); iter != mDebugBeacons.end(); ++iter)
         {
@@ -858,7 +850,7 @@ void LLSky::renderSunMoonBeacons(const LLVector3& pos_agent, const LLVector3& di
     {
         pos_end.mV[i] = pos_agent.mV[i] + (50 * direction.mV[i]);
     }
-    LLGLContainment::setLineWidth((GLfloat)LLPipeline::DebugBeaconLineWidth);
+    getOpenGLRenderBackend().setLineWidth((F32)LLPipeline::DebugBeaconLineWidth);
     gGL.begin(LLRender::LINES);
     color.mV[3] *= 0.5f;
     gGL.color4fv(color.mV);
@@ -869,7 +861,7 @@ void LLSky::renderSunMoonBeacons(const LLVector3& pos_agent, const LLVector3& di
     gGL.end();
 
     gGL.flush();
-    LLGLContainment::setLineWidth(1.f);
+    getOpenGLRenderBackend().setLineWidth(1.f);
 
 }
 
@@ -952,7 +944,6 @@ private:
     LLGLSLShader& mShader;
 };
 
-
 F32 shader_timer_benchmark(std::vector<LLRenderTarget> & dest, TextureHolder & texHolder, U32 textures_count, LLVertexBuffer * buff, F32 &seconds)
 {
     // run GPU timer benchmark
@@ -1004,8 +995,8 @@ F32 gpu_benchmark()
         gBenchmarkProgram.mName = "Benchmark Shader";
         gBenchmarkProgram.mFeatures.attachNothing = true;
         gBenchmarkProgram.mShaderFiles.clear();
-        gBenchmarkProgram.mShaderFiles.push_back(std::make_pair("interface/benchmarkV.glsl", GL_VERTEX_SHADER));
-        gBenchmarkProgram.mShaderFiles.push_back(std::make_pair("interface/benchmarkF.glsl", GL_FRAGMENT_SHADER));
+        gBenchmarkProgram.mShaderFiles.push_back(std::make_pair("interface/benchmarkV.glsl", LLRenderShaderStage::Vertex));
+        gBenchmarkProgram.mShaderFiles.push_back(std::make_pair("interface/benchmarkF.glsl", LLRenderShaderStage::Fragment));
         gBenchmarkProgram.mShaderLevel = 1;
         if (!gBenchmarkProgram.createShader())
         {
@@ -1013,7 +1004,7 @@ F32 gpu_benchmark()
         }
     }
 
-    LLGLDisable blend(GL_BLEND);
+    LLGLDisable blend(LLRenderCapability::Blend);
 
     //measure memory bandwidth by:
     // - allocating a batch of textures and render targets
@@ -1043,14 +1034,14 @@ F32 gpu_benchmark()
     }
 
     gGL.setColorMask(true, true);
-    LLGLDepthTest depth(GL_FALSE);
+    LLGLDepthTest depth(false);
 
     LLTimer alloc_timer;
     alloc_timer.start();
     for (U32 i = 0; i < count; ++i)
     {
         //allocate render targets and textures
-        if (!dest[i].allocate(res, res, GL_RGBA))
+        if (!dest[i].allocate(res, res, LLRenderTextureFormat::RGBA))
         {
             LL_WARNS("Benchmark") << "Failed to allocate render target." << LL_ENDL;
             // abandon the benchmark test
@@ -1069,7 +1060,15 @@ F32 gpu_benchmark()
             delete[] pixels;
             return -1.f;
         }
-        LLImageGL::setManualImage(GL_TEXTURE_2D, 0, GL_RGBA, res,res,GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        LLImageGL::setManualImage(
+            LLRenderTextureTarget::Texture2D,
+            0,
+            LLRenderTextureFormat::RGBA,
+            res,
+            res,
+            LLRenderPixelFormat::RGBA,
+            LLRenderPixelType::UnsignedByte,
+            pixels);
         // disable mipmaps and use point filtering to cause cache misses
         gGL.getTexUnit(0)->setHasMipMaps(false);
         gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_POINT);

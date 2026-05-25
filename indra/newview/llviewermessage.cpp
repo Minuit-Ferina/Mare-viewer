@@ -148,6 +148,7 @@
 #include "animationexplorer.h"      // <FS:Zi> Animation Explorer
 #include "NACLfloaterexploresounds.h" // KKA-796 adding Block to Sound Explorer
 #include "kokuarlvfloaters.h"
+#include "llrendercontext.h"
 
 extern void on_new_message(const LLSD& msg);
 
@@ -224,7 +225,6 @@ static void ca_give_message_trans(std::string msg, LLStringUtil::format_map_t ar
         }
     }
 }
-
 
 static void ca_copy_performance_status_to_old()
 {
@@ -424,7 +424,6 @@ void decline_friendship_coro(std::string url, LLSD notification, S32 option)
         }
     }
 }
-
 
 bool friendship_offer_callback(const LLSD& notification, const LLSD& response)
 {
@@ -989,7 +988,6 @@ static LLNotificationFunctorRegistration jgr_1("JoinGroup", join_group_response)
 static LLNotificationFunctorRegistration jgr_2("JoinedTooManyGroupsMember", join_group_response);
 static LLNotificationFunctorRegistration jgr_3("JoinGroupCanAfford", join_group_response);
 
-
 //-----------------------------------------------------------------------------
 // Instant Message
 //-----------------------------------------------------------------------------
@@ -1145,7 +1143,6 @@ void set_dad_inventory_item(LLInventoryItem* inv_item, const LLUUID& into_folder
     gInventoryMoveObserver->setMoveIntoFolderID(into_folder_uuid);
     gInventoryMoveObserver->watchAsset(inv_item->getAssetUUID());
 }
-
 
 /**
 * Class to observe moving of items and to select them in inventory.
@@ -1343,7 +1340,6 @@ protected:
     LLUUID mFolderID;
     LLUUID mObjectID;
 };
-
 
 //Returns true if we are OK, false if we are throttled
 //Set check_only true if you want to know the throttle status
@@ -1680,13 +1676,11 @@ void inventory_offer_mute_callback(const LLUUID& blocked_id,
         OfferMatcher(blocked_id));
 }
 
-
 void inventory_offer_mute_avatar_callback(const LLUUID& blocked_id,
     const LLAvatarName& av_name)
 {
     inventory_offer_mute_callback(blocked_id, av_name.getUserName(), false);
 }
-
 
 std::string LLOfferInfo::mResponderType = "offer_info";
 
@@ -2251,7 +2245,6 @@ std::string LLOfferInfo::getSanitizedDescription()
     return description;
 }
 
-
 void LLOfferInfo::initRespondFunctionMap()
 {
     if (mRespondFunctions.empty())
@@ -2601,7 +2594,6 @@ void translateFailure(LLChat chat, LLSD toastArgs, int status, const std::string
     LLTranslate::instance().logFailure(1);
     LLNotificationsUI::LLNotificationManager::instance().onChat(chat, toastArgs);
 }
-
 
 void process_chat_from_simulator(LLMessageSystem *msg, void **user_data)
 {
@@ -3074,7 +3066,6 @@ void process_chat_from_simulator(LLMessageSystem *msg, void **user_data)
                 break;
             }
 
-
             //MK
             if (gRRenabled)
             {
@@ -3202,7 +3193,6 @@ void process_chat_from_simulator(LLMessageSystem *msg, void **user_data)
 
     }
 }
-
 
 // Simulator we're on is informing the viewer that the agent
 // is starting to teleport (perhaps to another sim, perhaps to the
@@ -3343,8 +3333,6 @@ public:
     }
 };
 
-
-
 class LLPostTeleportNotifiers : public LLEventTimer
 {
 public:
@@ -3394,8 +3382,6 @@ bool LLPostTeleportNotifiers::tick()
 
     return all_done;
 }
-
-
 
 // Teleport notification from the simulator
 // We're going to pretend to be a new agent
@@ -3538,7 +3524,6 @@ void process_teleport_finish(LLMessageSystem* msg, void**)
 
     // Don't send camera updates to the new region until we're
     // actually there...
-
 
     // Now do teleport effect for where you're going.
     // VEFFECT: TeleportEnd
@@ -3831,7 +3816,6 @@ void process_crossed_region(LLMessageSystem* msg, void**)
         << seedCap << LL_ENDL;
     regionp->setSeedCapability(seedCap);
 }
-
 
 // sends an AgentUpdate message to the server... or not:
 // only when force_send is 'true' OR
@@ -4277,7 +4261,6 @@ void process_cached_object_update(LLMessageSystem *mesgsys, void **user_data)
     gObjectList.processCachedObjectUpdate(mesgsys, user_data, OUT_FULL_CACHED);
 }
 
-
 void process_terse_object_update_improved(LLMessageSystem *mesgsys, void **user_data)
 {
     if (mesgsys->getReceiveCompressedSize())
@@ -4678,7 +4661,6 @@ void process_attached_sound_gain_change(LLMessageSystem *mesgsys, void **user_da
     objectp->adjustAudioGain(gain);
 }
 
-
 void process_health_message(LLMessageSystem *mesgsys, void **user_data)
 {
     F32 health;
@@ -4690,7 +4672,6 @@ void process_health_message(LLMessageSystem *mesgsys, void **user_data)
         gStatusBar->setHealth((S32)health);
     }
 }
-
 
 void process_sim_stats(LLMessageSystem *msg, void **user_data)
 {
@@ -4887,8 +4868,6 @@ void process_sim_stats(LLMessageSystem *msg, void **user_data)
     }
 }
 
-
-
 void process_avatar_animation(LLMessageSystem *mesgsys, void **user_data)
 {
     LLUUID  animation_id;
@@ -5005,7 +4984,6 @@ void process_avatar_animation(LLMessageSystem *mesgsys, void **user_data)
     }
 }
 
-
 void process_object_animation(LLMessageSystem *mesgsys, void **user_data)
 {
     LLUUID  animation_id;
@@ -5069,7 +5047,6 @@ void process_object_animation(LLMessageSystem *mesgsys, void **user_data)
 
     avatarp->updateAnimations();
 }
-
 
 void process_avatar_appearance(LLMessageSystem *mesgsys, void **user_data)
 {
@@ -5292,7 +5269,6 @@ void process_set_follow_cam_properties(LLMessageSystem *mesgsys, void **user_dat
 }
 //end Ventrella
 
-
 // Culled from newsim lltask.cpp
 void process_name_value(LLMessageSystem *mesgsys, void **user_data)
 {
@@ -5355,7 +5331,6 @@ void process_kick_user(LLMessageSystem *msg, void** /*user_data*/)
     LLAppViewer::instance()->forceDisconnect(message);
 }
 
-
 /*
 void process_user_list_reply(LLMessageSystem *msg, void **user_data)
 {
@@ -5408,7 +5383,6 @@ regionp->setTimeDilation(time_dilation);
 }
 }
 */
-
 
 void process_money_balance_reply(LLMessageSystem* msg, void**)
 {
@@ -6009,7 +5983,6 @@ bool attempt_standard_notification(LLMessageSystem* msgsystem)
             }
         }
 
-
         handle_trusted_experiences_notification(llsdBlock);
 
         if (
@@ -6152,7 +6125,6 @@ bool attempt_standard_notification(LLMessageSystem* msgsystem)
     return false;
 }
 
-
 static void process_special_alert_messages(const std::string & message)
 {
     // Do special handling for alert messages.   This is a legacy hack, and any actual displayed
@@ -6178,8 +6150,6 @@ static void process_special_alert_messages(const std::string & message)
                                     LLSnapshotModel::SNAPSHOT_FORMAT_PNG);
     }
 }
-
-
 
 void process_agent_alert_message(LLMessageSystem* msgsystem, void** user_data)
 {
@@ -6528,7 +6498,6 @@ void notify_cautioned_script_question(const LLSD& notification, const LLSD& resp
 
 void script_question_mute(const LLUUID& item_id, const std::string& object_name);
 
-
 void experiencePermissionBlock(LLUUID experience, LLSD result)
 {
     LLSD permission;
@@ -6868,7 +6837,6 @@ void process_script_question(LLMessageSystem *msg, void **user_data)
     }
 }
 
-
 void process_derez_container(LLMessageSystem *msg, void**)
 {
     LL_WARNS("Messaging") << "call to deprecated process_derez_container" << LL_ENDL;
@@ -7003,7 +6971,6 @@ std::string formatted_time(const time_t& the_time)
     LLStringUtil::format(dateStr, substitution);
     return dateStr;
 }
-
 
 void process_teleport_failed(LLMessageSystem *msg, void**)
 {
@@ -7216,7 +7183,6 @@ void send_group_notice(const LLUUID& group_id,
     {
         bucket_to_send = (U8*)EMPTY_BINARY_BUCKET;
     }
-
 
     send_improved_im(
         group_id,
@@ -7443,7 +7409,6 @@ void send_improved_im(const LLUUID& to_id,
     gAgent.sendReliableMessage();
 }
 
-
 void send_places_query(const LLUUID& query_id,
     const LLUUID& trans_id,
     const std::string& query_text,
@@ -7487,7 +7452,6 @@ void process_user_info_reply(LLMessageSystem* msg, void**)
     LLFloaterPreference::updateUserInfo(dir_visibility);
     LLFloaterSnapshot::setAgentEmail(email);
 }
-
 
 //---------------------------------------------------------------------------
 // Script Dialog
@@ -7673,7 +7637,6 @@ void process_script_dialog(LLMessageSystem* msg, void**)
 
 //---------------------------------------------------------------------------
 
-
 std::vector<LLSD> gLoadUrlList;
 
 bool callback_load_url(const LLSD& notification, const LLSD& response)
@@ -7784,7 +7747,6 @@ void process_load_url(LLMessageSystem* msg, void**)
     }
 }
 
-
 void callback_download_complete(void** data, S32 result, LLExtStat ext_status)
 {
     std::string* filepath = (std::string*)data;
@@ -7793,7 +7755,6 @@ void callback_download_complete(void** data, S32 result, LLExtStat ext_status)
     LLNotificationsUtil::add("FinishedRawDownload", args);
     delete filepath;
 }
-
 
 void process_initiate_download(LLMessageSystem* msg, void**)
 {

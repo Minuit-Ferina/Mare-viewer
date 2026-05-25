@@ -42,6 +42,7 @@
 
 #include <memory>
 #include <stack>
+#include "llrenderstate.h"
 
 class IUpscaler; // MARE: Phase 3 — forward-declared to avoid pulling in mareupscaler.h
 
@@ -67,7 +68,6 @@ bool compute_min_max(LLMatrix4& box, LLVector2& min, LLVector2& max); // Shouldn
 bool LLRayAABB(const LLVector3 &center, const LLVector3 &size, const LLVector3& origin, const LLVector3& dir, LLVector3 &coord, F32 epsilon = 0);
 bool setup_hud_matrices(); // use whole screen to render hud
 bool setup_hud_matrices(const LLRect& screen_region); // specify portion of screen (in pixels) to render hud attachments from (for picking)
-
 
 extern LLTrace::BlockTimerStatHandle FTM_RENDER_GEOMETRY;
 extern LLTrace::BlockTimerStatHandle FTM_RENDER_GRASS;
@@ -228,7 +228,6 @@ public:
     //get the closest particle to start between start and end, returns the LLVOPartGroup and particle index
     LLVOPartGroup* lineSegmentIntersectParticle(const LLVector4a& start, const LLVector4a& end, LLVector4a* intersection,
                                                         S32* face_hit);
-
 
     LLViewerObject* lineSegmentIntersectInHUD(const LLVector4a& start, const LLVector4a& end,
                                               bool pick_transparent,

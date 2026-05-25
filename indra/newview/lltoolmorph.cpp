@@ -58,7 +58,7 @@
 #include "llviewerwindow.h"
 #include "llvoavatarself.h"
 #include "pipeline.h"
-
+#include "llrenderstate.h"
 
 //static
 LLVisualParamHint::instance_list_t LLVisualParamHint::sInstances;
@@ -317,7 +317,7 @@ void LLVisualParamHint::renderAvatarImpostor()
 {
     if (gAgentAvatarp->mDrawable.notNull())
     {
-        LLGLDepthTest gls_depth(GL_TRUE, GL_TRUE);
+        LLGLDepthTest gls_depth(true, true);
         gGL.flush();
         gGL.setSceneBlendType(LLRender::BT_REPLACE);
         gPipeline.generateImpostor(gAgentAvatarp, true);
@@ -344,7 +344,6 @@ void LLVisualParamHint::finalizeHintRender()
     gGL.color4f(1,1,1,1);
     mGLTexturep->setGLTextureCreated(true);
 }
-
 
 //-----------------------------------------------------------------------------
 // draw()

@@ -32,8 +32,7 @@
 // Library includes
 #include "llmath.h"
 #include "llerror.h"
-#include "llgl.h"
-#include "llglheaders.h"
+
 #include "llhost.h"
 #include "llimage.h"
 #include "llimagebmp.h"
@@ -66,6 +65,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "llmimetypes.h"
+#include "llrendercontext.h"
 // statics
 LLPointer<LLViewerTexture>        LLViewerTexture::sNullImagep = nullptr;
 LLPointer<LLViewerTexture>        LLViewerTexture::sBlackImagep = nullptr;
@@ -296,8 +296,8 @@ LLViewerFetchedTexture* LLViewerTextureManager::getFetchedTexture(
                                                    bool usemipmaps,
                                                    LLViewerTexture::EBoostLevel boost_priority,
                                                    S8 texture_type,
-                                                   LLGLint internal_format,
-                                                   LLGLenum primary_format,
+                                                   LLRenderTextureFormat internal_format,
+                                                   LLRenderPixelFormat primary_format,
                                                    LLHost request_from_host)
 {
     return gTextureList.getImage(image_id, f_type, usemipmaps, boost_priority, texture_type, internal_format, primary_format, request_from_host);
@@ -309,8 +309,8 @@ LLViewerFetchedTexture* LLViewerTextureManager::getFetchedTextureFromFile(
                                                    bool usemipmaps,
                                                    LLViewerTexture::EBoostLevel boost_priority,
                                                    S8 texture_type,
-                                                   LLGLint internal_format,
-                                                   LLGLenum primary_format,
+                                                   LLRenderTextureFormat internal_format,
+                                                   LLRenderPixelFormat primary_format,
                                                    const LLUUID& force_id)
 {
     return gTextureList.getImageFromFile(filename, f_type, usemipmaps, boost_priority, texture_type, internal_format, primary_format, force_id);
@@ -322,8 +322,8 @@ LLViewerFetchedTexture* LLViewerTextureManager::getFetchedTextureFromUrl(const s
                                      bool usemipmaps,
                                      LLViewerTexture::EBoostLevel boost_priority,
                                      S8 texture_type,
-                                     LLGLint internal_format,
-                                     LLGLenum primary_format,
+                                     LLRenderTextureFormat internal_format,
+                                     LLRenderPixelFormat primary_format,
                                      const LLUUID& force_id
                                      )
 {
@@ -365,7 +365,6 @@ class LLViewerTextureManagerBridge : public LLTextureManagerBridge
         return LLViewerTextureManager::getFetchedTexture(image_id);
     }
 };
-
 
 void LLViewerTextureManager::init()
 {
@@ -969,7 +968,6 @@ S32 LLViewerTexture::getNumFaces(U32 ch) const
     return ch < LLRender::NUM_TEXTURE_CHANNELS ? mNumFaces[ch] : 0;
 }
 
-
 //virtual
 void LLViewerTexture::addVolume(U32 ch, LLVOVolume* volumep)
 {
@@ -1038,7 +1036,6 @@ void LLViewerTexture::reorganizeVolumeList()
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
     static const F32 MAX_WAIT_TIME = 20.f; // seconds
     static const U32 MAX_EXTRA_BUFFER_SIZE = 4;
-
 
     for (U32 i = 0; i < LLRender::NUM_VOLUME_TEXTURE_CHANNELS; ++i)
     {
@@ -1358,14 +1355,12 @@ bool LLViewerFetchedTexture::isDeleted()
     return mTextureState == DELETED;
 }
 
-
 bool LLViewerFetchedTexture::isFullyLoaded() const
 {
     // Unfortunately, the boolean "mFullyLoaded" is never updated correctly so we use that logic
     // to check if the texture is there and completely downloaded
     return (mFullWidth != 0) && (mFullHeight != 0) && !mIsFetching && !mHasFetcher;
 }
-
 
 // virtual
 void LLViewerFetchedTexture::dump()
@@ -1550,12 +1545,12 @@ bool LLViewerFetchedTexture::preCreateTexture(S32 usename/*= 0*/)
 
     if (mGLTexturep->getHasExplicitFormat())
     {
-        LLGLenum format = mGLTexturep->getPrimaryFormat();
+        LLRenderPixelFormat format = mGLTexturep->getPrimaryPixelFormat();
         S8 components = mRawImage->getComponents();
-        if ((format == GL_RGBA && components < 4)
-            || (format == GL_RGB && components < 3))
+        if ((format == LLRenderPixelFormat::RGBA && components < 4)
+            || (format == LLRenderPixelFormat::RGB && components < 3))
         {
-            LL_WARNS() << "Can't create a texture " << mID << ": invalid image format " << std::hex << format << " vs components " << (U32)components << LL_ENDL;
+            LL_WARNS() << "Can't create a texture " << mID << ": invalid image format " << static_cast<U32>(format) << " vs components " << (U32)components << LL_ENDL;
             // Was expecting specific format but raw texture has insufficient components for
             // such format, using such texture will result in crash or will display wrongly
             // if we change format. Texture might be corrupted server side, so just set as
@@ -2603,7 +2598,6 @@ bool LLViewerFetchedTexture::doLoadedCallbacks()
         // Do this by forcing the best aux discard to be 0.
         best_aux_discard = 0;
     }
-
 
     //
     // See if any of the callbacks would actually run using the data that we can provide,
@@ -4092,4 +4086,3 @@ void LLTexturePipelineTester::LLTextureTestSession::reset()
 //----------------------------------------------------------------------------------------------
 //end of LLTexturePipelineTester
 //----------------------------------------------------------------------------------------------
-

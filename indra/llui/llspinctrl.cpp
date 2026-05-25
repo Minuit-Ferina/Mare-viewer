@@ -27,8 +27,6 @@
 #include "linden_common.h"
 
 #include "llspinctrl.h"
-
-#include "llgl.h"
 #include "llui.h"
 #include "lluiconstants.h"
 

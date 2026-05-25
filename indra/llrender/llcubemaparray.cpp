@@ -38,6 +38,8 @@
 #include "llrender.h"
 #include "llrenderbackend.h"
 #include "llglslshader.h"
+#include "llimage.h"
+#include "llimagegl.h"
 
 #include "llgl.h"
 #include "llglheaders.h"

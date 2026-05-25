@@ -29,7 +29,7 @@
 // library includes
 #include "llcoord.h"
 #include "llfontgl.h"
-#include "llgl.h"
+
 #include "llrender.h"
 #include "llinventory.h"
 #include "llinventorydefines.h"
@@ -61,6 +61,7 @@
 #include "llworld.h"
 #include "llworldmapview.h"
 #include "llviewercontrol.h"
+#include "llrenderstate.h"
 
 const F32 DESTINATION_REACHED_RADIUS    = 3.0f;
 const F32 DESTINATION_VISITED_RADIUS    = 6.0f;
@@ -92,19 +93,16 @@ LLTracker::LLTracker()
     mHasReachedLocation(false)
 { }
 
-
 LLTracker::~LLTracker()
 {
     purgeBeaconText();
 }
-
 
 // static
 void LLTracker::stopTracking(bool clear_ui)
 {
     instance()->stopTrackingAll(clear_ui);
 }
-
 
 // static virtual
 void LLTracker::drawHUDArrow()
@@ -163,7 +161,6 @@ void LLTracker::drawHUDArrow()
         break;
     }
 }
-
 
 // static
 void LLTracker::render3D()
@@ -305,7 +302,6 @@ void LLTracker::render3D()
     }
 }
 
-
 // static
 void LLTracker::trackAvatar( const LLUUID& avatar_id, const std::string& name )
 {
@@ -324,7 +320,6 @@ void LLTracker::trackAvatar( const LLUUID& avatar_id, const std::string& name )
     instance()->mLabel = name;
     instance()->mToolTip = "";
 }
-
 
 // static
 void LLTracker::trackLandmark( const LLUUID& asset_id, const LLUUID& item_id, const std::string& name)
@@ -348,7 +343,6 @@ void LLTracker::trackLandmark( const LLUUID& asset_id, const LLUUID& item_id, co
     instance()->mToolTip = "";
 }
 
-
 // static
 void LLTracker::trackLocation(const LLVector3d& pos_global, const std::string& full_name, const std::string& tooltip, ETrackingLocationType location_type)
 {
@@ -363,7 +357,6 @@ void LLTracker::trackLocation(const LLVector3d& pos_global, const std::string& f
     instance()->mLabel = full_name;
     instance()->mToolTip = tooltip;
 }
-
 
 // static
 bool LLTracker::handleMouseDown(S32 x, S32 y)
@@ -391,7 +384,6 @@ bool LLTracker::handleMouseDown(S32 x, S32 y)
     }
     return eat_mouse_click;
 }
-
 
 // static
 LLVector3d LLTracker::getTrackedPositionGlobal()
@@ -422,7 +414,6 @@ LLVector3d LLTracker::getTrackedPositionGlobal()
     return pos_global;
 }
 
-
 // static
 bool LLTracker::hasLandmarkPosition()
 {
@@ -433,7 +424,6 @@ bool LLTracker::hasLandmarkPosition()
     }
     return instance()->mHasLandmarkPosition;
 }
-
 
 // static
 const std::string& LLTracker::getTrackedLocationName()
@@ -509,7 +499,6 @@ void draw_shockwave(F32 center_z, F32 t, S32 steps, LLColor4 color)
     }
     gGL.end();
 }
-
 
 void LLTracker::drawBeacon(LLVector3 pos_agent, std::string direction, LLColor4 fogged_color, F32 dist)
 {
@@ -588,7 +577,6 @@ void LLTracker::drawBeacon(LLVector3 pos_agent, std::string direction, LLColor4 
         gGL.color4fv(col_edge_next.mV);
         gGL.vertex3f(-xan, -yan, z_next);
 
-
         gGL.color4fv(col_edge.mV);
         gGL.vertex3f(-xa, -ya, z);
 
@@ -598,7 +586,6 @@ void LLTracker::drawBeacon(LLVector3 pos_agent, std::string direction, LLColor4 
         gGL.color4fv(col_next.mV);
         gGL.vertex3f(0, 0, z_next);
 
-
         gGL.color4fv(c_col.mV);
         gGL.vertex3f(0, 0, z);
 
@@ -607,7 +594,6 @@ void LLTracker::drawBeacon(LLVector3 pos_agent, std::string direction, LLColor4 
 
         gGL.color4fv(col_next.mV);
         gGL.vertex3f(0, 0, z_next);
-
 
         gGL.color4fv(c_col.mV);
         gGL.vertex3f(0, 0, z);
@@ -658,8 +644,8 @@ void LLTracker::renderBeacon(LLVector3d pos_global,
 
     LLGLSTracker gls_tracker;
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-    LLGLDisable cull_face(GL_CULL_FACE);
-    LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+    LLGLDisable cull_face(LLRenderCapability::CullFace);
+    LLGLDepthTest gls_depth(true, false);
 
     LLTracker::drawBeacon(pos_agent, "DOWN", fogged_color, dist);
     LLTracker::drawBeacon(pos_agent, "UP", fogged_color_under, dist);
@@ -681,7 +667,6 @@ void LLTracker::renderBeacon(LLVector3d pos_global,
     hud_textp->setPositionAgent(pos_agent);
 }
 
-
 void LLTracker::stopTrackingAll(bool clear_ui)
 {
     switch (mTrackingStatus)
@@ -701,7 +686,6 @@ void LLTracker::stopTrackingAll(bool clear_ui)
     }
 }
 
-
 void LLTracker::stopTrackingAvatar(bool clear_ui)
 {
     LLAvatarTracker& av_tracker = LLAvatarTracker::instance();
@@ -714,7 +698,6 @@ void LLTracker::stopTrackingAvatar(bool clear_ui)
     gFloaterWorldMap->clearAvatarSelection(clear_ui);
     mTrackingStatus = TRACKING_NOTHING;
 }
-
 
 void LLTracker::stopTrackingLandmark(bool clear_ui)
 {
@@ -729,7 +712,6 @@ void LLTracker::stopTrackingLandmark(bool clear_ui)
     gFloaterWorldMap->clearLandmarkSelection(clear_ui);
     mTrackingStatus = TRACKING_NOTHING;
 }
-
 
 void LLTracker::stopTrackingLocation(bool clear_ui, bool dest_reached)
 {
@@ -831,7 +813,6 @@ void LLTracker::drawMarker(const LLVector3d& pos_global, const LLColor4& color)
     }
 }
 
-
 void LLTracker::setLandmarkVisited()
 {
     // poke the inventory item
@@ -864,7 +845,6 @@ void LLTracker::setLandmarkVisited()
         }
     }
 }
-
 
 void LLTracker::cacheLandmarkPosition()
 {
@@ -914,7 +894,6 @@ void LLTracker::cacheLandmarkPosition()
     }
     mHasLandmarkPosition = found_landmark;
 }
-
 
 void LLTracker::purgeBeaconText()
 {

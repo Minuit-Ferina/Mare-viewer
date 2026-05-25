@@ -32,7 +32,6 @@
 
 #include "llmath.h"
 #include "llui.h"
-#include "llgl.h"
 #include "lltracerecording.h"
 #include "lltracethreadrecorder.h"
 #include "llwindow.h"

@@ -90,7 +90,7 @@ private:
     LLRenderTarget*                         mFrames[2];
     LLRenderTarget*                         mDiff;
 
-    LLGLuint                                mQueryObject; //used for glQuery
+    U32                                     mQueryObject; //used for backend query
     F32                                     mDiffResult,  //aggregate results of mDiff.
                                             mDiffTolerance, //pixels are filtered out when R+G+B < mDiffTolerance
                                             mDiffPixelRatio; //ratio of pixels used for comparison against the original mDiff size along one dimension

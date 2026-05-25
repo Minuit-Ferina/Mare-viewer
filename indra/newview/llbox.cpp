@@ -27,8 +27,6 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "llbox.h"
-
-#include "llgl.h"
 #include "llrender.h"
 
 LLBox       gBox;

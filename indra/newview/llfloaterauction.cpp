@@ -28,7 +28,6 @@
 #include "llviewerprecompiledheaders.h"
 #include "llfloaterauction.h"
 
-#include "llgl.h"
 #include "llimagej2c.h"
 #include "llimagetga.h"
 #include "llparcel.h"
@@ -56,6 +55,7 @@
 #include "llsdutil_math.h"
 #include "lltrans.h"
 #include "llcorehttputil.h"
+#include "llrenderstate.h"
 
 namespace
 {
@@ -216,7 +216,6 @@ void LLFloaterAuction::draw()
     }
 }
 
-
 // static
 void LLFloaterAuction::onClickSnapshot(void* data)
 {
@@ -317,7 +316,6 @@ void LLFloaterAuction::onClickStartAuction(void* data)
     self->cleanupAndClose();
 }
 
-
 void LLFloaterAuction::cleanupAndClose()
 {
     mImageID.setNull();
@@ -326,8 +324,6 @@ void LLFloaterAuction::cleanupAndClose()
     mParcelHost.invalidate();
     closeFloater();
 }
-
-
 
 // static glue
 void LLFloaterAuction::onClickResetParcel(void* data)
@@ -338,7 +334,6 @@ void LLFloaterAuction::onClickResetParcel(void* data)
         self->doResetParcel();
     }
 }
-
 
 // Reset all the values for the parcel in preparation for a sale
 void LLFloaterAuction::doResetParcel()
@@ -442,8 +437,6 @@ void LLFloaterAuction::doResetParcel()
     }
 }
 
-
-
 void LLFloaterAuction::clearParcelAccessList(LLParcel* parcel, LLViewerRegion* region, U32 list)
 {
     if (!region || !parcel) return;
@@ -473,8 +466,6 @@ void LLFloaterAuction::clearParcelAccessList(LLParcel* parcel, LLViewerRegion* r
     msg->sendReliable( region->getHost() );
 }
 
-
-
 // static - 'Sell to Anyone' clicked, throw up a confirmation dialog
 void LLFloaterAuction::onClickSellToAnyone(void* data)
 {
@@ -503,7 +494,6 @@ void LLFloaterAuction::onClickSellToAnyone(void* data)
     }
 }
 
-
 // Sell confirmation clicked
 bool LLFloaterAuction::onSellToAnyoneConfirmed(const LLSD& notification, const LLSD& response)
 {
@@ -515,8 +505,6 @@ bool LLFloaterAuction::onSellToAnyoneConfirmed(const LLSD& notification, const L
 
     return false;
 }
-
-
 
 // Reset all the values for the parcel in preparation for a sale
 void LLFloaterAuction::doSellToAnyone()
@@ -558,7 +546,6 @@ void LLFloaterAuction::doSellToAnyone()
         cleanupAndClose();
     }
 }
-
 
 ///----------------------------------------------------------------------------
 /// Local function definitions

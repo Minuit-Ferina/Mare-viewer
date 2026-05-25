@@ -51,7 +51,7 @@
 void LLGLTexture::setBoostLevel(S32 ) { }
 void LLGLTexture::setAddressMode(LLTexUnit::eTextureAddressMode ) { }
 LLViewerFetchedTexture* LLViewerTextureManager::getFetchedTexture(const LLUUID&, FTType, bool, LLGLTexture::EBoostLevel, S8,
-                                                                  LLGLint, LLGLenum, LLHost ) { return NULL; }
+                                                                  LLRenderTextureFormat, LLRenderPixelFormat, LLHost ) { return NULL; }
 
 // Stub related map calls
 LLWorldMapMessage::LLWorldMapMessage() { }

@@ -31,13 +31,14 @@
 
 #include "llviewerjoint.h"
 
-#include "llgl.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llrender.h"
 #include "llmath.h"
-#include "llglheaders.h"
+
 #include "llvoavatar.h"
 #include "pipeline.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 static constexpr S32 MIN_PIXEL_AREA_3PASS_HAIR = 64*64;
 
@@ -80,7 +81,6 @@ U32 LLViewerJoint::render( F32 pixelArea, bool first_pass, bool is_dummy )
     if ( mValid )
     {
 
-
         //----------------------------------------------------------------
         // if object is transparent, defer it, otherwise
         // give the joint subclass a chance to draw itself
@@ -99,10 +99,10 @@ U32 LLViewerJoint::render( F32 pixelArea, bool first_pass, bool is_dummy )
             if ((pixelArea > MIN_PIXEL_AREA_3PASS_HAIR))
             {
                 // render all three passes
-                LLGLDisable cull(GL_CULL_FACE);
+                LLGLDisable cull(LLRenderCapability::CullFace);
                 // first pass renders without writing to the z buffer
                 {
-                    LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+                    LLGLDepthTest gls_depth(true, false);
                     triangle_count += drawShape( pixelArea, first_pass, is_dummy );
                 }
                 // second pass writes to z buffer only
@@ -113,20 +113,20 @@ U32 LLViewerJoint::render( F32 pixelArea, bool first_pass, bool is_dummy )
                 // third past respects z buffer and writes color
                 gGL.setColorMask(true, false);
                 {
-                    LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+                    LLGLDepthTest gls_depth(true, false);
                     triangle_count += drawShape( pixelArea, false, is_dummy  );
                 }
             }
             else
             {
                 // Render Inside (no Z buffer write)
-                LLGLContainment::setCullFace(GL_FRONT);
+                getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Front);
                 {
-                    LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+                    LLGLDepthTest gls_depth(true, false);
                     triangle_count += drawShape( pixelArea, first_pass, is_dummy  );
                 }
                 // Render Outside (write to the Z buffer)
-                LLGLContainment::setCullFace(GL_BACK);
+                getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Back);
                 {
                     triangle_count += drawShape( pixelArea, false, is_dummy  );
                 }

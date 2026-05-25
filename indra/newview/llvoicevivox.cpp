@@ -76,6 +76,7 @@
 
 // for base64 decoding
 #include "apr_base64.h"
+#include "llrendercontext.h"
 
 #define USE_SESSION_GROUPS 0
 #define VX_NULL_POSITION -2147483648.0 /*The Silence*/
@@ -151,14 +152,12 @@ static int scale_speaker_volume(float volume)
 
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 class LLVivoxVoiceClientMuteListObserver : public LLMuteListObserver
 {
     /* virtual */ void onChange()  { LLVivoxVoiceClient::getInstance()->muteListChanged();}
 };
-
 
 void LLVoiceVivoxStats::reset()
 {
@@ -372,7 +371,6 @@ LLVivoxVoiceClient::LLVivoxVoiceClient() :
     //  gMuteListp isn't set up at this point, so we defer this until later.
 //  gMuteListp->addObserver(&mutelist_listener);
 
-
 #if LL_DARWIN || LL_LINUX
         // HACK: THIS DOES NOT BELONG HERE
         // When the vivox daemon dies, the next write attempt on our socket generates a SIGPIPE, which kills us.
@@ -384,7 +382,6 @@ LLVivoxVoiceClient::LLVivoxVoiceClient() :
         // Ignoring SIGCHLD should prevent zombies from being created.  Alternately, we could use wait(), but I'd rather not do that.
         signal(SIGCHLD, SIG_IGN);
 #endif
-
 
     gIdleCallbacks.addFunction(idle, this);
 }
@@ -523,7 +520,6 @@ bool LLVivoxVoiceClient::writeString(const std::string &str)
 
     return result;
 }
-
 
 /////////////////////////////
 // session control messages
@@ -1161,9 +1157,7 @@ bool LLVivoxVoiceClient::startAndLaunchDaemon()
     readChain.push_back(LLIOPipe::ptr_t(new LLIOSocketReader(mSocket)));
     readChain.push_back(LLIOPipe::ptr_t(new LLVivoxProtocolParser()));
 
-
     sPump->addChain(readChain, NEVER_CHAIN_EXPIRY_SECS);
-
 
     //---------------------------------------------------------------------
     llcoro::suspendUntilTimeout(UPDATE_THROTTLE_SECONDS);
@@ -1561,7 +1555,6 @@ void LLVivoxVoiceClient::logoutOfVivox(bool wait)
     }
 }
 
-
 bool LLVivoxVoiceClient::retrieveVoiceFonts()
 {
     // Request the set of available voice fonts.
@@ -1946,7 +1939,6 @@ bool LLVivoxVoiceClient::terminateAudioSession(bool wait)
         notifyStatusObservers(LLVoiceClientStatusObserver::STATUS_LEFT_CHANNEL);
     }
 
-
     // Always reset the terminate request flag when we get here.
     // Some slower PCs have a race condition where they can switch to an incoming  P2P call faster than the state machine leaves
     // the region chat.
@@ -1962,7 +1954,6 @@ bool LLVivoxVoiceClient::terminateAudioSession(bool wait)
                        << LL_ENDL;
     return status;
 }
-
 
 typedef enum e_voice_wait_for_channel_state
 {
@@ -2466,7 +2457,6 @@ int LLVivoxVoiceClient::voicePlaybackBuffer()
     return true;
 }
 
-
 bool LLVivoxVoiceClient::performMicTuning()
 {
     LL_INFOS("Voice") << "Entering voice tuning mode." << LL_ENDL;
@@ -2690,7 +2680,6 @@ void LLVivoxVoiceClient::requestRelog()
     mRelogRequested = true;
 }
 
-
 void LLVivoxVoiceClient::leaveAudioSession()
 {
     if(mAudioSession)
@@ -2777,7 +2766,6 @@ void LLVivoxVoiceClient::sessionMediaDisconnectSendMessage(const sessionStatePtr
     */
 
 }
-
 
 void LLVivoxVoiceClient::getCaptureDevicesSendMessage()
 {
@@ -3276,7 +3264,6 @@ void LLVivoxVoiceClient::sendPositionAndVolumeUpdate(void)
         pos = earPosition;
         vel = earVelocity;
 
-
         oldSDKTransform(l, u, a, pos, vel);
 
         if (mHidden)
@@ -3486,7 +3473,6 @@ void LLVivoxVoiceClient::sendLocalAudioUpdates()
             << "<Value>" << mMicVolume << "</Value>"
             << "</Request>\n\n\n";
     }
-
 
     if (!stream.str().empty())
     {
@@ -4290,7 +4276,6 @@ void LLVivoxVoiceClient::participantRemovedEvent(
     }
 }
 
-
 void LLVivoxVoiceClient::participantUpdatedEvent(
         std::string &sessionHandle,
         std::string &sessionGroupHandle,
@@ -4776,7 +4761,6 @@ void LLVivoxVoiceClient::sessionState::VerifySessions()
     }
 }
 
-
 void LLVivoxVoiceClient::getParticipantList(std::set<LLUUID> &participants)
 {
     if(mProcessChannels && mAudioSession)
@@ -4798,7 +4782,6 @@ bool LLVivoxVoiceClient::isParticipant(const LLUUID &speaker_id)
     }
     return false;
 }
-
 
 LLVivoxVoiceClient::participantStatePtr_t LLVivoxVoiceClient::sessionState::findParticipant(const std::string &uri)
 {
@@ -4848,8 +4831,6 @@ LLVivoxVoiceClient::participantStatePtr_t LLVivoxVoiceClient::findParticipantByI
 
     return result;
 }
-
-
 
 // Check for parcel boundary crossing
 bool LLVivoxVoiceClient::checkParcelChanged(bool update)
@@ -5032,7 +5013,6 @@ void LLVivoxVoiceClient::callUser(const LLUUID &uuid)
 }
 
 void LLVivoxVoiceClient::hangup() { leaveChannel(); }
-
 
 LLVoiceP2PIncomingCallInterfacePtr LLVivoxVoiceClient::getIncomingCallInterface(const LLSD &voice_call_info)
 {
@@ -5348,7 +5328,6 @@ bool LLVivoxVoiceClient::inSpatialChannel(void)
     return result;
 }
 
-
 LLSD LLVivoxVoiceClient::getAudioSessionChannelInfo()
 {
     LLSD result;
@@ -5370,7 +5349,6 @@ std::string LLVivoxVoiceClient::getAudioSessionHandle()
 
     return result;
 }
-
 
 /////////////////////////////
 // Sending updates of current state
@@ -5591,7 +5569,6 @@ bool LLVivoxVoiceClient::lipSyncEnabled()
     }
 }
 
-
 void LLVivoxVoiceClient::setEarLocation(S32 loc)
 {
     if(mEarLocation != loc)
@@ -5649,8 +5626,6 @@ std::string LLVivoxVoiceClient::getDisplayName(const LLUUID& id)
     return result;
 }
 
-
-
 bool LLVivoxVoiceClient::getIsSpeaking(const LLUUID& id)
 {
     bool result = false;
@@ -5697,8 +5672,6 @@ F32 LLVivoxVoiceClient::getCurrentPower(const LLUUID& id)
 
     return result;
 }
-
-
 
 bool LLVivoxVoiceClient::getUsingPTT(const LLUUID& id)
 {
@@ -5789,7 +5762,6 @@ void LLVivoxVoiceClient::recordingLoopStart(int seconds, int deltaFramesPerContr
         << "<LoopModeDurationSeconds>" << seconds << "</LoopModeDurationSeconds>"
         << "</Request>\n\n\n";
 
-
         writeString(stream.str());
     }
 }
@@ -5877,7 +5849,6 @@ void LLVivoxVoiceClient::filePlaybackSetMode(bool vox, float speed)
 //------------------------------------------------------------------------
 std::set<LLVivoxVoiceClient::sessionState::wptr_t, std::owner_less<LLVivoxVoiceClient::sessionState::wptr_t>> LLVivoxVoiceClient::sessionState::mSession;
 
-
 LLVivoxVoiceClient::sessionState::sessionState() :
     mErrorStatusCode(0),
     mMediaStreamState(streamStateUnknown),
@@ -5945,7 +5916,6 @@ bool LLVivoxVoiceClient::sessionState::isTextIMPossible()
     // This may change to be explicitly specified by vivox in the future...
     return !mSynthesizedCallerID;
 }
-
 
 /*static*/
 LLVivoxVoiceClient::sessionState::ptr_t LLVivoxVoiceClient::sessionState::matchSessionByHandle(const std::string &handle)
@@ -6031,7 +6001,6 @@ bool LLVivoxVoiceClient::sessionState::testBySIPOrAlterateURI(const LLVivoxVoice
     return aLock ? ((aLock->mSIPURI == uri) || (aLock->mAlternateSIPURI == uri)) : false;
 }
 
-
 bool LLVivoxVoiceClient::sessionState::testByCallerId(const LLVivoxVoiceClient::sessionState::wptr_t &a, LLUUID participantId)
 {
     ptr_t aLock(a.lock());
@@ -6051,8 +6020,6 @@ void LLVivoxVoiceClient::sessionState::for_eachPredicate(const LLVivoxVoiceClien
         LL_WARNS("Voice") << "Stale handle in session map!" << LL_ENDL;
     }
 }
-
-
 
 LLVivoxVoiceClient::sessionStatePtr_t LLVivoxVoiceClient::findSession(const std::string &handle)
 {
@@ -7289,7 +7256,6 @@ LLIOPipe::EStatus LLVivoxProtocolParser::process_impl(
         XML_SetUserData(parser, this);
         XML_Parse(parser, mInput.data() + start, static_cast<int>(delim - start), false);
 
-
         LL_DEBUGS("VivoxProtocolParser") << "parsing: " << mInput.substr(start, delim - start) << LL_ENDL;
         start = delim + 3;
     }
@@ -7341,7 +7307,6 @@ void XMLCALL LLVivoxProtocolParser::ExpatCharHandler(void *data, const XML_Char 
 }
 
 // --------------------------------------------------------------------------------
-
 
 void LLVivoxProtocolParser::StartTag(const char *tag, const char **attr)
 {

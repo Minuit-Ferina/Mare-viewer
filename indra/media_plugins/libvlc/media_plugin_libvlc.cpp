@@ -28,7 +28,6 @@
 
 #include "linden_common.h"
 
-#include "llgl.h"
 #include "llplugininstance.h"
 #include "llpluginmessage.h"
 #include "llpluginmessageclasses.h"
@@ -580,9 +579,9 @@ void MediaPluginLibVLC::receiveMessage(const char* message_string)
                 message.setValueS32("default_width", 1024);
                 message.setValueS32("default_height", 1024);
                 message.setValueS32("depth", mDepth);
-                message.setValueU32("internalformat", GL_RGB);
-                message.setValueU32("format", GL_BGRA_EXT);
-                message.setValueU32("type", GL_UNSIGNED_BYTE);
+                message.setValueU32("internalformat", LLPLUGIN_TEXTURE_INTERNAL_RGB);
+                message.setValueU32("format", LLPLUGIN_TEXTURE_FORMAT_BGRA);
+                message.setValueU32("type", LLPLUGIN_TEXTURE_TYPE_UNSIGNED_BYTE);
                 message.setValueBoolean("coords_opengl", true);
                 sendMessage(message);
             }

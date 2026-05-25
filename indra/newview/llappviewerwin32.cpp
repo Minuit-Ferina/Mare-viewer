@@ -35,7 +35,6 @@
 
 #include "llappviewerwin32.h"
 
-#include "llgl.h"
 #include "res/resource.h" // *FIX: for setting gIconResource.
 
 #include <fcntl.h>      //_O_APPEND
@@ -80,6 +79,7 @@
 #include "llstartup.h"
 #include "llviewerregion.h"
 #include "llvoavatarself.h"         // for agent name
+#include "llrendercontext.h"
 namespace Kokua
 {
     std::wstring LogfileIn;
@@ -146,7 +146,6 @@ namespace
             if (gCrashSettings.getBOOL("CrashSubmitSettings"))
                 sBugSplatSender->sendAdditionalFile(  WCSTR(gDirUtilp->getExpandedFilename(LL_PATH_USER_SETTINGS, "settings.xml")));
 
-
             // second instance does not have some log files
             // TODO: This needs fixing, if each instance now has individual logs,
             // same should be made true for static debug files
@@ -155,7 +154,6 @@ namespace
                 sBugSplatSender->sendAdditionalFile(
                     WCSTR(*LLAppViewer::instance()->getStaticDebugFile()));
             }
-
 
             // We don't have an email address for any user. Hijack this
             // metadata field for the platform identifier.
@@ -1061,7 +1059,6 @@ bool LLAppViewerWin32::sendURLToOtherInstance(const std::string& url)
     }
     return false;
 }
-
 
 std::string LLAppViewerWin32::generateSerialNumber()
 {

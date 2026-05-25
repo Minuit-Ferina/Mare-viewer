@@ -176,6 +176,18 @@ void LLGLTexture::setExplicitFormat(LLGLint internal_format, LLGLenum primary_fo
 
     mGLTexturep->setExplicitFormat(internal_format, primary_format, type_format, swap_bytes) ;
 }
+
+void LLGLTexture::setExplicitFormat(
+    LLRenderTextureFormat internal_format,
+    LLRenderPixelFormat primary_format,
+    LLRenderPixelType type_format,
+    bool swap_bytes)
+{
+    llassert(mGLTexturep.notNull()) ;
+
+    mGLTexturep->setExplicitFormat(internal_format, primary_format, type_format, swap_bytes) ;
+}
+
 void LLGLTexture::setAddressMode(LLTexUnit::eTextureAddressMode mode)
 {
     llassert(mGLTexturep.notNull()) ;
@@ -310,6 +322,13 @@ LLGLenum LLGLTexture::getPrimaryFormat() const
     llassert(mGLTexturep.notNull()) ;
 
     return mGLTexturep->getPrimaryFormat() ;
+}
+
+LLRenderPixelFormat LLGLTexture::getPrimaryPixelFormat() const
+{
+    llassert(mGLTexturep.notNull()) ;
+
+    return mGLTexturep->getPrimaryPixelFormat() ;
 }
 
 bool LLGLTexture::getIsAlphaMask() const

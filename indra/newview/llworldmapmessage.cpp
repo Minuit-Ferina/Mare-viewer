@@ -33,6 +33,7 @@
 #include "llworldmap.h"
 #include "llagent.h"
 #include "llfloaterworldmap.h"
+#include "llrendercontext.h"
 
 constexpr U32 LAYER_FLAG = 2;
 constexpr S32 MAP_SIM_RETURN_NULL_SIMS = 0x00010000;

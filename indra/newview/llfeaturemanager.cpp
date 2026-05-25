@@ -35,7 +35,6 @@
 #include "lldir.h"
 
 #include "llsys.h"
-#include "llgl.h"
 
 #include "llappviewer.h"
 #include "llbufferstream.h"
@@ -57,6 +56,7 @@
 
 #if LL_WINDOWS
 #include "lldxhardware.h"
+#include "llrendercontext.h"
 #endif
 
 #if LL_DARWIN
@@ -277,7 +277,6 @@ bool LLFeatureManager::loadFeatureTables()
 
     return parse_ok;
 }
-
 
 bool LLFeatureManager::parseFeatureTable(std::string filename)
 {
@@ -812,8 +811,6 @@ LLSD LLFeatureManager::getRecommendedSettingsMap()
     map["RenderQualityPerformance"]["Comment"] = ctrl->getComment();;
     map["RenderQualityPerformance"]["Persist"] = 1;
     map["RenderQualityPerformance"]["Type"] = LLControlGroup::typeEnumToString(ctrl->type());
-
-
 
     for (feature_map_t::iterator mIt = mFeatures.begin(); mIt != mFeatures.end(); ++mIt)
     {

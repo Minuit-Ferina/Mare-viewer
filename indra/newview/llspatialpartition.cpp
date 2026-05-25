@@ -46,7 +46,7 @@
 #include "pipeline.h"
 #include "llmeshrepository.h"
 #include "llrender.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "lldrawpool.h"
 #include "lloctree.h"
 #include "llphysicsshapebuilderutil.h"
@@ -56,8 +56,9 @@
 #include "llcontrolavatar.h"
 //MK
 #include "llagent.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 //mk
-
 
 extern bool gShiftFrame;
 
@@ -399,7 +400,6 @@ void LLSpatialPartition::rebuildGeom(LLSpatialGroup* group)
     group->mLastUpdateTime = gFrameTimeSeconds;
     group->clearState(LLSpatialGroup::GEOM_DIRTY);
 }
-
 
 void LLSpatialPartition::rebuildMesh(LLSpatialGroup* group)
 {
@@ -886,7 +886,6 @@ void LLSpatialGroup::destroyGLState(bool keep_occlusion)
         releaseOcclusionQueryObjectNames();
     }
 
-
     for (LLSpatialGroup::element_iter i = getDataBegin(); i != getDataEnd(); ++i)
     {
         LLDrawable* drawable = (LLDrawable*)(*i)->getDrawable();
@@ -919,7 +918,6 @@ LLSpatialPartition::LLSpatialPartition(U32 data_mask, bool render_by_group, LLVi
 
     new LLSpatialGroup(mOctree, this);
 }
-
 
 LLSpatialPartition::~LLSpatialPartition()
 {
@@ -1371,7 +1369,6 @@ void drawBoxOutline(const LLVector4a& pos, const LLVector4a& size)
     drawBoxOutline(reinterpret_cast<const LLVector3&>(pos), reinterpret_cast<const LLVector3&>(size));
 }
 
-
 void LLSpatialPartition::restoreGL()
 {
 }
@@ -1660,16 +1657,18 @@ void renderOctree(LLSpatialGroup* group)
 
         {
             LLGLDepthTest gl_depth(false, false);
-            LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            getOpenGLRenderBackend().setPolygonMode(
+                LLRenderPolygonFace::FrontAndBack,
+                LLRenderPolygonMode::Line);
 
             gGL.diffuseColor4f(1,0,0,group->mBuilt);
             gGL.flush();
-            LLGLContainment::setLineWidth(5.f);
+            getOpenGLRenderBackend().setLineWidth(5.f);
 
             const LLVector4a* bounds = group->getObjectBounds();
             drawBoxOutline(bounds[0], bounds[1]);
             gGL.flush();
-            LLGLContainment::setLineWidth(1.f);
+            getOpenGLRenderBackend().setLineWidth(1.f);
             gGL.flush();
 
             const LLVOAvatar* lastAvatar = nullptr;
@@ -1757,7 +1756,9 @@ void renderOctree(LLSpatialGroup* group)
                     gGL.popMatrix();
                 }
             }
-            LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            getOpenGLRenderBackend().setPolygonMode(
+                LLRenderPolygonFace::FrontAndBack,
+                LLRenderPolygonMode::Fill);
             gDebugProgram.bind(); // make sure non-rigged variant is bound
             gGL.diffuseColor4f(1,1,1,1);
         }
@@ -1779,8 +1780,6 @@ void renderOctree(LLSpatialGroup* group)
 }
 
 std::set<LLSpatialGroup*> visible_selected_groups;
-
-
 
 void renderXRay(LLSpatialGroup* group, LLCamera* camera)
 {
@@ -1840,7 +1839,7 @@ void renderUpdateType(LLDrawable* drawablep)
     {
         return;
     }
-    LLGLEnable blend(GL_BLEND);
+    LLGLEnable blend(LLRenderCapability::Blend);
     switch (vobj->getLastUpdateType())
     {
     case OUT_FULL:
@@ -1979,12 +1978,12 @@ void renderBoundingBox(LLDrawable* drawable, bool set_color = true)
     if (vobj && vobj->onActiveList())
     {
         gGL.flush();
-        LLGLContainment::setLineWidth(llmax(4.f*sinf(gFrameTimeSeconds*2.f)+1.f, 1.f));
+        getOpenGLRenderBackend().setLineWidth(llmax(4.f*sinf(gFrameTimeSeconds*2.f)+1.f, 1.f));
         // Alternate active outline width: 4.f*(sinf(gFrameTimeSeconds*2.f)*0.25f+0.75f).
         stop_glerror();
         drawBoxOutline(pos,size);
         gGL.flush();
-        LLGLContainment::setLineWidth(1.f);
+        getOpenGLRenderBackend().setLineWidth(1.f);
     }
     else
     {
@@ -2008,8 +2007,8 @@ void renderNormals(LLDrawable *drawablep)
 
     if (obj)
     {
-        LLGLEnable blend(GL_BLEND);
-        LLGLDepthTest gl_depth(GL_TRUE, GL_FALSE);
+        LLGLEnable blend(LLRenderCapability::Blend);
+        LLGLDepthTest gl_depth(true, false);
 
         // Drawable's normals & tangents are stored in model space, i.e. before any scaling is applied.
         //
@@ -2499,15 +2498,19 @@ void renderPhysicsShape(LLDrawable* drawable, LLVOVolume* volume, bool wireframe
 
             llassert(LLGLSLShader::sCurBoundShader != 0);
             LLVertexBuffer::unbind();
-            LLGLContainment::setVertexPointer(3, GL_FLOAT, 16, phys_volume->mHullPoints);
+            getOpenGLRenderBackend().setLegacyVertexPointer(
+                3,
+                LLRenderVertexAttributeType::Float32,
+                16,
+                phys_volume->mHullPoints);
 
             gGL.diffuseColor4fv(color.mV);
 
             gGL.syncMatrices();
-            LLGLContainment::drawElements(
-                GL_TRIANGLES,
+            getOpenGLRenderBackend().drawElements(
+                LLRenderPrimitiveType::Triangles,
                 phys_volume->mNumHullIndices,
-                GL_UNSIGNED_SHORT,
+                LLRenderIndexType::UnsignedShort,
                 phys_volume->mHullIndices);
         }
         else
@@ -2587,14 +2590,18 @@ void renderPhysicsShapes(LLSpatialGroup* group, bool wireframe)
                             LLVertexBuffer* buff = face->getVertexBuffer();
                             if (buff)
                             {
-                                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                                getOpenGLRenderBackend().setPolygonMode(
+                                    LLRenderPolygonFace::FrontAndBack,
+                                    LLRenderPolygonMode::Line);
 
                                 buff->setBuffer();
                                 gGL.diffuseColor4f(0.2f, 0.5f, 0.3f, 0.5f);
                                 buff->draw(LLRender::TRIANGLES, buff->getNumIndices(), 0);
 
                                 gGL.diffuseColor4f(0.2f, 1.f, 0.3f, 0.75f);
-                                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                                getOpenGLRenderBackend().setPolygonMode(
+                                    LLRenderPolygonFace::FrontAndBack,
+                                    LLRenderPolygonMode::Fill);
                                 buff->draw(LLRender::TRIANGLES, buff->getNumIndices(), 0);
                             }
                         }
@@ -2619,7 +2626,7 @@ void renderTexturePriority(LLDrawable* drawable)
         LLVector4 boost_cold(0,0,0,0);
         LLVector4 boost_hot(0,1,0,1);
 
-        LLGLDisable blend(GL_BLEND);
+        LLGLDisable blend(LLRenderCapability::Blend);
 
         if (facep)
         {
@@ -2653,7 +2660,7 @@ void renderTexturePriority(LLDrawable* drawable)
 
 void renderPoints(LLDrawable* drawablep)
 {
-    LLGLDepthTest depth(GL_FALSE, GL_FALSE);
+    LLGLDepthTest depth(false, false);
     if (drawablep->getNumFaces())
     {
         gGL.begin(LLRender::POINTS);
@@ -2677,15 +2684,15 @@ void renderTextureAnim(LLDrawInfo* params)
         return;
     }
 
-    LLGLEnable blend(GL_BLEND);
+    LLGLEnable blend(LLRenderCapability::Blend);
     gGL.diffuseColor4f(1,1,0,0.5f);
     pushVerts(params);
 }
 
 void renderBatchSize(LLDrawInfo* params)
 {
-    LLGLEnable offset(GL_POLYGON_OFFSET_FILL);
-    LLGLContainment::setPolygonOffset(-1.f, 1.f);
+    LLGLEnable offset(LLRenderCapability::PolygonOffsetFill);
+    getOpenGLRenderBackend().setPolygonOffset(-1.f, 1.f);
     LLGLSLShader* old_shader = LLGLSLShader::sCurBoundShaderPtr;
     bool bind = false;
     if (params->mAvatar)
@@ -2696,7 +2703,6 @@ void renderBatchSize(LLDrawInfo* params)
         old_shader->mRiggedVariant->bind();
         LLRenderPass::uploadMatrixPalette(*params);
     }
-
 
     gGL.diffuseColor4ubv(params->getDebugColor().mV);
     pushVerts(params);
@@ -2716,7 +2722,7 @@ void renderTexelDensity(LLDrawable* drawable)
         return;
     }
 
-    LLGLEnable _(GL_BLEND);
+    LLGLEnable _(LLRenderCapability::Blend);
 
     LLMatrix4 checkerboard_matrix;
     S32 discard_level = -1;
@@ -2750,7 +2756,7 @@ void renderTexelDensity(LLDrawable* drawable)
 
         gGL.getTexUnit(0)->bind(LLViewerTexture::sCheckerBoardImagep, true);
         gGL.matrixMode(LLRender::MM_TEXTURE);
-        gGL.loadMatrix((GLfloat*)&checkerboard_matrix.mMatrix);
+        gGL.loadMatrix((F32*)&checkerboard_matrix.mMatrix);
 
         if (buffer && (facep->getGeomCount() >= 3))
         {
@@ -2811,7 +2817,6 @@ void renderTexelDensity(LLDrawable* drawable)
     //}
 }
 
-
 void renderLights(LLDrawable* drawablep)
 {
     if (!drawablep->isLight())
@@ -2821,7 +2826,7 @@ void renderLights(LLDrawable* drawablep)
 
     if (drawablep->getNumFaces())
     {
-        LLGLEnable blend(GL_BLEND);
+        LLGLEnable blend(LLRenderCapability::Blend);
         gGL.diffuseColor4f(0,1,1,0.5f);
 
         for (S32 i = 0; i < drawablep->getNumFaces(); i++)
@@ -2843,7 +2848,7 @@ void renderLights(LLDrawable* drawablep)
         size.mul(0.5f);
 
         {
-            LLGLDepthTest depth(GL_FALSE, GL_TRUE);
+            LLGLDepthTest depth(false, true);
             gGL.diffuseColor4f(1,1,1,1);
             drawBoxOutline(pos, size);
         }
@@ -2886,7 +2891,7 @@ public:
 
         for (U32 i = 0; i < 2; i++)
         {
-            LLGLDepthTest depth(GL_TRUE, GL_FALSE, i == 1 ? GL_LEQUAL : GL_GREATER);
+            LLGLDepthTest depth(true, false, i == 1 ? LLRenderDepthFunction::LessEqual : LLRenderDepthFunction::Greater);
 
             if (i == 1)
             {
@@ -2901,7 +2906,7 @@ public:
             if (i == 1)
             {
                 gGL.flush();
-                LLGLContainment::setLineWidth(3.f);
+                getOpenGLRenderBackend().setLineWidth(3.f);
             }
 
             gGL.begin(LLRender::TRIANGLES);
@@ -2920,7 +2925,7 @@ public:
             if (i == 1)
             {
                 gGL.flush();
-                LLGLContainment::setLineWidth(1.f);
+                getOpenGLRenderBackend().setLineWidth(1.f);
             }
         }
     }
@@ -2937,7 +2942,7 @@ void renderRaycast(LLDrawable* drawablep)
 {
     if (drawablep->getNumFaces())
     {
-        LLGLEnable blend(GL_BLEND);
+        LLGLEnable blend(LLRenderCapability::Blend);
         gGL.diffuseColor4f(0,1,1,0.5f);
 
         LLVOVolume* vobj = drawablep->getVOVolume();
@@ -2990,7 +2995,9 @@ void renderRaycast(LLDrawable* drawablep)
                     dir.setSub(end, start);
 
                     gGL.flush();
-                    LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                    getOpenGLRenderBackend().setPolygonMode(
+                        LLRenderPolygonFace::FrontAndBack,
+                        LLRenderPolygonMode::Line);
 
                     {
                         //render face positions
@@ -3009,7 +3016,9 @@ void renderRaycast(LLDrawable* drawablep)
                     }
 
                     gGL.popMatrix();
-                    LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                    getOpenGLRenderBackend().setPolygonMode(
+                        LLRenderPolygonFace::FrontAndBack,
+                        LLRenderPolygonMode::Fill);
                 }
             }
         }
@@ -3017,7 +3026,7 @@ void renderRaycast(LLDrawable* drawablep)
         {
             if (drawablep->getVObj() == gDebugRaycastObject)
             {
-                LLGLDepthTest depth(GL_FALSE);
+                LLGLDepthTest depth(false);
                 LLVOAvatar* av = (LLVOAvatar*) drawablep->getVObj().get();
                 av->renderCollisionVolumes();
             }
@@ -3062,13 +3071,12 @@ void renderRaycast(LLDrawable* drawablep)
             size.setSub(ext[1], ext[0]);
             size.mul(0.5f);
 
-            LLGLDepthTest depth(GL_FALSE, GL_TRUE);
+            LLGLDepthTest depth(false, true);
             gGL.diffuseColor4f(0,0.5f,0.5f,1);
             drawBoxOutline(pos, size);
         }
     }
 }
-
 
 void renderAvatarCollisionVolumes(LLVOAvatar* avatar)
 {
@@ -3468,7 +3476,6 @@ public:
 
         node->accept(this);
 
-
         U32 temp[LLViewerCamera::NUM_CAMERAS];
 
         for (U32 i = 0; i < LLViewerCamera::NUM_CAMERAS; i++)
@@ -3487,7 +3494,6 @@ public:
             mInheritedMask[i] = temp[i];
         }
     }
-
 
     virtual void visit(const OctreeNode* state)
     {
@@ -3520,7 +3526,6 @@ public:
         }
     }
 };
-
 
 void LLSpatialPartition::renderPhysicsShapes(bool wireframe)
 {
@@ -3575,8 +3580,8 @@ void LLSpatialPartition::renderDebug()
         sCurMaxTexPriority = 0.f;
     }
 
-    LLGLDisable cullface(GL_CULL_FACE);
-    LLGLEnable blend(GL_BLEND);
+    LLGLDisable cullface(LLRenderCapability::CullFace);
+    LLGLEnable blend(LLRenderCapability::Blend);
     gGL.setSceneBlendType(LLRender::BT_ALPHA);
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
     gPipeline.disableLights();
@@ -3598,20 +3603,24 @@ void LLSpatialPartition::renderDebug()
     if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_OCCLUSION))
     {
         {
-            LLGLEnable cull(GL_CULL_FACE);
+            LLGLEnable cull(LLRenderCapability::CullFace);
 
-            LLGLEnable blend(GL_BLEND);
-            LLGLDepthTest depth_under(GL_TRUE, GL_FALSE, GL_GREATER);
-            LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            LLGLEnable blend(LLRenderCapability::Blend);
+            LLGLDepthTest depth_under(true, false, LLRenderDepthFunction::Greater);
+            getOpenGLRenderBackend().setPolygonMode(
+                LLRenderPolygonFace::FrontAndBack,
+                LLRenderPolygonMode::Line);
             gGL.diffuseColor4f(0.5f, 0.0f, 0, 0.25f);
 
-            LLGLEnable offset(GL_POLYGON_OFFSET_LINE);
-            LLGLContainment::setPolygonOffset(-1.f, -1.f);
+            LLGLEnable offset(LLRenderCapability::PolygonOffsetLine);
+            getOpenGLRenderBackend().setPolygonOffset(-1.f, -1.f);
 
             LLOctreeRenderXRay xray(camera);
             xray.traverse(mOctree);
 
-            LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            getOpenGLRenderBackend().setPolygonMode(
+                LLRenderPolygonFace::FrontAndBack,
+                LLRenderPolygonMode::Fill);
         }
     }
     gDebugProgram.unbind();
@@ -3963,7 +3972,6 @@ void LLCullResult::clear()
     mVisibleBridgeSize = 0;
     mVisibleBridgeEnd = &mVisibleBridge[0];
 
-
     for (U32 i = 0; i < LLRenderPass::NUM_RENDER_TYPES; i++)
     {
         drawinfo_list_t& render_map = mRenderMap[i];
@@ -4176,7 +4184,6 @@ void LLCullResult::pushDrawInfo(U32 type, LLDrawInfo* draw_info)
     ++mRenderMapSize[type];
     mRenderMapEnd[type] = &(mRenderMap[type][mRenderMapSize[type]]);
 }
-
 
 void LLCullResult::assertDrawMapsEmpty()
 {

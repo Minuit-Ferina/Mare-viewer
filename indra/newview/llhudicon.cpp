@@ -28,7 +28,6 @@
 
 #include "llhudicon.h"
 
-#include "llgl.h"
 #include "llrender.h"
 
 #include "llviewerobject.h"
@@ -37,6 +36,7 @@
 #include "llviewercamera.h"
 #include "llviewertexture.h"
 #include "llviewerwindow.h"
+#include "llrenderstate.h"
 
 //-----------------------------------------------------------------------------
 // Local consts
@@ -54,7 +54,6 @@ static F32 calc_bouncy_animation(F32 x)
 {
     return -(cosf(x * F_PI * 2.5f - F_PI_BY_TWO))*(0.4f + x * -0.1f) + x * 1.3f;
 }
-
 
 //-----------------------------------------------------------------------------
 // static declarations
@@ -78,8 +77,8 @@ LLHUDIcon::~LLHUDIcon()
 void LLHUDIcon::render()
 {
     LLGLSUIDefault texture_state;
-    LLGLDepthTest gls_depth(GL_TRUE);
-    //LLGLDisable gls_stencil(GL_STENCIL_TEST);
+    LLGLDepthTest gls_depth(true);
+    //LLGLDisable gls_stencil(LLRenderCapability::StencilTest);
 
     if (mHidden)
         return;
@@ -308,7 +307,6 @@ LLHUDIcon* LLHUDIcon::lineSegmentIntersectAll(const LLVector4a& start, const LLV
 
     return ret;
 }
-
 
  //static
 void LLHUDIcon::updateAll()

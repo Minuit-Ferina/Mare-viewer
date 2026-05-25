@@ -46,9 +46,9 @@
 #include "llfeaturemanager.h"
 #include "llfloatertools.h"
 #include "llfocusmgr.h"
-#include "llgl.h"
-#include "llglcontainment.h"
-#include "llglheaders.h"
+
+#include "llrenderbackend.h"
+
 #include "llgltfmateriallist.h"
 #include "llhudmanager.h"
 #include "llimagepng.h"
@@ -98,6 +98,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "kokuarlvextras.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 extern LLPointer<LLViewerTexture> gStartTexture;
 extern bool gShiftFrame;
@@ -184,7 +186,7 @@ void display_startup()
 
     LLGLState::checkStates();
 
-    LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT); // | GL_STENCIL_BUFFER_BIT);
+    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_COLOR); // | LL_RENDER_CLEAR_STENCIL);
     LLGLSUIDefault gls_ui;
     gPipeline.disableLights();
 
@@ -201,7 +203,7 @@ void display_startup()
     if (gViewerWindow && gViewerWindow->getWindow())
     gViewerWindow->getWindow()->swapBuffers();
 
-    LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
+    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
 }
 
 void display_update_camera()
@@ -471,7 +473,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
         LL_DEBUGS("Window") << "Resizing window" << LL_ENDL;
         LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Resize Window");
         gGL.flush();
-        LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT);
+        getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
         gViewerWindow->getWindow()->swapBuffers();
         LLPipeline::refreshCachedSettings();
         gPipeline.resizeScreenTexture();
@@ -494,7 +496,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
     }
 
     LLGLSDefault gls_default;
-    LLGLDepthTest gls_depth(GL_TRUE, GL_TRUE, GL_LEQUAL);
+    LLGLDepthTest gls_depth(true, true, LLRenderDepthFunction::LessEqual);
 
     LLVertexBuffer::unbind();
 
@@ -594,7 +596,6 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
         return;
     }
 
-
     //
     // Bail out if we're in the startup state and don't want to try to
     // render the world.
@@ -605,7 +606,6 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
         display_startup();
         return;
     }
-
 
     if (gShaderProfileFrame)
     {
@@ -756,7 +756,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
         if (LLViewerDynamicTexture::updateAllInstances())
         {
             gGL.setColorMask(true, true);
-            LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
+            getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
         }
     }
 //MK
@@ -858,7 +858,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
             }
 
             gGL.setColorMask(true, true);
-            LLGLContainment::setClearColor(0.f, 0.f, 0.f, 0.f);
+            getOpenGLRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
 
             LLGLState::checkStates();
 
@@ -876,7 +876,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
 
                 glm::mat4 proj = get_current_projection();
                 glm::mat4 mod = get_current_modelview();
-                LLGLContainment::setViewport(0, 0, 512, 512);
+                getOpenGLRenderBackend().setViewport(0, 0, 512, 512);
 
                 LLVOAvatar::updateImpostors();
 
@@ -890,7 +890,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
 
                 LLGLState::checkStates();
             }
-            LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
+            getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
         }
 
         //////////////////////////////////////
@@ -972,8 +972,8 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
 
         if(gUseWireframe)
         {
-            LLGLContainment::setClearColor(0.5f, 0.5f, 0.5f, 0.f);
-            LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT);
+            getOpenGLRenderBackend().setClearColor(0.5f, 0.5f, 0.5f, 0.f);
+            getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
         }
 
         LLAppViewer::instance()->pingMainloopTimeout("Display:RenderStart");
@@ -1027,11 +1027,11 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
         if (gUseWireframe)
         {
             constexpr F32 g = 0.5f;
-            LLGLContainment::setClearColor(g, g, g, 1.f);
+            getOpenGLRenderBackend().setClearColor(g, g, g, 1.f);
         }
         else
         {
-            LLGLContainment::setClearColor(1, 0, 1, 1);
+            getOpenGLRenderBackend().setClearColor(1, 0, 1, 1);
         }
         gPipeline.mRT->deferredScreen.clear();
 
@@ -1106,7 +1106,6 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
             render_ui();
             swap();
         }
-
 
         LLSpatialGroup::sNoDelete = false;
         gPipeline.clearReferences();
@@ -1223,7 +1222,7 @@ void display_cube_face()
     bool rebuild = false;
 
     LLGLSDefault gls_default;
-    LLGLDepthTest gls_depth(GL_TRUE, GL_TRUE, GL_LEQUAL);
+    LLGLDepthTest gls_depth(true, true, LLRenderDepthFunction::LessEqual);
 
     LLVertexBuffer::unbind();
 
@@ -1264,10 +1263,10 @@ void display_cube_face()
 
     gGL.setColorMask(true, true);
 
-    LLGLContainment::setClearColor(0.f, 0.f, 0.f, 0.f);
+    getOpenGLRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
     gPipeline.generateSunShadow(*LLViewerCamera::getInstance());
 
-    LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT); // | GL_STENCIL_BUFFER_BIT);
+    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH); // | LL_RENDER_CLEAR_STENCIL);
 
     {
         LLViewerCamera::sCurCameraID = LLViewerCamera::CAMERA_WORLD;
@@ -1296,11 +1295,11 @@ void display_cube_face()
     gPipeline.mRT->deferredScreen.bindTarget();
     if (gUseWireframe)
     {
-        LLGLContainment::setClearColor(0.5f, 0.5f, 0.5f, 1.f);
+        getOpenGLRenderBackend().setClearColor(0.5f, 0.5f, 0.5f, 1.f);
     }
     else
     {
-        LLGLContainment::setClearColor(1.f, 0.f, 1.f, 1.f);
+        getOpenGLRenderBackend().setClearColor(1.f, 0.f, 1.f, 1.f);
     }
     gPipeline.mRT->deferredScreen.clear();
 
@@ -1570,7 +1569,6 @@ void render_ui(F32 zoom_factor, int subfield)
     {
         LLGLState::checkStates();
 
-
         LL_PROFILE_ZONE_NAMED_CATEGORY_UI("HUD");
         render_hud_elements();
         LLGLState::checkStates();
@@ -1685,7 +1683,6 @@ void renderCoordinateAxes()
     gGL.end();
 }
 
-
 void draw_axes()
 {
     LLGLSUIDefault gls_ui;
@@ -1764,7 +1761,9 @@ void render_ui_2d()
     // Render 2D UI elements that overlay the world (no z compare)
 
     //  Disable wireframe mode below here, as this is HUD/menus
-    LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    getOpenGLRenderBackend().setPolygonMode(
+        LLRenderPolygonFace::FrontAndBack,
+        LLRenderPolygonMode::Fill);
 
     //  Menu overlays, HUD, etc
     gViewerWindow->setup2DRender();
@@ -1802,7 +1801,6 @@ void render_ui_2d()
         stop_glerror();
     }
 
-
     if (LLPipeline::RenderUIBuffer)
     {
         if (LLView::sIsRectDirty)
@@ -1820,7 +1818,7 @@ void render_ui_2d()
                 LLView::sDirtyRect.mBottom -= pad;
                 LLView::sDirtyRect.mTop += pad;
 
-                LLGLEnable scissor(GL_SCISSOR_TEST);
+                LLGLEnable scissor(LLRenderCapability::ScissorTest);
                 static LLRect last_rect = LLView::sDirtyRect;
 
                 //union with last rect to avoid mouse poop
@@ -1837,7 +1835,7 @@ void render_ui_2d()
 
                 LLRect clip_rect(last_rect);
 
-                LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT);
+                getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
 
                 gViewerWindow->draw();
             }
@@ -1848,8 +1846,8 @@ void render_ui_2d()
             LLView::sDirtyRect = t_rect;
         }
 
-        LLGLDisable cull(GL_CULL_FACE);
-        LLGLDisable blend(GL_BLEND);
+        LLGLDisable cull(LLRenderCapability::CullFace);
+        LLGLDisable blend(LLRenderCapability::Blend);
         S32 width = gViewerWindow->getWindowWidthScaled();
         S32 height = gViewerWindow->getWindowHeightScaled();
         gGL.getTexUnit(0)->bind(&gPipeline.mUIScreen);
@@ -1911,7 +1909,6 @@ void render_disconnected_background()
             *rawp = ((S32)sum*6 + *rawp)/7;
             rawp++;
         }
-
 
         raw->expandToPowerOfTwo();
         gDisconnectedImagep = LLViewerTextureManager::getLocalTexture(raw.get(), false);

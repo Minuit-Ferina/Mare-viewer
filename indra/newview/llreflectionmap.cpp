@@ -28,7 +28,7 @@
 
 #include "llreflectionmap.h"
 #include "pipeline.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llviewerwindow.h"
 #include "llviewerregion.h"
 #include "llworld.h"
@@ -46,7 +46,7 @@ LLReflectionMap::~LLReflectionMap()
 {
     if (mOcclusionQuery)
     {
-        LLGLContainment::deleteQueries(1, &mOcclusionQuery);
+        getOpenGLRenderBackend().deleteQueries(1, &mOcclusionQuery);
     }
 }
 
@@ -77,7 +77,6 @@ void LLReflectionMap::update(U32 resolution, U32 face, bool force_dynamic, F32 n
 void LLReflectionMap::autoAdjustOrigin()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DISPLAY;
-
 
     if (mGroup && !mComplete && !mGroup->hasState(LLViewerOctreeGroup::DEAD))
     {
@@ -313,7 +312,6 @@ bool LLReflectionMap::isRelevant() const
     return mViewerObject != nullptr;
 }
 
-
 void LLReflectionMap::doOcclusion(const LLVector4a& eye)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_PIPELINE;
@@ -342,20 +340,26 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
     if (mOcclusionQuery == 0)
     { // no query was previously issued, allocate one and issue
         LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - generate queries");
-        LLGLContainment::generateQueries(1, &mOcclusionQuery);
+        getOpenGLRenderBackend().generateQueries(1, &mOcclusionQuery);
         do_query = true;
     }
     else
     { // query was previously issued, check it and only issue a new query
         // if previous query is available
         LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - get query object");
-        GLuint result = 0;
-        LLGLContainment::getQueryObjectUnsignedInteger(mOcclusionQuery, GL_QUERY_RESULT_AVAILABLE, &result);
+        U32 result = 0;
+        getOpenGLRenderBackend().getQueryObjectUnsignedInteger(
+            mOcclusionQuery,
+            LLRenderQueryParameter::ResultAvailable,
+            &result);
 
         if (result > 0)
         {
             do_query = true;
-            LLGLContainment::getQueryObjectUnsignedInteger(mOcclusionQuery, GL_QUERY_RESULT, &result);
+            getOpenGLRenderBackend().getQueryObjectUnsignedInteger(
+                mOcclusionQuery,
+                LLRenderQueryParameter::Result,
+                &result);
             mOccluded = result == 0;
             mOcclusionPendingFrames = 0;
         }
@@ -368,7 +372,7 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
     if (do_query)
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - push query");
-        LLGLContainment::beginQuery(GL_ANY_SAMPLES_PASSED, mOcclusionQuery);
+        getOpenGLRenderBackend().beginQuery(LLRenderQueryTarget::AnySamplesPassed, mOcclusionQuery);
 
         LLGLSLShader* shader = LLGLSLShader::sCurBoundShaderPtr;
 
@@ -377,7 +381,7 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
 
         gPipeline.mCubeVB->drawRange(LLRender::TRIANGLE_FAN, 0, 7, 8, get_box_fan_indices(LLViewerCamera::getInstance(), mOrigin));
 
-        LLGLContainment::endQuery(GL_ANY_SAMPLES_PASSED);
+        getOpenGLRenderBackend().endQuery(LLRenderQueryTarget::AnySamplesPassed);
     }
 #endif
 }

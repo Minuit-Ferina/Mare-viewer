@@ -39,8 +39,6 @@
 #include "linden_common.h"
 
 #include "llmenugl.h"
-
-#include "llgl.h"
 #include "llmath.h"
 #include "llrender.h"
 #include "llfocusmgr.h"

@@ -33,12 +33,12 @@
 #include "llpreeditor.h"
 
 #include "llerror.h"
-#include "llgl.h"
+
+#include "llrenderbackend.h"
 #include "llstring.h"
 #include "lldir.h"
 #include "indra_constants.h"
 
-#include <OpenGL/OpenGL.h>
 #include <Carbon/Carbon.h>
 #include <CoreServices/CoreServices.h>
 #include <CoreGraphics/CGDisplayConfiguration.h>
@@ -49,6 +49,7 @@
 #include <IOKit/hid/IOHIDUsageTables.h>
 #include <IOKit/hid/IOHIDLib.h>
 #include <IOKit/usb/IOUSBLib.h>
+#include "llrendercontext.h"
 
 extern bool gDebugWindowProc;
 bool gHiDPISupport = true;
@@ -77,28 +78,16 @@ void LLWindowMacOSX::setUseMultGL(bool use_mult_gl)
 
     if (gGLManager.mInited)
     {
-        CGLContextObj ctx = CGLGetCurrentContext();
-        //enable multi-threaded OpenGL (whether or not sUseMultGL actually changed)
         if (sUseMultGL)
         {
-            CGLError cgl_err;
-
-            cgl_err =  CGLEnable( ctx, kCGLCEMPEngine);
-
-            if (cgl_err != kCGLNoError )
+            if (!getOpenGLRenderBackend().setNativeContextThreadedOptimization(true))
             {
-                LL_INFOS("GLInit") << "Multi-threaded OpenGL not available." << LL_ENDL;
                 sUseMultGL = false;
-            }
-            else
-            {
-                LL_INFOS("GLInit") << "Multi-threaded OpenGL enabled." << LL_ENDL;
             }
         }
         else if (was_enabled)
         {
-            CGLDisable( ctx, kCGLCEMPEngine);
-            LL_INFOS("GLInit") << "Multi-threaded OpenGL disabled." << LL_ENDL;
+            getOpenGLRenderBackend().setNativeContextThreadedOptimization(false);
         }
     }
 }
@@ -176,8 +165,8 @@ LLWindowMacOSX::LLWindowMacOSX(LLWindowCallbacks* callbacks,
 
     // Ignore use_gl for now, only used for drones on PC
     mWindow = NULL;
-    mContext = NULL;
-    mPixelFormat = NULL;
+    mNativeView = NULL;
+    mRenderContext = {};
     mDisplay = CGMainDisplayID();
     mSimulatedRightClick = false;
     mLastModifiers = 0;
@@ -217,7 +206,7 @@ LLWindowMacOSX::LLWindowMacOSX(LLWindowCallbacks* callbacks,
             makeWindowOrderFront(mWindow);
         }
 
-        if (!gGLManager.initGL())
+        if (!getOpenGLRenderBackend().initContextCapabilities())
         {
             setupFailure(
                 "Second Life is unable to run because your video card drivers\n"
@@ -238,7 +227,6 @@ LLWindowMacOSX::LLWindowMacOSX(LLWindowCallbacks* callbacks,
 
     mCallbacks = callbacks;
     stop_glerror();
-
 
 }
 
@@ -474,7 +462,6 @@ void callWindowFocus()
     {
         LL_WARNS("COCOA") << "Window Implementation or callbacks not yet initialized." << LL_ENDL;
     }
-
 
 }
 
@@ -740,54 +727,31 @@ bool LLWindowMacOSX::createContext(int x, int y, int width, int height, int bits
         mWindow = getMainAppWindow();
     }
 
-    if(mContext == NULL)
+    if (mRenderContext.mContext == NULL)
     {
-        // Our OpenGL view is already defined within SecondLife.xib.
-        // Get the view instead.
-        mGLView = createOpenGLView(mWindow, mFSAASamples, enable_vsync);
-        mContext = getCGLContextObj(mGLView);
-        gGLManager.mVRAM = getVramSize(mGLView);
+        LLRenderNativeContextDesc desc;
+        desc.mWindow = mWindow;
+        desc.mSamples = mFSAASamples;
+        desc.mEnableVSync = enable_vsync;
 
-        if(!mPixelFormat)
+        if (!getOpenGLRenderBackend().createNativeContext(desc, mRenderContext))
         {
-            CGLPixelFormatAttribute attribs[] =
-            {
-                kCGLPFANoRecovery,
-                kCGLPFADoubleBuffer,
-                kCGLPFAClosestPolicy,
-                kCGLPFAAccelerated,
-                kCGLPFAMultisample,
-                kCGLPFASampleBuffers, static_cast<CGLPixelFormatAttribute>((mFSAASamples > 0 ? 1 : 0)),
-                kCGLPFASamples, static_cast<CGLPixelFormatAttribute>(mFSAASamples),
-                kCGLPFAStencilSize, static_cast<CGLPixelFormatAttribute>(8),
-                kCGLPFADepthSize, static_cast<CGLPixelFormatAttribute>(24),
-                kCGLPFAAlphaSize, static_cast<CGLPixelFormatAttribute>(8),
-                kCGLPFAColorSize, static_cast<CGLPixelFormatAttribute>(24),
-                kCGLPFAOpenGLProfile, static_cast<CGLPixelFormatAttribute>(kCGLOGLPVersion_GL4_Core),
-                static_cast<CGLPixelFormatAttribute>(0)
-            };
-
-            GLint numPixelFormats;
-            CGLChoosePixelFormat (attribs, &mPixelFormat, &numPixelFormats);
-
-            if(mPixelFormat == NULL) {
-                CGLChoosePixelFormat (attribs, &mPixelFormat, &numPixelFormats);
-            }
+            setupFailure("Can't create GL rendering context", "Error", OSMB_OK);
+            return false;
         }
 
+        mNativeView = static_cast<NativeViewRef>(mRenderContext.mView);
+        gGLManager.mVRAM = mRenderContext.mVRAM;
     }
 
     // This sets up our view to recieve text from our non-inline text input window.
-    setupInputWindow(mWindow, mGLView);
+    setupInputWindow(mWindow, mNativeView);
 
     // Hook up the context to a drawable
 
-    if(mContext != NULL)
+    if (mRenderContext.mContext != NULL)
     {
-
-
-        U32 err = CGLSetCurrentContext(mContext);
-        if (err != kCGLNoError)
+        if (!getOpenGLRenderBackend().makeNativeContextCurrent(mRenderContext.mContext))
         {
             setupFailure("Can't activate GL rendering context", "Error", OSMB_OK);
             return false;
@@ -806,11 +770,10 @@ bool LLWindowMacOSX::createContext(int x, int y, int width, int height, int bits
 
     setUseMultGL(sUseMultGL);
 
-    makeFirstResponder(mWindow, mGLView);
+    makeFirstResponder(mWindow, mNativeView);
 
     return true;
 }
-
 
 // We only support OS X 10.7's fullscreen app mode which is literally a full screen window that fills a virtual desktop.
 // This makes this method obsolete.
@@ -821,40 +784,23 @@ bool LLWindowMacOSX::switchContext(bool fullscreen, const LLCoordScreen &size, b
 
 void LLWindowMacOSX::destroyContext()
 {
-    if (!mContext)
+    if (!mRenderContext.mContext)
     {
         // We don't have a context
         return;
     }
     // Unhook the GL context from any drawable it may have
-    if(mContext != NULL)
+    if (mRenderContext.mContext != NULL)
     {
         LL_DEBUGS("Window") << "destroyContext: unhooking drawable " << LL_ENDL;
-        CGLSetCurrentContext(NULL);
+        getOpenGLRenderBackend().clearCurrentNativeContext();
     }
 
     // Clean up remaining GL state before blowing away window
-    gGLManager.shutdownGL();
+    getOpenGLRenderBackend().shutdownContextCapabilities();
 
-    // Clean up the pixel format
-    if(mPixelFormat != NULL)
-    {
-        CGLDestroyPixelFormat(mPixelFormat);
-        mPixelFormat = NULL;
-    }
-
-    // Clean up the GL context
-    if(mContext != NULL)
-    {
-        CGLDestroyContext(mContext);
-    }
-
-    // Destroy our LLOpenGLView
-    if(mGLView != NULL)
-    {
-        removeGLView(mGLView);
-        mGLView = NULL;
-    }
+    getOpenGLRenderBackend().destroyNativeContext(mRenderContext);
+    mNativeView = NULL;
 
     // Close the window
     if(mWindow != NULL)
@@ -879,7 +825,6 @@ LLWindowMacOSX::~LLWindowMacOSX()
 
 }
 
-
 void LLWindowMacOSX::show()
 {
 }
@@ -901,7 +846,6 @@ void LLWindowMacOSX::restore()
 {
     show();
 }
-
 
 // close() destroys all OS-specific code associated with a window.
 // Usually called from LLWindowManager::destroyWindow()
@@ -1013,7 +957,7 @@ bool LLWindowMacOSX::getSize(LLCoordScreen *size)
     }
     else if(mWindow)
     {
-        CGSize sz = getBackingViewRect(mWindow, mGLView).size;
+        CGSize sz = getBackingViewRect(mWindow, mNativeView).size;
 
         size->mX = sz.width;
         size->mY = sz.height;
@@ -1039,12 +983,11 @@ bool LLWindowMacOSX::getSize(LLCoordWindow *size)
     }
     else if(mWindow)
     {
-        CGSize sz = getBackingViewRect(mWindow, mGLView).size;
+        CGSize sz = getBackingViewRect(mWindow, mNativeView).size;
 
         size->mX = sz.width;
         size->mY = sz.height;
         err = noErr;
-
 
     }
     else
@@ -1093,12 +1036,12 @@ bool LLWindowMacOSX::setSizeImpl(const LLCoordWindow size)
 
 void LLWindowMacOSX::swapBuffers()
 {
-    CGLFlushDrawable(mContext);
+    getOpenGLRenderBackend().swapNativeBuffers(mRenderContext.mContext);
 }
 
 void LLWindowMacOSX::restoreGLContext()
 {
-    CGLSetCurrentContext(mContext);
+    getOpenGLRenderBackend().makeNativeContextCurrent(mRenderContext.mContext);
 }
 
 F32 LLWindowMacOSX::getGamma()
@@ -1196,7 +1139,6 @@ bool LLWindowMacOSX::setGamma(const F32 gamma)
         return false;
     }
 
-
     return true;
 }
 
@@ -1204,8 +1146,6 @@ bool LLWindowMacOSX::isCursorHidden()
 {
     return mCursorHidden;
 }
-
-
 
 // Constrains the mouse to the window.
 void LLWindowMacOSX::setMouseClipping( bool b )
@@ -1370,7 +1310,6 @@ void LLWindowMacOSX::afterDialog()
     restoreGLContext();
 }
 
-
 void LLWindowMacOSX::flashIcon(F32 seconds)
 {
     // For consistency with macOS conventions, the number of seconds given is ignored and
@@ -1408,14 +1347,12 @@ bool LLWindowMacOSX::copyTextToClipboard(const LLWString &s)
     return result;
 }
 
-
 // protected
 bool LLWindowMacOSX::resetDisplayResolution()
 {
     // This is only called from elsewhere in this class, and it's not used by the Mac implementation.
     return true;
 }
-
 
 LLWindow::LLWindowResolution* LLWindowMacOSX::getSupportedResolutions(S32 &num_resolutions)
 {
@@ -1535,9 +1472,6 @@ bool LLWindowMacOSX::convertCoords(LLCoordGL from, LLCoordScreen *to)
     return(convertCoords(from, &window_coord) && convertCoords(window_coord, to));
 }
 
-
-
-
 void LLWindowMacOSX::setupFailure(const std::string& text, const std::string& caption, U32 type)
 {
     destroyContext();
@@ -1603,7 +1537,6 @@ const char* cursorIDToName(int id)
 }
 
 static CursorRef gCursors[UI_CURSOR_COUNT];
-
 
 static void initPixmapCursor(int cursorid, int hotspotX, int hotspotY)
 {
@@ -1866,7 +1799,6 @@ void LLSplashScreenMacOSX::updateImpl(const std::string& mesg)
     }
 }
 
-
 void LLSplashScreenMacOSX::hideImpl()
 {
     if(mWindow != NULL)
@@ -1943,7 +1875,6 @@ void LLWindowMacOSX::spawnWebBrowser(const std::string& escaped_url, bool async)
 void LLWindowMacOSX::openFile(const std::string& file_name )
 {
 	LL_INFOS() << "Opening file " << file_name << LL_ENDL;
-
 
     CFStringRef URL =  CFStringCreateWithCString(NULL, file_name.c_str(), kCFStringEncodingASCII);
     CFURLRef pathRef = CFURLCreateWithString(NULL, URL, NULL);
@@ -2148,7 +2079,6 @@ static void populate_device_info( io_object_t io_obj_p, CFDictionaryRef device_d
             // get device info
             // try hid dictionary first, if fail then go to usb dictionary
 
-
             dict_element = CFDictionaryGetValue( device_dic, CFSTR(kIOHIDProductKey) );
             if ( !dict_element )
             {
@@ -2288,7 +2218,6 @@ HidDevice populate_device( io_object_t io_obj )
         SInt32 the_score = 0;
         IOCFPlugInInterface **the_interface = NULL;
 
-
         io_result = IOCreatePlugInInterfaceForService( io_obj, kIOHIDDeviceUserClientTypeID,
                                                         kIOCFPlugInInterfaceID, &the_interface, &the_score );
         if ( io_result == kIOReturnSuccess )
@@ -2368,7 +2297,6 @@ static void get_devices(std::list<HidDevice> &list_of_devices,
                     << " Device HIDUsage: " << (S32)device.mUsage;
             LL_ENDL;
         }
-
 
         // release the device object, it is no longer needed
         result = IOObjectRelease( io_obj );
@@ -2541,79 +2469,42 @@ void LLWindowMacOSX::allowLanguageTextInput(LLPreeditor *preeditor, bool b)
         return;
     }
     mLanguageTextInputAllowed = b;
-    allowDirectMarkedTextInput(b, mGLView); // mLanguageTextInputAllowed and mMarkedTextAllowed should be updated at once (by Pell Smit
+    allowDirectMarkedTextInput(b, mNativeView); // mLanguageTextInputAllowed and mMarkedTextAllowed should be updated at once (by Pell Smit
 }
-
-class sharedContext
-{
-public:
-    CGLContextObj mContext;
-};
 
 void* LLWindowMacOSX::createSharedContext()
 {
-    sharedContext* sc = new sharedContext();
-    CGLCreateContext(mPixelFormat, mContext, &(sc->mContext));
-
-    if (sUseMultGL)
-    {
-        CGLEnable(mContext, kCGLCEMPEngine);
-    }
-
-    return (void *)sc;
+    return getOpenGLRenderBackend().createSharedNativeContext(
+        mRenderContext.mPixelFormat,
+        mRenderContext.mContext,
+        sUseMultGL);
 }
 
 void LLWindowMacOSX::makeContextCurrent(void* context)
 {
-    CGLSetCurrentContext(((sharedContext*)context)->mContext);
+    getOpenGLRenderBackend().makeNativeContextCurrent(context);
 
     //enable multi-threaded OpenGL
     if (sUseMultGL)
     {
-        CGLError cgl_err;
-        CGLContextObj ctx = CGLGetCurrentContext();
-
-        cgl_err =  CGLEnable( ctx, kCGLCEMPEngine);
-
-        if (cgl_err != kCGLNoError )
-        {
-            LL_INFOS("GLInit") << "Multi-threaded OpenGL not available." << LL_ENDL;
-        }
-        else
-        {
-            LL_INFOS("GLInit") << "Multi-threaded OpenGL enabled." << LL_ENDL;
-        }
+        getOpenGLRenderBackend().setNativeContextThreadedOptimization(true);
     }
 
 }
 
 void LLWindowMacOSX::destroySharedContext(void* context)
 {
-    sharedContext* sc = (sharedContext*)context;
-
-    CGLDestroyContext(sc->mContext);
-
-    delete sc;
+    getOpenGLRenderBackend().destroySharedNativeContext(context);
 }
 
 void LLWindowMacOSX::toggleVSync(bool enable_vsync)
 {
-    GLint frames_per_swap = 0;
-    if (!enable_vsync)
-    {
-        frames_per_swap = 0;
-    }
-    else
-    {
-        frames_per_swap = 1;
-    }
-
-    CGLSetParameter(mContext, kCGLCPSwapInterval, &frames_per_swap);
+    getOpenGLRenderBackend().setNativeVSync(mRenderContext.mContext, enable_vsync);
 }
 
 void LLWindowMacOSX::interruptLanguageTextInput()
 {
-    commitCurrentPreedit(mGLView);
+    commitCurrentPreedit(mNativeView);
 }
 
 std::vector<std::string> LLWindowMacOSX::getDisplaysResolutionList()
@@ -2664,7 +2555,7 @@ MASK LLWindowMacOSX::modifiersToMask(S16 modifiers)
 
 F32 LLWindowMacOSX::getSystemUISize()
 {
-    return ::getDeviceUnitSize(mGLView);
+    return ::getDeviceUnitSize(mNativeView);
 }
 
 #if LL_OS_DRAGDROP_ENABLED

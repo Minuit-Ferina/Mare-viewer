@@ -63,7 +63,7 @@
 #include "llpaneltopinfobar.h"
 #include "llpresetsmanager.h"
 #include "llregionhandle.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llrendersphere.h"
 #include "llselectmgr.h"
 #include "llsettingssky.h" // new include for EEP
@@ -115,6 +115,8 @@
 #include "kokuarlvextras.h"
 #include "llteleporthistory.h"      // KKA-682 to allow another try at storing login location in TP history
 #include "fsareasearch.h"         // to refresh it on changes in shownames state
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 //ca
 
 // Global and static variables initialization.
@@ -473,7 +475,6 @@ void refreshCachedVariable (std::string var)
         gAgent.mRRInterface.mContainsLockedCamera = gAgent.mRRInterface.mContainsCamunlock | gAgent.mRRInterface.mContainsSetcamUnlock;
     }
 
-
     //else if (var == "moveup")                 gAgent.mRRInterface.mContainsMoveUp = contained;
     //else if (var == "movedown")               gAgent.mRRInterface.mContainsMoveDown = contained;
     //else if (var == "moveleft")           gAgent.mRRInterface.mContainsMoveStrafeLeft = contained;
@@ -770,10 +771,6 @@ void updateOneHudText (LLUUID uuid)
 }
 
 // --
-
-
-
-
 
 RRInterface::RRInterface():
     mInventoryFetched(false)
@@ -1627,7 +1624,6 @@ void RRInterface::replace (LLUUID what, LLUUID by)
     clear (what, "");
 }
 
-
 bool RRInterface::garbageCollector (bool all) {
     RRMAP::iterator it;
     bool res=false;
@@ -1704,7 +1700,6 @@ std::deque<std::string> RRInterface::parse (std::string str, std::string sep, in
     return res;
 }
 
-
 void RRInterface::notify (LLUUID object_uuid, std::string action, std::string suffix)
 {
     // scan the list of restrictions, when finding "notify" say the restriction on the specified channel
@@ -1741,7 +1736,6 @@ void RRInterface::notify (LLUUID object_uuid, std::string action, std::string su
         LL_INFOS("RLV") << "Notification raised [" << object_uuid << "] [" << action << "]  [" << suffix << "]" << LL_ENDL;
     }
 }
-
 
 bool RRInterface::parseCommand (std::string command, std::string& behaviour, std::string& option, std::string& param)
 {
@@ -2056,7 +2050,6 @@ static void force_sit(LLUUID object_uuid)
         object->getRegion()->sendReliableMessage();
     }
 }
-
 
 bool RRInterface::force (LLUUID object_uuid, std::string command, std::string option)
 {
@@ -2727,7 +2720,6 @@ bool RRInterface::forceDetach (std::string attachpt)
     return res;
 }
 
-
 bool RRInterface::forceDetachByUuid (std::string object_uuid)
 {
     bool res=false;
@@ -2783,7 +2775,6 @@ bool RRInterface::hasLockedHuds ()
     mHandleNoStrip = saved_nostrip;
     return return_value;;
 }
-
 
 std::deque<LLInventoryItem*> RRInterface::getListOfLockedItems (LLInventoryCategory* root)
 {
@@ -2878,7 +2869,6 @@ std::deque<std::string> RRInterface::getListOfRestrictions (LLUUID object_uuid, 
     }
     return res;
 }
-
 
 std::string RRInterface::getInventoryList (std::string path, bool withWornInfo /* = false */)
 {
@@ -5592,7 +5582,6 @@ std::string RRInterface::getFullPath (LLInventoryItem* item, std::string option,
     return getFullPath (parent_cat);
 }
 
-
 LLInventoryItem* RRInterface::getItemAux (LLViewerObject* attached_object, LLInventoryCategory* root)
 {
     // auxiliary function for getItem()
@@ -6075,7 +6064,6 @@ bool RRInterface::canDetach(LLViewerObject* attached_object)
     return false;
 }
 
-
 std::string RRInterface::canDetachWithExplanation(LLViewerObject* attached_object)
 {
 //  if (!scriptsEnabled() && !getScriptsEnabledOnce()) return false;
@@ -6315,9 +6303,6 @@ bool RRInterface::IsInventoryFolderNew(LLInventoryCategory* folder)
 
     return false;
 }
-
-
-
 
 bool RRInterface::scriptsEnabled()
 {
@@ -6643,10 +6628,10 @@ void RRInterface::drawRenderLimit (bool force_opaque /*= false*/)
         }
 
         // Switch to blend mode now
-        LLGLEnable gls_blend(GL_BLEND);
-        LLGLEnable gls_cull(GL_CULL_FACE);
-        LLGLEnable alpha_test(GL_ALPHA_TEST);
-        LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+        LLGLEnable gls_blend(LLRenderCapability::Blend);
+        LLGLEnable gls_cull(LLRenderCapability::CullFace);
+        LLGLEnable alpha_test(LLRenderCapability::AlphaTest);
+        LLGLDepthTest gls_depth(true, false);
         gGL.setColorMask(true, false);
 
         F32 alpha_step = calculateDesiredAlphaPerStep(mCamDistDrawAlphaMax, mCamDistNbGradients);
@@ -6687,8 +6672,8 @@ void RRInterface::drawSphere (LLVector3 center, F32 scale, LLColor3 color, F32 a
     //gGL.pushMatrix();
     //if (alpha >= 1.0)
     //{
-    //  LLGLDisable blend(GL_BLEND);
-    //  LLGLDisable test(GL_ALPHA_TEST);
+    //  LLGLDisable blend(LLRenderCapability::Blend);
+    //  LLGLDisable test(LLRenderCapability::AlphaTest);
     //}
 
     {
@@ -6702,9 +6687,9 @@ void RRInterface::drawSphere (LLVector3 center, F32 scale, LLColor3 color, F32 a
             gGL.color4fv(color_alpha.mV);
 
             // Render inside only (the camera is not supposed to go outside anyway)
-            LLGLContainment::setCullFace(GL_FRONT);
+            getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Front);
             gSphere.render();
-            LLGLContainment::setCullFace(GL_BACK);
+            getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Back);
         }
         gGL.popMatrix();
     }
@@ -6721,7 +6706,6 @@ LLJoint* RRInterface::getCamDistDrawFromJoint (bool force_head_in_mouselook /*= 
     }
     return mCamDistDrawFromJoint;
 }
-
 
 bool RRInterface::updateSetsphere()
 {
@@ -6942,9 +6926,6 @@ bool RRInterface::updateSetsphere()
     }
     return true;
 }
-
-
-
 
 bool RRInterface::isBlacklisted (std::string action, bool force)
 {

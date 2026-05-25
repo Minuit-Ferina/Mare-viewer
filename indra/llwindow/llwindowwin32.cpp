@@ -40,8 +40,8 @@
 #include "llerror.h"
 #include "llexception.h"
 #include "llfasttimer.h"
-#include "llgl.h"
-#include "llglcontainment.h"
+
+#include "llrenderbackend.h"
 #include "llstring.h"
 #include "lldir.h"
 #include "llsdutil.h"
@@ -113,7 +113,6 @@ static std::thread::id sMainThreadId;
 #define ASSERT_WINDOW_THREAD() llassert(LLThread::currentID() == sWindowThreadId)
 #endif
 
-
 LPWSTR gIconResource = IDI_APPLICATION;
 LPWSTR gIconSmallResource = IDI_APPLICATION;
 LPDIRECTINPUT8 gDirectInput8;
@@ -161,6 +160,7 @@ typedef enum PREFERRED_APP_MODE
 typedef PREFERRED_APP_MODE(WINAPI* fnSetPreferredAppMode)(PREFERRED_APP_MODE mode);
 
 #include "llcontrol.h"
+#include "llrendercontext.h"
 extern LLControlGroup gSavedSettings; // read only
 
 //
@@ -184,7 +184,7 @@ HGLRC SafeCreateContext(HDC &hdc)
     }
 }
 
-GLuint SafeChoosePixelFormat(HDC &hdc, const PIXELFORMATDESCRIPTOR *ppfd)
+U32 SafeChoosePixelFormat(HDC &hdc, const PIXELFORMATDESCRIPTOR *ppfd)
 {
     __try
     {
@@ -295,13 +295,11 @@ bool        LLWinImm::setCompositionWindow(HIMC himc, LPCOMPOSITIONFORM form)
     return ImmSetCompositionWindow(himc, form);
 }
 
-
 // static
 LONG        LLWinImm::getCompositionString(HIMC himc, DWORD index, LPVOID data, DWORD length)
 {
     return ImmGetCompositionString(himc, index, data, length);
 }
-
 
 // static
 bool        LLWinImm::setCompositionString(HIMC himc, DWORD index, LPVOID pComp, DWORD compLength, LPVOID pRead, DWORD readLength)
@@ -326,8 +324,6 @@ bool        LLWinImm::notifyIME(HIMC himc, DWORD action, DWORD index, DWORD valu
 {
     return ImmNotifyIME(himc, action, index, value);
 }
-
-
 
 class LLMonitorInfo
 {
@@ -361,7 +357,6 @@ private:
 };
 
 static LLMonitorInfo sMonitorInfo;
-
 
 // Thread that owns the Window Handle
 // This whole struct is private to LLWindowWin32, which needs to mess with its
@@ -490,7 +485,6 @@ private:
     std::unique_ptr<LLWatchdogTimeout> mWindowTimeout;
 };
 
-
 LLWindowWin32::LLWindowWin32(LLWindowCallbacks* callbacks,
                              const std::string& title, const std::string& name, S32 x, S32 y, S32 width,
                              S32 height, U32 flags,
@@ -511,7 +505,6 @@ LLWindowWin32::LLWindowWin32(LLWindowCallbacks* callbacks,
 
     //MAINT-516 -- force a load of opengl32.dll just in case windows went sideways
     LoadLibrary(L"opengl32.dll");
-
 
     if (mMaxCores != 0)
     {
@@ -583,7 +576,6 @@ LLWindowWin32::LLWindowWin32(LLWindowCallbacks* callbacks,
     }
 #endif
 
-
     mFSAASamples = fsaa_samples;
     mIconResource = gIconResource;
     mIconSmallResource = gIconSmallResource;
@@ -648,7 +640,6 @@ LLWindowWin32::LLWindowWin32(LLWindowCallbacks* callbacks,
         mbstowcs(mWindowClassName, name.c_str(), 255);
         mWindowClassName[255] = 0;
     }
-
 
     // We're not clipping yet
     SetRect( &mOldMouseClip, 0, 0, 0, 0 );
@@ -923,7 +914,6 @@ LLWindowWin32::LLWindowWin32(LLWindowCallbacks* callbacks,
     setCustomIcon();
 }
 
-
 LLWindowWin32::~LLWindowWin32()
 {
     if (sWindowHandleForMessageBox == mWindowHandle)
@@ -1012,7 +1002,6 @@ void LLWindowWin32::close()
 
     mDragDrop->reset();
 
-
     // Go back to screen mode written in the registry.
     if (mFullscreen)
     {
@@ -1031,7 +1020,7 @@ void LLWindowWin32::close()
     if (gGLManager.mInited)
     {
         LL_INFOS("Window") << "Cleaning up GL" << LL_ENDL;
-        gGLManager.shutdownGL();
+        getOpenGLRenderBackend().shutdownContextCapabilities();
     }
 
     LL_DEBUGS("Window") << "Releasing Context" << LL_ENDL;
@@ -1190,7 +1179,7 @@ bool LLWindowWin32::setSizeImpl(const LLCoordWindow size)
 bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bool enable_vsync, const LLCoordScreen* const posp)
 {
     //called from main thread
-    GLuint  pixel_format;
+    U32  pixel_format;
     DEVMODE dev_mode;
     ::ZeroMemory(&dev_mode, sizeof(DEVMODE));
     dev_mode.dmSize = sizeof(DEVMODE);
@@ -1218,7 +1207,7 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
     }
     mRefreshRate = current_refresh;
 
-    gGLManager.shutdownGL();
+    getOpenGLRenderBackend().shutdownContextCapabilities();
     //destroy gl context
     if (mhRC)
     {
@@ -1325,10 +1314,8 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
         dw_style = WS_OVERLAPPEDWINDOW;
     }
 
-
     // don't post quit messages when destroying old windows
     mPostQuit = false;
-
 
     // create window
     LL_DEBUGS("Window") << "Creating window with X: " << window_rect.left
@@ -1451,7 +1438,6 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
         return false;
     }
 
-
     if (!(mhRC = SafeCreateContext(mhDC)))
     {
         LLError::LLUserWarningMsg::show(mCallbacks->translateString("MBGLContextErr"), 8/*LAST_EXEC_GRAPHICS_INIT*/);
@@ -1468,13 +1454,13 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
 
     LL_INFOS("Window") << "Drawing context is created." << LL_ENDL ;
 
-    gGLManager.initWGL();
+    getOpenGLRenderBackend().initPlatformContextExtensions();
 
     if (wglChoosePixelFormatARB && wglGetPixelFormatAttribivARB)
     {
         // OK, at this point, use the ARB wglChoosePixelFormatsARB function to see if we
         // can get exactly what we want.
-        GLint attrib_list[256];
+        S32 attrib_list[256];
         S32 cur_attrib = 0;
 
         attrib_list[cur_attrib++] = WGL_DEPTH_BITS_ARB;
@@ -1484,16 +1470,16 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
         //attrib_list[cur_attrib++] = 8;
 
         attrib_list[cur_attrib++] = WGL_DRAW_TO_WINDOW_ARB;
-        attrib_list[cur_attrib++] = GL_TRUE;
+        attrib_list[cur_attrib++] = true;
 
         attrib_list[cur_attrib++] = WGL_ACCELERATION_ARB;
         attrib_list[cur_attrib++] = WGL_FULL_ACCELERATION_ARB;
 
         attrib_list[cur_attrib++] = WGL_SUPPORT_OPENGL_ARB;
-        attrib_list[cur_attrib++] = GL_TRUE;
+        attrib_list[cur_attrib++] = true;
 
         attrib_list[cur_attrib++] = WGL_DOUBLE_BUFFER_ARB;
-        attrib_list[cur_attrib++] = GL_TRUE;
+        attrib_list[cur_attrib++] = true;
 
         attrib_list[cur_attrib++] = WGL_COLOR_BITS_ARB;
         attrib_list[cur_attrib++] = 24;
@@ -1506,7 +1492,7 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
         {
             end_attrib = cur_attrib;
             attrib_list[cur_attrib++] = WGL_SAMPLE_BUFFERS_ARB;
-            attrib_list[cur_attrib++] = GL_TRUE;
+            attrib_list[cur_attrib++] = true;
 
             attrib_list[cur_attrib++] = WGL_SAMPLES_ARB;
             attrib_list[cur_attrib++] = mFSAASamples;
@@ -1515,7 +1501,7 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
         // End the list
         attrib_list[cur_attrib++] = 0;
 
-        GLint pixel_formats[256];
+        S32 pixel_formats[256];
         U32 num_formats = 0;
 
         // First we try and get a 32 bit depth pixel format
@@ -1609,7 +1595,7 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
         S32 swap_method = 0;
         S32   cur_format  = 0;
 const   S32   max_format  = (S32)num_formats - 1;
-        GLint swap_query = WGL_SWAP_METHOD_ARB;
+        S32 swap_query = WGL_SWAP_METHOD_ARB;
 
         // SL-14705 Fix name tags showing in front of objects with AMD GPUs.
         // On AMD hardware we need to iterate from the first pixel format to the end.
@@ -1705,7 +1691,7 @@ const   S32   max_format  = (S32)num_formats - 1;
     else
     {
         LL_WARNS("Window") << "No wgl_ARB_pixel_format extension!" << LL_ENDL;
-        // cannot proceed without wgl_ARB_pixel_format extension, shutdown same as any other gGLManager.initGL() failure
+        // cannot proceed without wgl_ARB_pixel_format extension, shutdown same as any other GL capability init failure
         LLError::LLUserWarningMsg::show(mCallbacks->translateString("MBVideoDrvErr"), 8/*LAST_EXEC_GRAPHICS_INIT*/);
         close();
         return false;
@@ -1742,7 +1728,7 @@ const   S32   max_format  = (S32)num_formats - 1;
         return false;
     }
 
-    if (!gGLManager.initGL())
+    if (!getOpenGLRenderBackend().initContextCapabilities())
     {
         LLError::LLUserWarningMsg::show(mCallbacks->translateString("MBVideoDrvErr"), 8/*LAST_EXEC_GRAPHICS_INIT*/);
         close();
@@ -1780,8 +1766,8 @@ const   S32   max_format  = (S32)num_formats - 1;
     if (auto_show)
     {
         show();
-        LLGLContainment::setClearColor(0.0f, 0.0f, 0.0f, 0.f);
-        LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT);
+        getOpenGLRenderBackend().setClearColor(0.0f, 0.0f, 0.0f, 0.f);
+        getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
         swapBuffers();
     }
 
@@ -2131,7 +2117,6 @@ bool LLWindowWin32::isCursorHidden()
     return mCursorHidden;
 }
 
-
 HCURSOR LLWindowWin32::loadColorCursor(LPCTSTR name)
 {
     return (HCURSOR)LoadImage(mhInstance,
@@ -2141,7 +2126,6 @@ HCURSOR LLWindowWin32::loadColorCursor(LPCTSTR name)
                               0,    // default height
                               LR_DEFAULTCOLOR);
 }
-
 
 void LLWindowWin32::initCursors()
 {
@@ -2204,8 +2188,6 @@ void LLWindowWin32::initCursors()
     }
 }
 
-
-
 void LLWindowWin32::updateCursor()
 {
     ASSERT_MAIN_THREAD();
@@ -2243,12 +2225,10 @@ void LLWindowWin32::releaseMouse()
     ReleaseCapture();
 }
 
-
 void LLWindowWin32::delayInputProcessing()
 {
     mInputProcessingPaused = true;
 }
-
 
 void LLWindowWin32::gatherInput()
 {
@@ -2263,7 +2243,6 @@ void LLWindowWin32::gatherInput()
         mRawMouseDelta.mX = 0;
         mRawMouseDelta.mY = 0;
     }
-
 
     if (mWindowThread->getQueue().size())
     {
@@ -2788,7 +2767,6 @@ LRESULT CALLBACK LLWindowWin32::mainWindowProc(HWND h_wnd, UINT u_msg, WPARAM w_
                             return;
                         }
                         sHandleDoubleClick = true;
-
 
                         MASK mask = gKeyboard->currentMask(true);
                         // generate move event to update mouse coordinates
@@ -3367,12 +3345,10 @@ bool LLWindowWin32::convertCoords(LLCoordGL from, LLCoordScreen *to)
     return true;
 }
 
-
 bool LLWindowWin32::isClipboardTextAvailable()
 {
     return IsClipboardFormatAvailable(CF_UNICODETEXT);
 }
-
 
 bool LLWindowWin32::pasteTextFromClipboard(LLWString &dst)
 {
@@ -3400,7 +3376,6 @@ bool LLWindowWin32::pasteTextFromClipboard(LLWString &dst)
 
     return success;
 }
-
 
 bool LLWindowWin32::copyTextToClipboard(const LLWString& wstr)
 {
@@ -3628,7 +3603,6 @@ LLWindow::LLWindowResolution* LLWindowWin32::getSupportedResolutions(S32 &num_re
     return mSupportedResolutions;
 }
 
-
 F32 LLWindowWin32::getNativeAspectRatio()
 {
     if (mOverrideAspectRatio > 0.f)
@@ -3794,7 +3768,6 @@ void LLSplashScreenWin32::showImpl()
     SetWindowText(mWindow, TEXT("Kokua"));
 }
 
-
 void LLSplashScreenWin32::updateImpl(const std::string& mesg)
 {
     if (!mWindow) return;
@@ -3817,7 +3790,6 @@ void LLSplashScreenWin32::updateImpl(const std::string& mesg)
         (LPARAM)w_mesg);
 }
 
-
 void LLSplashScreenWin32::hideImpl()
 {
     if (mWindow)
@@ -3829,7 +3801,6 @@ void LLSplashScreenWin32::hideImpl()
         mWindow = NULL;
     }
 }
-
 
 // static
 LRESULT CALLBACK LLSplashScreenWin32::windowProc(HWND h_wnd, UINT u_msg,
@@ -4117,7 +4088,6 @@ void LLWindowWin32::fillCandidateForm(const LLCoordGL& caret, const LLRect& boun
     form->rcArea.bottom = bottom_right.mY;
 }
 
-
 // Put the IME window at the right place (near current text input).   Point coordinates should be the top of the current text line.
 void LLWindowWin32::setLanguageTextInput( const LLCoordGL & position )
 {
@@ -4145,7 +4115,6 @@ void LLWindowWin32::setLanguageTextInput( const LLCoordGL & position )
         LLWinImm::releaseContext(mWindowHandle, himc);
     }
 }
-
 
 void LLWindowWin32::fillCharPosition(const LLCoordGL& caret, const LLRect& bounds, const LLRect& control,
         IMECHARPOSITION *char_position)

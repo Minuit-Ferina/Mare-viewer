@@ -40,8 +40,8 @@
 
 #include "lldrawpoolavatar.h"
 #include "lldrawpoolbump.h"
-#include "llgl.h"
-#include "llglcontainment.h"
+
+#include "llrenderbackend.h"
 #include "llrender.h"
 #include "lllightconstants.h"
 #include "llsky.h"
@@ -61,6 +61,8 @@
 
 //MK
 #include "llagent.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 //mk
 
 #if LL_LINUX
@@ -75,7 +77,6 @@ static LLStaticHashedString sTextureIndexIn("texture_index_in");
 static LLStaticHashedString sColorIn("color_in");
 
 bool LLFace::sSafeRenderSelect = true; // false
-
 
 #define DOTVEC(a,b) (a.mV[0]*b.mV[0] + a.mV[1]*b.mV[1] + a.mV[2]*b.mV[2])
 
@@ -377,7 +378,6 @@ void LLFace::setTEOffset(const S32 te_offset)
     mTEOffset = te_offset;
 }
 
-
 void LLFace::setFaceColor(const LLColor4& color)
 {
     mFaceColor = color;
@@ -530,11 +530,11 @@ void LLFace::renderSelected(LLViewerTexture *imagep, const LLColor4& color)
         gGL.pushMatrix();
         if (mDrawablep->isActive())
         {
-            gGL.multMatrix((GLfloat*)mDrawablep->getRenderMatrix().mMatrix);
+            gGL.multMatrix((F32*)mDrawablep->getRenderMatrix().mMatrix);
         }
         else
         {
-            gGL.multMatrix((GLfloat*)mDrawablep->getRegion()->mRenderMatrix.mMatrix);
+            gGL.multMatrix((F32*)mDrawablep->getRegion()->mRenderMatrix.mMatrix);
         }
 
         gGL.diffuseColor4fv(color.mV);
@@ -549,24 +549,32 @@ void LLFace::renderSelected(LLViewerTexture *imagep, const LLColor4& color)
                 if (rigged)
                 {
                     // called when selecting a face during edit of a mesh object
-                    LLGLEnable offset(GL_POLYGON_OFFSET_FILL);
-                    LLGLContainment::setPolygonOffset(-1.f, -1.f);
+                    LLGLEnable offset(LLRenderCapability::PolygonOffsetFill);
+                    getOpenGLRenderBackend().setPolygonOffset(-1.f, -1.f);
                     gGL.multMatrix((F32*) volume->getRelativeXform().mMatrix);
                     const LLVolumeFace& vol_face = rigged->getVolumeFace(getTEOffset());
                     LLVertexBuffer::unbind();
-                    LLGLContainment::setVertexPointer(3, GL_FLOAT, 16, vol_face.mPositions);
+                    getOpenGLRenderBackend().setLegacyVertexPointer(
+                        3,
+                        LLRenderVertexAttributeType::Float32,
+                        16,
+                        vol_face.mPositions);
                     if (vol_face.mTexCoords)
                     {
-                        LLGLContainment::enableClientState(GL_TEXTURE_COORD_ARRAY);
-                        LLGLContainment::setTextureCoordinatePointer(2, GL_FLOAT, 8, vol_face.mTexCoords);
+                        getOpenGLRenderBackend().setLegacyTextureCoordinateArray(true);
+                        getOpenGLRenderBackend().setLegacyTextureCoordinatePointer(
+                            2,
+                            LLRenderVertexAttributeType::Float32,
+                            8,
+                            vol_face.mTexCoords);
                     }
                     gGL.syncMatrices();
-                    LLGLContainment::drawElements(
-                        GL_TRIANGLES,
+                    getOpenGLRenderBackend().drawElements(
+                        LLRenderPrimitiveType::Triangles,
                         vol_face.mNumIndices,
-                        GL_UNSIGNED_SHORT,
+                        LLRenderIndexType::UnsignedShort,
                         vol_face.mIndices);
-                    LLGLContainment::disableClientState(GL_TEXTURE_COORD_ARRAY);
+                    getOpenGLRenderBackend().setLegacyTextureCoordinateArray(false);
                 }
             }
 #endif
@@ -596,7 +604,6 @@ void LLFace::renderSelected(LLViewerTexture *imagep, const LLColor4& color)
         gGL.popMatrix();
     }
 }
-
 
 void renderFace(LLDrawable* drawable, LLFace *face)
 {
@@ -629,7 +636,7 @@ void LLFace::renderOneWireframe(const LLColor4 &color, F32 fogCfx, bool wirefram
     if (bRenderHiddenSelections)
     {
         gGL.blendFunc(LLRender::BF_SOURCE_COLOR, LLRender::BF_ONE);
-        LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE, GL_GEQUAL);
+        LLGLDepthTest gls_depth(true, false, LLRenderDepthFunction::GreaterEqual);
         if (shader)
         {
             gGL.diffuseColor4f(color.mV[VRED], color.mV[VGREEN], color.mV[VBLUE], 0.4f);
@@ -651,12 +658,14 @@ void LLFace::renderOneWireframe(const LLColor4 &color, F32 fogCfx, bool wirefram
     gGL.diffuseColor4f(color.mV[VRED] * 2, color.mV[VGREEN] * 2, color.mV[VBLUE] * 2, color.mV[VALPHA]);
 
     {
-        LLGLDisable depth(wireframe_selection ? 0 : GL_BLEND);
+        LLGLState depth(LLRenderCapability::Blend, wireframe_selection ? LLGLState::CURRENT_STATE : LLGLState::DISABLED_STATE);
 
-        LLGLEnable offset(GL_POLYGON_OFFSET_LINE);
-        LLGLContainment::setPolygonOffset(3.f, 3.f);
-        LLGLContainment::setLineWidth(5.f);
-        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        LLGLEnable offset(LLRenderCapability::PolygonOffsetLine);
+        getOpenGLRenderBackend().setPolygonOffset(3.f, 3.f);
+        getOpenGLRenderBackend().setLineWidth(5.f);
+        getOpenGLRenderBackend().setPolygonMode(
+            LLRenderPolygonFace::FrontAndBack,
+            LLRenderPolygonMode::Line);
         renderFace(mDrawablep, this);
     }
 }
@@ -807,7 +816,6 @@ static void xform4a(LLVector4a &tex_coord, const LLVector4a& trans, const LLVect
     tex_coord.setAdd(st, offset);
 }
 
-
 bool less_than_max_mag(const LLVector4a& vec)
 {
     LLVector4a MAX_MAG;
@@ -877,8 +885,6 @@ bool LLFace::genVolumeBBoxes(const LLVolume &volume, S32 f,
     return true;
 }
 
-
-
 // convert surface coordinates to texture coordinates, based on
 // the values in the texture entry.  probably should be
 // integrated with getGeometryVolume() for its texture coordinate
@@ -938,7 +944,6 @@ LLVector2 LLFace::surfaceToTexture(LLVector2 surface_coord, const LLVector4a& po
         xform(tc, cos(tep->getRotation()), sin(tep->getRotation()),
               tep->mOffsetS, tep->mOffsetT, tep->mScaleS, tep->mScaleT);
     }
-
 
     return tc;
 }
@@ -1088,7 +1093,6 @@ void LLFace::updateRebuildFlags()
     }
 }
 
-
 bool LLFace::canRenderAsMask()
 {
     const LLTextureEntry* te = getTextureEntry();
@@ -1111,7 +1115,6 @@ bool LLFace::canRenderAsMask()
     { // never auto alpha-mask rigged faces
         return false;
     }
-
 
     LLMaterial* mat = te->getMaterialParams();
     if (mat && mat->getDiffuseAlphaMode() == LLMaterial::DIFFUSE_ALPHA_MODE_BLEND)
@@ -1353,7 +1356,7 @@ bool LLFace::getGeometryVolume(const LLVolume& volume,
 
             if (shiny_in_alpha)
             {
-                static const GLfloat SHININESS_TO_ALPHA[4] =
+                static const F32 SHININESS_TO_ALPHA[4] =
                 {
                     0.0000f,
                     0.25f,
@@ -1395,7 +1398,6 @@ bool LLFace::getGeometryVolume(const LLVolume& volume,
             }
         }
     }
-
 
     LLMaterial* mat = tep->getMaterialParams().get();
 
@@ -1953,7 +1955,6 @@ bool LLFace::getGeometryVolume(const LLVolume& volume,
 
             mVertexBuffer->getVertexStrider(vert, mGeomIndex, mGeomCount);
 
-
             F32* dst = (F32*) vert.get();
             F32* end_f32 = dst+mGeomCount*4;
 
@@ -1961,7 +1962,6 @@ bool LLFace::getGeometryVolume(const LLVolume& volume,
             //_mm_prefetch((char*)src, _MM_HINT_NTA);
 
             //_mm_prefetch((char*)dst, _MM_HINT_NTA);
-
 
             LLVector4a res0; //,res1,res2,res3;
 
@@ -1982,7 +1982,6 @@ bool LLFace::getGeometryVolume(const LLVolume& volume,
             texIdx.set(0,0,0,val);
 
             LLVector4a tmp;
-
 
             while (src < end)
             {
@@ -2093,7 +2092,6 @@ bool LLFace::getGeometryVolume(const LLVolume& volume,
 
             LLVector4a src;
 
-
             LLColor4U glow4u = LLColor4U(0,0,0,glow);
 
             U32 glow32 = glow4u.asRGBA();
@@ -2132,7 +2130,6 @@ bool LLFace::getGeometryVolume(const LLVolume& volume,
         mTexExtents[0][1] *= et ;
         mTexExtents[1][1] *= et ;
     }
-
 
     return true;
 }
@@ -2177,7 +2174,6 @@ F32 LLFace::getTextureVirtualSize()
     F32 radius;
     F32 cos_angle_to_view_dir;
     bool in_frustum = calcPixelArea(cos_angle_to_view_dir, radius);
-
 
     if (mPixelArea < F_ALMOST_ZERO || !in_frustum)
     {
@@ -2538,12 +2534,10 @@ bool LLFace::verify(const U32* indices_array) const
     return ok;
 }
 
-
 void LLFace::setViewerObject(LLViewerObject* objp)
 {
     mVObjp = objp;
 }
-
 
 const LLMatrix4& LLFace::getRenderMatrix() const
 {

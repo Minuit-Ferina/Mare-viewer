@@ -5,7 +5,7 @@
 //
 // MARENISUpscaler
 //   NIS-inspired single-pass adaptive sharpening.  Allocates one internal
-//   GL_RGBA16F buffer (mNISBuffer) to avoid the read/write feedback loop that
+//   RGBA16F buffer (mNISBuffer) to avoid the read/write feedback loop that
 //   would occur when colorSrc == outputDst.
 //
 //   Pass 1: NIS shader reads colorSrc → writes to mNISBuffer.

@@ -127,6 +127,160 @@ void LLImageGLMemory::free_cur_tex_image()
 
 using namespace LLImageGLMemory;
 
+namespace
+{
+LLGLenum to_opengl_texture_target(LLRenderTextureTarget target)
+{
+    switch (target)
+    {
+    case LLRenderTextureTarget::Texture2D:
+        return GL_TEXTURE_2D;
+    case LLRenderTextureTarget::TextureRectangle:
+        return GL_TEXTURE_RECTANGLE;
+    case LLRenderTextureTarget::TextureCubeMap:
+        return GL_TEXTURE_CUBE_MAP;
+    case LLRenderTextureTarget::TextureCubeMapPositiveX:
+        return GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+    case LLRenderTextureTarget::TextureCubeMapNegativeX:
+        return GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+    case LLRenderTextureTarget::TextureCubeMapPositiveY:
+        return GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+    case LLRenderTextureTarget::TextureCubeMapNegativeY:
+        return GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+    case LLRenderTextureTarget::TextureCubeMapPositiveZ:
+        return GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+    case LLRenderTextureTarget::TextureCubeMapNegativeZ:
+        return GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+    case LLRenderTextureTarget::TextureCubeMapArray:
+        return GL_TEXTURE_CUBE_MAP_ARRAY;
+    case LLRenderTextureTarget::Texture2DMultisample:
+        return GL_TEXTURE_2D_MULTISAMPLE;
+    case LLRenderTextureTarget::Texture3D:
+        return GL_TEXTURE_3D;
+    default:
+        return GL_TEXTURE_2D;
+    }
+}
+
+LLGLenum to_opengl_texture_format(LLRenderTextureFormat format)
+{
+    switch (format)
+    {
+    case LLRenderTextureFormat::None:
+        return 0;
+    case LLRenderTextureFormat::Alpha:
+        return GL_ALPHA;
+    case LLRenderTextureFormat::Alpha8:
+        return GL_ALPHA8;
+    case LLRenderTextureFormat::R8:
+        return GL_R8;
+    case LLRenderTextureFormat::R16F:
+        return GL_R16F;
+    case LLRenderTextureFormat::R32F:
+        return GL_R32F;
+    case LLRenderTextureFormat::RG8:
+        return GL_RG8;
+    case LLRenderTextureFormat::RG16F:
+        return GL_RG16F;
+    case LLRenderTextureFormat::RG32F:
+        return GL_RG32F;
+    case LLRenderTextureFormat::RGB:
+        return GL_RGB;
+    case LLRenderTextureFormat::RGB8:
+        return GL_RGB8;
+    case LLRenderTextureFormat::RGB16F:
+        return GL_RGB16F;
+    case LLRenderTextureFormat::RGB10A2:
+        return GL_RGB10_A2;
+    case LLRenderTextureFormat::R11G11B10F:
+        return GL_R11F_G11F_B10F;
+    case LLRenderTextureFormat::RGBA:
+        return GL_RGBA;
+    case LLRenderTextureFormat::RGBA8:
+        return GL_RGBA8;
+    case LLRenderTextureFormat::RGBA16:
+        return GL_RGBA16;
+    case LLRenderTextureFormat::RGBA16F:
+        return GL_RGBA16F;
+    case LLRenderTextureFormat::DepthComponent:
+        return GL_DEPTH_COMPONENT;
+    case LLRenderTextureFormat::DepthComponent24:
+        return GL_DEPTH_COMPONENT24;
+    case LLRenderTextureFormat::Luminance:
+        return GL_LUMINANCE;
+    default:
+        return GL_RGBA;
+    }
+}
+
+LLGLenum to_opengl_pixel_format(LLRenderPixelFormat format)
+{
+    switch (format)
+    {
+    case LLRenderPixelFormat::Alpha:
+        return GL_ALPHA;
+    case LLRenderPixelFormat::DepthComponent:
+        return GL_DEPTH_COMPONENT;
+    case LLRenderPixelFormat::Luminance:
+        return GL_LUMINANCE;
+    case LLRenderPixelFormat::Red:
+        return GL_RED;
+    case LLRenderPixelFormat::RG:
+        return GL_RG;
+    case LLRenderPixelFormat::RGB:
+        return GL_RGB;
+    case LLRenderPixelFormat::RGBA:
+        return GL_RGBA;
+    default:
+        return GL_RGBA;
+    }
+}
+
+LLGLenum to_opengl_pixel_type(LLRenderPixelType type)
+{
+    switch (type)
+    {
+    case LLRenderPixelType::UnsignedByte:
+        return GL_UNSIGNED_BYTE;
+    case LLRenderPixelType::UnsignedShort:
+        return GL_UNSIGNED_SHORT;
+    case LLRenderPixelType::UnsignedInt:
+        return GL_UNSIGNED_INT;
+    case LLRenderPixelType::Float32:
+        return GL_FLOAT;
+    default:
+        return GL_UNSIGNED_BYTE;
+    }
+}
+
+LLRenderPixelFormat to_render_pixel_format(LLGLenum format)
+{
+    switch (format)
+    {
+    case GL_ALPHA:
+        return LLRenderPixelFormat::Alpha;
+    case GL_DEPTH_COMPONENT:
+        return LLRenderPixelFormat::DepthComponent;
+    case GL_LUMINANCE:
+        return LLRenderPixelFormat::Luminance;
+    case GL_RED:
+        return LLRenderPixelFormat::Red;
+    case GL_RG:
+        return LLRenderPixelFormat::RG;
+    case GL_RGB:
+        return LLRenderPixelFormat::RGB;
+    case GL_RGBA:
+    default:
+        return LLRenderPixelFormat::RGBA;
+    }
+}
+}
+
+void LLImageGLMemory::alloc_tex_image(U32 width, U32 height, LLRenderTextureFormat intformat, U32 count)
+{
+    alloc_tex_image(width, height, to_opengl_texture_format(intformat), count);
+}
+
 // static
 U64 LLImageGL::getTextureBytesAllocated()
 {
@@ -506,6 +660,25 @@ LLImageGL::LLImageGL(
     mFormatType = formatType;
     mFormatInternal = formatInternal;
     mFormatPrimary = formatPrimary;
+}
+
+LLImageGL::LLImageGL(
+    LLGLuint texName,
+    U32 components,
+    LLRenderTextureTarget target,
+    LLRenderTextureFormat formatInternal,
+    LLRenderPixelFormat formatPrimary,
+    LLRenderPixelType formatType,
+    LLTexUnit::eTextureAddressMode addressMode)
+    : LLImageGL(
+        texName,
+        components,
+        to_opengl_texture_target(target),
+        to_opengl_texture_format(formatInternal),
+        to_opengl_pixel_format(formatPrimary),
+        to_opengl_pixel_type(formatType),
+        addressMode)
+{
 }
 
 
@@ -895,6 +1068,24 @@ void LLImageGL::setExplicitFormat( LLGLint internal_format, LLGLenum primary_for
     mFormatSwapBytes = swap_bytes;
 
     calcAlphaChannelOffsetAndStride() ;
+}
+
+void LLImageGL::setExplicitFormat(
+    LLRenderTextureFormat internal_format,
+    LLRenderPixelFormat primary_format,
+    LLRenderPixelType type_format,
+    bool swap_bytes)
+{
+    setExplicitFormat(
+        to_opengl_texture_format(internal_format),
+        to_opengl_pixel_format(primary_format),
+        to_opengl_pixel_type(type_format),
+        swap_bytes);
+}
+
+LLRenderPixelFormat LLImageGL::getPrimaryPixelFormat() const
+{
+    return to_render_pixel_format(mFormatPrimary);
 }
 
 //----------------------------------------------------------------------------
@@ -1730,6 +1921,29 @@ void LLImageGL::setManualImage(U32 target, S32 miplevel, S32 intformat, S32 widt
         alloc_tex_image(width, height, intformat, 1);
     }
     stop_glerror();
+}
+
+void LLImageGL::setManualImage(
+    LLRenderTextureTarget target,
+    S32 miplevel,
+    LLRenderTextureFormat internal_format,
+    S32 width,
+    S32 height,
+    LLRenderPixelFormat pixel_format,
+    LLRenderPixelType pixel_type,
+    const void* pixels,
+    bool allow_compression)
+{
+    setManualImage(
+        to_opengl_texture_target(target),
+        miplevel,
+        to_opengl_texture_format(internal_format),
+        width,
+        height,
+        to_opengl_pixel_format(pixel_format),
+        to_opengl_pixel_type(pixel_type),
+        pixels,
+        allow_compression);
 }
 
 //create an empty GL texture: just create a texture name

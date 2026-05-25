@@ -45,7 +45,7 @@
 #include "llmeshrepository.h"
 #include "llmeshoptimizer.h"
 #include "llrender.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llsdutil_math.h"
 #include "llskinningutil.h"
 #include "llstring.h"
@@ -73,6 +73,8 @@
 #include <filesystem>
 
 #include <boost/algorithm/string.hpp>
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 namespace
 {
@@ -1971,7 +1973,6 @@ void LLModelPreview::genMeshOptimizerLODs(S32 which_lod, S32 meshopt_mode, U32 d
         mModel[lod].resize(mBaseModel.size());
         mVertexBuffer[lod].clear();
 
-
         for (U32 mdl_idx = 0; mdl_idx < mBaseModel.size(); ++mdl_idx)
         {
             LLModel* base = mBaseModel[mdl_idx];
@@ -2489,7 +2490,6 @@ void LLModelPreview::updateStatusMessages()
         updateLodControls(lod);
     }
 
-
     //warn if hulls have more than 256 points in them
     bool physExceededVertexLimit = false;
     for (U32 i = 0; mModelNoErrors && i < mModel[LLModel::LOD_PHYSICS].size(); ++i)
@@ -2640,7 +2640,6 @@ void LLModelPreview::updateStatusMessages()
         fmp->getModelPreviewPhysicsLODMode(which_mode, file_mode);
     }
 
-
     LLFloaterModelPreview* physics_file_fmp = (LLFloaterModelPreview*)mFMP;
     physics_file_fmp->syncModelPreviewPhysicsFileControls(which_mode == file_mode);
     physics_file_fmp->syncModelPreviewCreaseControl(mRequestedCreaseAngle[mPreviewLOD]);
@@ -2784,8 +2783,6 @@ void LLModelPreview::genBuffers(S32 lod, bool include_skin_weights)
             }
 
             LLVertexBuffer* vb = NULL;
-
-
 
             U32 mask = LLVertexBuffer::MAP_VERTEX | LLVertexBuffer::MAP_NORMAL | LLVertexBuffer::MAP_TEXCOORD0;
 
@@ -3176,9 +3173,9 @@ bool LLModelPreview::render()
     S32 height = getHeight();
 
     LLGLSUIDefault def;
-    LLGLDisable no_blend(GL_BLEND);
-    LLGLEnable cull(GL_CULL_FACE);
-    LLGLDepthTest depth(GL_FALSE); // SL-12781 disable z-buffer to render background color
+    LLGLDisable no_blend(LLRenderCapability::Blend);
+    LLGLEnable cull(LLRenderCapability::CullFace);
+    LLGLDepthTest depth(false); // SL-12781 disable z-buffer to render background color
 
     drawPreviewCanvas(width, height);
 
@@ -3190,7 +3187,7 @@ bool LLModelPreview::render()
     fmp->getModelPreviewRenderOptions(upload_skin, upload_joints, physics_explode);
     bool has_skin_weights = updateSkinPreviewControls(fmp, upload_skin, upload_joints, show_skin_weight);
 
-    LLGLDepthTest gls_depth(GL_TRUE); // SL-12781 re-enable z-buffer for 3D model preview
+    LLGLDepthTest gls_depth(true); // SL-12781 re-enable z-buffer for 3D model preview
     PreviewCameraState camera_state = setupPreviewCamera(show_skin_weight, width, height);
 
     gGL.pushMatrix();
@@ -3410,7 +3407,6 @@ LLModelPreview::PreviewCameraState LLModelPreview::setupPreviewCamera(bool show_
         LLVector3::z_axis,                                                                  // up
         camera_state.target_pos);                                            // point of interest
 
-
     z_near = llclamp(z_far * 0.001f, 0.001f, 0.1f);
 
     LLViewerCamera::getInstance()->setPerspective(false, mOrigin.mX, mOrigin.mY, width, height, false, z_near, z_far);
@@ -3437,7 +3433,7 @@ void LLModelPreview::renderNonSkinnedModels(bool show_textures, bool show_edges)
 
         LLMatrix4 mat = instance.mTransform;
 
-        gGL.multMatrix((GLfloat*)mat.mMatrix);
+        gGL.multMatrix((F32*)mat.mMatrix);
 
         auto num_models = mVertexBuffer[mPreviewLOD][model].size();
         for (size_t i = 0; i < num_models; ++i)
@@ -3455,11 +3451,15 @@ void LLModelPreview::renderNonSkinnedModels(bool show_textures, bool show_edges)
             gGL.diffuseColor4fv(PREVIEW_EDGE_COL.mV);
             if (show_edges)
             {
-                LLGLContainment::setLineWidth(PREVIEW_EDGE_WIDTH);
-                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                getOpenGLRenderBackend().setLineWidth(PREVIEW_EDGE_WIDTH);
+                getOpenGLRenderBackend().setPolygonMode(
+                    LLRenderPolygonFace::FrontAndBack,
+                    LLRenderPolygonMode::Line);
                 buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
-                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                LLGLContainment::setLineWidth(1.f);
+                getOpenGLRenderBackend().setPolygonMode(
+                    LLRenderPolygonFace::FrontAndBack,
+                    LLRenderPolygonMode::Fill);
+                getOpenGLRenderBackend().setLineWidth(1.f);
             }
             buffer->unmapBuffer();
         }
@@ -3469,7 +3469,7 @@ void LLModelPreview::renderNonSkinnedModels(bool show_textures, bool show_edges)
 
 void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
 {
-    LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
+    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
 
     for (U32 pass = 0; pass < 2; pass++)
     {
@@ -3483,7 +3483,7 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
         }
 
         //enable alpha blending on second pass but not first pass
-        LLGLState blend(GL_BLEND, pass);
+        LLGLState blend(LLRenderCapability::Blend, pass);
 
         gGL.blendFunc(LLRender::BF_SOURCE_ALPHA, LLRender::BF_ONE_MINUS_SOURCE_ALPHA);
 
@@ -3501,8 +3501,7 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
             gGL.pushMatrix();
             LLMatrix4 mat = instance.mTransform;
 
-            gGL.multMatrix((GLfloat*)mat.mMatrix);
-
+            gGL.multMatrix((F32*)mat.mMatrix);
 
             bool render_mesh = true;
             LLPhysicsDecomp* decomp = gMeshRepo.mDecompThread;
@@ -3583,12 +3582,16 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
                         buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
 
                         gGL.diffuseColor4fv(PREVIEW_PSYH_EDGE_COL.mV);
-                        LLGLContainment::setLineWidth(PREVIEW_PSYH_EDGE_WIDTH);
-                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                        getOpenGLRenderBackend().setLineWidth(PREVIEW_PSYH_EDGE_WIDTH);
+                        getOpenGLRenderBackend().setPolygonMode(
+                            LLRenderPolygonFace::FrontAndBack,
+                            LLRenderPolygonMode::Line);
                         buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
 
-                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                        LLGLContainment::setLineWidth(1.f);
+                        getOpenGLRenderBackend().setPolygonMode(
+                            LLRenderPolygonFace::FrontAndBack,
+                            LLRenderPolygonMode::Fill);
+                        getOpenGLRenderBackend().setLineWidth(1.f);
 
                         buffer->unmapBuffer();
                     }
@@ -3600,12 +3603,12 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
         // only do this if mDegenerate was set in the preceding mesh checks [Check this if the ordering ever breaks]
         if (mHasDegenerate)
         {
-            LLGLContainment::setLineWidth(PREVIEW_DEG_EDGE_WIDTH);
-            LLGLContainment::setPointSize(PREVIEW_DEG_POINT_SIZE);
+            getOpenGLRenderBackend().setLineWidth(PREVIEW_DEG_EDGE_WIDTH);
+            getOpenGLRenderBackend().setPointSize(PREVIEW_DEG_POINT_SIZE);
             gPipeline.enableLightsFullbright();
             //show degenerate triangles
-            LLGLDepthTest depth(GL_TRUE, GL_TRUE, GL_ALWAYS);
-            LLGLDisable cull(GL_CULL_FACE);
+            LLGLDepthTest depth(true, true, LLRenderDepthFunction::Always);
+            LLGLDisable cull(LLRenderCapability::CullFace);
             gGL.diffuseColor4f(1.f, 0.f, 0.f, 1.f);
             const LLVector4a scale(0.5f);
 
@@ -3623,8 +3626,7 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
                 gGL.pushMatrix();
                 LLMatrix4 mat = instance.mTransform;
 
-                gGL.multMatrix((GLfloat*)mat.mMatrix);
-
+                gGL.multMatrix((F32*)mat.mMatrix);
 
                 LLPhysicsDecomp* decomp = gMeshRepo.mDecompThread;
                 if (decomp)
@@ -3670,8 +3672,8 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
 
                 gGL.popMatrix();
             }
-            LLGLContainment::setLineWidth(1.f);
-            LLGLContainment::setPointSize(1.f);
+            getOpenGLRenderBackend().setLineWidth(1.f);
+            getOpenGLRenderBackend().setPointSize(1.f);
             gPipeline.enableLightsPreview();
             gGL.setSceneBlendType(LLRender::BT_ALPHA);
         }
@@ -3769,11 +3771,15 @@ void LLModelPreview::renderSkinnedPreview(LLFloaterModelPreview* fmp, PreviewCam
                     {
                         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
                         gGL.diffuseColor4fv(PREVIEW_EDGE_COL.mV);
-                        LLGLContainment::setLineWidth(PREVIEW_EDGE_WIDTH);
-                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                        getOpenGLRenderBackend().setLineWidth(PREVIEW_EDGE_WIDTH);
+                        getOpenGLRenderBackend().setPolygonMode(
+                            LLRenderPolygonFace::FrontAndBack,
+                            LLRenderPolygonMode::Line);
                         buffer->draw(LLRender::TRIANGLES, buffer->getNumIndices(), 0);
-                        LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                        LLGLContainment::setLineWidth(1.f);
+                        getOpenGLRenderBackend().setPolygonMode(
+                            LLRenderPolygonFace::FrontAndBack,
+                            LLRenderPolygonMode::Fill);
+                        getOpenGLRenderBackend().setLineWidth(1.f);
                     }
                 }
             }
@@ -3830,7 +3836,6 @@ void LLModelPreview::renderGroundPlane(float z_offset)
 
     gGL.end();
 }
-
 
 //-----------------------------------------------------------------------------
 // refresh()

@@ -35,7 +35,7 @@
 #include "pipeline.h"
 #include "llviewercamera.h"
 #include "llviewershadermgr.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llrender.h"
 #include "llviewercontrol.h"
 #include "llviewerregion.h"
@@ -71,7 +71,6 @@ void LLDrawPoolTree::renderDeferred(S32 pass)
     {
         return;
     }
-
 
     gGL.getTexUnit(sDiffTex)->bindFast(mTexturep);
     mTexturep->addTextureStats(1024.f * 1024.f); // <=== keep Linden tree textures at full res
@@ -111,7 +110,7 @@ void LLDrawPoolTree::beginShadowPass(S32 pass)
 
     static LLCachedControl<F32> shadow_offset(gSavedSettings, "RenderDeferredTreeShadowOffset");
     static LLCachedControl<F32> shadow_bias(gSavedSettings, "RenderDeferredTreeShadowBias");
-    LLGLContainment::setPolygonOffset(shadow_offset(), shadow_bias());
+    getOpenGLRenderBackend().setPolygonOffset(shadow_offset(), shadow_bias());
 
     LLEnvironment& environment = LLEnvironment::instance();
 
@@ -129,7 +128,7 @@ void LLDrawPoolTree::endShadowPass(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED;
 
-    LLGLContainment::setPolygonOffset(gSavedSettings.getF32("RenderDeferredSpotShadowOffset"),
+    getOpenGLRenderBackend().setPolygonOffset(gSavedSettings.getF32("RenderDeferredSpotShadowOffset"),
                         gSavedSettings.getF32("RenderDeferredSpotShadowBias"));
     gDeferredTreeShadowProgram.unbind();
 }
@@ -148,7 +147,6 @@ LLViewerTexture *LLDrawPoolTree::getDebugTexture()
 {
     return mTexturep;
 }
-
 
 LLColor3 LLDrawPoolTree::getDebugColor() const
 {

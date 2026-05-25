@@ -62,7 +62,7 @@ public:
     void setFollow(const bool follow);
     void setUseCameraUp(const bool use_up);
 
-    void setTexMode(LLGLenum mode);
+    void setTexMode(U32 mode);
     void setColor(const LLColor4 &color);
     void setColor(const F32 r, const F32 g, const F32 b, const F32 a);
     void setAlpha(const F32 alpha)                  { mColor.mV[VALPHA] = alpha; }
@@ -87,7 +87,7 @@ private:
     bool mUseCameraUp;
 
     LLColor4 mColor;
-    LLGLenum mTexMode;
+    U32 mTexMode;
 
     // put
     LLVector3 mScaledUp;

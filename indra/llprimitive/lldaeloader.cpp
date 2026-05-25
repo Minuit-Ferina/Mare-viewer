@@ -97,7 +97,6 @@ bool get_dom_sources(const domInputLocalOffset_Array& inputs, S32& pos_offset, S
 
             domInputLocal_Array& v_inp = vertices->getInput_array();
 
-
             for (U32 k = 0; k < v_inp.getCount(); ++k)
             {
                 if (strcmp(COMMON_PROFILE_INPUT_POSITION, v_inp[k]->getSemantic()) == 0)
@@ -378,7 +377,6 @@ LLModel::EModelStatus load_face_from_dom_polylist(
     }
 
     const domInputLocalOffset_Array& inputs = poly->getInput_array();
-
 
     domListOfUInts& vcount = poly->getVcount()->getValue();
 
@@ -740,7 +738,6 @@ LLModel::EModelStatus load_face_from_dom_polygons(std::vector<LLVolumeFace>& fac
 
             LLVolumeFace::VertexData vert;
 
-
             if (v)
             {
                 U32 v_idx = (U32)idx[j*stride+v_offset]*3;
@@ -766,7 +763,6 @@ LLModel::EModelStatus load_face_from_dom_polygons(std::vector<LLVolumeFace>& fac
                 vert.getNormal().clear();
             }
 
-
             if (t && t->getCount() > 0)
             {
                 U32 t_idx = (U32)idx[j*stride+t_offset]*2;
@@ -778,7 +774,6 @@ LLModel::EModelStatus load_face_from_dom_polygons(std::vector<LLVolumeFace>& fac
             {
                 vert.mTexCoord.clear();
             }
-
 
             verts.push_back(vert);
         }
@@ -825,7 +820,7 @@ LLModel::EModelStatus load_face_from_dom_polygons(std::vector<LLVolumeFace>& fac
     for (U32 i = 0; i < verts.size(); ++i)
     {
         indices[i] = vert_idx[verts[i]];
-        if (i % 3 != 0) // assumes GL_TRIANGLES, compare 0-1, 1-2, 3-4, 4-5 but not 2-3 or 5-6
+        if (i % 3 != 0) // assumes triangles, compare 0-1, 1-2, 3-4, 4-5 but not 2-3 or 5-6
         {
             // A faulty degenerate triangle detection (triangle with 0 area),
             // probably should be a warning and not an assert
@@ -973,7 +968,6 @@ bool LLDAELoader::OpenFile(const std::string& filename)
     }
     LL_INFOS()<<"Dae version "<<colladaVersion[docVersion]<<LL_ENDL;
 
-
     daeDatabase* db = dae.getDatabase();
 
     daeInt count = db->getElementCount(NULL, COLLADA_TYPE_MESH);
@@ -1017,7 +1011,6 @@ bool LLDAELoader::OpenFile(const std::string& filename)
             return true;
         }
     }
-
 
     //get unit scale
     mTransform.setIdentity();
@@ -1249,7 +1242,6 @@ void LLDAELoader::processDomModel(LLModel* model, DAE* dae, daeElement* root, do
             matMul(trans, skin_info.mBindShapeMatrix, skin_info.mBindShapeMatrix);
         }
 
-
         //Some collada setup for accessing the skeleton
         U32 skeleton_count = dae->getDatabase()->getElementCount( NULL, "skeleton" );
         std::vector<domInstance_controller::domSkeleton*> skeletons;
@@ -1387,7 +1379,6 @@ void LLDAELoader::processDomModel(LLModel* model, DAE* dae, daeElement* root, do
             }
         }
 
-
         domSkin::domJoints* joints = skin->getJoints();
 
         domInputLocal_Array& joint_input = joints->getInput_array();
@@ -1404,7 +1395,6 @@ void LLDAELoader::processDomModel(LLModel* model, DAE* dae, daeElement* root, do
                 domSource* source = daeSafeCast<domSource>(elem);
                 if (source)
                 {
-
 
                     domName_array* names_source = source->getName_array();
 
@@ -2048,7 +2038,6 @@ void LLDAELoader::processElement( daeElement* element, bool& badElement, DAE* da
     if (scale)
     {
         domFloat3 dom_value = scale->getValue();
-
 
         LLVector3 scale_vector = LLVector3((F32)dom_value[0], (F32)dom_value[1], (F32)dom_value[2]);
         scale_vector.abs(); // Set all values positive, since we don't currently support mirrored meshes

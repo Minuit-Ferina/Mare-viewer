@@ -1,6 +1,6 @@
 /**
  * @file llrendertarget.h
- * @brief Off screen render target abstraction.  Loose wrapper for GL_EXT_framebuffer_objects.
+ * @brief Off screen render target abstraction.
  *
  * $LicenseInfo:firstyear=2001&license=viewerlgpl$
  * Second Life Viewer Source Code
@@ -29,13 +29,13 @@
 
 // LLRenderTarget is unavailible on the mapserver since it uses FBOs.
 
-#include "llgltypes.h"
 #include "llrender.h"
+#include "llrenderbackend.h"
 
 #include <vector>
 
 /*
- Wrapper around OpenGL framebuffer objects for use in render-to-texture
+ Wrapper around backend framebuffer resources for use in render-to-texture
 
  SAMPLE USAGE:
 
@@ -44,7 +44,7 @@
     ...
 
     //allocate a 256x256 RGBA render target with depth buffer
-    target.allocate(256,256,GL_RGBA,TRUE);
+    target.allocate(256,256,LLRenderTextureFormat::RGBA,TRUE);
 
     //render to contents of offscreen buffer
     target.bindTarget();
@@ -79,10 +79,10 @@ public:
     //multiple calls will release previously allocated resources
     // resX - width
     // resY - height
-    // color_fmt - GL color format (e.g. GL_RGB)
+    // color_fmt - backend-neutral color format
     // depth - if true, allocate a depth buffer
     // usage - deprecated, should always be TT_TEXTURE
-    bool allocate(U32 resx, U32 resy, U32 color_fmt, bool depth = false, LLTexUnit::eTextureType usage = LLTexUnit::TT_TEXTURE, LLTexUnit::eTextureMipGeneration generateMipMaps = LLTexUnit::TMG_NONE);
+    bool allocate(U32 resx, U32 resy, LLRenderTextureFormat color_fmt, bool depth = false, LLTexUnit::eTextureType usage = LLTexUnit::TT_TEXTURE, LLTexUnit::eTextureMipGeneration generateMipMaps = LLTexUnit::TMG_NONE);
 
     //resize existing attachments to use new resolution and color format
     // CAUTION: if the GL runs out of memory attempting to resize, this render target will be undefined
@@ -103,14 +103,14 @@ public:
     // use_name -- optional texture name to target instead of attachment->getTexName()
     // NOTE: setColorAttachment and releaseColorAttachment cannot be used in conjuction with
     // addColorAttachment, allocateDepth, resize, etc.
-    void setColorAttachment(LLImageGL* attachment, LLGLuint use_name = 0);
+    void setColorAttachment(LLImageGL* attachment, U32 use_name = 0);
 
     // detach from current color attachment
     void releaseColorAttachment();
 
     //add color buffer attachment
     //limit of 4 color attachments per render target
-    bool addColorAttachment(U32 color_fmt);
+    bool addColorAttachment(LLRenderTextureFormat color_fmt);
 
     //allocate a depth texture
     bool allocateDepth();
@@ -133,7 +133,7 @@ public:
     //clear render targer, clears depth buffer if present,
     //uses scissor rect if in copy-to-texture mode
     // asserts that this target is currently bound
-    void clear(U32 mask = 0xFFFFFFFF);
+    void clear(LLRenderClearMask mask = LL_RENDER_CLEAR_ALL);
 
     //get applied viewport
     void getViewport(S32* viewport);
@@ -147,9 +147,11 @@ public:
     LLTexUnit::eTextureType getUsage(void) const { return mUsage; }
 
     U32 getTexture(U32 attachment = 0) const;
+    LLRenderTextureHandle getTextureHandle(U32 attachment = 0) const;
     U32 getNumTextures() const;
 
-    U32 getDepth(void) const { return mDepth; }
+    U32 getDepth(void) const { return mDepth.asLegacyName(); }
+    LLRenderTextureHandle getDepthHandle(void) const { return mDepth; }
 
     void bindTexture(U32 index, S32 channel, LLTexUnit::eTextureFilterOptions filter_options = LLTexUnit::TFO_BILINEAR);
 
@@ -179,12 +181,12 @@ public:
 protected:
     U32 mResX;
     U32 mResY;
-    std::vector<U32> mTex;
-    std::vector<U32> mInternalFormat;
-    U32 mFBO;
+    std::vector<LLRenderTextureHandle> mTex;
+    std::vector<LLRenderTextureFormat> mInternalFormat;
+    LLRenderFramebufferHandle mFBO;
     LLRenderTarget* mPreviousRT = nullptr;
 
-    U32 mDepth;
+    LLRenderTextureHandle mDepth;
     bool mUseDepth;
     LLTexUnit::eTextureMipGeneration mGenerateMipMaps;
     U32 mMipLevels;

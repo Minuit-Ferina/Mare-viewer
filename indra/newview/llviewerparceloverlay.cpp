@@ -31,8 +31,8 @@
 // indra includes
 #include "llparcel.h"
 #include "llfloaterreg.h"
-#include "llgl.h"
-#include "llglcontainment.h"
+
+#include "llrenderbackend.h"
 #include "llrender.h"
 #include "lluicolor.h"
 #include "v4color.h"
@@ -48,9 +48,10 @@
 #include "llviewertexturelist.h"
 #include "llselectmgr.h"
 #include "llfloatertools.h"
-#include "llglheaders.h"
-#include "pipeline.h"
 
+#include "pipeline.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 static constexpr U8  OVERLAY_IMG_COMPONENTS = 4;
 static constexpr F32 LINE_WIDTH = 0.0625f;
@@ -112,7 +113,6 @@ LLViewerParcelOverlay::LLViewerParcelOverlay(LLViewerRegion* region, F32 region_
 
     gPipeline.markGLRebuild(this);
 }
-
 
 LLViewerParcelOverlay::~LLViewerParcelOverlay()
 {
@@ -677,7 +677,7 @@ void LLViewerParcelOverlay::renderPropertyLines()
 
     LLGLSUIDefault gls_ui; // called from pipeline
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-    LLGLDepthTest mDepthTest(GL_TRUE);
+    LLGLDepthTest mDepthTest(true);
 
     // Find camera height off the ground (not from zero)
     F32 ground_height_at_camera = land.resolveHeightGlobal( gAgentCamera.getCameraPositionGlobal() );
@@ -758,7 +758,7 @@ void LLViewerParcelOverlay::renderPropertyLines()
 
         if (render_hidden)
         {
-            LLGLDepthTest depth(GL_TRUE, GL_FALSE, GL_GREATER);
+            LLGLDepthTest depth(true, false, LLRenderDepthFunction::Greater);
 
             gGL.begin(LLRender::TRIANGLE_STRIP);
 
@@ -814,7 +814,7 @@ void LLViewerParcelOverlay::renderPropertyLinesOnMinimap(F32 scale_pixels_per_me
     const S32 GRIDS_PER_EDGE   = mParcelGridsPerEdge;
 
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-    LLGLContainment::setLineWidth(1.0f);
+    getOpenGLRenderBackend().setLineWidth(1.0f);
     gGL.color4fv(parcel_outline_color);
     for (S32 i = 0; i <= GRIDS_PER_EDGE; i++)
     {

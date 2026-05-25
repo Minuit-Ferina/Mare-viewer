@@ -36,7 +36,6 @@
 #include "llwind.h"
 
 // linden libraries
-#include "llgl.h"
 #include "patch_dct.h"
 #include "patch_code.h"
 

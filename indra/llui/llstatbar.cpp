@@ -31,7 +31,7 @@
 
 #include "llmath.h"
 #include "llui.h"
-#include "llgl.h"
+
 #include "llfontgl.h"
 
 #include "lluictrlfactory.h"
@@ -41,6 +41,7 @@
 #include "lllocalcliprect.h"
 #include <iostream>
 #include "lltrans.h"
+#include "llrenderstate.h"
 
 // rate at which to update display of value that is rapidly changing
 const F32 MEAN_VALUE_UPDATE_TIME = 1.f / 4.f;

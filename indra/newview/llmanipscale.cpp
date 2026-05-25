@@ -32,8 +32,8 @@
 #include "llmath.h"
 #include "v3math.h"
 #include "llquaternion.h"
-#include "llgl.h"
-#include "llglcontainment.h"
+
+#include "llrenderbackend.h"
 #include "llrender.h"
 #include "v4color.h"
 #include "llprimitive.h"
@@ -47,7 +47,7 @@
 #include "llcriticaldamp.h"
 #include "lldrawable.h"
 #include "llfloatertools.h"
-#include "llglheaders.h"
+
 #include "llselectmgr.h"
 #include "llstatusbar.h"
 #include "llui.h"
@@ -61,6 +61,7 @@
 #include "llvoavatar.h"
 #include "llmeshrepository.h"
 #include "lltrans.h"
+#include "llrenderstate.h"
 
 const F32 MAX_MANIP_SELECT_DISTANCE_SQUARED = 11.f * 11.f;
 const F32 SNAP_GUIDE_SCREEN_OFFSET = 0.05f;
@@ -211,8 +212,8 @@ void LLManipScale::render()
 {
     LLGLSUIDefault gls_ui;
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-    LLGLDepthTest gls_depth(GL_TRUE);
-    LLGLEnable gl_blend(GL_BLEND);
+    LLGLDepthTest gls_depth(true);
+    LLGLEnable gl_blend(LLRenderCapability::Blend);
     LLBBox bbox = LLSelectMgr::getInstance()->getBBoxOfSelection();
 
     if( canAffectSelection() )
@@ -292,10 +293,9 @@ void LLManipScale::render()
             rot.getAngleAxis(&angle_radians, &x, &y, &z);
             gGL.rotatef(angle_radians * RAD_TO_DEG, x, y, z);
 
-
             {
-                LLGLEnable poly_offset(GL_POLYGON_OFFSET_FILL);
-                LLGLContainment::setPolygonOffset( -2.f, -2.f);
+                LLGLEnable poly_offset(LLRenderCapability::PolygonOffsetFill);
+                getOpenGLRenderBackend().setPolygonOffset( -2.f, -2.f);
 
                 renderCorners( bbox );
                 renderFaces( bbox );
@@ -305,7 +305,7 @@ void LLManipScale::render()
                     renderGuidelinesPart( bbox );
                 }
 
-                LLGLContainment::setPolygonOffset( 0.f, 0.f);
+                getOpenGLRenderBackend().setPolygonOffset( 0.f, 0.f);
             }
         }
         gGL.popMatrix();
@@ -373,7 +373,6 @@ bool LLManipScale::handleMouseDownOnPart( S32 x, S32 y, MASK mask )
     return true;
 }
 
-
 bool LLManipScale::handleMouseUp(S32 x, S32 y, MASK mask)
 {
     // first, perform normal processing in case this was a quick-click
@@ -407,7 +406,6 @@ bool LLManipScale::handleMouseUp(S32 x, S32 y, MASK mask)
     }
     return LLManip::handleMouseUp(x, y, mask);
 }
-
 
 bool LLManipScale::handleHover(S32 x, S32 y, MASK mask)
 {
@@ -563,7 +561,6 @@ void LLManipScale::highlightManipulators(S32 x, S32 y)
     LL_DEBUGS("UserInput") << "hover handled by LLManipScale (inactive)" << LL_ENDL;
 }
 
-
 void LLManipScale::renderFaces( const LLBBox& bbox )
 {
     // Don't bother to render the drag handles for 1-D scaling if
@@ -618,7 +615,7 @@ void LLManipScale::renderFaces( const LLBBox& bbox )
     if (mManipPart == LL_NO_PART)
     {
         gGL.color4fv( default_normal_color.mV );
-        LLGLDepthTest gls_depth(GL_FALSE);
+        LLGLDepthTest gls_depth(false);
         gGL.begin(LLRender::TRIANGLE_STRIP);
         {
             gGL.vertex3f(min.mV[VX], max.mV[VY], min.mV[VZ]);
@@ -664,7 +661,7 @@ void LLManipScale::renderFaces( const LLBBox& bbox )
     };
 
     {
-        LLGLDepthTest gls_depth(GL_FALSE);
+        LLGLDepthTest gls_depth(false);
 
         for (S32 i = 0; i < 6; i++)
         {
@@ -731,12 +728,11 @@ void LLManipScale::renderCorners( const LLBBox& bbox )
     }
 }
 
-
 void LLManipScale::renderBoxHandle( F32 x, F32 y, F32 z )
 {
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-    LLGLDepthTest gls_depth(GL_FALSE);
-    //LLGLDisable gls_stencil(GL_STENCIL_TEST);
+    LLGLDepthTest gls_depth(false);
+    //LLGLDisable gls_stencil(LLRenderCapability::StencilTest);
 
     gGL.pushMatrix();
     {
@@ -746,7 +742,6 @@ void LLManipScale::renderBoxHandle( F32 x, F32 y, F32 z )
     }
     gGL.popMatrix();
 }
-
 
 void LLManipScale::renderAxisHandle( U32 handle_index, const LLVector3& start, const LLVector3& end )
 {
@@ -905,7 +900,6 @@ void LLManipScale::dragCorner( S32 x, S32 y )
             scale_factor = 0.5f + (scale_factor * 0.5f);
         }
     }
-
 
     F32 max_scale_factor = get_default_max_prim_scale() / MIN_PRIM_SCALE;
     F32 min_scale_factor = MIN_PRIM_SCALE / get_default_max_prim_scale();
@@ -1277,7 +1271,6 @@ void LLManipScale::stretchFace( const LLVector3& drag_start_agent, const LLVecto
     }
 }
 
-
 void LLManipScale::renderGuidelinesPart( const LLBBox& bbox )
 {
     LLVector3 guideline_start = bbox.getCenterLocal();
@@ -1295,11 +1288,11 @@ void LLManipScale::renderGuidelinesPart( const LLBBox& bbox )
     guideline_end += guideline_start;
 
     {
-        LLGLDepthTest gls_depth(GL_TRUE);
+        LLGLDepthTest gls_depth(true);
         gl_line_3d( guideline_start, guideline_end, LLColor4(1.f, 1.f, 1.f, 0.5f) );
     }
     {
-        LLGLDepthTest gls_depth(GL_FALSE);
+        LLGLDepthTest gls_depth(false);
         gl_line_3d( guideline_start, guideline_end, LLColor4(1.f, 1.f, 1.f, 0.25f) );
     }
 }
@@ -1577,7 +1570,7 @@ void LLManipScale::renderSnapGuides(const LLBBox& bbox)
     }
 
     {
-        LLGLDepthTest gls_depth(GL_FALSE);
+        LLGLDepthTest gls_depth(false);
 
         F32 dist_grid_axis = llmax(0.f, (drag_point - mScaleCenter) * mScaleDir);
 
@@ -1821,7 +1814,6 @@ void LLManipScale::renderSnapGuides(const LLBBox& bbox)
             }
         }
 
-
         // render help text
         if (mObjectSelection->getSelectType() != SELECT_TYPE_HUD)
         {
@@ -1872,7 +1864,6 @@ LLVector3 LLManipScale::partToUnitVector( S32 part ) const
     return LLVector3();
 }
 
-
 // Returns unit vector in direction of face of an origin-centered cube
 LLVector3 LLManipScale::faceToUnitVector( S32 part ) const
 {
@@ -1904,7 +1895,6 @@ LLVector3 LLManipScale::faceToUnitVector( S32 part ) const
 
     return vec;
 }
-
 
 // Returns unit vector in direction of corner of an origin-centered cube
 LLVector3 LLManipScale::cornerToUnitVector( S32 part ) const

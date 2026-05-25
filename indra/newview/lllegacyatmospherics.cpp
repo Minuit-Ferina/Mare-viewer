@@ -48,6 +48,7 @@
 #include "llsettingssky.h"
 #include "llenvironment.h"
 #include "lldrawpoolwater.h"
+#include "llrendercontext.h"
 
 class LLFastLn
 {
@@ -100,13 +101,11 @@ public:
         return (F32)LL_FAST_EXP(y * ln(x));
     }
 
-
 private:
     F32 mTable[257]; // index 0 is unused
 };
 
 static LLFastLn gFastLn;
-
 
 // Functions used a lot.
 
@@ -188,7 +187,6 @@ LLAtmospherics::LLAtmospherics()
     mHazeConcentration = 0.f;
     mInterpVal = 0.f;
 }
-
 
 LLAtmospherics::~LLAtmospherics()
 {
@@ -318,7 +316,6 @@ void LLAtmospherics::calcSkyColorWLVert(const LLSettingsSky::ptr_t &psky, LLVect
     LLColor3 haze_weight = componentDiv(smear(haze_density), temp1);
     LLColor3 haze_factor = haze_horizon * haze_weight;
 
-
     // Compute sunlight from P & lightnorm (for long rays like sky)
     temp2.mV[1] = llmax(F_APPROXIMATELY_ZERO, llmax(0.f, Pn[1]) * 1.0f + sun_norm.mV[1] );
 
@@ -348,7 +345,6 @@ void LLAtmospherics::calcSkyColorWLVert(const LLSettingsSky::ptr_t &psky, LLVect
 
     // Add "minimum anti-solar illumination"
     temp2.mV[0] += .25f;
-
 
     // Haze color above cloud
     vars.hazeColor = (blue_factor * (sunlight + ambient) + componentMult(haze_factor, sunlight * temp2.mV[0] + ambient));
@@ -457,7 +453,6 @@ void LLAtmospherics::updateFog(const F32 distance, const LLVector3& tosun_in)
     F32 on = (tosun_z - full_off) / (full_on - full_off);
     on = llclamp(on, 0.01f, 1.f);
     sky_fog_color *= 0.5f * on;
-
 
     // We need to clamp these to non-zero, in order for the gamma correction to work. 0^y = ???
     S32 i;

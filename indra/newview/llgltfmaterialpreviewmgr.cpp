@@ -30,7 +30,7 @@
 #include <memory>
 #include <vector>
 
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llavatarappearancedefines.h"
 #include "llenvironment.h"
 #include "llselectmgr.h"
@@ -42,6 +42,7 @@
 #include "llviewerwindow.h"
 #include "llvolumemgr.h"
 #include "pipeline.h"
+#include "llrenderstate.h"
 
 LLGLTFMaterialPreviewMgr gGLTFMaterialPreviewMgr;
 
@@ -221,7 +222,6 @@ void LLGLTFPreviewTexture::preRender(bool clear_depth)
 
     LLViewerDynamicTexture::preRender(clear_depth);
 }
-
 
 namespace {
 
@@ -432,9 +432,9 @@ struct GLTFPreviewRenderState
     bool mRestored = false;
 
     GLTFPreviewRenderState()
-    : mDepthTest(GL_FALSE)
-    , mStencil(GL_STENCIL_TEST)
-    , mScissor(GL_SCISSOR_TEST)
+    : mDepthTest(false)
+    , mStencil(LLRenderCapability::StencilTest)
+    , mScissor(LLRenderCapability::ScissorTest)
     , mNoDof(&LLPipeline::RenderDepthOfField, false)
     , mNoGlow(&LLPipeline::sRenderGlow, false)
     , mNoSsr(&LLPipeline::RenderScreenSpaceReflections, false)
@@ -492,7 +492,7 @@ void render_alpha_preview_sphere(LLRenderTarget& screen, PreviewSphere& preview_
 {
     // Alpha blend rendering
     screen.bindTarget();
-    LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
 
     LLGLSLShader& shader = gDeferredPBRAlphaProgram;
 
@@ -568,7 +568,7 @@ void LLGLTFPreviewTexture::renderFinalPreview(LLRenderTarget& screen)
     gDeferredPostNoDoFProgram.bindTexture(LLShaderMgr::DEFERRED_DEPTH, mBoundTarget, true);
 
     {
-        LLGLDepthTest depth_test(GL_TRUE, GL_TRUE, GL_ALWAYS);
+        LLGLDepthTest depth_test(true, true, LLRenderDepthFunction::Always);
         gPipeline.mScreenTriangleVB->setBuffer();
         gPipeline.mScreenTriangleVB->drawArrays(LLRender::TRIANGLES, 0, 3);
     }
@@ -582,8 +582,8 @@ bool LLGLTFPreviewTexture::render()
 
     if (!mShouldRender) { return false; }
 
-    LLGLContainment::setClearColor(0, 0, 0, 0);
-    LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    getOpenGLRenderBackend().setClearColor(0, 0, 0, 0);
+    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
 
     GLTFPreviewRenderState preview_state;
 

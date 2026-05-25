@@ -37,6 +37,12 @@ set(llrender_SOURCE_FILES
     llvertexbuffer.cpp
     llglcommonfunc.cpp
     )
+
+if (DARWIN)
+    list(APPEND llrender_SOURCE_FILES
+        llrenderbackendmacosx-objc.mm
+        )
+endif (DARWIN)
     
 set(llrender_HEADER_FILES
     CMakeLists.txt
@@ -57,10 +63,14 @@ set(llrender_HEADER_FILES
     llgltexture.h
     llgltypes.h
     llimagegl.h
+    llopenglplatform.h
     llpostprocess.h
     llrender.h
     llrender2dutils.h
     llrenderbackend.h
+    llrenderbackendmacosx-objc.h
+    llrendercontext.h
+    llrenderstate.h
     llrendernavprim.h
     llrendersphere.h
     llshadermgr.h

@@ -454,7 +454,7 @@ bool LLGLSLShader::createShader()
 #endif // DEBUG_SHADER_INCLUDES
 
         //compile new source
-        vector< pair<string, LLGLenum> >::iterator fileIter = mShaderFiles.begin();
+        vector< pair<string, LLRenderShaderStage> >::iterator fileIter = mShaderFiles.begin();
         for (; fileIter != mShaderFiles.end(); fileIter++)
         {
             LLGLuint shaderhandle = LLShaderMgr::instance()->loadShaderFile((*fileIter).first, mShaderLevel, (*fileIter).second, &mDefines, mFeatures.mIndexedTextureChannels);
@@ -1168,7 +1168,10 @@ S32 LLGLSLShader::bindTexture(S32 uniform, LLRenderTarget* texture, bool depth, 
         }
         else {
             bool has_mips = mode == LLTexUnit::TFO_TRILINEAR || mode == LLTexUnit::TFO_ANISOTROPIC;
-            gGL.getTexUnit(uniform)->bindManual(texture->getUsage(), texture->getTexture(index), has_mips);
+            gGL.getTexUnit(uniform)->bindManual(
+                texture->getUsage(),
+                texture->getTextureHandle(index).asLegacyName(),
+                has_mips);
         }
 
         gGL.getTexUnit(uniform)->setTextureFilteringOption(mode);
@@ -2064,7 +2067,7 @@ LLUUID LLGLSLShader::hash()
     for (const auto& shdr_pair : mShaderFiles)
     {
         hash_obj.update(shdr_pair.first);
-        hash_obj.update(&shdr_pair.second, sizeof(LLGLenum));
+        hash_obj.update(&shdr_pair.second, sizeof(LLRenderShaderStage));
     }
     for (const auto& define_pair : mDefines)
     {

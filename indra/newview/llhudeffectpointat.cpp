@@ -28,8 +28,8 @@
 
 #include "llhudeffectpointat.h"
 
-#include "llgl.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
+#include "llrenderstate.h"
 #include "llrender.h"
 #include "llui.h"
 
@@ -84,7 +84,6 @@ const S32 POINTAT_PRIORITIES[POINTAT_NUM_TARGETS] =
 // statics
 
 bool LLHUDEffectPointAt::sDebugPointAt;
-
 
 //-----------------------------------------------------------------------------
 // LLHUDEffectPointAt()
@@ -358,7 +357,7 @@ void LLHUDEffectPointAt::render()
     if (show_pointat && mTargetType != POINTAT_TARGET_NONE && (
         !pointat_limited || !((LLVOAvatar*)(LLViewerObject*)mSourceObject)->isSelf()
     )) {
-        //LLGLDisable gls_stencil(GL_STENCIL_TEST);
+        //LLGLDisable gls_stencil(LLRenderCapability::StencilTest);
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
         LLVector3 target = mTargetPos + mSourceObject->getRenderPosition();
 
@@ -369,8 +368,8 @@ void LLHUDEffectPointAt::render()
             //  render name above crosshairs
             //
             const LLFontGL *fontp = LLFontGL::getFont(LLFontDescriptor("SansSerif", "Small", LLFontGL::BOLD));
-            LLGLContainment::setMatrixMode(GL_MODELVIEW);
-            LLGLContainment::pushMatrix();
+            getOpenGLRenderBackend().setMatrixMode(LLRenderMatrixMode::ModelView);
+            getOpenGLRenderBackend().pushMatrix();
             LLVector3 position = target + LLVector3(0.0f, 0.0f, 0.3f);
 
             LLAvatarName nameBuffer;
@@ -380,7 +379,7 @@ void LLHUDEffectPointAt::render()
             gViewerWindow->setup3DRender();
             hud_render_utf8text(name, position, *fontp, LLFontGL::NORMAL, LLFontGL::NO_SHADOW, (F32)(-0.5*fontp->getWidthF32(name)), 3.0, LLColor3(1.f, 0.f, 0.f), FALSE);
 
-            LLGLContainment::popMatrix();
+            getOpenGLRenderBackend().popMatrix();
         }
 
         //

@@ -37,7 +37,6 @@
 // Linden library includes
 #include "llfontgl.h"
 #include "llsys.h"
-#include "llgl.h"
 #include "llrender.h"
 #include "v3dmath.h"
 #include "lldir.h"
@@ -46,7 +45,6 @@
 #include "v4coloru.h"
 #include "llbutton.h"
 #include "lluictrlfactory.h"
-#include "llgl.h"
 #include "llpointer.h"
 #include "llimage.h"
 #include "llmousehandler.h"

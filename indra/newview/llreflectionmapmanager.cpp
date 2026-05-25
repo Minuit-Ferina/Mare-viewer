@@ -35,7 +35,7 @@
 #include "llviewerregion.h"
 #include "pipeline.h"
 #include "llviewershadermgr.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llviewercontrol.h"
 #include "llenvironment.h"
 #include "llstartup.h"
@@ -50,6 +50,8 @@
 #include "zlib.h"
 #define TINYEXR_IMPLEMENTATION
 #include "tinyexr/tinyexr.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 #if LL_WINDOWS
 #pragma warning (pop)
 #endif
@@ -73,20 +75,36 @@ void load_exr(const std::string& filename)
         U32 texName = 0;
         LLImageGL::generateTextures(1, &texName);
 
-        gEXRImage = new LLImageGL(texName, 4, GL_TEXTURE_2D, GL_RGB16F, GL_RGB16F, GL_FLOAT, LLTexUnit::TAM_CLAMP);
+        gEXRImage = new LLImageGL(
+            texName,
+            4,
+            LLRenderTextureTarget::Texture2D,
+            LLRenderTextureFormat::RGB16F,
+            LLRenderPixelFormat::RGB,
+            LLRenderPixelType::Float32,
+            LLTexUnit::TAM_CLAMP);
         gEXRImage->setHasMipMaps(true);
         gEXRImage->setUseMipMaps(true);
         gEXRImage->setFilteringOption(LLTexUnit::TFO_TRILINEAR);
 
         gGL.getTexUnit(0)->bind(gEXRImage);
 
-        LLGLContainment::setTextureImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGBA, GL_FLOAT, out);
+        getOpenGLRenderBackend().setTextureImage2D(
+            LLRenderTextureTarget::Texture2D,
+            0,
+            LLRenderTextureFormat::RGB16F,
+            width,
+            height,
+            0,
+            LLRenderPixelFormat::RGBA,
+            LLRenderPixelType::Float32,
+            out);
 
-        LLImageGLMemory::alloc_tex_image(width, height, GL_RGB16F, 1);
+        LLImageGLMemory::alloc_tex_image(width, height, LLRenderTextureFormat::RGB16F, 1);
 
         free(out); // release memory of image data
 
-        LLGLContainment::generateTextureMipmap(GL_TEXTURE_2D);
+        getOpenGLRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
 
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
@@ -275,7 +293,7 @@ void LLReflectionMapManager::update()
 
     if (!mRenderTarget.isComplete())
     {
-        U32 color_fmt = render_hdr ? GL_R11F_G11F_B10F : GL_RGB8;
+        LLRenderTextureFormat color_fmt = render_hdr ? LLRenderTextureFormat::R11G11B10F : LLRenderTextureFormat::RGB8;
         U32 targetRes = mProbeResolution * 4; // super sample
         mRenderTarget.allocate(targetRes, targetRes, color_fmt, true);
     }
@@ -288,7 +306,7 @@ void LLReflectionMapManager::update()
         mMipChain.resize(count);
         for (U32 i = 0; i < count; ++i)
         {
-            mMipChain[i].allocate(res, res, render_hdr ? GL_R11F_G11F_B10F : GL_RGB8);
+            mMipChain[i].allocate(res, res, render_hdr ? LLRenderTextureFormat::R11G11B10F : LLRenderTextureFormat::RGB8);
             res /= 2;
         }
     }
@@ -322,7 +340,6 @@ void LLReflectionMapManager::update()
     {
         return;
     }
-
 
     bool did_update = false;
 
@@ -717,7 +734,6 @@ void LLReflectionMapManager::deleteProbe(U32 i)
     mProbes.erase(mProbes.begin() + i);
 }
 
-
 void LLReflectionMapManager::doProbeUpdate()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DISPLAY;
@@ -804,9 +820,9 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
     }
 
     gGL.setColorMask(true, true);
-    LLGLDepthTest depth(GL_FALSE, GL_FALSE);
-    LLGLDisable cull(GL_CULL_FACE);
-    LLGLDisable blend(GL_BLEND);
+    LLGLDepthTest depth(false, false);
+    LLGLDisable cull(LLRenderCapability::CullFace);
+    LLGLDisable blend(LLRenderCapability::Blend);
 
     // downsample to placeholder map
     {
@@ -851,7 +867,6 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
             screen_rt->flush();
         }
 
-
         S32 mips = (S32)(log2((F32)mProbeResolution) + 0.5f);
 
         gReflectionMipProgram.bind();
@@ -870,7 +885,6 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
                 gGL.getTexUnit(diffuseChannel)->bind(&(mMipChain[i - 1]));
             }
 
-
             gReflectionMipProgram.uniform1f(resScale, 1.f/(mProbeResolution*2));
 
             gPipeline.mScreenTriangleVB->setBuffer();
@@ -878,15 +892,15 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
 
             res /= 2;
 
-            GLint mip = i - (static_cast<GLint>(mMipChain.size()) - mips);
+            S32 mip = i - (static_cast<S32>(mMipChain.size()) - mips);
 
             if (mip >= 0)
             {
                 LL_PROFILE_GPU_ZONE("probe mip copy");
                 mTexture->bind(0);
                 // Copy from the current framebuffer into the selected cube-array mip and face.
-                LLGLContainment::copyTextureSubImage3D(
-                    GL_TEXTURE_CUBE_MAP_ARRAY,
+                getOpenGLRenderBackend().copyTextureSubImage3D(
+                    LLRenderTextureTarget::TextureCubeMapArray,
                     mip,
                     0,
                     0,
@@ -939,7 +953,7 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
                 static LLStaticHashedString sWidth("u_width");
 
                 gRadianceGenProgram.uniform1f(sRoughness, (F32)i / (F32)(mMipChain.size() - 1));
-                gRadianceGenProgram.uniform1f(sMipLevel, (GLfloat)i);
+                gRadianceGenProgram.uniform1f(sMipLevel, (F32)i);
                 gRadianceGenProgram.uniform1i(sWidth, mProbeResolution);
 
                 for (int cf = 0; cf < 6; ++cf)
@@ -953,8 +967,8 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
 
                     mVertexBuffer->drawArrays(gGL.TRIANGLE_STRIP, 0, 4);
 
-                    LLGLContainment::copyTextureSubImage3D(
-                        GL_TEXTURE_CUBE_MAP_ARRAY,
+                    getOpenGLRenderBackend().copyTextureSubImage3D(
+                        LLRenderTextureTarget::TextureCubeMapArray,
                         i,
                         0,
                         0,
@@ -968,7 +982,7 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
                 if (i != mMipChain.size() - 1)
                 {
                     res /= 2;
-                    LLGLContainment::setViewport(0, 0, res, res);
+                    getOpenGLRenderBackend().setViewport(0, 0, res, res);
                 }
             }
 
@@ -999,7 +1013,7 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
             {
                 int i = start_mip;
                 LL_PROFILE_GPU_ZONE("probe irradiance gen");
-                LLGLContainment::setViewport(0, 0, mMipChain[i].getWidth(), mMipChain[i].getHeight());
+                getOpenGLRenderBackend().setViewport(0, 0, mMipChain[i].getWidth(), mMipChain[i].getHeight());
                 for (int cf = 0; cf < 6; ++cf)
                 { // for each cube face
                     LLCoordFrame frame;
@@ -1013,8 +1027,8 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
 
                     S32 res = mMipChain[i].getWidth();
                     mIrradianceMaps->bind(channel);
-                    LLGLContainment::copyTextureSubImage3D(
-                        GL_TEXTURE_CUBE_MAP_ARRAY,
+                    getOpenGLRenderBackend().copyTextureSubImage3D(
+                        LLRenderTextureTarget::TextureCubeMapArray,
                         i - start_mip,
                         0,
                         0,
@@ -1107,7 +1121,6 @@ void LLReflectionMapManager::updateUniforms()
 
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DISPLAY;
     LL_PROFILE_GPU_ZONE("rmmu - uniforms")
-
 
     mReflectionMaps.resize(mReflectionProbeCount);
     getReflectionMaps(mReflectionMaps);
@@ -1233,7 +1246,7 @@ void LLReflectionMapManager::updateUniforms()
                     break;
                 }
 
-                GLint idx = neighbor->mProbeIndex;
+                S32 idx = neighbor->mProbeIndex;
                 if (idx == -1 || neighbor->mOccluded || neighbor->mCubeIndex == -1)
                 {
                     continue;
@@ -1266,7 +1279,6 @@ void LLReflectionMapManager::updateUniforms()
                 nc += 4 - (nc % 4);
             }
         }
-
 
         count++;
     }
@@ -1310,18 +1322,18 @@ void LLReflectionMapManager::updateUniforms()
     //copy mProbeData into uniform buffer object
     if (mUBO == 0)
     {
-        LLGLContainment::generateBufferObjects(1, &mUBO);
+        getOpenGLRenderBackend().generateBuffers(1, &mUBO);
     }
 
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("rmmsu - update buffer");
-        LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, mUBO);
-        LLGLContainment::allocateBufferObjectStorage(
-            GL_UNIFORM_BUFFER,
+        getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mUBO);
+        getOpenGLRenderBackend().allocateBufferStorage(
+            LLRenderBufferTarget::Uniform,
             sizeof(ReflectionProbeData),
             &mProbeData,
-            GL_STREAM_DRAW);
-        LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, 0);
+            LLRenderBufferUsage::StreamDraw);
+        getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
     }
 
 #if 0
@@ -1351,9 +1363,11 @@ void LLReflectionMapManager::setUniforms()
     {
         updateUniforms();
     }
-    LLGLContainment::bindBufferBase(GL_UNIFORM_BUFFER, LLGLSLShader::UB_REFLECTION_PROBES, mUBO);
+    getOpenGLRenderBackend().bindBufferBase(
+        LLRenderBufferTarget::Uniform,
+        LLGLSLShader::UB_REFLECTION_PROBES,
+        mUBO);
 }
-
 
 void renderReflectionProbe(LLReflectionMap* probe)
 {
@@ -1578,7 +1592,7 @@ void LLReflectionMapManager::cleanup()
     mDefaultProbe = nullptr;
     mUpdatingProbe = nullptr;
 
-    LLGLContainment::deleteBufferObjects(1, &mUBO);
+    getOpenGLRenderBackend().deleteBuffers(1, &mUBO);
     mUBO = 0;
 
     // note: also called on teleport (not just shutdown), so make sure we're in a good "starting" state

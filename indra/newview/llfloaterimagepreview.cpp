@@ -36,7 +36,7 @@
 
 #include "llagent.h"
 #include "llagentbenefits.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llbutton.h"
 #include "llcheckboxctrl.h"
 #include "llcombobox.h"
@@ -68,7 +68,8 @@
 #include "llviewercontrol.h"
 #include "lltrans.h"
 #include "llimagedimensionsinfo.h"
-
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 namespace
 {
@@ -173,7 +174,6 @@ bool LLFloaterImagePreview::postBuild()
     return true;
 }
 
-
 //-----------------------------------------------------------------------------
 // getExpectedUploadCost()
 //-----------------------------------------------------------------------------
@@ -252,7 +252,6 @@ void    LLFloaterImagePreview::onPreviewTypeCommit(LLUICtrl* ctrl, void* userdat
     fp->mAvatarPreview->refresh();
     fp->mSculptedPreview->refresh();
 }
-
 
 //-----------------------------------------------------------------------------
 // clearAllPreviewTextures()
@@ -476,7 +475,6 @@ std::string LLFloaterImagePreview::getUploadDescription()
 {
     return get_floater_child<LLUICtrl>(this, "description_form")->getValue().asString();
 }
-
 
 //-----------------------------------------------------------------------------
 // loadImage()
@@ -756,7 +754,6 @@ void LLFloaterImagePreview::onMouseCaptureLostImagePreview(LLMouseHandler* handl
     gViewerWindow->showCursor();
 }
 
-
 //-----------------------------------------------------------------------------
 // LLImagePreviewAvatar
 //-----------------------------------------------------------------------------
@@ -775,7 +772,6 @@ LLImagePreviewAvatar::LLImagePreviewAvatar(S32 width, S32 height) : LLViewerDyna
 
     mTextureName = 0;
 }
-
 
 LLImagePreviewAvatar::~LLImagePreviewAvatar()
 {
@@ -911,9 +907,9 @@ void LLImagePreviewAvatar::renderPreviewAvatar(LLVOAvatar* avatarp)
 
     if (avatarp->mDrawable.notNull())
     {
-        LLGLDepthTest gls_depth(GL_TRUE, GL_TRUE);
+        LLGLDepthTest gls_depth(true, true);
         // make sure alpha=0 shows avatar material color
-        LLGLDisable no_blend(GL_BLEND);
+        LLGLDisable no_blend(LLRenderCapability::Blend);
 
         LLFace* face = avatarp->mDrawable->getFace(0);
         if (face)
@@ -957,7 +953,6 @@ void LLImagePreviewAvatar::pan(F32 right, F32 up)
     mCameraOffset.mV[VZ] = llclamp(mCameraOffset.mV[VZ] + up * mCameraDistance / mCameraZoom, -1.f, 1.f);
 }
 
-
 //-----------------------------------------------------------------------------
 // LLImagePreviewSculpted
 //-----------------------------------------------------------------------------
@@ -978,7 +973,6 @@ LLImagePreviewSculpted::LLImagePreviewSculpted(S32 width, S32 height) : LLViewer
     F32 const HIGHEST_LOD = 4.0f;
     mVolume = new LLVolume(volume_params,  HIGHEST_LOD);
 }
-
 
 LLImagePreviewSculpted::~LLImagePreviewSculpted()
 {
@@ -1053,7 +1047,6 @@ void LLImagePreviewSculpted::setPreviewTarget(LLImageRaw* imagep, F32 distance)
     mVertexBuffer->unmapBuffer();
 }
 
-
 //-----------------------------------------------------------------------------
 // render()
 //-----------------------------------------------------------------------------
@@ -1061,9 +1054,9 @@ bool LLImagePreviewSculpted::render()
 {
     mNeedsUpdate = false;
     LLGLSUIDefault def;
-    LLGLDisable no_blend(GL_BLEND);
-    LLGLEnable cull(GL_CULL_FACE);
-    LLGLDepthTest depth(GL_TRUE);
+    LLGLDisable no_blend(LLRenderCapability::Blend);
+    LLGLEnable cull(LLRenderCapability::CullFace);
+    LLGLDepthTest depth(true);
 
     gGL.matrixMode(LLRender::MM_PROJECTION);
     gGL.pushMatrix();
@@ -1082,7 +1075,7 @@ bool LLImagePreviewSculpted::render()
     gGL.matrixMode(LLRender::MM_MODELVIEW);
     gGL.popMatrix();
 
-    LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
+    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
     applyPreviewCamera();
     renderSculptedVolume();
 

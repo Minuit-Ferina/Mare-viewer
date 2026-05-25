@@ -30,10 +30,12 @@
 #include "pipeline.h"
 #include "llviewercontrol.h"
 #include "llappviewer.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llglslshader.h"
 #include "llviewershadermgr.h"
 #include "lldrawpoolwater.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 //-----------------------------------------------------------------------------------
 //static variables definitions
@@ -135,12 +137,10 @@ LLVertexBuffer* ll_create_cube_vb(U32 type_mask)
     return ret;
 }
 
-
 #define LL_TRACK_PENDING_OCCLUSION_QUERIES 0
 
 const F32 SG_OCCLUSION_FUDGE = 0.25f;
 #define SG_DISCARD_TOLERANCE 0.01f
-
 
 S32 AABBSphereIntersect(const LLVector3& min, const LLVector3& max, const LLVector3 &origin, const F32 &rad)
 {
@@ -180,7 +180,6 @@ S32 AABBSphereIntersectR2(const LLVector3& min, const LLVector3& max, const LLVe
     return 1;
 }
 
-
 S32 AABBSphereIntersect(const LLVector4a& min, const LLVector4a& max, const LLVector3 &origin, const F32 &rad)
 {
     return AABBSphereIntersectR2(min, max, origin, rad*rad);
@@ -205,7 +204,6 @@ S32 AABBSphereIntersectR2(const LLVector4a& min, const LLVector4a& max, const LL
             return 2;
         }
     }
-
 
     for (U32 i = 0; i < 3; i++)
     {
@@ -793,7 +791,7 @@ void LLViewerOctreeGroup::checkStates()
 //-------------------------------------------------------------------------------------------
 std::set<U32> LLOcclusionCullingGroup::sPendingQueries;
 
-static std::queue<GLuint> sFreeQueries;
+static std::queue<U32> sFreeQueries;
 
 #define QUERY_POOL_SIZE 1024
 
@@ -804,8 +802,8 @@ U32 LLOcclusionCullingGroup::getNewOcclusionQueryObjectName()
     if (sFreeQueries.empty())
     {
         //seed 1024 query names into the free query pool
-        GLuint queries[1024];
-        LLGLContainment::generateQueries(1024, queries);
+        U32 queries[1024];
+        getOpenGLRenderBackend().generateQueries(1024, queries);
         for (int i = 0; i < 1024; ++i)
         {
             sFreeQueries.push(queries[i]);
@@ -813,12 +811,12 @@ U32 LLOcclusionCullingGroup::getNewOcclusionQueryObjectName()
     }
 
     // pull from pool
-    GLuint ret = sFreeQueries.front();
+    U32 ret = sFreeQueries.front();
     sFreeQueries.pop();
     return ret;
 }
 
-void LLOcclusionCullingGroup::releaseOcclusionQueryObjectName(GLuint name)
+void LLOcclusionCullingGroup::releaseOcclusionQueryObjectName(U32 name)
 {
     if (name != 0)
     {
@@ -860,7 +858,6 @@ public:
         }
     }
 };
-
 
 LLOcclusionCullingGroup::LLOcclusionCullingGroup(OctreeNode* node, LLViewerOctreePartition* part) :
     LLViewerOctreeGroup(node),
@@ -1129,12 +1126,12 @@ void LLOcclusionCullingGroup::checkOcclusion()
         }
         else
         {
-            GLuint available;
+            U32 available;
             {
                 LL_PROFILE_ZONE_NAMED_CATEGORY_OCTREE("co - query available");
-                LLGLContainment::getQueryObjectUnsignedInteger(
+                getOpenGLRenderBackend().getQueryObjectUnsignedInteger(
                     mOcclusionQuery[LLViewerCamera::sCurCameraID],
-                    GL_QUERY_RESULT_AVAILABLE,
+                    LLRenderQueryParameter::ResultAvailable,
                     &available);
                 mOcclusionCheckCount[LLViewerCamera::sCurCameraID]++;
             }
@@ -1144,12 +1141,12 @@ void LLOcclusionCullingGroup::checkOcclusion()
             if (available || mOcclusionCheckCount[LLViewerCamera::sCurCameraID] > occlusion_timeout)
             {
                 mOcclusionCheckCount[LLViewerCamera::sCurCameraID] = 0;
-                GLuint query_result;    // Will be # samples drawn, or a boolean depending on mHasOcclusionQuery2 (both are type GLuint)
+                U32 query_result;    // Will be # samples drawn, or a boolean depending on mHasOcclusionQuery2.
                 {
                     LL_PROFILE_ZONE_NAMED_CATEGORY_OCTREE("co - query result");
-                    LLGLContainment::getQueryObjectUnsignedInteger(
+                    getOpenGLRenderBackend().getQueryObjectUnsignedInteger(
                         mOcclusionQuery[LLViewerCamera::sCurCameraID],
-                        GL_QUERY_RESULT,
+                        LLRenderQueryParameter::Result,
                         &query_result);
                 }
 #if LL_TRACK_PENDING_OCCLUSION_QUERIES
@@ -1222,9 +1219,11 @@ void LLOcclusionCullingGroup::doOcclusion(LLCamera* camera, const LLVector4a* sh
                     bool const use_depth_clamp = (mSpatialPartition->mDrawableType == LLPipeline::RENDER_TYPE_WATER ||
                                                 mSpatialPartition->mDrawableType == LLPipeline::RENDER_TYPE_VOIDWATER);
 
-                    LLGLEnable clamp(use_depth_clamp ? GL_DEPTH_CLAMP : 0);
+                    LLGLState clamp(LLRenderCapability::DepthClamp, use_depth_clamp ? LLGLState::ENABLED_STATE : LLGLState::CURRENT_STATE);
 
-                    U32 mode = gGLManager.mGLVersion >= 3.3f ? GL_ANY_SAMPLES_PASSED : GL_SAMPLES_PASSED;
+                    LLRenderQueryTarget mode = gGLManager.mGLVersion >= 3.3f ?
+                        LLRenderQueryTarget::AnySamplesPassed :
+                        LLRenderQueryTarget::SamplesPassed;
 
 #if LL_TRACK_PENDING_OCCLUSION_QUERIES
                     sPendingQueries.insert(mOcclusionQuery[LLViewerCamera::sCurCameraID]);
@@ -1243,7 +1242,9 @@ void LLOcclusionCullingGroup::doOcclusion(LLCamera* camera, const LLVector4a* sh
                             //get an occlusion query that hasn't been used in awhile
                             releaseOcclusionQueryObjectName(mOcclusionQuery[LLViewerCamera::sCurCameraID]);
                             mOcclusionQuery[LLViewerCamera::sCurCameraID] = getNewOcclusionQueryObjectName();
-                            LLGLContainment::beginQuery(mode, mOcclusionQuery[LLViewerCamera::sCurCameraID]);
+                            getOpenGLRenderBackend().beginQuery(
+                                mode,
+                                mOcclusionQuery[LLViewerCamera::sCurCameraID]);
                         }
 
                         LLGLSLShader* shader = LLGLSLShader::sCurBoundShaderPtr;
@@ -1285,7 +1286,7 @@ void LLOcclusionCullingGroup::doOcclusion(LLCamera* camera, const LLVector4a* sh
 
                         {
                             LL_PROFILE_ZONE_NAMED("end occlusion query");
-                            LLGLContainment::endQuery(mode);
+                            getOpenGLRenderBackend().endQuery(mode);
                         }
                     }
                 }
@@ -1335,7 +1336,6 @@ bool LLViewerOctreePartition::isOcclusionEnabled()
 {
     return mOcclusionEnabled || LLPipeline::sUseOcclusion > 2;
 }
-
 
 //-----------------------------------------------------------------------------------
 //class LLViewerOctreeCull definitions

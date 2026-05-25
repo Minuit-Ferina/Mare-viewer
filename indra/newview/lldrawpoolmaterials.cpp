@@ -31,7 +31,7 @@
 #include "llviewershadermgr.h"
 #include "pipeline.h"
 #include "llglcommonfunc.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llvoavatar.h"
 
 LLDrawPoolMaterials::LLDrawPoolMaterials()
@@ -149,14 +149,14 @@ void LLDrawPoolMaterials::renderDeferred(S32 pass)
     F32 lastMinimumAlpha = 0.f;
     LLVector4 lastSpecular = LLVector4(0, 0, 0, 0);
 
-    GLint intensity = mShader->getUniformLocation(LLShaderMgr::ENVIRONMENT_INTENSITY);
-    GLint brightness = mShader->getUniformLocation(LLShaderMgr::EMISSIVE_BRIGHTNESS);
-    GLint minAlpha = mShader->getUniformLocation(LLShaderMgr::MINIMUM_ALPHA);
-    GLint specular = mShader->getUniformLocation(LLShaderMgr::SPECULAR_COLOR);
+    S32 intensity = mShader->getUniformLocation(LLShaderMgr::ENVIRONMENT_INTENSITY);
+    S32 brightness = mShader->getUniformLocation(LLShaderMgr::EMISSIVE_BRIGHTNESS);
+    S32 minAlpha = mShader->getUniformLocation(LLShaderMgr::MINIMUM_ALPHA);
+    S32 specular = mShader->getUniformLocation(LLShaderMgr::SPECULAR_COLOR);
 
-    GLint diffuseChannel = mShader->enableTexture(LLShaderMgr::DIFFUSE_MAP);
-    GLint specChannel = mShader->enableTexture(LLShaderMgr::SPECULAR_MAP);
-    GLint normChannel = mShader->enableTexture(LLShaderMgr::BUMP_MAP);
+    S32 diffuseChannel = mShader->enableTexture(LLShaderMgr::DIFFUSE_MAP);
+    S32 specChannel = mShader->enableTexture(LLShaderMgr::SPECULAR_MAP);
+    S32 normChannel = mShader->enableTexture(LLShaderMgr::BUMP_MAP);
 
     LLTexture* lastNormalMap = nullptr;
     LLTexture* lastSpecMap = nullptr;
@@ -166,22 +166,22 @@ void LLDrawPoolMaterials::renderDeferred(S32 pass)
 
     if (intensity > -1)
     {
-        LLGLContainment::setUniformFloat(intensity, lastIntensity);
+        getOpenGLRenderBackend().setUniformFloat(intensity, lastIntensity);
     }
 
     if (brightness > -1)
     {
-        LLGLContainment::setUniformFloat(brightness, lastFullbright);
+        getOpenGLRenderBackend().setUniformFloat(brightness, lastFullbright);
     }
 
     if (minAlpha > -1)
     {
-        LLGLContainment::setUniformFloat(minAlpha, lastMinimumAlpha);
+        getOpenGLRenderBackend().setUniformFloat(minAlpha, lastMinimumAlpha);
     }
 
     if (specular > -1)
     {
-        LLGLContainment::setUniformFloatVector4(specular, 1, lastSpecular.mV);
+        getOpenGLRenderBackend().setUniformFloatVector4(specular, 1, lastSpecular.mV);
     }
 
     const LLVOAvatar* lastAvatar = nullptr;
@@ -198,26 +198,26 @@ void LLDrawPoolMaterials::renderDeferred(S32 pass)
         if (specular > -1 && params.mSpecColor != lastSpecular)
         {
             lastSpecular = params.mSpecColor;
-            LLGLContainment::setUniformFloatVector4(specular, 1, lastSpecular.mV);
+            getOpenGLRenderBackend().setUniformFloatVector4(specular, 1, lastSpecular.mV);
         }
 
         if (intensity != -1 && lastIntensity != params.mEnvIntensity)
         {
             lastIntensity = params.mEnvIntensity;
-            LLGLContainment::setUniformFloat(intensity, lastIntensity);
+            getOpenGLRenderBackend().setUniformFloat(intensity, lastIntensity);
         }
 
         if (minAlpha > -1 && lastMinimumAlpha != params.mAlphaMaskCutoff)
         {
             lastMinimumAlpha = params.mAlphaMaskCutoff;
-            LLGLContainment::setUniformFloat(minAlpha, lastMinimumAlpha);
+            getOpenGLRenderBackend().setUniformFloat(minAlpha, lastMinimumAlpha);
         }
 
         F32 fullbright = params.mFullbright ? 1.f : 0.f;
         if (brightness > -1 && lastFullbright != fullbright)
         {
             lastFullbright = fullbright;
-            LLGLContainment::setUniformFloat(brightness, lastFullbright);
+            getOpenGLRenderBackend().setUniformFloat(brightness, lastFullbright);
         }
 
         if (normChannel > -1 && params.mNormalMap != lastNormalMap)
@@ -266,7 +266,7 @@ void LLDrawPoolMaterials::renderDeferred(S32 pass)
             gGL.getTexUnit(0)->activate();
             gGL.matrixMode(LLRender::MM_TEXTURE);
 
-            gGL.loadMatrix((GLfloat*)params.mTextureMatrix->mMatrix);
+            gGL.loadMatrix((F32*)params.mTextureMatrix->mMatrix);
             gPipeline.mTextureMatrixOps++;
 
             tex_setup = true;

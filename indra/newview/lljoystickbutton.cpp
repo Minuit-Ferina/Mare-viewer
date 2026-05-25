@@ -42,7 +42,7 @@
 #include "llviewertexturelist.h"
 #include "llviewerwindow.h"
 #include "llmoveview.h"
-
+#include "llrenderstate.h"
 
 static LLDefaultChildRegistry::Register<LLJoystickAgentSlide> r1("joystick_slide");
 static LLDefaultChildRegistry::Register<LLJoystickAgentTurn> r2("joystick_turn");
@@ -52,7 +52,6 @@ static LLDefaultChildRegistry::Register<LLJoystickQuaternion> r6("joystick_quat"
 // MARE movement joysticks (oval + crosshair visuals wired to avatar movement)
 static LLDefaultChildRegistry::Register<LLJoystickMoveForwardBack> r7("joystick_move_fwd");
 static LLDefaultChildRegistry::Register<LLJoystickMoveStrafe>      r8("joystick_move_strafe");
-
 
 const F32 NUDGE_TIME = 0.25f;       // in seconds
 const F32 ORBIT_NUDGE_RATE = 0.05f; // fraction of normal speed
@@ -71,7 +70,6 @@ void QuadrantNames::declareValues()
     declare("right", JQ_RIGHT);
 }
 
-
 LLJoystick::LLJoystick(const LLJoystick::Params& p)
 :   LLButton(p),
     mInitialOffset(0, 0),
@@ -87,7 +85,6 @@ LLJoystick::LLJoystick(const LLJoystick::Params& p)
 {
     setHeldDownCallback(&LLJoystick::onBtnHeldDown, this);
 }
-
 
 void LLJoystick::updateSlop()
 {
@@ -178,7 +175,6 @@ bool LLJoystick::handleMouseDown(S32 x, S32 y, MASK mask)
     return handles;
 }
 
-
 bool LLJoystick::handleMouseUp(S32 x, S32 y, MASK mask)
 {
     // LL_INFOS() << "joystick mouse up " << x << ", " << y << LL_ENDL;
@@ -192,7 +188,6 @@ bool LLJoystick::handleMouseUp(S32 x, S32 y, MASK mask)
 
     return LLButton::handleMouseUp(x, y, mask);
 }
-
 
 bool LLJoystick::handleHover(S32 x, S32 y, MASK mask)
 {
@@ -242,7 +237,6 @@ EJoystickQuadrant LLJoystick::selectQuadrant(LLXMLNodePtr node)
     return quadrant;
 }
 
-
 std::string LLJoystick::nameFromQuadrant(EJoystickQuadrant  quadrant)
 {
     if (quadrant == JQ_ORIGIN)      return std::string("origin");
@@ -252,7 +246,6 @@ std::string LLJoystick::nameFromQuadrant(EJoystickQuadrant  quadrant)
     else if (quadrant == JQ_RIGHT)  return std::string("right");
     else return std::string();
 }
-
 
 EJoystickQuadrant LLJoystick::quadrantFromName(const std::string& sQuadrant)
 {
@@ -282,7 +275,6 @@ EJoystickQuadrant LLJoystick::quadrantFromName(const std::string& sQuadrant)
     return quadrant;
 }
 
-
 //-------------------------------------------------------------------------------
 // LLJoystickAgentTurn
 //-------------------------------------------------------------------------------
@@ -306,7 +298,6 @@ void LLJoystickAgentTurn::onHeldDown()
         m = -1;
     }
     gAgent.moveYaw(-LLFloaterMove::getYawRate(time)*m);
-
 
     // handle forward/back movement
     if (dy > mVertSlopFar)
@@ -414,7 +405,6 @@ void LLJoystickAgentSlide::onHeldDown()
     }
 }
 
-
 //-------------------------------------------------------------------------------
 // LLJoystickCameraRotate
 //-------------------------------------------------------------------------------
@@ -430,7 +420,6 @@ LLJoystickCameraRotate::LLJoystickCameraRotate(const LLJoystickCameraRotate::Par
     mCenterImageName = "Cam_Rotate_Center";
 }
 
-
 void LLJoystickCameraRotate::updateSlop()
 {
     // do the initial offset calculation based on mousedown location
@@ -444,7 +433,6 @@ void LLJoystickCameraRotate::updateSlop()
 
     return;
 }
-
 
 bool LLJoystickCameraRotate::handleMouseDown(S32 x, S32 y, MASK mask)
 {
@@ -568,7 +556,6 @@ F32 LLJoystickCameraRotate::getOrbitRate()
     }
 }
 
-
 // Only used for drawing
 void LLJoystickCameraRotate::setToggleState( bool left, bool top, bool right, bool bottom )
 {
@@ -671,8 +658,6 @@ void LLJoystickCameraRotate::drawRotatedImage( LLPointer<LLUIImage> image, S32 r
     gGL.end();
 }
 
-
-
 //-------------------------------------------------------------------------------
 // LLJoystickCameraTrack
 //-------------------------------------------------------------------------------
@@ -687,7 +672,6 @@ LLJoystickCameraTrack::LLJoystickCameraTrack(const LLJoystickCameraTrack::Params
 {
     mCenterImageName = "Cam_Tracking_Center";
 }
-
 
 void LLJoystickCameraTrack::onHeldDown()
 {

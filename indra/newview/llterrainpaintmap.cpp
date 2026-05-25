@@ -29,7 +29,7 @@
 #include "llviewerprecompiledheaders.h"
 
 // library includes
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llglslshader.h"
 #include "llrendertarget.h"
 #include "llvertexbuffer.h"
@@ -42,6 +42,8 @@
 #include "llviewerregion.h"
 #include "llviewershadermgr.h"
 #include "llviewertexture.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 // static
 bool LLTerrainPaintMap::bakeHeightNoiseIntoPBRPaintMapRGB(const LLViewerRegion& region, LLViewerTexture& tex)
@@ -49,7 +51,7 @@ bool LLTerrainPaintMap::bakeHeightNoiseIntoPBRPaintMapRGB(const LLViewerRegion& 
     llassert(tex.getComponents() == 3);
     llassert(tex.getWidth() > 0 && tex.getHeight() > 0);
     llassert(tex.getWidth() == tex.getHeight());
-    llassert(tex.getPrimaryFormat() == GL_RGB);
+    llassert(tex.getPrimaryPixelFormat() == LLRenderPixelFormat::RGB);
     llassert(tex.getGLTexture());
 
     const LLSurface& surface = region.getLand();
@@ -78,7 +80,7 @@ bool LLTerrainPaintMap::bakeHeightNoiseIntoPBRPaintMapRGB(const LLViewerRegion& 
     // Use a scratch render target because its dimensions may exceed the standard bake target, and this is a one-off bake
     LLRenderTarget scratch_target;
     const S32 dim = llmin(tex.getWidth(), tex.getHeight());
-    scratch_target.allocate(dim, dim, GL_RGB, false, LLTexUnit::eTextureType::TT_TEXTURE,
+    scratch_target.allocate(dim, dim, LLRenderTextureFormat::RGB, false, LLTexUnit::eTextureType::TT_TEXTURE,
                                    LLTexUnit::eTextureMipGeneration::TMG_NONE);
     if (!scratch_target.isComplete())
     {
@@ -90,7 +92,7 @@ bool LLTerrainPaintMap::bakeHeightNoiseIntoPBRPaintMapRGB(const LLViewerRegion& 
     stop_glerror();
 
     scratch_target.bindTarget();
-    LLGLContainment::setClearColor(0, 0, 0, 0);
+    getOpenGLRenderBackend().setClearColor(0, 0, 0, 0);
     scratch_target.clear();
 
     // Render terrain heightmap to paint map via shader
@@ -110,10 +112,10 @@ bool LLTerrainPaintMap::bakeHeightNoiseIntoPBRPaintMapRGB(const LLViewerRegion& 
     camera.lookAt(camera_origin, region_center, LLVector3::y_axis);
     camera.setAspect(F32(scratch_target.getWidth()) / F32(scratch_target.getHeight()));
     const LLRect texture_rect(0, scratch_target.getHeight(), scratch_target.getWidth(), 0);
-    LLGLContainment::setViewport(texture_rect.mLeft, texture_rect.mBottom, texture_rect.getWidth(), texture_rect.getHeight());
+    getOpenGLRenderBackend().setViewport(texture_rect.mLeft, texture_rect.mBottom, texture_rect.getWidth(), texture_rect.getHeight());
     // Manually get modelview matrix from camera orientation.
-    glm::mat4 modelview(glm::make_mat4((GLfloat *) OGL_TO_CFR_ROTATION));
-    GLfloat ogl_matrix[16];
+    glm::mat4 modelview(glm::make_mat4((F32 *) OGL_TO_CFR_ROTATION));
+    F32 ogl_matrix[16];
     camera.getOpenGLTransform(ogl_matrix);
     modelview *= glm::make_mat4(ogl_matrix);
     gGL.matrixMode(LLRender::MM_MODELVIEW);
@@ -232,10 +234,10 @@ bool LLTerrainPaintMap::bakeHeightNoiseIntoPBRPaintMapRGB(const LLViewerRegion& 
         LLGLSLShader& shader = gPBRTerrainBakeProgram;
         shader.bind();
 
-        LLGLDisable stencil(GL_STENCIL_TEST);
-        LLGLDisable scissor(GL_SCISSOR_TEST);
-        LLGLEnable cull_face(GL_CULL_FACE);
-        LLGLDepthTest depth_test(GL_FALSE, GL_FALSE, GL_ALWAYS);
+        LLGLDisable stencil(LLRenderCapability::StencilTest);
+        LLGLDisable scissor(LLRenderCapability::ScissorTest);
+        LLGLEnable cull_face(LLRenderCapability::CullFace);
+        LLGLDepthTest depth_test(false, false, LLRenderDepthFunction::Always);
 
         S32 alpha_ramp = shader.enableTexture(LLViewerShaderMgr::TERRAIN_ALPHARAMP);
         LLPointer<LLViewerTexture> alpha_ramp_texture = LLViewerTextureManager::getFetchedTexture(IMG_ALPHA_GRAD_2D);
@@ -276,7 +278,7 @@ bool LLTerrainPaintMap::bakeHeightNoiseIntoPBRPaintMapRGB(const LLViewerRegion& 
     {
         LL_WARNS() << "Failed to copy framebuffer to paintmap" << LL_ENDL;
     }
-    LLGLContainment::generateTextureMipmap(GL_TEXTURE_2D);
+    getOpenGLRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
     stop_glerror();
 
     scratch_target.flush();

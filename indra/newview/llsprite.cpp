@@ -33,8 +33,6 @@
 
 #include "llviewerprecompiledheaders.h"
 
-#include <llglheaders.h>
-
 #include "llsprite.h"
 
 #include "math.h"
@@ -63,7 +61,7 @@ LLSprite::LLSprite(const LLUUID &image_uuid) :
     mFollow(true),
     mUseCameraUp(true),
     mColor(0.5f, 0.5f, 0.5f, 1.0f),
-    mTexMode(GL_REPLACE)
+    mTexMode(LLTexUnit::TBO_REPLACE)
 {
     setSize(1.0f, 1.0f);
 }
@@ -246,12 +244,10 @@ void LLSprite::setPosition(const LLVector3 &position)
     mPosition = position;
 }
 
-
 void LLSprite::setPitch(const F32 pitch)
 {
     mPitch = pitch;
 }
-
 
 void LLSprite::setSize(const F32 width, const F32 height)
 {
@@ -276,7 +272,7 @@ void LLSprite::setUseCameraUp(const bool use_up)
     mUseCameraUp = use_up;
 }
 
-void LLSprite::setTexMode(const LLGLenum mode)
+void LLSprite::setTexMode(const U32 mode)
 {
     mTexMode = mode;
 }
@@ -290,13 +286,4 @@ void LLSprite::setColor(const F32 r, const F32 g, const F32 b, const F32 a)
 {
     mColor.setVec(r, g, b, a);
 }
-
-
-
-
-
-
-
-
-
 

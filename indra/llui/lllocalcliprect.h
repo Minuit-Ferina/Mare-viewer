@@ -29,6 +29,7 @@
 
 #include <memory>
 #include <stack>
+#include "llrenderstate.h"
 
 class LLGLState;
 

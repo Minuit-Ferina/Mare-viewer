@@ -47,12 +47,12 @@ class LLVOCacheEntry;
 const U32 CLOSE_BIN_SIZE = 10;
 const U32 NUM_BINS = 128;
 
-// GL name = position in object list + GL_NAME_INDEX_OFFSET so that
+// Pick name = position in object list + LL_PICK_NAME_INDEX_OFFSET so that
 // we can have special numbers like zero.
-const U32 GL_NAME_LAND = 0;
-const U32 GL_NAME_PARCEL_WALL = 1;
+const U32 LL_PICK_NAME_LAND = 0;
+const U32 LL_PICK_NAME_PARCEL_WALL = 1;
 
-const U32 GL_NAME_INDEX_OFFSET = 10;
+const U32 LL_PICK_NAME_INDEX_OFFSET = 10;
 
 class LLViewerObjectList
 {
@@ -169,7 +169,6 @@ public:
         LLUUID mChildInfo;
     };
 
-
     U32 mCurBin; // Current bin we're working on...
 
     // Statistics data (see also LLViewerStats)
@@ -266,8 +265,6 @@ public:
     LLPointer<class LLHUDObject> mHUDObject;
 };
 
-
-
 // Global object list
 extern LLViewerObjectList gObjectList;
 
@@ -315,6 +312,5 @@ inline void LLViewerObjectList::removeFromMap(LLViewerObject *objectp)
         mMapObjects.erase(iter);
     }
 }
-
 
 #endif // LL_VIEWER_OBJECT_LIST_H

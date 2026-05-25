@@ -128,7 +128,6 @@
 #include "lldrawpoolbump.h"
 
 /////////////////// From llface.cpp
-#include "llgl.h"
 #include "llviewerimage.h"
 #include "llsky.h"
 #include "llvosky.h"

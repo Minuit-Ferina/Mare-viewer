@@ -32,7 +32,7 @@
 class LLBox
 {
 protected:
-//  GLuint  mDisplayList;
+//  U32  mDisplayList;
     F32     mVertex[8][3];
     U32     mTriangleCount;
 public:

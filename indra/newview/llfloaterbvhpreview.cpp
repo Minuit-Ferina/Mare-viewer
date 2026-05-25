@@ -64,7 +64,7 @@
 #include "pipeline.h"
 #include "lluictrlfactory.h"
 #include "lltrans.h"
-
+#include "llrenderstate.h"
 
 namespace
 {
@@ -965,7 +965,6 @@ bool LLFloaterBvhPreview::validateLoopOut(const LLSD& data)
     return true;
 }
 
-
 //-----------------------------------------------------------------------------
 // refresh()
 //-----------------------------------------------------------------------------
@@ -1189,7 +1188,7 @@ void LLPreviewAnimation::renderPreviewAvatar(LLVOAvatar* avatarp)
         avatarp->updateLOD();
 
         LLVertexBuffer::unbind();
-        LLGLDepthTest gls_depth(GL_TRUE);
+        LLGLDepthTest gls_depth(true);
 
         LLFace* face = avatarp->mDrawable->getFace(0);
         if (face)
@@ -1244,5 +1243,4 @@ void LLPreviewAnimation::pan(F32 right, F32 up)
     mCameraOffset.mV[VY] = llclamp(mCameraOffset.mV[VY] + right * mCameraDistance / mCameraZoom, -1.f, 1.f);
     mCameraOffset.mV[VZ] = llclamp(mCameraOffset.mV[VZ] + up * mCameraDistance / mCameraZoom, -1.f, 1.f);
 }
-
 

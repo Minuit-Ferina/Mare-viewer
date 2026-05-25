@@ -31,7 +31,6 @@
 #include "llerror.h"
 #include "llstatbar.h"
 #include "llfontgl.h"
-#include "llgl.h"
 #include "llui.h"
 
 #include "llstatbar.h"

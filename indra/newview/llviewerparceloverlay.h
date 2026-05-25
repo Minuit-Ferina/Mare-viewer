@@ -34,6 +34,7 @@
 #include "llframetimer.h"
 #include "lluuid.h"
 #include "llviewertexture.h"
+#include "llrenderstate.h"
 
 class LLViewerRegion;
 class LLVector3;

@@ -24,7 +24,6 @@
  * $/LicenseInfo$
  */
 
-
 #include "llviewerprecompiledheaders.h" // must be first include
 
 #include "llnotificationhandler.h"
@@ -39,6 +38,7 @@
 #include "lltoastalertpanel.h"
 #include "llagent.h"
 #include "RRInterface.h"
+#include "llrendercontext.h"
 
 using namespace LLNotificationsUI;
 
@@ -155,5 +155,4 @@ bool LLViewerAlertHandler::processNotification(const LLNotificationPtr& p, bool 
 
     return false;
 }
-
 

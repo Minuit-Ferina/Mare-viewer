@@ -70,6 +70,7 @@
 #include "llviewertexturelist.h"
 
 #include <boost/lexical_cast.hpp>
+#include "llrendercontext.h"
 
 LLPointer<LLVOAvatarSelf> gAgentAvatarp = NULL;
 
@@ -104,7 +105,6 @@ void selfClearPhases()
 
 using namespace LLAvatarAppearanceDefines;
 
-
 LLSD summarize_by_buckets(std::vector<LLSD> in_records, std::vector<std::string> by_fields, std::string val_field);
 
 /*********************************************************************************
@@ -133,20 +133,17 @@ struct LocalTextureData
 // Callback data
 //-----------------------------------------------------------------------------
 
-
 /**
  **
  ** End LLVOAvatarSelf Support classes
  **                                                                             **
  *********************************************************************************/
 
-
 //-----------------------------------------------------------------------------
 // Static Data
 //-----------------------------------------------------------------------------
 S32Bytes LLVOAvatarSelf::sScratchTexBytes(0);
-std::map< LLGLenum, LLGLuint*> LLVOAvatarSelf::sScratchTexNames;
-
+std::map<U32, U32*> LLVOAvatarSelf::sScratchTexNames;
 
 /*********************************************************************************
  **                                                                             **
@@ -325,7 +322,6 @@ void LLVOAvatarSelf::markDead()
 
     return success;
 }
-
 
 bool LLVOAvatarSelf::loadAvatarSelf()
 {
@@ -572,7 +568,6 @@ bool LLVOAvatarSelf::buildMenus()
             }
         }
     }
-
 
     // <FS:Zi> Pie menu
     for (S32 i = 0; i < PIE_MAX_SLICES; i++)
@@ -982,7 +977,6 @@ LLJoint* LLVOAvatarSelf::getJoint(std::string_view name)
     return jointp;
 }
 
-
 //virtual
 void LLVOAvatarSelf::renderJoints()
 {
@@ -1105,7 +1099,6 @@ void LLVOAvatarSelf::stopMotionFromSource(const LLUUID& source_id)
         // into those of another source.
         motion_it = mAnimationSources.find(source_id);
     }
-
 
     LLViewerObject* object = gObjectList.findObject(source_id);
     if (object)
@@ -1310,8 +1303,6 @@ void LLVOAvatarSelf::restoreMeshData()
     // force mesh update as LOD might not have changed to trigger this
     gPipeline.markRebuild(mDrawable, LLDrawable::REBUILD_GEOMETRY);
 }
-
-
 
 //-----------------------------------------------------------------------------
 // updateAttachmentVisibility()
@@ -1746,7 +1737,6 @@ const LLUUID& LLVOAvatarSelf::getLocalTextureID(ETextureIndex type, U32 index) c
     return IMG_DEFAULT_AVATAR;
 }
 
-
 //-----------------------------------------------------------------------------
 // isLocalTextureDataAvailable()
 // Returns true if at least the lowest quality discard level exists for every texture
@@ -1828,7 +1818,6 @@ bool LLVOAvatarSelf::isLocalTextureDataFinal(const LLViewerTexLayerSet* layerset
     llassert(0);
     return false;
 }
-
 
 bool LLVOAvatarSelf::isAllLocalTextureDataFinal() const
 {
@@ -2164,7 +2153,6 @@ void LLVOAvatarSelf::setBakedReady(LLAvatarAppearanceDefines::ETextureIndex type
     }
 }
 
-
 // virtual
 void LLVOAvatarSelf::dumpLocalTextures() const
 {
@@ -2270,7 +2258,6 @@ void LLVOAvatarSelf::onLocalTextureLoaded(bool success, LLViewerFetchedTexture *
         return getTEImage(te);
     }
 }
-
 
 // static
 void LLVOAvatarSelf::dumpTotalLocalTextureByteCount()
@@ -3046,9 +3033,6 @@ LLViewerTexLayerSet* LLVOAvatarSelf::getLayerSet(EBakedTextureIndex baked_index)
        return NULL;
 }
 
-
-
-
 // static
 void LLVOAvatarSelf::onCustomizeStart(bool disable_camera_switch)
 {
@@ -3213,7 +3197,7 @@ bool LLVOAvatarSelf::needsRenderBeam()
 // static
 void LLVOAvatarSelf::deleteScratchTextures()
 {
-    for(std::map< LLGLenum, LLGLuint*>::iterator it = sScratchTexNames.begin(), end_it = sScratchTexNames.end();
+    for(std::map<U32, U32*>::iterator it = sScratchTexNames.begin(), end_it = sScratchTexNames.end();
         it != end_it;
         ++it)
     {
@@ -3243,7 +3227,6 @@ void LLVOAvatarSelf::dumpWearableInfo(LLAPRFile& outfile)
     {
         return;
     }
-
 
     apr_file_printf( file, "\n<wearable_info>\n" );
 

@@ -30,7 +30,6 @@
 
 #include "indra_constants.h"
 #include "llmath.h"
-#include "llgl.h"
 #include "llui.h"
 #include "llfontgl.h"
 #include "lltimer.h"

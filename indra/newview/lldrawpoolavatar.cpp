@@ -56,6 +56,7 @@
 // <FS:Zi> Add avatar hitbox debug
 #include "llviewercontrol.h"
 #include "llnetmap.h"
+#include "llrenderstate.h"
 // (See *NOTE: in renderAvatars why this forward declatation is commented out)
 // void drawBoxOutline(const LLVector3& pos,const LLVector3& size); // llspatialpartition.cpp
 // </FS:Zi>
@@ -166,8 +167,6 @@ LLMatrix4& LLDrawPoolAvatar::getModelView()
 // render()
 //-----------------------------------------------------------------------------
 
-
-
 void LLDrawPoolAvatar::beginDeferredPass(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_AVATAR;
@@ -275,7 +274,6 @@ void LLDrawPoolAvatar::renderPostDeferred(S32 pass)
     }
     is_post_deferred_render = false;
 }
-
 
 S32 LLDrawPoolAvatar::getNumShadowPasses()
 {
@@ -428,12 +426,10 @@ S32 LLDrawPoolAvatar::getNumPasses()
     return 3;
 }
 
-
 S32 LLDrawPoolAvatar::getNumDeferredPasses()
 {
     return 3;
 }
-
 
 void LLDrawPoolAvatar::render(S32 pass)
 {
@@ -605,7 +601,6 @@ void LLDrawPoolAvatar::endDeferredRigid()
     gGL.getTexUnit(0)->activate();
 }
 
-
 void LLDrawPoolAvatar::beginSkinned()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_AVATAR;
@@ -753,7 +748,7 @@ void LLDrawPoolAvatar::renderAvatars(LLVOAvatar* single_avatar, S32 pass)
         gDebugProgram.bind();
 
         // set up drawing mode and remove any textures used
-        LLGLEnable blend(GL_BLEND);
+        LLGLEnable blend(LLRenderCapability::Blend);
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
         LLColor4 avatar_color = LLNetMap::getAvatarColor(avatarp->getID());
@@ -981,10 +976,8 @@ LLViewerTexture *LLDrawPoolAvatar::getDebugTexture()
     return objectp->getTEImage(0);
 }
 
-
 LLColor3 LLDrawPoolAvatar::getDebugColor() const
 {
     return LLColor3(0.f, 1.f, 0.f);
 }
-
 

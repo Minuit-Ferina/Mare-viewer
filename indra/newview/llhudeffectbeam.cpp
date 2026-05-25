@@ -34,12 +34,13 @@
 #include "llagent.h"
 #include "lldrawable.h"
 #include "llfontgl.h"
-#include "llgl.h"
+
 #include "llhudrender.h"
 #include "llrendersphere.h"
 #include "llviewercamera.h"
 #include "llvoavatar.h"
 #include "llviewercontrol.h"
+#include "llrenderstate.h"
 
 const F32 BEAM_SPACING = 0.075f;
 
@@ -204,7 +205,6 @@ void LLHUDEffectBeam::setSourceObject(LLViewerObject *objp)
     }
 }
 
-
 void LLHUDEffectBeam::setTargetObject(LLViewerObject *objp)
 {
     if (mTargetObject->isDead())
@@ -252,7 +252,6 @@ void LLHUDEffectBeam::render()
     LLGLSPipelineAlpha gls_pipeline_alpha;
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
-
     // Interpolate the global fade alpha
     mFadeInterp.update(time);
 
@@ -269,7 +268,6 @@ void LLHUDEffectBeam::render()
             mTargetPos = gAgent.getPosGlobalFromAgent(mTargetObject->mDrawable->getPositionAgent());
         }
     }
-
 
     // Init the color of the particles
     LLColor4U coloru = mColor;
@@ -344,7 +342,6 @@ void LLHUDEffectBeam::setupParticle(const S32 i)
     mInterp[i].setStartVal(start_pos_global);
     mInterp[i].setEndVal(target_pos_global);
     mInterp[i].start();
-
 
     // Setup the interpolator that fades out the alpha.
     mInterpFade[i].setStartTime(mInterp[i].getStartTime() + BEAM_SPACING*NUM_POINTS - 0.5f*NUM_POINTS*BEAM_SPACING);

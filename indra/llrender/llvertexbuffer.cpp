@@ -28,6 +28,7 @@
 
 #include "llfasttimer.h"
 #include "llgl.h"
+#include "llimagegl.h"
 #include "llsys.h"
 #include "llvertexbuffer.h"
 // #include "llrender.h"
@@ -1701,7 +1702,7 @@ template <class T,LLVertexBuffer::AttributeType type> struct VertexBufferStrider
                     strider_t& strider,
                     S32 index, S32 count)
     {
-        if (type == LLVertexBuffer::TYPE_INDEX)
+        if constexpr (type == LLVertexBuffer::TYPE_INDEX)
         {
             U8* ptr = vbo.mapIndexBuffer(index, count);
 

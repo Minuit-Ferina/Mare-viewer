@@ -29,6 +29,8 @@
 #ifndef LL_LLPLUGINMESSAGECLASSES_H
 #define LL_LLPLUGINMESSAGECLASSES_H
 
+#include "stdtypes.h"
+
 // Version strings for each plugin message class.
 // Backwards-compatible changes (i.e. changes which only add new messges) should increment the minor version (i.e. "1.0" -> "1.1").
 // Non-backwards-compatible changes (which delete messages or change their semantics) should increment the major version (i.e. "1.1" -> "2.0").
@@ -49,5 +51,13 @@
 
 #define LLPLUGIN_MESSAGE_CLASS_MEDIA_TIME "media_time"
 #define LLPLUGIN_MESSAGE_CLASS_MEDIA_TIME_VERSION "1.0"
+
+// Legacy texture_params payload values. They intentionally preserve the
+// numeric wire values expected by the current viewer texture upload path.
+constexpr U32 LLPLUGIN_TEXTURE_INTERNAL_RGB = 0x1907;
+constexpr U32 LLPLUGIN_TEXTURE_FORMAT_RGB = 0x1907;
+constexpr U32 LLPLUGIN_TEXTURE_FORMAT_RGBA = 0x1908;
+constexpr U32 LLPLUGIN_TEXTURE_FORMAT_BGRA = 0x80E1;
+constexpr U32 LLPLUGIN_TEXTURE_TYPE_UNSIGNED_BYTE = 0x1401;
 
 #endif // LL_LLPLUGINMESSAGECLASSES_H

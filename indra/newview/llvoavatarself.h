@@ -37,7 +37,6 @@
 struct LocalTextureData;
 class LLInventoryCallback;
 
-
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // LLVOAvatarSelf
 //
@@ -196,7 +195,6 @@ public:
     /*virtual*/ bool    isTextureVisible(LLAvatarAppearanceDefines::ETextureIndex type, U32 index = 0) const;
     /*virtual*/ bool    isTextureVisible(LLAvatarAppearanceDefines::ETextureIndex type, LLViewerWearable *wearable) const;
 
-
     //--------------------------------------------------------------------
     // Local Textures
     //--------------------------------------------------------------------
@@ -219,7 +217,6 @@ private:
     /*virtual*/ void    setImage(const U8 te, LLViewerTexture *imagep, const U32 index);
     /*virtual*/ LLViewerTexture* getImage(const U8 te, const U32 index) const;
 
-
     //--------------------------------------------------------------------
     // Baked textures
     //--------------------------------------------------------------------
@@ -238,7 +235,6 @@ public:
     LLViewerTexLayerSet* getLayerSet(LLAvatarAppearanceDefines::EBakedTextureIndex baked_index) const;
     LLViewerTexLayerSet* getLayerSet(LLAvatarAppearanceDefines::ETextureIndex index) const;
 
-
     //--------------------------------------------------------------------
     // Composites
     //--------------------------------------------------------------------
@@ -254,7 +250,6 @@ public:
     const LLUUID&       grabBakedTexture(LLAvatarAppearanceDefines::EBakedTextureIndex baked_index) const;
     bool                canGrabBakedTexture(LLAvatarAppearanceDefines::EBakedTextureIndex baked_index) const;
 
-
     //--------------------------------------------------------------------
     // Scratch textures (used for compositing)
     //--------------------------------------------------------------------
@@ -262,7 +257,7 @@ public:
     static void     deleteScratchTextures();
 private:
     static S32Bytes sScratchTexBytes;
-    static std::map< LLGLenum, LLGLuint*> sScratchTexNames;
+    static std::map<U32, U32*> sScratchTexNames;
 
 /**                    Textures
  **                                                                            **

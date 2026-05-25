@@ -30,7 +30,6 @@
 #include "lltoolselectrect.h"
 
 // Library includes
-#include "llgl.h"
 #include "llrender.h"
 
 // Viewer includes

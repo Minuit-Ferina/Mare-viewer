@@ -58,6 +58,7 @@
 #include "lllineeditor.h"
 
 #include <boost/lexical_cast.hpp>
+#include "llrenderstate.h"
 
 namespace
 {
@@ -90,7 +91,6 @@ const F32 SECONDS_TO_SHOW_FILE_SAVED_MSG = 8.f;
 
 const F32 PREVIEW_TEXTURE_MAX_ASPECT = 200.f;
 const F32 PREVIEW_TEXTURE_MIN_ASPECT = 0.005f;
-
 
 LLPreviewTexture::LLPreviewTexture(const LLSD& key)
     : LLPreview(key),
@@ -302,13 +302,11 @@ void LLPreviewTexture::draw()
 
 }
 
-
 // virtual
 bool LLPreviewTexture::canSaveAs() const
 {
     return mIsFullPerm && !mLoadingFullImage && mImage.notNull() && !mImage->isMissingAsset();
 }
-
 
 // virtual
 void LLPreviewTexture::saveAs()
@@ -341,7 +339,6 @@ void LLPreviewTexture::saveTextureToFile(const std::vector<std::string>& filenam
     mImage->setLoadedCallback(LLPreviewTexture::onFileLoadedForSave,
         0, true, false, new LLUUID(mItemUUID), &mCallbackTextureList);
 }
-
 
 void LLPreviewTexture::saveMultipleToFile(const std::string& file_name)
 {
@@ -611,7 +608,6 @@ void LLPreviewTexture::onFileLoadedForSave(bool success,
 
 }
 
-
 // It takes a while until we get height and width information.
 // When we receive it, reshape the window accordingly.
 void LLPreviewTexture::updateDimensions()
@@ -649,7 +645,6 @@ void LLPreviewTexture::updateDimensions()
 //mk
     }
 
-
     // Update the width/height display every time
     mDimensionsText->setTextArg("[WIDTH]", llformat("%d", img_width));
     mDimensionsText->setTextArg("[HEIGHT]", llformat("%d", img_height));
@@ -673,7 +668,6 @@ void LLPreviewTexture::updateDimensions()
     }
 }
 
-
 // Return true if everything went fine, false if we somewhat modified the ratio as we bumped on border values
 bool LLPreviewTexture::setAspectRatio(const F32 width, const F32 height)
 {
@@ -694,7 +688,6 @@ bool LLPreviewTexture::setAspectRatio(const F32 width, const F32 height)
     // Return false if we clamped the value, true otherwise
     return (ratio == mAspectRatio);
 }
-
 
 void LLPreviewTexture::onAspectRatioCommit(LLUICtrl* ctrl, void* userdata)
 {

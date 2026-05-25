@@ -30,7 +30,7 @@
 #include "lltoolselectland.h"
 
 // library headers
-#include "llgl.h"
+
 #include "llnotificationsutil.h"
 #include "llrender.h"
 #include "message.h"
@@ -53,11 +53,10 @@
 #include "llappviewer.h"
 #include "llparcel.h"
 #include "roles_constants.h"
-#include "llglheaders.h"
+#include "llrenderstate.h"
 
 const std::string REGION_BLOCKS_TERRAFORM_MSG = "This region does not allow terraforming.\n"
                 "You will need to buy land in another part of the world to terraform it.";
-
 
 ///============================================================================
 /// Local function declarations, constants, enums, and typedefs
@@ -93,7 +92,6 @@ LLToolBrushLand::LLToolBrushLand()
 {
     mBrushSize = gSavedSettings.getF32("LandBrushSize");
 }
-
 
 U8 LLToolBrushLand::getBrushIndex()
 {
@@ -457,7 +455,6 @@ void LLToolBrushLand::handleSelect()
     }
 }
 
-
 void LLToolBrushLand::handleDeselect()
 {
     if( gEditMenuHandler == this )
@@ -526,7 +523,7 @@ void LLToolBrushLand::renderOverlay(LLSurface& land, const LLVector3& pos_region
 {
     gGL.matrixMode(LLRender::MM_MODELVIEW);
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-    LLGLDepthTest mDepthTest(GL_TRUE);
+    LLGLDepthTest mDepthTest(true);
     gGL.pushMatrix();
     gGL.color4fv(OVERLAY_COLOR.mV);
     gGL.translatef(0.0f, 0.0f, 1.0f);
@@ -690,7 +687,6 @@ bool LLToolBrushLand::canTerraformParcel(LLViewerRegion* regionp) const
 
     return is_terraform_allowed;
 }
-
 
 // static
 void LLToolBrushLand::alertNoTerraformRegion(LLViewerRegion* regionp)

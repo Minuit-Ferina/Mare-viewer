@@ -83,8 +83,6 @@
 #include "llpluginclassmedia.h"
 #include "llviewertexturelist.h"// Update sel manager as to which channel we're editing so it can reflect the correct overlay UI
 
-
-
 #include "llagent.h"
 #include "llfilesystem.h"
 #include "llviewerassetupload.h"
@@ -430,7 +428,6 @@ bool    LLPanelFace::postBuild()
     getChildSetClickedCallback(mTexDuplicate, "TexDuplicate", [&](LLUICtrl*, const LLSD&) { onClickDuplicateDiffuse(); });
     getChildSetClickedCallback(mBumpyDuplicate, "bumpyDuplicate", [&](LLUICtrl*, const LLSD&) { onClickDuplicateNormal(); });
     getChildSetClickedCallback(mShinyDuplicate, "shinyDuplicate", [&](LLUICtrl*, const LLSD&) { onClickDuplicateSpecular(); });
-
 
     setMouseOpaque(false);
 
@@ -1209,7 +1206,7 @@ void LLPanelFace::updateUI(bool force_set_values /*false*/)
 
         bool missing_asset = false;
         {
-            LLGLenum image_format = GL_RGB;
+            LLRenderPixelFormat image_format = LLRenderPixelFormat::RGB;
             bool has_alpha = false;
             bool identical_image_format = false;
             LLSelectedTE::getImageFormat(image_format, has_alpha, identical_image_format, missing_asset);
@@ -1219,9 +1216,9 @@ void LLPanelFace::updateUI(bool force_set_values /*false*/)
                 mIsAlpha = has_alpha;
                 switch (image_format)
                 {
-                    case GL_RGBA:
-                    case GL_ALPHA:
-                    case GL_RGB:
+                    case LLRenderPixelFormat::RGBA:
+                    case LLRenderPixelFormat::Alpha:
+                    case LLRenderPixelFormat::RGB:
                         break;
                     default:
                     {
@@ -1531,7 +1528,6 @@ void LLPanelFace::updateUI(bool force_set_values /*false*/)
                 mBumpyScaleU->setValue(norm_scale_s);
             }
 
-
             mTexScaleFlipU->setValue(diff_scale_flip_s);
             mShinyScaleFlipU->setValue(norm_scale_flip_s);
             mBumpyScaleFlipU->setValue(spec_scale_flip_s);
@@ -1619,7 +1615,6 @@ void LLPanelFace::updateUI(bool force_set_values /*false*/)
                 mShinyScaleV->setValue(spec_scale_t);
                 mBumpyScaleV->setValue(norm_scale_t);
             }
-
 
             mTexScaleFlipV->setValue(diff_scale_flip_t);
             mShinyScaleFlipV->setValue(norm_scale_flip_t);
@@ -2342,7 +2337,6 @@ void LLPanelFace::refreshMedia()
         }
     } func;
 
-
     // check if all faces have media(or, all dont have media)
     bool identical_has_media_info = selected_objects->getSelectedTEValue(&func, bool_has_media);
 
@@ -2685,7 +2679,6 @@ void LLPanelFace::updateMediaSettings()
     base_key = std::string(LLMediaEntry::AUTO_PLAY_KEY);
     mMediaSettings[base_key] = value_bool;
     mMediaSettings[base_key + std::string(LLPanelContents::TENTATIVE_SUFFIX)] = !identical;
-
 
     // Auto scale
     // set default to auto scale true -- angela  EXT-5172
@@ -3437,7 +3430,7 @@ void LLPanelFace::onSelectTexture()
     LLSelectMgr::getInstance()->saveSelectedObjectTextures();
     sendTexture();
 
-    LLGLenum image_format;
+    LLRenderPixelFormat image_format;
     bool has_alpha;
     bool identical_image_format = false;
     bool missing_asset = false;
@@ -3448,9 +3441,9 @@ void LLPanelFace::onSelectTexture()
         U32 alpha_mode = has_alpha ? LLMaterial::DIFFUSE_ALPHA_MODE_BLEND : LLMaterial::DIFFUSE_ALPHA_MODE_NONE;
         switch (image_format)
         {
-        case GL_RGBA:
-        case GL_ALPHA:
-        case GL_RGB:
+        case LLRenderPixelFormat::RGBA:
+        case LLRenderPixelFormat::Alpha:
+        case LLRenderPixelFormat::RGB:
             break;
         default:
             LL_WARNS() << "Unexpected tex format in LLPanelFace..." << LL_ENDL;
@@ -5365,7 +5358,6 @@ void LLPanelFace::onPbrSelectionChanged(LLInventoryItem* itemp)
     }
 }
 
-
 void LLPanelFace::onClickDuplicateDiffuse()
 {
     const bool have_normal_map = getCurrentNormalMap().notNull();
@@ -5448,7 +5440,6 @@ void LLPanelFace::onClickDuplicateDiffuse()
     }
 }
 
-
 void LLPanelFace::onClickDuplicateNormal()
 {
     const bool have_specular_map = getCurrentSpecularMap().notNull();
@@ -5521,7 +5512,6 @@ void LLPanelFace::onClickDuplicateNormal()
     //
     sendTextureInfo();
 }
-
 
 void LLPanelFace::onClickDuplicateSpecular()
 {
@@ -5636,12 +5626,12 @@ void LLPanelFace::LLSelectedTE::getFace(LLFace*& face_to_return, bool& identical
     identical_face = LLSelectMgr::getInstance()->getSelection()->getSelectedTEValue(&get_te_face_func, face_to_return, false, (LLFace*)nullptr);
 }
 
-void LLPanelFace::LLSelectedTE::getImageFormat(LLGLenum& image_format_to_return, bool& has_alpha, bool& identical_face, bool& missing_asset)
+void LLPanelFace::LLSelectedTE::getImageFormat(LLRenderPixelFormat& image_format_to_return, bool& has_alpha, bool& identical_face, bool& missing_asset)
 {
     struct LLSelectedTEGetmatId : public LLSelectedTEFunctor
     {
         LLSelectedTEGetmatId()
-            : mImageFormat(GL_RGB)
+            : mImageFormat(LLRenderPixelFormat::RGB)
             , mHasAlpha(false)
             , mIdentical(true)
             , mMissingAsset(false)
@@ -5651,13 +5641,13 @@ void LLPanelFace::LLSelectedTE::getImageFormat(LLGLenum& image_format_to_return,
         bool apply(LLViewerObject* object, S32 te_index) override
         {
             LLViewerTexture* image = object ? object->getTEImage(te_index) : nullptr;
-            LLGLenum format = GL_RGB;
+            LLRenderPixelFormat format = LLRenderPixelFormat::RGB;
             bool missing = false;
             if (image)
             {
-                format = image->getPrimaryFormat();
+                format = image->getPrimaryPixelFormat();
                 missing = image->isMissingAsset();
-                if (format == GL_RGBA || format == GL_ALPHA)
+                if (format == LLRenderPixelFormat::RGBA || format == LLRenderPixelFormat::Alpha)
                 {
                     mHasAlpha = true;
                 }
@@ -5676,7 +5666,7 @@ void LLPanelFace::LLSelectedTE::getImageFormat(LLGLenum& image_format_to_return,
             }
             return true;
         }
-        LLGLenum mImageFormat;
+        LLRenderPixelFormat mImageFormat;
         bool mHasAlpha;
         bool mIdentical;
         bool mMissingAsset;
@@ -5890,8 +5880,8 @@ void LLPanelFace::LLSelectedTEMaterial::getCurrentDiffuseAlphaMode(U8& diffuse_a
             LLViewerTexture* image = object->getTEImage(face);
             if (image)
             {
-                LLGLenum format = image->getPrimaryFormat();
-                if (format == GL_RGBA || format == GL_ALPHA)
+                LLRenderPixelFormat format = image->getPrimaryPixelFormat();
+                if (format == LLRenderPixelFormat::RGBA || format == LLRenderPixelFormat::Alpha)
                 {
                     has_alpha = true;
                 }
@@ -6009,4 +5999,3 @@ void LLPanelFace::LLSelectedTE::getMaxDiffuseRepeats(F32& repeats, bool& identic
     } max_diff_repeats_func;
     identical = LLSelectMgr::getInstance()->getSelection()->getSelectedTEValue( &max_diff_repeats_func, repeats );
 }
-

@@ -29,7 +29,7 @@
 #include <Cocoa/Cocoa.h>
 #include <errno.h>
 #include <AVFoundation/AVFoundation.h>
-#include "llopenglview-objc.h"
+#include "llnativeview-objc.h"
 #include "llwindowmacosx-objc.h"
 #include "llappdelegate-objc.h"
 
@@ -232,37 +232,9 @@ NSWindowRef createNSWindow(int x, int y, int width, int height)
     return window;
 }
 
-GLViewRef createOpenGLView(NSWindowRef window, unsigned int samples, bool vsync)
+float getDeviceUnitSize(NativeViewRef view)
 {
-    LLOpenGLView *glview = [[LLOpenGLView alloc]initWithFrame:[(LLNSWindow*)window frame] withSamples:samples andVsync:vsync];
-    [(LLNSWindow*)window setContentView:glview];
-    return glview;
-}
-
-void flushGLContextBuffer(void* context)
-{
-    [(NSOpenGLContext*)context flushBuffer];
-}
-
-CGLContextObj getCGLContextObj(GLViewRef view)
-{
-    return [(LLOpenGLView *)view getCGLContextObj];
-}
-
-CGLPixelFormatObj* getCGLPixelFormatObj(NSWindowRef window)
-{
-    LLOpenGLView *glview = [(LLNSWindow*)window contentView];
-    return [glview getCGLPixelFormatObj];
-}
-
-unsigned long getVramSize(GLViewRef view)
-{
-    return [(LLOpenGLView *)view getVramSize];
-}
-
-float getDeviceUnitSize(GLViewRef view)
-{
-    return [(LLOpenGLView*)view convertSizeToBacking:NSMakeSize(1, 1)].width;
+    return [(LLNativeView*)view convertSizeToBacking:NSMakeSize(1, 1)].width;
 }
 
 CGRect getContentViewRect(NSWindowRef window)
@@ -270,9 +242,9 @@ CGRect getContentViewRect(NSWindowRef window)
     return [[(LLNSWindow*)window contentView] bounds];
 }
 
-CGRect getBackingViewRect(NSWindowRef window, GLViewRef view)
+CGRect getBackingViewRect(NSWindowRef window, NativeViewRef view)
 {
-    return [(NSOpenGLView*)view convertRectToBacking:[[(LLNSWindow*)window contentView] bounds]];
+    return [(NSView*)view convertRectToBacking:[[(LLNSWindow*)window contentView] bounds]];
 }
 
 void getWindowSize(NSWindowRef window, float* size)
@@ -358,25 +330,19 @@ void closeWindow(NSWindowRef window)
     [(LLNSWindow*)window release];
 }
 
-void removeGLView(GLViewRef view)
+void setupInputWindow(NSWindowRef window, NativeViewRef native_view)
 {
-    [(LLOpenGLView*)view clearGLContext];
-    [(LLOpenGLView*)view removeFromSuperview];
+    [[(LLAppDelegate*)[NSApp delegate] inputView] setNativeView:(LLNativeView*)native_view];
 }
 
-void setupInputWindow(NSWindowRef window, GLViewRef glview)
+void commitCurrentPreedit(NativeViewRef nativeView)
 {
-    [[(LLAppDelegate*)[NSApp delegate] inputView] setGLView:(LLOpenGLView*)glview];
+    [(LLNativeView*)nativeView commitCurrentPreedit];
 }
 
-void commitCurrentPreedit(GLViewRef glView)
+void allowDirectMarkedTextInput(bool allow, NativeViewRef nativeView)
 {
-    [(LLOpenGLView*)glView commitCurrentPreedit];
-}
-
-void allowDirectMarkedTextInput(bool allow, GLViewRef glView)
-{
-    [(LLOpenGLView*)glView allowMarkedTextInput:allow];
+    [(LLNativeView*)nativeView allowMarkedTextInput:allow];
 }
 
 NSWindowRef getMainAppWindow()
@@ -387,9 +353,9 @@ NSWindowRef getMainAppWindow()
     return winRef;
 }
 
-void makeFirstResponder(NSWindowRef window, GLViewRef view)
+void makeFirstResponder(NSWindowRef window, NativeViewRef view)
 {
-    [(LLNSWindow*)window makeFirstResponder:(LLOpenGLView*)view];
+    [(LLNSWindow*)window makeFirstResponder:(LLNativeView*)view];
 }
 
 void requestUserAttention()
@@ -453,13 +419,6 @@ long showAlert(std::string text, std::string title, int type)
 
     return ret;
 }
-
-/*
- GLViewRef getGLView()
- {
- return [(LLAppDelegate*)[[NSApplication sharedApplication] delegate] glview];
- }
- */
 
 unsigned int getModifiers()
 {

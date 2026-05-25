@@ -31,6 +31,7 @@
 #include "llagent.h"
 #include "llviewercamera.h"
 #include "llui.h"
+#include "llrenderstate.h"
 
 LLHUDEffectBlob::LLHUDEffectBlob(const U8 type)
 :   LLHUDEffect(type),

@@ -30,11 +30,11 @@
 #include "llwindow.h"
 #include "llwindowcallbacks.h"
 #include "llwindowmacosx-objc.h"
+#include "llrenderbackend.h"
 
 #include "lltimer.h"
 
 #include <ApplicationServices/ApplicationServices.h>
-#include <OpenGL/OpenGL.h>
 
 // AssertMacros.h does bad things.
 #include "fix_macros.h"
@@ -206,9 +206,8 @@ protected:
 
     // Use generic pointers here.  This lets us do some funky Obj-C interop using Obj-C objects without having to worry about any compilation problems that may arise.
     NSWindowRef         mWindow;
-    GLViewRef           mGLView;
-    CGLContextObj       mContext;
-    CGLPixelFormatObj   mPixelFormat;
+    NativeViewRef           mNativeView;
+    LLRenderNativeContext mRenderContext;
     CGDirectDisplayID   mDisplay;
 
     LLRect      mOldMouseClip;  // Screen rect to which the mouse cursor was globally constrained before we changed it in clipMouse()

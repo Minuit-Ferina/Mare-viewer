@@ -29,7 +29,6 @@
 #include "linden_common.h"
 #include "indra_constants.h" // for indra keyboard codes
 
-#include "llglheaders.h" // for GL_* constants
 #include "llsdutil.h"
 #include "llplugininstance.h"
 #include "llpluginmessage.h"
@@ -737,9 +736,9 @@ void MediaPluginCEF::receiveMessage(const char* message_string)
                 message.setValueS32("default_width", 1024);
                 message.setValueS32("default_height", 1024);
                 message.setValueS32("depth", mDepth);
-                message.setValueU32("internalformat", GL_RGB);
-                message.setValueU32("format", GL_BGRA);
-                message.setValueU32("type", GL_UNSIGNED_BYTE);
+                message.setValueU32("internalformat", LLPLUGIN_TEXTURE_INTERNAL_RGB);
+                message.setValueU32("format", LLPLUGIN_TEXTURE_FORMAT_BGRA);
+                message.setValueU32("type", LLPLUGIN_TEXTURE_TYPE_UNSIGNED_BYTE);
                 message.setValueBoolean("coords_opengl", true);
                 sendMessage(message);
             }
@@ -772,7 +771,6 @@ void MediaPluginCEF::receiveMessage(const char* message_string)
 # else
                 mRootCachePath += std::to_string(getpid());
 # endif
-
 
                 mCefLogFile = message_in.getValue("cef_log_file");
                 mCefLogVerbose = message_in.getValueBoolean("cef_verbose_log");

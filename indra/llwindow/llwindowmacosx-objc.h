@@ -48,7 +48,7 @@ struct attributedStringInfo {
 // This will actually hold an NSCursor*, but that type is only available in objective C.
 typedef void *CursorRef;
 typedef void *NSWindowRef;
-typedef void *GLViewRef;
+typedef void *NativeViewRef;
 
 
 struct NativeKeyEventData {
@@ -106,15 +106,9 @@ void setTitleCocoa(NSWindowRef window, const std::string &title);   // <FS:CR> S
 
 NSWindowRef createNSWindow(int x, int y, int width, int height);
 
-#include <OpenGL/OpenGL.h>
-
-GLViewRef createOpenGLView(NSWindowRef window, unsigned int samples, bool vsync);
-void flushGLContextBuffer(void* context);
-CGLContextObj getCGLContextObj(GLViewRef view);
-unsigned long getVramSize(GLViewRef view);
-float getDeviceUnitSize(GLViewRef view);
+float getDeviceUnitSize(NativeViewRef view);
 CGRect getContentViewRect(NSWindowRef window);
-CGRect getBackingViewRect(NSWindowRef window, GLViewRef view);
+CGRect getBackingViewRect(NSWindowRef window, NativeViewRef view);
 void getWindowSize(NSWindowRef window, float* size);
 void setWindowSize(NSWindowRef window, int width, int height);
 void getCursorPos(NSWindowRef window, float* pos);
@@ -125,9 +119,8 @@ void convertRectToScreen(NSWindowRef window, float *coord);
 void convertRectFromScreen(NSWindowRef window, float *coord);
 void setWindowPos(NSWindowRef window, float* pos);
 void closeWindow(NSWindowRef window);
-void removeGLView(GLViewRef view);
-void makeFirstResponder(NSWindowRef window, GLViewRef view);
-void setupInputWindow(NSWindowRef window, GLViewRef view);
+void makeFirstResponder(NSWindowRef window, NativeViewRef view);
+void setupInputWindow(NSWindowRef window, NativeViewRef view);
 
 // These are all implemented in llwindowmacosx.cpp.
 // This is largely for easier interop between Obj-C and C++ (at least in the viewer's case due to the BOOL vs. BOOL conflict)
@@ -157,7 +150,7 @@ void callFocus();
 void callFocusLost();
 void callModifier(unsigned int mask);
 void callQuitHandler();
-void commitCurrentPreedit(GLViewRef glView);
+void commitCurrentPreedit(NativeViewRef nativeView);
 
 #include <string>
 void callHandleDragEntered(std::string url);
@@ -176,10 +169,9 @@ void resetPreedit();
 int wstring_length(const std::basic_string<wchar_t> & wstr, const int woffset, const int utf16_length, int *unaligned);
 void setMarkedText(unsigned short *text, unsigned int *selectedRange, unsigned int *replacementRange, long text_len, attributedStringInfo segments);
 void getPreeditLocation(float *location, unsigned int length);
-void allowDirectMarkedTextInput(bool allow, GLViewRef glView);
+void allowDirectMarkedTextInput(bool allow, NativeViewRef nativeView);
 
 NSWindowRef getMainAppWindow();
-GLViewRef getGLView();
 
 unsigned int getModifiers();
 

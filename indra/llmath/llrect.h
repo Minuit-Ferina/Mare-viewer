@@ -24,7 +24,6 @@
  * $/LicenseInfo$
  */
 
-
 #ifndef LL_LLRECT_H
 #define LL_LLRECT_H
 
@@ -42,7 +41,7 @@ public:
     Type        mRight;
     Type        mBottom;
 
-    // Note: follows GL_QUAD conventions: the top and right edges are not considered part of the rect
+    // Note: follows quad conventions: the top and right edges are not considered part of the rect
     Type        getWidth()  const { return mRight - mLeft; }
     Type        getHeight() const { return mTop - mBottom; }
     Type        getCenterX() const { return (mLeft + mRight) / 2; }
@@ -78,14 +77,14 @@ public:
         return ret;
     }
 
-    // Note: follows GL_QUAD conventions: the top and right edges are not considered part of the rect
+    // Note: follows quad conventions: the top and right edges are not considered part of the rect
     bool        pointInRect(const Type x, const Type y) const
     {
         return  mLeft <= x && x < mRight &&
                 mBottom <= y && y < mTop;
     }
 
-    //// Note: follows GL_QUAD conventions: the top and right edges are not considered part of the rect
+    //// Note: follows quad conventions: the top and right edges are not considered part of the rect
     bool        localPointInRect(const Type x, const Type y) const
     {
         return  0 <= x && x < getWidth() &&
@@ -132,7 +131,7 @@ public:
         }
     }
 
-    // Note: Does NOT follow GL_QUAD conventions: the top and right edges ARE considered part of the rect
+    // Note: Does NOT follow quad conventions: the top and right edges ARE considered part of the rect
     // returns true if any part of rect is is inside this LLRect
     bool        overlaps(const LLRectBase& rect) const
     {
@@ -159,7 +158,7 @@ public:
         return *this;
     }
 
-    // Note: follows GL_QUAD conventions: the top and right edges are not considered part of the rect
+    // Note: follows quad conventions: the top and right edges are not considered part of the rect
     LLRectBase& setOriginAndSize( Type left, Type bottom, Type width, Type height)
     {
         mLeft = left;
@@ -169,7 +168,7 @@ public:
         return *this;
     }
 
-    // Note: follows GL_QUAD conventions: the top and right edges are not considered part of the rect
+    // Note: follows quad conventions: the top and right edges are not considered part of the rect
     LLRectBase& setLeftTopAndSize( Type left, Type top, Type width, Type height)
     {
         mLeft = left;
@@ -188,7 +187,6 @@ public:
         mRight = mLeft + width;
         return *this;
     }
-
 
     LLRectBase& translate(Type horiz, Type vertical)
     {

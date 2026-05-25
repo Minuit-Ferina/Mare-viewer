@@ -37,6 +37,8 @@
 
 #include "llgl.h"
 #include "llglstates.h"
+#include "llimagegl.h"
+#include "llplane.h"
 #include "llrender.h"
 #include "llrenderbackend.h"
 
@@ -2386,6 +2388,51 @@ LLGLboolean LLGLDepthTest::sDepthEnabled = GL_FALSE; // OpenGL default
 LLGLenum LLGLDepthTest::sDepthFunc = GL_LESS; // OpenGL default
 LLGLboolean LLGLDepthTest::sWriteEnabled = GL_TRUE; // OpenGL default
 
+static LLGLenum to_legacy_gl_capability(LLRenderCapability capability)
+{
+    switch (capability)
+    {
+    case LLRenderCapability::AlphaTest:
+        return GL_ALPHA_TEST;
+    case LLRenderCapability::Blend:
+        return GL_BLEND;
+    case LLRenderCapability::ClipPlane0:
+        return GL_CLIP_PLANE0;
+    case LLRenderCapability::CullFace:
+        return GL_CULL_FACE;
+    case LLRenderCapability::DepthClamp:
+#ifdef GL_DEPTH_CLAMP
+        return GL_DEPTH_CLAMP;
+#else
+        return 0;
+#endif
+    case LLRenderCapability::DepthTest:
+        return GL_DEPTH_TEST;
+    case LLRenderCapability::Multisample:
+        return GL_MULTISAMPLE;
+    case LLRenderCapability::PolygonOffsetFill:
+        return GL_POLYGON_OFFSET_FILL;
+    case LLRenderCapability::PolygonOffsetLine:
+        return GL_POLYGON_OFFSET_LINE;
+    case LLRenderCapability::ScissorTest:
+        return GL_SCISSOR_TEST;
+    case LLRenderCapability::StencilTest:
+        return GL_STENCIL_TEST;
+    case LLRenderCapability::TextureGenS:
+        return GL_TEXTURE_GEN_S;
+    case LLRenderCapability::TextureGenT:
+        return GL_TEXTURE_GEN_T;
+    case LLRenderCapability::LineSmooth:
+        return GL_LINE_SMOOTH;
+    case LLRenderCapability::DebugOutputSynchronous:
+        return GL_DEBUG_OUTPUT_SYNCHRONOUS;
+    case LLRenderCapability::TextureCubeMapSeamless:
+        return GL_TEXTURE_CUBE_MAP_SEAMLESS;
+    default:
+        return 0;
+    }
+}
+
 static LLRenderDepthFunction to_render_depth_function(LLGLenum depth_func)
 {
     switch (depth_func)
@@ -2406,6 +2453,29 @@ static LLRenderDepthFunction to_render_depth_function(LLGLenum depth_func)
         return LLRenderDepthFunction::Greater;
     default:
         return LLRenderDepthFunction::Less;
+    }
+}
+
+static LLGLenum to_legacy_gl_depth_function(LLRenderDepthFunction depth_func)
+{
+    switch (depth_func)
+    {
+    case LLRenderDepthFunction::Always:
+        return GL_ALWAYS;
+    case LLRenderDepthFunction::Less:
+        return GL_LESS;
+    case LLRenderDepthFunction::LessEqual:
+        return GL_LEQUAL;
+    case LLRenderDepthFunction::Equal:
+        return GL_EQUAL;
+    case LLRenderDepthFunction::NotEqual:
+        return GL_NOTEQUAL;
+    case LLRenderDepthFunction::GreaterEqual:
+        return GL_GEQUAL;
+    case LLRenderDepthFunction::Greater:
+        return GL_GREATER;
+    default:
+        return GL_LEQUAL;
     }
 }
 
@@ -2504,6 +2574,11 @@ LLGLState::LLGLState(LLGLenum state, S32 enabled) :
         mWasEnabled = sStateMap[state];
         setEnabled(enabled);
     }
+}
+
+LLGLState::LLGLState(LLRenderCapability capability, S32 enabled)
+: LLGLState(to_legacy_gl_capability(capability), enabled)
+{
 }
 
 void LLGLState::setEnabled(S32 enabled)
@@ -2796,6 +2871,13 @@ LLGLDepthTest::LLGLDepthTest(LLGLboolean depth_enabled, LLGLboolean write_enable
         getOpenGLRenderBackend().setDepthWriteEnabled(write_enabled != GL_FALSE);
         sWriteEnabled = write_enabled;
     }
+}
+
+LLGLDepthTest::LLGLDepthTest(bool depth_enabled, bool write_enabled, LLRenderDepthFunction depth_func)
+: LLGLDepthTest(depth_enabled ? GL_TRUE : GL_FALSE,
+                write_enabled ? GL_TRUE : GL_FALSE,
+                to_legacy_gl_depth_function(depth_func))
+{
 }
 
 LLGLDepthTest::~LLGLDepthTest()

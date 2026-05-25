@@ -88,7 +88,7 @@ public:
 
 protected:
     void generateGLTexture();
-    void generateGLTexture(LLGLint internal_format, LLGLenum primary_format, LLGLenum type_format, bool swap_bytes = false);
+    void generateGLTexture(S32 internal_format, U32 primary_format, U32 type_format, bool swap_bytes = false);
 
 private:
     static bool validateDynamicTextureTargets(LLRenderTarget& preview_target, LLRenderTarget& bake_target);

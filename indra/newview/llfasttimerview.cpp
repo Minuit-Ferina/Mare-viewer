@@ -32,8 +32,8 @@
 #include "llrect.h"
 #include "llcombobox.h"
 #include "llerror.h"
-#include "llgl.h"
-#include "llglcontainment.h"
+
+#include "llrenderbackend.h"
 #include "llimagepng.h"
 #include "llrender.h"
 #include "llrendertarget.h"
@@ -55,6 +55,7 @@
 #include "lltreeiterators.h"
 #include "llmetricperformancetester.h"
 #include "llviewerstats.h"
+#include "llrenderstate.h"
 
 namespace
 {
@@ -324,7 +325,6 @@ bool LLFastTimerView::handleHover(S32 x, S32 y, MASK mask)
     return LLFloater::handleHover(x, y, mask);
 }
 
-
 static std::string get_tooltip(BlockTimerStatHandle& timer, S32 history_index, PeriodicRecording& frame_recording)
 {
     std::string tooltip;
@@ -477,7 +477,14 @@ void saveChart(const std::string& label, const char* suffix, LLImageRaw* scratch
         LLImageDataSharedLock lock(scratch);
 
         //read result back into raw image
-        LLGLContainment::readPixels(0, 0, 1024, 512, GL_RGB, GL_UNSIGNED_BYTE, scratch->getData());
+        getOpenGLRenderBackend().readPixels(
+            0,
+            0,
+            1024,
+            512,
+            LLRenderPixelFormat::RGB,
+            LLRenderPixelType::UnsignedByte,
+            scratch->getData());
 
         //write results to disk
         LLPointer<LLImagePNG> result = new LLImagePNG();
@@ -496,8 +503,7 @@ void LLFastTimerView::exportCharts(const std::string& base, const std::string& t
 {
     //allocate render target for drawing charts
     LLRenderTarget buffer;
-    buffer.allocate(1024,512, GL_RGB);
-
+    buffer.allocate(1024, 512, LLRenderTextureFormat::RGB);
 
     LLSD cur;
 
@@ -624,11 +630,9 @@ void LLFastTimerView::exportCharts(const std::string& base, const std::string& t
             ll_remove_outliers(cur_execution, 1.f);
         }
 
-
         max_time = llmax(base_times.empty() ? 0.0 : *base_times.rbegin(), cur_times.empty() ? 0.0 : *cur_times.rbegin());
         max_calls = llmax(base_calls.empty() ? 0 : *base_calls.rbegin(), cur_calls.empty() ? 0 : *cur_calls.rbegin());
         max_execution = llmax(base_execution.empty() ? 0.0 : *base_execution.rbegin(), cur_execution.empty() ? 0.0 : *cur_execution.rbegin());
-
 
         LLVector3 last_p;
 
@@ -639,7 +643,7 @@ void LLFastTimerView::exportCharts(const std::string& base, const std::string& t
 
         last_p.clear();
 
-        LLGLDisable cull(GL_CULL_FACE);
+        LLGLDisable cull(LLRenderCapability::CullFace);
 
         LLVector3 base_col(0, 0.7f, 0.f);
         LLVector3 cur_col(1.f, 0.f, 0.f);
@@ -660,10 +664,9 @@ void LLFastTimerView::exportCharts(const std::string& base, const std::string& t
 
         gGL.flush();
 
-
         last_p.clear();
         {
-            LLGLEnable blend(GL_BLEND);
+            LLGLEnable blend(LLRenderCapability::Blend);
 
             gGL.color3fv(cur_col.mV);
             for (U32 i = 0; i < cur_times.size(); ++i)
@@ -704,7 +707,7 @@ void LLFastTimerView::exportCharts(const std::string& base, const std::string& t
         gGL.flush();
 
         {
-            LLGLEnable blend(GL_BLEND);
+            LLGLEnable blend(LLRenderCapability::Blend);
             gGL.color3fv(cur_col.mV);
             last_p.clear();
 
@@ -751,7 +754,7 @@ void LLFastTimerView::exportCharts(const std::string& base, const std::string& t
         last_p.clear();
 
         {
-            LLGLEnable blend(GL_BLEND);
+            LLGLEnable blend(LLRenderCapability::Blend);
             gGL.color3fv(cur_col.mV);
             count = 0;
             total_count = static_cast<U32>(cur_execution.size());
@@ -967,7 +970,6 @@ void LLFastTimerView::doAnalysis(std::string baseline, std::string target, std::
     }
 }
 
-
 void LLFastTimerView::printLineStats()
 {
     // Output stats for clicked bar to log
@@ -1084,7 +1086,7 @@ void LLFastTimerView::drawLineGraph()
         if (mHoverID == idp)
         {
             gGL.flush();
-            LLGLContainment::setLineWidth(3);
+            getOpenGLRenderBackend().setLineWidth(3);
         }
 
         llassert(idp->getIndex() < sTimerColors.size());
@@ -1138,14 +1140,14 @@ void LLFastTimerView::drawLineGraph()
                 break;
             }
             gGL.vertex2f(x,y);
-            gGL.vertex2f(x,(GLfloat)mGraphRect.mBottom);
+            gGL.vertex2f(x,(F32)mGraphRect.mBottom);
         }
         gGL.end();
 
         if (mHoverID == idp)
         {
             gGL.flush();
-            LLGLContainment::setLineWidth(1);
+            getOpenGLRenderBackend().setLineWidth(1);
         }
 
         if (idp->getTreeNode().mCollapsed)

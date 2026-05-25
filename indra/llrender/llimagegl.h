@@ -33,6 +33,7 @@
 #include "llgltypes.h"
 #include "llpointer.h"
 #include "llrefcount.h"
+#include "llrenderbackend.h"
 #include "v2math.h"
 #include "llunits.h"
 #include "llthreadsafequeue.h"
@@ -51,6 +52,7 @@ class LLWindow;
 namespace LLImageGLMemory
 {
     void alloc_tex_image(U32 width, U32 height, U32 intformat, U32 count);
+    void alloc_tex_image(U32 width, U32 height, LLRenderTextureFormat intformat, U32 count);
     void free_tex_image(U32 texName);
     void free_tex_images(U32 count, const U32* texNames);
     void free_cur_tex_image();
@@ -107,6 +109,14 @@ public:
 
     // For wrapping textures created via GL elsewhere with our API only. Use with caution.
     LLImageGL(LLGLuint mTexName, U32 components, LLGLenum target, LLGLint  formatInternal, LLGLenum formatPrimary, LLGLenum formatType, LLTexUnit::eTextureAddressMode addressMode);
+    LLImageGL(
+        LLGLuint mTexName,
+        U32 components,
+        LLRenderTextureTarget target,
+        LLRenderTextureFormat formatInternal,
+        LLRenderPixelFormat formatPrimary,
+        LLRenderPixelType formatType,
+        LLTexUnit::eTextureAddressMode addressMode);
 
 protected:
     virtual ~LLImageGL();
@@ -122,6 +132,16 @@ public:
     void setAllowCompression(bool allow) { mAllowCompression = allow; }
 
     static void setManualImage(U32 target, S32 miplevel, S32 intformat, S32 width, S32 height, U32 pixformat, U32 pixtype, const void *pixels, bool allow_compression = true);
+    static void setManualImage(
+        LLRenderTextureTarget target,
+        S32 miplevel,
+        LLRenderTextureFormat internal_format,
+        S32 width,
+        S32 height,
+        LLRenderPixelFormat pixel_format,
+        LLRenderPixelType pixel_type,
+        const void* pixels,
+        bool allow_compression = true);
 
     bool createGLTexture() ;
     bool createGLTexture(S32 discard_level, const LLImageRaw* imageraw, S32 usename = 0, bool to_create = true,
@@ -146,6 +166,11 @@ public:
     void forceToInvalidateGLTexture();
 
     void setExplicitFormat(LLGLint internal_format, LLGLenum primary_format, LLGLenum type_format = 0, bool swap_bytes = false);
+    void setExplicitFormat(
+        LLRenderTextureFormat internal_format,
+        LLRenderPixelFormat primary_format,
+        LLRenderPixelType type_format = LLRenderPixelType::UnsignedByte,
+        bool swap_bytes = false);
     void setComponents(S8 ncomponents) { mComponents = ncomponents; }
 
     S32  getDiscardLevel() const        { return mCurrentDiscardLevel; }
@@ -166,6 +191,7 @@ public:
     bool isJustBound() const;
     bool getHasExplicitFormat() const { return mHasExplicitFormat; }
     LLGLenum getPrimaryFormat() const { return mFormatPrimary; }
+    LLRenderPixelFormat getPrimaryPixelFormat() const;
     LLGLenum getFormatType() const { return mFormatType; }
 
     bool getHasGLTexture() const { return mTexName != 0; }

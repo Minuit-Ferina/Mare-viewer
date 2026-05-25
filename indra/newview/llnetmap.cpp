@@ -35,16 +35,13 @@
 #include "llmath.h"
 #include "llfloaterreg.h"
 #include "llfocusmgr.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "lllocalcliprect.h"
 #include "llrender.h"
 #include "llresmgr.h"
 #include "llui.h"
 #include "lltooltip.h"
 
-#include "llglheaders.h"
-
-// Viewer includes
 #include "llagent.h"
 #include "llagentcamera.h"
 #include "llappviewer.h" // for gDisconnected
@@ -216,7 +213,6 @@ void LLNetMap::setScale( F32 scale )
     mUpdateObjectImage = true;
     mUpdateParcelImage = true;
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -771,7 +767,7 @@ void LLNetMap::drawRing(const F32 radius, const LLVector3 pos_map, const LLUICol
     F32 meters_to_pixels = mScale / REGION_WIDTH_METERS;
     F32 radius_pixels = radius * meters_to_pixels;
 
-    LLGLContainment::setMatrixMode(GL_MODELVIEW);
+    getOpenGLRenderBackend().setMatrixMode(LLRenderMatrixMode::ModelView);
     gGL.pushMatrix();
     gGL.translatef((F32)pos_map.mV[VX], (F32)pos_map.mV[VY], 0.f);
     gl_ring(radius_pixels, WIDTH_PIXELS, colour, colour, CIRCLE_STEPS, FALSE);
@@ -1112,7 +1108,6 @@ void LLNetMap::renderScaledPointGlobal( const LLVector3d& pos, const LLColor4U &
     S32 diameter_pixels = ll_round(2 * radius_meters * mObjectMapTPM);
     renderPoint( local_pos, color, diameter_pixels );
 }
-
 
 void LLNetMap::renderPoint(const LLVector3 &pos_local, const LLColor4U &color,
                            S32 diameter, S32 relative_height)
@@ -1741,7 +1736,6 @@ LLColor4 LLNetMap::getAvatarColor(const LLUUID& avatar_id)
     return color;
 }
 //</FS:Ansariel>
-
 
 void LLNetMap::handleStopTracking (const LLSD& userdata)
 {

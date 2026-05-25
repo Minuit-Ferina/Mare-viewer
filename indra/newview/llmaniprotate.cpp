@@ -30,7 +30,7 @@
 
 // library includes
 #include "llmath.h"
-#include "llgl.h"
+
 #include "llrender.h"
 #include "v4color.h"
 #include "llprimitive.h"
@@ -58,10 +58,11 @@
 #include "llworld.h"
 #include "pipeline.h"
 #include "lldrawable.h"
-#include "llglheaders.h"
+
 #include "lltrans.h"
 #include "llvoavatarself.h"
 #include "llhudrender.h"
+#include "llrenderstate.h"
 
 const F32 RADIUS_PIXELS = 100.f;        // size in screen space
 const F32 SQ_RADIUS = RADIUS_PIXELS * RADIUS_PIXELS;
@@ -116,8 +117,8 @@ void LLManipRotate::render()
 {
     LLGLSUIDefault gls_ui;
     gGL.getTexUnit(0)->bind(LLViewerFetchedTexture::sWhiteImagep);
-    LLGLDepthTest gls_depth(GL_TRUE);
-    LLGLEnable gl_blend(GL_BLEND);
+    LLGLDepthTest gls_depth(true);
+    LLGLEnable gl_blend(LLRenderCapability::Blend);
 
     // You can rotate if you can move
     LLViewerObject* first_object = mObjectSelection->getFirstMoveableObject(true);
@@ -139,7 +140,6 @@ void LLManipRotate::render()
         gGL.scalef(zoom, zoom, zoom);
     }
 
-
     LLVector3 center = gAgent.getPosAgentFromGlobal( mRotationCenter );
 
     LLColor4 highlight_outside( 1.f, 1.f, 0.f, 1.f );
@@ -158,8 +158,8 @@ void LLManipRotate::render()
         {
             gDebugProgram.bind();
 
-            LLGLEnable cull_face(GL_CULL_FACE);
-            LLGLDepthTest gls_depth(GL_FALSE);
+            LLGLEnable cull_face(LLRenderCapability::CullFace);
+            LLGLDepthTest gls_depth(false);
             gGL.pushMatrix();
             {
                 // Draw "sphere" (intersection of sphere with tangent cone that has apex at camera)
@@ -197,7 +197,6 @@ void LLManipRotate::render()
                 gGL.diffuseColor4fv(color.mV);
                 gl_washer_2d(mRadiusMeters + width_meters, mRadiusMeters, CIRCLE_STEPS, color, color);
 
-
                 if (mManipPart == LL_NO_PART)
                 {
                     gGL.color4f( 0.7f, 0.7f, 0.7f, 0.3f );
@@ -225,7 +224,6 @@ void LLManipRotate::render()
 
         grid_rotation.getAngleAxis(&angle_radians, &x, &y, &z);
         gGL.rotatef(angle_radians * RAD_TO_DEG, x, y, z);
-
 
         gDebugProgram.bind();
 
@@ -273,10 +271,10 @@ void LLManipRotate::render()
                 mManipulatorScales = lerp(mManipulatorScales, LLVector4(1.f, 1.f, 1.f, 1.f), LLSmoothInterpolation::getInterpolant(MANIPULATOR_SCALE_HALF_LIFE));
             }
 
-            LLGLEnable cull_face(GL_CULL_FACE);
-            LLGLEnable clip_plane0(GL_CLIP_PLANE0);
-            LLGLDepthTest gls_depth(GL_FALSE);
-            //LLGLDisable gls_stencil(GL_STENCIL_TEST);
+            LLGLEnable cull_face(LLRenderCapability::CullFace);
+            LLGLEnable clip_plane0(LLRenderCapability::ClipPlane0);
+            LLGLDepthTest gls_depth(false);
+            //LLGLDisable gls_stencil(LLRenderCapability::StencilTest);
 
             // First pass: centers. Second pass: sides.
             for( S32 i=0; i<2; i++ )
@@ -349,7 +347,6 @@ void LLManipRotate::render()
     }
     gGL.popMatrix();
     gGL.popMatrix();
-
 
     LLVector3 euler_angles;
     LLQuaternion object_rot = first_object->getRotationEdit();
@@ -447,7 +444,6 @@ bool LLManipRotate::handleMouseDownOnPart( S32 x, S32 y, MASK mask )
     return true;
 }
 
-
 LLVector3 LLManipRotate::findNearestPointOnRing( S32 x, S32 y, const LLVector3& center, const LLVector3& axis )
 {
     // Project the delta onto the ring and rescale it by the radius so that it's _on_ the ring.
@@ -496,7 +492,6 @@ bool LLManipRotate::handleMouseUp(S32 x, S32 y, MASK mask)
     return LLManip::handleMouseUp(x, y, mask);
 }
 
-
 bool LLManipRotate::handleHover(S32 x, S32 y, MASK mask)
 {
     if( hasMouseCapture() )
@@ -522,7 +517,6 @@ bool LLManipRotate::handleHover(S32 x, S32 y, MASK mask)
     gViewerWindow->setCursor(UI_CURSOR_TOOLROTATE);
     return true;
 }
-
 
 LLVector3 LLManipRotate::projectToSphere( F32 x, F32 y, bool* on_sphere )
 {
@@ -656,7 +650,6 @@ void LLManipRotate::drag( S32 x, S32 y )
             LLViewerObject* object = selectNode->getObject();
             LLViewerObject* root_object = (object == NULL) ? NULL : object->getRootEdit();
 
-
             // to avoid cumulative position changes we calculate the objects new position using its saved position
             if (object && object->permMove() && !object->isPermanentEnforced() &&
                 ((root_object == NULL) || !root_object->isPermanentEnforced()))
@@ -768,13 +761,13 @@ void LLManipRotate::drag( S32 x, S32 y )
 
 void LLManipRotate::renderActiveRing( F32 radius, F32 width, const LLColor4& front_color, const LLColor4& back_color)
 {
-    LLGLEnable cull_face(GL_CULL_FACE);
+    LLGLEnable cull_face(LLRenderCapability::CullFace);
     {
         gl_ring(radius, width, back_color, back_color * 0.5f, CIRCLE_STEPS, false);
         gl_ring(radius, width, back_color, back_color * 0.5f, CIRCLE_STEPS, true);
     }
     {
-        LLGLDepthTest gls_depth(GL_FALSE);
+        LLGLDepthTest gls_depth(false);
         gl_ring(radius, width, front_color, front_color * 0.5f, CIRCLE_STEPS, false);
         gl_ring(radius, width, front_color, front_color * 0.5f, CIRCLE_STEPS, true);
     }
@@ -870,7 +863,7 @@ void LLManipRotate::renderSnapGuides()
             }
         }
 
-        LLGLDepthTest gls_depth(GL_FALSE);
+        LLGLDepthTest gls_depth(false);
         for (S32 pass = 0; pass < 3; pass++)
         {
             // render snap guide ring
@@ -1119,7 +1112,7 @@ void LLManipRotate::renderSnapGuides()
                 gGL.end();
 
                 {
-                    LLGLDepthTest gls_depth(GL_TRUE);
+                    LLGLDepthTest gls_depth(true);
                     gGL.begin(LLRender::LINES);
                     {
                         gGL.vertex3fv(line_start.mV);
@@ -1150,7 +1143,6 @@ void LLManipRotate::renderSnapGuides()
             }
         }
     }
-
 
     // render help text
     if (mObjectSelection->getSelectType() != SELECT_TYPE_HUD)
@@ -1695,8 +1687,6 @@ LLQuaternion LLManipRotate::dragConstrained( S32 x, S32 y )
     return LLQuaternion( angle, constraint_axis );
 }
 
-
-
 LLVector3 LLManipRotate::intersectMouseWithSphere( S32 x, S32 y, const LLVector3& sphere_center, F32 sphere_radius)
 {
     LLVector3 ray_pt;
@@ -1972,4 +1962,3 @@ bool LLManipRotate::canAffectSelection()
     }
     return can_rotate;
 }
-

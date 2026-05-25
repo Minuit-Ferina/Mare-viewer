@@ -78,6 +78,7 @@
 
 #include <boost/bind.hpp>   // for SkinFolder listener
 #include <boost/signals2.hpp>
+#include "llrendercontext.h"
 
 namespace
 {
@@ -188,7 +189,6 @@ LLViewerMediaObserver::~LLViewerMediaObserver()
     }
 }
 
-
 static LLViewerMedia::impl_list sViewerMediaImplList;
 static LLViewerMedia::impl_id_map sViewerMediaTextureIDMap;
 static LLTimer sMediaCreateTimer;
@@ -227,7 +227,6 @@ class LLViewerMediaMuteListObserver : public LLMuteListObserver
 
 static LLViewerMediaMuteListObserver sViewerMediaMuteListObserver;
 static bool sViewerMediaMuteListObserverInitialized = false;
-
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // LLViewerMedia
@@ -674,7 +673,6 @@ static LLTrace::BlockTimerStatHandle FTM_MEDIA_UPDATE_VOLUME("Update/Volume");
 static LLTrace::BlockTimerStatHandle FTM_MEDIA_SORT("Media Sort");
 static LLTrace::BlockTimerStatHandle FTM_MEDIA_SORT2("Media Sort 2");
 static LLTrace::BlockTimerStatHandle FTM_MEDIA_MISC("Misc");
-
 
 //////////////////////////////////////////////////////////////////////////////////////////
 void LLViewerMedia::onIdle(void *dummy_arg)
@@ -1841,7 +1839,6 @@ LLPluginClassMedia* LLViewerMediaImpl::newSourceFromMediaType(std::string media_
     }
 #endif
 
-
     // HACK: we always try to keep a spare running webkit plugin around to improve launch times.
     // If a spare was already created before PluginAttachDebuggerToPlugins was set, don't use it.
     // Do not use a spare if launching with full viewer control (e.g. Twitter and few others)
@@ -2332,7 +2329,6 @@ void LLViewerMediaImpl::clearCache()
     }
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
 void LLViewerMediaImpl::setPageZoomFactor( double factor )
 {
@@ -2705,7 +2701,6 @@ void LLViewerMediaImpl::navigateInternal()
         return;
     }
 
-
     if (!mMimeProbe.expired())
     {
         LL_WARNS() << "MIME type probe already in progress -- bailing out." << LL_ENDL;
@@ -2960,7 +2955,6 @@ static LLTrace::BlockTimerStatHandle FTM_MEDIA_DO_UPDATE("Do Update");
 static LLTrace::BlockTimerStatHandle FTM_MEDIA_GET_DATA("Get Data");
 static LLTrace::BlockTimerStatHandle FTM_MEDIA_SET_SUBIMAGE("Set Subimage");
 
-
 void LLViewerMediaImpl::update()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_MEDIA; //LL_RECORD_BLOCK_TIME(FTM_MEDIA_DO_UPDATE);
@@ -3004,7 +2998,6 @@ void LLViewerMediaImpl::update()
         // updateJavascriptObject();
     }
 
-
     if(mMediaSource == NULL)
     {
         return;
@@ -3038,7 +3031,6 @@ void LLViewerMediaImpl::update()
     {
         return;
     }
-
 
     LLViewerMediaTexture* media_tex;
     U8* data;
@@ -3148,7 +3140,7 @@ void LLViewerMediaImpl::doMediaTexUpdate(LLViewerMediaTexture* media_tex, U8* da
     // updated textures by the OpenGL implementation. (Windows 10/Nvidia)
     // -Cosmic,2023-04-04
     // Allocate GL texture based on LLImageRaw but do NOT copy to GL
-    LLGLuint tex_name = 0;
+    U32 tex_name = 0;
     if (!media_tex->createGLTexture(0, raw, 0, true, LLGLTexture::OTHER, true, &tex_name))
     {
         LL_WARNS("Media") << "Failed to create media texture" << LL_ENDL;
@@ -3239,7 +3231,6 @@ LLViewerMediaTexture* LLViewerMediaImpl::updateMediaImage()
     return media_tex;
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
 LLUUID LLViewerMediaImpl::getMediaTextureID() const
 {
@@ -3284,8 +3275,6 @@ void LLViewerMediaImpl::scaleMouse(S32 *mouse_x, S32 *mouse_y)
     *mouse_y -= y_delta;
 #endif
 }
-
-
 
 //////////////////////////////////////////////////////////////////////////////////////////
 bool LLViewerMediaImpl::isMediaTimeBased()
@@ -3342,7 +3331,6 @@ void LLViewerMediaImpl::resetPreviousMediaState()
     mPreviousMediaState = MEDIA_NONE;
     mPreviousMediaTime = 0.0f;
 }
-
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //

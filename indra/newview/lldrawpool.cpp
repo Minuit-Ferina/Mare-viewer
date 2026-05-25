@@ -27,7 +27,7 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "lldrawpool.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llrender.h"
 #include "llfasttimer.h"
 #include "llviewercontrol.h"
@@ -54,6 +54,7 @@
 #include "llglcommonfunc.h"
 #include "llvoavatar.h"
 #include "llviewershadermgr.h"
+#include "llrenderstate.h"
 
 S32 LLDrawPool::sNumDrawPools = 0;
 
@@ -370,14 +371,13 @@ void LLFacePool::LLOverrideFaceColor::setColor(const LLColor4& color)
 
 void LLFacePool::LLOverrideFaceColor::setColor(const LLColor4U& color)
 {
-    LLGLContainment::setColorUnsignedByteVector(color.mV);
+    gGL.diffuseColor4ubv(color.mV);
 }
 
 void LLFacePool::LLOverrideFaceColor::setColor(F32 r, F32 g, F32 b, F32 a)
 {
     gGL.diffuseColor4f(r,g,b,a);
 }
-
 
 //=============================
 // Render Pass Implementation
@@ -565,7 +565,7 @@ void LLRenderPass::applyModelMatrix(const LLMatrix4* model_matrix)
         gGL.loadMatrix(gGLModelView);
         if (model_matrix)
         {
-            gGL.multMatrix((GLfloat*) model_matrix->mMatrix);
+            gGL.multMatrix((F32*) model_matrix->mMatrix);
         }
         gPipeline.mMatrixOpCount++;
     }
@@ -606,7 +606,7 @@ void LLRenderPass::pushBatch(LLDrawInfo& params, bool texture, bool batch_textur
                     tex_setup = true;
                     gGL.getTexUnit(0)->activate();
                     gGL.matrixMode(LLRender::MM_TEXTURE);
-                    gGL.loadMatrix((GLfloat*) params.mTextureMatrix->mMatrix);
+                    gGL.loadMatrix((F32*) params.mTextureMatrix->mMatrix);
                     gPipeline.mTextureMatrixOps++;
                 }
             }
@@ -671,7 +671,7 @@ bool LLRenderPass::uploadMatrixPalette(LLVOAvatar* avatar, LLMeshSkinInfo* skinI
     LLGLSLShader::sCurBoundShaderPtr->uniformMatrix3x4fv(LLViewerShaderMgr::AVATAR_MATRIX,
         count,
         false,
-        (GLfloat*)&(mpc.mGLMp[0]));
+        (F32*)&(mpc.mGLMp[0]));
 
     return true;
 }
@@ -707,7 +707,7 @@ bool LLRenderPass::uploadMatrixPalette(LLVOAvatar* avatar, LLMeshSkinInfo* skinI
         LLGLSLShader::sCurBoundShaderPtr->uniformMatrix3x4fv(LLViewerShaderMgr::AVATAR_MATRIX,
             count,
             false,
-            (GLfloat*)&(mpc.mGLMp[0]));
+            (F32*)&(mpc.mGLMp[0]));
     }
 
     return !skipLastSkin;
@@ -745,7 +745,7 @@ bool LLRenderPass::uploadMatrixPalette(LLVOAvatar* avatar, LLMeshSkinInfo* skinI
         LLGLSLShader::sCurBoundShaderPtr->uniformMatrix3x4fv(LLViewerShaderMgr::AVATAR_MATRIX,
             count,
             false,
-            (GLfloat*)&(mpc.mGLMp[0]));
+            (F32*)&(mpc.mGLMp[0]));
     }
 
     return !skipLastSkin;
@@ -757,7 +757,7 @@ void setup_texture_matrix(LLDrawInfo& params)
     { //special case implementation of texture animation here because of special handling of textures for PBR batches
         gGL.getTexUnit(0)->activate();
         gGL.matrixMode(LLRender::MM_TEXTURE);
-        gGL.loadMatrix((GLfloat*)params.mTextureMatrix->mMatrix);
+        gGL.loadMatrix((F32*)params.mTextureMatrix->mMatrix);
         gPipeline.mTextureMatrixOps++;
     }
 }
@@ -824,7 +824,7 @@ void LLRenderPass::pushGLTFBatch(LLDrawInfo& params)
         mat->bind(params.mTexture);
     }
 
-    LLGLDisable cull_face(mat.notNull() && mat->mDoubleSided ? GL_CULL_FACE : 0);
+    LLGLState cull_face(LLRenderCapability::CullFace, mat.notNull() && mat->mDoubleSided ? LLGLState::DISABLED_STATE : LLGLState::CURRENT_STATE);
 
     setup_texture_matrix(params);
 
@@ -841,7 +841,7 @@ void LLRenderPass::pushUntexturedGLTFBatch(LLDrawInfo& params)
 {
     auto& mat = params.mGLTFMaterial;
 
-    LLGLDisable cull_face(mat->mDoubleSided ? GL_CULL_FACE : 0);
+    LLGLState cull_face(LLRenderCapability::CullFace, mat->mDoubleSided ? LLGLState::DISABLED_STATE : LLGLState::CURRENT_STATE);
 
     applyModelMatrix(params);
 
@@ -898,7 +898,6 @@ void LLRenderPass::pushUntexturedRiggedGLTFBatches(U32 type)
         pushUntexturedRiggedGLTFBatch(params, lastAvatar, lastMeshId, skipLastSkin);
     }
 }
-
 
 // static
 void LLRenderPass::pushRiggedGLTFBatch(LLDrawInfo& params, const LLVOAvatar*& lastAvatar, U64& lastMeshId, bool& skipLastSkin)

@@ -32,7 +32,7 @@
 #include "llagentcamera.h"
 #include "llagentui.h"
 #include "llfilesystem.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llcombobox.h"
 #include "llfloaterperms.h"
 #include "llfloaterreg.h"
@@ -200,7 +200,6 @@ void LLSnapshotLivePreview::updateSnapshot(bool new_snapshot, bool new_thumbnail
         mSnapshotDelayTimer.start();
         mSnapshotDelayTimer.resetWithExpiry(delay);
 
-
         mPosTakenGlobal = gAgentCamera.getCameraPositionGlobal();
 
         // Tell the floater container that the snapshot is in the process of updating itself
@@ -238,12 +237,12 @@ bool LLSnapshotLivePreview::setSnapshotQuality(S32 quality, bool set_by_user)
 void LLSnapshotLivePreview::drawPreviewRect(S32 offset_x, S32 offset_y, LLColor4 alpha_color)
 {
     F32 line_width ;
-    LLGLContainment::getFloat(GL_LINE_WIDTH, &line_width) ;
-    LLGLContainment::setLineWidth(2.0f * line_width) ;
+    line_width = getOpenGLRenderBackend().getLineWidth();
+    getOpenGLRenderBackend().setLineWidth(2.0f * line_width) ;
     LLColor4 color(0.0f, 0.0f, 0.0f, 1.0f) ;
     gl_rect_2d( mPreviewRect.mLeft + offset_x, mPreviewRect.mTop + offset_y,
         mPreviewRect.mRight + offset_x, mPreviewRect.mBottom + offset_y, color, false ) ;
-    LLGLContainment::setLineWidth(line_width) ;
+    getOpenGLRenderBackend().setLineWidth(line_width) ;
 
     //draw four alpha rectangles to cover areas outside of the snapshot image
     if(!mKeepAspectRatio)
@@ -306,7 +305,6 @@ void LLSnapshotLivePreview::draw()
 
                 gGL.texCoord2f(0.f, 0.f);
                 gGL.vertex2i(0, 0);
-
 
                 gGL.texCoord2f(uv_width, uv_height);
                 gGL.vertex2i(rect.getWidth(), rect.getHeight());
@@ -830,7 +828,6 @@ void LLSnapshotLivePreview::prepareFreezeFrame()
         gGL.getTexUnit(0)->bind(curr_preview_image);
         curr_preview_image->setFilteringOption(getSnapshotType() == LLSnapshotModel::SNAPSHOT_TEXTURE ? LLTexUnit::TFO_ANISOTROPIC : LLTexUnit::TFO_POINT);
         curr_preview_image->setAddressMode(LLTexUnit::TAM_CLAMP);
-
 
         if (gSavedSettings.getBOOL("UseFreezeFrame") && mAllowFullScreenPreview)
         {

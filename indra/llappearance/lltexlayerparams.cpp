@@ -28,7 +28,6 @@
 
 #include "lltexlayerparams.h"
 
-#include "llgl.h"
 #include "llavatarappearance.h"
 #include "llimagetga.h"
 #include "llquantize.h"
@@ -37,6 +36,7 @@
 #include "../llui/llui.h"
 #include "llwearable.h"
 #include "llfasttimer.h"
+#include "llrendercontext.h"
 
 //-----------------------------------------------------------------------------
 // LLTexLayerParam
@@ -82,7 +82,6 @@ bool LLTexLayerParam::setInfo(LLViewerVisualParamInfo *info, bool add_to_appeara
 
     return true;
 }
-
 
 //-----------------------------------------------------------------------------
 // LLTexLayerParamAlpha
@@ -259,7 +258,6 @@ bool LLTexLayerParamAlpha::getSkip() const
     return false;
 }
 
-
 bool LLTexLayerParamAlpha::render(S32 x, S32 y, S32 width, S32 height)
 {
     LL_PROFILE_ZONE_SCOPED;
@@ -322,7 +320,9 @@ bool LLTexLayerParamAlpha::render(S32 x, S32 y, S32 width, S32 height)
                 // We now have something in one of our caches
                 LLTexLayerSet::sHasCaches |= mCachedProcessedTexture.notNull();
 
-                mCachedProcessedTexture->setExplicitFormat(GL_ALPHA8, GL_ALPHA);
+                mCachedProcessedTexture->setExplicitFormat(
+                    LLRenderTextureFormat::Alpha8,
+                    LLRenderPixelFormat::Alpha);
             }
 
             // Applies domain and effective weight to data as it is decoded. Also resizes the raw image if needed.
@@ -417,9 +417,6 @@ bool LLTexLayerParamAlphaInfo::parseXml(LLXmlTreeNode* node)
     return true;
 }
 
-
-
-
 LLTexLayerParamColor::LLTexLayerParamColor(LLTexLayerInterface* layer)
     : LLTexLayerParam(layer),
     mAvgDistortionVec(1.f, 1.f, 1.f)
@@ -474,7 +471,6 @@ LLColor4 LLTexLayerParamColor::getNetColor() const
                         (1.f - weight) * start->mV[VALPHA] + weight * end->mV[VALPHA]);
     }
 }
-
 
 void LLTexLayerParamColor::setWeight(F32 weight)
 {

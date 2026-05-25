@@ -60,6 +60,7 @@
 // For avatar texture view
 #include "llvoavatarself.h"
 #include "lltexlayer.h"
+#include "llrenderstate.h"
 
 LLTextureView *gTextureView = NULL;
 
@@ -207,7 +208,6 @@ void LLTextureBar::draw()
         mImagep->mDesiredDiscardLevel,
         mImagep->mRequestedDiscardLevel);
 
-
     LLFontGL::getFontMonospace()->renderUTF8(tex_str, 0, title_x1, getRect().getHeight(),
                                      color, LLFontGL::LEFT, LLFontGL::TOP);
 
@@ -322,7 +322,6 @@ void LLTextureBar::draw()
         }
     }
     pip_x += pip_width + pip_space;
-
 
     {
         LLGLSUIDefault gls_ui;
@@ -1072,5 +1071,4 @@ bool LLTextureView::handleKey(KEY key, MASK mask, bool called_from_parent)
 {
     return false;
 }
-
 

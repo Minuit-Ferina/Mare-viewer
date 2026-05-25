@@ -36,7 +36,6 @@
 #include "llagentcamera.h"
 #include "llviewercontrol.h"
 //#include "lldrawpool.h"
-//#include "llglheaders.h"
 #include "llhttpnode.h"
 #include "llregionhandle.h"
 #include "llsky.h"

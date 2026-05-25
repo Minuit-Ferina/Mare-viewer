@@ -30,7 +30,6 @@
 
 #include "llmath.h"
 #include "llfontgl.h"
-#include "llgl.h"
 #include "llkeyboard.h"
 #include "lllineeditor.h"
 #include "llmultislider.h"

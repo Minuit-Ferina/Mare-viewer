@@ -29,7 +29,6 @@
 #include "llhudeffect.h"
 
 #include "message.h"
-#include "llgl.h"
 #include "llagent.h"
 #include "llrendersphere.h"
 

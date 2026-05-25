@@ -73,6 +73,7 @@
 #include "llviewerwindow.h"
 #include "llviewerdisplay.h"
 #include "llviewermedia.h"
+#include "llrendercontext.h"
 #include "llviewerparcelaskplay.h"
 #include "llviewerparcelmedia.h"
 #include "llviewershadermgr.h"
@@ -85,7 +86,7 @@
 #include "lluicolortable.h"
 #include "llurldispatcher.h"
 #include "llurlhistory.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llrender.h"
 #include "llteleporthistory.h"
 #include "lltoast.h"
@@ -363,9 +364,7 @@ LLTimer gLogoutTimer;
 static const F32 LOGOUT_REQUEST_TIME = 6.f;  // this will be cut short by the LogoutReply msg.
 F32 gLogoutMaxTime = LOGOUT_REQUEST_TIME;
 
-
 S32 gPendingMetricsUploads = 0;
-
 
 bool gDisconnected = false;
 
@@ -411,7 +410,6 @@ const char* const VIEWER_WINDOW_CLASSNAME = "Second Life";
 //MK
 const F32 OUTFIT_CLEANUP_DELAY = 1.f;   // in seconds
 //mk
-
 
 //----------------------------------------------------------------------------
 
@@ -724,7 +722,6 @@ LLAppViewer::LLAppViewer()
 
     gLoggedInTime.stop();
 
-
     processMarkerFiles();
     //
     // OK to write stuff to logs now, we've now crash reported if necessary
@@ -767,7 +764,6 @@ public:
         return LLTrans::getString(xml_desc);
     }
 };
-
 
 bool LLAppViewer::init()
 {
@@ -1012,7 +1008,6 @@ bool LLAppViewer::init()
     // LLKeyboard relies on LLUI to know what some accelerator keys are called.
     LLKeyboard::setStringTranslatorFunc( LLTrans::getKeyboardString );
 
-
     // Provide the text fields with callbacks for opening Urls
     LLUrlAction::setOpenURLCallback(boost::bind(&LLWeb::loadURL, _1, LLStringUtil::null, LLStringUtil::null));
     LLUrlAction::setOpenURLInternalCallback(boost::bind(&LLWeb::loadURLInternal, _1, LLStringUtil::null, LLStringUtil::null, false));
@@ -1221,7 +1216,6 @@ bool LLAppViewer::init()
     }
 #endif
 
-
     // save the graphics card
     gDebugInfo["GraphicsCard"] = LLFeatureManager::getInstance()->getGPUString();
 
@@ -1312,7 +1306,6 @@ bool LLAppViewer::init()
     }
 #endif //!LL_LINUX
 #endif //LL_RELEASE_FOR_DOWNLOAD
-
 
     {
         // Iterate over --leap command-line options. But this is a bit tricky: if
@@ -1443,7 +1436,6 @@ void LLAppViewer::initMaxHeapSize()
 
     LLMemory::initMaxHeapSizeGB(max_heap_size_gb);
 }
-
 
 // externally visible timers
 LLTrace::BlockTimerStatHandle FTM_FRAME("Frame");
@@ -2271,7 +2263,6 @@ bool LLAppViewer::cleanup()
     SUBSYSTEM_CLEANUP(LLWorldMapView);
     SUBSYSTEM_CLEANUP(LLFolderViewItem);
 
-
     LL_INFOS() << "Saving Data" << LL_ENDL;
 
     // Store the time of our current logoff
@@ -2292,7 +2283,6 @@ bool LLAppViewer::cleanup()
     LLUIColorTable::instance().saveUserSettings();
 
     }   // <FS:Zi> Backup Settings
-
 
     // <FS:Zi> Backup Settings
     if(mSaveSettingsOnExit)
@@ -2722,7 +2712,6 @@ void LLAppViewer::initLoggingAndGetLastDuration()
 
     LLError::LLUserWarningMsg::setHandler(errorHandler);
 
-
     if (mSecondInstance)
     {
         LLFile::mkdir(gDirUtilp->getDumpLogsDirPath());
@@ -3098,7 +3087,6 @@ bool LLAppViewer::initConfiguration()
         }
 
     }
-
 
     // - load overrides from user_settings
     loadSettingsFromDirectory("User");
@@ -3804,8 +3792,10 @@ LLSD LLAppViewer::getViewerInfo() const
     info["MEMORY_MB"] = LLSD::Integer(gSysMemory.getPhysicalMemoryKB().valueInUnits<LLUnits::Megabytes>());
     // Moved hack adjustment to Windows memory size into llsys.cpp
     info["OS_VERSION"] = LLOSInfo::instance().getOSString();
-    info["GRAPHICS_CARD_VENDOR"] = ll_safe_string(LLGLContainment::getString(GL_VENDOR));
-    info["GRAPHICS_CARD"] = ll_safe_string(LLGLContainment::getString(GL_RENDERER));
+    info["GRAPHICS_CARD_VENDOR"] = ll_safe_string(
+        getOpenGLRenderBackend().getInfoString(LLRenderInfoString::Vendor));
+    info["GRAPHICS_CARD"] = ll_safe_string(
+        getOpenGLRenderBackend().getInfoString(LLRenderInfoString::Renderer));
 
 #if LL_WINDOWS
     std::string drvinfo;
@@ -3853,7 +3843,8 @@ LLSD LLAppViewer::getViewerInfo() const
         info["RLV_VERSION"] = "Disabled";
     }
 
-    info["OPENGL_VERSION"] = ll_safe_string(LLGLContainment::getString(GL_VERSION));
+    info["OPENGL_VERSION"] = ll_safe_string(
+        getOpenGLRenderBackend().getInfoString(LLRenderInfoString::Version));
 
     // Settings
 
@@ -4667,7 +4658,6 @@ void LLAppViewer::requestQuit()
         gAgentAvatarp->updateAvatarRezMetrics(true); // force a last packet to be sent.
     }
 
-
     LLHUDEffectSpiral *effectp = (LLHUDEffectSpiral*)LLHUDManager::getInstance()->createViewerEffect(LLHUDObject::LL_HUD_EFFECT_POINT, true);
     effectp->setPositionGlobal(gAgent.getPositionGlobal());
     effectp->setColor(LLColor4U(gAgent.getEffectColor()));
@@ -4819,7 +4809,6 @@ void LLAppViewer::migrateCacheDirectory()
     }
 #endif // LL_WINDOWS || LL_DARWIN
 }
-
 
 //static
 U32 LLAppViewer::getTextureCacheVersion()
@@ -5092,7 +5081,6 @@ bool finish_forced_disconnect(const LLSD& notification, const LLSD& response)
     return false;
 }
 
-
 void LLAppViewer::forceDisconnect(const std::string& mesg)
 {
     if (gDoDisconnect)
@@ -5275,7 +5263,6 @@ void LLAppViewer::saveNameCache()
     }
 }
 
-
 /*! @brief      This class is an LLFrameTimer that can be created with
                 an elapsed time that starts counting up from the given value
                 rather than 0.0.
@@ -5399,7 +5386,6 @@ void LLAppViewer::idle()
         gGLActive = false;
     }
 
-
     F32 yaw = 0.f;              // radians
 
     if (!gDisconnected)
@@ -5407,7 +5393,6 @@ void LLAppViewer::idle()
         LL_PROFILE_ZONE_NAMED_CATEGORY_NETWORK("network"); //LL_RECORD_BLOCK_TIME(FTM_NETWORK);
         // Update spaceserver timeinfo
         LLWorld::getInstance()->setSpaceTimeUSec(LLWorld::getInstance()->getSpaceTimeUSec() + LLUnits::Seconds::fromValue(dt_raw));
-
 
         //////////////////////////////////////
         //
@@ -5498,7 +5483,6 @@ void LLAppViewer::idle()
         idleNameCache();
         idleNetwork();
 
-
         // Check for away from keyboard, kick idle agents.
         idle_afk_check();
 
@@ -5538,7 +5522,6 @@ void LLAppViewer::idle()
             report_interval.reset();
         }
     }
-
 
     // Update layonts, handle mouse events, tooltips, e t c
     // updateUI() needs to be called even in case viewer disconected
@@ -6046,7 +6029,6 @@ void LLAppViewer::idleNameCache()
 // Handle messages, and all message related stuff
 //
 
-
 constexpr F32 CHECK_MESSAGES_DEFAULT_MAX_TIME = 0.020f; // 50 ms = 50 fps (just for messages!)
 static F32 CheckMessagesMaxTime = CHECK_MESSAGES_DEFAULT_MAX_TIME;
 
@@ -6327,7 +6309,7 @@ void LLAppViewer::forceErrorOSSpecificException()
 void LLAppViewer::forceErrorDriverCrash()
 {
     LL_WARNS() << "Forcing a deliberate driver crash" << LL_ENDL;
-    LLGLContainment::deleteTextures(1, NULL);
+    getOpenGLRenderBackend().deleteTextures(1, NULL);
 }
 
 void LLAppViewer::forceErrorCoroutineCrash()
@@ -6445,7 +6427,6 @@ void LLAppViewer::pingMainloopTimeout(std::string_view state)
         mMainloopTimeout->ping(state);
     }
 }
-
 
 F32 LLAppViewer::getMainloopTimeoutSec() const
 {

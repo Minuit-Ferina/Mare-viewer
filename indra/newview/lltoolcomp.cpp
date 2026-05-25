@@ -29,7 +29,7 @@
 #include "lltoolcomp.h"
 
 #include "llfloaterreg.h"
-#include "llgl.h"
+
 #include "indra_constants.h"
 
 #include "llmanip.h"
@@ -55,6 +55,7 @@
 
 // NaCl - Rightclick-mousewheel zoom
 #include "llviewercamera.h"
+#include "llrenderstate.h"
 // NaCl End
 
 extern LLControlGroup gSavedSettings;
@@ -143,7 +144,6 @@ LLToolCompInspect::LLToolCompInspect()
     mSelectRect     = new LLToolSelectRect(this);
     mDefault = mSelectRect;
 }
-
 
 LLToolCompInspect::~LLToolCompInspect()
 {
@@ -268,7 +268,6 @@ bool LLToolCompTranslate::handleHover(S32 x, S32 y, MASK mask)
     return mCur->handleHover( x, y, mask );
 }
 
-
 bool LLToolCompTranslate::handleMouseDown(S32 x, S32 y, MASK mask)
 {
     mMouseDown = true;
@@ -354,18 +353,16 @@ bool LLToolCompTranslate::handleDoubleClick(S32 x, S32 y, MASK mask)
     return handleMouseDown(x, y, mask);
 }
 
-
 void LLToolCompTranslate::render()
 {
     mCur->render(); // removing this will not draw the RGB arrows and guidelines
 
     if( mCur != mManip )
     {
-        LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+        LLGLDepthTest gls_depth(true, false);
         mManip->renderGuidelines();
     }
 }
-
 
 //-----------------------------------------------------------------------
 // LLToolCompScale
@@ -394,7 +391,6 @@ bool LLToolCompScale::handleHover(S32 x, S32 y, MASK mask)
     }
     return mCur->handleHover( x, y, mask );
 }
-
 
 bool LLToolCompScale::handleMouseDown(S32 x, S32 y, MASK mask)
 {
@@ -456,7 +452,6 @@ LLTool* LLToolCompScale::getOverrideTool(MASK mask)
     return LLToolComposite::getOverrideTool(mask);
 }
 
-
 bool LLToolCompScale::handleDoubleClick(S32 x, S32 y, MASK mask)
 {
     if (!mManip->getSelection()->isEmpty() && mManip->getHighlightedPart() == LLManip::LL_NO_PART)
@@ -474,14 +469,13 @@ bool LLToolCompScale::handleDoubleClick(S32 x, S32 y, MASK mask)
     }
 }
 
-
 void LLToolCompScale::render()
 {
     mCur->render();
 
     if( mCur != mManip )
     {
-        LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+        LLGLDepthTest gls_depth(true, false);
         mManip->renderGuidelines();
     }
 }
@@ -500,13 +494,11 @@ LLToolCompCreate::LLToolCompCreate()
     mObjectPlacedOnMouseDown = false;
 }
 
-
 LLToolCompCreate::~LLToolCompCreate()
 {
     delete mPlacer;
     delete mSelectRect;
 }
-
 
 bool LLToolCompCreate::handleMouseDown(S32 x, S32 y, MASK mask)
 {
@@ -579,7 +571,6 @@ LLToolCompRotate::LLToolCompRotate()
     mDefault = mManip;
 }
 
-
 LLToolCompRotate::~LLToolCompRotate()
 {
     delete mManip;
@@ -594,7 +585,6 @@ bool LLToolCompRotate::handleHover(S32 x, S32 y, MASK mask)
     }
     return mCur->handleHover( x, y, mask );
 }
-
 
 bool LLToolCompRotate::handleMouseDown(S32 x, S32 y, MASK mask)
 {
@@ -671,18 +661,16 @@ bool LLToolCompRotate::handleDoubleClick(S32 x, S32 y, MASK mask)
     }
 }
 
-
 void LLToolCompRotate::render()
 {
     mCur->render();
 
     if( mCur != mManip )
     {
-        LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+        LLGLDepthTest gls_depth(true, false);
         mManip->renderGuidelines();
     }
 }
-
 
 //-----------------------------------------------------------------------
 // LLToolCompGun
@@ -697,7 +685,6 @@ LLToolCompGun::LLToolCompGun()
     setCurrentTool(mGun);
     mDefault = mGun;
 }
-
 
 LLToolCompGun::~LLToolCompGun()
 {
@@ -747,7 +734,6 @@ bool LLToolCompGun::handleHover(S32 x, S32 y, MASK mask)
     return true;
 }
 
-
 bool LLToolCompGun::handleMouseDown(S32 x, S32 y, MASK mask)
 {
     // if the left button is grabbed, don't put up the pie menu
@@ -768,7 +754,6 @@ bool LLToolCompGun::handleMouseDown(S32 x, S32 y, MASK mask)
     return LLToolGrab::getInstance()->handleMouseDown(x, y, mask);
 }
 
-
 bool LLToolCompGun::handleDoubleClick(S32 x, S32 y, MASK mask)
 {
     // if the left button is grabbed, don't put up the pie menu
@@ -784,7 +769,6 @@ bool LLToolCompGun::handleDoubleClick(S32 x, S32 y, MASK mask)
 
     return LLToolGrab::getInstance()->handleDoubleClick(x, y, mask);
 }
-
 
 bool LLToolCompGun::handleRightMouseDown(S32 x, S32 y, MASK mask)
 {
@@ -878,7 +862,6 @@ void    LLToolCompGun::handleDeselect()
     LLToolComposite::handleDeselect();
     setMouseCapture(false);
 }
-
 
 bool LLToolCompGun::handleScrollWheel(S32 x, S32 y, S32 clicks)
 {

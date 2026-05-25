@@ -33,6 +33,7 @@
 #include "llmeshrepository.h"
 #include "llvolume.h"
 #include "llrigginginfo.h"
+#include "llrendercontext.h"
 
 #define DEBUG_SKINNING  LL_DEBUG
 

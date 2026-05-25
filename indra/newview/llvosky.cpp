@@ -39,7 +39,7 @@
 #include "llcubemap.h"
 #include "lldrawpoolsky.h"
 #include "lldrawpoolwater.h"
-#include "llglheaders.h"
+
 #include "llsky.h"
 #include "llviewercamera.h"
 #include "llviewertexturelist.h"
@@ -55,6 +55,7 @@
 
 #include "lltrace.h"
 #include "llfasttimer.h"
+#include "llrendercontext.h"
 
 #undef min
 #undef max
@@ -88,7 +89,6 @@ namespace
 ***************************************/
 
 S32 LLSkyTex::sCurrent = 0;
-
 
 LLSkyTex::LLSkyTex() :
     mSkyData(NULL),
@@ -214,7 +214,7 @@ void LLSkyTex::create()
 
 void LLSkyTex::createGLImage(S32 which)
 {
-    mTexture[which]->setExplicitFormat(GL_RGBA8, GL_RGBA);
+    mTexture[which]->setExplicitFormat(LLRenderTextureFormat::RGBA8, LLRenderPixelFormat::RGBA);
     mTexture[which]->createGLTexture(0, mImageRaw[which], 0, true, LLGLTexture::LOCAL);
     mTexture[which]->setAddressMode(LLTexUnit::TAM_CLAMP);
 }
@@ -450,7 +450,6 @@ LLVOSky::LLVOSky(const LLUUID &id, const LLPCode pcode, LLViewerRegion *regionp)
     mInterpVal = 0.f;
 }
 
-
 LLVOSky::~LLVOSky()
 {
     // Don't delete images - it'll get deleted by gTextureList on shutdown
@@ -492,7 +491,6 @@ void LLVOSky::init()
     mRainbowMap = LLViewerTextureManager::getFetchedTexture(psky->getRainbowTextureId(), FTT_DEFAULT, true, LLGLTexture::BOOST_UI);
     mHaloMap    = LLViewerTextureManager::getFetchedTexture(psky->getHaloTextureId(),  FTT_DEFAULT, true, LLGLTexture::BOOST_UI);
 }
-
 
 void LLVOSky::cacheEnvironment(LLSettingsSky::ptr_t psky,AtmosphericsVars& atmosphericsVars)
 {
@@ -553,7 +551,6 @@ void LLVOSky::initCubeMap()
 
     gGL.getTexUnit(0)->disable();
 }
-
 
 void LLVOSky::cleanupGL()
 {
@@ -1108,7 +1105,6 @@ bool LLVOSky::updateHeavenlyBodyGeometry(LLDrawable *drawable, F32 scale, const 
     S32 index_offset;
     LLFace *facep;
 
-
     LLQuaternion rot    = hb.getRotation();
     LLVector3 to_dir    = LLVector3::x_axis * rot;
 
@@ -1216,7 +1212,6 @@ F32 dtReflection(const LLVector3& p, F32 cos_dir_from_top, F32 sin_dir_from_top,
     return (dt < 0) ? 0 : dt;
 }
 
-
 F32 dtClip(const LLVector3& v0, const LLVector3& v1, F32 far_clip2)
 {
     F32 dt_clip;
@@ -1230,7 +1225,6 @@ F32 dtClip(const LLVector3& v0, const LLVector3& v1, F32 far_clip2)
         dt_clip = (-B + det) / A;
     return dt_clip;
 }
-
 
 void LLVOSky::updateReflectionGeometry(LLDrawable *drawable, F32 H,
                                          const LLHeavenBody& HB)
@@ -1302,7 +1296,6 @@ void LLVOSky::updateReflectionGeometry(LLDrawable *drawable, F32 H,
     v_corner[0] = stretch_corner[0];
     v_corner[1] = lower_corner;
 
-
     LLVector2 TEX0tt = TEX01;
     LLVector2 TEX1tt = TEX11;
 
@@ -1323,7 +1316,6 @@ void LLVOSky::updateReflectionGeometry(LLDrawable *drawable, F32 H,
 
         v_refl_corner[vtx] = to_refl_point * light_proj;
     }
-
 
     for (vtx = 2; vtx < 4; ++vtx)
     {

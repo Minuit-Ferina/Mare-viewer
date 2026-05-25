@@ -39,7 +39,7 @@
 #include "llcheckboxctrl.h"
 #include "llclipboard.h"
 #include "llfocusmgr.h"
-#include "llgl.h"               // LLGLSUIDefault()
+
 #include "lllocalcliprect.h"
 //#include "llrender.h"
 #include "llresmgr.h"
@@ -60,6 +60,7 @@
 #include "lltooltip.h"
 
 #include <boost/bind.hpp>
+#include "llrenderstate.h"
 
 namespace
 {
@@ -121,7 +122,6 @@ struct SortScrollListItem
 
         return sort_result < 0;
     }
-
 
     typedef std::vector<std::pair<S32, bool> > sort_order_t;
     const LLScrollListCtrl::sort_signal_t* mSortSignal;
@@ -436,7 +436,6 @@ LLScrollListCtrl::~LLScrollListCtrl()
     }
 }
 
-
 bool LLScrollListCtrl::setMaxItemCount(S32 max_count)
 {
     if (max_count >= getItemCount())
@@ -513,7 +512,6 @@ void LLScrollListCtrl::clearRows()
     }
 // [/SL:KB]
 }
-
 
 LLScrollListItem* LLScrollListCtrl::getFirstSelected() const
 {
@@ -681,7 +679,6 @@ LLRect LLScrollListCtrl::getRequiredRect()
 
     return LLRect(0, height, width, 0);
 }
-
 
 bool LLScrollListCtrl::addItem( LLScrollListItem* item, EAddPosition pos, bool requires_column )
 {
@@ -1060,7 +1057,6 @@ bool LLScrollListCtrl::selectItemRange(S32 first_index, S32 last_index)
     return success;
 }
 
-
 void LLScrollListCtrl::swapWithNext(S32 index)
 {
     if (index >= ((S32)mItemList.size() - 1))
@@ -1074,7 +1070,6 @@ void LLScrollListCtrl::swapWithNext(S32 index)
     mItemList[index + 1] = cur_itemp;
 }
 
-
 void LLScrollListCtrl::swapWithPrevious(S32 index)
 {
     if (index <= 0)
@@ -1087,7 +1082,6 @@ void LLScrollListCtrl::swapWithPrevious(S32 index)
     mItemList[index] = mItemList[index - 1];
     mItemList[index - 1] = cur_itemp;
 }
-
 
 void LLScrollListCtrl::deleteSingleItem(S32 target_index)
 {
@@ -1937,7 +1931,6 @@ void LLScrollListCtrl::drawItems()
     }
 }
 
-
 void LLScrollListCtrl::draw()
 {
     LLLocalClipRect clip(getLocalRect());
@@ -2196,7 +2189,6 @@ bool LLScrollListCtrl::selectItemAt(S32 x, S32 y, MASK mask)
 
     return selection_changed;
 }
-
 
 bool LLScrollListCtrl::handleMouseDown(S32 x, S32 y, MASK mask)
 {
@@ -2530,7 +2522,6 @@ S32 LLScrollListCtrl::getColumnIndexFromOffset(S32 x)
     return llclamp(column_index, 0, getNumColumns() - 1);
 }
 
-
 S32 LLScrollListCtrl::getColumnOffsetFromIndex(S32 index)
 {
     S32 column_offset = 0;
@@ -2554,7 +2545,6 @@ S32 LLScrollListCtrl::getRowOffsetFromIndex(S32 index)
     S32 row_bottom = (mItemListRect.mTop - ((index - mScrollLines + 1) * mLineHeight) );
     return row_bottom;
 }
-
 
 bool LLScrollListCtrl::handleHover(S32 x,S32 y,MASK mask)
 {
@@ -2889,7 +2879,6 @@ bool LLScrollListCtrl::handleUnicodeCharHere(llwchar uni_char)
     return true;
 }
 
-
 void LLScrollListCtrl::reportInvalidInput()
 {
     make_ui_sound("UISndBadKeystroke");
@@ -3033,13 +3022,11 @@ S32 LLScrollListCtrl::getLinesPerPage()
     return mLineHeight ? mItemListRect.getHeight() / mLineHeight : getItemCount();
 }
 
-
 // Called by scrollbar
 void LLScrollListCtrl::onScrollChange( S32 new_pos, LLScrollbar* scrollbar )
 {
     mScrollLines = new_pos;
 }
-
 
 void LLScrollListCtrl::sortByColumn(const std::string& name, bool ascending)
 {
@@ -3101,12 +3088,10 @@ void LLScrollListCtrl::dirtyColumns()
     }
 }
 
-
 S32 LLScrollListCtrl::getScrollPos() const
 {
     return mScrollbar->getDocPos();
 }
-
 
 void LLScrollListCtrl::setScrollPos( S32 pos )
 {
@@ -3114,7 +3099,6 @@ void LLScrollListCtrl::setScrollPos( S32 pos )
 
     onScrollChange(mScrollbar->getDocPos(), mScrollbar);
 }
-
 
 void LLScrollListCtrl::scrollToShowSelected()
 {
@@ -3714,7 +3698,6 @@ void LLScrollListCtrl::setFocus(bool b)
     LLUICtrl::setFocus(b);
 }
 
-
 // virtual
 bool    LLScrollListCtrl::isDirty() const
 {
@@ -3732,7 +3715,6 @@ void LLScrollListCtrl::resetDirty()
     mDirty = false;
     mOriginalSelection = getFirstSelectedIndex();
 }
-
 
 //virtual
 void LLScrollListCtrl::onFocusReceived()

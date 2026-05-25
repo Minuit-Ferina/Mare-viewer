@@ -63,8 +63,7 @@ constexpr U32   FOLLOWS_ALL     = 0x33;
 constexpr bool  MOUSE_OPAQUE = true;
 constexpr bool  NOT_MOUSE_OPAQUE = false;
 
-constexpr U32 GL_NAME_UI_RESERVED = 2;
-
+constexpr U32 LL_PICK_NAME_UI_RESERVED = 2;
 
 // maintains render state during traversal of UI tree
 class LLViewDrawContext
@@ -355,7 +354,6 @@ public:
     typedef LLTreeBFSIter<LLView, child_list_const_iter_t> bfs_tree_iterator_t;
     bfs_tree_iterator_t beginTreeBFS();
     bfs_tree_iterator_t endTreeBFS();
-
 
     typedef LLTreeDownIter<LLView> root_to_view_iterator_t;
     root_to_view_iterator_t beginRootToView();

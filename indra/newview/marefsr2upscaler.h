@@ -31,7 +31,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include "mareupscaler.h"
-#include "llgltypes.h"
+#include "llrenderbackend.h"
 
 class LLRenderTarget;
 
@@ -71,28 +71,28 @@ public:
 
 private:
     // ── Raw GL program management ──────────────────────────────────────────────
-    LLGLuint compileComputeProgram(const std::string& sourcePath);
-    void     dispatchCompute(LLGLuint prog, LLGLuint x, LLGLuint y);
+    U32 compileComputeProgram(const std::string& sourcePath);
+    void dispatchCompute(U32 prog, U32 x, U32 y);
 
     // ── Internal GL texture helpers ────────────────────────────────────────────
-    LLGLuint createTexture2D(U32 w, U32 h, LLGLenum internalFmt);
-    void     deleteTexture(LLGLuint& tex);
+    U32 createTexture2D(U32 w, U32 h, LLRenderTextureFormat internalFmt);
+    void deleteTexture(U32& tex);
 
     // ── Compute programs (raw GL) ──────────────────────────────────────────────
-    LLGLuint mProgDepthClip        = 0;
-    LLGLuint mProgReconPrevDepth   = 0;
-    LLGLuint mProgLock             = 0;
-    LLGLuint mProgAccumulate       = 0;
-    LLGLuint mProgRCAS             = 0;
+    U32 mProgDepthClip        = 0;
+    U32 mProgReconPrevDepth   = 0;
+    U32 mProgLock             = 0;
+    U32 mProgAccumulate       = 0;
+    U32 mProgRCAS             = 0;
 
     // ── Internal textures ──────────────────────────────────────────────────────
-    LLGLuint mDilatedDepth    = 0;    // R32F,   render res
-    LLGLuint mDilatedMV       = 0;    // RG32F,  render res
-    LLGLuint mPrevDepth       = 0;    // R32F,   render res  (previous frame depth)
-    LLGLuint mReconPrevDepth  = 0;    // R32F,   render res
-    LLGLuint mLockStatus      = 0;    // R8,     render res
-    LLGLuint mAccumBuffer[2]  = {0,0};// RGBA16F, display res (ping-pong)
-    LLGLuint mRCASBuffer      = 0;    // RGBA16F, display res
+    U32 mDilatedDepth    = 0;    // R32F,   render res
+    U32 mDilatedMV       = 0;    // RG32F,  render res
+    U32 mPrevDepth       = 0;    // R32F,   render res  (previous frame depth)
+    U32 mReconPrevDepth  = 0;    // R32F,   render res
+    U32 mLockStatus      = 0;    // R8,     render res
+    U32 mAccumBuffer[2]  = {0,0};// RGBA16F, display res (ping-pong)
+    U32 mRCASBuffer      = 0;    // RGBA16F, display res
 
     U32  mRenderW   = 0;
     U32  mRenderH   = 0;

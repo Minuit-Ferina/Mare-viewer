@@ -28,8 +28,7 @@
 
 #include "lltexlayer.h"
 
-#include "llgl.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llavatarappearance.h"
 #include "llcrc.h"
 #include "llimagej2c.h"
@@ -44,6 +43,8 @@
 #include "llvertexbuffer.h"
 #include "llviewervisualparam.h"
 #include "llfasttimer.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 //#include "../tools/imdebug/imdebug.h"
 
@@ -380,14 +381,13 @@ void LLTexLayerSet::deleteCaches()
     }
 }
 
-
 bool LLTexLayerSet::render( S32 x, S32 y, S32 width, S32 height, LLRenderTarget* bound_target )
 {
     bool success = true;
     mIsVisible = !hasInvisibleAlphaMask();
 
     LLGLSUIDefault gls_ui;
-    LLGLDepthTest gls_depth(GL_FALSE, GL_FALSE);
+    LLGLDepthTest gls_depth(false, false);
     gGL.setColorMask(true, true);
 
     clearCompositeBuffer(width, height);
@@ -470,7 +470,6 @@ void LLTexLayerSet::clearInvisibleComposite(S32 width, S32 height)
     gGL.flush();
     gAlphaMaskProgram.setMinimumAlpha(0.004f);
 }
-
 
 bool LLTexLayerSet::isBodyRegion(const std::string& region) const
 {
@@ -602,7 +601,6 @@ void LLTexLayerSet::invalidateMorphMasks()
         }
     }
 }
-
 
 //-----------------------------------------------------------------------------
 // LLTexLayerInfo
@@ -1450,7 +1448,7 @@ void LLTexLayer::renderMorphMasks(S32 x, S32 y, S32 width, S32 height, const LLC
     }
 
     // Draw a rectangle with the layer color to multiply the alpha by that color's alpha.
-    // Note: we're still using gGL.blendFunc( GL_DST_ALPHA, GL_ZERO );
+    // Note: we're still using destination alpha / zero blending.
     if ( !is_approx_equal(layer_color.mV[VALPHA], 1.f) )
     {
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
@@ -1504,9 +1502,14 @@ void LLTexLayer::renderMorphMasks(S32 x, S32 y, S32 width, S32 height, const LLC
                         gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, 0);
                     }
 
-                    LLGLContainment::readTextureImage(LLTexUnit::getInternalType(LLTexUnit::TT_TEXTURE), 0, GL_RGBA, GL_UNSIGNED_BYTE, temp);
-                    GLenum error = LLGLContainment::getError();
-                    if (error != GL_NO_ERROR)
+                    getOpenGLRenderBackend().readTextureImage(
+                        LLRenderTextureTarget::Texture2D,
+                        0,
+                        LLRenderPixelFormat::RGBA,
+                        LLRenderPixelType::UnsignedByte,
+                        temp);
+                    U32 error = getOpenGLRenderBackend().getErrorCode();
+                    if (error != 0)
                     {
                         LL_INFOS("Morph") << "GL Error while reading back morph texture. Error code: " << error << LL_ENDL;
                     }
@@ -1527,10 +1530,17 @@ void LLTexLayer::renderMorphMasks(S32 x, S32 y, S32 width, S32 height, const LLC
                 }
                 else
                 { // platforms with working drivers...
-                    // We just want GL_ALPHA, but that isn't supported in OGL core profile 4.
+                    // We just want alpha, but that isn't supported directly in OGL core profile 4.
                     static const size_t TEMP_BYTES_PER_PIXEL = 4;
                     U8* temp_data = (U8*)ll_aligned_malloc_32(mem_size * TEMP_BYTES_PER_PIXEL);
-                    LLGLContainment::readPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, temp_data);
+                    getOpenGLRenderBackend().readPixels(
+                        x,
+                        y,
+                        width,
+                        height,
+                        LLRenderPixelFormat::RGBA,
+                        LLRenderPixelType::UnsignedByte,
+                        temp_data);
                     for (size_t pixel = 0; pixel < pixels; pixel++) {
                         alpha_data[pixel] = temp_data[(pixel * TEMP_BYTES_PER_PIXEL) + 3];
                     }
@@ -1615,7 +1625,6 @@ LLUUID LLTexLayer::getUUID() const
     }
     return uuid;
 }
-
 
 //-----------------------------------------------------------------------------
 // LLTexLayerTemplate
@@ -1801,7 +1810,6 @@ LLTexLayer* LLTexLayerTemplate::getLayer(U32 i) const
 
     return false;
 }
-
 
 //-----------------------------------------------------------------------------
 // finds a specific layer based on a passed in name

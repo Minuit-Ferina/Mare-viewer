@@ -77,6 +77,7 @@
 #include "apr_base64.h"
 
 #include "boost/json.hpp"
+#include "llrendercontext.h"
 
 const std::string WEBRTC_VOICE_SERVER_TYPE = "webrtc";
 
@@ -107,7 +108,6 @@ namespace {
     const F32 MINUSCULE_ANGLE_COS = (F32) cos(0.5f * FOUR_DEGREES);
 
 }  // namespace
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -888,7 +888,6 @@ void LLWebRTCVoiceClient::refreshDeviceLists(bool clearCurrentList)
     }
 }
 
-
 void LLWebRTCVoiceClient::setHidden(bool hidden)
 {
     mHidden = hidden;
@@ -1279,7 +1278,6 @@ void LLWebRTCVoiceClient::removeParticipantByID(const std::string &channelID, co
     }
 }
 
-
 //  participantState level participant management
 LLWebRTCVoiceClient::participantState::participantState(const LLUUID& agent_id, const LLUUID& region) :
      mURI(agent_id.asString()),
@@ -1327,7 +1325,6 @@ LLWebRTCVoiceClient::participantStatePtr_t LLWebRTCVoiceClient::sessionState::ad
 
     return result;
 }
-
 
 // session-level participant management
 
@@ -1581,7 +1578,6 @@ bool LLWebRTCVoiceClient::compareChannels(const LLSD &channelInfo1, const LLSD &
            (channelInfo1["sip_uri"] == channelInfo2["sip_uri"]);
 }
 
-
 //----------------------------------------------
 // Audio muting, volume, gain, etc.
 
@@ -1649,7 +1645,6 @@ void LLWebRTCVoiceClient::setMicGain(F32 gain)
         }
     }
 }
-
 
 void LLWebRTCVoiceClient::setVoiceEnabled(bool enabled)
 {
@@ -1872,7 +1867,6 @@ void LLWebRTCVoiceClient::predSetUserMute(const LLWebRTCVoiceClient::sessionStat
 // Sessions
 
 std::map<std::string, LLWebRTCVoiceClient::sessionState::ptr_t> LLWebRTCVoiceClient::sessionState::sSessions;
-
 
 LLWebRTCVoiceClient::sessionState::sessionState() :
     mHangupOnLastLeave(false),
@@ -2277,7 +2271,6 @@ void LLWebRTCVoiceClient::deleteSession(const sessionStatePtr_t &session)
     }
 }
 
-
 // Name resolution
 void LLWebRTCVoiceClient::lookupName(const LLUUID &id)
 {
@@ -2324,7 +2317,6 @@ LLSD LLWebRTCVoiceClient::getP2PChannelInfoTemplate(const LLUUID& id) const
     return LLSD();
 }
 
-
 /////////////////////////////
 // LLVoiceWebRTCConnection
 // These connections manage state transitions, negotiating webrtc connections,
@@ -2368,7 +2360,6 @@ LLVoiceWebRTCConnection::~LLVoiceWebRTCConnection()
     mWebRTCPeerConnectionInterface->unsetSignalingObserver(this);
     llwebrtc::freePeerConnection(mWebRTCPeerConnectionInterface);
 }
-
 
 // ICE (Interactive Connectivity Establishment)
 // When WebRTC tries to negotiate a connection to the Secondlife WebRTC Server,
@@ -2503,7 +2494,6 @@ void LLVoiceWebRTCConnection::processIceUpdatesCoro(connectionPtr_t connection)
     connection->mOutstandingRequests--;
 }
 
-
 // An 'Offer' comes in the form of a SDP (Session Description Protocol)
 // which contains all sorts of info about the session, from network paths
 // to the type of session (audio, video) to characteristics (the encoder type.)
@@ -2536,7 +2526,6 @@ void LLVoiceWebRTCConnection::OnOfferAvailable(const std::string &sdp)
         });
 }
 
-
 //
 // The LLWebRTCVoiceConnection object will not be deleted
 // before the webrtc connection itself is shut down, so
@@ -2560,7 +2549,6 @@ void LLVoiceWebRTCConnection::OnAudioEstablished(llwebrtc::LLWebRTCAudioInterfac
             setVoiceConnectionState(VOICE_STATE_SESSION_ESTABLISHED);
         });
 }
-
 
 //
 // The LLWebRTCVoiceConnection object will not be deleted
@@ -2636,7 +2624,6 @@ void LLVoiceWebRTCConnection::setUserMute(const LLUUID& id, bool mute)
         mWebRTCDataInterface->sendData(json_data, false);
     }
 }
-
 
 // Send data to the Secondlife WebRTC server via the webrtc
 // data channel.
@@ -2842,7 +2829,6 @@ static llwebrtc::LLWebRTCPeerConnectionInterface::InitOptions getConnectionOptio
     options.mServers.push_back(servers);
     return options;
 }
-
 
 // Primary state machine for negotiating a single voice connection to the
 // Secondlife WebRTC server.

@@ -1,5 +1,5 @@
 /**
- * @file llopenglview-objc.mm
+ * @file llnativeview-objc.mm
  * @brief Class implementation for most of the Mac facing window functionality.
  *
  * $LicenseInfo:firstyear=2000&license=viewerlgpl$
@@ -24,7 +24,7 @@
  * $/LicenseInfo$
  */
 
-#import "llopenglview-objc.h"
+#import "llnativeview-objc.h"
 #import "llwindowmacosx-objc.h"
 #import "llappdelegate-objc.h"
 
@@ -109,31 +109,7 @@ attributedStringInfo getSegments(NSAttributedString *str)
 
 @end
 
-@implementation LLOpenGLView
-
-- (unsigned long)getVramSize
-{
-    CGLRendererInfoObj info = 0;
-    GLint vram_megabytes = 0;
-    int num_renderers = 0;
-    CGLError the_err = CGLQueryRendererInfo (CGDisplayIDToOpenGLDisplayMask(kCGDirectMainDisplay), &info, &num_renderers);
-    if(0 == the_err)
-    {
-        // The name, uses, and other platform definitions of gGLManager.mVRAM suggest that this is supposed to be total vram in MB,
-        // rather than, say, just the texture memory. The two exceptions are:
-        // 1. LLAppViewer::getViewerInfo() puts the value in a field labeled "TEXTURE_MEMORY"
-        // 2. For years, this present function used kCGLRPTextureMemoryMegabytes
-        // Now we use kCGLRPVideoMemoryMegabytes to bring it in line with everything else (except thatone label).
-        CGLDescribeRenderer (info, 0, kCGLRPVideoMemoryMegabytes, &vram_megabytes);
-        CGLDestroyRendererInfo (info);
-    }
-    else
-    {
-        vram_megabytes = 256;
-    }
-
-    return (unsigned long)vram_megabytes; // return value is in megabytes.
-}
+@implementation LLNativeView
 
 - (void)viewDidMoveToWindow
 {
@@ -220,108 +196,23 @@ attributedStringInfo getSegments(NSAttributedString *str)
 
 - (id) initWithFrame:(NSRect)frame withSamples:(NSUInteger)samples andVsync:(BOOL)vsync
 {
+    self = [super initWithFrame:frame];
+    if (!self)
+    {
+        return nil;
+    }
+
     [self registerForDraggedTypes:[NSArray arrayWithObject:NSPasteboardTypeURL]];
-    [self initWithFrame:frame];
-
-    // Initialize with a default "safe" pixel format that will work with versions dating back to OS X 10.6.
-    // Any specialized pixel formats, i.e. a core profile pixel format, should be initialized through rebuildContextWithFormat.
-    // 10.7 and 10.8 don't really care if we're defining a profile or not.  If we don't explicitly request a core or legacy profile, it'll always assume a legacy profile (for compatibility reasons).
-    NSOpenGLPixelFormatAttribute attrs[] = {
-        NSOpenGLPFANoRecovery,
-        NSOpenGLPFADoubleBuffer,
-        NSOpenGLPFAClosestPolicy,
-        NSOpenGLPFAAccelerated,
-        NSOpenGLPFASampleBuffers, 0,
-        NSOpenGLPFASamples, 0,
-        NSOpenGLPFAStencilSize, 8,
-        NSOpenGLPFADepthSize, 24,
-        NSOpenGLPFAAlphaSize, 8,
-        NSOpenGLPFAColorSize, 24,
-        NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core,
-        0
-    };
-
-    NSOpenGLPixelFormat *pixelFormat = [[[NSOpenGLPixelFormat alloc] initWithAttributes:attrs] autorelease];
-
-    if (pixelFormat == nil)
-    {
-        NSLog(@"Failed to create pixel format!", nil);
-        return nil;
-    }
-
-    NSOpenGLContext *glContext = [[NSOpenGLContext alloc] initWithFormat:pixelFormat shareContext:nil];
-
-    if (glContext == nil)
-    {
-        NSLog(@"Failed to create OpenGL context!", nil);
-        return nil;
-    }
-
-    [self setPixelFormat:pixelFormat];
 
     //for retina support
     [self setWantsBestResolutionOpenGLSurface:gHiDPISupport];
 
-    [self setOpenGLContext:glContext];
-
-    [glContext setView:self];
-
-    [glContext makeCurrentContext];
-
-    if (vsync)
-    {
-        GLint value = 1;
-        [glContext setValues:&value forParameter:NSOpenGLContextParameterSwapInterval];
-    } else {
-        // supress this error after move to Xcode 7:
-        // error: null passed to a callee that requires a non-null argument [-Werror,-Wnonnull]
-        // Tried using ObjC 'nonnull' keyword as per SO article but didn't build
-        GLint swapInterval=0;
-        [glContext setValues:&swapInterval forParameter:NSOpenGLContextParameterSwapInterval];
-    }
-
     return self;
-}
-
-- (BOOL) rebuildContext
-{
-    return [self rebuildContextWithFormat:[self pixelFormat]];
-}
-
-- (BOOL) rebuildContextWithFormat:(NSOpenGLPixelFormat *)format
-{
-    NSOpenGLContext *ctx = [self openGLContext];
-
-    [ctx clearDrawable];
-    [ctx initWithFormat:format shareContext:nil];
-
-    if (ctx == nil)
-    {
-        NSLog(@"Failed to create OpenGL context!", nil);
-        return false;
-    }
-
-    [self setOpenGLContext:ctx];
-    [ctx setView:self];
-    [ctx makeCurrentContext];
-    return true;
 }
 
 #if LL_DARWIN
 #pragma clang diagnostic pop
 #endif
-
-- (CGLContextObj)getCGLContextObj
-{
-    NSOpenGLContext *ctx = [self openGLContext];
-    return (CGLContextObj)[ctx CGLContextObj];
-}
-
-- (CGLPixelFormatObj*)getCGLPixelFormatObj
-{
-    NSOpenGLPixelFormat *fmt = [self pixelFormat];
-    return (CGLPixelFormatObj*)[fmt CGLPixelFormatObj];
-}
 
 // Various events can be intercepted by our view, thus not reaching our window.
 // Intercept these events, and pass them to the window as needed. - Geenz
@@ -822,9 +713,9 @@ attributedStringInfo getSegments(NSAttributedString *str)
           It must keep open user types next char before commit.         by Pell Smit
 */
 
-- (void) setGLView:(LLOpenGLView *)view
+- (void) setNativeView:(LLNativeView *)view
 {
-    glview = view;
+    native_view = view;
 }
 
 - (void)keyDown:(NSEvent *)theEvent
@@ -855,7 +746,7 @@ attributedStringInfo getSegments(NSAttributedString *str)
 {
     [[self inputContext] discardMarkedText];
     [self setString:@""];
-    [glview insertText:aString replacementRange:replacementRange];
+    [native_view insertText:aString replacementRange:replacementRange];
     if (mKeyPressed == NSEnterCharacter ||
         mKeyPressed == NSBackspaceCharacter ||
         mKeyPressed == NSTabCharacter ||

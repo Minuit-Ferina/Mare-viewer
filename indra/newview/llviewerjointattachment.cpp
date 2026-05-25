@@ -33,7 +33,7 @@
 // [/SL:KB]
 #include "llviewercontrol.h"
 #include "lldrawable.h"
-#include "llgl.h"
+
 #include "llhudtext.h"
 #include "llrender.h"
 #include "llvoavatarself.h"
@@ -45,13 +45,11 @@
 #include "llface.h"
 #include "llvoavatar.h"
 
-#include "llglheaders.h"
-
-//MK
 //#include "llinventoryview.h"
 #include "llagent.h"
 #include "llappearancemgr.h"
 #include "llvoavatarself.h"
+#include "llrenderstate.h"
 //mk
 
 extern LLPipeline gPipeline;
@@ -94,7 +92,7 @@ U32 LLViewerJointAttachment::drawShape( F32 pixelArea, bool first_pass, bool is_
 {
     if (LLVOAvatar::sShowAttachmentPoints)
     {
-        LLGLDisable cull_face(GL_CULL_FACE);
+        LLGLDisable cull_face(LLRenderCapability::CullFace);
 
         gGL.color4f(1.f, 1.f, 1.f, 1.f);
         gGL.begin(LLRender::TRIANGLES);
@@ -201,7 +199,6 @@ bool LLViewerJointAttachment::addObject(LLViewerObject* object)
     // LLViewerJointAttachment::removeObject() sets the object's item to the NULL UUID so we need to extract it *after* the block above
     object->extractAttachmentItemID();
 // [/SL:KB]
-
 
     // Two instances of the same inventory item attached --
     // Request detach, and kill the object in the meantime.

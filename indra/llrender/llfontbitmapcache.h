@@ -28,6 +28,9 @@
 #define LL_LLFONTBITMAPCACHE_H
 
 #include <vector>
+#include "llimage.h"
+#include "llimagegl.h"
+#include "llpointer.h"
 #include "lltrace.h"
 
 enum class EFontGlyphType : U32

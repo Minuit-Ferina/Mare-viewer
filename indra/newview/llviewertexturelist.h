@@ -40,9 +40,6 @@ const U32 LL_IMAGE_REZ_LOSSLESS_CUTOFF = 128;
 const bool MIPMAP_YES = true;
 const bool MIPMAP_NO = false;
 
-const bool GL_TEXTURE_YES = true;
-const bool GL_TEXTURE_NO = false;
-
 const bool IMMEDIATE_YES = true;
 const bool IMMEDIATE_NO = false;
 
@@ -164,8 +161,8 @@ public:     // PoundLife - Improved Object Inspect
                                      bool usemipmap = true,
                                      LLViewerTexture::EBoostLevel boost_priority = LLGLTexture::BOOST_NONE,     // Get the requested level immediately upon creation.
                                      S8 texture_type = LLViewerTexture::FETCHED_TEXTURE,
-                                     LLGLint internal_format = 0,
-                                     LLGLenum primary_format = 0,
+                                     LLRenderTextureFormat internal_format = LLRenderTextureFormat::None,
+                                     LLRenderPixelFormat primary_format = LLRenderPixelFormat::RGBA,
                                      LLHost request_from_host = LLHost()
                                      );
 
@@ -175,8 +172,8 @@ private:    // PoundLife - Improved Object Inspect
                                      bool usemipmap = true,
                                      LLViewerTexture::EBoostLevel boost_priority = LLGLTexture::BOOST_NONE,     // Get the requested level immediately upon creation.
                                      S8 texture_type = LLViewerTexture::FETCHED_TEXTURE,
-                                     LLGLint internal_format = 0,
-                                     LLGLenum primary_format = 0,
+                                     LLRenderTextureFormat internal_format = LLRenderTextureFormat::None,
+                                     LLRenderPixelFormat primary_format = LLRenderPixelFormat::RGBA,
                                      const LLUUID& force_id = LLUUID::null
                                      );
 
@@ -185,8 +182,8 @@ private:    // PoundLife - Improved Object Inspect
                                      bool usemipmap = true,
                                      LLViewerTexture::EBoostLevel boost_priority = LLGLTexture::BOOST_NONE,     // Get the requested level immediately upon creation.
                                      S8 texture_type = LLViewerTexture::FETCHED_TEXTURE,
-                                     LLGLint internal_format = 0,
-                                      LLGLenum primary_format = 0,
+                                     LLRenderTextureFormat internal_format = LLRenderTextureFormat::None,
+                                     LLRenderPixelFormat primary_format = LLRenderPixelFormat::RGBA,
                                      const LLUUID& force_id = LLUUID::null
                                      );
 
@@ -198,15 +195,15 @@ private:    // PoundLife - Improved Object Inspect
                                      bool usemipmap = true,
                                      LLViewerTexture::EBoostLevel boost_priority = LLGLTexture::BOOST_NONE,     // Get the requested level immediately upon creation.
                                      S8 texture_type = LLViewerTexture::FETCHED_TEXTURE,
-                                     LLGLint internal_format = 0,
-                                     LLGLenum primary_format = 0,
+                                     LLRenderTextureFormat internal_format = LLRenderTextureFormat::None,
+                                     LLRenderPixelFormat primary_format = LLRenderPixelFormat::RGBA,
                                      LLHost request_from_host = LLHost()
                                      );
 
     // Request image from a specific host, used for baked avatar textures.
     // Implemented in header in case someone changes default params above. JC
     LLViewerFetchedTexture* getImageFromHost(const LLUUID& image_id, FTType f_type, LLHost host)
-    { return getImage(image_id, f_type, true, LLGLTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE, 0, 0, host); }
+    { return getImage(image_id, f_type, true, LLGLTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE, LLRenderTextureFormat::None, LLRenderPixelFormat::RGBA, host); }
 
 public:
     typedef std::unordered_set<LLPointer<LLViewerFetchedTexture> > image_list_t;
@@ -273,7 +270,6 @@ private:
                                  LLUIImage::EScaleStyle = LLUIImage::SCALE_INNER);
 
     LLPointer<LLUIImage> loadUIImage(LLViewerFetchedTexture* imagep, const std::string& name, bool use_mips = false, const LLRect& scale_rect = LLRect::null, const LLRect& clip_rect = LLRect::null, LLUIImage::EScaleStyle = LLUIImage::SCALE_INNER);
-
 
     struct LLUIImageLoadData
     {

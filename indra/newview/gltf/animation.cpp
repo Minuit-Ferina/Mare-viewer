@@ -27,7 +27,7 @@
 #include "../llviewerprecompiledheaders.h"
 
 #include "asset.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "buffer_util.h"
 #include "../llskinningutil.h"
 
@@ -138,7 +138,6 @@ bool Animation::Sampler::prep(Asset& asset)
 
     return true;
 }
-
 
 void Animation::Sampler::serialize(object& obj) const
 {
@@ -396,7 +395,7 @@ Skin::~Skin()
 {
     if (mUBO)
     {
-        LLGLContainment::deleteBufferObjects(1, &mUBO);
+        getOpenGLRenderBackend().deleteBuffers(1, &mUBO);
     }
 }
 
@@ -409,7 +408,7 @@ void Skin::uploadMatrixPalette(Asset& asset)
 
     if (mUBO == 0)
     {
-        LLGLContainment::generateBufferObjects(1, &mUBO);
+        getOpenGLRenderBackend().generateBuffers(1, &mUBO);
     }
 
     size_t joint_count = llmin<size_t>(max_joints, mJoints.size());
@@ -453,13 +452,13 @@ void Skin::uploadMatrixPalette(Asset& asset)
         mp[idx + 11] = m[14];
     }
 
-    LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, mUBO);
-    LLGLContainment::allocateBufferObjectStorage(
-        GL_UNIFORM_BUFFER,
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mUBO);
+    getOpenGLRenderBackend().allocateBufferStorage(
+        LLRenderBufferTarget::Uniform,
         glmp.size() * sizeof(F32),
         glmp.data(),
-        GL_STREAM_DRAW);
-    LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, 0);
+        LLRenderBufferUsage::StreamDraw);
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
 }
 
 bool Skin::prep(Asset& asset)

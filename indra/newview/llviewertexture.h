@@ -51,7 +51,6 @@ class LLViewerFetchedTexture ;
 class LLViewerMediaTexture ;
 class LLTexturePipelineTester ;
 
-
 typedef void    (*loaded_callback_func)( bool success, LLViewerFetchedTexture *src_vi, LLImageRaw* src, LLImageRaw* src_aux, S32 discard_level, bool final, void* userdata );
 
 class LLFileSystem;
@@ -105,7 +104,6 @@ public:
 
     typedef std::vector<class LLFace*> ll_face_list_t;
     typedef std::vector<LLVOVolume*> ll_volume_list_t;
-
 
 protected:
     virtual ~LLViewerTexture();
@@ -248,7 +246,6 @@ public:
     static LLPointer<LLViewerTexture> sBlackImagep; // Texture to show NOTHING (pure black)
     static LLPointer<LLViewerTexture> sCheckerBoardImagep;  // Texture to show NOTHING (pure black)
 };
-
 
 enum FTType
 {
@@ -659,8 +656,8 @@ public:
                                      bool usemipmap = true,
                                      LLViewerTexture::EBoostLevel boost_priority = LLGLTexture::BOOST_NONE,     // Get the requested level immediately upon creation.
                                      S8 texture_type = LLViewerTexture::FETCHED_TEXTURE,
-                                     LLGLint internal_format = 0,
-                                     LLGLenum primary_format = 0,
+                                     LLRenderTextureFormat internal_format = LLRenderTextureFormat::None,
+                                     LLRenderPixelFormat primary_format = LLRenderPixelFormat::RGBA,
                                      LLHost request_from_host = LLHost()
                                      );
 
@@ -669,8 +666,8 @@ public:
                                      bool usemipmap = true,
                                      LLViewerTexture::EBoostLevel boost_priority = LLGLTexture::BOOST_NONE,
                                      S8 texture_type = LLViewerTexture::FETCHED_TEXTURE,
-                                     LLGLint internal_format = 0,
-                                     LLGLenum primary_format = 0,
+                                     LLRenderTextureFormat internal_format = LLRenderTextureFormat::None,
+                                     LLRenderPixelFormat primary_format = LLRenderPixelFormat::RGBA,
                                      const LLUUID& force_id = LLUUID::null
                                      );
 
@@ -679,8 +676,8 @@ public:
                                      bool usemipmap = true,
                                      LLViewerTexture::EBoostLevel boost_priority = LLGLTexture::BOOST_NONE,
                                      S8 texture_type = LLViewerTexture::FETCHED_TEXTURE,
-                                     LLGLint internal_format = 0,
-                                     LLGLenum primary_format = 0,
+                                     LLRenderTextureFormat internal_format = LLRenderTextureFormat::None,
+                                     LLRenderPixelFormat primary_format = LLRenderPixelFormat::RGBA,
                                      const LLUUID& force_id = LLUUID::null
                                      );
 

@@ -34,8 +34,6 @@
 #include "noise.h"
 #include "v3math.h"
 #include "llvertexbuffer.h"
-#include "llgl.h"
-
 LLCone      gCone;
 
 //

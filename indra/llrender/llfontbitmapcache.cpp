@@ -28,6 +28,7 @@
 
 #include "llgl.h"
 #include "llfontbitmapcache.h"
+#include "llrender.h"
 
 LLFontBitmapCache::LLFontBitmapCache()
 

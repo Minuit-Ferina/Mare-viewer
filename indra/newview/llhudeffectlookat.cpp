@@ -28,7 +28,8 @@
 
 #include "llhudeffectlookat.h"
 
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
+#include "llrenderstate.h"
 #include "llrender.h"
 #include "llui.h"
 
@@ -42,7 +43,7 @@
 #include "llvoavatarself.h"
 #include "llrendersphere.h"
 #include "llselectmgr.h"
-#include "llglheaders.h"
+
 #include "llhudrender.h"
 #include "llresmgr.h"
 #include "llviewerwindow.h"
@@ -66,7 +67,6 @@ const F32 MAX_SENDS_PER_SEC = 4.f;
 
 const F32 MIN_DELTAPOS_FOR_UPDATE_SQUARED = 0.05f * 0.05f;
 const F32 MIN_TARGET_OFFSET_SQUARED = 0.0001f;
-
 
 // can't use actual F32_MAX, because we add this to the current frametime
 const F32 MAX_TIMEOUT = F32_MAX / 2.f;
@@ -146,7 +146,6 @@ static const
 static LLAttentionSet
     gBoyAttentions(BOY_ATTS),
     gGirlAttentions(GIRL_ATTS);
-
 
 static bool loadGender(LLXmlTreeNode* gender)
 {
@@ -240,9 +239,6 @@ static bool loadAttentions()
     return true;
 }
 
-
-
-
 //-----------------------------------------------------------------------------
 // LLHUDEffectLookAt()
 //-----------------------------------------------------------------------------
@@ -275,7 +271,6 @@ void LLHUDEffectLookAt::packData(LLMessageSystem *mesgsys)
     ELookAtType target_type         = mTargetType;
     LLVector3d  target_offset_global    = mTargetOffsetGlobal;
     LLViewerObject* target_object       = (LLViewerObject*)mTargetObject;
-
 
     LLViewerObject* source_object = (LLViewerObject*)mSourceObject;
     LLVOAvatar* source_avatar = NULL;
@@ -607,7 +602,7 @@ void LLHUDEffectLookAt::render()
         )
     )) {
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-        //LLGLDisable gls_stencil(GL_STENCIL_TEST);
+        //LLGLDisable gls_stencil(LLRenderCapability::StencilTest);
         LLVector3 target = mTargetPos + ((LLVOAvatar*)(LLViewerObject*)mSourceObject)->mHeadp->getWorldPosition();
         LLColor3 color = (*mAttentions)[mTargetType].mColor;
 
@@ -618,8 +613,8 @@ void LLHUDEffectLookAt::render()
             //  render name above crosshairs
             //
             const LLFontGL *fontp = LLFontGL::getFont(LLFontDescriptor("SansSerif", "Small", LLFontGL::BOLD));
-            LLGLContainment::setMatrixMode(GL_MODELVIEW);
-            LLGLContainment::pushMatrix();
+            getOpenGLRenderBackend().setMatrixMode(LLRenderMatrixMode::ModelView);
+            getOpenGLRenderBackend().pushMatrix();
             LLVector3 position = target + LLVector3(0.0f, 0.0f, 0.3f);
 
             LLAvatarName nameBuffer;
@@ -629,7 +624,7 @@ void LLHUDEffectLookAt::render()
             gViewerWindow->setup3DRender();
             hud_render_utf8text(name, position, *fontp, LLFontGL::NORMAL, LLFontGL::NO_SHADOW, (F32)(-0.5*fontp->getWidthF32(name)), 3.0, color, FALSE);
 
-            LLGLContainment::popMatrix();
+            getOpenGLRenderBackend().popMatrix();
         }
 
         //

@@ -81,6 +81,7 @@
 
 // system libraries
 #include <boost/tokenizer.hpp>
+#include "llrendercontext.h"
 
 class LLFileEnableUpload : public view_listener_t
 {
@@ -356,7 +357,6 @@ void LLFilePickerReplyThread::notify(const std::vector<std::string>& filenames)
     }
 }
 
-
 LLMediaFilePicker::LLMediaFilePicker(LLPluginClassMedia* plugin, LLFilePicker::ELoadFilter filter, bool get_multiple)
     : LLFilePickerThread(filter, get_multiple),
     mPlugin(plugin->getSharedPtr())
@@ -415,7 +415,6 @@ std::string build_extensions_string(LLFilePicker::ELoadFilter filter)
     return ALL_FILE_EXTENSIONS;
     }
 }
-
 
 const bool check_file_extension(const std::string& filename, LLFilePicker::ELoadFilter type)
     {
@@ -1148,7 +1147,6 @@ class LLFileQuit : public view_listener_t
     }
 };
 
-
 void handle_compress_image()
 {
     LLFilePicker& picker = LLFilePicker::instance();
@@ -1267,7 +1265,6 @@ void handle_compress_file_test()
         LL_INFOS() << "Failed to open file" << LL_ENDL;
     }
 }
-
 
 LLUUID upload_new_resource(
     const std::string& src_filename,
@@ -1434,7 +1431,6 @@ void upload_new_resource(
 //     uploadInfo->setAssetType(assetType);
 //     uploadInfo->setTransactionId(tid);
 
-
     std::string url = gAgent.getRegionCapability("NewFileAgentInventory");
 
     if ( !url.empty() )
@@ -1488,7 +1484,6 @@ void upload_new_resource(
             false);
     }
 }
-
 
 void init_menu_file()
 {

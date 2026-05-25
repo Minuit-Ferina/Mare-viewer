@@ -46,6 +46,7 @@
 #include "llbbox.h"
 #include "llrigginginfo.h"
 #include "llreflectionmap.h"
+#include "llrenderstate.h"
 
 namespace LL
 {
@@ -90,7 +91,6 @@ typedef enum e_object_update_type
     OUT_FULL_CACHED,
     OUT_UNKNOWN,
 } EObjectUpdateType;
-
 
 // callback typedef for inventory
 typedef void (*inventory_callback)(LLViewerObject*,
@@ -179,7 +179,6 @@ public:
                                         U32 block_num,
                                         const EObjectUpdateType update_type,
                                         LLDataPacker *dp);
-
 
     virtual bool    isActive() const; // Whether this object needs to do an idleUpdate.
     bool            onActiveList() const                {return mOnActiveList;}
@@ -307,7 +306,6 @@ public:
     void addThisAndNonJointChildren(std::vector<LLViewerObject*>& objects);
     bool isChild(LLViewerObject *childp) const;
     bool isSeat() const;
-
 
     //detect if given line segment (in agent space) intersects with this viewer object.
     //returns true if intersection detected and returns information about intersection
@@ -945,7 +943,6 @@ protected:
 
     static          S32         sAxisArrowLength;
 
-
     // These two caches are only correct for non-parented objects right now!
     mutable LLVector3       mPositionRegion;
     mutable LLVector3       mPositionAgent;
@@ -1063,6 +1060,5 @@ public:
 
     virtual void updateDrawable(bool force_damped);
 };
-
 
 #endif

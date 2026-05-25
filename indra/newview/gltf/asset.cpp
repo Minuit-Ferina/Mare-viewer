@@ -27,7 +27,7 @@
 #include "../llviewerprecompiledheaders.h"
 
 #include "asset.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llvolumeoctree.h"
 #include "../llviewershadermgr.h"
 #include "../llviewercontrol.h"
@@ -38,10 +38,10 @@
 #include "../llskinningutil.h"
 
 #include <future>
+#include "llrendercontext.h"
 
 using namespace LL::GLTF;
 using namespace boost::json;
-
 
 namespace LL
 {
@@ -181,16 +181,16 @@ void Asset::uploadTransforms()
 
     if (mNodesUBO == 0)
     {
-        LLGLContainment::generateBufferObjects(1, &mNodesUBO);
+        getOpenGLRenderBackend().generateBuffers(1, &mNodesUBO);
     }
 
-    LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, mNodesUBO);
-    LLGLContainment::allocateBufferObjectStorage(
-        GL_UNIFORM_BUFFER,
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mNodesUBO);
+    getOpenGLRenderBackend().allocateBufferStorage(
+        LLRenderBufferTarget::Uniform,
         glmp.size() * sizeof(F32),
         glmp.data(),
-        GL_STREAM_DRAW);
-    LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, 0);
+        LLRenderBufferUsage::StreamDraw);
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
 }
 
 void Asset::uploadMaterials()
@@ -234,16 +234,16 @@ void Asset::uploadMaterials()
 
     if (mMaterialsUBO == 0)
     {
-        LLGLContainment::generateBufferObjects(1, &mMaterialsUBO);
+        getOpenGLRenderBackend().generateBuffers(1, &mMaterialsUBO);
     }
 
-    LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, mMaterialsUBO);
-    LLGLContainment::allocateBufferObjectStorage(
-        GL_UNIFORM_BUFFER,
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mMaterialsUBO);
+    getOpenGLRenderBackend().allocateBufferStorage(
+        LLRenderBufferTarget::Uniform,
         md.size() * sizeof(vec4),
         md.data(),
-        GL_STREAM_DRAW);
-    LLGLContainment::bindBufferObject(GL_UNIFORM_BUFFER, 0);
+        LLRenderBufferUsage::StreamDraw);
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
 }
 
 S32 Asset::lineSegmentIntersect(const LLVector4a& start, const LLVector4a& end,
@@ -261,7 +261,6 @@ S32 Asset::lineSegmentIntersect(const LLVector4a& start, const LLVector4a& end,
     LLVector4a asset_end = end;
     LLVector4a local_end;
     LLVector4a p;
-
 
     for (auto& node : mNodes)
     {
@@ -348,7 +347,6 @@ S32 Asset::lineSegmentIntersect(const LLVector4a& start, const LLVector4a& end,
 
     return node_hit;
 }
-
 
 void Node::makeMatrixValid()
 {
@@ -1066,7 +1064,6 @@ bool Image::prepImpl(Asset& asset, const LLUUID& id)
     return true;
 }
 
-
 void Image::clearData(Asset& asset)
 {
     if (mBufferView != INVALID_INDEX)
@@ -1355,7 +1352,6 @@ void TextureTransform::serialize(object& dst) const
     write(mTexCoord, "texCoord", dst, -1);
 }
 
-
 void Material::serialize(object& dst) const
 {
     write(mName, "name", dst);
@@ -1388,7 +1384,6 @@ const Material& Material::operator=(const Value& src)
     }
     return *this;
 }
-
 
 void Mesh::serialize(object& dst) const
 {
@@ -1474,4 +1469,3 @@ const Sampler& Sampler::operator=(const Value& src)
 
     return *this;
 }
-

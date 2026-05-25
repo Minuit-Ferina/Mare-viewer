@@ -89,8 +89,8 @@
 #include "fscommon.h"
 #include "llfloaterreg.h"
 
-
 #include "llavataractions.h"
+#include "llrendercontext.h"
 
 extern F32 gMinObjectDistance;
 extern bool gAnimateTextures;
@@ -134,7 +134,6 @@ void LLViewerObjectList::destroy()
     mMapObjects.clear();
     mUUIDObjectMap.clear();
 }
-
 
 void LLViewerObjectList::getUUIDFromLocal(LLUUID &id,
                                           const U32 local_id,
@@ -352,8 +351,6 @@ LLViewerObject* LLViewerObjectList::processObjectUpdateFromCache(LLVOCacheEntry*
     cached_dpp->unpackUUID(fullid, "ID");
     cached_dpp->unpackU32(local_id, "LocalID");
     cached_dpp->unpackU8(pcode, "PCode");
-
-
 
     if( mDerenderList.end() != mDerenderList.find(fullid))
     {
@@ -1022,8 +1019,6 @@ void LLViewerObjectList::update(LLAgent &agent)
         }
     }
 
-
-
     fetchObjectCosts();
     fetchPhysicsFlags();
 
@@ -1125,15 +1120,12 @@ void LLViewerObjectList::reportObjectCostFailure(LLSD &objectList)
     }
 }
 
-
 void LLViewerObjectList::fetchObjectCostsCoro(std::string url)
 {
     LLCore::HttpRequest::policy_t httpPolicy(LLCore::HttpRequest::DEFAULT_POLICY_ID);
     LLCoreHttpUtil::HttpCoroutineAdapter::ptr_t
         httpAdapter = std::make_shared<LLCoreHttpUtil::HttpCoroutineAdapter>("fetchObjectCostsCoro", httpPolicy);
     LLCore::HttpRequest::ptr_t httpRequest = std::make_shared<LLCore::HttpRequest>();
-
-
 
     uuid_set_t diff;
 
@@ -1352,7 +1344,6 @@ void LLViewerObjectList::clearDebugText()
     }
 }
 
-
 void LLViewerObjectList::cleanupReferences(LLViewerObject *objectp)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_NETWORK;
@@ -1440,7 +1431,6 @@ void LLViewerObjectList::killObjects(LLViewerRegion *regionp)
 {
     LL_PROFILE_ZONE_SCOPED;
     LLViewerObject *objectp;
-
 
     for (vobj_list_t::iterator iter = mObjects.begin(); iter != mObjects.end(); ++iter)
     {
@@ -1695,7 +1685,6 @@ void LLViewerObjectList::shiftObjects(const LLVector3 &offset)
         return;
     }
 
-
     LLViewerObject *objectp;
     for (vobj_list_t::iterator iter = mObjects.begin(); iter != mObjects.end(); ++iter)
     {
@@ -1789,7 +1778,6 @@ void LLViewerObjectList::clearAllMapObjectsInRegion(LLViewerRegion* regionp)
         }
     }
 }
-
 
 void LLViewerObjectList::renderObjectsForMap(LLNetMap &netmap)
 {
@@ -2088,7 +2076,6 @@ S32 LLViewerObjectList::findReferences(LLDrawable *drawablep) const
     return num_refs;
 }
 
-
 void LLViewerObjectList::orphanize(LLViewerObject *childp, U32 parent_id, U32 ip, U32 port)
 {
     LL_DEBUGS("ORPHANS") << "Orphaning object " << childp->getID() << " with parent " << parent_id << LL_ENDL;
@@ -2133,7 +2120,6 @@ void LLViewerObjectList::orphanize(LLViewerObject *childp, U32 parent_id, U32 ip
         mNumOrphans++;
     }
 }
-
 
 void LLViewerObjectList::findOrphans(LLViewerObject* objectp, U32 ip, U32 port)
 {
@@ -2278,7 +2264,6 @@ bool LLViewerObjectList::OrphanInfo::operator!=(const OrphanInfo &rhs) const
 {
     return !operator==(rhs);
 }
-
 
 LLDebugBeacon::~LLDebugBeacon()
 {

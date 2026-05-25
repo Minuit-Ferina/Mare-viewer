@@ -63,6 +63,7 @@
 #include "bufferstream.h"
 #include "llcorehttputil.h"
 #include "llhttpretrypolicy.h"
+#include "llrendercontext.h"
 
 LLTrace::CountStatHandle<F64> LLTextureFetch::sCacheHit("texture_cache_hit");
 LLTrace::CountStatHandle<F64> LLTextureFetch::sCacheAttempt("texture_cache_attempt");
@@ -221,8 +222,6 @@ const std::string sTesterName("TextureFetchTester");
 // return false as soon as possible and not block to avoid starving
 // other workers of cpu cycles.
 //
-
-
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -582,7 +581,6 @@ private:
     S32 mRegionRetryAttempt;
     LLUUID mLastRegionId;
 
-
     // Work Data
     LLMutex mWorkMutex;
     U8 mImageCodec;
@@ -754,7 +752,6 @@ public:
     const U64 mRegionHandle;
 };
 
-
 /**
  * @brief Implements a 'Send Metrics' cross-thread command.
  *
@@ -824,7 +821,6 @@ private:
 bool truncate_viewer_metrics(int max_regions, LLSD & metrics);
 
 } // end of anonymous namespace
-
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -2053,7 +2049,6 @@ void LLTextureFetchWorker::onCompleted(LLCore::HttpHandle handle, LLCore::HttpRe
     recordTextureDone(true, data_size);
 }                                                                       // -Mw
 
-
 // Threads:  Tmain
 void LLTextureFetchWorker::endWork(S32 param, bool aborted)
 {
@@ -2160,7 +2155,6 @@ void LLTextureFetchWorker::removeFromCache()
         mFetcher->mTextureCache->removeFromCache(mID);
     }
 }
-
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -2388,7 +2382,6 @@ bool LLTextureFetchWorker::writeToCacheComplete()
     return true;
 }
 
-
 // Threads:  Ttf
 void LLTextureFetchWorker::recordTextureStart(bool is_http)
 {
@@ -2400,7 +2393,6 @@ void LLTextureFetchWorker::recordTextureStart(bool is_http)
                                                  is_http,
                                                  LLImageBase::TYPE_AVATAR_BAKE == mType);
 }
-
 
 // Threads:  Ttf
 void LLTextureFetchWorker::recordTextureDone(bool is_http, F64 byte_count)
@@ -2418,7 +2410,6 @@ void LLTextureFetchWorker::recordTextureDone(bool is_http, F64 byte_count)
                                                  is_http,
                                                  LLImageBase::TYPE_AVATAR_BAKE == mType);
 }
-
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -2577,7 +2568,6 @@ S32 LLTextureFetch::createRequest(FTType f_type, const std::string& url, const L
         desired_size = TEXTURE_CACHE_ENTRY_SIZE;
         desired_discard = MAX_DISCARD_LEVEL;
     }
-
 
     if (worker)
     {
@@ -2769,7 +2759,6 @@ LLTextureFetchWorker* LLTextureFetch::getWorker(const LLUUID& id)
 
     return getWorkerAfterLock(id);
 }                                                                       // -Mfq
-
 
 // Threads:  T*
 bool LLTextureFetch::getRequestFinished(const LLUUID& id, S32& discard_level, S32& worker_state,
@@ -2970,7 +2959,6 @@ void LLTextureFetch::commonUpdate()
                                << LL_ENDL;
     }
 }
-
 
 // Threads:  Tmain
 
@@ -3407,7 +3395,6 @@ int LLTextureFetch::getHttpWaitersCount()
     return ret;
 }
 
-
 // Threads:  T*
 void LLTextureFetch::updateStateStats(U32 cache_read, U32 cache_write, U32 res_wait)
 {
@@ -3417,7 +3404,6 @@ void LLTextureFetch::updateStateStats(U32 cache_read, U32 cache_write, U32 res_w
     mTotalCacheWriteCount += cache_write;
     mTotalResourceWaitCount += res_wait;
 }                                                                       // -Mfq
-
 
 // Threads:  T*
 void LLTextureFetch::getStateStats(U32 * cache_read, U32 * cache_write, U32 * res_wait)
@@ -3523,7 +3509,6 @@ void LLTextureFetch::cmdDoWork()
 namespace
 {
 
-
 // Example of a simple notification handler for metrics
 // delivery notification.  Earlier versions of the code used
 // a Responder that tried harder to detect delivery breaks
@@ -3577,11 +3562,9 @@ TFReqSendMetrics::TFReqSendMetrics(const std::string & caps_url,
     mHandler(std::make_shared<AssetReportHandler>())
 {}
 
-
 TFReqSendMetrics::~TFReqSendMetrics()
 {
 }
-
 
 /**
  * Implements the 'Send Metrics' command.  Takes over
@@ -3656,7 +3639,6 @@ TFReqSendMetrics::doWork(LLTextureFetch * fetcher)
 
     return true;
 }
-
 
 bool
 truncate_viewer_metrics(int max_regions, LLSD & metrics)

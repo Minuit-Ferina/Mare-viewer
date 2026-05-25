@@ -88,18 +88,18 @@ public:
         //  [i][1] - index into "refNeighbor" for probes that intersect this probe
         //  [i][2] - number of probes  that intersect this probe, or -1 for no neighbors
         //  [i][3] - priority (probe type stored in sign bit - positive for spheres, negative for boxes)
-        LLGLint refIndex[LL_MAX_REFLECTION_PROBE_COUNT][4];
+        S32 refIndex[LL_MAX_REFLECTION_PROBE_COUNT][4];
 
         // list of neighbor indices
-        LLGLint refNeighbor[4096];
+        S32 refNeighbor[4096];
 
-        LLGLint refBucket[256][4]; // lookup table for which index to start with for the given Z depth
+        S32 refBucket[256][4]; // lookup table for which index to start with for the given Z depth
         // numbrer of active refmaps
-        LLGLint refmapCount;
+        S32 refmapCount;
 
-        LLGLint heroShape;
-        LLGLint heroMipCount;
-        LLGLint heroProbeCount;
+        S32 heroShape;
+        S32 heroMipCount;
+        S32 heroProbeCount;
     };
 
     // allocate an environment map of the given resolution

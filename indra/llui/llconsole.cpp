@@ -34,7 +34,7 @@
 //#include "llviewercontrol.h"
 #include "llcriticaldamp.h"
 #include "llfontgl.h"
-#include "llgl.h"
+
 #include "llui.h"
 #include "lluiimage.h"
 //#include "llviewerimage.h"
@@ -43,6 +43,7 @@
 #include "llsd.h"
 #include "llfontgl.h"
 #include "llmath.h"
+#include "llrenderstate.h"
 
 //#include "llstartup.h"
 

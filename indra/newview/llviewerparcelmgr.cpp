@@ -32,7 +32,7 @@
 #include "llaudioengine.h"
 #include "indra_constants.h"
 #include "llcachename.h"
-#include "llgl.h"
+
 #include "llnotifications.h"
 #include "llnotificationsutil.h"
 #include "llparcel.h"
@@ -72,10 +72,10 @@
 #include "llcorehttputil.h"
 
 #include "llenvironment.h"
+#include "llrendercontext.h"
 
 const F32 PARCEL_BAN_LINES_DRAW_SECS_ON_COLLISION = 10.f;
 const F32 PARCEL_COLLISION_DRAW_SECS_ON_PROXIMITY = 1.f;
-
 
 // Globals
 
@@ -170,7 +170,6 @@ LLViewerParcelMgr::LLViewerParcelMgr()
     mTeleportInProgress = true; // the initial parcel update is treated like teleport
 }
 
-
 LLViewerParcelMgr::~LLViewerParcelMgr()
 {
     mCurrentParcelSelection->setParcel(NULL);
@@ -228,12 +227,10 @@ void LLViewerParcelMgr::dump()
     mAgentParcel->dump();
 }
 
-
 LLViewerRegion* LLViewerParcelMgr::getSelectionRegion()
 {
     return LLWorld::getInstance()->getRegionFromPosGlobal( mWestSouth );
 }
-
 
 void LLViewerParcelMgr::getDisplayInfo(S32* area_out, S32* claim_out,
                                        S32* rent_out,
@@ -307,7 +304,6 @@ void LLViewerParcelMgr::resetSegments(U8* segments)
     }
 }
 
-
 void LLViewerParcelMgr::writeHighlightSegments(F32 west, F32 south, F32 east,
                                                F32 north)
 {
@@ -351,7 +347,6 @@ void LLViewerParcelMgr::writeHighlightSegments(F32 west, F32 south, F32 east,
     }
 }
 
-
 void LLViewerParcelMgr::writeSegmentsFromBitmap(U8* bitmap, U8* segments)
 {
     S32 x;
@@ -387,7 +382,6 @@ void LLViewerParcelMgr::writeSegmentsFromBitmap(U8* bitmap, U8* segments)
     }
 }
 
-
 void LLViewerParcelMgr::writeAgentParcelFromBitmap(U8* bitmap)
 {
     S32 x;
@@ -418,7 +412,6 @@ void LLViewerParcelMgr::writeAgentParcelFromBitmap(U8* bitmap)
     }
 }
 
-
 // Given a point, find the PARCEL_GRID_STEP x PARCEL_GRID_STEP block
 // containing it and select that.
 LLParcelSelectionHandle LLViewerParcelMgr::selectParcelAt(const LLVector3d& pos_global)
@@ -438,13 +431,11 @@ LLParcelSelectionHandle LLViewerParcelMgr::selectParcelAt(const LLVector3d& pos_
     return selectLand( southwest, northeast, true );
 }
 
-
 // Tries to select the parcel inside the rectangle
 LLParcelSelectionHandle LLViewerParcelMgr::selectParcelInRectangle()
 {
     return selectLand(mWestSouth, mEastNorth, true);
 }
-
 
 void LLViewerParcelMgr::selectCollisionParcel()
 {
@@ -484,7 +475,6 @@ void LLViewerParcelMgr::selectCollisionParcel()
     notifyObservers();
     return;
 }
-
 
 // snap_selection = auto-select the hit parcel, if there is exactly one
 LLParcelSelectionHandle LLViewerParcelMgr::selectLand(const LLVector3d &corner1, const LLVector3d &corner2,
@@ -599,18 +589,15 @@ void LLViewerParcelMgr::deselectLand()
     }
 }
 
-
 void LLViewerParcelMgr::addObserver(LLParcelObserver* observer)
 {
     mObservers.push_back(observer);
 }
 
-
 void LLViewerParcelMgr::removeObserver(LLParcelObserver* observer)
 {
     vector_replace_with_last(mObservers, observer);
 }
-
 
 // Call this method when it's time to update everyone on a new state.
 // Copy the list because an observer could respond by removing itself
@@ -628,7 +615,6 @@ void LLViewerParcelMgr::notifyObservers()
     }
 }
 
-
 //
 // ACCESSORS
 //
@@ -636,7 +622,6 @@ bool LLViewerParcelMgr::selectionEmpty() const
 {
     return !mSelected;
 }
-
 
 LLParcelSelectionHandle LLViewerParcelMgr::getParcelSelection() const
 {
@@ -652,7 +637,6 @@ LLParcel *LLViewerParcelMgr::getAgentParcel() const
 {
     return mAgentParcel;
 }
-
 
 LLParcel * LLViewerParcelMgr::getAgentOrSelectedParcel() const
 {
@@ -831,7 +815,6 @@ bool LLViewerParcelMgr::canHearSound(const LLVector3d &pos_global) const
     }
 }
 
-
 bool LLViewerParcelMgr::inAgentParcel(const LLVector3d &pos_global) const
 {
     LLViewerRegion* region = LLWorld::getInstance()->getRegionFromPosGlobal(pos_global);
@@ -902,7 +885,6 @@ void LLViewerParcelMgr::render()
     }
 }
 
-
 void LLViewerParcelMgr::renderParcelCollision()
 {
     static LLCachedControl<S32> ban_lines_mode(gSavedSettings , "ShowBanLines" , PARCEL_BAN_LINES_ON_COLLISION);
@@ -927,7 +909,6 @@ void LLViewerParcelMgr::renderParcelCollision()
     }
 }
 
-
 void LLViewerParcelMgr::sendParcelAccessListRequest(U32 flags)
 {
     if (!mSelected)
@@ -939,7 +920,6 @@ void LLViewerParcelMgr::sendParcelAccessListRequest(U32 flags)
     if (!region) return;
 
     LLMessageSystem *msg = gMessageSystem;
-
 
     if (flags & AL_BAN)
     {
@@ -970,7 +950,6 @@ void LLViewerParcelMgr::sendParcelAccessListRequest(U32 flags)
     msg->sendReliable( region->getHost() );
 }
 
-
 void LLViewerParcelMgr::sendParcelDwellRequest()
 {
     if (!mSelected)
@@ -993,7 +972,6 @@ void LLViewerParcelMgr::sendParcelDwellRequest()
     msg->addUUID("ParcelID", LLUUID::null); // filled in on simulator
     msg->sendReliable( region->getHost() );
 }
-
 
 void LLViewerParcelMgr::sendParcelGodForceOwner(const LLUUID& owner_id)
 {
@@ -1183,7 +1161,6 @@ LLViewerParcelMgr::ParcelBuyInfo* LLViewerParcelMgr::setupParcelBuy(
         }
     }
 
-
     ParcelBuyInfo* info = new ParcelBuyInfo;
 
     info->mAgent = agent_id;
@@ -1287,7 +1264,6 @@ void LLViewerParcelMgr::sendParcelDeed(const LLUUID& group_id)
     msg->sendReliable( region->getHost() );
 }
 
-
 /*
 // *NOTE: We cannot easily make landmarks at global positions because
 // global positions probably refer to a sim/local combination which
@@ -1329,7 +1305,6 @@ const std::string& LLViewerParcelMgr::getAgentParcelName() const
 {
     return mAgentParcel->getName();
 }
-
 
 const S32 LLViewerParcelMgr::getAgentParcelId() const
 {
@@ -1379,7 +1354,6 @@ void LLViewerParcelMgr::sendParcelPropertiesUpdate(LLParcel* parcel)
         msg->sendReliable( region->getHost() );
     }
 }
-
 
 void LLViewerParcelMgr::setHoverParcel(const LLVector3d& pos)
 {
@@ -1465,7 +1439,6 @@ void LLViewerParcelMgr::setHoverParcel(const LLVector3d& pos)
 
         LL_DEBUGS("ParcelMgr") << "Requesting parcel properties on hover, for " << pos << LL_ENDL;
 
-
         // Send a rectangle around the point.
         // This means the parcel sent back is at least a rectangle around the point,
         // which is more efficient for public land.  Fewer requests are sent.  JC
@@ -1493,7 +1466,6 @@ void LLViewerParcelMgr::setHoverParcel(const LLVector3d& pos)
         mHoverRequestResult = PARCEL_RESULT_NO_DATA;
     }
 }
-
 
 // static
 void LLViewerParcelMgr::processParcelOverlay(LLMessageSystem *msg, void **user)
@@ -1996,7 +1968,6 @@ void LLViewerParcelMgr::processParcelProperties(LLMessageSystem *msg, void **use
     }
 };
 
-
 //static
 void LLViewerParcelMgr::onStartMusicResponse(const LLUUID &region_id, const S32 &parcel_id, const std::string &url, const bool &play)
 {
@@ -2129,7 +2100,6 @@ void LLViewerParcelMgr::processParcelAccessListReply(LLMessageSystem *msg, void 
     LLViewerParcelMgr::getInstance()->notifyObservers();
 }
 
-
 // static
 void LLViewerParcelMgr::processParcelDwellReply(LLMessageSystem* msg, void**)
 {
@@ -2151,7 +2121,6 @@ void LLViewerParcelMgr::processParcelDwellReply(LLMessageSystem* msg, void**)
         LLViewerParcelMgr::getInstance()->notifyObservers();
     }
 }
-
 
 void LLViewerParcelMgr::sendParcelAccessListUpdate(U32 which)
 {
@@ -2196,7 +2165,6 @@ void LLViewerParcelMgr::sendParcelAccessListUpdate(U32 flags, const LLAccessEntr
 
     LLUUID transactionUUID;
     transactionUUID.generate();
-
 
     LLMessageSystem* msg = gMessageSystem;
 
@@ -2248,7 +2216,6 @@ void LLViewerParcelMgr::sendParcelAccessListUpdate(U32 flags, const LLAccessEntr
     }
 }
 
-
 void LLViewerParcelMgr::deedLandToGroup()
 {
     std::string group_name;
@@ -2283,7 +2250,6 @@ bool LLViewerParcelMgr::deedAlertCB(const LLSD& notification, const LLSD& respon
     }
     return false;
 }
-
 
 void LLViewerParcelMgr::startReleaseLand()
 {
@@ -2403,7 +2369,6 @@ bool LLViewerParcelMgr::canAgentBuyParcel(LLParcel* parcel, bool forGroup) const
     return isForSale && !isOwner && isAuthorized  && isEmpowered;
 }
 
-
 void LLViewerParcelMgr::startBuyLand(bool is_for_group)
 {
 //MK
@@ -2476,7 +2441,6 @@ bool LLViewerParcelMgr::callbackDivideLand(const LLSD& notification, const LLSD&
     return false;
 }
 
-
 void LLViewerParcelMgr::startJoinLand()
 {
     if (!mSelected)
@@ -2538,7 +2502,6 @@ bool LLViewerParcelMgr::callbackJoinLand(const LLSD& notification, const LLSD& r
     }
     return false;
 }
-
 
 void LLViewerParcelMgr::startDeedLandToGroup()
 {
@@ -2710,7 +2673,6 @@ void sanitize_corners(const LLVector3d &corner1,
     east_north_top.mdV[VY] = llmax( corner1.mdV[VY], corner2.mdV[VY] );
     east_north_top.mdV[VZ] = llmax( corner1.mdV[VZ], corner2.mdV[VZ] );
 }
-
 
 void LLViewerParcelMgr::cleanupGlobals()
 {

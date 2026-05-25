@@ -38,7 +38,6 @@
 #include "llrender.h"
 #include "llrect.h"
 #include "lldir.h"
-#include "llgl.h"
 #include "llsd.h"
 
 // Project includes

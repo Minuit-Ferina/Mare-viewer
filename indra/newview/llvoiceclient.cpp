@@ -39,13 +39,13 @@
 #include "llagent.h"
 #include "lltrans.h"
 #include "lluiusage.h"
+#include "llrendercontext.h"
 
 const F32 LLVoiceClient::OVERDRIVEN_POWER_LEVEL = 0.7f;
 
 const F32 LLVoiceClient::VOLUME_MIN = 0.f;
 const F32 LLVoiceClient::VOLUME_DEFAULT = 0.5f;
 const F32 LLVoiceClient::VOLUME_MAX = 1.0f;
-
 
 // Support for secondlife:///app/voice SLapps
 class LLVoiceHandler : public LLCommandHandler
@@ -76,8 +76,6 @@ public:
     }
 };
 LLVoiceHandler gVoiceHandler;
-
-
 
 std::string LLVoiceClientStatusObserver::status2string(LLVoiceClientStatusObserver::EStatusType inStatus)
 {
@@ -408,12 +406,10 @@ const LLVoiceDeviceList& LLVoiceClient::getCaptureDevices()
     return LLWebRTCVoiceClient::getInstance()->getCaptureDevices();
 }
 
-
 const LLVoiceDeviceList& LLVoiceClient::getRenderDevices()
 {
     return LLWebRTCVoiceClient::getInstance()->getRenderDevices();
 }
-
 
 //--------------------------------------------------
 // participants
@@ -429,7 +425,6 @@ bool LLVoiceClient::isParticipant(const LLUUID &speaker_id) const
     return LLWebRTCVoiceClient::getInstance()->isParticipant(speaker_id) ||
            LLVivoxVoiceClient::getInstance()->isParticipant(speaker_id);
 }
-
 
 //--------------------------------------------------
 // text chat
@@ -564,7 +559,6 @@ LLVoiceP2POutgoingCallInterface *LLVoiceClient::getOutgoingCallInterface(const L
 //------------------------------------------
 // Volume/gain
 
-
 void LLVoiceClient::setVoiceVolume(F32 volume)
 {
     LLWebRTCVoiceClient::getInstance()->setVoiceVolume(volume);
@@ -576,7 +570,6 @@ void LLVoiceClient::setMicGain(F32 gain)
     LLWebRTCVoiceClient::getInstance()->setMicGain(gain);
     LLVivoxVoiceClient::getInstance()->setMicGain(gain);
 }
-
 
 //------------------------------------------
 // enable/disable voice features
@@ -671,7 +664,6 @@ void LLVoiceClient::setMuteMic(bool muted)
     }
 }
 
-
 // ----------------------------------------------
 // PTT
 
@@ -740,7 +732,6 @@ void LLVoiceClient::toggleUserPTTState(void)
 {
     setUserPTTState(!getUserPTTState());
 }
-
 
 //-------------------------------------------
 // nearby speaker accessors

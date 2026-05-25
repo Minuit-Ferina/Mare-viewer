@@ -28,8 +28,6 @@
 // Header Files
 //-----------------------------------------------------------------------------
 #include "llavatarjoint.h"
-
-#include "llgl.h"
 #include "llrender.h"
 #include "llmath.h"
 #include "llavatarappearance.h"

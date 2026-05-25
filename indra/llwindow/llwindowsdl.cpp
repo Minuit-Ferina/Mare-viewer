@@ -35,8 +35,8 @@
 #include "llkeyboardsdl.h"
 
 #include "llerror.h"
-#include "llgl.h"
-#include "llglcontainment.h"
+
+#include "llrenderbackend.h"
 #include "llstring.h"
 #include "lldir.h"
 #include "llfindlocale.h"
@@ -58,8 +58,7 @@ extern "C" {
 # include <unistd.h>
 # include <sys/types.h>
 # include <sys/wait.h>
-# define GLX_GLXEXT_PROTOTYPES 1
-# include <GL/glx.h>
+# include "llopenglplatform.h"
 #endif // LL_LINUX
 
 extern bool gDebugWindowProc;
@@ -75,6 +74,7 @@ static bool ATIbug = false;
 
 #if LL_X11
 # include <X11/Xutil.h>
+#include "llrendercontext.h"
 #endif //LL_X11
 
 // TOFU HACK -- (*exactly* the same hack as LLWindowMacOSX for a similar
@@ -83,7 +83,6 @@ static bool ATIbug = false;
 // be only one object of this class at any time.  Currently this is true.
 static LLWindowSDL *gWindowImplementation = NULL;
 
-
 void maybe_lock_display(void)
 {
     if (gWindowImplementation && gWindowImplementation->Lock_Display) {
@@ -91,14 +90,12 @@ void maybe_lock_display(void)
     }
 }
 
-
 void maybe_unlock_display(void)
 {
     if (gWindowImplementation && gWindowImplementation->Unlock_Display) {
         gWindowImplementation->Unlock_Display();
     }
 }
-
 
 #if LL_GTK
 // Lazily initialize and check the runtime GTK version for goodness.
@@ -166,7 +163,6 @@ bool LLWindowSDL::ll_try_gtk_init(void)
 #pragma GCC diagnostic pop
 #endif // LL_GTK
 
-
 #if LL_X11
 // static
 Window LLWindowSDL::get_SDL_XWindowID(void)
@@ -186,7 +182,6 @@ Display* LLWindowSDL::get_SDL_Display(void)
     return NULL;
 }
 #endif // LL_X11
-
 
 LLWindowSDL::LLWindowSDL(LLWindowCallbacks* callbacks,
              const std::string& title, S32 x, S32 y, S32 width,
@@ -236,7 +231,7 @@ LLWindowSDL::LLWindowSDL(LLWindowCallbacks* callbacks,
     // Create the GL context and set it up for windowed or fullscreen, as appropriate.
     if(createContext(x, y, width, height, 32, fullscreen, disable_vsync))
     {
-        gGLManager.initGL();
+        getOpenGLRenderBackend().initContextCapabilities();
 
         //start with arrow cursor
         initCursors();
@@ -645,13 +640,14 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
     unsigned int vram_megabytes = 0;
     queryInteger(GLX_RENDERER_VIDEO_MEMORY_MESA, &vram_megabytes);
     if (!vram_megabytes) {
-        LLGLContainment::getInteger(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX,
-                (int *)&vram_megabytes);
-        vram_megabytes /= 1024;
+        S32 vram_kb = 0;
+        getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::DedicatedVideoMemoryKB, &vram_kb);
+        vram_megabytes = vram_kb / 1024;
     }
     if (!vram_megabytes) {
-        LLGLContainment::getInteger(GL_VBO_FREE_MEMORY_ATI, (int *)&vram_megabytes);
-        vram_megabytes /= 1024;
+        S32 vram_kb = 0;
+        getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::FreeVideoMemoryKB, &vram_kb);
+        vram_megabytes = vram_kb / 1024;
     }
 
     gGLManager.mVRAM = vram_megabytes;
@@ -663,14 +659,14 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
     // explicitly unsupported cards.
     // Renderer string probing could be added here if needed.
 
-    GLint depthBits, stencilBits, redBits, greenBits, blueBits, alphaBits;
+    S32 depthBits, stencilBits, redBits, greenBits, blueBits, alphaBits;
 
-    LLGLContainment::getInteger(GL_RED_BITS, &redBits);
-    LLGLContainment::getInteger(GL_GREEN_BITS, &greenBits);
-    LLGLContainment::getInteger(GL_BLUE_BITS, &blueBits);
-    LLGLContainment::getInteger(GL_ALPHA_BITS, &alphaBits);
-    LLGLContainment::getInteger(GL_DEPTH_BITS, &depthBits);
-    LLGLContainment::getInteger(GL_STENCIL_BITS, &stencilBits);
+    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::RedBits, &redBits);
+    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::GreenBits, &greenBits);
+    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::BlueBits, &blueBits);
+    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::AlphaBits, &alphaBits);
+    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::DepthBits, &depthBits);
+    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::StencilBits, &stencilBits);
 
     LL_INFOS() << "GL buffer:" << LL_ENDL;
         LL_INFOS() << "  Red Bits " << S32(redBits) << LL_ENDL;
@@ -680,7 +676,7 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
     LL_INFOS()  << "  Depth Bits " << S32(depthBits) << LL_ENDL;
     LL_INFOS()  << "  Stencil Bits " << S32(stencilBits) << LL_ENDL;
 
-    GLint colorBits = redBits + greenBits + blueBits + alphaBits;
+    S32 colorBits = redBits + greenBits + blueBits + alphaBits;
     // fixme: actually, it's REALLY important for picking that we get at
     // least 8 bits each of red,green,blue.  Alpha we can be a bit more
     // relaxed about if we have to.
@@ -742,9 +738,8 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
     }
 #endif // LL_X11
 
-
     //make sure multisampling is disabled by default
-    LLGLContainment::disableCapability(GL_MULTISAMPLE_ARB);
+    getOpenGLRenderBackend().setCapability(LLRenderCapability::Multisample, false);
 
     // We need to do this here, once video is init'd
     if (-1 == SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
@@ -754,7 +749,6 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
     // Don't need to get the current gamma, since there's a call that restores it to the system defaults.
     return true;
 }
-
 
 // changing fullscreen resolution, or switching between windowed and fullscreen mode.
 bool LLWindowSDL::switchContext(bool fullscreen, const LLCoordScreen &size, bool disable_vsync, const LLCoordScreen * const posp)
@@ -770,7 +764,7 @@ bool LLWindowSDL::switchContext(bool fullscreen, const LLCoordScreen &size, bool
         result = createContext(0, 0, size.mX, size.mY, 0, fullscreen, disable_vsync);
         if (result)
         {
-            gGLManager.initGL();
+            getOpenGLRenderBackend().initContextCapabilities();
 
             //start with arrow cursor
             initCursors();
@@ -796,7 +790,7 @@ void LLWindowSDL::destroyContext()
 
     // Clean up remaining GL state before blowing away window
     LL_INFOS() << "shutdownGL begins" << LL_ENDL;
-    gGLManager.shutdownGL();
+    getOpenGLRenderBackend().shutdownContextCapabilities();
     LL_INFOS() << "SDL_QuitSS/VID begins" << LL_ENDL;
     SDL_QuitSubSystem(SDL_INIT_VIDEO);  // *FIX: this might be risky...
 
@@ -815,7 +809,6 @@ LLWindowSDL::~LLWindowSDL()
 
     gWindowImplementation = NULL;
 }
-
 
 void LLWindowSDL::show()
 {
@@ -838,7 +831,6 @@ void LLWindowSDL::restore()
 {
     // *FIX: What to do with SDL?
 }
-
 
 // close() destroys all OS-specific code associated with a window.
 // Usually called from LLWindowManager::destroyWindow()
@@ -989,7 +981,6 @@ bool LLWindowSDL::setSizeImpl(const LLCoordWindow size)
     return false;
 }
 
-
 void LLWindowSDL::swapBuffers()
 {
     if (mWindow)
@@ -1033,8 +1024,6 @@ bool LLWindowSDL::isCursorHidden()
 {
     return mCursorHidden;
 }
-
-
 
 // Constrains the mouse to the window.
 void LLWindowSDL::setMouseClipping( bool b )
@@ -1117,7 +1106,6 @@ bool LLWindowSDL::getCursorPosition(LLCoordWindow *position)
     return convertCoords(screen_pos, position);
 }
 
-
 F32 LLWindowSDL::getNativeAspectRatio()
 {
 #if 0
@@ -1126,7 +1114,6 @@ F32 LLWindowSDL::getNativeAspectRatio()
     // of the monitor...this seems to work to a close approximation for most CRTs/LCDs
     S32 num_resolutions;
     LLWindowResolution* resolutions = getSupportedResolutions(num_resolutions);
-
 
     return ((F32)resolutions[num_resolutions - 1].mWidth / (F32)resolutions[num_resolutions - 1].mHeight);
     //rn: AC
@@ -1246,7 +1233,6 @@ void LLWindowSDL::afterDialog()
     }
 }
 
-
 #if LL_X11
 // set/reset the XWMHints flag for 'urgency' that usually makes the icon flash
 void LLWindowSDL::x11_set_urgent(bool urgent)
@@ -1293,7 +1279,6 @@ void LLWindowSDL::flashIcon(F32 seconds)
 #endif // LL_X11
 }
 
-
 #if LL_GTK
 bool LLWindowSDL::isClipboardTextAvailable()
 {
@@ -1336,7 +1321,6 @@ bool LLWindowSDL::copyTextToClipboard(const LLWString &text)
     }
     return false; // failure
 }
-
 
 bool LLWindowSDL::isPrimaryTextAvailable()
 {
@@ -1515,9 +1499,6 @@ bool LLWindowSDL::convertCoords(LLCoordGL from, LLCoordScreen *to)
     return(convertCoords(from, &window_coord) && convertCoords(window_coord, to));
 }
 
-
-
-
 void LLWindowSDL::setupFailure(const std::string& text, const std::string& caption, U32 type)
 {
     destroyContext();
@@ -1648,7 +1629,6 @@ U32 LLWindowSDL::SDLCheckGrabbyKeys(SDLKey keysym, bool gain)
     return mGrabbyKeyFlags;
 }
 
-
 void check_vm_bloat()
 {
 #if LL_LINUX
@@ -1742,7 +1722,6 @@ finally:
     }
 #endif // LL_LINUX
 }
-
 
 // virtual
 void LLWindowSDL::processMiscNativeEvents()
@@ -2291,8 +2270,6 @@ void LLSplashScreenSDL::hideImpl()
 {
 }
 
-
-
 #if LL_GTK
 static void response_callback (GtkDialog *dialog,
                    gint       arg1,
@@ -2410,7 +2387,6 @@ static void color_changed_callback(GtkWidget *widget,
     gtk_color_selection_get_current_color(colorsel, colorp);
 }
 
-
 /*
         Make the raw keyboard data available - used to poke through to LLQtWebKit so
         that Qt/Webkit has access to the virtual keycodes etc. that it needs
@@ -2441,7 +2417,6 @@ LLSD LLWindowSDL::getNativeKeyData()
 
         return result;
 }
-
 
 bool LLWindowSDL::dialogColorPicker( F32 *r, F32 *g, F32 *b)
 {

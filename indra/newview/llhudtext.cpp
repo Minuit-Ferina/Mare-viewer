@@ -35,7 +35,7 @@
 #include "llcriticaldamp.h"
 #include "lldrawable.h"
 #include "llfontgl.h"
-#include "llglheaders.h"
+
 #include "llhudrender.h"
 #include "llui.h"
 #include "llviewercamera.h"
@@ -51,6 +51,7 @@
 #include "llvoavatarself.h"
 //mk
 #include <boost/tokenizer.hpp>
+#include "llrenderstate.h"
 
 const F32 HORIZONTAL_PADDING = 15.f;
 const F32 VERTICAL_PADDING = 12.f;
@@ -68,7 +69,6 @@ bool lltextobject_further_away::operator()(const LLPointer<LLHUDText>& lhs, cons
 {
     return lhs->getDistance() > rhs->getDistance();
 }
-
 
 LLHUDText::LLHUDText(const U8 type) :
             LLHUDObject(type),
@@ -105,8 +105,8 @@ void LLHUDText::render()
 {
     if (!mOnHUDAttachment && sDisplayText)
     {
-        LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
-        //LLGLDisable gls_stencil(GL_STENCIL_TEST);
+        LLGLDepthTest gls_depth(true, false);
+        //LLGLDisable gls_stencil(LLRenderCapability::StencilTest);
         renderText();
     }
 }
@@ -120,7 +120,7 @@ void LLHUDText::renderText()
 
     gGL.getTexUnit(0)->enable(LLTexUnit::TT_TEXTURE);
 
-    LLGLState gls_blend(GL_BLEND, true);
+    LLGLState gls_blend(LLRenderCapability::Blend, true);
 
     LLColor4 shadow_color(0.f, 0.f, 0.f, 1.f);
     F32 alpha_factor = 1.f;
@@ -309,7 +309,6 @@ void LLHUDText::clearString()
     mTextSegments.clear();
 }
 
-
 void LLHUDText::addLine(const std::string &text_utf8,
                         const LLColor4& color,
                         const LLFontGL::StyleFlags style,
@@ -357,7 +356,6 @@ void LLHUDText::setFont(const LLFontGL* font)
     mFontp = font;
 }
 
-
 void LLHUDText::setColor(const LLColor4 &color)
 {
     mColor = color;
@@ -377,7 +375,6 @@ void LLHUDText::setAlpha(F32 alpha)
         segment_iter->mColor.mV[VALPHA] = alpha;
     }
 }
-
 
 void LLHUDText::setDoFade(const bool do_fade)
 {
@@ -444,7 +441,6 @@ void LLHUDText::updateVisibility()
         mPositionAgent -= dir_from_camera * mSourceObject->getVObjRadius();
     }
 
-
 //MK
     if (gRRenabled && gAgent.mRRInterface.mVisionRestricted)
     {
@@ -489,7 +485,6 @@ void LLHUDText::updateVisibility()
         mVisible = false;
         return;
     }
-
 
     LLVector3 x_pixel_vec;
     LLVector3 y_pixel_vec;
@@ -653,7 +648,7 @@ void LLHUDText::renderAllHUD()
     LLGLState::checkStates();
 
     {
-        LLGLDepthTest depth(GL_FALSE, GL_FALSE);
+        LLGLDepthTest depth(false, false);
 
         VisibleTextObjectIterator text_it;
 

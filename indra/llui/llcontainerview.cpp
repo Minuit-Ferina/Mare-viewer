@@ -30,7 +30,6 @@
 
 #include "llerror.h"
 #include "llfontgl.h"
-#include "llgl.h"
 #include "llui.h"
 #include "llstring.h"
 #include "llscrollcontainer.h"

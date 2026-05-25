@@ -39,7 +39,7 @@
 #include "gltf/asset.h"
 #include "pipeline.h"
 #include "llviewershadermgr.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llviewertexturelist.h"
 #include "llimagej2c.h"
 #include "llfloaterperms.h"
@@ -48,6 +48,7 @@
 #include "llfilesystem.h"
 #include "llviewercontrol.h"
 #include "boost/json.hpp"
+#include "llrenderstate.h"
 
 #define GLTF_SIM_SUPPORT 1
 
@@ -55,6 +56,36 @@ using namespace LL;
 
 // temporary location of LL GLTF Implementation
 using namespace LL::GLTF;
+
+namespace
+{
+constexpr S32 GLTF_SAMPLER_REPEAT = 10497;
+constexpr S32 GLTF_SAMPLER_CLAMP_TO_EDGE = 33071;
+constexpr S32 GLTF_SAMPLER_MIRRORED_REPEAT = 33648;
+constexpr S32 GLTF_SAMPLER_NEAREST = 9728;
+constexpr S32 GLTF_SAMPLER_LINEAR = 9729;
+
+LLRenderTextureAddressMode to_render_texture_address_mode(S32 gltf_wrap)
+{
+    switch (gltf_wrap)
+    {
+    case GLTF_SAMPLER_MIRRORED_REPEAT:
+        return LLRenderTextureAddressMode::MirroredRepeat;
+    case GLTF_SAMPLER_CLAMP_TO_EDGE:
+        return LLRenderTextureAddressMode::ClampToEdge;
+    case GLTF_SAMPLER_REPEAT:
+    default:
+        return LLRenderTextureAddressMode::Repeat;
+    }
+}
+
+LLRenderTextureFilter to_render_texture_mag_filter(S32 gltf_filter)
+{
+    return gltf_filter == GLTF_SAMPLER_NEAREST ?
+        LLRenderTextureFilter::Nearest :
+        LLRenderTextureFilter::Linear;
+}
+}
 
 void GLTFSceneManager::load()
 {
@@ -195,7 +226,6 @@ void GLTFSceneManager::uploadSelection()
                             mPendingImageUploads--;
                             return false;
                         };
-
 
                     LLNewBufferedResourceUploadInfo::uploadFinish_f finish = [this, idx, raw, j2c](LLUUID assetId, LLSD response)
                         {
@@ -395,7 +425,6 @@ void GLTFSceneManager::onGLTFBinLoadComplete(const LLUUID& id, LLAssetType::ETyp
                     if (obj->mGLTFAsset)
                     {
                         obj->mGLTFAsset->mPendingBuffers--;
-
 
                         if (obj->mGLTFAsset->mPendingBuffers == 0)
                         {
@@ -663,7 +692,7 @@ void GLTFSceneManager::render(Asset& asset, U8 variant)
             return;
         }
 
-        LLGLDisable cull_face(ds == 1 ? GL_CULL_FACE : 0);
+        LLGLState cull_face(LLRenderCapability::CullFace, ds == 1 ? LLGLState::DISABLED_STATE : LLGLState::CURRENT_STATE);
 
         bool opaque = !(variant & LLGLSLShader::GLTFVariant::ALPHA_BLEND);
         bool rigged = variant & LLGLSLShader::GLTFVariant::RIGGED;
@@ -690,10 +719,16 @@ void GLTFSceneManager::render(Asset& asset, U8 variant)
 
                 if (!rigged)
                 {
-                    LLGLContainment::bindBufferBase(GL_UNIFORM_BUFFER, LLGLSLShader::UB_GLTF_NODES, asset.mNodesUBO);
+                    getOpenGLRenderBackend().bindBufferBase(
+                        LLRenderBufferTarget::Uniform,
+                        LLGLSLShader::UB_GLTF_NODES,
+                        asset.mNodesUBO);
                 }
 
-                LLGLContainment::bindBufferBase(GL_UNIFORM_BUFFER, LLGLSLShader::UB_GLTF_MATERIALS, asset.mMaterialsUBO);
+                getOpenGLRenderBackend().bindBufferBase(
+                    LLRenderBufferTarget::Uniform,
+                    LLGLSLShader::UB_GLTF_MATERIALS,
+                    asset.mMaterialsUBO);
 
                 for (U32 i = 0; i < TEXTURE_TYPE_COUNT; ++i)
                 {
@@ -733,7 +768,10 @@ void GLTFSceneManager::render(Asset& asset, U8 variant)
                     LL_PROFILE_ZONE_NAMED_CATEGORY_GLTF("gltfdc - bind skin");
                     llassert(node.mSkin != INVALID_INDEX);
                     Skin& skin = asset.mSkins[node.mSkin];
-                    LLGLContainment::bindBufferBase(GL_UNIFORM_BUFFER, LLGLSLShader::UB_GLTF_JOINTS, skin.mUBO);
+                    getOpenGLRenderBackend().bindBufferBase(
+                        LLRenderBufferTarget::Uniform,
+                        LLGLSLShader::UB_GLTF_JOINTS,
+                        skin.mUBO);
                 }
                 else
                 {
@@ -772,7 +810,7 @@ void GLTFSceneManager::bindTexture(Asset& asset, TextureType texture_type, Textu
 
     if (channel > -1)
     {
-        LLGLContainment::setActiveTexture(GL_TEXTURE0 + channel);
+        getOpenGLRenderBackend().setActiveTextureUnit(channel);
 
         if (info.mIndex != INVALID_INDEX)
         {
@@ -782,37 +820,53 @@ void GLTFSceneManager::bindTexture(Asset& asset, TextureType texture_type, Textu
             if (tex)
             {
                 LL_PROFILE_ZONE_NAMED_CATEGORY_GLTF("gl bind texture");
-                LLGLContainment::bindTexture(GL_TEXTURE_2D, tex->getTexName());
+                getOpenGLRenderBackend().bindTexture(
+                    LLRenderTextureTarget::Texture2D,
+                    tex->getTexName());
 
                 if (channel != -1 && texture.mSampler != -1)
                 { // set sampler state
                     Sampler& sampler = asset.mSamplers[texture.mSampler];
-                    LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, sampler.mWrapS);
-                    LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, sampler.mWrapT);
-                    LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, sampler.mMagFilter);
+                    getOpenGLRenderBackend().setTextureAddressMode(
+                        LLRenderTextureTarget::Texture2D,
+                        LLRenderTextureCoordinate::S,
+                        to_render_texture_address_mode(sampler.mWrapS));
+                    getOpenGLRenderBackend().setTextureAddressMode(
+                        LLRenderTextureTarget::Texture2D,
+                        LLRenderTextureCoordinate::T,
+                        to_render_texture_address_mode(sampler.mWrapT));
+                    getOpenGLRenderBackend().setTextureMagFilter(
+                        LLRenderTextureTarget::Texture2D,
+                        to_render_texture_mag_filter(sampler.mMagFilter));
 
                     // NOTE: do not set min filter.  Always respect client preference for min filter
                 }
                 else
                 {
                     // set default sampler state
-                    LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-                    LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-                    LLGLContainment::setTextureParameterInteger(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                    getOpenGLRenderBackend().setTextureAddressMode(
+                        LLRenderTextureTarget::Texture2D,
+                        LLRenderTextureAddressMode::Repeat);
+                    getOpenGLRenderBackend().setTextureMagFilter(
+                        LLRenderTextureTarget::Texture2D,
+                        LLRenderTextureFilter::Linear);
                 }
             }
             else
             {
-                LLGLContainment::bindTexture(GL_TEXTURE_2D, fallback->getTexName());
+                getOpenGLRenderBackend().bindTexture(
+                    LLRenderTextureTarget::Texture2D,
+                    fallback->getTexName());
             }
         }
         else
         {
-            LLGLContainment::bindTexture(GL_TEXTURE_2D, fallback->getTexName());
+            getOpenGLRenderBackend().bindTexture(
+                LLRenderTextureTarget::Texture2D,
+                fallback->getTexName());
         }
     }
 }
-
 
 void GLTFSceneManager::bind(Asset& asset, Material& material)
 {
@@ -829,7 +883,7 @@ void GLTFSceneManager::bind(Asset& asset, Material& material)
         bindTexture(asset, TextureType::EMISSIVE, material.mEmissiveTexture, LLViewerFetchedTexture::sWhiteImagep);
     }
 
-    shader->uniform1i(LLShaderMgr::GLTF_MATERIAL_ID, (GLint)(&material - &asset.mMaterials[0]));
+    shader->uniform1i(LLShaderMgr::GLTF_MATERIAL_ID, (S32)(&material - &asset.mMaterials[0]));
 }
 
 LLMatrix4a inverse(const LLMatrix4a& mat)
@@ -1034,7 +1088,9 @@ void renderAssetDebug(LLViewerObject* obj, Asset* asset)
             if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_RAYCAST))
             {
                 gGL.flush();
-                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                getOpenGLRenderBackend().setPolygonMode(
+                    LLRenderPolygonFace::FrontAndBack,
+                    LLRenderPolygonMode::Line);
 
                 // convert raycast to node local space
                 vec4 local_start = node.mAssetMatrixInv * start;
@@ -1052,7 +1108,9 @@ void renderAssetDebug(LLViewerObject* obj, Asset* asset)
                 }
 
                 gGL.flush();
-                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                getOpenGLRenderBackend().setPolygonMode(
+                    LLRenderPolygonFace::FrontAndBack,
+                    LLRenderPolygonMode::Fill);
             }
 #endif
             gGL.popMatrix();
@@ -1077,8 +1135,8 @@ void GLTFSceneManager::renderDebug()
     gGL.pushMatrix();
     gGL.loadMatrix(gGLModelView);
 
-    LLGLDisable cullface(GL_CULL_FACE);
-    LLGLEnable blend(GL_BLEND);
+    LLGLDisable cullface(LLRenderCapability::CullFace);
+    LLGLEnable blend(LLRenderCapability::Blend);
     gGL.setSceneBlendType(LLRender::BT_ALPHA);
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
     gPipeline.disableLights();
@@ -1100,8 +1158,8 @@ void GLTFSceneManager::renderDebug()
 
         for (U32 i = 0; i < 2; ++i)
         {
-            LLGLDepthTest depth(GL_TRUE, i == 0 ? GL_FALSE : GL_TRUE, i == 0 ? GL_GREATER : GL_LEQUAL);
-            LLGLState blend(GL_BLEND, i == 0 ? GL_TRUE : GL_FALSE);
+            LLGLDepthTest depth(true, i == 0 ? false : true, i == 0 ? LLRenderDepthFunction::Greater : LLRenderDepthFunction::LessEqual);
+            LLGLState blend(LLRenderCapability::Blend, i == 0 ? true : false);
 
             for (auto& obj : mObjects)
             {
@@ -1150,7 +1208,6 @@ void GLTFSceneManager::renderDebug()
                         Node& child = asset->mNodes[child_idx];
                         gGL.vertex3f(0.f, 0.f, 0.f);
 
-
                         gGL.vertex3fv(glm::value_ptr(child.mMatrix[3]));
                     }
                     gGL.end();
@@ -1162,7 +1219,6 @@ void GLTFSceneManager::renderDebug()
             }
         }
     }
-
 
     if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_RAYCAST))
     {
@@ -1185,7 +1241,9 @@ void GLTFSceneManager::renderDebug()
                 Primitive* primitive = &asset->mMeshes[node->mMesh].mPrimitives[primitive_hit];
 
                 gGL.flush();
-                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                getOpenGLRenderBackend().setPolygonMode(
+                    LLRenderPolygonFace::FrontAndBack,
+                    LLRenderPolygonMode::Line);
                 gGL.color3f(1, 0, 1);
                 drawBoxOutline(intersection, LLVector4a(0.1f, 0.1f, 0.1f, 0.f));
 
@@ -1195,7 +1253,9 @@ void GLTFSceneManager::renderDebug()
                 drawBoxOutline(listener->mBounds[0], listener->mBounds[1]);
 
                 gGL.flush();
-                LLGLContainment::setPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                getOpenGLRenderBackend().setPolygonMode(
+                    LLRenderPolygonFace::FrontAndBack,
+                    LLRenderPolygonMode::Fill);
                 gGL.popMatrix();
             }
         }
@@ -1205,5 +1265,3 @@ void GLTFSceneManager::renderDebug()
     gDebugProgram.unbind();
 
 }
-
-

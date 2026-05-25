@@ -30,7 +30,7 @@
 
 #include "llmath.h"
 #include "v3math.h"
-#include "llgl.h"
+
 #include "llrender.h"
 #include "llprimitive.h"
 #include "llview.h"
@@ -52,8 +52,9 @@
 #include "llworld.h"        // for LLWorld::getInstance()
 #include "llresmgr.h"
 #include "pipeline.h"
-#include "llglheaders.h"
+
 #include "lluiimage.h"
+#include "llrenderstate.h"
 // Local constants...
 const S32 VERTICAL_OFFSET = 50;
 
@@ -64,7 +65,6 @@ S32     LLManip::sMaxTimesShowHelpText = 5;
 F32     LLManip::sGridMaxSubdivisionLevel = 32.f;
 F32     LLManip::sGridMinSubdivisionLevel = 1.f / 32.f;
 LLVector2 LLManip::sTickLabelSpacing(60.f, 25.f);
-
 
 //static
 void LLManip::rebuild(LLViewerObject* vobj)
@@ -94,7 +94,6 @@ void LLManip::rebuild(LLViewerObject* vobj)
 
 //////////////////////////////////////////////////////////////////////////////
 // LLManip
-
 
 LLManip::LLManip( const std::string& name, LLToolComposite* composite )
     :
@@ -145,7 +144,6 @@ void LLManip::getManipNormal(LLViewerObject* object, EManipPart manip, LLVector3
         normal.clearVec();
     }
 }
-
 
 bool LLManip::getManipAxis(LLViewerObject* object, EManipPart manip, LLVector3 &axis)
 {
@@ -236,7 +234,6 @@ bool LLManip::handleHover(S32 x, S32 y, MASK mask)
     gViewerWindow->setCursor(UI_CURSOR_ARROW);
     return true;
 }
-
 
 bool LLManip::handleMouseUp(S32 x, S32 y, MASK mask)
 {
@@ -402,7 +399,6 @@ LLVector3 LLManip::getPivotPoint()
     return pos;
 }
 
-
 void LLManip::renderGuidelines(bool draw_x, bool draw_y, bool draw_z)
 {
     LLVector3 grid_origin;
@@ -475,7 +471,6 @@ void LLManip::renderXYZ(const LLVector3 &vec)
     S32 window_center_y = gViewerWindow->getWorldViewRectScaled().getHeight() / 2;
     S32 vertical_offset = window_center_y - VERTICAL_OFFSET;
 
-
     gGL.pushMatrix();
     {
         LLUIImagePtr imagep = LLUI::getUIImage("Rounded_Square");
@@ -492,7 +487,7 @@ void LLManip::renderXYZ(const LLVector3 &vec)
 
         LLFontGL* font = LLFontGL::getFontSansSerif();
         LLLocale locale(LLLocale::USER_LOCALE);
-        LLGLDepthTest gls_depth(GL_FALSE);
+        LLGLDepthTest gls_depth(false);
 
         // render drop shadowed text (manually because of bigger 'distance')
         F32 right_x;

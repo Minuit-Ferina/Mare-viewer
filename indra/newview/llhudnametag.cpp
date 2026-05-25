@@ -37,7 +37,7 @@
 #include "llcriticaldamp.h"
 #include "lldrawable.h"
 #include "llfontgl.h"
-#include "llglheaders.h"
+
 #include "llhudrender.h"
 #include "llui.h"
 #include "llviewercamera.h"
@@ -49,7 +49,7 @@
 #include "llmenugl.h"
 #include "pipeline.h"
 #include <boost/tokenizer.hpp>
-
+#include "llrenderstate.h"
 
 const F32 SPRING_STRENGTH = 0.7f;
 const F32 HORIZONTAL_PADDING = 16.f;
@@ -73,7 +73,6 @@ bool llhudnametag_further_away::operator()(const LLPointer<LLHUDNameTag>& lhs, c
 {
     return lhs->getDistance() > rhs->getDistance();
 }
-
 
 LLHUDNameTag::LLHUDNameTag(const U8 type)
 :   LLHUDObject(type),
@@ -114,7 +113,6 @@ LLHUDNameTag::LLHUDNameTag(const U8 type)
 LLHUDNameTag::~LLHUDNameTag()
 {
 }
-
 
 bool LLHUDNameTag::lineSegmentIntersect(const LLVector4a& start, const LLVector4a& end, LLVector4a& intersection, bool debug_render)
 {
@@ -185,7 +183,6 @@ bool LLHUDNameTag::lineSegmentIntersect(const LLVector4a& start, const LLVector4
             + (x_pixel_vec * screen_offset.mV[VX])
             + (y_pixel_vec * screen_offset.mV[VY]);
 
-
     LLVector3 bg_pos = render_position
         + (F32)mOffsetY * y_pixel_vec
         - (width_vec / 2.f)
@@ -228,7 +225,7 @@ void LLHUDNameTag::render()
     LL_PROFILE_ZONE_SCOPED_CATEGORY_UI;
     if (sDisplayText)
     {
-        LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+        LLGLDepthTest gls_depth(true, false);
         renderText();
     }
 }
@@ -291,7 +288,7 @@ void LLHUDNameTag::renderText()
             + (x_pixel_vec * screen_offset.mV[VX])
             + (y_pixel_vec * screen_offset.mV[VY]);
 
-    LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+    LLGLDepthTest gls_depth(true, false);
     LLRect screen_rect;
     screen_rect.setCenterAndSize(0, static_cast<S32>(lltrunc(-mHeight / 2 + mOffsetY)), static_cast<S32>(lltrunc(mWidth)), static_cast<S32>(lltrunc(mHeight)));
     mRoundedRectImgp->draw3D(render_position, x_pixel_vec, y_pixel_vec, screen_rect, bg_color);
@@ -392,7 +389,6 @@ void LLHUDNameTag::clearString()
 {
     mTextSegments.clear();
 }
-
 
 void LLHUDNameTag::addLine(const std::string &text_utf8,
                         const LLColor4& color,
@@ -522,7 +518,6 @@ void LLHUDNameTag::setFont(const LLFontGL* font)
     mFontp = font;
 }
 
-
 void LLHUDNameTag::setColor(const LLColor4 &color)
 {
     mColor = color;
@@ -542,7 +537,6 @@ void LLHUDNameTag::setAlpha(F32 alpha)
         segment_iter->mColor.mV[VALPHA] = alpha;
     }
 }
-
 
 void LLHUDNameTag::setDoFade(const bool do_fade)
 {

@@ -33,6 +33,7 @@
 #include "lldir.h"
 #include "llsdutil.h"
 #include "llsdserialize.h"
+#include "lltimer.h"
 #include "hbxxh.h"
 
 #if LL_DARWIN
@@ -44,23 +45,6 @@ using std::vector;
 using std::pair;
 using std::make_pair;
 using std::string;
-
-namespace
-{
-LLRenderShaderStage to_render_shader_stage(LLGLenum type)
-{
-    switch (type)
-    {
-    case GL_VERTEX_SHADER:
-        return LLRenderShaderStage::Vertex;
-    case GL_FRAGMENT_SHADER:
-        return LLRenderShaderStage::Fragment;
-    default:
-        llassert(false);
-        return LLRenderShaderStage::Vertex;
-    }
-}
-}
 
 LLShaderMgr * LLShaderMgr::sInstance = NULL;
 
@@ -472,7 +456,7 @@ void LLShaderMgr::dumpObjectLog(LLGLuint ret, bool warns, const std::string& fil
     }
  }
 
-LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_level, LLGLenum type, std::map<std::string, std::string>* defines, S32 texture_index_channels)
+LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_level, LLRenderShaderStage stage, std::map<std::string, std::string>* defines, S32 texture_index_channels)
 {
 
 // endsure work-around for missing GLSL funcs gets propogated to feature shader files (e.g. srgbF.glsl)
@@ -510,13 +494,13 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
     if (shader_level == -1)
     {
         // use "error" fallback
-        if (type == GL_VERTEX_SHADER)
+        if (stage == LLRenderShaderStage::Vertex)
         {
             open_file_name = gDirUtilp->getExpandedFilename(LL_PATH_APP_SETTINGS, "shaders/errorV.glsl");
         }
         else
         {
-            llassert(type == GL_FRAGMENT_SHADER);  // type must be vertex or fragment shader
+            llassert(stage == LLRenderShaderStage::Fragment);  // stage must be vertex or fragment shader
             open_file_name = gDirUtilp->getExpandedFilename(LL_PATH_APP_SETTINGS, "shaders/errorF.glsl");
         }
 
@@ -616,7 +600,7 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
         else
         {
             // OpenGL 3.2 had GLSL version 1.50.  anything after that the version numbers match.
-            if (type == GL_GEOMETRY_SHADER || minor_version >= 50)
+            if (stage == LLRenderShaderStage::Geometry || minor_version >= 50)
             {
                 //set version to 1.50
                 shader_code_text[shader_code_count++] = strdup("#version 150\n");
@@ -635,7 +619,7 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
         }
     }
 
-    if (type == GL_FRAGMENT_SHADER)
+    if (stage == LLRenderShaderStage::Fragment)
     {
         extra_code_text[extra_code_count++] = strdup("#define FRAGMENT_SHADER 1\n");
     }
@@ -666,7 +650,7 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
         extra_code_text[extra_code_count++] = strdup( "#define IS_AMD_CARD 1\n" );
     }
 
-    if (texture_index_channels > 0 && type == GL_FRAGMENT_SHADER)
+    if (texture_index_channels > 0 && stage == LLRenderShaderStage::Fragment)
     {
         //use specified number of texture channels for indexed texture rendering
 
@@ -867,7 +851,7 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
     fclose(file);
 
     //create shader object
-    LLGLuint ret = getOpenGLRenderBackend().createShader(to_render_shader_stage(type));
+    LLGLuint ret = getOpenGLRenderBackend().createShader(stage);
 
     error = getOpenGLRenderBackend().getErrorCode();
     if (error != GL_NO_ERROR)
@@ -945,10 +929,10 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
     if (ret)
     {
         // Add shader file to map
-        if (type == GL_VERTEX_SHADER) {
+        if (stage == LLRenderShaderStage::Vertex) {
             mVertexShaderObjects[filename] = ret;
         }
-        else if (type == GL_FRAGMENT_SHADER) {
+        else if (stage == LLRenderShaderStage::Fragment) {
             mFragmentShaderObjects[filename] = ret;
         }
         shader_level = try_gpu_class;
@@ -958,7 +942,7 @@ LLGLuint LLShaderMgr::loadShaderFile(const std::string& filename, S32 & shader_l
         if (shader_level > 1)
         {
             shader_level--;
-            return loadShaderFile(filename, shader_level, type, defines, texture_index_channels);
+            return loadShaderFile(filename, shader_level, stage, defines, texture_index_channels);
         }
         LL_WARNS("ShaderLoading") << "Failed to load " << filename << LL_ENDL;
     }

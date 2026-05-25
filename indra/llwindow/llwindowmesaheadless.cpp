@@ -28,10 +28,11 @@
 #include "indra_constants.h"
 
 #include "llwindowmesaheadless.h"
-#include "llgl.h"
-#include "llglcontainment.h"
 
-#define MESA_CHANNEL_TYPE GL_UNSIGNED_SHORT
+#include "llrenderbackend.h"
+#include "llrendercontext.h"
+
+#define MESA_CHANNEL_TYPE getOpenGLPixelTypeValue(LLRenderPixelType::UnsignedShort)
 #define MESA_CHANNEL_SIZE 2
 
 U16 *gMesaBuffer = NULL;
@@ -48,7 +49,12 @@ LLWindowMesaHeadless::LLWindowMesaHeadless(LLWindowCallbacks* callbacks,
     if (use_gl)
     {
         LL_INFOS() << "MESA Init" << LL_ENDL;
-        mMesaContext = OSMesaCreateContextExt( GL_RGBA, 32, 0, 0, NULL );
+        mMesaContext = OSMesaCreateContextExt(
+            getOpenGLPixelFormatValue(LLRenderPixelFormat::RGBA),
+            32,
+            0,
+            0,
+            NULL);
 
         /* Allocate the image buffer */
         mMesaBuffer = new unsigned char [width * height * 4 * MESA_CHANNEL_SIZE];
@@ -62,10 +68,9 @@ LLWindowMesaHeadless::LLWindowMesaHeadless(LLWindowCallbacks* callbacks,
             LL_ERRS() << "MESA: OSMesaMakeCurrent failed!" << LL_ENDL;
         }
 
-        llverify(gGLManager.initGL());
+        llverify(getOpenGLRenderBackend().initContextCapabilities());
     }
 }
-
 
 LLWindowMesaHeadless::~LLWindowMesaHeadless()
 {
@@ -75,5 +80,5 @@ LLWindowMesaHeadless::~LLWindowMesaHeadless()
 
 void LLWindowMesaHeadless::swapBuffers()
 {
-    LLGLContainment::finishCommands();
+    getOpenGLRenderBackend().finishCommands();
 }

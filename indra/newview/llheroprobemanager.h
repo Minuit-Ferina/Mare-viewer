@@ -43,9 +43,9 @@ struct HeroProbeData
 {
     LLMatrix4 heroBox;
     LLVector4 heroSphere;
-    LLGLint   heroShape;
-    LLGLint   heroMipCount;
-    LLGLint   heroProbeCount;
+    S32       heroShape;
+    S32       heroMipCount;
+    S32       heroProbeCount;
 };
 
 class alignas(16) LLHeroProbeManager
@@ -114,7 +114,6 @@ private:
     LLPointer<LLVertexBuffer> mVertexBuffer;
 
     LLPlane mCurrentClipPlane;
-
 
     // update the specified face of the specified probe
     void updateProbeFace(LLReflectionMap* probe, U32 face, bool is_dynamic, F32 near_clip);

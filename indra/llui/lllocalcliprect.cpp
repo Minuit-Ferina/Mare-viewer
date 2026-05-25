@@ -27,10 +27,12 @@
 #include "lllocalcliprect.h"
 
 #include "llfontgl.h"
-#include "llgl.h"
-#include "llglcontainment.h"
+
+#include "llrenderbackend.h"
 #include "llrender.h"
 #include "llui.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 /*static*/ std::stack<LLRect> LLScreenClipRect::sClipRectStack;
 
@@ -47,7 +49,7 @@ void compute_scissor_box(const LLRect& rect, S32& x, S32& y, S32& w, S32& h)
 }
 
 LLScreenClipRect::LLScreenClipRect(const LLRect& rect, bool enabled)
-:   mScissorState(new LLGLState(GL_SCISSOR_TEST)),
+:   mScissorState(new LLGLState(LLRenderCapability::ScissorTest)),
     mEnabled(enabled)
 {
     if (mEnabled)
@@ -103,7 +105,7 @@ void LLScreenClipRect::updateScissorRegion()
     stop_glerror();
     S32 x,y,w,h;
     compute_scissor_box(rect, x, y, w, h);
-    LLGLContainment::setScissorBox(x, y, w, h);
+    getOpenGLRenderBackend().setScissor(x, y, w, h);
     stop_glerror();
 }
 

@@ -32,6 +32,7 @@
 #include "llgltfmaterial.h"
 #include "llmaterial.h"
 #include "llmaterialmgr.h"
+#include "llrenderbackend.h"
 #include "lltextureentry.h"
 #include "llselectmgr.h"
 
@@ -713,7 +714,7 @@ public:
     {
     public:
         static void getFace(class LLFace*& face_to_return, bool& identical_face);
-        static void getImageFormat(LLGLenum& image_format_to_return, bool& has_alpha, bool& identical_face, bool& missing_asset);
+        static void getImageFormat(LLRenderPixelFormat& image_format_to_return, bool& has_alpha, bool& identical_face, bool& missing_asset);
         static void getTexId(LLUUID& id, bool& identical);
         static void getPbrMaterialId(LLUUID& id, bool& identical, bool& has_pbr, bool& has_faces_without_pbr);
         static void getObjectScaleS(F32& scale_s, bool& identical);
@@ -737,4 +738,3 @@ public:
 };
 
 #endif
-

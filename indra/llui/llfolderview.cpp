@@ -44,7 +44,6 @@
 #include "lldbstrings.h"
 #include "llfocusmgr.h"
 #include "llfontgl.h"
-#include "llgl.h"
 #include "llrender.h"
 
 // Third-party library includes

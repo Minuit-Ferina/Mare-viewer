@@ -43,7 +43,7 @@
 #include "llviewerwindow.h"
 #include "llavatarname.h"
 #include "llavatarnamecache.h"
-
+#include "llrendercontext.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // LLTeleportHistoryItem

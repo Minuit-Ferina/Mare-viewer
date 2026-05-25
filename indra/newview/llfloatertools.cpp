@@ -30,8 +30,6 @@
 
 #include "llfontgl.h"
 #include "llcoord.h"
-//#include "llgl.h"
-
 #include "llagent.h"
 #include "llagentcamera.h"
 #include "llbutton.h"

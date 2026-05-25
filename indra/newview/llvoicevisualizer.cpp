@@ -31,7 +31,7 @@
 //----------------------------------------------------------------------
 #include "llviewerprecompiledheaders.h"
 #include "llviewercontrol.h"
-#include "llglheaders.h"
+
 #include "llsphere.h"
 #include "llvoicevisualizer.h"
 #include "llviewercamera.h"
@@ -41,10 +41,10 @@
 #include "llvoiceclient.h"
 #include "llrender.h"
 #include "llagent.h"
+#include "llrenderstate.h"
 
 //brent's wave image
 //29de489d-0491-fb00-7dab-f9e686d31e83
-
 
 //--------------------------------------------------------------------------------------
 // sound symbol constants
@@ -89,7 +89,6 @@ F32  LLVoiceVisualizer::sOohPowerTransfersf = 0.0f;
 F32* LLVoiceVisualizer::sAahPowerTransfer   = NULL;
 U32  LLVoiceVisualizer::sAahPowerTransfers  = 0;
 F32  LLVoiceVisualizer::sAahPowerTransfersf = 0.0f;
-
 
 //-----------------------------------------------
 // constructor
@@ -181,14 +180,12 @@ void LLVoiceVisualizer::setStartSpeaking()
 
 }//---------------------------------------------------
 
-
 //---------------------------------------------------
 bool LLVoiceVisualizer::getCurrentlySpeaking()
 {
     return mCurrentlySpeaking;
 
 }//---------------------------------------------------
-
 
 //---------------------------------------------------
 void LLVoiceVisualizer::setStopSpeaking()
@@ -197,7 +194,6 @@ void LLVoiceVisualizer::setStopSpeaking()
     mSpeakingAmplitude = 0.0f;
 
 }//---------------------------------------------------
-
 
 //---------------------------------------------------
 void LLVoiceVisualizer::setSpeakingAmplitude( F32 a )
@@ -238,7 +234,6 @@ void LLVoiceVisualizer::setPreferences( )
 
 }//---------------------------------------------------
 
-
 //---------------------------------------------------
 // convert a string of digits to an array of floats.
 // the result for each digit is the value of the
@@ -277,7 +272,6 @@ void LLVoiceVisualizer::lipStringToF32s ( std::string& in_string, F32*& out_F32s
     }
 
 }//---------------------------------------------------
-
 
 //--------------------------------------------------------------------------
 // find the amount to blend the ooh and aah mouth morphs
@@ -331,7 +325,6 @@ void LLVoiceVisualizer::lipSyncOohAah( F32& ooh, F32& aah )
 
 }//---------------------------------------------------
 
-
 //---------------------------------------------------
 // this method is inherited from HUD Effect
 //---------------------------------------------------
@@ -359,8 +352,8 @@ void LLVoiceVisualizer::render()
         // some gl state
         //---------------------------------------------------------------
         LLGLSPipelineAlpha alpha_blend;
-        LLGLDepthTest depth(GL_TRUE, GL_FALSE);
-        //LLGLDisable gls_stencil(GL_STENCIL_TEST);
+        LLGLDepthTest depth(true, false);
+        //LLGLDisable gls_stencil(LLRenderCapability::StencilTest);
 
         //-------------------------------------------------------------
         // create coordinates of the geometry for the dot
@@ -395,8 +388,6 @@ void LLVoiceVisualizer::render()
             gGL.texCoord2i( 1,  1   ); gGL.vertex3fv( topRight.mV );
             gGL.texCoord2i( 0,  1   ); gGL.vertex3fv( topLeft.mV );
         gGL.end();
-
-
 
         //--------------------------------------------------------------------------------------
         // if currently speaking, trigger waves (1 through 6) based on speaking amplitude
@@ -504,7 +495,6 @@ void LLVoiceVisualizer::render()
                 gGL.color4fv( LLColor4( red, green, blue, mSoundSymbol.mWaveOpacity[i] ).mV );
                 gGL.getTexUnit(0)->bind(mSoundSymbol.mTexture[i]);
 
-
                 //---------------------------------------------------
                 // now, render the mofo
                 //---------------------------------------------------
@@ -554,15 +544,12 @@ VoiceGesticulationLevel LLVoiceVisualizer::getCurrentGesticulationLevel()
 
 }//---------------------------------------------------
 
-
-
 //------------------------------------
 // Destructor
 //------------------------------------
 LLVoiceVisualizer::~LLVoiceVisualizer()
 {
 }//----------------------------------------------
-
 
 //---------------------------------------------------
 // "packData" is inherited from HUDEffect
@@ -579,7 +566,6 @@ void LLVoiceVisualizer::packData(LLMessageSystem *mesgsys)
     U8 packed_data = 0;
     mesgsys->addBinaryDataFast(_PREHASH_TypeData, &packed_data, 1);
 }
-
 
 //---------------------------------------------------
 // "unpackData" is inherited from HUDEffect
@@ -600,7 +586,6 @@ void LLVoiceVisualizer::unpackData(LLMessageSystem *mesgsys, S32 blocknum)
     mesgsys->getBinaryDataFast(_PREHASH_Effect, _PREHASH_TypeData, packed_data, 1, blocknum);
     */
 }
-
 
 //------------------------------------------------------------------
 // this method is inherited from HUD Effect

@@ -57,8 +57,7 @@
 #include "lltrans.h"
 #include "llslurl.h"
 #include "llurlaction.h"
-
-#include "llglheaders.h"
+#include "llrenderstate.h"
 
 namespace
 {
@@ -257,13 +256,11 @@ bool LLWorldMapView::postBuild()
     return true;
 }
 
-
 LLWorldMapView::~LLWorldMapView()
 {
     //LL_INFOS("WorldMap") << "Destroying the map -> LLWorldMapView::~LLWorldMapView()" << LL_ENDL;
     cleanupTextures();
 }
-
 
 // static
 void LLWorldMapView::cleanupTextures()
@@ -352,7 +349,6 @@ void LLWorldMapView::translatePan(S32 delta_x, S32 delta_y)
     mTargetPanY         = mPanY;
     sVisibleTilesLoaded = false;
 }
-
 
 // static
 void LLWorldMapView::setPan(S32 x, S32 y, bool snap)
@@ -703,9 +699,8 @@ void LLWorldMapView::draw()
         }
     }
 
-
     // turn off the scissor
-    LLGLDisable no_scissor(GL_SCISSOR_TEST);
+    LLGLDisable no_scissor(LLRenderCapability::ScissorTest);
 
     updateDirections();
 
@@ -714,7 +709,6 @@ void LLWorldMapView::draw()
     // Get sim info for all sims in view
     updateVisibleBlocks();
 } // end draw()
-
 
 //virtual
 void LLWorldMapView::setVisible(bool visible)
@@ -917,7 +911,6 @@ void LLWorldMapView::drawGenericItem(const LLItemInfo& item, LLUIImagePtr image)
 {
     drawImage(item.getGlobalPosition(), image);
 }
-
 
 void LLWorldMapView::drawImage(const LLVector3d& global_pos, LLUIImagePtr image, const LLColor4& color)
 {
@@ -1133,7 +1126,6 @@ void LLWorldMapView::drawFrustum()
     gGL.popMatrix();
 }
 
-
 LLVector3 LLWorldMapView::globalPosToView(const LLVector3d& global_pos)
 {
     return globalPosToView(global_pos, gAgentCamera.getCameraPositionGlobal());
@@ -1152,7 +1144,6 @@ LLVector3 LLWorldMapView::globalPosToView(const LLVector3d& global_pos, const LL
 
     return pos_local;
 }
-
 
 void LLWorldMapView::drawTracking(const LLVector3d& pos_global, const LLColor4& color, bool draw_arrow,
                                   const std::string& label, const std::string& tooltip, S32 vert_offset )
@@ -1242,7 +1233,6 @@ LLVector3d LLWorldMapView::viewPosToGlobal( S32 x, S32 y )
 
     return pos_global;
 }
-
 
 bool LLWorldMapView::handleToolTip( S32 x, S32 y, MASK mask )
 {
@@ -1392,7 +1382,6 @@ void LLWorldMapView::drawTrackingDot( F32 x_pixels,
     drawDot(x_pixels, y_pixels, color, relative_z, dot_radius, sTrackCircleImage);
 }
 
-
 // Pass relative Z of 0 to draw at same level.
 // static
 void LLWorldMapView::drawIconName(F32 x_pixels,
@@ -1429,7 +1418,6 @@ void LLWorldMapView::drawIconName(F32 x_pixels,
         LLFontGL::NORMAL,
         LLFontGL::DROP_SHADOW);
 }
-
 
 //static
 void LLWorldMapView::drawTrackingCircle( const LLRect& rect, S32 x, S32 y, const LLColor4& color, S32 min_thickness, S32 overlap )
@@ -1583,7 +1571,6 @@ void LLWorldMapView::setDirectionPos( LLTextBox* text_box, F32 rotation )
     // Rotation is in radians.
     // Rotation of 0 means x = 1, y = 0 on the unit circle.
 
-
     F32 map_half_height = getRect().getHeight() * 0.5f;
     F32 map_half_width = getRect().getWidth() * 0.5f;
     F32 text_half_height = text_box->getRect().getHeight() * 0.5f;
@@ -1594,7 +1581,6 @@ void LLWorldMapView::setDirectionPos( LLTextBox* text_box, F32 rotation )
         ll_round(map_half_width - text_half_width + radius * cos( rotation )),
         ll_round(map_half_height - text_half_height + radius * sin( rotation )) );
 }
-
 
 void LLWorldMapView::updateDirections()
 {
@@ -1630,7 +1616,6 @@ void LLWorldMapView::updateDirections()
 //  mTextBoxScrollHint->setOrigin( width - hint_width - text_width - 2 * PAD,
 //          PAD * 2 + text_height );
 }
-
 
 void LLWorldMapView::reshape( S32 width, S32 height, bool called_from_parent )
 {
@@ -1800,7 +1785,6 @@ void LLWorldMapView::handleClick(S32 x, S32 y, MASK mask,
     return;
 }
 
-
 bool LLWorldMapView::handleMouseDown( S32 x, S32 y, MASK mask )
 {
     gFocusMgr.setMouseCapture( this );
@@ -1925,7 +1909,6 @@ bool LLWorldMapView::handleHover( S32 x, S32 y, MASK mask )
         return true;
     }
 }
-
 
 bool LLWorldMapView::handleDoubleClick( S32 x, S32 y, MASK mask )
 {

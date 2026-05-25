@@ -41,12 +41,13 @@
 #include "lldraghandle.h"
 #include "llfloaterreg.h"
 #include "llfocusmgr.h"
-#include "llgl.h"
+
 #include "llresizebar.h"
 #include "llresizehandle.h"
 #include "llkeyboard.h"
 #include "llmenugl.h"   // MENU_BAR_HEIGHT
 #include "llmodaldialog.h"
+#include "llrenderstate.h"
 #include "lltextbox.h"
 #include "llresmgr.h"
 #include "llui.h"
@@ -210,7 +211,6 @@ LLFloater::Params::Params()
 {
     changeDefault(visible, false);
 }
-
 
 //static
 const LLFloater::Params& LLFloater::getDefaultParams()
@@ -641,7 +641,6 @@ void LLFloater::setVisible( bool visible )
     storeVisibilityControl();
 }
 
-
 void LLFloater::setIsSingleInstance(bool is_single_instance)
 {
     mSingleInstance = is_single_instance;
@@ -650,7 +649,6 @@ void LLFloater::setIsSingleInstance(bool is_single_instance)
         mReuseInstance = is_single_instance; // reuse single-instance floaters by default
     }
 }
-
 
 // virtual
 void LLFloater::onVisibilityChange ( bool new_visibility )
@@ -761,7 +759,6 @@ void LLFloater::closeFloater(bool app_quitting)
                 }
             }
 
-
         //If floater is a dependent, remove it from parent (dependee)
         LLFloater* dependee = mDependeeHandle.get();
         if (dependee)
@@ -870,7 +867,6 @@ void LLFloater::releaseFocus()
     }
 }
 
-
 void LLFloater::setResizeLimits( S32 min_width, S32 min_height )
 {
     mMinWidth = min_width;
@@ -895,7 +891,6 @@ void LLFloater::setResizeLimits( S32 min_width, S32 min_height )
         }
     }
 }
-
 
 void LLFloater::center()
 {
@@ -999,7 +994,6 @@ bool LLFloater::applyRectControl()
         // propagate any derived positioning data back to settings file
         storeRectControl();
     }
-
 
     return saved_rect;
 }
@@ -1761,7 +1755,6 @@ bool LLFloater::handleMiddleMouseDown(S32 x, S32 y, MASK mask)
     return LLPanel::handleMiddleMouseDown( x, y, mask );
 }
 
-
 // virtual
 bool LLFloater::handleDoubleClick(S32 x, S32 y, MASK mask)
 {
@@ -1990,7 +1983,6 @@ void LLFloater::closeFrontmostFloater()
     }
 }
 
-
 // static
 void LLFloater::onClickClose( LLFloater* self )
 {
@@ -2011,7 +2003,6 @@ void LLFloater::onClickCloseBtn(bool app_quitting)
 {
     closeFloater(false);
 }
-
 
 // virtual
 void LLFloater::draw()
@@ -2177,7 +2168,6 @@ void    LLFloater::setCanTearOff(bool can_tear_off)
     updateTitleButtons();
 }
 
-
 void LLFloater::setCanResize(bool can_resize)
 {
     mResizable = can_resize;
@@ -2202,7 +2192,6 @@ bool LLFloater::getCanDrag() const
 {
     return mDragHandle->getEnabled();
 }
-
 
 void LLFloater::updateTitleButtons()
 {
@@ -2307,7 +2296,7 @@ void LLFloater::drawConeToOwner(F32 &context_cone_opacity,
         LLRect local_rect = getLocalRect();
 
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-        LLGLEnable cull_face(GL_CULL_FACE);
+        LLGLEnable cull_face(LLRenderCapability::CullFace);
         gGL.begin(LLRender::TRIANGLE_STRIP);
         {
             gGL.color4f(0.f, 0.f, 0.f, contex_cone_in_alpha * context_cone_opacity);
@@ -2533,7 +2522,6 @@ void LLFloaterView::reshape(S32 width, S32 height, bool called_from_parent)
     }
 }
 
-
 void LLFloaterView::restoreAll()
 {
     // make sure all subwindows aren't minimized
@@ -2551,7 +2539,6 @@ void LLFloaterView::restoreAll()
 
     // children then deleted by default view constructor
 }
-
 
 LLRect LLFloaterView::findNeighboringPosition( LLFloater* reference_floater, LLFloater* neighbor )
 {
@@ -2616,7 +2603,6 @@ LLRect LLFloaterView::findNeighboringPosition( LLFloater* reference_floater, LLF
     // didn't find anything, return initial rect
     return new_rect;
 }
-
 
 void LLFloaterView::bringToFront(LLFloater* child, bool give_focus, bool restore)
 {
@@ -2856,7 +2842,6 @@ void LLFloaterView::getMinimizePosition(S32 *left, S32 *bottom)
     *left = snap_rect_local.mLeft;
     *bottom = snap_rect_local.mBottom;
 }
-
 
 void LLFloaterView::destroyAllChildren()
 {
@@ -3481,7 +3466,6 @@ bool LLFloater::initFloaterXML(LLXMLNodePtr node, LLView *parent, const std::str
         LLUICtrlFactory::instance().popFileName();
     }
 
-
     if (output_node)
     {
         Params output_params(params);
@@ -3677,13 +3661,11 @@ void LLFloater::applyRelativePosition()
     translate(new_center.mX - cur_center.mX, new_center.mY - cur_center.mY);
 }
 
-
 LLCoordFloater::LLCoordFloater(F32 x, F32 y, LLFloater& floater)
 :   coord_t(x, y)
 {
     mFloater = floater.getHandle();
 }
-
 
 LLCoordFloater::LLCoordFloater(const LLCoordCommon& other, LLFloater& floater)
 {
@@ -3759,7 +3741,6 @@ void LL_COORD_FLOATER::convertFromCommon(const LLCoordCommon& from)
     LLRect snap_rect = gFloaterView->getSnapRect();
     LLRect floater_view_screen_rect = gFloaterView->calcScreenRect();
     snap_rect.translate(floater_view_screen_rect.mLeft, floater_view_screen_rect.mBottom);
-
 
     LLFloater* floaterp = mFloater.get();
     S32 floater_width = floaterp ? floaterp->getRect().getWidth() : 0;

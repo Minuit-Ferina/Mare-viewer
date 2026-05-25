@@ -38,6 +38,10 @@ ALLOWED_RUNTIME_GL_CALL_PATHS = {
     "indra/llrender/llglcontainment.cpp",
 }
 
+ALLOWED_GL_CONTEXT_LIFECYCLE_PATHS = {
+    "indra/llrender/llrenderbackend.cpp",
+}
+
 KNOWN_GL_FALSE_POSITIVE_NAMES = {
     "glPointToScreen",
     "glReady",
@@ -48,6 +52,9 @@ KNOWN_GL_FALSE_POSITIVE_NAMES = {
 }
 
 GL_CALL_EXPR_RE = re.compile(r"\b(gl[A-Z][A-Za-z0-9_]*)\s*\(")
+GL_CONTEXT_LIFECYCLE_RE = re.compile(
+    r"\bgGLManager\.(initGL|shutdownGL|initWGL)\s*\("
+)
 BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 
@@ -109,6 +116,26 @@ def find_runtime_gl_calls(path: Path, rel: str) -> list[GLCall]:
     return calls
 
 
+def find_direct_context_lifecycle_calls(path: Path, rel: str) -> list[GLCall]:
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return []
+
+    calls: list[GLCall] = []
+    text = strip_block_comments(text)
+
+    for line_number, raw_line in enumerate(text.splitlines(), start=1):
+        line = strip_line_comment(raw_line)
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+
+        for name in GL_CONTEXT_LIFECYCLE_RE.findall(line):
+            calls.append(GLCall(rel, line_number, f"gGLManager.{name}", raw_line.strip()))
+
+    return calls
+
+
 def iter_source_files(root: Path) -> list[Path]:
     paths: list[Path] = []
     for path in root.rglob("*"):
@@ -124,7 +151,9 @@ def iter_source_files(root: Path) -> list[Path]:
 
 def main() -> int:
     allowed_calls = 0
+    allowed_lifecycle_calls = 0
     violations: list[GLCall] = []
+    lifecycle_violations: list[GLCall] = []
 
     for path in iter_source_files(ROOT):
         rel = path.relative_to(ROOT).as_posix()
@@ -134,7 +163,13 @@ def main() -> int:
             continue
         violations.extend(calls)
 
-    if violations:
+        lifecycle_calls = find_direct_context_lifecycle_calls(path, rel)
+        if rel in ALLOWED_GL_CONTEXT_LIFECYCLE_PATHS:
+            allowed_lifecycle_calls += len(lifecycle_calls)
+            continue
+        lifecycle_violations.extend(lifecycle_calls)
+
+    if violations or lifecycle_violations:
         print("OpenGL containment guardrail failed.", file=sys.stderr)
         print(
             "Runtime gl* calls are only allowed in "
@@ -146,6 +181,17 @@ def main() -> int:
                 f"{call.path}:{call.line_number}: {call.name}: {call.line}",
                 file=sys.stderr,
             )
+        if lifecycle_violations:
+            print(
+                "Direct GL context lifecycle calls must go through "
+                f"{', '.join(sorted(ALLOWED_GL_CONTEXT_LIFECYCLE_PATHS))}.",
+                file=sys.stderr,
+            )
+        for call in lifecycle_violations:
+            print(
+                f"{call.path}:{call.line_number}: {call.name}: {call.line}",
+                file=sys.stderr,
+            )
         return 1
 
     print(
@@ -153,6 +199,7 @@ def main() -> int:
         f"{', '.join(sorted(ALLOWED_RUNTIME_GL_CALL_PATHS))}."
     )
     print(f"Allowed runtime gl* calls in containment: {allowed_calls}")
+    print(f"Allowed GL context lifecycle calls in backend: {allowed_lifecycle_calls}")
     print(
         "Non-runtime GL ABI declarations and loader names remain covered by "
         "source_inventory.py raw-reference reporting."

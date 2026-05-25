@@ -27,7 +27,7 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "llheroprobemanager.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llreflectionmapmanager.h"
 #include "llviewercamera.h"
 #include "llspatialpartition.h"
@@ -42,6 +42,7 @@
 #include "llviewerwindow.h"
 #include "llviewerjoystick.h"
 #include "llviewermediafocus.h"
+#include "llrenderstate.h"
 
 extern bool gCubeSnapshot;
 extern bool gTeleportDisplay;
@@ -106,7 +107,7 @@ void LLHeroProbeManager::update()
 
     if (!mRenderTarget.isComplete())
     {
-        U32 color_fmt = render_hdr ? GL_RGBA16F : GL_RGBA8;
+        LLRenderTextureFormat color_fmt = render_hdr ? LLRenderTextureFormat::RGBA16F : LLRenderTextureFormat::RGBA8;
         mRenderTarget.allocate(mProbeResolution, mProbeResolution, color_fmt, true);
     }
 
@@ -118,7 +119,7 @@ void LLHeroProbeManager::update()
         mMipChain.resize(count);
         for (U32 i = 0; i < count; ++i)
         {
-            mMipChain[i].allocate(res, res, render_hdr ? GL_RGBA16F : GL_RGBA8);
+            mMipChain[i].allocate(res, res, render_hdr ? LLRenderTextureFormat::RGBA16F : LLRenderTextureFormat::RGBA8);
             res /= 2;
         }
     }
@@ -311,9 +312,9 @@ void LLHeroProbeManager::updateProbeFace(LLReflectionMap* probe, U32 face, bool 
     sourceIdx += 1;
 
     gGL.setColorMask(true, true);
-    LLGLDepthTest depth(GL_FALSE, GL_FALSE);
-    LLGLDisable cull(GL_CULL_FACE);
-    LLGLDisable blend(GL_BLEND);
+    LLGLDepthTest depth(false, false);
+    LLGLDisable cull(LLRenderCapability::CullFace);
+    LLGLDisable blend(LLRenderCapability::Blend);
 
     // downsample to placeholder map
     {
@@ -391,14 +392,23 @@ void LLHeroProbeManager::updateProbeFace(LLReflectionMap* probe, U32 face, bool 
             res /= 2;
 
             llassert(mMipChain.size() <= size_t(S32_MAX));
-            GLint mip = i - (S32(mMipChain.size()) - mips);
+            S32 mip = i - (S32(mMipChain.size()) - mips);
 
             if (mip >= 0)
             {
                 LL_PROFILE_GPU_ZONE("hero probe mip copy");
                 mTexture->bind(0);
 
-                LLGLContainment::copyTextureSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, mip, 0, 0, sourceIdx * 6 + face, 0, 0, res, res);
+                getOpenGLRenderBackend().copyTextureSubImage3D(
+                    LLRenderTextureTarget::TextureCubeMapArray,
+                    mip,
+                    0,
+                    0,
+                    sourceIdx * 6 + face,
+                    0,
+                    0,
+                    res,
+                    res);
 
                 mTexture->unbind();
             }
@@ -450,7 +460,7 @@ void LLHeroProbeManager::generateRadiance(LLReflectionMap* probe)
                 static LLStaticHashedString sStrength("probe_strength");
 
                 gHeroRadianceGenProgram.uniform1f(sRoughness, (F32) i / (F32) (mMipChain.size() - 1));
-                gHeroRadianceGenProgram.uniform1f(sMipLevel, (GLfloat)i);
+                gHeroRadianceGenProgram.uniform1f(sMipLevel, (F32)i);
                 gHeroRadianceGenProgram.uniform1i(sWidth, mProbeResolution);
                 gHeroRadianceGenProgram.uniform1f(sStrength, 1);
 
@@ -465,13 +475,22 @@ void LLHeroProbeManager::generateRadiance(LLReflectionMap* probe)
 
                     mVertexBuffer->drawArrays(gGL.TRIANGLE_STRIP, 0, 4);
 
-                    LLGLContainment::copyTextureSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, i, 0, 0, probe->mCubeIndex * 6 + cf, 0, 0, res, res);
+                    getOpenGLRenderBackend().copyTextureSubImage3D(
+                        LLRenderTextureTarget::TextureCubeMapArray,
+                        i,
+                        0,
+                        0,
+                        probe->mCubeIndex * 6 + cf,
+                        0,
+                        0,
+                        res,
+                        res);
                 }
 
                 if (i != mMipChain.size() - 1)
                 {
                     res /= 2;
-                    LLGLContainment::setViewport(0, 0, res, res);
+                    getOpenGLRenderBackend().setViewport(0, 0, res, res);
                 }
             }
 
@@ -536,7 +555,6 @@ void LLHeroProbeManager::renderDebug()
 
     gDebugProgram.unbind();
 }
-
 
 void LLHeroProbeManager::initReflectionMaps()
 {

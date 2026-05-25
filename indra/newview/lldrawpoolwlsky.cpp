@@ -31,11 +31,10 @@
 #include "llerror.h"
 #include "llface.h"
 #include "llimage.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llrender.h"
 #include "llenvironment.h"
 #include "llglslshader.h"
-#include "llgl.h"
 
 #include "llviewerregion.h"
 #include "llviewershadermgr.h"
@@ -45,6 +44,7 @@
 #include "llvowlsky.h"
 #include "llsettingsvo.h"
 #include "llviewercontrol.h"
+#include "llrenderstate.h"
 
 extern bool gCubeSnapshot;
 
@@ -90,7 +90,7 @@ void LLDrawPoolWLSky::endDeferredPass(S32 pass)
     moon_shader  = nullptr;
 
     // clear the depth buffer so haze shaders can use unwritten depth as a mask
-    LLGLContainment::clearBuffers(GL_DEPTH_BUFFER_BIT);
+    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
 }
 
 void LLDrawPoolWLSky::renderDome(const LLVector3& camPosLocal, F32 camHeightLocal, LLGLSLShader * shader) const
@@ -109,7 +109,6 @@ void LLDrawPoolWLSky::renderDome(const LLVector3& camPosLocal, F32 camHeightLoca
     {
         gGL.translatef(camPosLocal.mV[0], camPosLocal.mV[1], camPosLocal.mV[2]);
     }
-
 
     // the windlight sky dome works most conveniently in a coordinate system
     // where Y is up, so permute our basis vectors accordingly.
@@ -171,7 +170,7 @@ void LLDrawPoolWLSky::renderSkyHazeDeferred(const LLVector3& camPosLocal, F32 ca
             rot.setRot(0.f, hdri_rotation*DEG_TO_RAD, 0.f);
 
             sky_shader->uniform1f(LLShaderMgr::SKY_HDR_SCALE, powf(2.f, hdri_exposure));
-            sky_shader->uniformMatrix3fv(LLShaderMgr::DEFERRED_ENV_MAT, 1, GL_FALSE, (F32*) rot.mMatrix);
+            sky_shader->uniformMatrix3fv(LLShaderMgr::DEFERRED_ENV_MAT, 1, false, (F32*) rot.mMatrix);
             sky_shader->uniform1f(hdri_split_screen, gCubeSnapshot ? 1.f : hdri_split);
         }
         else
@@ -368,7 +367,6 @@ void LLDrawPoolWLSky::renderHeavenlyBodies()
     bool can_use_vertex_shaders = gPipeline.shadersLoaded();
     bool can_use_windlight_shaders = gPipeline.canUseWindLightShaders();
 
-
     if (gSky.mVOSkyp->getSun().getDraw() && face && face->getGeomCount())
     {
         LLPointer<LLViewerTexture> tex_a = face->getTexture(LLRender::DIFFUSE_MAP);
@@ -499,8 +497,6 @@ void LLDrawPoolWLSky::renderDeferred(S32 pass)
         }
     }
 }
-
-
 
 LLViewerTexture* LLDrawPoolWLSky::getTexture()
 {

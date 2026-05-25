@@ -31,7 +31,7 @@
 #include "llviewertexturelist.h"
 
 #include "llagent.h"
-#include "llgl.h" // fot gathering stats from GL
+
 #include "llimagegl.h"
 #include "llimagebmp.h"
 #include "llimagej2c.h"
@@ -62,6 +62,8 @@
 #include "llviewerdisplay.h"
 #include "llviewerwindow.h"
 #include "llprogressview.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 ////////////////////////////////////////////////////////////////////////////
 
@@ -106,7 +108,6 @@ void LLViewerTextureList::init()
     doPreloadImages();
 }
 
-
 void LLViewerTextureList::doPreloadImages()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
@@ -135,8 +136,8 @@ void LLViewerTextureList::doPreloadImages()
                                                           MIPMAP_NO,
                                                           LLViewerFetchedTexture::BOOST_BUMP,
                                                           LLViewerTexture::FETCHED_TEXTURE,
-                                                          0,
-                                                          0,
+                                                          LLRenderTextureFormat::None,
+                                                          LLRenderPixelFormat::RGBA,
                                                           BLANK_OBJECT_NORMAL);
 
     // PBR: irradiance
@@ -171,21 +172,21 @@ void LLViewerTextureList::doPreloadImages()
         mImagePreloads.insert(image);
     }
     image = LLViewerTextureManager::getFetchedTextureFromFile("transparent.j2c", FTT_LOCAL_FILE, MIPMAP_YES, LLViewerFetchedTexture::BOOST_UI, LLViewerTexture::FETCHED_TEXTURE,
-        0, 0, IMG_TRANSPARENT);
+        LLRenderTextureFormat::None, LLRenderPixelFormat::RGBA, IMG_TRANSPARENT);
     if (image)
     {
         image->setAddressMode(LLTexUnit::TAM_WRAP);
         mImagePreloads.insert(image);
     }
     image = LLViewerTextureManager::getFetchedTextureFromFile("alpha_gradient.tga", FTT_LOCAL_FILE, MIPMAP_YES, LLViewerFetchedTexture::BOOST_UI, LLViewerTexture::FETCHED_TEXTURE,
-        GL_ALPHA8, GL_ALPHA, IMG_ALPHA_GRAD);
+        LLRenderTextureFormat::Alpha8, LLRenderPixelFormat::Alpha, IMG_ALPHA_GRAD);
     if (image)
     {
         image->setAddressMode(LLTexUnit::TAM_CLAMP);
         mImagePreloads.insert(image);
     }
     image = LLViewerTextureManager::getFetchedTextureFromFile("alpha_gradient_2d.j2c", FTT_LOCAL_FILE, MIPMAP_YES, LLViewerFetchedTexture::BOOST_UI, LLViewerTexture::FETCHED_TEXTURE,
-        GL_ALPHA8, GL_ALPHA, IMG_ALPHA_GRAD_2D);
+        LLRenderTextureFormat::Alpha8, LLRenderPixelFormat::Alpha, IMG_ALPHA_GRAD_2D);
     if (image)
     {
         image->setAddressMode(LLTexUnit::TAM_CLAMP);
@@ -402,8 +403,8 @@ LLViewerFetchedTexture* LLViewerTextureList::getImageFromFile(const std::string&
                                                    bool usemipmaps,
                                                    LLViewerTexture::EBoostLevel boost_priority,
                                                    S8 texture_type,
-                                                   LLGLint internal_format,
-                                                   LLGLenum primary_format,
+                                                   LLRenderTextureFormat internal_format,
+                                                   LLRenderPixelFormat primary_format,
                                                    const LLUUID& force_id)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
@@ -431,8 +432,8 @@ LLViewerFetchedTexture* LLViewerTextureList::getImageFromUrl(const std::string& 
                                                    bool usemipmaps,
                                                    LLViewerTexture::EBoostLevel boost_priority,
                                                    S8 texture_type,
-                                                   LLGLint internal_format,
-                                                   LLGLenum primary_format,
+                                                   LLRenderTextureFormat internal_format,
+                                                   LLRenderPixelFormat primary_format,
                                                    const LLUUID& force_id)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
@@ -485,7 +486,7 @@ LLViewerFetchedTexture* LLViewerTextureList::getImageFromUrl(const std::string& 
             LL_ERRS() << "Invalid texture type " << texture_type << LL_ENDL ;
         }
 
-        if (internal_format && primary_format)
+        if (internal_format != LLRenderTextureFormat::None)
         {
             imagep->setExplicitFormat(internal_format, primary_format);
         }
@@ -554,8 +555,8 @@ LLViewerFetchedTexture* LLViewerTextureList::getImage(const LLUUID &image_id,
                                                    bool usemipmaps,
                                                    LLViewerTexture::EBoostLevel boost_priority,
                                                    S8 texture_type,
-                                                   LLGLint internal_format,
-                                                   LLGLenum primary_format,
+                                                   LLRenderTextureFormat internal_format,
+                                                   LLRenderPixelFormat primary_format,
                                                    LLHost request_from_host)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
@@ -611,8 +612,8 @@ LLViewerFetchedTexture* LLViewerTextureList::createImage(const LLUUID &image_id,
                                                    bool usemipmaps,
                                                    LLViewerTexture::EBoostLevel boost_priority,
                                                    S8 texture_type,
-                                                   LLGLint internal_format,
-                                                   LLGLenum primary_format,
+                                                   LLRenderTextureFormat internal_format,
+                                                   LLRenderPixelFormat primary_format,
                                                    LLHost request_from_host)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
@@ -630,7 +631,7 @@ LLViewerFetchedTexture* LLViewerTextureList::createImage(const LLUUID &image_id,
         LL_ERRS() << "Invalid texture type " << texture_type << LL_ENDL ;
     }
 
-    if (internal_format && primary_format)
+    if (internal_format != LLRenderTextureFormat::None)
     {
         imagep->setExplicitFormat(internal_format, primary_format);
     }
@@ -785,7 +786,6 @@ void LLViewerTextureList::addImage(LLViewerFetchedTexture *new_image, ETexListTy
     new_image->setTextureListType(tex_type);
 }
 
-
 void LLViewerTextureList::deleteImage(LLViewerFetchedTexture *image)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
@@ -803,7 +803,6 @@ void LLViewerTextureList::deleteImage(LLViewerFetchedTexture *image)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 
 void LLViewerTextureList::updateImages(F32 max_time)
 {
@@ -1132,7 +1131,7 @@ F32 LLViewerTextureList::updateImagesCreateTextures(F32 max_time)
 
     if (!mDownScaleQueue.empty() && gPipeline.mDownResMap.isComplete())
     {
-        LLGLDisable blend(GL_BLEND);
+        LLGLDisable blend(LLRenderCapability::Blend);
         gGL.setColorMask(true, true);
 
         // just in case we downres textures, bind downresmap and copy program
@@ -1531,7 +1530,6 @@ LLPointer<LLImageJ2C> LLViewerTextureList::convertToUploadFile(LLPointer<LLImage
         compressedImage->setReversible(true);
     }
 
-
     if (gSavedSettings.getBOOL("Jpeg2000AdvancedCompression"))
     {
         // This test option will create jpeg2000 images with precincts for each level, RPCL ordering
@@ -1578,7 +1576,6 @@ void LLViewerTextureList::processImageNotInDatabase(LLMessageSystem *msg,void **
         image->setIsMissingAsset();
     }
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1902,5 +1899,3 @@ bool LLUIImageList::initFromFile()
     }
     return true;
 }
-
-

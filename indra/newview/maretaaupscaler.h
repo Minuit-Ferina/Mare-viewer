@@ -15,7 +15,7 @@
 //        (low velocity, good anti-aliasing), less for fast-moving ones.
 //
 // GPU resources owned by this class
-//   mAccumBuffer[2]  – ping-pong GL_RGBA16F accumulation buffers (render res)
+//   mAccumBuffer[2]  – ping-pong RGBA16F accumulation buffers (render res)
 //   mAccumIndex      – which buffer is the CURRENT history (0 or 1)
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -15,10 +15,10 @@
 #include "llviewershadermgr.h"  // gDeferredTAAProgram, gDeferredTAACopyProgram
 #include "llrendertarget.h"
 #include "llrender.h"           // gGL
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llglslshader.h"       // LLGLSLProgram
-#include "llglheaders.h"        // GL_TEXTURE_2D etc.
 #include "llviewercontrol.h"    // gSavedSettings, LLCachedControl
+#include "llrenderstate.h"
 
 // ── IUpscaler factory ─────────────────────────────────────────────────────────
 // Defined here so that only maretaaupscaler.cpp (and its includes) need linking.
@@ -48,8 +48,8 @@ bool MARETAAUpscaler::initialize(U32 renderW, U32 renderH)
 
     // Allocate two ping-pong accumulation buffers in HDR float format.
     // No depth attachment required — this is a full-screen 2-D pass.
-    if (!mAccumBuffer[0].allocate(renderW, renderH, GL_RGBA16F)) return false;
-    if (!mAccumBuffer[1].allocate(renderW, renderH, GL_RGBA16F)) return false;
+    if (!mAccumBuffer[0].allocate(renderW, renderH, LLRenderTextureFormat::RGBA16F)) return false;
+    if (!mAccumBuffer[1].allocate(renderW, renderH, LLRenderTextureFormat::RGBA16F)) return false;
 
     // MARE: Clear accumulation buffers to black so the very first apply() blends
     // a known-good (black) history rather than uninitialised GPU memory.
@@ -58,8 +58,8 @@ bool MARETAAUpscaler::initialize(U32 renderW, U32 renderH)
     for (int i = 0; i < 2; ++i)
     {
         mAccumBuffer[i].bindTarget();
-        LLGLContainment::setClearColor(0.f, 0.f, 0.f, 0.f);
-        LLGLContainment::clearBuffers(GL_COLOR_BUFFER_BIT);
+        getOpenGLRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
+        getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
         mAccumBuffer[i].flush();
     }
 
@@ -131,8 +131,8 @@ void MARETAAUpscaler::apply(
         gGL.getTexUnit(2)->bindManual(LLTexUnit::TT_TEXTURE, velocitySrc->getTexture());
 
         {
-            LLGLDisable   blend(GL_BLEND);
-            LLGLDepthTest depth(GL_FALSE);
+            LLGLDisable   blend(LLRenderCapability::Blend);
+            LLGLDepthTest depth(false);
             triVB->setBuffer();
             triVB->drawArrays(LLRender::TRIANGLES, 0, 3);
         }
@@ -163,8 +163,8 @@ void MARETAAUpscaler::apply(
         gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, mAccumBuffer[outIdx].getTexture());
 
         {
-            LLGLDisable   blend(GL_BLEND);
-            LLGLDepthTest depth(GL_FALSE);
+            LLGLDisable   blend(LLRenderCapability::Blend);
+            LLGLDepthTest depth(false);
             triVB->setBuffer();
             triVB->drawArrays(LLRender::TRIANGLES, 0, 3);
         }

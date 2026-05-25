@@ -32,6 +32,7 @@
 #include "llgltypes.h"
 #include "llpointer.h"
 #include "llrender.h"
+#include "llrenderbackend.h"
 #include "llunits.h"
 
 class LLImageGL;
@@ -134,6 +135,11 @@ public:
 
     void       setFilteringOption(LLTexUnit::eTextureFilterOptions option);
     void       setExplicitFormat(LLGLint internal_format, LLGLenum primary_format, LLGLenum type_format = 0, bool swap_bytes = false);
+    void       setExplicitFormat(
+        LLRenderTextureFormat internal_format,
+        LLRenderPixelFormat primary_format,
+        LLRenderPixelType type_format = LLRenderPixelType::UnsignedByte,
+        bool swap_bytes = false);
     void       setAddressMode(LLTexUnit::eTextureAddressMode mode);
     bool       setSubImage(const LLImageRaw* imageraw, S32 x_pos, S32 y_pos, S32 width, S32 height, LLGLuint use_name = 0);
     bool       setSubImage(const U8* datap, S32 data_width, S32 data_height, S32 x_pos, S32 y_pos, S32 width, S32 height, LLGLuint use_name = 0);
@@ -149,6 +155,7 @@ public:
     bool       getBoundRecently() const;
     S32Bytes   getTextureMemory() const ;
     LLGLenum   getPrimaryFormat() const;
+    LLRenderPixelFormat getPrimaryPixelFormat() const;
     bool       getIsAlphaMask() const ;
     LLTexUnit::eTextureType getTarget(void) const ;
     bool       getMask(const LLVector2 &tc);

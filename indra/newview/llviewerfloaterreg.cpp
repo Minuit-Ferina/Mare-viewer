@@ -24,7 +24,6 @@
  * $/LicenseInfo$
  */
 
-
 #include "llviewerprecompiledheaders.h"
 
 #include "llfloaterreg.h"
@@ -215,6 +214,7 @@
 #include "fsfloaterwearablefavorites.h"
 #include "llfloatersearchreplace.h"
 #include "NACLfloaterexploresounds.h"
+#include "llrendercontext.h"
 // NaCl End
 
 // handle secondlife:///app/openfloater/{NAME} URLs
@@ -324,7 +324,6 @@ public:
             };
             return std::find(blacklist_untrusted.begin(), blacklist_untrusted.end(), fl_name) == blacklist_untrusted.end();
         }
-
 
         return true;
     }
@@ -658,7 +657,6 @@ void LLFloaterReg::cycleFloaters(const std::string& floater_name)
                 if (pFloater)
                     pFloater->closeHostedFloater();
         }
-
 
         // Open the new floater
         LLFloaterReg::showInstance(itFloater->first, sdParam, true);

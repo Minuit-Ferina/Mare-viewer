@@ -24,7 +24,6 @@
  * $/LicenseInfo$
  */
 
-
 #include "llviewerprecompiledheaders.h"
 
 #include "llagent.h"
@@ -103,6 +102,7 @@
 #include "llstartup.h"
 #include "RRInterface.h"
 #include "kokuarlvmode.h" // for RLV_ALWAYS_ON
+#include "llrendercontext.h"
 //mk
 using namespace LLAvatarAppearanceDefines;
 
@@ -1171,7 +1171,6 @@ void LLAgent::setFlying(bool fly, bool fail_sound)
         clearControlFlags(AGENT_CONTROL_FLY);
     }
 
-
     // Update Movement Controls according to Fly mode
     LLFloaterMove::setFlyingMode(fly);
     LLFloaterMove::sUpdateFlyingStatus();
@@ -1290,7 +1289,6 @@ void LLAgent::handleServerFeaturesTransition()
     LLAppearanceMgr::instance().requestServerAppearanceUpdate();
   }
 }
-
 
 // static
 void LLAgent::capabilityReceivedCallback(const LLUUID &region_id, LLViewerRegion *regionp)
@@ -2734,7 +2732,6 @@ void LLAgent::endAnimationUpdateUI()
             // another command already (Ctrl+Alt+F1) or (Ctrl-Shift-U).
             // Hiding the UI renders Mouselook pretty useless, if you ask me.
 
-
     //mk
             // clean up UI
             // first show anything hidden by UI toggle
@@ -4139,7 +4136,6 @@ void LLAgent::processAgentDataUpdate(LLMessageSystem *msg, void **)
     LLUUID active_id;
     msg->getUUIDFast(_PREHASH_AgentData, _PREHASH_ActiveGroupID, active_id);
 
-
     if(active_id.notNull())
     {
         gAgent.mGroupID = active_id;
@@ -5174,7 +5170,6 @@ void LLAgent::fidget()
             {
                 LLAgent::stopFidget();
 
-
                 switch(mCurrentFidget)
                 {
                 case 0:
@@ -5349,7 +5344,6 @@ void LLAgent::updateAgentUserInfoCoro(std::string capurl, std::string directory_
     httpOpts->setFollowRedirects(true);
     LLSD body(LLSDMap
         ("dir_visibility",  LLSD::String(directory_visibility)));
-
 
     LLSD result = httpAdapter->postAndSuspend(httpRequest, capurl, body, httpOpts, httpHeaders);
 

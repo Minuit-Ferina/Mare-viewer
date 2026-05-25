@@ -28,7 +28,6 @@
 
 #include "lldrawpoolalpha.h"
 
-#include "llglheaders.h"
 #include "llviewercontrol.h"
 #include "llcriticaldamp.h"
 #include "llfasttimer.h"
@@ -56,6 +55,8 @@
 //MK
 #include "llagent.h"
 #include "llvovolume.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 //mk
 
 bool LLDrawPoolAlpha::sShowDebugAlpha = false;
@@ -760,7 +761,7 @@ void LLDrawPoolAlpha::forwardRender(bool rigged)
     LLGLSPipelineAlpha gls_pipeline_alpha;
 
     bool write_depth = should_write_alpha_depth(rigged, getType());
-    LLGLDepthTest depth(GL_TRUE, write_depth ? GL_TRUE : GL_FALSE);
+    LLGLDepthTest depth(true, write_depth ? true : false);
 
     setupForwardAlphaRenderState();
     renderRiggedGltfDepthPrepass(rigged);
@@ -832,7 +833,7 @@ bool LLDrawPoolAlpha::SetupTextureMatrix(LLDrawInfo* draw)
 
     gGL.getTexUnit(0)->activate();
     gGL.matrixMode(LLRender::MM_TEXTURE);
-    gGL.loadMatrix((GLfloat*)draw->mTextureMatrix->mMatrix);
+    gGL.loadMatrix((F32*)draw->mTextureMatrix->mMatrix);
     gPipeline.mTextureMatrixOps++;
 
     return true;
@@ -947,7 +948,7 @@ void LLDrawPoolAlpha::renderLegacyEmissiveDraw(LLDrawInfo* draw)
 void LLDrawPoolAlpha::renderPbrEmissiveDraw(LLDrawInfo* draw)
 {
     llassert(draw->mGLTFMaterial);
-    LLGLDisable cull_face(draw->mGLTFMaterial->mDoubleSided ? GL_CULL_FACE : 0);
+    LLGLState cull_face(LLRenderCapability::CullFace, draw->mGLTFMaterial->mDoubleSided ? LLGLState::DISABLED_STATE : LLGLState::CURRENT_STATE);
     draw->mGLTFMaterial->bind(draw->mTexture);
     draw->mVertexBuffer->setBuffer();
     draw->mVertexBuffer->drawRange(LLRender::TRIANGLES, draw->mStart, draw->mEnd, draw->mCount, draw->mOffset);
@@ -976,7 +977,7 @@ void LLDrawPoolAlpha::renderPbrEmissives(std::vector<LLDrawInfo*>& emissives)
 
 void LLDrawPoolAlpha::renderRiggedEmissives(std::vector<LLDrawInfo*>& emissives)
 {
-    LLGLDepthTest depth(GL_TRUE, GL_FALSE); //disable depth writes since "emissive" is additive so sorting doesn't matter
+    LLGLDepthTest depth(true, false); //disable depth writes since "emissive" is additive so sorting doesn't matter
     LLGLSLShader* shader = emissive_shader->mRiggedVariant;
     shader->bind();
     shader->uniform1f(LLShaderMgr::EMISSIVE_BRIGHTNESS, 1.f);
@@ -998,7 +999,7 @@ void LLDrawPoolAlpha::renderRiggedEmissives(std::vector<LLDrawInfo*>& emissives)
 
 void LLDrawPoolAlpha::renderRiggedPbrEmissives(std::vector<LLDrawInfo*>& emissives)
 {
-    LLGLDepthTest depth(GL_TRUE, GL_FALSE); //disable depth writes since "emissive" is additive so sorting doesn't matter
+    LLGLDepthTest depth(true, false); //disable depth writes since "emissive" is additive so sorting doesn't matter
     pbr_emissive_shader->bind(true);
 
     const LLVOAvatar* lastAvatar = nullptr;
@@ -1101,7 +1102,7 @@ void LLDrawPoolAlpha::renderAlphaDraw(
     LLMaterial* mat = NULL;
     LLGLTFMaterial *gltf_mat = params.mGLTFMaterial;
 
-    LLGLDisable cull_face(gltf_mat && gltf_mat->mDoubleSided ? GL_CULL_FACE : 0);
+    LLGLState cull_face(LLRenderCapability::CullFace, gltf_mat && gltf_mat->mDoubleSided ? LLGLState::DISABLED_STATE : LLGLState::CURRENT_STATE);
 
     if (gltf_mat && gltf_mat->mAlphaMode == LLGLTFMaterial::ALPHA_MODE_BLEND)
     {
@@ -1224,7 +1225,7 @@ void LLDrawPoolAlpha::renderAlphaGroup(
     emissive_queues.clear();
 
     const bool disable_cull = is_particle_or_hud_particle_group(group);
-    LLGLDisable cull(disable_cull ? GL_CULL_FACE : 0);
+    LLGLState cull(LLRenderCapability::CullFace, disable_cull ? LLGLState::DISABLED_STATE : LLGLState::CURRENT_STATE);
 
     LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_draw_info(group, context.rigged);
 
@@ -1264,7 +1265,6 @@ void LLDrawPoolAlpha::renderAlpha(U32 mask, bool depth_only, bool rigged)
         is_above_water_alpha_pool(getType()),
         env.getWaterHeight()
     };
-
 
 //MK
     // Calculate the position of the avatar here so we don't have to do it for each face

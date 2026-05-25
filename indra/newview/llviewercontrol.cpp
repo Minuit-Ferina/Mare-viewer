@@ -94,6 +94,7 @@
 
 //MK
 #include "llagentwearables.h"
+#include "llrendercontext.h"
 //mk
 
 #ifdef TOGGLE_HACKED_GODLIKE_VIEWER
@@ -237,7 +238,6 @@ static bool handleAvatarHoverOffsetChanged(const LLSD& newvalue)
     return true;
 }
 
-
 static bool handleSetShaderChanged(const LLSD& newvalue)
 {
     // changing shader level may invalidate existing cached bump maps, as the shader type determines the format of the bump map it expects - clear and repopulate the bump cache
@@ -309,7 +309,6 @@ bool handleRenderTransparentWaterChanged(const LLSD& newvalue)
     LLWorld::getInstance()->updateWaterObjects();
     return true;
 }
-
 
 static bool handleShadowsResized(const LLSD& newvalue)
 {
@@ -518,7 +517,6 @@ static bool handleUploadBakedTexOldChanged(const LLSD& newvalue)
     LLPipeline::sForceOldBakedUpload = newvalue.asBoolean();
     return true;
 }
-
 
 static bool handleWLSkyDetailChanged(const LLSD&)
 {

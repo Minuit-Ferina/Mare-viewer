@@ -32,8 +32,7 @@
 
 #include "llmaniptranslate.h"
 
-#include "llgl.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llrender.h"
 
 #include "llagent.h"
@@ -46,7 +45,7 @@
 #include "lldrawable.h"
 #include "llfloatertools.h"
 #include "llfontgl.h"
-#include "llglheaders.h"
+
 #include "llhudrender.h"
 #include "llresmgr.h"
 #include "llselectmgr.h"
@@ -63,6 +62,7 @@
 #include "pipeline.h"
 #include "llviewershadermgr.h"
 #include "lltrans.h"
+#include "llrenderstate.h"
 
 const S32 NUM_AXES = 3;
 const S32 MOUSE_DRAG_SLOP = 2;       // pixels
@@ -170,7 +170,7 @@ void LLManipTranslate::restoreGL()
         return ;
     }
 
-    GLuint* d = new GLuint[rez*rez];
+    U32* d = new U32[rez*rez];
 
     gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, sGridTex->getTexName(), true);
     gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_TRILINEAR);
@@ -268,18 +268,24 @@ void LLManipTranslate::restoreGL()
                 }
             }
         }
-        LLImageGL::setManualImage(GL_TEXTURE_2D, mip, GL_RGBA, rez, rez, GL_RGBA, GL_UNSIGNED_BYTE, d);
+        LLImageGL::setManualImage(
+            LLRenderTextureTarget::Texture2D,
+            mip,
+            LLRenderTextureFormat::RGBA,
+            rez,
+            rez,
+            LLRenderPixelFormat::RGBA,
+            LLRenderPixelType::UnsignedByte,
+            d);
         rez = rez >> 1;
         mip++;
     }
     delete [] d;
 }
 
-
 LLManipTranslate::~LLManipTranslate()
 {
 }
-
 
 void LLManipTranslate::handleSelect()
 {
@@ -786,7 +792,6 @@ bool LLManipTranslate::handleHover(S32 x, S32 y, MASK mask)
         }
     }
 
-
     LLSelectMgr::getInstance()->updateSelectionCenter();
     gAgentCamera.clearFocusObject();
     dialog_refresh_all();       // ??? is this necessary?
@@ -1044,7 +1049,6 @@ F32 LLManipTranslate::getMinGridScale()
     return scale;
 }
 
-
 bool LLManipTranslate::handleMouseUp(S32 x, S32 y, MASK mask)
 {
     // first, perform normal processing in case this was a quick-click
@@ -1067,7 +1071,6 @@ bool LLManipTranslate::handleMouseUp(S32 x, S32 y, MASK mask)
     return LLManip::handleMouseUp(x, y, mask);
 }
 
-
 void LLManipTranslate::render()
 {
     gGL.matrixMode(LLRender::MM_MODELVIEW);
@@ -1078,11 +1081,11 @@ void LLManipTranslate::render()
         gGL.scalef(zoom, zoom, zoom);
     }
     {
-        LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+        LLGLDepthTest gls_depth(true, false);
         renderGuidelines();
     }
     {
-        //LLGLDisable gls_stencil(GL_STENCIL_TEST);
+        //LLGLDisable gls_stencil(LLRenderCapability::StencilTest);
         renderTranslationHandles();
         renderSnapGuides();
     }
@@ -1102,8 +1105,8 @@ void LLManipTranslate::renderSnapGuides()
     F32 line_alpha = gSavedSettings.getF32("GridOpacity");
 
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-    LLGLDepthTest gls_depth(GL_TRUE);
-    LLGLDisable gls_cull(GL_CULL_FACE);
+    LLGLDepthTest gls_depth(true);
+    LLGLDisable gls_cull(LLRenderCapability::CullFace);
     LLVector3 translate_axis;
 
     if (mManipPart == LL_NO_PART)
@@ -1266,7 +1269,7 @@ void LLManipTranslate::renderSnapGuides()
         S32 sub_div_offset = ll_round(fmodf(dist_grid_axis - offset_nearest_grid_unit, getMinGridScale() / sGridMinSubdivisionLevel) / smallest_grid_unit_scale);
         S32 num_ticks_per_side = llmax(1, llfloor(0.5f * guide_size_meters / smallest_grid_unit_scale));
 
-        LLGLDepthTest gls_depth(GL_FALSE);
+        LLGLDepthTest gls_depth(false);
 
         for (S32 pass = 0; pass < 3; pass++)
         {
@@ -1545,12 +1548,12 @@ void LLManipTranslate::renderSnapGuides()
 
         {
             //draw grid behind objects
-            LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+            LLGLDepthTest gls_depth(true, false);
 
             {
-                //LLGLDisable stencil(GL_STENCIL_TEST);
+                //LLGLDisable stencil(LLRenderCapability::StencilTest);
                 {
-                    LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE, GL_GREATER);
+                    LLGLDepthTest gls_depth(true, false, LLRenderDepthFunction::Greater);
                     gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, getGridTexName());
                     gGL.flush();
                     gGL.blendFunc(LLRender::BF_ZERO, LLRender::BF_ONE_MINUS_SOURCE_ALPHA);
@@ -1574,12 +1577,12 @@ void LLManipTranslate::renderSnapGuides()
                 }
 
                 {
-                    LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+                    LLGLDepthTest gls_depth(true, false);
                     renderGuidelines();
                 }
 
                 {
-                    LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE, GL_GREATER);
+                    LLGLDepthTest gls_depth(true, false, LLRenderDepthFunction::Greater);
                     gGL.flush();
 
                     switch (mManipPart)
@@ -1643,7 +1646,6 @@ void LLManipTranslate::renderGrid(F32 x, F32 y, F32 size, F32 r, F32 g, F32 b, F
         gGL.end();
     }
 
-
 }
 
 void LLManipTranslate::highlightIntersection(LLVector3 normal,
@@ -1657,14 +1659,12 @@ void LLManipTranslate::highlightIntersection(LLVector3 normal,
         return;
     }
 
-
     LLGLSLShader* shader = LLGLSLShader::sCurBoundShaderPtr;
-
 
     static const U32 types[] = { LLRenderPass::PASS_SIMPLE, LLRenderPass::PASS_ALPHA, LLRenderPass::PASS_FULLBRIGHT, LLRenderPass::PASS_SHINY };
     static const U32 num_types = LL_ARRAY_SIZE(types);
 
-    GLuint stencil_mask = 0xFFFFFFFF;
+    U32 stencil_mask = 0xFFFFFFFF;
     //stencil in volumes
 
     gGL.flush();
@@ -1676,9 +1676,9 @@ void LLManipTranslate::highlightIntersection(LLVector3 normal,
 
     {
         // Legacy stencil mask, clear value, and stencil clear were configured here.
-        LLGLEnable cull_face(GL_CULL_FACE);
-        //LLGLEnable stencil(GL_STENCIL_TEST);
-        LLGLDepthTest depth (GL_TRUE, GL_FALSE, GL_ALWAYS);
+        LLGLEnable cull_face(LLRenderCapability::CullFace);
+        //LLGLEnable stencil(LLRenderCapability::StencilTest);
+        LLGLDepthTest depth (true, false, LLRenderDepthFunction::Always);
         // Legacy stencil function was configured here.
         gGL.setColorMask(false, false);
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
@@ -1713,14 +1713,14 @@ void LLManipTranslate::highlightIntersection(LLVector3 normal,
 
         //stencil in volumes
         // Legacy increment stencil operation was configured here.
-        LLGLContainment::setCullFace(GL_FRONT);
+        getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Front);
         for (U32 i = 0; i < num_types; i++)
         {
             gPipeline.renderObjects(types[i], LLVertexBuffer::MAP_VERTEX, false);
         }
 
         // Legacy decrement stencil operation was configured here.
-        LLGLContainment::setCullFace(GL_BACK);
+        getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Back);
         for (U32 i = 0; i < num_types; i++)
         {
             gPipeline.renderObjects(types[i], LLVertexBuffer::MAP_VERTEX, false);
@@ -1757,16 +1757,28 @@ void LLManipTranslate::highlightIntersection(LLVector3 normal,
     //draw volume/plane intersections
     {
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-        LLGLDepthTest depth(GL_FALSE);
-        //LLGLEnable stencil(GL_STENCIL_TEST);
-        LLGLContainment::setStencilOperation(GL_KEEP, GL_KEEP, GL_KEEP);
-        LLGLContainment::setStencilFunction(GL_EQUAL, 0, stencil_mask);
+        LLGLDepthTest depth(false);
+        //LLGLEnable stencil(LLRenderCapability::StencilTest);
+        getOpenGLRenderBackend().setStencilOperation(
+            LLRenderStencilOperation::Keep,
+            LLRenderStencilOperation::Keep,
+            LLRenderStencilOperation::Keep);
+        getOpenGLRenderBackend().setStencilFunction(
+            LLRenderStencilFunction::Equal,
+            0,
+            stencil_mask);
         renderGrid(0,0,tiles,inner_color.mV[0], inner_color.mV[1], inner_color.mV[2], 0.25f);
     }
 
-    LLGLContainment::setStencilFunction(GL_ALWAYS, 255, 0xFFFFFFFF);
-    LLGLContainment::setStencilMask(0xFFFFFFFF);
-    LLGLContainment::setStencilOperation(GL_KEEP, GL_KEEP, GL_REPLACE);
+    getOpenGLRenderBackend().setStencilFunction(
+        LLRenderStencilFunction::Always,
+        255,
+        0xFFFFFFFF);
+    getOpenGLRenderBackend().setStencilMask(0xFFFFFFFF);
+    getOpenGLRenderBackend().setStencilOperation(
+        LLRenderStencilOperation::Keep,
+        LLRenderStencilOperation::Keep,
+        LLRenderStencilOperation::Replace);
 
     gGL.popMatrix();
 #endif
@@ -1795,7 +1807,7 @@ void LLManipTranslate::renderTranslationHandles()
     LLVector3 grid_origin;
     LLVector3 grid_scale;
     LLQuaternion grid_rotation;
-    LLGLDepthTest gls_depth(GL_FALSE);
+    LLGLDepthTest gls_depth(false);
 
     LLSelectMgr::getInstance()->getGrid(grid_origin, grid_rotation, grid_scale);
     LLVector3 at_axis;
@@ -1909,7 +1921,7 @@ void LLManipTranslate::renderTranslationHandles()
 
         {
             gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-            LLGLDisable cull_face(GL_CULL_FACE);
+            LLGLDisable cull_face(LLRenderCapability::CullFace);
 
             LLColor4 color1;
             LLColor4 color2;
@@ -2197,15 +2209,14 @@ void LLManipTranslate::renderTranslationHandles()
     gGL.popMatrix();
 }
 
-
 void LLManipTranslate::renderArrow(S32 which_arrow, S32 selected_arrow, F32 box_size, F32 arrow_size, F32 handle_size, bool reverse_direction)
 {
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
-    LLGLEnable gls_blend(GL_BLEND);
+    LLGLEnable gls_blend(LLRenderCapability::Blend);
 
     for (S32 pass = 1; pass <= 2; pass++)
     {
-        LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE, pass == 1 ? GL_LEQUAL : GL_GREATER);
+        LLGLDepthTest gls_depth(true, false, pass == 1 ? LLRenderDepthFunction::LessEqual : LLRenderDepthFunction::Greater);
         gGL.pushMatrix();
 
         S32 index = 0;

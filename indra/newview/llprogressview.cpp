@@ -30,7 +30,7 @@
 
 #include "indra_constants.h"
 #include "llmath.h"
-#include "llgl.h"
+
 #include "llrender.h"
 #include "llui.h"
 #include "llfontgl.h"
@@ -52,6 +52,7 @@
 #include "llweb.h"
 #include "lluictrlfactory.h"
 #include "llpanellogin.h"
+#include "llrenderstate.h"
 
 namespace
 {
@@ -144,7 +145,6 @@ bool LLProgressView::postBuild()
     return true;
 }
 
-
 LLProgressView::~LLProgressView()
 {
     // Just in case something went wrong, make sure we deregister our idle callback.
@@ -163,7 +163,6 @@ bool LLProgressView::handleHover(S32 x, S32 y, MASK mask)
     }
     return true;
 }
-
 
 bool LLProgressView::handleKeyHere(KEY key, MASK mask)
 {
@@ -189,7 +188,6 @@ void LLProgressView::revealIntroPanel()
         // navigate to intro URL and reveal widget
         mMediaCtrl->navigateTo( intro_url );
         mMediaCtrl->setVisible( true );
-
 
         // flag as having seen the new user post login intro
         gSavedSettings.setBOOL("PostFirstLoginIntroViewed", true );
@@ -232,7 +230,6 @@ void LLProgressView::setVisible(bool visible)
         LLPanel::setVisible(true);
     }
 }
-
 
 void LLProgressView::drawStartTexture(F32 alpha)
 {
@@ -425,7 +422,6 @@ void LLProgressView::loadLogo(const std::string &path,
     data.mOffsetRect = offset_rect;
     mLogosList.push_back(data);
 }
-
 
 void LLProgressView::initLogos()
 {
@@ -717,7 +713,6 @@ void LLProgressView::handleMediaEvent(LLPluginClassMedia* self, EMediaEvent even
         }
     }
 }
-
 
 // static
 void LLProgressView::onIdle(void* user_data)

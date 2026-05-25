@@ -88,7 +88,7 @@
 
 #include "llcorehttputil.h"
 #include "llviewerassetupload.h"
-
+#include "llrendercontext.h"
 
 namespace
 {
@@ -159,7 +159,6 @@ LLUUID LLARScreenShotUploader::finishUpload(LLSD &result)
     /* *TODO$: Report success or failure. Carried over from previous todo on responder*/
     return LLUUID::null;
 }
-
 
 //=========================================================================
 //-----------------------------------------------------------------------------
@@ -585,7 +584,6 @@ void LLFloaterReporter::onClickSend(void *userdata)
     }
 }
 
-
 // static
 void LLFloaterReporter::onClickCancel(void *userdata)
 {
@@ -601,7 +599,6 @@ void LLFloaterReporter::onClickCancel(void *userdata)
     self->closeFloater();
 }
 
-
 // static
 void LLFloaterReporter::onClickObjPicker(void *userdata)
 {
@@ -616,7 +613,6 @@ void LLFloaterReporter::onClickObjPicker(void *userdata)
     if (pick_btn) pick_btn->setToggleState(true);
 }
 
-
 // static
 void LLFloaterReporter::closePickTool(void *userdata)
 {
@@ -630,7 +626,6 @@ void LLFloaterReporter::closePickTool(void *userdata)
     LLButton* pick_btn = get_floater_child<LLButton>(self, "pick_btn");
     if (pick_btn) pick_btn->setToggleState(false);
 }
-
 
 // static
 void LLFloaterReporter::showFromMenu(EReportType report_type)
@@ -679,8 +674,6 @@ void LLFloaterReporter::show(const LLUUID& object_id, const std::string& avatar_
     reporter_floater->mDeselectOnClose = true;
 }
 
-
-
 void LLFloaterReporter::showFromExperience( const LLUUID& experience_id )
 {
     LLFloaterReporter* reporter_floater = LLFloaterReg::findTypedInstance<LLFloaterReporter>("reporter");
@@ -694,7 +687,6 @@ void LLFloaterReporter::showFromExperience( const LLUUID& experience_id )
     // Need to deselect on close
     reporter_floater->mDeselectOnClose = true;
 }
-
 
 // static
 void LLFloaterReporter::showFromObject(const LLUUID& object_id, const LLUUID& experience_id)
@@ -736,7 +728,6 @@ void LLFloaterReporter::setPickedObjectProperties(const std::string& object_name
     mOwnerName = owner_name;
 }
 
-
 bool LLFloaterReporter::validateReport()
 {
     // Ensure user selected a category from the list
@@ -747,7 +738,6 @@ bool LLFloaterReporter::validateReport()
         LLNotificationsUtil::add("HelpReportAbuseSelectCategory");
         return false;
     }
-
 
     if ( get_floater_child<LLUICtrl>(this, "abuser_name_edit")->getValue().asString().empty() )
     {
@@ -766,7 +756,6 @@ bool LLFloaterReporter::validateReport()
         LLNotificationsUtil::add("HelpReportAbuseAbuserLocationEmpty");
         return false;
     };
-
 
     if ( get_floater_child<LLUICtrl>(this, "summary_edit")->getValue().asString().empty() )
     {
@@ -813,15 +802,12 @@ LLSD LLFloaterReporter::gatherReport()
     const char* platform = "???";
 #endif
 
-
-
     summary << ""
         << " |" << regionp->getName() << "|"                                // region reporter is currently in.
         << " (" << get_floater_child<LLUICtrl>(this, "abuse_location_edit")->getValue().asString() << ")"              // region abuse occured in (freeform text - no LLRegionPicker tool)
         << " [" << category_name << "] "                                    // updated category
         << " {" << get_floater_child<LLUICtrl>(this, "abuser_name_edit")->getValue().asString() << "} "                    // name of abuse entered in report (chosen using LLAvatarPicker)
         << " \"" << get_floater_child<LLUICtrl>(this, "summary_edit")->getValue().asString() << "\"";      // summary as entered
-
 
     std::ostringstream details;
 
@@ -833,7 +819,6 @@ LLSD LLFloaterReporter::gatherReport()
         details << "Object: " << object_name << "\n";
         details << "Owner: " << mOwnerName << "\n";
     }
-
 
     details << "Abuser name: " << get_floater_child<LLUICtrl>(this, "abuser_name_edit")->getValue().asString() << " \n";
     details << "Abuser location: " << get_floater_child<LLUICtrl>(this, "abuse_location_edit")->getValue().asString() << " \n";
@@ -1012,7 +997,6 @@ void LLFloaterReporter::takeNewSnapshot()
     takeScreenshot();
 }
 
-
 void LLFloaterReporter::onOpen(const LLSD& key)
 {
     childSetEnabled("send_btn", false);
@@ -1039,7 +1023,6 @@ void LLFloaterReporter::uploadImage()
                                     LLFloaterReporter::uploadDoneCallback,
                                     (void*)mResourceDatap, true);
 }
-
 
 // static
 void LLFloaterReporter::uploadDoneCallback(const LLUUID &uuid, void *user_data, S32 result, LLExtStat ext_status) // StoreAssetData callback (fixed)
@@ -1075,7 +1058,6 @@ void LLFloaterReporter::uploadDoneCallback(const LLUUID &uuid, void *user_data, 
         self->closeFloater();
     }
 }
-
 
 void LLFloaterReporter::setPosBox(const LLVector3d &pos)
 {

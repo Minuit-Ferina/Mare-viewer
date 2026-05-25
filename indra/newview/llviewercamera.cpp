@@ -49,8 +49,8 @@
 // Linden library includes
 #include "lldrawable.h"
 #include "llface.h"
-#include "llgl.h"
-#include "llglcontainment.h"
+
+#include "llrenderbackend.h"
 #include "llgltypes.h"
 #include "llquaternion.h"
 #include "llwindow.h"           // getPixelAspectRatio()
@@ -339,7 +339,7 @@ void LLViewerCamera::calcProjection(const F32 far_distance) const
 //static
 void LLViewerCamera::updateFrustumPlanes(LLCamera& camera, bool ortho, bool zflip, bool no_hacks)
 {
-    glm::ivec4 viewport = glm::make_vec4((LLGLint*) gGLViewport);
+    glm::ivec4 viewport = glm::make_vec4(gGLViewport);
     glm::mat4 model = get_current_modelview();
     glm::mat4 proj = get_current_projection();
 
@@ -461,7 +461,7 @@ void LLViewerCamera::setPerspective(bool for_selection,
             gViewerWindow->getWorldViewRectRaw().getWidth(),
             gViewerWindow->getWorldViewRectRaw().getHeight());
 
-        proj_mat = glm::pickMatrix(glm::vec2(x + width / 2.f, y_from_bot + height / 2.f), glm::vec2((LLGLfloat)width, (LLGLfloat)height), viewport);
+        proj_mat = glm::pickMatrix(glm::vec2(x + width / 2.f, y_from_bot + height / 2.f), glm::vec2((F32)width, (F32)height), viewport);
 
         if (limit_select_distance)
         {
@@ -480,7 +480,7 @@ void LLViewerCamera::setPerspective(bool for_selection,
         {
             z_far = MAX_FAR_CLIP;
         }
-        LLGLContainment::setViewport(x, y_from_bot, width, height);
+        getOpenGLRenderBackend().setViewport(x, y_from_bot, width, height);
         gGLViewport[0] = x;
         gGLViewport[1] = y_from_bot;
         gGLViewport[2] = width;
@@ -522,9 +522,9 @@ void LLViewerCamera::setPerspective(bool for_selection,
 
     gGL.matrixMode(LLRender::MM_MODELVIEW);
 
-    glm::mat4 modelview(glm::make_mat4((LLGLfloat*)OGL_TO_CFR_ROTATION));
+    glm::mat4 modelview(glm::make_mat4(OGL_TO_CFR_ROTATION));
 
-    LLGLfloat      ogl_matrix[16];
+    F32 ogl_matrix[16];
 
     getOpenGLTransform(ogl_matrix);
 
@@ -709,7 +709,6 @@ bool LLViewerCamera::projectPosAgentToScreenEdge(const LLVector3 &pos_agent,
         int_x = lltrunc(center_x);
         int_y = lltrunc(center_y);
 
-
         if (0.f == line_x)
         {
             // the slope of the line is undefined
@@ -800,7 +799,6 @@ bool LLViewerCamera::projectPosAgentToScreenEdge(const LLVector3 &pos_agent,
     }
     return false;
 }
-
 
 void LLViewerCamera::getPixelVectors(const LLVector3 &pos_agent, LLVector3 &up, LLVector3 &right)
 {

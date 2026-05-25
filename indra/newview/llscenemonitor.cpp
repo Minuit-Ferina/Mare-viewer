@@ -27,7 +27,7 @@
 #include "llviewerprecompiledheaders.h"
 #include "llrendertarget.h"
 #include "llscenemonitor.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llviewerwindow.h"
 #include "llviewerdisplay.h"
 #include "llviewercontrol.h"
@@ -42,6 +42,7 @@
 #include "pipeline.h"
 #include "llviewerparcelmgr.h"
 #include "llviewerpartsim.h"
+#include "llrenderstate.h"
 
 LLSceneMonitorView* gSceneMonitorView = NULL;
 
@@ -178,7 +179,7 @@ LLRenderTarget& LLSceneMonitor::getCaptureTarget()
     if(!mFrames[0])
     {
         mFrames[0] = new LLRenderTarget();
-        mFrames[0]->allocate(width, height, GL_RGB);
+        mFrames[0]->allocate(width, height, LLRenderTextureFormat::RGB);
         gGL.getTexUnit(0)->bind(mFrames[0]);
         gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_POINT);
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
@@ -188,7 +189,7 @@ LLRenderTarget& LLSceneMonitor::getCaptureTarget()
     else if(!mFrames[1])
     {
         mFrames[1] = new LLRenderTarget();
-        mFrames[1]->allocate(width, height, GL_RGB);
+        mFrames[1]->allocate(width, height, LLRenderTextureFormat::RGB);
         gGL.getTexUnit(0)->bind(mFrames[1]);
         gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_POINT);
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
@@ -315,10 +316,10 @@ void LLSceneMonitor::capture()
         U32 old_FBO = LLRenderTarget::sCurFBO;
 
         gGL.getTexUnit(0)->bind(&cur_target);
-        LLGLContainment::bindFramebuffer(GL_READ_FRAMEBUFFER, 0); //point to the main frame buffer.
+        getOpenGLRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::Read, 0); //point to the main frame buffer.
 
-        LLGLContainment::copyTextureSubImage2D(
-            GL_TEXTURE_2D,
+        getOpenGLRenderBackend().copyTextureSubImage2D(
+            LLRenderTextureTarget::Texture2D,
             0,
             0,
             0,
@@ -327,9 +328,9 @@ void LLSceneMonitor::capture()
             cur_target.getWidth(),
             cur_target.getHeight()); //copy the content
 
-        LLGLContainment::bindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        LLGLContainment::bindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        LLGLContainment::bindFramebuffer(GL_FRAMEBUFFER, old_FBO);
+        getOpenGLRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::Read, 0);
+        getOpenGLRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::Draw, 0);
+        getOpenGLRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::ReadWrite, old_FBO);
 
         mDiffState = NEED_DIFF;
     }
@@ -368,7 +369,7 @@ void LLSceneMonitor::compare()
     if(!mDiff)
     {
         mDiff = new LLRenderTarget();
-        mDiff->allocate(width, height, GL_RGBA);
+        mDiff->allocate(width, height, LLRenderTextureFormat::RGBA);
 
         generateDitheringTexture(width, height);
     }
@@ -439,10 +440,12 @@ void LLSceneMonitor::calcDiffAggregate()
         mQueryObject = LLOcclusionCullingGroup::getNewOcclusionQueryObjectName();
     }
 
-    LLGLDepthTest depth(true, false, GL_ALWAYS);
+    LLGLDepthTest depth(true, false, LLRenderDepthFunction::Always);
     if(!mDebugViewerVisible)
     {
-        LLGLContainment::setColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        LLRenderColorMask mask;
+        mask.mRed = mask.mGreen = mask.mBlue = mask.mAlpha = false;
+        getOpenGLRenderBackend().setColorMask(mask);
     }
 
     LLGLSLShader* cur_shader = NULL;
@@ -453,14 +456,14 @@ void LLSceneMonitor::calcDiffAggregate()
 
     if(mDiffState == EXECUTE_DIFF)
     {
-        LLGLContainment::beginQuery(GL_SAMPLES_PASSED, mQueryObject);
+        getOpenGLRenderBackend().beginQuery(LLRenderQueryTarget::SamplesPassed, mQueryObject);
     }
 
     gl_draw_scaled_target(0, 0, S32(mDiff->getWidth() * mDiffPixelRatio), S32(mDiff->getHeight() * mDiffPixelRatio), mDiff);
 
     if(mDiffState == EXECUTE_DIFF)
     {
-        LLGLContainment::endQuery(GL_SAMPLES_PASSED);
+        getOpenGLRenderBackend().endQuery(LLRenderQueryTarget::SamplesPassed);
         mDiffState = WAIT_ON_RESULT;
     }
 
@@ -473,7 +476,8 @@ void LLSceneMonitor::calcDiffAggregate()
 
     if(!mDebugViewerVisible)
     {
-        LLGLContainment::setColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        LLRenderColorMask mask;
+        getOpenGLRenderBackend().setColorMask(mask);
     }
 #endif
 }
@@ -490,12 +494,18 @@ void LLSceneMonitor::fetchQueryResult()
     {
         mDiffState = WAITING_FOR_NEXT_DIFF;
 
-        GLuint available = 0;
-        LLGLContainment::getQueryObjectUnsignedInteger(mQueryObject, GL_QUERY_RESULT_AVAILABLE, &available);
+        U32 available = 0;
+        getOpenGLRenderBackend().getQueryObjectUnsignedInteger(
+            mQueryObject,
+            LLRenderQueryParameter::ResultAvailable,
+            &available);
         if(available)
         {
-            GLuint count = 0;
-            LLGLContainment::getQueryObjectUnsignedInteger(mQueryObject, GL_QUERY_RESULT, &count);
+            U32 count = 0;
+            getOpenGLRenderBackend().getQueryObjectUnsignedInteger(
+                mQueryObject,
+                LLRenderQueryParameter::Result,
+                &count);
 
             mDiffResult = sqrtf(count * 0.5f / (mDiff->getWidth() * mDiff->getHeight() * mDiffPixelRatio * mDiffPixelRatio)); //0.5 -> (front face + back face)
 
@@ -554,7 +564,6 @@ void LLSceneMonitor::dumpToFile(const std::string &file_name)
             os << ", " << frame_time.value();
         }
         os << '\n';
-
 
         typedef LLTrace::StatType<LLTrace::CountAccumulator> trace_count;
         for (auto& it : trace_count::instance_snapshot())

@@ -24,12 +24,10 @@
 #include "llviewercontrol.h"
 #include "llviewerobject.h"
 #include "llviewerwindow.h"
-
+#include "llrenderstate.h"
 
 const F32 MANIPULATOR_SIZE = 5.0;
 const F32 MANIPULATOR_SELECT_SIZE = 20.0;
-
-
 
 QToolAlign::QToolAlign()
     : LLTool(std::string("Align"))
@@ -39,7 +37,6 @@ QToolAlign::QToolAlign()
 QToolAlign::~QToolAlign()
 {
 }
-
 
 bool QToolAlign::handleMouseDown(S32 x, S32 y, MASK mask)
 {
@@ -54,8 +51,6 @@ bool QToolAlign::handleMouseDown(S32 x, S32 y, MASK mask)
 
     return true;
 }
-
-
 
 void QToolAlign::pickCallback(const LLPickInfo& pick_info)
 {
@@ -98,8 +93,6 @@ void QToolAlign::pickCallback(const LLPickInfo& pick_info)
     LLSelectMgr::getInstance()->promoteSelectionToRoot();
 }
 
-
-
 void QToolAlign::handleSelect()
 {
     // no parts, please
@@ -108,11 +101,9 @@ void QToolAlign::handleSelect()
     LLSelectMgr::getInstance()->promoteSelectionToRoot();
 }
 
-
 void QToolAlign::handleDeselect()
 {
 }
-
 
 bool QToolAlign::findSelectedManipulator(S32 x, S32 y)
 {
@@ -143,7 +134,6 @@ bool QToolAlign::findSelectedManipulator(S32 x, S32 y)
         transform *= model_matrix;
         transform *= projection_matrix;
     }
-
 
     LLRect world_view_rect = gViewerWindow->getWorldViewRectScaled();
     F32 half_width = (F32)world_view_rect.getWidth() / 2.f;
@@ -183,7 +173,6 @@ bool QToolAlign::findSelectedManipulator(S32 x, S32 y)
     return false;
 }
 
-
 bool QToolAlign::handleHover(S32 x, S32 y, MASK mask)
 {
     if (mask & MASK_SHIFT)
@@ -198,8 +187,6 @@ bool QToolAlign::handleHover(S32 x, S32 y, MASK mask)
     gViewerWindow->setCursor(UI_CURSOR_ARROW);
     return findSelectedManipulator(x, y);
 }
-
-
 
 void setup_transforms_bbox(LLBBox bbox)
 {
@@ -218,7 +205,6 @@ void setup_transforms_bbox(LLBBox bbox)
     LLVector3 scale = bbox.getMaxLocal() - bbox.getMinLocal();
     gGL.scalef(scale.mV[VX], scale.mV[VY], scale.mV[VZ]);
 }
-
 
 void render_bbox(LLBBox bbox)
 {
@@ -246,7 +232,6 @@ void render_cone_bbox(LLBBox bbox)
     gGL.popMatrix();
 }
 
-
 // the selection bbox isn't axis aligned, so we must construct one
 // should this be cached in the selection manager?  yes.
 LLBBox get_selection_axis_aligned_bbox()
@@ -273,11 +258,8 @@ LLBBox get_selection_axis_aligned_bbox()
         }
     }
 
-
     return axis_aligned_bbox;
 }
-
-
 
 void QToolAlign::computeManipulatorSize()
 {
@@ -305,11 +287,9 @@ void QToolAlign::computeManipulatorSize()
     }
 }
 
-
 LLColor4 manipulator_color[3] = { LLColor4(0.7f, 0.0f, 0.0f, 0.5f),
                                    LLColor4(0.0f, 0.7f, 0.0f, 0.5f),
                                    LLColor4(0.0f, 0.0f, 0.7f, 0.5f) };
-
 
 void QToolAlign::renderManipulators()
 {
@@ -358,16 +338,15 @@ void QToolAlign::renderManipulators()
         }
 }
 
-
 void QToolAlign::render()
 {
     mBBox = get_selection_axis_aligned_bbox();
 
     // Draw bounding box
     LLGLSUIDefault gls_ui;
-    LLGLEnable gl_blend(GL_BLEND);
-    LLGLEnable gls_alpha_test(GL_ALPHA_TEST);
-    LLGLDepthTest gls_depth(GL_FALSE);
+    LLGLEnable gl_blend(LLRenderCapability::Blend);
+    LLGLEnable gls_alpha_test(LLRenderCapability::AlphaTest);
+    LLGLDepthTest gls_depth(false);
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
     // render box
@@ -392,8 +371,6 @@ bool bbox_overlap(LLBBox bbox1, LLBBox bbox2)
             (fabs(delta.mV[VZ]) < half_extent.mV[VZ] - FUDGE));
 }
 
-
-
 // used to sort bboxes before packing
 class BBoxCompare
 {
@@ -409,7 +386,6 @@ public:
         LLVector3 corner2 = mBBoxes[object2].getCenterAgent() -
             mDirection * mBBoxes[object2].getExtentLocal()/2.0;
 
-
         return mDirection * corner1.mV[mAxis] < mDirection * corner2.mV[mAxis];
     }
 
@@ -417,7 +393,6 @@ public:
     F32 mDirection;
     std::map<LLPointer<LLViewerObject>, LLBBox >& mBBoxes;
 };
-
 
 void QToolAlign::align()
 {
@@ -549,7 +524,6 @@ void QToolAlign::align()
         }
     }
 
-
     // now move them in (Unsigned not Signed in 2.0)
     for (U32 i = 0; i < objects.size(); i++)
 {
@@ -565,7 +539,6 @@ void QToolAlign::align()
 
         object->setPosition(new_position);
     }
-
 
     LLSelectMgr::getInstance()->sendMultipleUpdate(UPD_POSITION);
 }

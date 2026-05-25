@@ -33,12 +33,12 @@
 #include "llglcommonfunc.h"
 #include "llvoavatar.h"
 #include "lldrawpoolwater.h"
+#include "llrenderstate.h"
 
 LLDrawPoolWaterExclusion::LLDrawPoolWaterExclusion() : LLRenderPass(LLDrawPool::POOL_WATEREXCLUSION)
 {
     LL_INFOS("DPInvisible") << "Creating water exclusion draw pool" << LL_ENDL;
 }
-
 
 void LLDrawPoolWaterExclusion::render(S32 pass)
 {                                             // render invisiprims
@@ -49,15 +49,14 @@ void LLDrawPoolWaterExclusion::render(S32 pass)
         gDrawColorProgram.bind();
     }
 
-
-    LLGLDepthTest depth(GL_TRUE);
+    LLGLDepthTest depth(true);
     gDrawColorProgram.uniform4f(LLShaderMgr::DIFFUSE_COLOR, 1, 1, 1, 1);
 
     LLDrawPoolWater* pwaterpool = (LLDrawPoolWater*)gPipeline.getPool(LLDrawPool::POOL_WATER);
     if (pwaterpool)
     {
         // Just treat our water planes as double sided for the purposes of generating the exclusion mask.
-        LLGLDisable cullface(GL_CULL_FACE);
+        LLGLDisable cullface(LLRenderCapability::CullFace);
         pwaterpool->pushWaterPlanes(0);
 
         // Take care of the edge water tiles.
@@ -70,7 +69,6 @@ void LLDrawPoolWaterExclusion::render(S32 pass)
     gDrawColorProgram.uniform1f(waterSign, 1.f);
 
     pushBatches(LLRenderPass::PASS_INVISIBLE, false, false);
-
 
     if (gPipeline.shadersLoaded())
     {

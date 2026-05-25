@@ -95,13 +95,13 @@ if (DARWIN)
     llkeyboardmacosx.cpp
     llwindowmacosx.cpp
     llwindowmacosx-objc.mm
-    llopenglview-objc.mm
+    llnativeview-objc.mm
     )
   list(APPEND llwindow_HEADER_FILES
     llkeyboardmacosx.h
     llwindowmacosx.h
     llwindowmacosx-objc.h
-    llopenglview-objc.h
+    llnativeview-objc.h
     llappdelegate-objc.h
     )
 

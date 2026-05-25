@@ -35,6 +35,7 @@
 #include "llviewercontrol.h"
 #include "llenvironment.h"
 #include "llsettingssky.h"
+#include "llrenderstate.h"
 
 constexpr U32 MIN_SKY_DETAIL = 8;
 constexpr U32 MAX_SKY_DETAIL = 180;
@@ -300,7 +301,7 @@ void LLVOWLSky::drawFsSky(void)
         updateGeometry(mDrawable);
     }
 
-    LLGLDisable disable_blend(GL_BLEND);
+    LLGLDisable disable_blend(LLRenderCapability::Blend);
 
     mFsSkyVerts->setBuffer();
     mFsSkyVerts->drawRange(LLRender::TRIANGLES, 0, mFsSkyVerts->getNumVerts() - 1, mFsSkyVerts->getNumIndices(), 0);
@@ -315,7 +316,7 @@ void LLVOWLSky::drawDome(void)
         updateGeometry(mDrawable);
     }
 
-    LLGLDepthTest gls_depth(GL_TRUE, GL_FALSE);
+    LLGLDepthTest gls_depth(true, false);
 
     std::vector< LLPointer<LLVertexBuffer> >::const_iterator strips_vbo_iter, end_strips;
     end_strips = mStripsVerts.end();

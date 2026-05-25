@@ -29,7 +29,6 @@
 #include "llhudrender.h"
 
 #include "llrender.h"
-#include "llgl.h"
 #include "llviewercamera.h"
 #include "v3math.h"
 #include "llquaternion.h"

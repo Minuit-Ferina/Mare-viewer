@@ -144,6 +144,7 @@
 
 #include "lltoolbarview.h"
 #include "../llcrashlogger/llcrashlogger.h"
+#include "llrendercontext.h"
 
 namespace
 {
@@ -209,7 +210,6 @@ struct LabelTable : public LLInitParam::Block<LabelTable>
         : labels("label")
     {}
 };
-
 
 // global functions
 
@@ -363,7 +363,6 @@ public:
     }
 };
 LLKeybindingHandler gKeybindHandler;
-
 
 //////////////////////////////////////////////
 // LLFloaterPreference
@@ -1027,7 +1026,6 @@ void LLFloaterPreference::onOpen(const LLSD& key)
     // Enabled/disabled popups, might have been changed by user actions
     // while preferences floater was closed.
     buildPopupLists();
-
 
     //get the options that were checked
     onNotificationsChange("FriendIMOptions");
@@ -2036,7 +2034,6 @@ void LLFloaterPreference::onClickLogPath()
     std::string proposed_name(gSavedPerAccountSettings.getString("InstantMessageLogPath"));
     mPriorInstantMessageLogPath.clear();
 
-
     (new LLDirPickerThread(boost::bind(&LLFloaterPreference::changeLogPath, this, _1, _2), proposed_name))->getFile();
 }
 
@@ -2142,14 +2139,12 @@ void LLFloaterPreference::setPersonalInfo(const std::string& visibility)
     get_floater_child<LLUICtrl>(this, "online_visibility")->setValue(mOriginalHideOnlineStatus);
     get_floater_child<LLUICtrl>(this, "online_visibility")->setLabelArg("[DIR_VIS]", mDirectoryVisibility);
 
-
 //MK
     if (gRRenabled && gAgent.mRRInterface.containsWithoutException ("sendim"))
     {
         get_floater_view(this, "do_not_disturb_response")->setEnabled(false);
     }
 //mk
-
 
     get_floater_view(this, "favorites_on_login_check")->setEnabled(true);
     get_floater_view(this, "log_path_button")->setEnabled(true);
@@ -2161,7 +2156,6 @@ void LLFloaterPreference::setPersonalInfo(const std::string& visibility)
     get_floater_view(this, "FSStaticEyes")->setEnabled(true);
 
 }
-
 
 void LLFloaterPreference::refreshUI()
 {
@@ -3052,7 +3046,6 @@ void LLPanelPreference::updateMediaAutoPlayCheckbox(LLUICtrl* ctrl)
         }
     }
 
-
 }
 
 void LLPanelPreference::deletePreset(const LLSD& user_data)
@@ -3393,7 +3386,6 @@ bool LLPanelPreferenceControls::addControlTableRows(const std::string &filename)
     cell_params.font_halign = LLFontGL::LEFT;
     cell_params.column = "";
     cell_params.value = "";
-
 
     for (LLInitParam::ParamIterator<LLScrollListItem::Params>::const_iterator row_it = contents.rows.begin();
         row_it != contents.rows.end();

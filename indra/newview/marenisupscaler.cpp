@@ -12,8 +12,8 @@
 #include "llrendertarget.h"
 #include "llrender.h"           // gGL
 #include "llglslshader.h"
-#include "llglheaders.h"
 #include "llviewercontrol.h"    // gSavedSettings, LLCachedControl
+#include "llrenderstate.h"
 
 // ── MARENISUpscaler ────────────────────────────────────────────────────────────
 
@@ -21,7 +21,7 @@ bool MARENISUpscaler::initialize(U32 renderW, U32 renderH)
 {
     mWidth  = renderW;
     mHeight = renderH;
-    if (!mNISBuffer.allocate(renderW, renderH, GL_RGBA16F)) return false;
+    if (!mNISBuffer.allocate(renderW, renderH, LLRenderTextureFormat::RGBA16F)) return false;
     return true;
 }
 
@@ -65,8 +65,8 @@ void MARENISUpscaler::apply(
         gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, colorSrc->getTexture());
 
         {
-            LLGLDisable   blend(GL_BLEND);
-            LLGLDepthTest depth(GL_FALSE);
+            LLGLDisable   blend(LLRenderCapability::Blend);
+            LLGLDepthTest depth(false);
             triVB->setBuffer();
             triVB->drawArrays(LLRender::TRIANGLES, 0, 3);
         }
@@ -89,8 +89,8 @@ void MARENISUpscaler::apply(
         gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, mNISBuffer.getTexture());
 
         {
-            LLGLDisable   blend(GL_BLEND);
-            LLGLDepthTest depth(GL_FALSE);
+            LLGLDisable   blend(LLRenderCapability::Blend);
+            LLGLDepthTest depth(false);
             triVB->setBuffer();
             triVB->drawArrays(LLRender::TRIANGLES, 0, 3);
         }

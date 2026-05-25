@@ -47,6 +47,7 @@
 #include "lldir.h"
 #include "llxmltree.h"
 #include "llvotree.h"
+#include "llrendercontext.h"
 
 const S32 GRASS_MAX_BLADES =    32;
 const F32 GRASS_BLADE_BASE =    0.25f;          //  Width of grass at base
@@ -64,7 +65,6 @@ F32 w_mod[GRASS_MAX_BLADES];                    //  Factor to modulate wind move
 
 LLVOGrass::SpeciesMap LLVOGrass::sSpeciesTable;
 S32 LLVOGrass::sMaxGrassSpecies = 0;
-
 
 LLVOGrass::LLVOGrass(const LLUUID &id, const LLPCode pcode, LLViewerRegion *regionp)
 :   LLAlphaObject(id, pcode, regionp)
@@ -88,7 +88,6 @@ LLVOGrass::~LLVOGrass()
 {
 }
 
-
 void LLVOGrass::updateSpecies()
 {
     mSpecies = getAttachmentState();
@@ -101,7 +100,6 @@ void LLVOGrass::updateSpecies()
     }
     setTEImage(0, LLViewerTextureManager::getFetchedTexture(sSpeciesTable[mSpecies]->mTextureID, FTT_DEFAULT, true, LLGLTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE));
 }
-
 
 void LLVOGrass::initClass()
 {
@@ -152,7 +150,6 @@ void LLVOGrass::initClass()
         }
 
         GrassSpeciesData* newGrass = new GrassSpeciesData();
-
 
         static LLStdStringHandle texture_id_string = LLXmlTree::addAttributeString("texture_id");
         grass_def->getFastAttributeUUID(texture_id_string, id);
@@ -301,7 +298,6 @@ void LLVOGrass::idleUpdate(LLAgent &agent, const F64 &time)
     return;
 }
 
-
 void LLVOGrass::setPixelAreaAndAngle(LLAgent &agent)
 {
     // This should be the camera's center, as soon as we move to all region-local.
@@ -318,7 +314,6 @@ void LLVOGrass::setPixelAreaAndAngle(LLAgent &agent)
     // Assume grass texture is a 5 meter by 5 meter sprite at the grass object's center
     mPixelArea = (pixels_per_meter) * (pixels_per_meter) * 25.f;
 }
-
 
 // BUG could speed this up by caching the relative_position and range calculations
 void LLVOGrass::updateTextures()
@@ -521,7 +516,6 @@ void LLVOGrass::getGeometry(S32 idx,
         v1 = position + mRegionp->getOriginAgent();
         (*verticesp++).load3(v1.mV);
         (*verticesp++).load3(v1.mV);
-
 
         position.mV[0] += dzx;
         position.mV[1] += dzy;
@@ -799,8 +793,6 @@ bool LLVOGrass::lineSegmentIntersect(const LLVector4a& start, const LLVector4a& 
         position.mV[2]  = mRegionp->getLand().resolveHeightRegion(position);
         v[0]    = v1 = position + mRegionp->getOriginAgent();
 
-
-
         position.mV[0] += dzx;
         position.mV[1] += dzy;
         position.mV[2] += blade_height;
@@ -823,7 +815,6 @@ bool LLVOGrass::lineSegmentIntersect(const LLVector4a& start, const LLVector4a& 
 
         bool hit = false;
 
-
         U32 idx0 = 0,idx1 = 0,idx2 = 0;
 
         LLVector4a v0a,v1a,v2a,v3a;
@@ -832,7 +823,6 @@ bool LLVOGrass::lineSegmentIntersect(const LLVector4a& start, const LLVector4a& 
         v1a.load3(v[1].mV);
         v2a.load3(v[2].mV);
         v3a.load3(v[3].mV);
-
 
         if (LLTriangleRayIntersect(v0a, v1a, v2a, start, dir, a, b, t))
         {

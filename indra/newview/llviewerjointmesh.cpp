@@ -39,7 +39,7 @@
 #include "lldrawpoolbump.h"
 #include "lldynamictexture.h"
 #include "llface.h"
-#include "llglheaders.h"
+
 #include "llviewertexlayer.h"
 #include "llviewercamera.h"
 #include "llviewercontrol.h"
@@ -55,6 +55,8 @@
 #include "m4math.h"
 #include "llmatrix4a.h"
 #include "llperfstats.h"
+#include "llrenderstate.h"
+#include "llrendercontext.h"
 
 #if !LL_DARWIN && !LL_LINUX
 extern PFNGLWEIGHTPOINTERARBPROC glWeightPointerARB;
@@ -68,7 +70,6 @@ extern PFNGLVERTEXBLENDARBPROC glVertexBlendARB;
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-
 //-----------------------------------------------------------------------------
 // LLViewerJointMesh()
 //-----------------------------------------------------------------------------
@@ -77,7 +78,6 @@ LLViewerJointMesh::LLViewerJointMesh()
     LLAvatarJointMesh()
 {
 }
-
 
 //-----------------------------------------------------------------------------
 // ~LLViewerJointMesh()
@@ -164,8 +164,8 @@ void LLViewerJointMesh::uploadJointMatrices()
     // upload matrices
     if (hardware_skinning)
     {
-        GLfloat mat[45*4];
-        memset(mat, 0, sizeof(GLfloat)*45*4);
+        F32 mat[45*4];
+        memset(mat, 0, sizeof(F32)*45*4);
 
         for (joint_num = 0; joint_num < reference_mesh->mJointRenderData.size(); joint_num++)
         {
@@ -175,7 +175,7 @@ void LLViewerJointMesh::uploadJointMatrices()
             {
                 F32* vector = gJointMatUnaligned[joint_num].mMatrix[axis];
                 U32 offset = LL_CHARACTER_MAX_JOINTS_PER_MESH*axis+joint_num;
-                memcpy(mat+offset*4, vector, sizeof(GLfloat)*4);
+                memcpy(mat+offset*4, vector, sizeof(F32)*4);
             }
         }
         stop_glerror();
@@ -307,7 +307,7 @@ U32 LLViewerJointMesh::drawShape( F32 pixelArea, bool first_pass, bool is_dummy)
     {
         gGL.pushMatrix();
         LLMatrix4 jointToWorld = getWorldMatrix();
-        gGL.multMatrix((GLfloat*)jointToWorld.mMatrix);
+        gGL.multMatrix((F32*)jointToWorld.mMatrix);
         buff->setBuffer();
         buff->drawRange(LLRender::TRIANGLES, start, end, count, offset);
         gGL.popMatrix();
@@ -396,7 +396,6 @@ void LLViewerJointMesh::updateFaceData(LLFace *face, F32 pixel_area, bool damp_w
             LLVector4a::memcpyNonAliased16(v, (F32*) mMesh->getCoords(), words*sizeof(F32));
             LLVector4a::memcpyNonAliased16(n, (F32*) mMesh->getNormals(), words*sizeof(F32));
 
-
             if (!terse_update)
             {
                 vertex_weightsp += mMesh->mFaceVertexOffset;
@@ -436,8 +435,6 @@ void LLViewerJointMesh::updateFaceData(LLFace *face, F32 pixel_area, bool damp_w
         }
     }
 }
-
-
 
 //-----------------------------------------------------------------------------
 // updateLOD()

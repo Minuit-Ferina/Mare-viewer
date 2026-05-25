@@ -29,7 +29,7 @@
 #include "llavatarappearance.h"
 #include "llavatarappearancedefines.h"
 #include "llavatarjointmesh.h"
-#include "llgl.h"
+
 #include "lljointdata.h"
 #include "llstl.h"
 #include "lldir.h"
@@ -41,6 +41,7 @@
 #include "boost/bind.hpp"
 #include "boost/tokenizer.hpp"
 #include "v4math.h"
+#include "llrendercontext.h"
 
 using namespace LLAvatarAppearanceDefines;
 
@@ -157,7 +158,6 @@ LLAvatarAppearance::LLAvatarXmlInfo::~LLAvatarXmlInfo()
     mMorphMaskInfoList.clear();
 }
 
-
 /**
  **
  ** End LLAvatarAppearance Support classes
@@ -170,7 +170,6 @@ LLAvatarAppearance::LLAvatarXmlInfo::~LLAvatarXmlInfo()
 LLAvatarSkeletonInfo* LLAvatarAppearance::sAvatarSkeletonInfo = NULL;
 LLAvatarAppearance::LLAvatarXmlInfo* LLAvatarAppearance::sAvatarXmlInfo = NULL;
 LLAvatarAppearanceDefines::LLAvatarAppearanceDictionary* LLAvatarAppearance::sAvatarDictionary = NULL;
-
 
 LLAvatarAppearance::LLAvatarAppearance(LLWearableData* wearable_data) :
     LLCharacter(),
@@ -662,7 +661,6 @@ bool LLAvatarAppearance::setupBone(const LLAvatarBoneInfo* info, LLJoint* parent
         volume_num++;
     }
 
-
     // setup children
     for (LLAvatarBoneInfo* child_info : info->mChildren)
     {
@@ -689,7 +687,6 @@ bool LLAvatarAppearance::allocateCharacterJoints( U32 num )
 
     return true;
 }
-
 
 //-----------------------------------------------------------------------------
 // buildSkeleton()
@@ -1074,7 +1071,6 @@ bool LLAvatarAppearance::loadSkeletonNode ()
         }
     }
 
-
     return true;
 }
 
@@ -1278,7 +1274,6 @@ LLJoint *LLAvatarAppearance::getCharacterJoint( U32 num )
     return mSkeleton[num];
 }
 
-
 //-----------------------------------------------------------------------------
 // getVolumePos()
 //-----------------------------------------------------------------------------
@@ -1329,7 +1324,6 @@ LLPolyMesh* LLAvatarAppearance::getHeadMesh()
     return mMeshLOD[MESH_ID_HEAD]->mMeshParts[0]->getMesh();
 }
 
-
 //-----------------------------------------------------------------------------
 // LLAvatarAppearance::getUpperBodyMesh()
 //-----------------------------------------------------------------------------
@@ -1337,8 +1331,6 @@ LLPolyMesh* LLAvatarAppearance::getUpperBodyMesh()
 {
     return mMeshLOD[MESH_ID_UPPER_BODY]->mMeshParts[0]->getMesh();
 }
-
-
 
 // virtual
 bool LLAvatarAppearance::isValid() const
@@ -1351,7 +1343,6 @@ bool LLAvatarAppearance::isValid() const
     return true;
 }
 
-
 // adds a morph mask to the appropriate baked texture structure
 void LLAvatarAppearance::addMaskedMorph(EBakedTextureIndex index, LLVisualParam* morph_target, bool invert, std::string layer)
 {
@@ -1361,7 +1352,6 @@ void LLAvatarAppearance::addMaskedMorph(EBakedTextureIndex index, LLVisualParam*
         mBakedTextureDatas[index].mMaskedMorphs.push_front(morph);
     }
 }
-
 
 //static
 bool LLAvatarAppearance::teToColorParams( ETextureIndex te, U32 *param_name )
@@ -1645,7 +1635,6 @@ bool LLAvatarBoneInfo::parseXml(LLXmlTreeNode* node)
     return true;
 }
 
-
 glm::mat4 LLAvatarBoneInfo::getJointMatrix()
 {
     glm::mat4 mat(1.0f);
@@ -1779,7 +1768,6 @@ void LLAvatarAppearance::getJointMatricesAndHierarhy(std::vector<LLJointData> &d
         LLAvatarSkeletonInfo::getJointMatricesAndHierarhy(bone_info, child_data, identity);
     }
 }
-
 
 //-----------------------------------------------------------------------------
 // parseXmlSkeletonNode(): parses <skeleton> nodes from XML tree

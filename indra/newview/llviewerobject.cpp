@@ -105,8 +105,9 @@
 #include "llcleanup.h"
 #include "llmeshrepository.h"
 #include "llgltfmateriallist.h"
-#include "llgl.h"
+
 #include "gltf/asset.h"
+#include "llrendercontext.h"
 
 //#define DEBUG_UPDATE_TYPE
 
@@ -119,7 +120,6 @@ bool        LLViewerObject::sMapDebug = true;
 LLColor4    LLViewerObject::sEditSelectColor(   1.0f, 1.f, 0.f, 0.3f);  // Edit OK
 LLColor4    LLViewerObject::sNoEditSelectColor( 1.0f, 0.f, 0.f, 0.3f);  // Can't edit
 S32         LLViewerObject::sAxisArrowLength(50);
-
 
 bool        LLViewerObject::sPulseEnabled(false);
 bool        LLViewerObject::sUseSharedDrawables(false); // true
@@ -1164,7 +1164,6 @@ U32 LLViewerObject::processUpdateMessage(LLMessageSystem *mesgsys,
 
     LL_DEBUGS("ObjectUpdate") << " mesgsys " << mesgsys << " dp " << dp << " id " << getID() << " update_type " << (S32) update_type << LL_ENDL;
 
-
     // The new OBJECTDATA_FIELD_SIZE_124, OBJECTDATA_FIELD_SIZE_140, OBJECTDATA_FIELD_SIZE_80
     // and OBJECTDATA_FIELD_SIZE_64 lengths should be supported in the existing cases below.
     // Each case should start at the beginning of the buffer and extract all known
@@ -1486,7 +1485,6 @@ U32 LLViewerObject::processUpdateMessage(LLMessageSystem *mesgsys,
 //MK
                     mText->mLastMessageText = temp_string;
 //mk
-
 
                     mHudText = temp_string;
                     mHudTextColor = LLColor4(coloru);
@@ -2411,7 +2409,6 @@ U32 LLViewerObject::processUpdateMessage(LLMessageSystem *mesgsys,
         LLSelectMgr::getInstance()->overrideAvatarUpdates();
     }
 
-
     // Mark update time as approx. now, with the ping delay.
     // Ping delay is off because it's not set for velocity interpolation, causing
     // much jumping and hopping around...
@@ -2489,7 +2486,6 @@ void LLViewerObject::idleUpdate(LLAgent &agent, const F64 &frame_time)
         updateDrawable(false);
     }
 }
-
 
 // Move an object due to idle-time viewer side updates by interpolating motion
 void LLViewerObject::interpolateLinearMotion(const F64SecondsImplicit& frame_time, const F32SecondsImplicit& dt_seconds)
@@ -2587,7 +2583,6 @@ void LLViewerObject::interpolateLinearMotion(const F64SecondsImplicit& frame_tim
         new_pos = new_pos + getPositionRegion();
         new_v = new_v + vel;
 
-
         // Clamp interpolated position to minimum underground and maximum region height
         LLVector3d new_pos_global = mRegionp->getPosGlobalFromRegion(new_pos);
         F32 min_height;
@@ -2669,8 +2664,6 @@ void LLViewerObject::interpolateLinearMotion(const F64SecondsImplicit& frame_tim
     // Update the last time we did anything
     mLastInterpUpdateSecs = frame_time;
 }
-
-
 
 // delete an item in the inventory, but don't tell the server. This is
 // used internally by remove, update, and savescript.
@@ -3950,7 +3943,6 @@ void LLViewerObject::setLinksetPhysicsCost(F32 cost)
     }
 }
 
-
 F32 LLViewerObject::getObjectCost()
 {
     if (mCostStale)
@@ -4173,7 +4165,6 @@ F32 LLViewerObject::getMidScale() const
     }
 }
 
-
 void LLViewerObject::updateTextures()
 {
 }
@@ -4247,7 +4238,6 @@ void LLViewerObject::increaseArrowLength()
     }
 */
 }
-
 
 void LLViewerObject::decreaseArrowLength()
 {
@@ -4327,7 +4317,6 @@ bool LLViewerObject::removeNVPair(const std::string& name)
     }
     return false;
 }
-
 
 LLNameValue *LLViewerObject::getNVPair(const std::string& name) const
 {
@@ -4560,7 +4549,6 @@ void LLViewerObject::moveGLTFNode(S32 node_index, const LLVector3& offset)
         LLVector4a origin = LLVector4a::getZero();
         LLVector4a offset_v;
         offset_v.load3(offset.mV);
-
 
         agent_to_node.affineTransform(offset_v, offset_v);
         agent_to_node.affineTransform(origin, origin);
@@ -4828,7 +4816,6 @@ void LLViewerObject::setPositionGlobal(const LLVector3d &pos_global, bool damped
     updateDrawable(damped);
 }
 
-
 void LLViewerObject::setPositionParent(const LLVector3 &pos_parent, bool damped)
 {
     // Set position relative to parent, if no parent, relative to region
@@ -4898,7 +4885,6 @@ void LLViewerObject::setPositionEdit(const LLVector3 &pos_edit, bool damped)
     }
 }
 
-
 LLViewerObject* LLViewerObject::getRootEdit() const
 {
     const LLViewerObject* root = this;
@@ -4909,7 +4895,6 @@ LLViewerObject* LLViewerObject::getRootEdit() const
     }
     return (LLViewerObject*)root;
 }
-
 
 bool LLViewerObject::lineSegmentIntersect(const LLVector4a& start, const LLVector4a& end,
                                           S32 face,
@@ -5148,7 +5133,6 @@ void LLViewerObject::sendShapeUpdate()
     gMessageSystem->sendReliable( regionp->getHost() );
 }
 
-
 void LLViewerObject::sendTEUpdate() const
 {
     LLMessageSystem* msg = gMessageSystem;
@@ -5229,7 +5213,6 @@ void LLViewerObject::updateAvatarMeshVisibility(const LLUUID& id, const LLUUID& 
         avatar->updateMeshVisibility();
     }
 }
-
 
 void LLViewerObject::setTE(const U8 te, const LLTextureEntry& texture_entry)
 {
@@ -5454,21 +5437,21 @@ S32 LLViewerObject::setTETexture(const U8 te, const LLUUID& uuid)
 {
     // Invalid host == get from the agent's sim
     LLViewerFetchedTexture *image = LLViewerTextureManager::getFetchedTexture(
-        uuid, FTT_DEFAULT, true, LLGLTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE, 0, 0, LLHost());
+        uuid, FTT_DEFAULT, true, LLGLTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE, LLRenderTextureFormat::None, LLRenderPixelFormat::RGBA, LLHost());
         return setTETextureCore(te, image);
 }
 
 S32 LLViewerObject::setTENormalMap(const U8 te, const LLUUID& uuid)
 {
     LLViewerFetchedTexture *image = (uuid == LLUUID::null) ? NULL : LLViewerTextureManager::getFetchedTexture(
-        uuid, FTT_DEFAULT, true, LLGLTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE, 0, 0, LLHost());
+        uuid, FTT_DEFAULT, true, LLGLTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE, LLRenderTextureFormat::None, LLRenderPixelFormat::RGBA, LLHost());
     return setTENormalMapCore(te, image);
 }
 
 S32 LLViewerObject::setTESpecularMap(const U8 te, const LLUUID& uuid)
 {
     LLViewerFetchedTexture *image = (uuid == LLUUID::null) ? NULL : LLViewerTextureManager::getFetchedTexture(
-        uuid, FTT_DEFAULT, true, LLGLTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE, 0, 0, LLHost());
+        uuid, FTT_DEFAULT, true, LLGLTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE, LLRenderTextureFormat::None, LLRenderPixelFormat::RGBA, LLHost());
     return setTESpecularMapCore(te, image);
 }
 
@@ -5840,7 +5823,6 @@ S32 LLViewerObject::setTERotation(const U8 te, const F32 r)
     return retval;
 }
 
-
 LLViewerTexture *LLViewerObject::getTEImage(const U8 face) const
 {
 //  llassert(mTEImages);
@@ -5863,21 +5845,20 @@ LLViewerTexture *LLViewerObject::getTEImage(const U8 face) const
     return NULL;
 }
 
-
 bool LLViewerObject::isImageAlphaBlended(const U8 te) const
 {
     LLViewerTexture* image = getTEImage(te);
-    LLGLenum format = image ? image->getPrimaryFormat() : GL_RGB;
+    LLRenderPixelFormat format = image ? image->getPrimaryPixelFormat() : LLRenderPixelFormat::RGB;
     switch (format)
     {
-        case GL_RGBA:
-        case GL_ALPHA:
+        case LLRenderPixelFormat::RGBA:
+        case LLRenderPixelFormat::Alpha:
         {
             return true;
         }
         break;
 
-        case GL_RGB: break;
+        case LLRenderPixelFormat::RGB: break;
         default:
         {
             LL_WARNS() << "Unexpected tex format in LLViewerObject::isImageAlphaBlended...returning no alpha." << LL_ENDL;
@@ -6132,7 +6113,6 @@ bool LLViewerObject::isOnMap()
 {
     return mOnMap;
 }
-
 
 void LLViewerObject::updateText()
 {
@@ -6769,8 +6749,6 @@ bool LLViewerObject::isDrawableState(U32 state, bool recursive) const
     return matches;
 }
 
-
-
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // RN: these functions assume a 2-level hierarchy
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -7052,7 +7030,6 @@ void    LLViewerObject::updateRegion(LLViewerRegion *regionp)
 //          << LL_ENDL;
 //  }
 }
-
 
 bool LLViewerObject::specialHoverCursor() const
 {
@@ -7418,7 +7395,6 @@ bool LLViewerObject::isHiglightedOrBeacon() const
     return false;
 }
 
-
 const LLUUID &LLViewerObject::getAttachmentItemID() const
 {
     return mAttachmentItemID;
@@ -7569,7 +7545,6 @@ void LLViewerObject::setRenderMaterialID(S32 te_in, const LLUUID& id, bool updat
     { // block doesn't exist, but it will need to
         param_block = (LLRenderMaterialParams*)createNewParameterEntry(LLNetworkData::PARAMS_RENDER_MATERIAL)->data;
     }
-
 
     LLFetchedGLTFMaterial* new_material = nullptr;
     if (id.notNull())
@@ -7844,4 +7819,3 @@ public:
 
 LLHTTPRegistration<ObjectPhysicsProperties>
     gHTTPRegistrationObjectPhysicsProperties("/message/ObjectPhysicsProperties");
-

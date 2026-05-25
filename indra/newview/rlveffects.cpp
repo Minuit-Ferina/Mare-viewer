@@ -18,7 +18,7 @@
 
 #include "llagent.h"
 #include "llfasttimer.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llviewershadermgr.h"
 #include "llviewertexturelist.h"
 #include "llviewerwindow.h"
@@ -27,6 +27,7 @@
 #include "glm/gtc/type_ptr.hpp"
 
 #include "rlveffects.h"
+#include "llrenderstate.h"
 
 // ====================================================================================
 // RlvSphereEffect class
@@ -205,7 +206,7 @@ float RlvSphereEffect::getTweenDuration()
 
 void RlvSphereEffect::setShaderUniforms(LLGLSLShader* pShader)
 {
-    pShader->uniform2f(LLShaderMgr::DEFERRED_SCREEN_RES, static_cast<GLfloat>(gPipeline.mRT->screen.getWidth()), static_cast<GLfloat>(gPipeline.mRT->screen.getHeight()));
+    pShader->uniform2f(LLShaderMgr::DEFERRED_SCREEN_RES, static_cast<F32>(gPipeline.mRT->screen.getWidth()), static_cast<F32>(gPipeline.mRT->screen.getHeight()));
     pShader->uniform1i(LLShaderMgr::RLV_EFFECT_MODE, llclamp((int)m_eMode, 0, (int)ESphereMode::Count));
 
     // Pass the sphere origin to the shader
@@ -248,7 +249,7 @@ void RlvSphereEffect::setShaderUniforms(LLGLSLShader* pShader)
 
     // Pass dist extend
     int eDistExtend = (int)m_eDistExtend;
-    pShader->uniform2f(LLShaderMgr::RLV_EFFECT_PARAM3, static_cast<GLfloat>(eDistExtend & (int)ESphereDistExtend::Min), static_cast<GLfloat>(eDistExtend & (int)ESphereDistExtend::Max));
+    pShader->uniform2f(LLShaderMgr::RLV_EFFECT_PARAM3, static_cast<F32>(eDistExtend & (int)ESphereDistExtend::Min), static_cast<F32>(eDistExtend & (int)ESphereDistExtend::Max));
 
     // Pass effect params
     pShader->uniform4fv(LLShaderMgr::RLV_EFFECT_PARAM4, 1, m_Params.get().mV);
@@ -266,7 +267,11 @@ void RlvSphereEffect::renderPass(LLGLSLShader* pShader, const LLShaderEffectPara
         gGLViewport[1] = gViewerWindow->getWorldViewRectRaw().mBottom;
         gGLViewport[2] = gViewerWindow->getWorldViewRectRaw().getWidth();
         gGLViewport[3] = gViewerWindow->getWorldViewRectRaw().getHeight();
-        LLGLContainment::setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+        getOpenGLRenderBackend().setViewport(
+            gGLViewport[0],
+            gGLViewport[1],
+            gGLViewport[2],
+            gGLViewport[3]);
     }
     //RLV_ASSERT_DBG(pParams->m_pSrcBuffer);
 
@@ -302,7 +307,7 @@ void RlvSphereEffect::run(const LLVisualEffectParams* pParams)
     LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("Post-process (RLVa sphere)");
     if (gRlvSphereProgram.isComplete())
     {
-        LLGLDepthTest depth(GL_FALSE, GL_FALSE);
+        LLGLDepthTest depth(false, false);
 
         gRlvSphereProgram.bind();
         setShaderUniforms(&gRlvSphereProgram);

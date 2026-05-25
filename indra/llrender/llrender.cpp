@@ -425,13 +425,14 @@ bool LLTexUnit::bind(LLRenderTarget* renderTarget, bool bindDepth)
 
     if (bindDepth)
     {
-        llassert(renderTarget->getDepth()); // target MUST have a depth buffer attachment
+        LLRenderTextureHandle texture = renderTarget->getDepthHandle();
+        llassert(texture); // target MUST have a depth buffer attachment
 
-        bindManual(renderTarget->getUsage(), renderTarget->getDepth());
+        bindManual(renderTarget->getUsage(), texture.asLegacyName());
     }
     else
     {
-        bindManual(renderTarget->getUsage(), renderTarget->getTexture());
+        bindManual(renderTarget->getUsage(), renderTarget->getTextureHandle().asLegacyName());
     }
 
     return true;

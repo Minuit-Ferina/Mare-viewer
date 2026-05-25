@@ -31,6 +31,7 @@
 #include "llsyntaxid.h"
 #include "lllocalcliprect.h"
 #include "llviewercontrol.h"
+#include "llrenderstate.h"
 
 // <FS:Ansariel> FIRE-23047: Increase width of line number column
 //const S32 UI_TEXTEDITOR_LINE_NUMBER_MARGIN = 32;
@@ -42,7 +43,6 @@ LLScriptEditor::Params::Params()
 :   show_line_numbers("show_line_numbers", true),
     default_font_size("default_font_size", false)
 {}
-
 
 LLScriptEditor::LLScriptEditor(const Params& p)
 :   LLTextEditor(p)

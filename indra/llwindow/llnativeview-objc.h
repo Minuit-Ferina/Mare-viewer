@@ -1,5 +1,5 @@
 /**
- * @file llopenglview-objc.h
+ * @file llnativeview-objc.h
  * @brief Class interfaces for most of the Mac facing window functionality.
  *
  * $LicenseInfo:firstyear=2000&license=viewerlgpl$
@@ -24,8 +24,8 @@
  * $/LicenseInfo$
  */
 
-#ifndef LLOpenGLView_H
-#define LLOpenGLView_H
+#ifndef LLNativeView_H
+#define LLNativeView_H
 
 #import <Cocoa/Cocoa.h>
 #import <IOKit/IOKitLib.h>
@@ -34,7 +34,7 @@
 #include <string>
 #import <AppKit/AppKit.h>
 
-@interface LLOpenGLView : NSOpenGLView <NSTextInputClient>
+@interface LLNativeView : NSView <NSTextInputClient>
 {
     std::string mLastDraggedUrl;
     unsigned int mModifiers;
@@ -50,21 +50,6 @@
 
 - (void)commitCurrentPreedit;
 
-// rebuildContext
-// Destroys and recreates a context with the view's internal format set via setPixelFormat;
-// Use this in event of needing to rebuild a context for whatever reason, without needing to assign a new pixel format.
-- (BOOL) rebuildContext;
-
-// rebuildContextWithFormat
-// Destroys and recreates a context with the specified pixel format.
-- (BOOL) rebuildContextWithFormat:(NSOpenGLPixelFormat *)format;
-
-// These are mostly just for C++ <-> Obj-C interop.  We can manipulate the CGLContext from C++ without reprecussions.
-- (CGLContextObj) getCGLContextObj;
-- (CGLPixelFormatObj*)getCGLPixelFormatObj;
-
-- (unsigned long) getVramSize;
-
 - (void) allowMarkedTextInput:(bool)allowed;
 
 @end
@@ -75,11 +60,11 @@
 
 @interface LLNonInlineTextView : NSTextView
 {
-    LLOpenGLView *glview;
+    LLNativeView *native_view;
     unichar mKeyPressed;
 }
 
-- (void) setGLView:(LLOpenGLView*)view;
+- (void) setNativeView:(LLNativeView*)view;
 
 @end
 

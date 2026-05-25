@@ -35,18 +35,18 @@
 #include "pipeline.h"
 #include "llspatialpartition.h"
 #include "llviewershadermgr.h"
-#include "llglcontainment.h"
+#include "llrenderbackend.h"
 #include "llrender.h"
 #include "gltfscenemanager.h"
 
 //MK
 #include "llagent.h"
 #include "llvovolume.h"
+#include "llrenderstate.h"
 //mk
 
 static LLTrace::BlockTimerStatHandle FTM_RENDER_SIMPLE_DEFERRED("Deferred Simple");
 static LLTrace::BlockTimerStatHandle FTM_RENDER_GRASS_DEFERRED("Deferred Grass");
-
 
 void LLDrawPoolGlow::renderPostDeferred(S32 pass)
 {
@@ -60,14 +60,14 @@ void LLDrawPoolGlow::renderPostDeferred(S32 pass)
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
     LLGLSLShader* shader = &gDeferredEmissiveProgram;
 
-    LLGLEnable blend(GL_BLEND);
+    LLGLEnable blend(LLRenderCapability::Blend);
     gGL.flush();
     /// Get rid of z-fighting with non-glow pass.
-    LLGLEnable polyOffset(GL_POLYGON_OFFSET_FILL);
-    LLGLContainment::setPolygonOffset(-1.0f, -1.0f);
+    LLGLEnable polyOffset(LLRenderCapability::PolygonOffsetFill);
+    getOpenGLRenderBackend().setPolygonOffset(-1.0f, -1.0f);
     gGL.setSceneBlendType(LLRender::BT_ADD);
 
-    LLGLDepthTest depth(GL_TRUE, GL_FALSE);
+    LLGLDepthTest depth(true, false);
     gGL.setColorMask(false, true);
 
     //first pass -- static objects
@@ -112,7 +112,7 @@ S32 LLDrawPoolSimple::getNumDeferredPasses()
 void LLDrawPoolSimple::renderDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL; //LL_RECORD_BLOCK_TIME(FTM_RENDER_SIMPLE_DEFERRED);
-    LLGLDisable blend(GL_BLEND);
+    LLGLDisable blend(LLRenderCapability::Blend);
 
     //render static
     gDeferredDiffuseProgram.bind();
@@ -124,7 +124,6 @@ void LLDrawPoolSimple::renderDeferred(S32 pass)
 }
 
 static LLTrace::BlockTimerStatHandle FTM_RENDER_ALPHA_MASK_DEFERRED("Deferred Alpha Mask");
-
 
 void LLDrawPoolAlphaMask::renderDeferred(S32 pass)
 {
@@ -158,7 +157,6 @@ void LLDrawPoolGrass::renderDeferred(S32 pass)
         LLRenderPass::pushBatches(LLRenderPass::PASS_GRASS, getVertexDataMask());
     }
 }
-
 
 // Fullbright drawpool
 LLDrawPoolFullbright::LLDrawPoolFullbright() :
@@ -212,7 +210,7 @@ void LLDrawPoolFullbrightAlphaMask::renderPostDeferred(S32 pass)
         shader = &gDeferredFullbrightAlphaMaskProgram;
     }
 
-    LLGLDisable blend(GL_BLEND);
+    LLGLDisable blend(LLRenderCapability::Blend);
 
     // render static
     shader->bind();

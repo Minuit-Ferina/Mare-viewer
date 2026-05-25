@@ -48,7 +48,6 @@
 #include "llaudioengine_openal.h"
 #endif
 
-
 #include "fscommon.h"
 #include "fscorehttputil.h"
 #include "llavatarnamecache.h"
@@ -215,7 +214,6 @@
 #include "threadpool.h"
 #include "llperfstats.h"
 
-
 #if LL_WINDOWS
 #include "lldxhardware.h"
 #endif
@@ -231,6 +229,7 @@
 #include "kokuarlvfloaters.h"
 #include "kokuarlvmode.h" // for RLV_ALWAYS_ON
 #include "kokuarlvextras.h"
+#include "llrenderstate.h"
 
 //
 // exported globals
@@ -779,7 +778,6 @@ bool idle_startup()
         gSavedSettings.setS32("LastFeatureVersion", LLFeatureManager::getInstance()->getVersion());
         gSavedSettings.setString("LastGPUString", thisGPU);
 
-
         std::string xml_file = LLUI::locateSkin("xui_version.xml");
         LLXMLNodePtr root;
         bool xml_ok = false;
@@ -949,7 +947,6 @@ bool idle_startup()
             }
             gAssetStorage = new LLViewerAssetStorage(msg, gXferManager);
 
-
             F32 dropPercent = gSavedSettings.getF32("PacketDropPercentage");
             msg->mPacketRing.setDropPercentage(dropPercent);
         }
@@ -1108,7 +1105,6 @@ bool idle_startup()
         return false;
     }
 
-
     if (STATE_BROWSER_INIT == LLStartUp::getStartupState())
     {
         LL_DEBUGS("AppInit") << "STATE_BROWSER_INIT" << LL_ENDL;
@@ -1120,7 +1116,6 @@ bool idle_startup()
         LLStartUp::setStartupState( STATE_LOGIN_SHOW );
         return false;
     }
-
 
     if (STATE_LOGIN_SHOW == LLStartUp::getStartupState())
     {
@@ -1377,7 +1372,6 @@ bool idle_startup()
             //LLPanelLogin::closePanel();
         }
 
-
         // Load URL History File
         LLURLHistory::loadFile("url_history.xml");
         // Load location history
@@ -1537,7 +1531,6 @@ bool idle_startup()
             }
 
             emsg << message;
-
 
             if(reason_response == "key")
             {
@@ -1769,7 +1762,6 @@ bool idle_startup()
         return false;
     }
 
-
     //---------------------------------------------------------------------
     // Load QuickTime/GStreamer and other multimedia engines, can be slow.
     // Do it while we're waiting on the network for our seed capability. JC
@@ -1862,7 +1854,6 @@ bool idle_startup()
         do_startup_frame();
         return false;
     }
-
 
     //---------------------------------------------------------------------
     // Seed Capability Granted
@@ -1965,7 +1956,6 @@ bool idle_startup()
         //
         // Set up region and surface defaults
         //
-
 
         // Sets up the parameters for the first simulator
 
@@ -2454,7 +2444,6 @@ bool idle_startup()
             cof->setFetching(LLViewerInventoryCategory::FETCH_RECURSIVE);
         }
 
-
         // It's debatable whether this flag is a good idea - sets all
         // bits, and in general it isn't true that inventory
         // initialization generates all types of changes. Maybe add an
@@ -2486,7 +2475,6 @@ bool idle_startup()
 
         return false;
     }
-
 
     //---------------------------------------------------------------------
     // Misc
@@ -3159,8 +3147,6 @@ bool first_run_dialog_callback(const LLSD& notification, const LLSD& response)
     return false;
 }
 
-
-
 void set_startup_status(const F32 frac, const std::string& string, const std::string& msg)
 {
     gViewerWindow->setProgressPercent(frac*100);
@@ -3192,7 +3178,6 @@ bool login_alert_status(const LLSD& notification, const LLSD& response)
     LLPanelLogin::giveFocus();
     return false;
 }
-
 
 void use_circuit_callback(void**, S32 result)
 {
@@ -3554,14 +3539,12 @@ std::string LLStartUp::getUserId()
     return gUserCredential->userID();
 }
 
-
 // frees the bitmap
 void release_start_screen()
 {
     LL_DEBUGS("AppInit") << "Releasing bitmap..." << LL_ENDL;
     gStartTexture = NULL;
 }
-
 
 // static
 std::string LLStartUp::startupStateToString(EStartupState state)
@@ -3620,7 +3603,6 @@ void LLStartUp::postStartupState()
     sStateWatcher->post(stateInfo);
     gDebugInfo["StartupState"] = getStartupStateString();
 }
-
 
 void reset_login()
 {
@@ -3703,7 +3685,6 @@ void LLStartUp::initNameCache()
     cache_inst->setUseDisplayNames(gSavedSettings.getBOOL("UseDisplayNames"));
     cache_inst->setUseUsernames(gSavedSettings.getBOOL("NameTagShowUsernames"));
 }
-
 
 void LLStartUp::initExperiences()
 {
@@ -4021,7 +4002,6 @@ LLSD transform_cert_args(LLPointer<LLCertificate> cert)
     }
     return args;
 }
-
 
 // when we handle a cert error, give focus back to the login panel
 void general_cert_done(const LLSD& notification, const LLSD& response)

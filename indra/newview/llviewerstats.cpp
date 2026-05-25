@@ -68,6 +68,7 @@
 #include "llinventorymodel.h"
 #include "lluiusage.h"
 #include "lltranslate.h"
+#include "llrendercontext.h"
 
 // "Minimal Vulkan" to get max API Version
 
@@ -728,7 +729,6 @@ void send_viewer_stats(bool include_preferences)
 
     gGLManager.asLLSD(system["gl"]);
 
-
     S32 shader_level = 0;
     if (LLPipeline::sRenderDeferred)
     {
@@ -749,8 +749,6 @@ void send_viewer_stats(bool include_preferences)
     {
         shader_level = 2;
     }
-
-
 
     system["shader_level"] = shader_level;
 
@@ -1008,7 +1006,6 @@ void LLViewerStats::PhaseMap::recordPhaseStat(const std::string& phase_name, F32
     LLViewerStats::StatsAccumulator& stats = getPhaseStats(phase_name);
     stats.push(value);
 }
-
 
 bool LLViewerStats::PhaseMap::getPhaseValues(const std::string& phase_name, F32& elapsed, bool& completed)
 {

@@ -64,10 +64,21 @@ enum class LLRenderBlendFactor : U8
 
 enum class LLRenderCapability : U8
 {
+    AlphaTest,
+    Blend,
+    ClipPlane0,
+    CullFace,
     DebugOutputSynchronous,
     DepthTest,
+    DepthClamp,
     LineSmooth,
     Multisample,
+    PolygonOffsetFill,
+    PolygonOffsetLine,
+    ScissorTest,
+    StencilTest,
+    TextureGenS,
+    TextureGenT,
     TextureCubeMapSeamless,
 };
 
@@ -158,6 +169,7 @@ enum class LLRenderBufferUsage : U8
 {
     StaticDraw,
     DynamicDraw,
+    StreamDraw,
     StreamCopy,
 };
 
@@ -195,11 +207,29 @@ enum class LLRenderFramebufferAttachment : U8
     Depth,
 };
 
+enum class LLRenderFramebufferBindPoint : U8
+{
+    Read,
+    Draw,
+    ReadWrite,
+};
+
+enum class LLRenderFramebufferStatus : U8
+{
+    Complete,
+    IncompleteMissingAttachment,
+    IncompleteAttachment,
+    Unsupported,
+    Unknown,
+};
+
 enum class LLRenderQueryTarget : U8
 {
+    AnySamplesPassed,
     TimeElapsed,
     SamplesPassed,
     PrimitivesGenerated,
+    TransformFeedbackPrimitivesWritten,
 };
 
 enum class LLRenderQueryParameter : U8
@@ -212,6 +242,8 @@ enum class LLRenderShaderStage : U8
 {
     Vertex,
     Fragment,
+    Geometry,
+    Compute,
 };
 
 enum class LLRenderShaderParameter : U8
@@ -233,13 +265,139 @@ enum class LLRenderProgramSetting : U8
     BinaryRetrievableHint,
 };
 
+enum class LLRenderTextureFormat : U8
+{
+    None,
+    Alpha,
+    Alpha8,
+    R8,
+    R16F,
+    R32F,
+    RG8,
+    RG16F,
+    RG32F,
+    RGB,
+    RGB8,
+    RGB16F,
+    RGB10A2,
+    R11G11B10F,
+    RGBA,
+    RGBA8,
+    RGBA16,
+    RGBA16F,
+    DepthComponent,
+    DepthComponent24,
+    Luminance,
+};
+
+enum class LLRenderPixelFormat : U8
+{
+    Alpha,
+    DepthComponent,
+    Luminance,
+    Red,
+    RG,
+    RGB,
+    RGBA,
+};
+
+enum class LLRenderPixelType : U8
+{
+    UnsignedByte,
+    UnsignedShort,
+    UnsignedInt,
+    Float32,
+};
+
+enum class LLRenderImageAccess : U8
+{
+    WriteOnly,
+};
+
+enum class LLRenderPolygonFace : U8
+{
+    FrontAndBack,
+};
+
+enum class LLRenderPolygonMode : U8
+{
+    Fill,
+    Line,
+};
+
+enum class LLRenderStencilFunction : U8
+{
+    Always,
+    Equal,
+};
+
+enum class LLRenderStencilOperation : U8
+{
+    Keep,
+    Replace,
+};
+
+enum class LLRenderMatrixMode : U8
+{
+    ModelView,
+};
+
+enum class LLRenderTextureCoordinate : U8
+{
+    S,
+    T,
+};
+
+enum class LLRenderInfoString : U8
+{
+    Vendor,
+    Renderer,
+    Version,
+};
+
+enum class LLRenderIntegerParameter : U8
+{
+    DedicatedVideoMemoryKB,
+    FreeVideoMemoryKB,
+    RedBits,
+    GreenBits,
+    BlueBits,
+    AlphaBits,
+    DepthBits,
+    StencilBits,
+};
+
+enum LLRenderMemoryBarrierMask : U32
+{
+    LL_RENDER_MEMORY_BARRIER_NONE = 0,
+    LL_RENDER_MEMORY_BARRIER_SHADER_IMAGE_ACCESS = 1 << 0,
+    LL_RENDER_MEMORY_BARRIER_TEXTURE_FETCH = 1 << 1,
+};
+
 enum LLRenderClearMask : U32
 {
     LL_RENDER_CLEAR_NONE = 0,
     LL_RENDER_CLEAR_COLOR = 1 << 0,
     LL_RENDER_CLEAR_DEPTH = 1 << 1,
     LL_RENDER_CLEAR_STENCIL = 1 << 2,
+    LL_RENDER_CLEAR_ALL = LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_STENCIL,
 };
+
+inline LLRenderClearMask operator|(LLRenderClearMask lhs, LLRenderClearMask rhs)
+{
+    return static_cast<LLRenderClearMask>(static_cast<U32>(lhs) | static_cast<U32>(rhs));
+}
+
+inline LLRenderClearMask operator&(LLRenderClearMask lhs, LLRenderClearMask rhs)
+{
+    return static_cast<LLRenderClearMask>(static_cast<U32>(lhs) & static_cast<U32>(rhs));
+}
+
+inline LLRenderClearMask& operator|=(LLRenderClearMask& lhs, LLRenderClearMask rhs)
+{
+    lhs = lhs | rhs;
+    return lhs;
+}
 
 struct LLRenderExtent2D
 {
@@ -303,6 +461,50 @@ struct LLRenderTargetDesc
     U32 mSampleCount = 1;
 };
 
+struct LLRenderTextureHandle
+{
+    U32 mValue = 0;
+
+    LLRenderTextureHandle() = default;
+    explicit LLRenderTextureHandle(U32 value) : mValue(value) {}
+
+    U32 asLegacyName() const { return mValue; }
+    bool isValid() const { return mValue != 0; }
+    explicit operator bool() const { return isValid(); }
+
+    friend bool operator==(LLRenderTextureHandle lhs, LLRenderTextureHandle rhs)
+    {
+        return lhs.mValue == rhs.mValue;
+    }
+
+    friend bool operator!=(LLRenderTextureHandle lhs, LLRenderTextureHandle rhs)
+    {
+        return !(lhs == rhs);
+    }
+};
+
+struct LLRenderFramebufferHandle
+{
+    U32 mValue = 0;
+
+    LLRenderFramebufferHandle() = default;
+    explicit LLRenderFramebufferHandle(U32 value) : mValue(value) {}
+
+    U32 asLegacyName() const { return mValue; }
+    bool isValid() const { return mValue != 0; }
+    explicit operator bool() const { return isValid(); }
+
+    friend bool operator==(LLRenderFramebufferHandle lhs, LLRenderFramebufferHandle rhs)
+    {
+        return lhs.mValue == rhs.mValue;
+    }
+
+    friend bool operator!=(LLRenderFramebufferHandle lhs, LLRenderFramebufferHandle rhs)
+    {
+        return !(lhs == rhs);
+    }
+};
+
 struct LLRenderPassDesc
 {
     const char* mDebugName = nullptr;
@@ -325,6 +527,21 @@ struct LLRenderFrameDesc
     LLRenderExtent2D mDrawableExtent;
 };
 
+struct LLRenderNativeContextDesc
+{
+    void* mWindow = nullptr;
+    U32 mSamples = 0;
+    bool mEnableVSync = true;
+};
+
+struct LLRenderNativeContext
+{
+    void* mView = nullptr;
+    void* mContext = nullptr;
+    void* mPixelFormat = nullptr;
+    U32 mVRAM = 0;
+};
+
 class LLRenderBackend
 {
 public:
@@ -333,6 +550,23 @@ public:
     virtual LLRenderBackendType getType() const = 0;
     virtual const char* getName() const = 0;
     virtual bool isReady() const = 0;
+    virtual void initPlatformContextExtensions() = 0;
+    virtual bool initContextCapabilities() = 0;
+    virtual void shutdownContextCapabilities() = 0;
+    virtual bool createNativeContext(
+        const LLRenderNativeContextDesc& desc,
+        LLRenderNativeContext& context) = 0;
+    virtual void destroyNativeContext(LLRenderNativeContext& context) = 0;
+    virtual bool makeNativeContextCurrent(void* context) = 0;
+    virtual void clearCurrentNativeContext() = 0;
+    virtual void swapNativeBuffers(void* context) = 0;
+    virtual void setNativeVSync(void* context, bool enable_vsync) = 0;
+    virtual bool setNativeContextThreadedOptimization(bool enabled) = 0;
+    virtual void* createSharedNativeContext(
+        void* pixel_format,
+        void* share_context,
+        bool enable_threaded_optimization) = 0;
+    virtual void destroySharedNativeContext(void* context) = 0;
 
     virtual void beginFrame(const LLRenderFrameDesc& desc) = 0;
     virtual void endFrame() = 0;
@@ -341,12 +575,18 @@ public:
     virtual void endRenderPass() = 0;
 
     virtual void setViewport(const LLRenderViewport& viewport) = 0;
+    virtual void setViewport(S32 x, S32 y, S32 width, S32 height) = 0;
     virtual void setScissor(const LLRenderScissor& scissor) = 0;
+    virtual void setScissor(S32 x, S32 y, S32 width, S32 height) = 0;
     virtual void clear(const LLRenderPassDesc& desc) = 0;
+    virtual void clear(U32 clear_mask) = 0;
     virtual void setClearColor(const LLRenderClearColor& color) = 0;
+    virtual void setClearColor(F32 red, F32 green, F32 blue, F32 alpha) = 0;
     virtual void setColorMask(const LLRenderColorMask& mask) = 0;
     virtual void setBlendState(const LLRenderBlendState& blend) = 0;
     virtual void setLineWidth(F32 width) = 0;
+    virtual void setPointSize(F32 size) = 0;
+    virtual F32 getLineWidth() = 0;
     virtual void setCapability(LLRenderCapability capability, bool enabled) = 0;
     virtual bool isCapabilityEnabled(LLRenderCapability capability) const = 0;
     virtual void setCullFace(LLRenderCullFace face) = 0;
@@ -360,17 +600,50 @@ public:
     virtual void setTextureAddressMode(
         LLRenderTextureTarget target,
         LLRenderTextureAddressMode mode) = 0;
+    virtual void setTextureAddressMode(
+        LLRenderTextureTarget target,
+        LLRenderTextureCoordinate coordinate,
+        LLRenderTextureAddressMode mode) = 0;
     virtual void setTextureFilter(
         LLRenderTextureTarget target,
         LLRenderTextureFilter min_filter,
         LLRenderTextureFilter mag_filter) = 0;
+    virtual void setTextureMagFilter(
+        LLRenderTextureTarget target,
+        LLRenderTextureFilter mag_filter) = 0;
+    virtual void setTextureCompareMode(
+        LLRenderTextureTarget target,
+        bool enabled) = 0;
     virtual void setTextureMaxAnisotropy(LLRenderTextureTarget target, F32 anisotropy) = 0;
     virtual void generateMipmaps(LLRenderTextureTarget target) = 0;
     virtual void generateTextures(S32 count, U32* textures) = 0;
     virtual void deleteTextures(S32 count, const U32* textures) = 0;
+
+    LLRenderTextureHandle createTextureHandle()
+    {
+        U32 texture = 0;
+        generateTextures(1, &texture);
+        return LLRenderTextureHandle(texture);
+    }
+
+    void deleteTextureHandle(LLRenderTextureHandle texture)
+    {
+        U32 legacy_name = texture.asLegacyName();
+        if (legacy_name)
+        {
+            deleteTextures(1, &legacy_name);
+        }
+    }
+
+    void bindTexture(LLRenderTextureTarget target, LLRenderTextureHandle texture)
+    {
+        bindTexture(target, texture.asLegacyName());
+    }
+
     virtual void generateBuffers(S32 count, U32* buffers) = 0;
     virtual void deleteBuffers(S32 count, const U32* buffers) = 0;
     virtual void bindBuffer(LLRenderBufferTarget target, U32 buffer) = 0;
+    virtual void bindBufferBase(LLRenderBufferTarget target, U32 index, U32 buffer) = 0;
     virtual void allocateBufferStorage(
         LLRenderBufferTarget target,
         U64 size,
@@ -404,15 +677,72 @@ public:
         LLRenderIndexType index_type,
         const void* indices) = 0;
     virtual void drawArrays(LLRenderPrimitiveType mode, S32 first, S32 count) = 0;
+    virtual void drawElements(
+        LLRenderPrimitiveType mode,
+        S32 count,
+        LLRenderIndexType index_type,
+        const void* indices) = 0;
+    virtual void setLegacyVertexPointer(
+        S32 size,
+        LLRenderVertexAttributeType type,
+        S32 stride,
+        const void* pointer) = 0;
+    virtual void setLegacyTextureCoordinatePointer(
+        S32 size,
+        LLRenderVertexAttributeType type,
+        S32 stride,
+        const void* pointer) = 0;
+    virtual void setLegacyTextureCoordinateArray(bool enabled) = 0;
     virtual void generateFramebuffers(S32 count, U32* framebuffers) = 0;
     virtual void deleteFramebuffers(S32 count, const U32* framebuffers) = 0;
+    virtual void bindFramebuffer(LLRenderFramebufferBindPoint target, U32 framebuffer) = 0;
     virtual void bindReadWriteFramebuffer(U32 framebuffer) = 0;
+
+    LLRenderFramebufferHandle createFramebufferHandle()
+    {
+        U32 framebuffer = 0;
+        generateFramebuffers(1, &framebuffer);
+        return LLRenderFramebufferHandle(framebuffer);
+    }
+
+    void deleteFramebufferHandle(LLRenderFramebufferHandle framebuffer)
+    {
+        U32 legacy_name = framebuffer.asLegacyName();
+        if (legacy_name)
+        {
+            deleteFramebuffers(1, &legacy_name);
+        }
+    }
+
+    void bindFramebuffer(
+        LLRenderFramebufferBindPoint target,
+        LLRenderFramebufferHandle framebuffer)
+    {
+        bindFramebuffer(target, framebuffer.asLegacyName());
+    }
+
+    void bindReadWriteFramebuffer(LLRenderFramebufferHandle framebuffer)
+    {
+        bindReadWriteFramebuffer(framebuffer.asLegacyName());
+    }
+
+    virtual LLRenderFramebufferStatus getReadWriteFramebufferStatus() const = 0;
     virtual bool isDrawFramebufferComplete() const = 0;
     virtual void attachFramebufferTexture2D(
         LLRenderFramebufferAttachment attachment,
         LLRenderTextureTarget target,
         U32 texture,
         S32 mip_level) = 0;
+
+    void attachFramebufferTexture2D(
+        LLRenderFramebufferAttachment attachment,
+        LLRenderTextureTarget target,
+        LLRenderTextureHandle texture,
+        S32 mip_level)
+    {
+        attachFramebufferTexture2D(attachment, target, texture.asLegacyName(), mip_level);
+    }
+
     virtual void setFramebufferBufferRouting(U32 color_attachment_count) = 0;
     virtual void restoreDefaultFramebufferBufferRouting() = 0;
     virtual bool hasError() = 0;
@@ -429,6 +759,10 @@ public:
         U32 query,
         LLRenderQueryParameter parameter,
         U64* value) = 0;
+    virtual void getQueryObjectUnsignedInteger(
+        U32 query,
+        LLRenderQueryParameter parameter,
+        U32* value) = 0;
     virtual U32 createProgram() = 0;
     virtual void deleteProgram(U32 program) = 0;
     virtual U32 createShader(LLRenderShaderStage stage) = 0;
@@ -487,6 +821,17 @@ public:
     virtual void setUniformMatrix4(S32 location, S32 count, bool transpose, const F32* values) = 0;
     virtual void setVertexAttribute4(U32 location, F32 first, F32 second, F32 third, F32 fourth) = 0;
     virtual void setVertexAttributeVector4(U32 location, const F32* values) = 0;
+    virtual void bindTextureUnit(U32 unit, U32 texture) = 0;
+    virtual void bindImageTexture(
+        U32 unit,
+        U32 texture,
+        S32 level,
+        bool layered,
+        S32 layer,
+        LLRenderImageAccess access,
+        LLRenderTextureFormat format) = 0;
+    virtual void dispatchCompute(U32 groups_x, U32 groups_y, U32 groups_z) = 0;
+    virtual void setMemoryBarrier(U32 barriers) = 0;
     virtual void pushLegacyAllAttributes() = 0;
     virtual void pushLegacyAllClientAttributes() = 0;
     virtual void popLegacyClientAttributes() = 0;
@@ -510,11 +855,36 @@ public:
         U32 format,
         U32 type,
         const void* data) = 0;
+    virtual void setTextureImage2D(
+        LLRenderTextureTarget target,
+        S32 level,
+        LLRenderTextureFormat internal_format,
+        S32 width,
+        S32 height,
+        S32 border,
+        LLRenderPixelFormat format,
+        LLRenderPixelType type,
+        const void* data) = 0;
+    virtual U32 createTexture2D(LLRenderTextureFormat internal_format, S32 width, S32 height) = 0;
+    virtual void readPixels(
+        S32 x,
+        S32 y,
+        S32 width,
+        S32 height,
+        LLRenderPixelFormat format,
+        LLRenderPixelType type,
+        void* pixels) = 0;
     virtual void readTextureImage(
         LLRenderTextureTarget target,
         S32 level,
         U32 format,
         U32 type,
+        void* pixels) = 0;
+    virtual void readTextureImage(
+        LLRenderTextureTarget target,
+        S32 level,
+        LLRenderPixelFormat format,
+        LLRenderPixelType type,
         void* pixels) = 0;
     virtual void readCompressedTextureImage(LLRenderTextureTarget target, S32 level, void* pixels) = 0;
     virtual void copyTextureSubImage2D(
@@ -526,6 +896,32 @@ public:
         S32 y,
         S32 width,
         S32 height) = 0;
+    virtual void copyTextureSubImage3D(
+        LLRenderTextureTarget target,
+        S32 level,
+        S32 xoffset,
+        S32 yoffset,
+        S32 zoffset,
+        S32 x,
+        S32 y,
+        S32 width,
+        S32 height) = 0;
+    virtual void copyImageSubData(
+        U32 source_name,
+        LLRenderTextureTarget source_target,
+        S32 source_level,
+        S32 source_x,
+        S32 source_y,
+        S32 source_z,
+        U32 destination_name,
+        LLRenderTextureTarget destination_target,
+        S32 destination_level,
+        S32 destination_x,
+        S32 destination_y,
+        S32 destination_z,
+        S32 width,
+        S32 height,
+        S32 depth) = 0;
     virtual void setCompressedTextureImage2D(
         LLRenderTextureTarget target,
         S32 level,
@@ -581,6 +977,12 @@ public:
         LLRenderTextureTarget target,
         LLRenderTextureParameter parameter,
         const S32* values) = 0;
+    virtual void setTextureGenerationMode(
+        LLRenderTextureCoordinate coordinate,
+        bool object_linear) = 0;
+    virtual void setTextureGenerationObjectPlane(
+        LLRenderTextureCoordinate coordinate,
+        const F32* values) = 0;
     virtual void areTexturesResident(S32 count, const U32* textures, bool* residences) = 0;
     virtual void getViewport(S32* viewport) = 0;
     virtual U32 getBoundTexture2D() = 0;
@@ -592,6 +994,7 @@ public:
     virtual void waitSyncObject(void* sync) = 0;
     virtual void deleteSyncObject(void* sync) = 0;
     virtual void setLegacyMaterialSpecular(const F32* color, S32 shininess) = 0;
+    virtual void getInteger(LLRenderIntegerParameter parameter, S32* value) = 0;
     virtual void getLegacyInteger(U32 parameter, S32* value) = 0;
     virtual void getLegacyBoolean(U32 parameter, U8* value) = 0;
     virtual void getLegacyFloat(U32 parameter, F32* value) = 0;
@@ -602,9 +1005,23 @@ public:
     virtual void setClientActiveTextureUnit(S32 unit) = 0;
     virtual void setLegacyCapability(U32 capability, bool enabled) = 0;
     virtual bool isLegacyCapabilityEnabled(U32 capability) = 0;
+    virtual void setPolygonOffset(F32 factor, F32 units) = 0;
+    virtual void setPolygonMode(LLRenderPolygonFace face, LLRenderPolygonMode mode) = 0;
+    virtual void setStencilFunction(LLRenderStencilFunction function, S32 reference, U32 mask) = 0;
+    virtual void setStencilMask(U32 mask) = 0;
+    virtual void setStencilOperation(
+        LLRenderStencilOperation stencil_fail,
+        LLRenderStencilOperation depth_fail,
+        LLRenderStencilOperation depth_pass) = 0;
+    virtual void setMatrixMode(LLRenderMatrixMode mode) = 0;
+    virtual void pushMatrix() = 0;
+    virtual void popMatrix() = 0;
+    virtual const char* getInfoString(LLRenderInfoString parameter) = 0;
 };
 
 const char* getRenderBackendTypeName(LLRenderBackendType type);
+U32 getOpenGLPixelFormatValue(LLRenderPixelFormat format);
+U32 getOpenGLPixelTypeValue(LLRenderPixelType type);
 LLRenderBackend& getNullRenderBackend();
 LLRenderBackend& getOpenGLRenderBackend();
 
