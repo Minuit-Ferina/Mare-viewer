@@ -58,8 +58,8 @@ bool MARETAAUpscaler::initialize(U32 renderW, U32 renderH)
     for (int i = 0; i < 2; ++i)
     {
         mAccumBuffer[i].bindTarget();
-        getOpenGLRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
-        getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
+        getRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
+        getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
         mAccumBuffer[i].flush();
     }
 

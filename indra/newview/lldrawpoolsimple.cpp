@@ -64,7 +64,7 @@ void LLDrawPoolGlow::renderPostDeferred(S32 pass)
     gGL.flush();
     /// Get rid of z-fighting with non-glow pass.
     LLGLEnable polyOffset(LLRenderCapability::PolygonOffsetFill);
-    getOpenGLRenderBackend().setPolygonOffset(-1.0f, -1.0f);
+    getRenderBackend().setPolygonOffset(-1.0f, -1.0f);
     gGL.setSceneBlendType(LLRender::BT_ADD);
 
     LLGLDepthTest depth(true, false);

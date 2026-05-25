@@ -186,7 +186,7 @@ void display_startup()
 
     LLGLState::checkStates();
 
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_COLOR); // | LL_RENDER_CLEAR_STENCIL);
+    getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_COLOR); // | LL_RENDER_CLEAR_STENCIL);
     LLGLSUIDefault gls_ui;
     gPipeline.disableLights();
 
@@ -203,7 +203,7 @@ void display_startup()
     if (gViewerWindow && gViewerWindow->getWindow())
     gViewerWindow->getWindow()->swapBuffers();
 
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
+    getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
 }
 
 void display_update_camera()
@@ -473,7 +473,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
         LL_DEBUGS("Window") << "Resizing window" << LL_ENDL;
         LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Resize Window");
         gGL.flush();
-        getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
+        getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
         gViewerWindow->getWindow()->swapBuffers();
         LLPipeline::refreshCachedSettings();
         gPipeline.resizeScreenTexture();
@@ -756,7 +756,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
         if (LLViewerDynamicTexture::updateAllInstances())
         {
             gGL.setColorMask(true, true);
-            getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
+            getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
         }
     }
 //MK
@@ -858,7 +858,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
             }
 
             gGL.setColorMask(true, true);
-            getOpenGLRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
+            getRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
 
             LLGLState::checkStates();
 
@@ -876,7 +876,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
 
                 glm::mat4 proj = get_current_projection();
                 glm::mat4 mod = get_current_modelview();
-                getOpenGLRenderBackend().setViewport(0, 0, 512, 512);
+                getRenderBackend().setViewport(0, 0, 512, 512);
 
                 LLVOAvatar::updateImpostors();
 
@@ -890,7 +890,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
 
                 LLGLState::checkStates();
             }
-            getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
+            getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
         }
 
         //////////////////////////////////////
@@ -972,8 +972,8 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
 
         if(gUseWireframe)
         {
-            getOpenGLRenderBackend().setClearColor(0.5f, 0.5f, 0.5f, 0.f);
-            getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
+            getRenderBackend().setClearColor(0.5f, 0.5f, 0.5f, 0.f);
+            getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
         }
 
         LLAppViewer::instance()->pingMainloopTimeout("Display:RenderStart");
@@ -1027,11 +1027,11 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
         if (gUseWireframe)
         {
             constexpr F32 g = 0.5f;
-            getOpenGLRenderBackend().setClearColor(g, g, g, 1.f);
+            getRenderBackend().setClearColor(g, g, g, 1.f);
         }
         else
         {
-            getOpenGLRenderBackend().setClearColor(1, 0, 1, 1);
+            getRenderBackend().setClearColor(1, 0, 1, 1);
         }
         gPipeline.mRT->deferredScreen.clear();
 
@@ -1263,10 +1263,10 @@ void display_cube_face()
 
     gGL.setColorMask(true, true);
 
-    getOpenGLRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
+    getRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
     gPipeline.generateSunShadow(*LLViewerCamera::getInstance());
 
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH); // | LL_RENDER_CLEAR_STENCIL);
+    getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH); // | LL_RENDER_CLEAR_STENCIL);
 
     {
         LLViewerCamera::sCurCameraID = LLViewerCamera::CAMERA_WORLD;
@@ -1295,11 +1295,11 @@ void display_cube_face()
     gPipeline.mRT->deferredScreen.bindTarget();
     if (gUseWireframe)
     {
-        getOpenGLRenderBackend().setClearColor(0.5f, 0.5f, 0.5f, 1.f);
+        getRenderBackend().setClearColor(0.5f, 0.5f, 0.5f, 1.f);
     }
     else
     {
-        getOpenGLRenderBackend().setClearColor(1.f, 0.f, 1.f, 1.f);
+        getRenderBackend().setClearColor(1.f, 0.f, 1.f, 1.f);
     }
     gPipeline.mRT->deferredScreen.clear();
 
@@ -1761,7 +1761,7 @@ void render_ui_2d()
     // Render 2D UI elements that overlay the world (no z compare)
 
     //  Disable wireframe mode below here, as this is HUD/menus
-    getOpenGLRenderBackend().setPolygonMode(
+    getRenderBackend().setPolygonMode(
         LLRenderPolygonFace::FrontAndBack,
         LLRenderPolygonMode::Fill);
 
@@ -1835,7 +1835,7 @@ void render_ui_2d()
 
                 LLRect clip_rect(last_rect);
 
-                getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
+                getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
 
                 gViewerWindow->draw();
             }

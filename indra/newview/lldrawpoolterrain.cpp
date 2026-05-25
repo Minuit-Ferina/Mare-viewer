@@ -66,17 +66,17 @@ namespace
 {
 void set_terrain_texture_generation_enabled(bool enabled)
 {
-    getOpenGLRenderBackend().setCapability(LLRenderCapability::TextureGenS, enabled);
-    getOpenGLRenderBackend().setCapability(LLRenderCapability::TextureGenT, enabled);
+    getRenderBackend().setCapability(LLRenderCapability::TextureGenS, enabled);
+    getRenderBackend().setCapability(LLRenderCapability::TextureGenT, enabled);
 }
 
 void set_terrain_texture_generation_planes(const LLVector4& s_plane, const LLVector4& t_plane)
 {
     set_terrain_texture_generation_enabled(true);
-    getOpenGLRenderBackend().setTextureGenerationMode(LLRenderTextureCoordinate::S, true);
-    getOpenGLRenderBackend().setTextureGenerationMode(LLRenderTextureCoordinate::T, true);
-    getOpenGLRenderBackend().setTextureGenerationObjectPlane(LLRenderTextureCoordinate::S, s_plane.mV);
-    getOpenGLRenderBackend().setTextureGenerationObjectPlane(LLRenderTextureCoordinate::T, t_plane.mV);
+    getRenderBackend().setTextureGenerationMode(LLRenderTextureCoordinate::S, true);
+    getRenderBackend().setTextureGenerationMode(LLRenderTextureCoordinate::T, true);
+    getRenderBackend().setTextureGenerationObjectPlane(LLRenderTextureCoordinate::S, s_plane.mV);
+    getRenderBackend().setTextureGenerationObjectPlane(LLRenderTextureCoordinate::T, t_plane.mV);
 }
 }
 
@@ -652,7 +652,7 @@ void LLDrawPoolTerrain::hilightParcelOwners()
         sShader->bind();
         gGL.diffuseColor4f(1, 1, 1, 1);
         LLGLEnable polyOffset(LLRenderCapability::PolygonOffsetFill);
-        getOpenGLRenderBackend().setPolygonOffset(-1.0f, -1.0f);
+        getRenderBackend().setPolygonOffset(-1.0f, -1.0f);
         renderOwnership();
         sShader = old_shader;
         sShader->bind();

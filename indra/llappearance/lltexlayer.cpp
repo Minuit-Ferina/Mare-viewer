@@ -1502,13 +1502,13 @@ void LLTexLayer::renderMorphMasks(S32 x, S32 y, S32 width, S32 height, const LLC
                         gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, 0);
                     }
 
-                    getOpenGLRenderBackend().readTextureImage(
+                    getRenderBackend().readTextureImage(
                         LLRenderTextureTarget::Texture2D,
                         0,
                         LLRenderPixelFormat::RGBA,
                         LLRenderPixelType::UnsignedByte,
                         temp);
-                    U32 error = getOpenGLRenderBackend().getErrorCode();
+                    U32 error = getRenderBackend().getErrorCode();
                     if (error != 0)
                     {
                         LL_INFOS("Morph") << "GL Error while reading back morph texture. Error code: " << error << LL_ENDL;
@@ -1533,7 +1533,7 @@ void LLTexLayer::renderMorphMasks(S32 x, S32 y, S32 width, S32 height, const LLC
                     // We just want alpha, but that isn't supported directly in OGL core profile 4.
                     static const size_t TEMP_BYTES_PER_PIXEL = 4;
                     U8* temp_data = (U8*)ll_aligned_malloc_32(mem_size * TEMP_BYTES_PER_PIXEL);
-                    getOpenGLRenderBackend().readPixels(
+                    getRenderBackend().readPixels(
                         x,
                         y,
                         width,

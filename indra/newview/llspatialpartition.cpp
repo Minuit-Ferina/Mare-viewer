@@ -1657,18 +1657,18 @@ void renderOctree(LLSpatialGroup* group)
 
         {
             LLGLDepthTest gl_depth(false, false);
-            getOpenGLRenderBackend().setPolygonMode(
+            getRenderBackend().setPolygonMode(
                 LLRenderPolygonFace::FrontAndBack,
                 LLRenderPolygonMode::Line);
 
             gGL.diffuseColor4f(1,0,0,group->mBuilt);
             gGL.flush();
-            getOpenGLRenderBackend().setLineWidth(5.f);
+            getRenderBackend().setLineWidth(5.f);
 
             const LLVector4a* bounds = group->getObjectBounds();
             drawBoxOutline(bounds[0], bounds[1]);
             gGL.flush();
-            getOpenGLRenderBackend().setLineWidth(1.f);
+            getRenderBackend().setLineWidth(1.f);
             gGL.flush();
 
             const LLVOAvatar* lastAvatar = nullptr;
@@ -1756,7 +1756,7 @@ void renderOctree(LLSpatialGroup* group)
                     gGL.popMatrix();
                 }
             }
-            getOpenGLRenderBackend().setPolygonMode(
+            getRenderBackend().setPolygonMode(
                 LLRenderPolygonFace::FrontAndBack,
                 LLRenderPolygonMode::Fill);
             gDebugProgram.bind(); // make sure non-rigged variant is bound
@@ -1978,12 +1978,12 @@ void renderBoundingBox(LLDrawable* drawable, bool set_color = true)
     if (vobj && vobj->onActiveList())
     {
         gGL.flush();
-        getOpenGLRenderBackend().setLineWidth(llmax(4.f*sinf(gFrameTimeSeconds*2.f)+1.f, 1.f));
+        getRenderBackend().setLineWidth(llmax(4.f*sinf(gFrameTimeSeconds*2.f)+1.f, 1.f));
         // Alternate active outline width: 4.f*(sinf(gFrameTimeSeconds*2.f)*0.25f+0.75f).
         stop_glerror();
         drawBoxOutline(pos,size);
         gGL.flush();
-        getOpenGLRenderBackend().setLineWidth(1.f);
+        getRenderBackend().setLineWidth(1.f);
     }
     else
     {
@@ -2498,7 +2498,7 @@ void renderPhysicsShape(LLDrawable* drawable, LLVOVolume* volume, bool wireframe
 
             llassert(LLGLSLShader::sCurBoundShader != 0);
             LLVertexBuffer::unbind();
-            getOpenGLRenderBackend().setLegacyVertexPointer(
+            getRenderBackend().setLegacyVertexPointer(
                 3,
                 LLRenderVertexAttributeType::Float32,
                 16,
@@ -2507,7 +2507,7 @@ void renderPhysicsShape(LLDrawable* drawable, LLVOVolume* volume, bool wireframe
             gGL.diffuseColor4fv(color.mV);
 
             gGL.syncMatrices();
-            getOpenGLRenderBackend().drawElements(
+            getRenderBackend().drawElements(
                 LLRenderPrimitiveType::Triangles,
                 phys_volume->mNumHullIndices,
                 LLRenderIndexType::UnsignedShort,
@@ -2590,7 +2590,7 @@ void renderPhysicsShapes(LLSpatialGroup* group, bool wireframe)
                             LLVertexBuffer* buff = face->getVertexBuffer();
                             if (buff)
                             {
-                                getOpenGLRenderBackend().setPolygonMode(
+                                getRenderBackend().setPolygonMode(
                                     LLRenderPolygonFace::FrontAndBack,
                                     LLRenderPolygonMode::Line);
 
@@ -2599,7 +2599,7 @@ void renderPhysicsShapes(LLSpatialGroup* group, bool wireframe)
                                 buff->draw(LLRender::TRIANGLES, buff->getNumIndices(), 0);
 
                                 gGL.diffuseColor4f(0.2f, 1.f, 0.3f, 0.75f);
-                                getOpenGLRenderBackend().setPolygonMode(
+                                getRenderBackend().setPolygonMode(
                                     LLRenderPolygonFace::FrontAndBack,
                                     LLRenderPolygonMode::Fill);
                                 buff->draw(LLRender::TRIANGLES, buff->getNumIndices(), 0);
@@ -2692,7 +2692,7 @@ void renderTextureAnim(LLDrawInfo* params)
 void renderBatchSize(LLDrawInfo* params)
 {
     LLGLEnable offset(LLRenderCapability::PolygonOffsetFill);
-    getOpenGLRenderBackend().setPolygonOffset(-1.f, 1.f);
+    getRenderBackend().setPolygonOffset(-1.f, 1.f);
     LLGLSLShader* old_shader = LLGLSLShader::sCurBoundShaderPtr;
     bool bind = false;
     if (params->mAvatar)
@@ -2906,7 +2906,7 @@ public:
             if (i == 1)
             {
                 gGL.flush();
-                getOpenGLRenderBackend().setLineWidth(3.f);
+                getRenderBackend().setLineWidth(3.f);
             }
 
             gGL.begin(LLRender::TRIANGLES);
@@ -2925,7 +2925,7 @@ public:
             if (i == 1)
             {
                 gGL.flush();
-                getOpenGLRenderBackend().setLineWidth(1.f);
+                getRenderBackend().setLineWidth(1.f);
             }
         }
     }
@@ -2995,7 +2995,7 @@ void renderRaycast(LLDrawable* drawablep)
                     dir.setSub(end, start);
 
                     gGL.flush();
-                    getOpenGLRenderBackend().setPolygonMode(
+                    getRenderBackend().setPolygonMode(
                         LLRenderPolygonFace::FrontAndBack,
                         LLRenderPolygonMode::Line);
 
@@ -3016,7 +3016,7 @@ void renderRaycast(LLDrawable* drawablep)
                     }
 
                     gGL.popMatrix();
-                    getOpenGLRenderBackend().setPolygonMode(
+                    getRenderBackend().setPolygonMode(
                         LLRenderPolygonFace::FrontAndBack,
                         LLRenderPolygonMode::Fill);
                 }
@@ -3607,18 +3607,18 @@ void LLSpatialPartition::renderDebug()
 
             LLGLEnable blend(LLRenderCapability::Blend);
             LLGLDepthTest depth_under(true, false, LLRenderDepthFunction::Greater);
-            getOpenGLRenderBackend().setPolygonMode(
+            getRenderBackend().setPolygonMode(
                 LLRenderPolygonFace::FrontAndBack,
                 LLRenderPolygonMode::Line);
             gGL.diffuseColor4f(0.5f, 0.0f, 0, 0.25f);
 
             LLGLEnable offset(LLRenderCapability::PolygonOffsetLine);
-            getOpenGLRenderBackend().setPolygonOffset(-1.f, -1.f);
+            getRenderBackend().setPolygonOffset(-1.f, -1.f);
 
             LLOctreeRenderXRay xray(camera);
             xray.traverse(mOctree);
 
-            getOpenGLRenderBackend().setPolygonMode(
+            getRenderBackend().setPolygonMode(
                 LLRenderPolygonFace::FrontAndBack,
                 LLRenderPolygonMode::Fill);
         }

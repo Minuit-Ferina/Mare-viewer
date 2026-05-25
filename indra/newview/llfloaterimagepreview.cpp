@@ -1075,7 +1075,7 @@ bool LLImagePreviewSculpted::render()
     gGL.matrixMode(LLRender::MM_MODELVIEW);
     gGL.popMatrix();
 
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
+    getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
     applyPreviewCamera();
     renderSculptedVolume();
 

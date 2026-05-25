@@ -105,7 +105,7 @@ void LLScreenClipRect::updateScissorRegion()
     stop_glerror();
     S32 x,y,w,h;
     compute_scissor_box(rect, x, y, w, h);
-    getOpenGLRenderBackend().setScissor(x, y, w, h);
+    getRenderBackend().setScissor(x, y, w, h);
     stop_glerror();
 }
 

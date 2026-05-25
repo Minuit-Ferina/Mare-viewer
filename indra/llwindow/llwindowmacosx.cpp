@@ -80,14 +80,14 @@ void LLWindowMacOSX::setUseMultGL(bool use_mult_gl)
     {
         if (sUseMultGL)
         {
-            if (!getOpenGLRenderBackend().setNativeContextThreadedOptimization(true))
+            if (!getRenderBackend().setNativeContextThreadedOptimization(true))
             {
                 sUseMultGL = false;
             }
         }
         else if (was_enabled)
         {
-            getOpenGLRenderBackend().setNativeContextThreadedOptimization(false);
+            getRenderBackend().setNativeContextThreadedOptimization(false);
         }
     }
 }
@@ -206,7 +206,7 @@ LLWindowMacOSX::LLWindowMacOSX(LLWindowCallbacks* callbacks,
             makeWindowOrderFront(mWindow);
         }
 
-        if (!getOpenGLRenderBackend().initContextCapabilities())
+        if (!getRenderBackend().initContextCapabilities())
         {
             setupFailure(
                 "Second Life is unable to run because your video card drivers\n"
@@ -734,7 +734,7 @@ bool LLWindowMacOSX::createContext(int x, int y, int width, int height, int bits
         desc.mSamples = mFSAASamples;
         desc.mEnableVSync = enable_vsync;
 
-        if (!getOpenGLRenderBackend().createNativeContext(desc, mRenderContext))
+        if (!getRenderBackend().createNativeContext(desc, mRenderContext))
         {
             setupFailure("Can't create GL rendering context", "Error", OSMB_OK);
             return false;
@@ -751,7 +751,7 @@ bool LLWindowMacOSX::createContext(int x, int y, int width, int height, int bits
 
     if (mRenderContext.mContext != NULL)
     {
-        if (!getOpenGLRenderBackend().makeNativeContextCurrent(mRenderContext.mContext))
+        if (!getRenderBackend().makeNativeContextCurrent(mRenderContext.mContext))
         {
             setupFailure("Can't activate GL rendering context", "Error", OSMB_OK);
             return false;
@@ -793,13 +793,13 @@ void LLWindowMacOSX::destroyContext()
     if (mRenderContext.mContext != NULL)
     {
         LL_DEBUGS("Window") << "destroyContext: unhooking drawable " << LL_ENDL;
-        getOpenGLRenderBackend().clearCurrentNativeContext();
+        getRenderBackend().clearCurrentNativeContext();
     }
 
     // Clean up remaining GL state before blowing away window
-    getOpenGLRenderBackend().shutdownContextCapabilities();
+    getRenderBackend().shutdownContextCapabilities();
 
-    getOpenGLRenderBackend().destroyNativeContext(mRenderContext);
+    getRenderBackend().destroyNativeContext(mRenderContext);
     mNativeView = NULL;
 
     // Close the window
@@ -1036,12 +1036,12 @@ bool LLWindowMacOSX::setSizeImpl(const LLCoordWindow size)
 
 void LLWindowMacOSX::swapBuffers()
 {
-    getOpenGLRenderBackend().swapNativeBuffers(mRenderContext.mContext);
+    getRenderBackend().swapNativeBuffers(mRenderContext.mContext);
 }
 
 void LLWindowMacOSX::restoreGLContext()
 {
-    getOpenGLRenderBackend().makeNativeContextCurrent(mRenderContext.mContext);
+    getRenderBackend().makeNativeContextCurrent(mRenderContext.mContext);
 }
 
 F32 LLWindowMacOSX::getGamma()
@@ -2474,7 +2474,7 @@ void LLWindowMacOSX::allowLanguageTextInput(LLPreeditor *preeditor, bool b)
 
 void* LLWindowMacOSX::createSharedContext()
 {
-    return getOpenGLRenderBackend().createSharedNativeContext(
+    return getRenderBackend().createSharedNativeContext(
         mRenderContext.mPixelFormat,
         mRenderContext.mContext,
         sUseMultGL);
@@ -2482,24 +2482,24 @@ void* LLWindowMacOSX::createSharedContext()
 
 void LLWindowMacOSX::makeContextCurrent(void* context)
 {
-    getOpenGLRenderBackend().makeNativeContextCurrent(context);
+    getRenderBackend().makeNativeContextCurrent(context);
 
     //enable multi-threaded OpenGL
     if (sUseMultGL)
     {
-        getOpenGLRenderBackend().setNativeContextThreadedOptimization(true);
+        getRenderBackend().setNativeContextThreadedOptimization(true);
     }
 
 }
 
 void LLWindowMacOSX::destroySharedContext(void* context)
 {
-    getOpenGLRenderBackend().destroySharedNativeContext(context);
+    getRenderBackend().destroySharedNativeContext(context);
 }
 
 void LLWindowMacOSX::toggleVSync(bool enable_vsync)
 {
-    getOpenGLRenderBackend().setNativeVSync(mRenderContext.mContext, enable_vsync);
+    getRenderBackend().setNativeVSync(mRenderContext.mContext, enable_vsync);
 }
 
 void LLWindowMacOSX::interruptLanguageTextInput()

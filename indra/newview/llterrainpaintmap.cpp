@@ -92,7 +92,7 @@ bool LLTerrainPaintMap::bakeHeightNoiseIntoPBRPaintMapRGB(const LLViewerRegion& 
     stop_glerror();
 
     scratch_target.bindTarget();
-    getOpenGLRenderBackend().setClearColor(0, 0, 0, 0);
+    getRenderBackend().setClearColor(0, 0, 0, 0);
     scratch_target.clear();
 
     // Render terrain heightmap to paint map via shader
@@ -112,7 +112,7 @@ bool LLTerrainPaintMap::bakeHeightNoiseIntoPBRPaintMapRGB(const LLViewerRegion& 
     camera.lookAt(camera_origin, region_center, LLVector3::y_axis);
     camera.setAspect(F32(scratch_target.getWidth()) / F32(scratch_target.getHeight()));
     const LLRect texture_rect(0, scratch_target.getHeight(), scratch_target.getWidth(), 0);
-    getOpenGLRenderBackend().setViewport(texture_rect.mLeft, texture_rect.mBottom, texture_rect.getWidth(), texture_rect.getHeight());
+    getRenderBackend().setViewport(texture_rect.mLeft, texture_rect.mBottom, texture_rect.getWidth(), texture_rect.getHeight());
     // Manually get modelview matrix from camera orientation.
     glm::mat4 modelview(glm::make_mat4((F32 *) OGL_TO_CFR_ROTATION));
     F32 ogl_matrix[16];
@@ -278,7 +278,7 @@ bool LLTerrainPaintMap::bakeHeightNoiseIntoPBRPaintMapRGB(const LLViewerRegion& 
     {
         LL_WARNS() << "Failed to copy framebuffer to paintmap" << LL_ENDL;
     }
-    getOpenGLRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
+    getRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
     stop_glerror();
 
     scratch_target.flush();

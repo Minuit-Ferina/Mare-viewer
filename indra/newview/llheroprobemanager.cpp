@@ -399,7 +399,7 @@ void LLHeroProbeManager::updateProbeFace(LLReflectionMap* probe, U32 face, bool 
                 LL_PROFILE_GPU_ZONE("hero probe mip copy");
                 mTexture->bind(0);
 
-                getOpenGLRenderBackend().copyTextureSubImage3D(
+                getRenderBackend().copyTextureSubImage3D(
                     LLRenderTextureTarget::TextureCubeMapArray,
                     mip,
                     0,
@@ -475,7 +475,7 @@ void LLHeroProbeManager::generateRadiance(LLReflectionMap* probe)
 
                     mVertexBuffer->drawArrays(gGL.TRIANGLE_STRIP, 0, 4);
 
-                    getOpenGLRenderBackend().copyTextureSubImage3D(
+                    getRenderBackend().copyTextureSubImage3D(
                         LLRenderTextureTarget::TextureCubeMapArray,
                         i,
                         0,
@@ -490,7 +490,7 @@ void LLHeroProbeManager::generateRadiance(LLReflectionMap* probe)
                 if (i != mMipChain.size() - 1)
                 {
                     res /= 2;
-                    getOpenGLRenderBackend().setViewport(0, 0, res, res);
+                    getRenderBackend().setViewport(0, 0, res, res);
                 }
             }
 

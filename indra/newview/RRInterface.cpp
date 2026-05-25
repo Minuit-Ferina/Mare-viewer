@@ -6687,9 +6687,9 @@ void RRInterface::drawSphere (LLVector3 center, F32 scale, LLColor3 color, F32 a
             gGL.color4fv(color_alpha.mV);
 
             // Render inside only (the camera is not supposed to go outside anyway)
-            getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Front);
+            getRenderBackend().setCullFace(LLRenderCullFace::Front);
             gSphere.render();
-            getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Back);
+            getRenderBackend().setCullFace(LLRenderCullFace::Back);
         }
         gGL.popMatrix();
     }

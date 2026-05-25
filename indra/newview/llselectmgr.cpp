@@ -6688,7 +6688,7 @@ void LLSelectMgr::renderSilhouettes(bool for_hud)
             }
         }
 
-        getOpenGLRenderBackend().setPolygonMode(
+        getRenderBackend().setPolygonMode(
             LLRenderPolygonFace::FrontAndBack,
             LLRenderPolygonMode::Line);
 
@@ -6704,8 +6704,8 @@ void LLSelectMgr::renderSilhouettes(bool for_hud)
         gGL.popMatrix();
         gGL.popMatrix();
 
-        getOpenGLRenderBackend().setLineWidth(1.f);
-        getOpenGLRenderBackend().setPolygonMode(
+        getRenderBackend().setLineWidth(1.f);
+        getRenderBackend().setPolygonMode(
             LLRenderPolygonFace::FrontAndBack,
             LLRenderPolygonMode::Fill);
 

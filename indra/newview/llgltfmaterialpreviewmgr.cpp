@@ -492,7 +492,7 @@ void render_alpha_preview_sphere(LLRenderTarget& screen, PreviewSphere& preview_
 {
     // Alpha blend rendering
     screen.bindTarget();
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    getRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
 
     LLGLSLShader& shader = gDeferredPBRAlphaProgram;
 
@@ -582,8 +582,8 @@ bool LLGLTFPreviewTexture::render()
 
     if (!mShouldRender) { return false; }
 
-    getOpenGLRenderBackend().setClearColor(0, 0, 0, 0);
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    getRenderBackend().setClearColor(0, 0, 0, 0);
+    getRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
 
     GLTFPreviewRenderState preview_state;
 

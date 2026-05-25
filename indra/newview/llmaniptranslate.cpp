@@ -1713,14 +1713,14 @@ void LLManipTranslate::highlightIntersection(LLVector3 normal,
 
         //stencil in volumes
         // Legacy increment stencil operation was configured here.
-        getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Front);
+        getRenderBackend().setCullFace(LLRenderCullFace::Front);
         for (U32 i = 0; i < num_types; i++)
         {
             gPipeline.renderObjects(types[i], LLVertexBuffer::MAP_VERTEX, false);
         }
 
         // Legacy decrement stencil operation was configured here.
-        getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Back);
+        getRenderBackend().setCullFace(LLRenderCullFace::Back);
         for (U32 i = 0; i < num_types; i++)
         {
             gPipeline.renderObjects(types[i], LLVertexBuffer::MAP_VERTEX, false);
@@ -1759,23 +1759,23 @@ void LLManipTranslate::highlightIntersection(LLVector3 normal,
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
         LLGLDepthTest depth(false);
         //LLGLEnable stencil(LLRenderCapability::StencilTest);
-        getOpenGLRenderBackend().setStencilOperation(
+        getRenderBackend().setStencilOperation(
             LLRenderStencilOperation::Keep,
             LLRenderStencilOperation::Keep,
             LLRenderStencilOperation::Keep);
-        getOpenGLRenderBackend().setStencilFunction(
+        getRenderBackend().setStencilFunction(
             LLRenderStencilFunction::Equal,
             0,
             stencil_mask);
         renderGrid(0,0,tiles,inner_color.mV[0], inner_color.mV[1], inner_color.mV[2], 0.25f);
     }
 
-    getOpenGLRenderBackend().setStencilFunction(
+    getRenderBackend().setStencilFunction(
         LLRenderStencilFunction::Always,
         255,
         0xFFFFFFFF);
-    getOpenGLRenderBackend().setStencilMask(0xFFFFFFFF);
-    getOpenGLRenderBackend().setStencilOperation(
+    getRenderBackend().setStencilMask(0xFFFFFFFF);
+    getRenderBackend().setStencilOperation(
         LLRenderStencilOperation::Keep,
         LLRenderStencilOperation::Keep,
         LLRenderStencilOperation::Replace);

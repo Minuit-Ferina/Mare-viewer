@@ -2829,6 +2829,11 @@ LLRenderBackend& getNullRenderBackend()
     return backend;
 }
 
+LLRenderBackend& getRenderBackend()
+{
+    return getOpenGLRenderBackend();
+}
+
 LLRenderBackend& getOpenGLRenderBackend()
 {
     static LLOpenGLRenderBackend backend;

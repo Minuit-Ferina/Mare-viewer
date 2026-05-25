@@ -477,7 +477,7 @@ void saveChart(const std::string& label, const char* suffix, LLImageRaw* scratch
         LLImageDataSharedLock lock(scratch);
 
         //read result back into raw image
-        getOpenGLRenderBackend().readPixels(
+        getRenderBackend().readPixels(
             0,
             0,
             1024,
@@ -1086,7 +1086,7 @@ void LLFastTimerView::drawLineGraph()
         if (mHoverID == idp)
         {
             gGL.flush();
-            getOpenGLRenderBackend().setLineWidth(3);
+            getRenderBackend().setLineWidth(3);
         }
 
         llassert(idp->getIndex() < sTimerColors.size());
@@ -1147,7 +1147,7 @@ void LLFastTimerView::drawLineGraph()
         if (mHoverID == idp)
         {
             gGL.flush();
-            getOpenGLRenderBackend().setLineWidth(1);
+            getRenderBackend().setLineWidth(1);
         }
 
         if (idp->getTreeNode().mCollapsed)

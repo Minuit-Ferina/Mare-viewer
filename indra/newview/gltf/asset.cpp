@@ -181,16 +181,16 @@ void Asset::uploadTransforms()
 
     if (mNodesUBO == 0)
     {
-        getOpenGLRenderBackend().generateBuffers(1, &mNodesUBO);
+        getRenderBackend().generateBuffers(1, &mNodesUBO);
     }
 
-    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mNodesUBO);
-    getOpenGLRenderBackend().allocateBufferStorage(
+    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mNodesUBO);
+    getRenderBackend().allocateBufferStorage(
         LLRenderBufferTarget::Uniform,
         glmp.size() * sizeof(F32),
         glmp.data(),
         LLRenderBufferUsage::StreamDraw);
-    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
+    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
 }
 
 void Asset::uploadMaterials()
@@ -234,16 +234,16 @@ void Asset::uploadMaterials()
 
     if (mMaterialsUBO == 0)
     {
-        getOpenGLRenderBackend().generateBuffers(1, &mMaterialsUBO);
+        getRenderBackend().generateBuffers(1, &mMaterialsUBO);
     }
 
-    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mMaterialsUBO);
-    getOpenGLRenderBackend().allocateBufferStorage(
+    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mMaterialsUBO);
+    getRenderBackend().allocateBufferStorage(
         LLRenderBufferTarget::Uniform,
         md.size() * sizeof(vec4),
         md.data(),
         LLRenderBufferUsage::StreamDraw);
-    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
+    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
 }
 
 S32 Asset::lineSegmentIntersect(const LLVector4a& start, const LLVector4a& end,

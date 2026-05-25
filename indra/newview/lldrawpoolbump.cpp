@@ -523,7 +523,7 @@ void LLDrawPoolBump::renderBump(U32 pass)
     gGL.diffuseColor4f(1,1,1,1);
     /// Get rid of z-fighting with non-bump pass.
     LLGLEnable polyOffset(LLRenderCapability::PolygonOffsetFill);
-    getOpenGLRenderBackend().setPolygonOffset(-1.0f, -1.0f);
+    getRenderBackend().setPolygonOffset(-1.0f, -1.0f);
     pushBumpBatches(pass);
 }
 
@@ -966,7 +966,7 @@ void LLBumpImageList::onSourceUpdated(LLViewerTexture* src, EBumpEffect bump_cod
 
         // generate mipmap
         gGL.getTexUnit(0)->bind(bump);
-        getOpenGLRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
+        getRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
     }
 

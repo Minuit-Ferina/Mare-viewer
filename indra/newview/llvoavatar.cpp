@@ -5899,7 +5899,7 @@ U32 LLVOAvatar::renderImpostor(LLColor4U color, S32 diffuse_channel)
         gGL.begin(LLRender::LINES);
         gGL.color4f(1.f,1.f,1.f,1.f);
         F32 thickness = llmax(F32(5.0f-5.0f*(gFrameTimeSeconds-mLastImpostorUpdateFrameTime)),1.0f);
-        getOpenGLRenderBackend().setLineWidth(thickness);
+        getRenderBackend().setLineWidth(thickness);
         gGL.vertex3fv((pos+left-up).mV);
         gGL.vertex3fv((pos-left-up).mV);
         gGL.vertex3fv((pos-left-up).mV);
@@ -12513,22 +12513,22 @@ void LLVOAvatar::placeProfileQuery()
 {
     if (mGPUTimerQuery == 0)
     {
-        getOpenGLRenderBackend().generateQueries(1, &mGPUTimerQuery);
+        getRenderBackend().generateQueries(1, &mGPUTimerQuery);
     }
 
-    getOpenGLRenderBackend().beginQuery(LLRenderQueryTarget::TimeElapsed, mGPUTimerQuery);
+    getRenderBackend().beginQuery(LLRenderQueryTarget::TimeElapsed, mGPUTimerQuery);
 }
 
 void LLVOAvatar::readProfileQuery(S32 retries)
 {
     if (!mGPUProfilePending)
     {
-        getOpenGLRenderBackend().endQuery(LLRenderQueryTarget::TimeElapsed);
+        getRenderBackend().endQuery(LLRenderQueryTarget::TimeElapsed);
         mGPUProfilePending = true;
     }
 
     U64 result = 0;
-    getOpenGLRenderBackend().getQueryObjectUnsignedInteger64(
+    getRenderBackend().getQueryObjectUnsignedInteger64(
         mGPUTimerQuery,
         LLRenderQueryParameter::ResultAvailable,
         &result);
@@ -12536,7 +12536,7 @@ void LLVOAvatar::readProfileQuery(S32 retries)
     if (result != 0 || --retries <= 0)
     { // query available, readback result
         U64 time_elapsed = 0;
-        getOpenGLRenderBackend().getQueryObjectUnsignedInteger64(
+        getRenderBackend().getQueryObjectUnsignedInteger64(
             mGPUTimerQuery,
             LLRenderQueryParameter::Result,
             &time_elapsed);

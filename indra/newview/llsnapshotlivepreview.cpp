@@ -237,12 +237,12 @@ bool LLSnapshotLivePreview::setSnapshotQuality(S32 quality, bool set_by_user)
 void LLSnapshotLivePreview::drawPreviewRect(S32 offset_x, S32 offset_y, LLColor4 alpha_color)
 {
     F32 line_width ;
-    line_width = getOpenGLRenderBackend().getLineWidth();
-    getOpenGLRenderBackend().setLineWidth(2.0f * line_width) ;
+    line_width = getRenderBackend().getLineWidth();
+    getRenderBackend().setLineWidth(2.0f * line_width) ;
     LLColor4 color(0.0f, 0.0f, 0.0f, 1.0f) ;
     gl_rect_2d( mPreviewRect.mLeft + offset_x, mPreviewRect.mTop + offset_y,
         mPreviewRect.mRight + offset_x, mPreviewRect.mBottom + offset_y, color, false ) ;
-    getOpenGLRenderBackend().setLineWidth(line_width) ;
+    getRenderBackend().setLineWidth(line_width) ;
 
     //draw four alpha rectangles to cover areas outside of the snapshot image
     if(!mKeepAspectRatio)

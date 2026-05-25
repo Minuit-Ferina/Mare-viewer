@@ -68,7 +68,7 @@ LLWindowMesaHeadless::LLWindowMesaHeadless(LLWindowCallbacks* callbacks,
             LL_ERRS() << "MESA: OSMesaMakeCurrent failed!" << LL_ENDL;
         }
 
-        llverify(getOpenGLRenderBackend().initContextCapabilities());
+        llverify(getRenderBackend().initContextCapabilities());
     }
 }
 
@@ -80,5 +80,5 @@ LLWindowMesaHeadless::~LLWindowMesaHeadless()
 
 void LLWindowMesaHeadless::swapBuffers()
 {
-    getOpenGLRenderBackend().finishCommands();
+    getRenderBackend().finishCommands();
 }

@@ -40,30 +40,30 @@ static F32 halton(U32 index, U32 base)
 
 static void setProgramUniformInteger(LLRenderProgramHandle program, const char* name, S32 value)
 {
-    getOpenGLRenderBackend().setUniformInteger(
-        getOpenGLRenderBackend().getUniformLocation(program, name),
+    getRenderBackend().setUniformInteger(
+        getRenderBackend().getUniformLocation(program, name),
         value);
 }
 
 static void setProgramUniformInteger2(LLRenderProgramHandle program, const char* name, S32 first, S32 second)
 {
-    getOpenGLRenderBackend().setUniformInteger2(
-        getOpenGLRenderBackend().getUniformLocation(program, name),
+    getRenderBackend().setUniformInteger2(
+        getRenderBackend().getUniformLocation(program, name),
         first,
         second);
 }
 
 static void setProgramUniformFloat(LLRenderProgramHandle program, const char* name, F32 value)
 {
-    getOpenGLRenderBackend().setUniformFloat(
-        getOpenGLRenderBackend().getUniformLocation(program, name),
+    getRenderBackend().setUniformFloat(
+        getRenderBackend().getUniformLocation(program, name),
         value);
 }
 
 static void setProgramUniformFloat2(LLRenderProgramHandle program, const char* name, F32 first, F32 second)
 {
-    getOpenGLRenderBackend().setUniformFloat2(
-        getOpenGLRenderBackend().getUniformLocation(program, name),
+    getRenderBackend().setUniformFloat2(
+        getRenderBackend().getUniformLocation(program, name),
         first,
         second);
 }
@@ -111,40 +111,40 @@ LLRenderProgramHandle MAREFSR2Upscaler::compileComputeProgram(const std::string&
     std::string src = ss.str();
 
     const char* csrc = src.c_str();
-    LLRenderShaderHandle shader = getOpenGLRenderBackend().createShaderHandle(LLRenderShaderStage::Compute);
-    getOpenGLRenderBackend().setShaderSource(shader, 1, &csrc);
-    getOpenGLRenderBackend().compileShader(shader);
+    LLRenderShaderHandle shader = getRenderBackend().createShaderHandle(LLRenderShaderStage::Compute);
+    getRenderBackend().setShaderSource(shader, 1, &csrc);
+    getRenderBackend().compileShader(shader);
 
     S32 ok = 0;
-    getOpenGLRenderBackend().getShaderInteger(
+    getRenderBackend().getShaderInteger(
         shader,
         LLRenderShaderParameter::CompileStatus,
         &ok);
     if (!ok)
     {
         char log[2048];
-        getOpenGLRenderBackend().getShaderInfoLog(shader, sizeof(log), nullptr, log);
+        getRenderBackend().getShaderInfoLog(shader, sizeof(log), nullptr, log);
         LL_WARNS() << "MAREFSR2: compute shader compile error (" << relPath << "):\n" << log << LL_ENDL;
-        getOpenGLRenderBackend().deleteShader(shader);
+        getRenderBackend().deleteShader(shader);
         return LLRenderProgramHandle();
     }
 
-    LLRenderProgramHandle prog = getOpenGLRenderBackend().createProgramHandle();
-    getOpenGLRenderBackend().attachShader(prog, shader);
-    getOpenGLRenderBackend().linkProgram(prog);
-    getOpenGLRenderBackend().deleteShader(shader);  // shader is now owned by the program
+    LLRenderProgramHandle prog = getRenderBackend().createProgramHandle();
+    getRenderBackend().attachShader(prog, shader);
+    getRenderBackend().linkProgram(prog);
+    getRenderBackend().deleteShader(shader);  // shader is now owned by the program
 
     S32 linked = 0;
-    getOpenGLRenderBackend().getProgramInteger(
+    getRenderBackend().getProgramInteger(
         prog,
         LLRenderProgramParameter::LinkStatus,
         &linked);
     if (!linked)
     {
         char log[2048];
-        getOpenGLRenderBackend().getProgramInfoLog(prog, sizeof(log), nullptr, log);
+        getRenderBackend().getProgramInfoLog(prog, sizeof(log), nullptr, log);
         LL_WARNS() << "MAREFSR2: compute program link error (" << relPath << "):\n" << log << LL_ENDL;
-        getOpenGLRenderBackend().deleteProgram(prog);
+        getRenderBackend().deleteProgram(prog);
         return LLRenderProgramHandle();
     }
 
@@ -157,14 +157,14 @@ LLRenderProgramHandle MAREFSR2Upscaler::compileComputeProgram(const std::string&
 
 LLRenderTextureHandle MAREFSR2Upscaler::createTexture2D(U32 w, U32 h, LLRenderTextureFormat internalFmt)
 {
-    return getOpenGLRenderBackend().createTexture2D(internalFmt, w, h);
+    return getRenderBackend().createTexture2D(internalFmt, w, h);
 }
 
 void MAREFSR2Upscaler::deleteTexture(LLRenderTextureHandle& tex)
 {
     if (tex)
     {
-        getOpenGLRenderBackend().deleteTextureHandle(tex);
+        getRenderBackend().deleteTextureHandle(tex);
         tex = LLRenderTextureHandle();
     }
 }
@@ -215,11 +215,11 @@ bool MAREFSR2Upscaler::initialize(U32 renderW, U32 renderH)
 
 void MAREFSR2Upscaler::destroy()
 {
-    if (mProgDepthClip)      { getOpenGLRenderBackend().deleteProgram(mProgDepthClip);      mProgDepthClip      = LLRenderProgramHandle(); }
-    if (mProgReconPrevDepth) { getOpenGLRenderBackend().deleteProgram(mProgReconPrevDepth); mProgReconPrevDepth = LLRenderProgramHandle(); }
-    if (mProgLock)           { getOpenGLRenderBackend().deleteProgram(mProgLock);           mProgLock           = LLRenderProgramHandle(); }
-    if (mProgAccumulate)     { getOpenGLRenderBackend().deleteProgram(mProgAccumulate);     mProgAccumulate     = LLRenderProgramHandle(); }
-    if (mProgRCAS)           { getOpenGLRenderBackend().deleteProgram(mProgRCAS);           mProgRCAS           = LLRenderProgramHandle(); }
+    if (mProgDepthClip)      { getRenderBackend().deleteProgram(mProgDepthClip);      mProgDepthClip      = LLRenderProgramHandle(); }
+    if (mProgReconPrevDepth) { getRenderBackend().deleteProgram(mProgReconPrevDepth); mProgReconPrevDepth = LLRenderProgramHandle(); }
+    if (mProgLock)           { getRenderBackend().deleteProgram(mProgLock);           mProgLock           = LLRenderProgramHandle(); }
+    if (mProgAccumulate)     { getRenderBackend().deleteProgram(mProgAccumulate);     mProgAccumulate     = LLRenderProgramHandle(); }
+    if (mProgRCAS)           { getRenderBackend().deleteProgram(mProgRCAS);           mProgRCAS           = LLRenderProgramHandle(); }
 
     deleteTexture(mDilatedDepth);
     deleteTexture(mDilatedMV);
@@ -287,18 +287,18 @@ void MAREFSR2Upscaler::apply(
     // Inputs:  u_depth (tex 0), u_motionVec (tex 1)
     // Outputs: u_dilatedDepth (image 2), u_dilatedMV (image 3)
     {
-        getOpenGLRenderBackend().useProgram(mProgDepthClip);
+        getRenderBackend().useProgram(mProgDepthClip);
         setProgramUniformInteger2(mProgDepthClip, "u_renderSize", (S32)rW, (S32)rH);
 
-        getOpenGLRenderBackend().bindTextureUnit(0, depthTex);
-        getOpenGLRenderBackend().bindTextureUnit(1, velocityTex);
-        getOpenGLRenderBackend().bindImageTexture(
+        getRenderBackend().bindTextureUnit(0, depthTex);
+        getRenderBackend().bindTextureUnit(1, velocityTex);
+        getRenderBackend().bindImageTexture(
             2, mDilatedDepth, 0, false, 0, LLRenderImageAccess::WriteOnly, LLRenderTextureFormat::R32F);
-        getOpenGLRenderBackend().bindImageTexture(
+        getRenderBackend().bindImageTexture(
             3, mDilatedMV, 0, false, 0, LLRenderImageAccess::WriteOnly, LLRenderTextureFormat::RG32F);
 
-        getOpenGLRenderBackend().dispatchCompute(groups(rW), groups(rH), 1);
-        getOpenGLRenderBackend().setMemoryBarrier(
+        getRenderBackend().dispatchCompute(groups(rW), groups(rH), 1);
+        getRenderBackend().setMemoryBarrier(
             LL_RENDER_MEMORY_BARRIER_SHADER_IMAGE_ACCESS |
             LL_RENDER_MEMORY_BARRIER_TEXTURE_FETCH);
     }
@@ -307,16 +307,16 @@ void MAREFSR2Upscaler::apply(
     // Inputs:  u_dilatedMV (tex 0), u_prevDepth (tex 1)
     // Output:  u_reconPrevDepth (image 2)
     {
-        getOpenGLRenderBackend().useProgram(mProgReconPrevDepth);
+        getRenderBackend().useProgram(mProgReconPrevDepth);
         setProgramUniformInteger2(mProgReconPrevDepth, "u_renderSize", (S32)rW, (S32)rH);
 
-        getOpenGLRenderBackend().bindTextureUnit(0, mDilatedMV);
-        getOpenGLRenderBackend().bindTextureUnit(1, mPrevDepth);
-        getOpenGLRenderBackend().bindImageTexture(
+        getRenderBackend().bindTextureUnit(0, mDilatedMV);
+        getRenderBackend().bindTextureUnit(1, mPrevDepth);
+        getRenderBackend().bindImageTexture(
             2, mReconPrevDepth, 0, false, 0, LLRenderImageAccess::WriteOnly, LLRenderTextureFormat::R32F);
 
-        getOpenGLRenderBackend().dispatchCompute(groups(rW), groups(rH), 1);
-        getOpenGLRenderBackend().setMemoryBarrier(
+        getRenderBackend().dispatchCompute(groups(rW), groups(rH), 1);
+        getRenderBackend().setMemoryBarrier(
             LL_RENDER_MEMORY_BARRIER_SHADER_IMAGE_ACCESS |
             LL_RENDER_MEMORY_BARRIER_TEXTURE_FETCH);
     }
@@ -326,18 +326,18 @@ void MAREFSR2Upscaler::apply(
     //          u_dilatedDepth (tex 2), u_reconPrevDepth (tex 3)
     // Output:  u_lockStatus (image 4)
     {
-        getOpenGLRenderBackend().useProgram(mProgLock);
+        getRenderBackend().useProgram(mProgLock);
         setProgramUniformInteger2(mProgLock, "u_renderSize", (S32)rW, (S32)rH);
 
-        getOpenGLRenderBackend().bindTextureUnit(0, colorTex);
-        getOpenGLRenderBackend().bindTextureUnit(1, mAccumBuffer[histIdx]);
-        getOpenGLRenderBackend().bindTextureUnit(2, mDilatedDepth);
-        getOpenGLRenderBackend().bindTextureUnit(3, mReconPrevDepth);
-        getOpenGLRenderBackend().bindImageTexture(
+        getRenderBackend().bindTextureUnit(0, colorTex);
+        getRenderBackend().bindTextureUnit(1, mAccumBuffer[histIdx]);
+        getRenderBackend().bindTextureUnit(2, mDilatedDepth);
+        getRenderBackend().bindTextureUnit(3, mReconPrevDepth);
+        getRenderBackend().bindImageTexture(
             4, mLockStatus, 0, false, 0, LLRenderImageAccess::WriteOnly, LLRenderTextureFormat::R8);
 
-        getOpenGLRenderBackend().dispatchCompute(groups(rW), groups(rH), 1);
-        getOpenGLRenderBackend().setMemoryBarrier(
+        getRenderBackend().dispatchCompute(groups(rW), groups(rH), 1);
+        getRenderBackend().setMemoryBarrier(
             LL_RENDER_MEMORY_BARRIER_SHADER_IMAGE_ACCESS |
             LL_RENDER_MEMORY_BARRIER_TEXTURE_FETCH);
     }
@@ -350,22 +350,22 @@ void MAREFSR2Upscaler::apply(
         static U32 sFrameIndex = 0;
         ++sFrameIndex;
 
-        getOpenGLRenderBackend().useProgram(mProgAccumulate);
+        getRenderBackend().useProgram(mProgAccumulate);
         setProgramUniformInteger2(mProgAccumulate, "u_renderSize",  (S32)rW, (S32)rH);
         setProgramUniformInteger2(mProgAccumulate, "u_displaySize", (S32)dW, (S32)dH);
         setProgramUniformFloat2(mProgAccumulate, "u_jitter", jitterX, jitterY);
         setProgramUniformInteger(mProgAccumulate, "u_cameraCut", cameraCut ? 1 : 0);
         setProgramUniformInteger(mProgAccumulate, "u_frameIndex", (S32)sFrameIndex);
 
-        getOpenGLRenderBackend().bindTextureUnit(0, colorTex);
-        getOpenGLRenderBackend().bindTextureUnit(1, mAccumBuffer[histIdx]);
-        getOpenGLRenderBackend().bindTextureUnit(2, mDilatedMV);
-        getOpenGLRenderBackend().bindTextureUnit(3, mLockStatus);
-        getOpenGLRenderBackend().bindImageTexture(
+        getRenderBackend().bindTextureUnit(0, colorTex);
+        getRenderBackend().bindTextureUnit(1, mAccumBuffer[histIdx]);
+        getRenderBackend().bindTextureUnit(2, mDilatedMV);
+        getRenderBackend().bindTextureUnit(3, mLockStatus);
+        getRenderBackend().bindImageTexture(
             4, mAccumBuffer[outIdx], 0, false, 0, LLRenderImageAccess::WriteOnly, LLRenderTextureFormat::RGBA16F);
 
-        getOpenGLRenderBackend().dispatchCompute(groups(dW), groups(dH), 1);
-        getOpenGLRenderBackend().setMemoryBarrier(
+        getRenderBackend().dispatchCompute(groups(dW), groups(dH), 1);
+        getRenderBackend().setMemoryBarrier(
             LL_RENDER_MEMORY_BARRIER_SHADER_IMAGE_ACCESS |
             LL_RENDER_MEMORY_BARRIER_TEXTURE_FETCH);
 
@@ -378,16 +378,16 @@ void MAREFSR2Upscaler::apply(
     {
         static LLCachedControl<F32> sharpness(gSavedSettings, "RenderNISSharpenStrength", 0.5f);
 
-        getOpenGLRenderBackend().useProgram(mProgRCAS);
+        getRenderBackend().useProgram(mProgRCAS);
         setProgramUniformInteger2(mProgRCAS, "u_displaySize", (S32)dW, (S32)dH);
         setProgramUniformFloat(mProgRCAS, "u_sharpness", (F32)sharpness);
 
-        getOpenGLRenderBackend().bindTextureUnit(0, mAccumBuffer[outIdx]);
-        getOpenGLRenderBackend().bindImageTexture(
+        getRenderBackend().bindTextureUnit(0, mAccumBuffer[outIdx]);
+        getRenderBackend().bindImageTexture(
             1, mRCASBuffer, 0, false, 0, LLRenderImageAccess::WriteOnly, LLRenderTextureFormat::RGBA16F);
 
-        getOpenGLRenderBackend().dispatchCompute(groups(dW), groups(dH), 1);
-        getOpenGLRenderBackend().setMemoryBarrier(
+        getRenderBackend().dispatchCompute(groups(dW), groups(dH), 1);
+        getRenderBackend().setMemoryBarrier(
             LL_RENDER_MEMORY_BARRIER_SHADER_IMAGE_ACCESS |
             LL_RENDER_MEMORY_BARRIER_TEXTURE_FETCH);
     }
@@ -419,12 +419,12 @@ void MAREFSR2Upscaler::apply(
     if (depthTex)
     {
         // Blit current depth into mPrevDepth via a simple copy image call.
-        getOpenGLRenderBackend().copyImageSubData(
+        getRenderBackend().copyImageSubData(
             depthTex,    LLRenderTextureTarget::Texture2D, 0, 0, 0, 0,
             mPrevDepth,  LLRenderTextureTarget::Texture2D, 0, 0, 0, 0,
             rW, rH, 1);
     }
 
     // Unbind compute program.
-    getOpenGLRenderBackend().useProgram(LLRenderProgramHandle());
+    getRenderBackend().useProgram(LLRenderProgramHandle());
 }

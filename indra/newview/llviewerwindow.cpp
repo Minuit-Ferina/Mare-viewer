@@ -853,7 +853,7 @@ public:
             S32 x_raw = (S32)llround(coord.mX * gViewerWindow->getWindowWidthRaw() / (F32) gViewerWindow->getWindowWidthScaled());
             S32 y_raw = (S32)llround(coord.mY * gViewerWindow->getWindowHeightRaw() / (F32) gViewerWindow->getWindowHeightScaled());
 
-            getOpenGLRenderBackend().readPixels(
+            getRenderBackend().readPixels(
                 x_raw,
                 y_raw,
                 1,
@@ -4270,9 +4270,9 @@ void LLViewerWindow::renderSelections( bool for_gl_pick, bool pick_parcel_walls,
                         gSphere.render();
 
                         // Render Inside
-                        getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Front);
+                        getRenderBackend().setCullFace(LLRenderCullFace::Front);
                         gSphere.render();
-                        getOpenGLRenderBackend().setCullFace(LLRenderCullFace::Back);
+                        getRenderBackend().setCullFace(LLRenderCullFace::Back);
 
                         gGL.popMatrix();
                     }
@@ -5108,7 +5108,7 @@ bool LLViewerWindow::rawSnapshot(LLImageRaw *raw, S32 image_width, S32 image_hei
     gSnapshotNoPost = no_post;
     gDisplaySwapBuffers = false;
 
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_COLOR); // stencil buffer is deprecated.
+    getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_COLOR); // stencil buffer is deprecated.
     setCursor(UI_CURSOR_WAIT);
 
     // Hide all the UI widgets first and draw a frame
@@ -5316,7 +5316,7 @@ bool LLViewerWindow::rawSnapshot(LLImageRaw *raw, S32 image_width, S32 image_hei
                     {
                         if (type == LLSnapshotModel::SNAPSHOT_TYPE_COLOR)
                         {
-                            getOpenGLRenderBackend().readPixels(
+                            getRenderBackend().readPixels(
                                      subimage_x_offset, out_y + subimage_y_offset,
                                      read_width, 1,
                                      LLRenderPixelFormat::RGB, LLRenderPixelType::UnsignedByte,
@@ -5326,7 +5326,7 @@ bool LLViewerWindow::rawSnapshot(LLImageRaw *raw, S32 image_width, S32 image_hei
                         else // LLSnapshotModel::SNAPSHOT_TYPE_DEPTH
                         {
                             LLPointer<LLImageRaw> depth_line_buffer = new LLImageRaw(read_width, 1, sizeof(F32)); // need to store floating point values
-                            getOpenGLRenderBackend().readPixels(
+                            getRenderBackend().readPixels(
                                          subimage_x_offset, out_y + subimage_y_offset,
                                          read_width, 1,
                                          LLRenderPixelFormat::DepthComponent, LLRenderPixelType::Float32,
@@ -5428,7 +5428,7 @@ bool LLViewerWindow::simpleSnapshot(LLImageRaw* raw, S32 image_width, S32 image_
     LL_PROFILE_ZONE_SCOPED_CATEGORY_APP;
     gDisplaySwapBuffers = false;
 
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_COLOR); // stencil buffer is deprecated.
+    getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_COLOR); // stencil buffer is deprecated.
     setCursor(UI_CURSOR_WAIT);
 
     bool prev_draw_ui = gPipeline.hasRenderDebugFeatureMask(LLPipeline::RENDER_DEBUG_FEATURE_UI);
@@ -5494,7 +5494,7 @@ bool LLViewerWindow::simpleSnapshot(LLImageRaw* raw, S32 image_width, S32 image_
 
     LLImageDataSharedLock lock(raw);
 
-    getOpenGLRenderBackend().readPixels(
+    getRenderBackend().readPixels(
         0, 0,
         image_width,
         image_height,
@@ -5573,7 +5573,7 @@ bool LLViewerWindow::cubeSnapshot(const LLVector3& origin, LLCubeMapArray* cubea
 
     gPipeline.pushRenderTypeMask();
 
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_COLOR); // stencil buffer is deprecated.
+    getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_COLOR); // stencil buffer is deprecated.
 
     U32 dynamic_render_types[] = {
         LLPipeline::RENDER_TYPE_AVATAR,
@@ -5791,7 +5791,7 @@ void LLViewerWindow::setup2DViewport(S32 x_offset, S32 y_offset)
     gGLViewport[1] = mWindowRectRaw.mBottom + y_offset;
     gGLViewport[2] = mWindowRectRaw.getWidth();
     gGLViewport[3] = mWindowRectRaw.getHeight();
-    getOpenGLRenderBackend().setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+    getRenderBackend().setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
 }
 
 void LLViewerWindow::setup3DRender()
@@ -5808,7 +5808,7 @@ void LLViewerWindow::setup3DViewport(S32 x_offset, S32 y_offset)
     gGLViewport[1] = mWorldViewRectRaw.mBottom + y_offset;
     gGLViewport[2] = mWorldViewRectRaw.getWidth();
     gGLViewport[3] = mWorldViewRectRaw.getHeight();
-    getOpenGLRenderBackend().setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+    getRenderBackend().setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
 }
 
 void LLViewerWindow::revealIntroPanel()

@@ -46,7 +46,7 @@ LLReflectionMap::~LLReflectionMap()
 {
     if (mOcclusionQuery)
     {
-        getOpenGLRenderBackend().deleteQueries(1, &mOcclusionQuery);
+        getRenderBackend().deleteQueries(1, &mOcclusionQuery);
     }
 }
 
@@ -340,7 +340,7 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
     if (mOcclusionQuery == 0)
     { // no query was previously issued, allocate one and issue
         LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - generate queries");
-        getOpenGLRenderBackend().generateQueries(1, &mOcclusionQuery);
+        getRenderBackend().generateQueries(1, &mOcclusionQuery);
         do_query = true;
     }
     else
@@ -348,7 +348,7 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
         // if previous query is available
         LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - get query object");
         U32 result = 0;
-        getOpenGLRenderBackend().getQueryObjectUnsignedInteger(
+        getRenderBackend().getQueryObjectUnsignedInteger(
             mOcclusionQuery,
             LLRenderQueryParameter::ResultAvailable,
             &result);
@@ -356,7 +356,7 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
         if (result > 0)
         {
             do_query = true;
-            getOpenGLRenderBackend().getQueryObjectUnsignedInteger(
+            getRenderBackend().getQueryObjectUnsignedInteger(
                 mOcclusionQuery,
                 LLRenderQueryParameter::Result,
                 &result);
@@ -372,7 +372,7 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
     if (do_query)
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - push query");
-        getOpenGLRenderBackend().beginQuery(LLRenderQueryTarget::AnySamplesPassed, mOcclusionQuery);
+        getRenderBackend().beginQuery(LLRenderQueryTarget::AnySamplesPassed, mOcclusionQuery);
 
         LLGLSLShader* shader = LLGLSLShader::sCurBoundShaderPtr;
 
@@ -381,7 +381,7 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
 
         gPipeline.mCubeVB->drawRange(LLRender::TRIANGLE_FAN, 0, 7, 8, get_box_fan_indices(LLViewerCamera::getInstance(), mOrigin));
 
-        getOpenGLRenderBackend().endQuery(LLRenderQueryTarget::AnySamplesPassed);
+        getRenderBackend().endQuery(LLRenderQueryTarget::AnySamplesPassed);
     }
 #endif
 }

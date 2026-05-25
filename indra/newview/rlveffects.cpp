@@ -267,7 +267,7 @@ void RlvSphereEffect::renderPass(LLGLSLShader* pShader, const LLShaderEffectPara
         gGLViewport[1] = gViewerWindow->getWorldViewRectRaw().mBottom;
         gGLViewport[2] = gViewerWindow->getWorldViewRectRaw().getWidth();
         gGLViewport[3] = gViewerWindow->getWorldViewRectRaw().getHeight();
-        getOpenGLRenderBackend().setViewport(
+        getRenderBackend().setViewport(
             gGLViewport[0],
             gGLViewport[1],
             gGLViewport[2],

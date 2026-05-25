@@ -719,13 +719,13 @@ void GLTFSceneManager::render(Asset& asset, U8 variant)
 
                 if (!rigged)
                 {
-                    getOpenGLRenderBackend().bindBufferBase(
+                    getRenderBackend().bindBufferBase(
                         LLRenderBufferTarget::Uniform,
                         LLGLSLShader::UB_GLTF_NODES,
                         asset.mNodesUBO);
                 }
 
-                getOpenGLRenderBackend().bindBufferBase(
+                getRenderBackend().bindBufferBase(
                     LLRenderBufferTarget::Uniform,
                     LLGLSLShader::UB_GLTF_MATERIALS,
                     asset.mMaterialsUBO);
@@ -768,7 +768,7 @@ void GLTFSceneManager::render(Asset& asset, U8 variant)
                     LL_PROFILE_ZONE_NAMED_CATEGORY_GLTF("gltfdc - bind skin");
                     llassert(node.mSkin != INVALID_INDEX);
                     Skin& skin = asset.mSkins[node.mSkin];
-                    getOpenGLRenderBackend().bindBufferBase(
+                    getRenderBackend().bindBufferBase(
                         LLRenderBufferTarget::Uniform,
                         LLGLSLShader::UB_GLTF_JOINTS,
                         skin.mUBO);
@@ -810,7 +810,7 @@ void GLTFSceneManager::bindTexture(Asset& asset, TextureType texture_type, Textu
 
     if (channel > -1)
     {
-        getOpenGLRenderBackend().setActiveTextureUnit(channel);
+        getRenderBackend().setActiveTextureUnit(channel);
 
         if (info.mIndex != INVALID_INDEX)
         {
@@ -820,22 +820,22 @@ void GLTFSceneManager::bindTexture(Asset& asset, TextureType texture_type, Textu
             if (tex)
             {
                 LL_PROFILE_ZONE_NAMED_CATEGORY_GLTF("gl bind texture");
-                getOpenGLRenderBackend().bindTexture(
+                getRenderBackend().bindTexture(
                     LLRenderTextureTarget::Texture2D,
                     tex->getTexName());
 
                 if (channel != -1 && texture.mSampler != -1)
                 { // set sampler state
                     Sampler& sampler = asset.mSamplers[texture.mSampler];
-                    getOpenGLRenderBackend().setTextureAddressMode(
+                    getRenderBackend().setTextureAddressMode(
                         LLRenderTextureTarget::Texture2D,
                         LLRenderTextureCoordinate::S,
                         to_render_texture_address_mode(sampler.mWrapS));
-                    getOpenGLRenderBackend().setTextureAddressMode(
+                    getRenderBackend().setTextureAddressMode(
                         LLRenderTextureTarget::Texture2D,
                         LLRenderTextureCoordinate::T,
                         to_render_texture_address_mode(sampler.mWrapT));
-                    getOpenGLRenderBackend().setTextureMagFilter(
+                    getRenderBackend().setTextureMagFilter(
                         LLRenderTextureTarget::Texture2D,
                         to_render_texture_mag_filter(sampler.mMagFilter));
 
@@ -844,24 +844,24 @@ void GLTFSceneManager::bindTexture(Asset& asset, TextureType texture_type, Textu
                 else
                 {
                     // set default sampler state
-                    getOpenGLRenderBackend().setTextureAddressMode(
+                    getRenderBackend().setTextureAddressMode(
                         LLRenderTextureTarget::Texture2D,
                         LLRenderTextureAddressMode::Repeat);
-                    getOpenGLRenderBackend().setTextureMagFilter(
+                    getRenderBackend().setTextureMagFilter(
                         LLRenderTextureTarget::Texture2D,
                         LLRenderTextureFilter::Linear);
                 }
             }
             else
             {
-                getOpenGLRenderBackend().bindTexture(
+                getRenderBackend().bindTexture(
                     LLRenderTextureTarget::Texture2D,
                     fallback->getTexName());
             }
         }
         else
         {
-            getOpenGLRenderBackend().bindTexture(
+            getRenderBackend().bindTexture(
                 LLRenderTextureTarget::Texture2D,
                 fallback->getTexName());
         }
@@ -1088,7 +1088,7 @@ void renderAssetDebug(LLViewerObject* obj, Asset* asset)
             if (gPipeline.hasRenderDebugMask(LLPipeline::RENDER_DEBUG_RAYCAST))
             {
                 gGL.flush();
-                getOpenGLRenderBackend().setPolygonMode(
+                getRenderBackend().setPolygonMode(
                     LLRenderPolygonFace::FrontAndBack,
                     LLRenderPolygonMode::Line);
 
@@ -1108,7 +1108,7 @@ void renderAssetDebug(LLViewerObject* obj, Asset* asset)
                 }
 
                 gGL.flush();
-                getOpenGLRenderBackend().setPolygonMode(
+                getRenderBackend().setPolygonMode(
                     LLRenderPolygonFace::FrontAndBack,
                     LLRenderPolygonMode::Fill);
             }
@@ -1241,7 +1241,7 @@ void GLTFSceneManager::renderDebug()
                 Primitive* primitive = &asset->mMeshes[node->mMesh].mPrimitives[primitive_hit];
 
                 gGL.flush();
-                getOpenGLRenderBackend().setPolygonMode(
+                getRenderBackend().setPolygonMode(
                     LLRenderPolygonFace::FrontAndBack,
                     LLRenderPolygonMode::Line);
                 gGL.color3f(1, 0, 1);
@@ -1253,7 +1253,7 @@ void GLTFSceneManager::renderDebug()
                 drawBoxOutline(listener->mBounds[0], listener->mBounds[1]);
 
                 gGL.flush();
-                getOpenGLRenderBackend().setPolygonMode(
+                getRenderBackend().setPolygonMode(
                     LLRenderPolygonFace::FrontAndBack,
                     LLRenderPolygonMode::Fill);
                 gGL.popMatrix();

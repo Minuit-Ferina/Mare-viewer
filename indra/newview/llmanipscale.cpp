@@ -295,7 +295,7 @@ void LLManipScale::render()
 
             {
                 LLGLEnable poly_offset(LLRenderCapability::PolygonOffsetFill);
-                getOpenGLRenderBackend().setPolygonOffset( -2.f, -2.f);
+                getRenderBackend().setPolygonOffset( -2.f, -2.f);
 
                 renderCorners( bbox );
                 renderFaces( bbox );
@@ -305,7 +305,7 @@ void LLManipScale::render()
                     renderGuidelinesPart( bbox );
                 }
 
-                getOpenGLRenderBackend().setPolygonOffset( 0.f, 0.f);
+                getRenderBackend().setPolygonOffset( 0.f, 0.f);
             }
         }
         gGL.popMatrix();

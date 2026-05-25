@@ -3793,9 +3793,9 @@ LLSD LLAppViewer::getViewerInfo() const
     // Moved hack adjustment to Windows memory size into llsys.cpp
     info["OS_VERSION"] = LLOSInfo::instance().getOSString();
     info["GRAPHICS_CARD_VENDOR"] = ll_safe_string(
-        getOpenGLRenderBackend().getInfoString(LLRenderInfoString::Vendor));
+        getRenderBackend().getInfoString(LLRenderInfoString::Vendor));
     info["GRAPHICS_CARD"] = ll_safe_string(
-        getOpenGLRenderBackend().getInfoString(LLRenderInfoString::Renderer));
+        getRenderBackend().getInfoString(LLRenderInfoString::Renderer));
 
 #if LL_WINDOWS
     std::string drvinfo;
@@ -3844,7 +3844,7 @@ LLSD LLAppViewer::getViewerInfo() const
     }
 
     info["OPENGL_VERSION"] = ll_safe_string(
-        getOpenGLRenderBackend().getInfoString(LLRenderInfoString::Version));
+        getRenderBackend().getInfoString(LLRenderInfoString::Version));
 
     // Settings
 
@@ -6309,7 +6309,7 @@ void LLAppViewer::forceErrorOSSpecificException()
 void LLAppViewer::forceErrorDriverCrash()
 {
     LL_WARNS() << "Forcing a deliberate driver crash" << LL_ENDL;
-    getOpenGLRenderBackend().deleteTextures(1, NULL);
+    getRenderBackend().deleteTextures(1, NULL);
 }
 
 void LLAppViewer::forceErrorCoroutineCrash()

@@ -78,7 +78,7 @@ bool LLViewerDynamicTexture::updateDynamicTexture(LLViewerDynamicTexture* dynami
     llassert(dynamic_texture->getFullWidth() <= width);
     llassert(dynamic_texture->getFullHeight() <= height);
 
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
+    getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
 
     gGL.color4f(1.f, 1.f, 1.f, 1.f);
     dynamic_texture->setBoundTarget(&render_target);
@@ -236,10 +236,10 @@ void LLViewerDynamicTexture::preRender(bool clear_depth)
     mCamera.setView(camera->getView());
     mCamera.setNear(camera->getNear());
 
-    getOpenGLRenderBackend().setViewport(mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight);
+    getRenderBackend().setViewport(mOrigin.mX, mOrigin.mY, mFullWidth, mFullHeight);
     if (clear_depth)
     {
-        getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
+        getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
     }
 }
 

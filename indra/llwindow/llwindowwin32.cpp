@@ -1020,7 +1020,7 @@ void LLWindowWin32::close()
     if (gGLManager.mInited)
     {
         LL_INFOS("Window") << "Cleaning up GL" << LL_ENDL;
-        getOpenGLRenderBackend().shutdownContextCapabilities();
+        getRenderBackend().shutdownContextCapabilities();
     }
 
     LL_DEBUGS("Window") << "Releasing Context" << LL_ENDL;
@@ -1207,7 +1207,7 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
     }
     mRefreshRate = current_refresh;
 
-    getOpenGLRenderBackend().shutdownContextCapabilities();
+    getRenderBackend().shutdownContextCapabilities();
     //destroy gl context
     if (mhRC)
     {
@@ -1454,7 +1454,7 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
 
     LL_INFOS("Window") << "Drawing context is created." << LL_ENDL ;
 
-    getOpenGLRenderBackend().initPlatformContextExtensions();
+    getRenderBackend().initPlatformContextExtensions();
 
     if (wglChoosePixelFormatARB && wglGetPixelFormatAttribivARB)
     {
@@ -1728,7 +1728,7 @@ const   S32   max_format  = (S32)num_formats - 1;
         return false;
     }
 
-    if (!getOpenGLRenderBackend().initContextCapabilities())
+    if (!getRenderBackend().initContextCapabilities())
     {
         LLError::LLUserWarningMsg::show(mCallbacks->translateString("MBVideoDrvErr"), 8/*LAST_EXEC_GRAPHICS_INIT*/);
         close();
@@ -1766,8 +1766,8 @@ const   S32   max_format  = (S32)num_formats - 1;
     if (auto_show)
     {
         show();
-        getOpenGLRenderBackend().setClearColor(0.0f, 0.0f, 0.0f, 0.f);
-        getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
+        getRenderBackend().setClearColor(0.0f, 0.0f, 0.0f, 0.f);
+        getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
         swapBuffers();
     }
 

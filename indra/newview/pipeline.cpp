@@ -733,7 +733,7 @@ void LLPipeline::destroyGL()
 
     if (mMeshDirtyQueryObject)
     {
-        getOpenGLRenderBackend().deleteQueries(1, &mMeshDirtyQueryObject);
+        getRenderBackend().deleteQueries(1, &mMeshDirtyQueryObject);
         mMeshDirtyQueryObject = 0;
     }
 }
@@ -1094,7 +1094,7 @@ bool LLPipeline::allocateShadowBuffer(U32 resX, U32 resY)
                 gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_ANISOTROPIC);
                 gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
 
-                getOpenGLRenderBackend().setTextureCompareMode(
+                getRenderBackend().setTextureCompareMode(
                     LLRenderTextureTarget::Texture2D,
                     true);
             }
@@ -1112,7 +1112,7 @@ bool LLPipeline::allocateShadowBuffer(U32 resX, U32 resY)
                 gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_ANISOTROPIC);
                 gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
 
-                getOpenGLRenderBackend().setTextureCompareMode(
+                getRenderBackend().setTextureCompareMode(
                     LLRenderTextureTarget::Texture2D,
                     true);
             }
@@ -1589,7 +1589,7 @@ void LLPipeline::createLUTBuffers()
         LLImageGL::setManualImage(LLRenderTextureTarget::Texture2D, 0, pix_format, lightResX, lightResY, LLRenderPixelFormat::Red, LLRenderPixelType::Float32, ls, false);
         gGL.getTexUnit(0)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
         gGL.getTexUnit(0)->setTextureFilteringOption(LLTexUnit::TFO_TRILINEAR);
-        getOpenGLRenderBackend().setTextureFilter(
+        getRenderBackend().setTextureFilter(
             LLRenderTextureTarget::Texture2D,
             LLRenderTextureFilter::Nearest,
             LLRenderTextureFilter::Linear);
@@ -1623,9 +1623,9 @@ void LLPipeline::createLUTBuffers()
 
     mExposureMap.allocate(1, 1, LLRenderTextureFormat::R16F);
     mExposureMap.bindTarget();
-    getOpenGLRenderBackend().setClearColor(1, 1, 1, 0);
+    getRenderBackend().setClearColor(1, 1, 1, 0);
     mExposureMap.clear();
-    getOpenGLRenderBackend().setClearColor(0, 0, 0, 0);
+    getRenderBackend().setClearColor(0, 0, 0, 0);
     mExposureMap.flush();
 
     mLuminanceMap.allocate(256, 256, LLRenderTextureFormat::R16F, false, LLTexUnit::TT_TEXTURE, LLTexUnit::TMG_AUTO);
@@ -3117,7 +3117,7 @@ void LLPipeline::shiftObjects(const LLVector3 &offset)
     LL_PROFILE_ZONE_SCOPED_CATEGORY_PIPELINE;
     assertInitialized();
 
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
+    getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
     gDepthDirty = true;
 
     LLVector4a offseta;
@@ -3816,10 +3816,10 @@ void LLPipeline::postSort(LLCamera &camera)
 
         if (!mMeshDirtyQueryObject)
         {
-            getOpenGLRenderBackend().generateQueries(1, &mMeshDirtyQueryObject);
+            getRenderBackend().generateQueries(1, &mMeshDirtyQueryObject);
         }
 
-        getOpenGLRenderBackend().beginQuery(
+        getRenderBackend().beginQuery(
             LLRenderQueryTarget::TransformFeedbackPrimitivesWritten,
             mMeshDirtyQueryObject);
     }*/
@@ -3835,7 +3835,7 @@ void LLPipeline::postSort(LLCamera &camera)
 
     /*if (use_transform_feedback)
     {
-        getOpenGLRenderBackend().endQuery(LLRenderQueryTarget::TransformFeedbackPrimitivesWritten);
+        getRenderBackend().endQuery(LLRenderQueryTarget::TransformFeedbackPrimitivesWritten);
     }*/
 
     mMeshDirtyGroup.clear();
@@ -4144,7 +4144,7 @@ void LLPipeline::renderGeomDeferred(LLCamera& camera, bool do_occlusion)
 
     if (gUseWireframe)
     {
-        getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
+        getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
     }
 
     if (&camera == LLViewerCamera::getInstance())
@@ -4267,7 +4267,7 @@ void LLPipeline::renderGeomDeferred(LLCamera& camera, bool do_occlusion)
 
     if (gUseWireframe)
     {
-        getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
+        getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
     }
 }
 
@@ -4280,7 +4280,7 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
 
     if (gUseWireframe)
     {
-        getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
+        getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
     }
 
     U32 cur_type = 0;
@@ -4410,7 +4410,7 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
 
     if (gUseWireframe)
     {
-        getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
+        getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
     }
 }
 
@@ -4504,8 +4504,8 @@ void LLPipeline::renderPhysicsDisplay()
     gDebugProgram.bind();
 
     LLGLEnable polygon_offset_line(LLRenderCapability::PolygonOffsetLine);
-    getOpenGLRenderBackend().setPolygonOffset(3.f, 3.f);
-    getOpenGLRenderBackend().setLineWidth(3.f);
+    getRenderBackend().setPolygonOffset(3.f, 3.f);
+    getRenderBackend().setLineWidth(3.f);
     LLGLEnable blend(LLRenderCapability::Blend);
     gGL.setSceneBlendType(LLRender::BT_ALPHA);
 
@@ -4521,7 +4521,7 @@ void LLPipeline::renderPhysicsDisplay()
 
         if (wireframe)
         {
-            getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
+            getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
         }
 
         for (LLWorld::region_list_t::const_iterator iter = LLWorld::getInstance()->getRegionList().begin();
@@ -4544,10 +4544,10 @@ void LLPipeline::renderPhysicsDisplay()
 
         if (wireframe)
         {
-            getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
+            getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
         }
     }
-    getOpenGLRenderBackend().setLineWidth(1.f);
+    getRenderBackend().setLineWidth(1.f);
     gDebugProgram.unbind();
 
 }
@@ -4621,17 +4621,17 @@ void LLPipeline::renderDebug()
                     {
                         const LLColor4 clearColor = gSavedSettings.getColor4("PathfindingNavMeshClear");
                         gGL.setColorMask(true, true);
-                        getOpenGLRenderBackend().setClearColor(clearColor.mV[0],clearColor.mV[1],clearColor.mV[2],0);
-                        getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_COLOR); // no stencil.
+                        getRenderBackend().setClearColor(clearColor.mV[0],clearColor.mV[1],clearColor.mV[2],0);
+                        getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH | LL_RENDER_CLEAR_COLOR); // no stencil.
                         gGL.setColorMask(true, false);
-                        getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
+                        getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
                     }
 
                     //NavMesh
                     if ( pathfindingConsole->isRenderNavMesh() )
                     {
                         gGL.flush();
-                        getOpenGLRenderBackend().setLineWidth(2.0f);
+                        getRenderBackend().setLineWidth(2.0f);
                         LLGLEnable cull(LLRenderCapability::CullFace);
                         LLGLDisable blend(LLRenderCapability::Blend);
 
@@ -4654,8 +4654,8 @@ void LLPipeline::renderDebug()
                         gPathfindingProgram.bind();
 
                         gGL.flush();
-                        getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
-                        getOpenGLRenderBackend().setLineWidth(1.0f);
+                        getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
+                        getRenderBackend().setLineWidth(1.0f);
                         gGL.flush();
                     }
                     //User designated path
@@ -4711,11 +4711,11 @@ void LLPipeline::renderDebug()
                             LLGLState cull(LLRenderCapability::CullFace, i >= 2 ? LLGLState::DISABLED_STATE : LLGLState::CURRENT_STATE);
 
                             gGL.flush();
-                            getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
+                            getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
 
                             //get rid of some z-fighting
                             LLGLEnable polyOffset(LLRenderCapability::PolygonOffsetFill);
-                            getOpenGLRenderBackend().setPolygonOffset(1.0f, 1.0f);
+                            getRenderBackend().setPolygonOffset(1.0f, 1.0f);
 
                             //render to depth first to avoid blending artifacts
                             gGL.setColorMask(false, false);
@@ -4723,7 +4723,7 @@ void LLPipeline::renderDebug()
                             gGL.setColorMask(true, false);
 
                             //get rid of some z-fighting
-                            getOpenGLRenderBackend().setPolygonOffset(0.f, 0.f);
+                            getRenderBackend().setPolygonOffset(0.f, 0.f);
 
                             LLGLEnable blend(LLRenderCapability::Blend);
 
@@ -4737,7 +4737,7 @@ void LLPipeline::renderDebug()
                                 }
 
                                 LLGLEnable lineOffset(LLRenderCapability::PolygonOffsetLine);
-                                getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
+                                getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
 
                                 F32 offset = gSavedSettings.getF32("PathfindingLineOffset");
 
@@ -4748,7 +4748,7 @@ void LLPipeline::renderDebug()
                                     LLGLEnable blend(LLRenderCapability::Blend);
                                     LLGLDepthTest depth(true, false, LLRenderDepthFunction::Greater);
 
-                                    getOpenGLRenderBackend().setPolygonOffset(offset, -offset);
+                                    getRenderBackend().setPolygonOffset(offset, -offset);
 
                                     if (gSavedSettings.getBOOL("PathfindingXRayWireframe"))
                                     { //draw hidden wireframe as darker and less opaque
@@ -4757,32 +4757,32 @@ void LLPipeline::renderDebug()
                                     }
                                     else
                                     {
-                                        getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
+                                        getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
                                         gPathfindingProgram.uniform1f(sAmbiance, ambiance);
                                         llPathingLibInstance->renderNavMeshShapesVBO( render_order[i] );
-                                        getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
+                                        getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
                                     }
                                 }
 
                                 { //draw visible wireframe as brighter, thicker and more opaque
-                                    getOpenGLRenderBackend().setPolygonOffset(offset, offset);
+                                    getRenderBackend().setPolygonOffset(offset, offset);
                                     gPathfindingProgram.uniform1f(sAmbiance, 1.f);
                                     gPathfindingProgram.uniform1f(sTint, 1.f);
                                     gPathfindingProgram.uniform1f(sAlphaScale, 1.f);
 
-                                    getOpenGLRenderBackend().setLineWidth(gSavedSettings.getF32("PathfindingLineWidth"));
+                                    getRenderBackend().setLineWidth(gSavedSettings.getF32("PathfindingLineWidth"));
                                     LLGLDisable blendOut(LLRenderCapability::Blend);
                                     llPathingLibInstance->renderNavMeshShapesVBO( render_order[i] );
                                     gGL.flush();
-                                    getOpenGLRenderBackend().setLineWidth(1.f);
+                                    getRenderBackend().setLineWidth(1.f);
                                 }
 
-                                getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
+                                getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
                             }
                         }
                     }
 
-                    getOpenGLRenderBackend().setPolygonOffset(0.f, 0.f);
+                    getRenderBackend().setPolygonOffset(0.f, 0.f);
 
                     if ( pathfindingConsole->isRenderNavMesh() && pathfindingConsole->isRenderXRay() )
                     {   //render navmesh xray
@@ -4792,12 +4792,12 @@ void LLPipeline::renderDebug()
                         LLGLEnable polyOffset(LLRenderCapability::PolygonOffsetFill);
 
                         F32 offset = gSavedSettings.getF32("PathfindingLineOffset");
-                        getOpenGLRenderBackend().setPolygonOffset(offset, -offset);
+                        getRenderBackend().setPolygonOffset(offset, -offset);
 
                         LLGLEnable blend(LLRenderCapability::Blend);
                         LLGLDepthTest depth(true, false, LLRenderDepthFunction::Greater);
                         gGL.flush();
-                        getOpenGLRenderBackend().setLineWidth(2.0f);
+                        getRenderBackend().setLineWidth(2.0f);
                         LLGLEnable cull(LLRenderCapability::CullFace);
 
                         gPathfindingProgram.uniform1f(sTint, gSavedSettings.getF32("PathfindingXRayTint"));
@@ -4805,10 +4805,10 @@ void LLPipeline::renderDebug()
 
                         if (gSavedSettings.getBOOL("PathfindingXRayWireframe"))
                         { //draw hidden wireframe as darker and less opaque
-                            getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
+                            getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Line);
                             gPathfindingProgram.uniform1f(sAmbiance, 1.f);
                             llPathingLibInstance->renderNavMesh();
-                            getOpenGLRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
+                            getRenderBackend().setPolygonMode(LLRenderPolygonFace::FrontAndBack, LLRenderPolygonMode::Fill);
                         }
                         else
                         {
@@ -4824,10 +4824,10 @@ void LLPipeline::renderDebug()
                         gPathfindingProgram.bind();
 
                         gGL.flush();
-                        getOpenGLRenderBackend().setLineWidth(1.0f);
+                        getRenderBackend().setLineWidth(1.0f);
                     }
 
-                    getOpenGLRenderBackend().setPolygonOffset(0.f, 0.f);
+                    getRenderBackend().setPolygonOffset(0.f, 0.f);
 
                     gGL.flush();
                     gPathfindingProgram.unbind();
@@ -4847,7 +4847,7 @@ void LLPipeline::renderDebug()
 
         gGL.getTexUnit(0)->bind(LLViewerFetchedTexture::sWhiteImagep, true);
 
-        getOpenGLRenderBackend().setPointSize(8.f);
+        getRenderBackend().setPointSize(8.f);
         LLGLDepthTest depth(true, true, LLRenderDepthFunction::Always);
 
         gGL.begin(LLRender::POINTS);
@@ -4872,7 +4872,7 @@ void LLPipeline::renderDebug()
         }
         gGL.end();
         gGL.flush();
-        getOpenGLRenderBackend().setPointSize(1.f);
+        getRenderBackend().setPointSize(1.f);
     }
 
     // Debug stuff.
@@ -5074,7 +5074,7 @@ void LLPipeline::renderDebug()
                 {
                     //render visible point cloud
                     gGL.flush();
-                    getOpenGLRenderBackend().setPointSize(8.f);
+                    getRenderBackend().setPointSize(8.f);
                     gGL.begin(LLRender::POINTS);
 
                     F32* c = col+i*4;
@@ -5088,7 +5088,7 @@ void LLPipeline::renderDebug()
                     gGL.end();
 
                     gGL.flush();
-                    getOpenGLRenderBackend().setPointSize(1.f);
+                    getRenderBackend().setPointSize(1.f);
 
                     LLVector3* ext = mShadowExtents[i];
                     LLVector3 pos = (ext[0]+ext[1])*0.5f;
@@ -5114,7 +5114,7 @@ void LLPipeline::renderDebug()
             }
 
             /*gGL.flush();
-            getOpenGLRenderBackend().setLineWidth(16-i*2);
+            getRenderBackend().setLineWidth(16-i*2);
             for (LLWorld::region_list_t::const_iterator iter = LLWorld::getInstance()->getRegionList().begin();
                     iter != LLWorld::getInstance()->getRegionList().end(); ++iter)
             {
@@ -5132,7 +5132,7 @@ void LLPipeline::renderDebug()
                 }
             }
             gGL.flush();
-            getOpenGLRenderBackend().setLineWidth(1.f);*/
+            getRenderBackend().setLineWidth(1.f);*/
         }
     }
 
@@ -7170,7 +7170,7 @@ void apply_cube_face_rotation(U32 face)
 
 void validate_framebuffer_object()
 {
-    LLRenderFramebufferStatus status = getOpenGLRenderBackend().getReadWriteFramebufferStatus();
+    LLRenderFramebufferStatus status = getRenderBackend().getReadWriteFramebufferStatus();
     switch(status)
     {
         case LLRenderFramebufferStatus::Complete:
@@ -7726,7 +7726,7 @@ void LLPipeline::applyFXAA(LLRenderTarget* src, LLRenderTarget* dst)
             gGLViewport[2] = gViewerWindow->getWorldViewRectRaw().getWidth();
             gGLViewport[3] = gViewerWindow->getWorldViewRectRaw().getHeight();
 
-            getOpenGLRenderBackend().setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+            getRenderBackend().setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
 
             F32 scale_x = (F32)width / mFXAAMap.getWidth();
             F32 scale_y = (F32)height / mFXAAMap.getHeight();
@@ -8124,7 +8124,7 @@ void LLPipeline::renderDoF(LLRenderTarget* src, LLRenderTarget* dst)
 
             { // perform DoF sampling at half-res (preserve alpha channel)
                 src->bindTarget();
-                getOpenGLRenderBackend().setViewport(0, 0, dof_width, dof_height);
+                getRenderBackend().setViewport(0, 0, dof_width, dof_height);
 
                 gGL.setColorMask(true, false);
 
@@ -8147,7 +8147,7 @@ void LLPipeline::renderDoF(LLRenderTarget* src, LLRenderTarget* dst)
             { // combine result based on alpha
 
                 dst->bindTarget();
-                getOpenGLRenderBackend().setViewport(0, 0, dst->getWidth(), dst->getHeight());
+                getRenderBackend().setViewport(0, 0, dst->getWidth(), dst->getHeight());
 
                 gDeferredDoFCombineProgram.bind();
                 gDeferredDoFCombineProgram.bindTexture(LLShaderMgr::DEFERRED_DIFFUSE, src, LLTexUnit::TFO_POINT);
@@ -8193,7 +8193,7 @@ void LLPipeline::renderFinalize()
     enableLightsFullbright();
 
     gGL.setColorMask(true, true);
-    getOpenGLRenderBackend().setClearColor(0, 0, 0, 0);
+    getRenderBackend().setClearColor(0, 0, 0, 0);
 
     static LLCachedControl<bool> has_hdr(gSavedSettings, "RenderHDREnabled", true);
     bool hdr = gGLManager.mGLVersion > 4.05f && has_hdr();
@@ -8242,7 +8242,7 @@ void LLPipeline::renderFinalize()
     gGLViewport[1] = gViewerWindow->getWorldViewRectRaw().mBottom;
     gGLViewport[2] = gViewerWindow->getWorldViewRectRaw().getWidth();
     gGLViewport[3] = gViewerWindow->getWorldViewRectRaw().getHeight();
-    getOpenGLRenderBackend().setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
+    getRenderBackend().setViewport(gGLViewport[0], gGLViewport[1], gGLViewport[2], gGLViewport[3]);
 
     if((RenderDepthOfFieldInEditMode || !LLToolMgr::getInstance()->inBuildMode()) &&
         RenderDepthOfField &&
@@ -8700,9 +8700,9 @@ void LLPipeline::renderDeferredLighting()
                 LLGLSLShader& sun_shader = gCubeSnapshot ? gDeferredSunProbeProgram : gDeferredSunProgram;
                 bindDeferredShader(sun_shader, deferred_light_target);
                 mScreenTriangleVB->setBuffer();
-                getOpenGLRenderBackend().setClearColor(1, 1, 1, 1);
+                getRenderBackend().setClearColor(1, 1, 1, 1);
                 deferred_light_target->clear(LL_RENDER_CLEAR_COLOR);
-                getOpenGLRenderBackend().setClearColor(0, 0, 0, 0);
+                getRenderBackend().setClearColor(0, 0, 0, 0);
 
                 sun_shader.uniform2f(LLShaderMgr::DEFERRED_SCREEN_RES,
                                               (F32)deferred_light_target->getWidth(),
@@ -8726,9 +8726,9 @@ void LLPipeline::renderDeferredLighting()
             LL_PROFILE_GPU_ZONE("soften shadow");
             // blur lightmap
             screen_target->bindTarget();
-            getOpenGLRenderBackend().setClearColor(1, 1, 1, 1);
+            getRenderBackend().setClearColor(1, 1, 1, 1);
             screen_target->clear(LL_RENDER_CLEAR_COLOR);
-            getOpenGLRenderBackend().setClearColor(0, 0, 0, 0);
+            getRenderBackend().setClearColor(0, 0, 0, 0);
 
             bindDeferredShader(gDeferredBlurLightProgram);
 
@@ -8794,8 +8794,8 @@ void LLPipeline::renderDeferredLighting()
             {
                 mare_velocity_valid = false;
                 mVelocityBuffer.bindTarget();
-                getOpenGLRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
-                getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
+                getRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
+                getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
                 mVelocityBuffer.flush();
             }
         }
@@ -8989,7 +8989,7 @@ void LLPipeline::renderDeferredLighting()
                                 gDeferredAvatarVelocityProgram.getUniformLocation(sPrevPalette);
                             if (prevPalLoc >= 0)
                             {
-                                getOpenGLRenderBackend().setUniformMatrix3x4(prevPalLoc, count,
+                                getRenderBackend().setUniformMatrix3x4(prevPalLoc, count,
                                     false, mpc.mPrevGLMp.data());
                             }
 
@@ -9010,7 +9010,7 @@ void LLPipeline::renderDeferredLighting()
 
         screen_target->bindTarget();
         // clear color buffer here - zeroing alpha (glow) is important or it will accumulate against sky
-        getOpenGLRenderBackend().setClearColor(0, 0, 0, 0);
+        getRenderBackend().setClearColor(0, 0, 0, 0);
         screen_target->clear(LL_RENDER_CLEAR_COLOR);
 
         if (RenderDeferredAtmospheric)
@@ -9547,12 +9547,12 @@ void LLPipeline::doWaterHaze()
 void LLPipeline::doWaterExclusionMask()
 {
     mWaterExclusionMask.bindTarget();
-    getOpenGLRenderBackend().setClearColor(1, 1, 1, 1);
+    getRenderBackend().setClearColor(1, 1, 1, 1);
     mWaterExclusionMask.clear();
     mWaterExclusionPool->render();
 
     mWaterExclusionMask.flush();
-    getOpenGLRenderBackend().setClearColor(0, 0, 0, 0);
+    getRenderBackend().setClearColor(0, 0, 0, 0);
 }
 
 void LLPipeline::setupSpotLight(LLGLSLShader& shader, LLDrawable* drawablep)
@@ -9722,7 +9722,7 @@ void LLPipeline::unbindDeferredShader(LLGLSLShader &shader)
     {
         if (shader.disableTexture(LLShaderMgr::DEFERRED_SHADOW0+i) > -1)
         {
-            getOpenGLRenderBackend().setTextureCompareMode(
+            getRenderBackend().setTextureCompareMode(
                 LLRenderTextureTarget::Texture2D,
                 false);
         }
@@ -9732,7 +9732,7 @@ void LLPipeline::unbindDeferredShader(LLGLSLShader &shader)
     {
         if (shader.disableTexture(LLShaderMgr::DEFERRED_SHADOW0+i) > -1)
         {
-            getOpenGLRenderBackend().setTextureCompareMode(
+            getRenderBackend().setTextureCompareMode(
                 LLRenderTextureTarget::Texture2D,
                 false);
         }
@@ -11435,7 +11435,7 @@ void LLPipeline::generateImpostor(LLVOAvatar* avatar, bool preview_avatar, bool 
         gGL.loadMatrix(glm::value_ptr(mat));
         set_current_modelview(mat);
 
-        getOpenGLRenderBackend().setClearColor(0.0f,0.0f,0.0f,0.0f);
+        getRenderBackend().setClearColor(0.0f,0.0f,0.0f,0.0f);
         gGL.setColorMask(true, true);
 
         // get the number of pixels per angle
@@ -11514,7 +11514,7 @@ void LLPipeline::generateImpostor(LLVOAvatar* avatar, bool preview_avatar, bool 
     { //create alpha mask based on depth buffer (grey out if muted)
         if (LLPipeline::sRenderDeferred)
         {
-            getOpenGLRenderBackend().setFramebufferBufferRouting(1);
+            getRenderBackend().setFramebufferBufferRouting(1);
         }
 
         LLGLDisable blend(LLRenderCapability::Blend);

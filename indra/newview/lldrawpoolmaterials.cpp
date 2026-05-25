@@ -166,22 +166,22 @@ void LLDrawPoolMaterials::renderDeferred(S32 pass)
 
     if (intensity > -1)
     {
-        getOpenGLRenderBackend().setUniformFloat(intensity, lastIntensity);
+        getRenderBackend().setUniformFloat(intensity, lastIntensity);
     }
 
     if (brightness > -1)
     {
-        getOpenGLRenderBackend().setUniformFloat(brightness, lastFullbright);
+        getRenderBackend().setUniformFloat(brightness, lastFullbright);
     }
 
     if (minAlpha > -1)
     {
-        getOpenGLRenderBackend().setUniformFloat(minAlpha, lastMinimumAlpha);
+        getRenderBackend().setUniformFloat(minAlpha, lastMinimumAlpha);
     }
 
     if (specular > -1)
     {
-        getOpenGLRenderBackend().setUniformFloatVector4(specular, 1, lastSpecular.mV);
+        getRenderBackend().setUniformFloatVector4(specular, 1, lastSpecular.mV);
     }
 
     const LLVOAvatar* lastAvatar = nullptr;
@@ -198,26 +198,26 @@ void LLDrawPoolMaterials::renderDeferred(S32 pass)
         if (specular > -1 && params.mSpecColor != lastSpecular)
         {
             lastSpecular = params.mSpecColor;
-            getOpenGLRenderBackend().setUniformFloatVector4(specular, 1, lastSpecular.mV);
+            getRenderBackend().setUniformFloatVector4(specular, 1, lastSpecular.mV);
         }
 
         if (intensity != -1 && lastIntensity != params.mEnvIntensity)
         {
             lastIntensity = params.mEnvIntensity;
-            getOpenGLRenderBackend().setUniformFloat(intensity, lastIntensity);
+            getRenderBackend().setUniformFloat(intensity, lastIntensity);
         }
 
         if (minAlpha > -1 && lastMinimumAlpha != params.mAlphaMaskCutoff)
         {
             lastMinimumAlpha = params.mAlphaMaskCutoff;
-            getOpenGLRenderBackend().setUniformFloat(minAlpha, lastMinimumAlpha);
+            getRenderBackend().setUniformFloat(minAlpha, lastMinimumAlpha);
         }
 
         F32 fullbright = params.mFullbright ? 1.f : 0.f;
         if (brightness > -1 && lastFullbright != fullbright)
         {
             lastFullbright = fullbright;
-            getOpenGLRenderBackend().setUniformFloat(brightness, lastFullbright);
+            getRenderBackend().setUniformFloat(brightness, lastFullbright);
         }
 
         if (normChannel > -1 && params.mNormalMap != lastNormalMap)

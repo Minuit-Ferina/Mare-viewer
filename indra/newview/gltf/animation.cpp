@@ -395,7 +395,7 @@ Skin::~Skin()
 {
     if (mUBO)
     {
-        getOpenGLRenderBackend().deleteBuffers(1, &mUBO);
+        getRenderBackend().deleteBuffers(1, &mUBO);
     }
 }
 
@@ -408,7 +408,7 @@ void Skin::uploadMatrixPalette(Asset& asset)
 
     if (mUBO == 0)
     {
-        getOpenGLRenderBackend().generateBuffers(1, &mUBO);
+        getRenderBackend().generateBuffers(1, &mUBO);
     }
 
     size_t joint_count = llmin<size_t>(max_joints, mJoints.size());
@@ -452,13 +452,13 @@ void Skin::uploadMatrixPalette(Asset& asset)
         mp[idx + 11] = m[14];
     }
 
-    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mUBO);
-    getOpenGLRenderBackend().allocateBufferStorage(
+    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mUBO);
+    getRenderBackend().allocateBufferStorage(
         LLRenderBufferTarget::Uniform,
         glmp.size() * sizeof(F32),
         glmp.data(),
         LLRenderBufferUsage::StreamDraw);
-    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
+    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
 }
 
 bool Skin::prep(Asset& asset)

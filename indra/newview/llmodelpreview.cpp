@@ -3451,15 +3451,15 @@ void LLModelPreview::renderNonSkinnedModels(bool show_textures, bool show_edges)
             gGL.diffuseColor4fv(PREVIEW_EDGE_COL.mV);
             if (show_edges)
             {
-                getOpenGLRenderBackend().setLineWidth(PREVIEW_EDGE_WIDTH);
-                getOpenGLRenderBackend().setPolygonMode(
+                getRenderBackend().setLineWidth(PREVIEW_EDGE_WIDTH);
+                getRenderBackend().setPolygonMode(
                     LLRenderPolygonFace::FrontAndBack,
                     LLRenderPolygonMode::Line);
                 buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
-                getOpenGLRenderBackend().setPolygonMode(
+                getRenderBackend().setPolygonMode(
                     LLRenderPolygonFace::FrontAndBack,
                     LLRenderPolygonMode::Fill);
-                getOpenGLRenderBackend().setLineWidth(1.f);
+                getRenderBackend().setLineWidth(1.f);
             }
             buffer->unmapBuffer();
         }
@@ -3469,7 +3469,7 @@ void LLModelPreview::renderNonSkinnedModels(bool show_textures, bool show_edges)
 
 void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
 {
-    getOpenGLRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
+    getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
 
     for (U32 pass = 0; pass < 2; pass++)
     {
@@ -3582,16 +3582,16 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
                         buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
 
                         gGL.diffuseColor4fv(PREVIEW_PSYH_EDGE_COL.mV);
-                        getOpenGLRenderBackend().setLineWidth(PREVIEW_PSYH_EDGE_WIDTH);
-                        getOpenGLRenderBackend().setPolygonMode(
+                        getRenderBackend().setLineWidth(PREVIEW_PSYH_EDGE_WIDTH);
+                        getRenderBackend().setPolygonMode(
                             LLRenderPolygonFace::FrontAndBack,
                             LLRenderPolygonMode::Line);
                         buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
 
-                        getOpenGLRenderBackend().setPolygonMode(
+                        getRenderBackend().setPolygonMode(
                             LLRenderPolygonFace::FrontAndBack,
                             LLRenderPolygonMode::Fill);
-                        getOpenGLRenderBackend().setLineWidth(1.f);
+                        getRenderBackend().setLineWidth(1.f);
 
                         buffer->unmapBuffer();
                     }
@@ -3603,8 +3603,8 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
         // only do this if mDegenerate was set in the preceding mesh checks [Check this if the ordering ever breaks]
         if (mHasDegenerate)
         {
-            getOpenGLRenderBackend().setLineWidth(PREVIEW_DEG_EDGE_WIDTH);
-            getOpenGLRenderBackend().setPointSize(PREVIEW_DEG_POINT_SIZE);
+            getRenderBackend().setLineWidth(PREVIEW_DEG_EDGE_WIDTH);
+            getRenderBackend().setPointSize(PREVIEW_DEG_POINT_SIZE);
             gPipeline.enableLightsFullbright();
             //show degenerate triangles
             LLGLDepthTest depth(true, true, LLRenderDepthFunction::Always);
@@ -3672,8 +3672,8 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
 
                 gGL.popMatrix();
             }
-            getOpenGLRenderBackend().setLineWidth(1.f);
-            getOpenGLRenderBackend().setPointSize(1.f);
+            getRenderBackend().setLineWidth(1.f);
+            getRenderBackend().setPointSize(1.f);
             gPipeline.enableLightsPreview();
             gGL.setSceneBlendType(LLRender::BT_ALPHA);
         }
@@ -3771,15 +3771,15 @@ void LLModelPreview::renderSkinnedPreview(LLFloaterModelPreview* fmp, PreviewCam
                     {
                         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
                         gGL.diffuseColor4fv(PREVIEW_EDGE_COL.mV);
-                        getOpenGLRenderBackend().setLineWidth(PREVIEW_EDGE_WIDTH);
-                        getOpenGLRenderBackend().setPolygonMode(
+                        getRenderBackend().setLineWidth(PREVIEW_EDGE_WIDTH);
+                        getRenderBackend().setPolygonMode(
                             LLRenderPolygonFace::FrontAndBack,
                             LLRenderPolygonMode::Line);
                         buffer->draw(LLRender::TRIANGLES, buffer->getNumIndices(), 0);
-                        getOpenGLRenderBackend().setPolygonMode(
+                        getRenderBackend().setPolygonMode(
                             LLRenderPolygonFace::FrontAndBack,
                             LLRenderPolygonMode::Fill);
-                        getOpenGLRenderBackend().setLineWidth(1.f);
+                        getRenderBackend().setLineWidth(1.f);
                     }
                 }
             }

@@ -550,31 +550,31 @@ void LLFace::renderSelected(LLViewerTexture *imagep, const LLColor4& color)
                 {
                     // called when selecting a face during edit of a mesh object
                     LLGLEnable offset(LLRenderCapability::PolygonOffsetFill);
-                    getOpenGLRenderBackend().setPolygonOffset(-1.f, -1.f);
+                    getRenderBackend().setPolygonOffset(-1.f, -1.f);
                     gGL.multMatrix((F32*) volume->getRelativeXform().mMatrix);
                     const LLVolumeFace& vol_face = rigged->getVolumeFace(getTEOffset());
                     LLVertexBuffer::unbind();
-                    getOpenGLRenderBackend().setLegacyVertexPointer(
+                    getRenderBackend().setLegacyVertexPointer(
                         3,
                         LLRenderVertexAttributeType::Float32,
                         16,
                         vol_face.mPositions);
                     if (vol_face.mTexCoords)
                     {
-                        getOpenGLRenderBackend().setLegacyTextureCoordinateArray(true);
-                        getOpenGLRenderBackend().setLegacyTextureCoordinatePointer(
+                        getRenderBackend().setLegacyTextureCoordinateArray(true);
+                        getRenderBackend().setLegacyTextureCoordinatePointer(
                             2,
                             LLRenderVertexAttributeType::Float32,
                             8,
                             vol_face.mTexCoords);
                     }
                     gGL.syncMatrices();
-                    getOpenGLRenderBackend().drawElements(
+                    getRenderBackend().drawElements(
                         LLRenderPrimitiveType::Triangles,
                         vol_face.mNumIndices,
                         LLRenderIndexType::UnsignedShort,
                         vol_face.mIndices);
-                    getOpenGLRenderBackend().setLegacyTextureCoordinateArray(false);
+                    getRenderBackend().setLegacyTextureCoordinateArray(false);
                 }
             }
 #endif
@@ -661,9 +661,9 @@ void LLFace::renderOneWireframe(const LLColor4 &color, F32 fogCfx, bool wirefram
         LLGLState depth(LLRenderCapability::Blend, wireframe_selection ? LLGLState::CURRENT_STATE : LLGLState::DISABLED_STATE);
 
         LLGLEnable offset(LLRenderCapability::PolygonOffsetLine);
-        getOpenGLRenderBackend().setPolygonOffset(3.f, 3.f);
-        getOpenGLRenderBackend().setLineWidth(5.f);
-        getOpenGLRenderBackend().setPolygonMode(
+        getRenderBackend().setPolygonOffset(3.f, 3.f);
+        getRenderBackend().setLineWidth(5.f);
+        getRenderBackend().setPolygonMode(
             LLRenderPolygonFace::FrontAndBack,
             LLRenderPolygonMode::Line);
         renderFace(mDrawablep, this);

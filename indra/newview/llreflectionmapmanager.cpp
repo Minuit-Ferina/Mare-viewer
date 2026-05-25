@@ -89,7 +89,7 @@ void load_exr(const std::string& filename)
 
         gGL.getTexUnit(0)->bind(gEXRImage);
 
-        getOpenGLRenderBackend().setTextureImage2D(
+        getRenderBackend().setTextureImage2D(
             LLRenderTextureTarget::Texture2D,
             0,
             LLRenderTextureFormat::RGB16F,
@@ -104,7 +104,7 @@ void load_exr(const std::string& filename)
 
         free(out); // release memory of image data
 
-        getOpenGLRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
+        getRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
 
         gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
@@ -899,7 +899,7 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
                 LL_PROFILE_GPU_ZONE("probe mip copy");
                 mTexture->bind(0);
                 // Copy from the current framebuffer into the selected cube-array mip and face.
-                getOpenGLRenderBackend().copyTextureSubImage3D(
+                getRenderBackend().copyTextureSubImage3D(
                     LLRenderTextureTarget::TextureCubeMapArray,
                     mip,
                     0,
@@ -967,7 +967,7 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
 
                     mVertexBuffer->drawArrays(gGL.TRIANGLE_STRIP, 0, 4);
 
-                    getOpenGLRenderBackend().copyTextureSubImage3D(
+                    getRenderBackend().copyTextureSubImage3D(
                         LLRenderTextureTarget::TextureCubeMapArray,
                         i,
                         0,
@@ -982,7 +982,7 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
                 if (i != mMipChain.size() - 1)
                 {
                     res /= 2;
-                    getOpenGLRenderBackend().setViewport(0, 0, res, res);
+                    getRenderBackend().setViewport(0, 0, res, res);
                 }
             }
 
@@ -1013,7 +1013,7 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
             {
                 int i = start_mip;
                 LL_PROFILE_GPU_ZONE("probe irradiance gen");
-                getOpenGLRenderBackend().setViewport(0, 0, mMipChain[i].getWidth(), mMipChain[i].getHeight());
+                getRenderBackend().setViewport(0, 0, mMipChain[i].getWidth(), mMipChain[i].getHeight());
                 for (int cf = 0; cf < 6; ++cf)
                 { // for each cube face
                     LLCoordFrame frame;
@@ -1027,7 +1027,7 @@ void LLReflectionMapManager::updateProbeFace(LLReflectionMap* probe, U32 face)
 
                     S32 res = mMipChain[i].getWidth();
                     mIrradianceMaps->bind(channel);
-                    getOpenGLRenderBackend().copyTextureSubImage3D(
+                    getRenderBackend().copyTextureSubImage3D(
                         LLRenderTextureTarget::TextureCubeMapArray,
                         i - start_mip,
                         0,
@@ -1322,18 +1322,18 @@ void LLReflectionMapManager::updateUniforms()
     //copy mProbeData into uniform buffer object
     if (mUBO == 0)
     {
-        getOpenGLRenderBackend().generateBuffers(1, &mUBO);
+        getRenderBackend().generateBuffers(1, &mUBO);
     }
 
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("rmmsu - update buffer");
-        getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mUBO);
-        getOpenGLRenderBackend().allocateBufferStorage(
+        getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mUBO);
+        getRenderBackend().allocateBufferStorage(
             LLRenderBufferTarget::Uniform,
             sizeof(ReflectionProbeData),
             &mProbeData,
             LLRenderBufferUsage::StreamDraw);
-        getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
+        getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
     }
 
 #if 0
@@ -1363,7 +1363,7 @@ void LLReflectionMapManager::setUniforms()
     {
         updateUniforms();
     }
-    getOpenGLRenderBackend().bindBufferBase(
+    getRenderBackend().bindBufferBase(
         LLRenderBufferTarget::Uniform,
         LLGLSLShader::UB_REFLECTION_PROBES,
         mUBO);
@@ -1592,7 +1592,7 @@ void LLReflectionMapManager::cleanup()
     mDefaultProbe = nullptr;
     mUpdatingProbe = nullptr;
 
-    getOpenGLRenderBackend().deleteBuffers(1, &mUBO);
+    getRenderBackend().deleteBuffers(1, &mUBO);
     mUBO = 0;
 
     // note: also called on teleport (not just shutdown), so make sure we're in a good "starting" state

@@ -231,7 +231,7 @@ LLWindowSDL::LLWindowSDL(LLWindowCallbacks* callbacks,
     // Create the GL context and set it up for windowed or fullscreen, as appropriate.
     if(createContext(x, y, width, height, 32, fullscreen, disable_vsync))
     {
-        getOpenGLRenderBackend().initContextCapabilities();
+        getRenderBackend().initContextCapabilities();
 
         //start with arrow cursor
         initCursors();
@@ -641,12 +641,12 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
     queryInteger(GLX_RENDERER_VIDEO_MEMORY_MESA, &vram_megabytes);
     if (!vram_megabytes) {
         S32 vram_kb = 0;
-        getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::DedicatedVideoMemoryKB, &vram_kb);
+        getRenderBackend().getInteger(LLRenderIntegerParameter::DedicatedVideoMemoryKB, &vram_kb);
         vram_megabytes = vram_kb / 1024;
     }
     if (!vram_megabytes) {
         S32 vram_kb = 0;
-        getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::FreeVideoMemoryKB, &vram_kb);
+        getRenderBackend().getInteger(LLRenderIntegerParameter::FreeVideoMemoryKB, &vram_kb);
         vram_megabytes = vram_kb / 1024;
     }
 
@@ -661,12 +661,12 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
 
     S32 depthBits, stencilBits, redBits, greenBits, blueBits, alphaBits;
 
-    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::RedBits, &redBits);
-    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::GreenBits, &greenBits);
-    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::BlueBits, &blueBits);
-    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::AlphaBits, &alphaBits);
-    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::DepthBits, &depthBits);
-    getOpenGLRenderBackend().getInteger(LLRenderIntegerParameter::StencilBits, &stencilBits);
+    getRenderBackend().getInteger(LLRenderIntegerParameter::RedBits, &redBits);
+    getRenderBackend().getInteger(LLRenderIntegerParameter::GreenBits, &greenBits);
+    getRenderBackend().getInteger(LLRenderIntegerParameter::BlueBits, &blueBits);
+    getRenderBackend().getInteger(LLRenderIntegerParameter::AlphaBits, &alphaBits);
+    getRenderBackend().getInteger(LLRenderIntegerParameter::DepthBits, &depthBits);
+    getRenderBackend().getInteger(LLRenderIntegerParameter::StencilBits, &stencilBits);
 
     LL_INFOS() << "GL buffer:" << LL_ENDL;
         LL_INFOS() << "  Red Bits " << S32(redBits) << LL_ENDL;
@@ -739,7 +739,7 @@ bool LLWindowSDL::createContext(int x, int y, int width, int height, int bits, b
 #endif // LL_X11
 
     //make sure multisampling is disabled by default
-    getOpenGLRenderBackend().setCapability(LLRenderCapability::Multisample, false);
+    getRenderBackend().setCapability(LLRenderCapability::Multisample, false);
 
     // We need to do this here, once video is init'd
     if (-1 == SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
@@ -764,7 +764,7 @@ bool LLWindowSDL::switchContext(bool fullscreen, const LLCoordScreen &size, bool
         result = createContext(0, 0, size.mX, size.mY, 0, fullscreen, disable_vsync);
         if (result)
         {
-            getOpenGLRenderBackend().initContextCapabilities();
+            getRenderBackend().initContextCapabilities();
 
             //start with arrow cursor
             initCursors();
@@ -790,7 +790,7 @@ void LLWindowSDL::destroyContext()
 
     // Clean up remaining GL state before blowing away window
     LL_INFOS() << "shutdownGL begins" << LL_ENDL;
-    getOpenGLRenderBackend().shutdownContextCapabilities();
+    getRenderBackend().shutdownContextCapabilities();
     LL_INFOS() << "SDL_QuitSS/VID begins" << LL_ENDL;
     SDL_QuitSubSystem(SDL_INIT_VIDEO);  // *FIX: this might be risky...
 

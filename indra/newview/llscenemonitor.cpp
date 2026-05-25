@@ -316,9 +316,9 @@ void LLSceneMonitor::capture()
         U32 old_FBO = LLRenderTarget::sCurFBO;
 
         gGL.getTexUnit(0)->bind(&cur_target);
-        getOpenGLRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::Read, 0); //point to the main frame buffer.
+        getRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::Read, 0); //point to the main frame buffer.
 
-        getOpenGLRenderBackend().copyTextureSubImage2D(
+        getRenderBackend().copyTextureSubImage2D(
             LLRenderTextureTarget::Texture2D,
             0,
             0,
@@ -328,9 +328,9 @@ void LLSceneMonitor::capture()
             cur_target.getWidth(),
             cur_target.getHeight()); //copy the content
 
-        getOpenGLRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::Read, 0);
-        getOpenGLRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::Draw, 0);
-        getOpenGLRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::ReadWrite, old_FBO);
+        getRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::Read, 0);
+        getRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::Draw, 0);
+        getRenderBackend().bindFramebuffer(LLRenderFramebufferBindPoint::ReadWrite, old_FBO);
 
         mDiffState = NEED_DIFF;
     }
@@ -445,7 +445,7 @@ void LLSceneMonitor::calcDiffAggregate()
     {
         LLRenderColorMask mask;
         mask.mRed = mask.mGreen = mask.mBlue = mask.mAlpha = false;
-        getOpenGLRenderBackend().setColorMask(mask);
+        getRenderBackend().setColorMask(mask);
     }
 
     LLGLSLShader* cur_shader = NULL;
@@ -456,14 +456,14 @@ void LLSceneMonitor::calcDiffAggregate()
 
     if(mDiffState == EXECUTE_DIFF)
     {
-        getOpenGLRenderBackend().beginQuery(LLRenderQueryTarget::SamplesPassed, mQueryObject);
+        getRenderBackend().beginQuery(LLRenderQueryTarget::SamplesPassed, mQueryObject);
     }
 
     gl_draw_scaled_target(0, 0, S32(mDiff->getWidth() * mDiffPixelRatio), S32(mDiff->getHeight() * mDiffPixelRatio), mDiff);
 
     if(mDiffState == EXECUTE_DIFF)
     {
-        getOpenGLRenderBackend().endQuery(LLRenderQueryTarget::SamplesPassed);
+        getRenderBackend().endQuery(LLRenderQueryTarget::SamplesPassed);
         mDiffState = WAIT_ON_RESULT;
     }
 
@@ -477,7 +477,7 @@ void LLSceneMonitor::calcDiffAggregate()
     if(!mDebugViewerVisible)
     {
         LLRenderColorMask mask;
-        getOpenGLRenderBackend().setColorMask(mask);
+        getRenderBackend().setColorMask(mask);
     }
 #endif
 }
@@ -495,14 +495,14 @@ void LLSceneMonitor::fetchQueryResult()
         mDiffState = WAITING_FOR_NEXT_DIFF;
 
         U32 available = 0;
-        getOpenGLRenderBackend().getQueryObjectUnsignedInteger(
+        getRenderBackend().getQueryObjectUnsignedInteger(
             mQueryObject,
             LLRenderQueryParameter::ResultAvailable,
             &available);
         if(available)
         {
             U32 count = 0;
-            getOpenGLRenderBackend().getQueryObjectUnsignedInteger(
+            getRenderBackend().getQueryObjectUnsignedInteger(
                 mQueryObject,
                 LLRenderQueryParameter::Result,
                 &count);
