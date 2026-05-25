@@ -38,14 +38,14 @@ static F32 halton(U32 index, U32 base)
     return r;
 }
 
-static void setProgramUniformInteger(U32 program, const char* name, S32 value)
+static void setProgramUniformInteger(LLRenderProgramHandle program, const char* name, S32 value)
 {
     getOpenGLRenderBackend().setUniformInteger(
         getOpenGLRenderBackend().getUniformLocation(program, name),
         value);
 }
 
-static void setProgramUniformInteger2(U32 program, const char* name, S32 first, S32 second)
+static void setProgramUniformInteger2(LLRenderProgramHandle program, const char* name, S32 first, S32 second)
 {
     getOpenGLRenderBackend().setUniformInteger2(
         getOpenGLRenderBackend().getUniformLocation(program, name),
@@ -53,14 +53,14 @@ static void setProgramUniformInteger2(U32 program, const char* name, S32 first, 
         second);
 }
 
-static void setProgramUniformFloat(U32 program, const char* name, F32 value)
+static void setProgramUniformFloat(LLRenderProgramHandle program, const char* name, F32 value)
 {
     getOpenGLRenderBackend().setUniformFloat(
         getOpenGLRenderBackend().getUniformLocation(program, name),
         value);
 }
 
-static void setProgramUniformFloat2(U32 program, const char* name, F32 first, F32 second)
+static void setProgramUniformFloat2(LLRenderProgramHandle program, const char* name, F32 first, F32 second)
 {
     getOpenGLRenderBackend().setUniformFloat2(
         getOpenGLRenderBackend().getUniformLocation(program, name),
@@ -92,7 +92,7 @@ void MAREFSR2Upscaler::computeJitter(
 // Shader loading
 // ─────────────────────────────────────────────────────────────────────────────
 
-U32 MAREFSR2Upscaler::compileComputeProgram(const std::string& relPath)
+LLRenderProgramHandle MAREFSR2Upscaler::compileComputeProgram(const std::string& relPath)
 {
     // Build absolute path via LL_PATH_APP_SETTINGS so the path resolves to
     // Release/app_settings/shaders/class1/deferred/<relPath> in dev builds.
@@ -104,14 +104,14 @@ U32 MAREFSR2Upscaler::compileComputeProgram(const std::string& relPath)
     if (!f.is_open())
     {
         LL_WARNS() << "MAREFSR2: cannot open shader: " << absPath << LL_ENDL;
-        return 0;
+        return LLRenderProgramHandle();
     }
     std::ostringstream ss;
     ss << f.rdbuf();
     std::string src = ss.str();
 
     const char* csrc = src.c_str();
-    U32 shader = getOpenGLRenderBackend().createShader(LLRenderShaderStage::Compute);
+    LLRenderShaderHandle shader = getOpenGLRenderBackend().createShaderHandle(LLRenderShaderStage::Compute);
     getOpenGLRenderBackend().setShaderSource(shader, 1, &csrc);
     getOpenGLRenderBackend().compileShader(shader);
 
@@ -126,10 +126,10 @@ U32 MAREFSR2Upscaler::compileComputeProgram(const std::string& relPath)
         getOpenGLRenderBackend().getShaderInfoLog(shader, sizeof(log), nullptr, log);
         LL_WARNS() << "MAREFSR2: compute shader compile error (" << relPath << "):\n" << log << LL_ENDL;
         getOpenGLRenderBackend().deleteShader(shader);
-        return 0;
+        return LLRenderProgramHandle();
     }
 
-    U32 prog = getOpenGLRenderBackend().createProgram();
+    LLRenderProgramHandle prog = getOpenGLRenderBackend().createProgramHandle();
     getOpenGLRenderBackend().attachShader(prog, shader);
     getOpenGLRenderBackend().linkProgram(prog);
     getOpenGLRenderBackend().deleteShader(shader);  // shader is now owned by the program
@@ -145,7 +145,7 @@ U32 MAREFSR2Upscaler::compileComputeProgram(const std::string& relPath)
         getOpenGLRenderBackend().getProgramInfoLog(prog, sizeof(log), nullptr, log);
         LL_WARNS() << "MAREFSR2: compute program link error (" << relPath << "):\n" << log << LL_ENDL;
         getOpenGLRenderBackend().deleteProgram(prog);
-        return 0;
+        return LLRenderProgramHandle();
     }
 
     return prog;
@@ -215,11 +215,11 @@ bool MAREFSR2Upscaler::initialize(U32 renderW, U32 renderH)
 
 void MAREFSR2Upscaler::destroy()
 {
-    if (mProgDepthClip)      { getOpenGLRenderBackend().deleteProgram(mProgDepthClip);      mProgDepthClip      = 0; }
-    if (mProgReconPrevDepth) { getOpenGLRenderBackend().deleteProgram(mProgReconPrevDepth); mProgReconPrevDepth = 0; }
-    if (mProgLock)           { getOpenGLRenderBackend().deleteProgram(mProgLock);           mProgLock           = 0; }
-    if (mProgAccumulate)     { getOpenGLRenderBackend().deleteProgram(mProgAccumulate);     mProgAccumulate     = 0; }
-    if (mProgRCAS)           { getOpenGLRenderBackend().deleteProgram(mProgRCAS);           mProgRCAS           = 0; }
+    if (mProgDepthClip)      { getOpenGLRenderBackend().deleteProgram(mProgDepthClip);      mProgDepthClip      = LLRenderProgramHandle(); }
+    if (mProgReconPrevDepth) { getOpenGLRenderBackend().deleteProgram(mProgReconPrevDepth); mProgReconPrevDepth = LLRenderProgramHandle(); }
+    if (mProgLock)           { getOpenGLRenderBackend().deleteProgram(mProgLock);           mProgLock           = LLRenderProgramHandle(); }
+    if (mProgAccumulate)     { getOpenGLRenderBackend().deleteProgram(mProgAccumulate);     mProgAccumulate     = LLRenderProgramHandle(); }
+    if (mProgRCAS)           { getOpenGLRenderBackend().deleteProgram(mProgRCAS);           mProgRCAS           = LLRenderProgramHandle(); }
 
     deleteTexture(mDilatedDepth);
     deleteTexture(mDilatedMV);
@@ -426,5 +426,5 @@ void MAREFSR2Upscaler::apply(
     }
 
     // Unbind compute program.
-    getOpenGLRenderBackend().useProgram(0);
+    getOpenGLRenderBackend().useProgram(LLRenderProgramHandle());
 }

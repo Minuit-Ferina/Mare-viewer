@@ -521,6 +521,50 @@ struct LLRenderFramebufferHandle
     }
 };
 
+struct LLRenderProgramHandle
+{
+    U32 mValue = 0;
+
+    LLRenderProgramHandle() = default;
+    explicit LLRenderProgramHandle(U32 value) : mValue(value) {}
+
+    U32 asLegacyName() const { return mValue; }
+    bool isValid() const { return mValue != 0; }
+    explicit operator bool() const { return isValid(); }
+
+    friend bool operator==(LLRenderProgramHandle lhs, LLRenderProgramHandle rhs)
+    {
+        return lhs.mValue == rhs.mValue;
+    }
+
+    friend bool operator!=(LLRenderProgramHandle lhs, LLRenderProgramHandle rhs)
+    {
+        return !(lhs == rhs);
+    }
+};
+
+struct LLRenderShaderHandle
+{
+    U32 mValue = 0;
+
+    LLRenderShaderHandle() = default;
+    explicit LLRenderShaderHandle(U32 value) : mValue(value) {}
+
+    U32 asLegacyName() const { return mValue; }
+    bool isValid() const { return mValue != 0; }
+    explicit operator bool() const { return isValid(); }
+
+    friend bool operator==(LLRenderShaderHandle lhs, LLRenderShaderHandle rhs)
+    {
+        return lhs.mValue == rhs.mValue;
+    }
+
+    friend bool operator!=(LLRenderShaderHandle lhs, LLRenderShaderHandle rhs)
+    {
+        return !(lhs == rhs);
+    }
+};
+
 struct LLRenderPassDesc
 {
     const char* mDebugName = nullptr;
@@ -818,6 +862,83 @@ public:
         char* name) = 0;
     virtual U32 getUniformBlockIndex(U32 program, const char* name) = 0;
     virtual void bindUniformBlock(U32 program, U32 block_index, U32 binding) = 0;
+
+    LLRenderProgramHandle createProgramHandle()
+    {
+        return LLRenderProgramHandle(createProgram());
+    }
+
+    void deleteProgram(LLRenderProgramHandle program)
+    {
+        if (program)
+        {
+            deleteProgram(program.asLegacyName());
+        }
+    }
+
+    LLRenderShaderHandle createShaderHandle(LLRenderShaderStage stage)
+    {
+        return LLRenderShaderHandle(createShader(stage));
+    }
+
+    void deleteShader(LLRenderShaderHandle shader)
+    {
+        if (shader)
+        {
+            deleteShader(shader.asLegacyName());
+        }
+    }
+
+    void attachShader(LLRenderProgramHandle program, LLRenderShaderHandle shader)
+    {
+        attachShader(program.asLegacyName(), shader.asLegacyName());
+    }
+
+    void setShaderSource(LLRenderShaderHandle shader, S32 count, const char* const* strings)
+    {
+        setShaderSource(shader.asLegacyName(), count, strings);
+    }
+
+    void compileShader(LLRenderShaderHandle shader)
+    {
+        compileShader(shader.asLegacyName());
+    }
+
+    void linkProgram(LLRenderProgramHandle program)
+    {
+        linkProgram(program.asLegacyName());
+    }
+
+    void useProgram(LLRenderProgramHandle program)
+    {
+        useProgram(program.asLegacyName());
+    }
+
+    void getShaderInteger(LLRenderShaderHandle shader, LLRenderShaderParameter parameter, S32* value)
+    {
+        getShaderInteger(shader.asLegacyName(), parameter, value);
+    }
+
+    void getProgramInteger(LLRenderProgramHandle program, LLRenderProgramParameter parameter, S32* value)
+    {
+        getProgramInteger(program.asLegacyName(), parameter, value);
+    }
+
+    void getShaderInfoLog(LLRenderShaderHandle shader, S32 buffer_size, S32* length, char* info_log)
+    {
+        getShaderInfoLog(shader.asLegacyName(), buffer_size, length, info_log);
+    }
+
+    void getProgramInfoLog(LLRenderProgramHandle program, S32 buffer_size, S32* length, char* info_log)
+    {
+        getProgramInfoLog(program.asLegacyName(), buffer_size, length, info_log);
+    }
+
+    S32 getUniformLocation(LLRenderProgramHandle program, const char* name)
+    {
+        return getUniformLocation(program.asLegacyName(), name);
+    }
+
     virtual void setUniformInteger(S32 location, S32 value) = 0;
     virtual void setUniformInteger2(S32 location, S32 first, S32 second) = 0;
     virtual void setUniformIntegerVector(S32 location, S32 count, const S32* values) = 0;

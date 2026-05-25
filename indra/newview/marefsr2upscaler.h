@@ -12,8 +12,8 @@
 //   Pass 4 – Temporal Accumulation       (fsr2_accumulate.comp.glsl)
 //   Pass 5 – RCAS Sharpening             (fsr2_rcas.comp.glsl)
 //
-// Because LLGLSLShader has no compute support, all five passes are managed as
-// raw OpenGL program objects (glCreateProgram / glDispatchCompute).
+// Because LLGLSLShader has no compute support, all five passes are managed
+// through backend compute program handles.
 //
 // Internal textures (all owned and freed by this class):
 //   mDilatedDepth     – R32F  (render res) — Pass 1 → Passes 2 & 3
@@ -70,20 +70,19 @@ public:
                                F32& outX, F32& outY);
 
 private:
-    // ── Raw GL program management ──────────────────────────────────────────────
-    U32 compileComputeProgram(const std::string& sourcePath);
-    void dispatchCompute(U32 prog, U32 x, U32 y);
+    // ── Compute program management ────────────────────────────────────────────
+    LLRenderProgramHandle compileComputeProgram(const std::string& sourcePath);
 
     // ── Internal texture helpers ──────────────────────────────────────────────
     LLRenderTextureHandle createTexture2D(U32 w, U32 h, LLRenderTextureFormat internalFmt);
     void deleteTexture(LLRenderTextureHandle& tex);
 
-    // ── Compute programs (raw GL) ──────────────────────────────────────────────
-    U32 mProgDepthClip        = 0;
-    U32 mProgReconPrevDepth   = 0;
-    U32 mProgLock             = 0;
-    U32 mProgAccumulate       = 0;
-    U32 mProgRCAS             = 0;
+    // ── Compute programs ──────────────────────────────────────────────────────
+    LLRenderProgramHandle mProgDepthClip;
+    LLRenderProgramHandle mProgReconPrevDepth;
+    LLRenderProgramHandle mProgLock;
+    LLRenderProgramHandle mProgAccumulate;
+    LLRenderProgramHandle mProgRCAS;
 
     // ── Internal textures ──────────────────────────────────────────────────────
     LLRenderTextureHandle mDilatedDepth;      // R32F,   render res
