@@ -74,9 +74,9 @@ private:
     U32 compileComputeProgram(const std::string& sourcePath);
     void dispatchCompute(U32 prog, U32 x, U32 y);
 
-    // ── Internal GL texture helpers ────────────────────────────────────────────
-    U32 createTexture2D(U32 w, U32 h, LLRenderTextureFormat internalFmt);
-    void deleteTexture(U32& tex);
+    // ── Internal texture helpers ──────────────────────────────────────────────
+    LLRenderTextureHandle createTexture2D(U32 w, U32 h, LLRenderTextureFormat internalFmt);
+    void deleteTexture(LLRenderTextureHandle& tex);
 
     // ── Compute programs (raw GL) ──────────────────────────────────────────────
     U32 mProgDepthClip        = 0;
@@ -86,13 +86,13 @@ private:
     U32 mProgRCAS             = 0;
 
     // ── Internal textures ──────────────────────────────────────────────────────
-    U32 mDilatedDepth    = 0;    // R32F,   render res
-    U32 mDilatedMV       = 0;    // RG32F,  render res
-    U32 mPrevDepth       = 0;    // R32F,   render res  (previous frame depth)
-    U32 mReconPrevDepth  = 0;    // R32F,   render res
-    U32 mLockStatus      = 0;    // R8,     render res
-    U32 mAccumBuffer[2]  = {0,0};// RGBA16F, display res (ping-pong)
-    U32 mRCASBuffer      = 0;    // RGBA16F, display res
+    LLRenderTextureHandle mDilatedDepth;      // R32F,   render res
+    LLRenderTextureHandle mDilatedMV;         // RG32F,  render res
+    LLRenderTextureHandle mPrevDepth;         // R32F,   render res  (previous frame depth)
+    LLRenderTextureHandle mReconPrevDepth;    // R32F,   render res
+    LLRenderTextureHandle mLockStatus;        // R8,     render res
+    LLRenderTextureHandle mAccumBuffer[2];    // RGBA16F, display res (ping-pong)
+    LLRenderTextureHandle mRCASBuffer;        // RGBA16F, display res
 
     U32  mRenderW   = 0;
     U32  mRenderH   = 0;

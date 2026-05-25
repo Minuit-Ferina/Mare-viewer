@@ -374,6 +374,22 @@ enum LLRenderMemoryBarrierMask : U32
     LL_RENDER_MEMORY_BARRIER_TEXTURE_FETCH = 1 << 1,
 };
 
+inline LLRenderMemoryBarrierMask operator|(LLRenderMemoryBarrierMask lhs, LLRenderMemoryBarrierMask rhs)
+{
+    return static_cast<LLRenderMemoryBarrierMask>(static_cast<U32>(lhs) | static_cast<U32>(rhs));
+}
+
+inline LLRenderMemoryBarrierMask operator&(LLRenderMemoryBarrierMask lhs, LLRenderMemoryBarrierMask rhs)
+{
+    return static_cast<LLRenderMemoryBarrierMask>(static_cast<U32>(lhs) & static_cast<U32>(rhs));
+}
+
+inline LLRenderMemoryBarrierMask& operator|=(LLRenderMemoryBarrierMask& lhs, LLRenderMemoryBarrierMask rhs)
+{
+    lhs = lhs | rhs;
+    return lhs;
+}
+
 enum LLRenderClearMask : U32
 {
     LL_RENDER_CLEAR_NONE = 0,
@@ -511,7 +527,7 @@ struct LLRenderPassDesc
     LLRenderTargetDesc mTarget;
     LLRenderViewport mViewport;
     LLRenderScissor mScissor;
-    U32 mClearMask = LL_RENDER_CLEAR_NONE;
+    LLRenderClearMask mClearMask = LL_RENDER_CLEAR_NONE;
     LLRenderClearColor mClearColor;
     F32 mClearDepth = 1.f;
     S32 mClearStencil = 0;
@@ -579,7 +595,7 @@ public:
     virtual void setScissor(const LLRenderScissor& scissor) = 0;
     virtual void setScissor(S32 x, S32 y, S32 width, S32 height) = 0;
     virtual void clear(const LLRenderPassDesc& desc) = 0;
-    virtual void clear(U32 clear_mask) = 0;
+    virtual void clear(LLRenderClearMask clear_mask) = 0;
     virtual void setClearColor(const LLRenderClearColor& color) = 0;
     virtual void setClearColor(F32 red, F32 green, F32 blue, F32 alpha) = 0;
     virtual void setColorMask(const LLRenderColorMask& mask) = 0;
@@ -821,17 +837,17 @@ public:
     virtual void setUniformMatrix4(S32 location, S32 count, bool transpose, const F32* values) = 0;
     virtual void setVertexAttribute4(U32 location, F32 first, F32 second, F32 third, F32 fourth) = 0;
     virtual void setVertexAttributeVector4(U32 location, const F32* values) = 0;
-    virtual void bindTextureUnit(U32 unit, U32 texture) = 0;
+    virtual void bindTextureUnit(U32 unit, LLRenderTextureHandle texture) = 0;
     virtual void bindImageTexture(
         U32 unit,
-        U32 texture,
+        LLRenderTextureHandle texture,
         S32 level,
         bool layered,
         S32 layer,
         LLRenderImageAccess access,
         LLRenderTextureFormat format) = 0;
     virtual void dispatchCompute(U32 groups_x, U32 groups_y, U32 groups_z) = 0;
-    virtual void setMemoryBarrier(U32 barriers) = 0;
+    virtual void setMemoryBarrier(LLRenderMemoryBarrierMask barriers) = 0;
     virtual void pushLegacyAllAttributes() = 0;
     virtual void pushLegacyAllClientAttributes() = 0;
     virtual void popLegacyClientAttributes() = 0;
@@ -865,7 +881,7 @@ public:
         LLRenderPixelFormat format,
         LLRenderPixelType type,
         const void* data) = 0;
-    virtual U32 createTexture2D(LLRenderTextureFormat internal_format, S32 width, S32 height) = 0;
+    virtual LLRenderTextureHandle createTexture2D(LLRenderTextureFormat internal_format, S32 width, S32 height) = 0;
     virtual void readPixels(
         S32 x,
         S32 y,
@@ -907,13 +923,13 @@ public:
         S32 width,
         S32 height) = 0;
     virtual void copyImageSubData(
-        U32 source_name,
+        LLRenderTextureHandle source_texture,
         LLRenderTextureTarget source_target,
         S32 source_level,
         S32 source_x,
         S32 source_y,
         S32 source_z,
-        U32 destination_name,
+        LLRenderTextureHandle destination_texture,
         LLRenderTextureTarget destination_target,
         S32 destination_level,
         S32 destination_x,

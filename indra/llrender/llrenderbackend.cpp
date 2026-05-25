@@ -775,7 +775,7 @@ LLGLenum to_opengl_integer_parameter(LLRenderIntegerParameter parameter)
     }
 }
 
-[[maybe_unused]] U32 to_opengl_memory_barriers(U32 barriers)
+[[maybe_unused]] U32 to_opengl_memory_barriers(LLRenderMemoryBarrierMask barriers)
 {
     U32 gl_barriers = 0;
 #if !LL_DARWIN
@@ -863,7 +863,7 @@ public:
     void setScissor(const LLRenderScissor&) override {}
     void setScissor(S32, S32, S32, S32) override {}
     void clear(const LLRenderPassDesc&) override {}
-    void clear(U32) override {}
+    void clear(LLRenderClearMask) override {}
     void setClearColor(const LLRenderClearColor&) override {}
     void setClearColor(F32, F32, F32, F32) override {}
     void setColorMask(const LLRenderColorMask&) override {}
@@ -1010,10 +1010,10 @@ public:
     void setUniformMatrix4(S32, S32, bool, const F32*) override {}
     void setVertexAttribute4(U32, F32, F32, F32, F32) override {}
     void setVertexAttributeVector4(U32, const F32*) override {}
-    void bindTextureUnit(U32, U32) override {}
-    void bindImageTexture(U32, U32, S32, bool, S32, LLRenderImageAccess, LLRenderTextureFormat) override {}
+    void bindTextureUnit(U32, LLRenderTextureHandle) override {}
+    void bindImageTexture(U32, LLRenderTextureHandle, S32, bool, S32, LLRenderImageAccess, LLRenderTextureFormat) override {}
     void dispatchCompute(U32, U32, U32) override {}
-    void setMemoryBarrier(U32) override {}
+    void setMemoryBarrier(LLRenderMemoryBarrierMask) override {}
     void pushLegacyAllAttributes() override {}
     void pushLegacyAllClientAttributes() override {}
     void popLegacyClientAttributes() override {}
@@ -1039,7 +1039,7 @@ public:
         LLRenderPixelFormat,
         LLRenderPixelType,
         const void*) override {}
-    U32 createTexture2D(LLRenderTextureFormat, S32, S32) override { return 0; }
+    LLRenderTextureHandle createTexture2D(LLRenderTextureFormat, S32, S32) override { return LLRenderTextureHandle(); }
     void readPixels(S32, S32, S32, S32, LLRenderPixelFormat, LLRenderPixelType, void*) override {}
     void readTextureImage(LLRenderTextureTarget, S32, U32, U32, void*) override {}
     void readTextureImage(LLRenderTextureTarget, S32, LLRenderPixelFormat, LLRenderPixelType, void*) override {}
@@ -1047,13 +1047,13 @@ public:
     void copyTextureSubImage2D(LLRenderTextureTarget, S32, S32, S32, S32, S32, S32, S32) override {}
     void copyTextureSubImage3D(LLRenderTextureTarget, S32, S32, S32, S32, S32, S32, S32, S32) override {}
     void copyImageSubData(
-        U32,
+        LLRenderTextureHandle,
         LLRenderTextureTarget,
         S32,
         S32,
         S32,
         S32,
-        U32,
+        LLRenderTextureHandle,
         LLRenderTextureTarget,
         S32,
         S32,
@@ -1381,7 +1381,7 @@ public:
             (desc.mClearMask & LL_RENDER_CLEAR_STENCIL) != 0);
     }
 
-    void clear(U32 clear_mask) override
+    void clear(LLRenderClearMask clear_mask) override
     {
         LLGLContainment::clearBuffersByIntent(
             (clear_mask & LL_RENDER_CLEAR_COLOR) != 0,
@@ -2153,19 +2153,19 @@ public:
         LLGLContainment::setVertexAttributeVector4(location, values);
     }
 
-    void bindTextureUnit(U32 unit, U32 texture) override
+    void bindTextureUnit(U32 unit, LLRenderTextureHandle texture) override
     {
 #if !LL_DARWIN
-        LLGLContainment::bindTextureUnit(unit, texture);
+        LLGLContainment::bindTextureUnit(unit, texture.asLegacyName());
 #else
         setActiveTextureUnit(static_cast<S32>(unit));
-        bindTexture(LLRenderTextureTarget::Texture2D, texture);
+        bindTexture(LLRenderTextureTarget::Texture2D, texture.asLegacyName());
 #endif
     }
 
     void bindImageTexture(
         U32 unit,
-        U32 texture,
+        LLRenderTextureHandle texture,
         S32 level,
         bool layered,
         S32 layer,
@@ -2175,7 +2175,7 @@ public:
 #if !LL_DARWIN
         LLGLContainment::bindImageTexture(
             unit,
-            texture,
+            texture.asLegacyName(),
             level,
             static_cast<LLGLboolean>(layered),
             layer,
@@ -2191,7 +2191,7 @@ public:
 #endif
     }
 
-    void setMemoryBarrier(U32 barriers) override
+    void setMemoryBarrier(LLRenderMemoryBarrierMask barriers) override
     {
 #if !LL_DARWIN
         LLGLContainment::setMemoryBarrier(to_opengl_memory_barriers(barriers));
@@ -2285,7 +2285,7 @@ public:
             data);
     }
 
-    U32 createTexture2D(LLRenderTextureFormat internal_format, S32 width, S32 height) override
+    LLRenderTextureHandle createTexture2D(LLRenderTextureFormat internal_format, S32 width, S32 height) override
     {
         U32 texture = 0;
 #if !LL_DARWIN
@@ -2321,7 +2321,7 @@ public:
             LLRenderTextureTarget::Texture2D,
             LLRenderTextureAddressMode::ClampToEdge);
 #endif
-        return texture;
+        return LLRenderTextureHandle(texture);
     }
 
     void readPixels(
@@ -2423,13 +2423,13 @@ public:
     }
 
     void copyImageSubData(
-        U32 source_name,
+        LLRenderTextureHandle source_texture,
         LLRenderTextureTarget source_target,
         S32 source_level,
         S32 source_x,
         S32 source_y,
         S32 source_z,
-        U32 destination_name,
+        LLRenderTextureHandle destination_texture,
         LLRenderTextureTarget destination_target,
         S32 destination_level,
         S32 destination_x,
@@ -2441,13 +2441,13 @@ public:
     {
 #if !LL_DARWIN
         LLGLContainment::copyImageSubData(
-            source_name,
+            source_texture.asLegacyName(),
             to_opengl_texture_target(source_target),
             source_level,
             source_x,
             source_y,
             source_z,
-            destination_name,
+            destination_texture.asLegacyName(),
             to_opengl_texture_target(destination_target),
             destination_level,
             destination_x,

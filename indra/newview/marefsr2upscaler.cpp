@@ -155,14 +155,18 @@ U32 MAREFSR2Upscaler::compileComputeProgram(const std::string& relPath)
 // Internal texture helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-U32 MAREFSR2Upscaler::createTexture2D(U32 w, U32 h, LLRenderTextureFormat internalFmt)
+LLRenderTextureHandle MAREFSR2Upscaler::createTexture2D(U32 w, U32 h, LLRenderTextureFormat internalFmt)
 {
     return getOpenGLRenderBackend().createTexture2D(internalFmt, w, h);
 }
 
-void MAREFSR2Upscaler::deleteTexture(U32& tex)
+void MAREFSR2Upscaler::deleteTexture(LLRenderTextureHandle& tex)
 {
-    if (tex) { getOpenGLRenderBackend().deleteTextures(1, &tex); tex = 0; }
+    if (tex)
+    {
+        getOpenGLRenderBackend().deleteTextureHandle(tex);
+        tex = LLRenderTextureHandle();
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -199,7 +203,9 @@ bool MAREFSR2Upscaler::initialize(U32 renderW, U32 renderH)
 
     // Display-res buffers will be allocated in apply() on first call once we
     // know outputDst dimensions.  Mark them zero for now.
-    mAccumBuffer[0] = mAccumBuffer[1] = mRCASBuffer = 0;
+    mAccumBuffer[0] = LLRenderTextureHandle();
+    mAccumBuffer[1] = LLRenderTextureHandle();
+    mRCASBuffer = LLRenderTextureHandle();
     mDisplayW = mDisplayH = 0;
     mAccumIdx = 0;
 
@@ -272,10 +278,10 @@ void MAREFSR2Upscaler::apply(
     U32 histIdx = mAccumIdx;
     U32 outIdx  = 1u - mAccumIdx;
 
-    // Retrieve GL texture handles.
-    U32 colorTex    = colorSrc->getTexture();
-    U32 depthTex    = depthSrc ? depthSrc->getTexture() : 0;
-    U32 velocityTex = velocitySrc->getTexture();
+    // Retrieve backend texture handles.
+    LLRenderTextureHandle colorTex = colorSrc->getTextureHandle();
+    LLRenderTextureHandle depthTex = depthSrc ? depthSrc->getTextureHandle() : LLRenderTextureHandle();
+    LLRenderTextureHandle velocityTex = velocitySrc->getTextureHandle();
 
     // ── Pass 1: Depth Clip / Dilate ───────────────────────────────────────────
     // Inputs:  u_depth (tex 0), u_motionVec (tex 1)
@@ -284,7 +290,7 @@ void MAREFSR2Upscaler::apply(
         getOpenGLRenderBackend().useProgram(mProgDepthClip);
         setProgramUniformInteger2(mProgDepthClip, "u_renderSize", (S32)rW, (S32)rH);
 
-        getOpenGLRenderBackend().bindTextureUnit(0, depthTex ? depthTex : 0);
+        getOpenGLRenderBackend().bindTextureUnit(0, depthTex);
         getOpenGLRenderBackend().bindTextureUnit(1, velocityTex);
         getOpenGLRenderBackend().bindImageTexture(
             2, mDilatedDepth, 0, false, 0, LLRenderImageAccess::WriteOnly, LLRenderTextureFormat::R32F);
@@ -395,7 +401,7 @@ void MAREFSR2Upscaler::apply(
 
         static LLStaticHashedString sCopyMap("colorMap");
         gDeferredTAACopyProgram.uniform1i(sCopyMap, 0);
-        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, mRCASBuffer);
+        gGL.getTexUnit(0)->bindManual(LLTexUnit::TT_TEXTURE, mRCASBuffer.asLegacyName());
 
         {
             LLGLDisable   blend(LLRenderCapability::Blend);
