@@ -344,17 +344,17 @@ static LLRenderVertexAttributeType to_render_vertex_attribute_type(GLenum type)
     }
 }
 
-static void generate_vertex_buffer_names(GLsizei count, GLuint* buffers)
+static void generate_vertex_buffer_names(GLsizei count, LLRenderBufferHandle* buffers)
 {
-    getOpenGLRenderBackend().generateBuffers(count, buffers);
+    getOpenGLRenderBackend().generateBufferHandles(count, buffers);
 }
 
-static void delete_vertex_buffer_names(GLsizei count, const GLuint* buffers)
+static void delete_vertex_buffer_names(GLsizei count, const LLRenderBufferHandle* buffers)
 {
-    getOpenGLRenderBackend().deleteBuffers(count, buffers);
+    getOpenGLRenderBackend().deleteBufferHandles(count, buffers);
 }
 
-static void bind_vertex_buffer_target(GLenum target, GLuint buffer)
+static void bind_vertex_buffer_target(GLenum target, LLRenderBufferHandle buffer)
 {
     getOpenGLRenderBackend().bindBuffer(to_render_buffer_target(target), buffer);
 }
@@ -421,14 +421,14 @@ static void draw_vertex_buffer_arrays(GLenum mode, GLint first, GLsizei count)
 }
 
 // batch buffer object name generation
-static GLuint gen_buffer()
+static LLRenderBufferHandle gen_buffer()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_VERTEX;
 
-    GLuint ret = 0;
+    LLRenderBufferHandle ret;
     constexpr U32 pool_size = 4096;
 
-    thread_local static GLuint sNamePool[pool_size];
+    thread_local static LLRenderBufferHandle sNamePool[pool_size];
     thread_local static U32 sIndex = 0;
 
     if (sIndex == 0)
@@ -454,12 +454,12 @@ static GLuint gen_buffer()
     return ret;
 }
 
-static void delete_buffers(S32 count, GLuint* buffers)
+static void delete_buffers(S32 count, LLRenderBufferHandle* buffers)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_VERTEX;
     // wait a few frames before actually deleting the buffers to avoid
     // synchronization issues with the GPU
-    static std::vector<GLuint> sFreeList[4];
+    static std::vector<LLRenderBufferHandle> sFreeList[4];
 
     if (gGLManager.mInited)
     {
@@ -488,8 +488,8 @@ class LLVBOPool
 {
     public:
     virtual ~LLVBOPool() = default;
-    virtual void allocate(GLenum type, U32 size, GLuint& name, U8*& data) = 0;
-    virtual void free(GLenum type, U32 size, GLuint name, U8* data) = 0;
+    virtual void allocate(GLenum type, U32 size, LLRenderBufferHandle& name, U8*& data) = 0;
+    virtual void free(GLenum type, U32 size, LLRenderBufferHandle name, U8* data) = 0;
     virtual U64 getVramBytesUsed() = 0;
 };
 
@@ -505,12 +505,12 @@ public:
         return mAllocated;
     }
 
-    void allocate(GLenum type, U32 size, GLuint& name, U8*& data) override
+    void allocate(GLenum type, U32 size, LLRenderBufferHandle& name, U8*& data) override
     {
         LL_PROFILE_ZONE_SCOPED_CATEGORY_VERTEX;
         STOP_GLERROR;
         llassert(type == GL_ARRAY_BUFFER || type == GL_ELEMENT_ARRAY_BUFFER);
-        llassert(name == 0); // non zero name indicates a gl name that wasn't freed
+        llassert(!name); // non zero name indicates a backend name that wasn't freed
         llassert(data == nullptr);  // non null data indicates a buffer that wasn't freed
         llassert(size >= 2);  // any buffer size smaller than a single index is nonsensical
 
@@ -525,7 +525,7 @@ public:
         }
     }
 
-    void free(GLenum type, U32 size, GLuint name, U8* data) override
+    void free(GLenum type, U32 size, LLRenderBufferHandle name, U8* data) override
     {
         LL_PROFILE_ZONE_SCOPED_CATEGORY_VERTEX;
         llassert(type == GL_ARRAY_BUFFER || type == GL_ELEMENT_ARRAY_BUFFER);
@@ -554,7 +554,7 @@ public:
     struct Entry
     {
         U8* mData;
-        GLuint mGLName;
+        LLRenderBufferHandle mGLName;
         Time mAge;
     };
 
@@ -592,11 +592,11 @@ public:
         size += block_size - (size % block_size);
     }
 
-    void allocate(GLenum type, U32 size, GLuint& name, U8*& data) override
+    void allocate(GLenum type, U32 size, LLRenderBufferHandle& name, U8*& data) override
     {
         LL_PROFILE_ZONE_SCOPED_CATEGORY_VERTEX;
         llassert(type == GL_ARRAY_BUFFER || type == GL_ELEMENT_ARRAY_BUFFER);
-        llassert(name == 0); // non zero name indicates a gl name that wasn't freed
+        llassert(!name); // non zero name indicates a backend name that wasn't freed
         llassert(data == nullptr);  // non null data indicates a buffer that wasn't freed
         llassert(size >= 2);  // any buffer size smaller than a single index is nonsensical
 
@@ -648,12 +648,12 @@ public:
         clean();
     }
 
-    void free(GLenum type, U32 size, GLuint name, U8* data) override
+    void free(GLenum type, U32 size, LLRenderBufferHandle name, U8* data) override
     {
         LL_PROFILE_ZONE_SCOPED_CATEGORY_VERTEX;
         llassert(type == GL_ARRAY_BUFFER || type == GL_ELEMENT_ARRAY_BUFFER);
         llassert(size >= 2);
-        llassert(name != 0);
+        llassert(name);
         llassert(data != nullptr);
 
         clean();
@@ -840,8 +840,8 @@ U64 LLVertexBuffer::getBytesAllocated()
 //============================================================================
 //
 //static
-U32 LLVertexBuffer::sGLRenderBuffer = 0;
-U32 LLVertexBuffer::sGLRenderIndices = 0;
+LLRenderBufferHandle LLVertexBuffer::sGLRenderBuffer;
+LLRenderBufferHandle LLVertexBuffer::sGLRenderIndices;
 U32 LLVertexBuffer::sLastMask = 0;
 U32 LLVertexBuffer::sVertexCount = 0;
 
@@ -1041,7 +1041,7 @@ bool LLVertexBuffer::validateRange(U32 start, U32 end, U32 count, U32 indices_of
 
 #if LL_PROFILER_ENABLE_RENDER_DOC
 void LLVertexBuffer::setLabel(const char* label) {
-    LL_LABEL_OBJECT_GL(GL_BUFFER, mGLBuffer, strlen(label), label);
+    LL_LABEL_OBJECT_GL(GL_BUFFER, mGLBuffer.asLegacyName(), strlen(label), label);
 }
 #endif
 
@@ -1125,11 +1125,11 @@ void LLVertexBuffer::initClass(LLWindow* window)
 void LLVertexBuffer::unbind()
 {
     STOP_GLERROR;
-    bind_vertex_buffer_target(GL_ARRAY_BUFFER, 0);
-    bind_vertex_buffer_target(GL_ELEMENT_ARRAY_BUFFER, 0);
+    bind_vertex_buffer_target(GL_ARRAY_BUFFER, LLRenderBufferHandle());
+    bind_vertex_buffer_target(GL_ELEMENT_ARRAY_BUFFER, LLRenderBufferHandle());
     STOP_GLERROR;
-    sGLRenderBuffer = 0;
-    sGLRenderIndices = 0;
+    sGLRenderBuffer = LLRenderBufferHandle();
+    sGLRenderIndices = LLRenderBufferHandle();
 }
 
 //static
@@ -1258,7 +1258,7 @@ void LLVertexBuffer::genBuffer(U32 size)
     if (sVBOPool)
     {
         llassert(mSize == 0);
-        llassert(mGLBuffer == 0);
+        llassert(!mGLBuffer);
         llassert(mMappedData == nullptr);
 
         mSize = size;
@@ -1274,7 +1274,7 @@ void LLVertexBuffer::genIndices(U32 size)
     if (sVBOPool)
     {
         llassert(mIndicesSize == 0);
-        llassert(mGLIndices == 0);
+        llassert(!mGLIndices);
         llassert(mMappedIndexData == nullptr);
         mIndicesSize = size;
         sVBOPool->allocate(GL_ELEMENT_ARRAY_BUFFER, mIndicesSize, mGLIndices, mMappedIndexData);
@@ -1339,7 +1339,7 @@ void LLVertexBuffer::destroyGLBuffer()
         }
 
         mSize = 0;
-        mGLBuffer = 0;
+        mGLBuffer = LLRenderBufferHandle();
         mMappedData = nullptr;
     }
 }
@@ -1356,7 +1356,7 @@ void LLVertexBuffer::destroyGLIndices()
         }
 
         mIndicesSize = 0;
-        mGLIndices = 0;
+        mGLIndices = LLRenderBufferHandle();
         mMappedIndexData = nullptr;
     }
 }

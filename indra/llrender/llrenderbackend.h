@@ -809,6 +809,21 @@ public:
         }
     }
 
+    void deleteBufferHandles(S32 count, const LLRenderBufferHandle* buffers)
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+        std::vector<U32> legacy_names(count);
+        for (S32 i = 0; i < count; ++i)
+        {
+            legacy_names[i] = buffers[i].asLegacyName();
+        }
+        deleteBuffers(count, legacy_names.data());
+    }
+
     void bindBuffer(LLRenderBufferTarget target, LLRenderBufferHandle buffer)
     {
         bindBuffer(target, buffer.asLegacyName());

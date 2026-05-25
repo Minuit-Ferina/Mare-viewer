@@ -35,6 +35,7 @@
 #include "v4coloru.h"
 #include "llstrider.h"
 #include "llrender.h"
+#include "llrenderbackend.h"
 #include "lltrace.h"
 #include <set>
 #include <vector>
@@ -280,8 +281,8 @@ public:
     void clone(LLVertexBuffer& target) const;
 
 protected:
-    U32     mGLBuffer = 0;      // GL VBO handle
-    U32     mGLIndices = 0;     // GL IBO handle
+    LLRenderBufferHandle mGLBuffer;      // VBO handle
+    LLRenderBufferHandle mGLIndices;     // IBO handle
     U32     mNumVerts = 0;      // Number of vertices allocated
     U32     mNumIndices = 0;    // Number of indices allocated
     LLGLenum mIndicesType; // type of indices in index buffer
@@ -328,8 +329,8 @@ public:
     static U64 getBytesAllocated();
     static const U32 sTypeSize[TYPE_MAX];
     static const U32 sGLMode[LLRender::NUM_MODES];
-    static U32 sGLRenderBuffer;
-    static U32 sGLRenderIndices;
+    static LLRenderBufferHandle sGLRenderBuffer;
+    static LLRenderBufferHandle sGLRenderIndices;
     static U32 sLastMask;
     static U32 sVertexCount;
 };
