@@ -1462,5 +1462,6 @@ U32 getOpenGLPixelTypeValue(LLRenderPixelType type);
 LLRenderBackend& getNullRenderBackend();
 LLRenderBackend& getRenderBackend();
 LLRenderBackend& getOpenGLRenderBackend();
+LLRenderBackend& getVulkanRenderBackend();
 
 #endif

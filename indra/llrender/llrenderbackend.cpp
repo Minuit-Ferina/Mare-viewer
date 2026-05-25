@@ -833,7 +833,7 @@ U32 get_darwin_vram_megabytes()
 }
 #endif
 
-class LLNullRenderBackend final : public LLRenderBackend
+class LLNullRenderBackend : public LLRenderBackend
 {
 public:
     LLRenderBackendType getType() const override { return LLRenderBackendType::Null; }
@@ -1141,6 +1141,16 @@ public:
     void pushMatrix() override {}
     void popMatrix() override {}
     const char* getInfoString(LLRenderInfoString) override { return ""; }
+};
+
+class LLVulkanRenderBackend final : public LLNullRenderBackend
+{
+public:
+    LLRenderBackendType getType() const override { return LLRenderBackendType::Vulkan; }
+    const char* getName() const override { return "Vulkan"; }
+    bool isReady() const override { return false; }
+    bool initContextCapabilities() override { return false; }
+    bool createNativeContext(const LLRenderNativeContextDesc&, LLRenderNativeContext&) override { return false; }
 };
 
 class LLOpenGLRenderBackend final : public LLRenderBackend
@@ -2837,5 +2847,11 @@ LLRenderBackend& getRenderBackend()
 LLRenderBackend& getOpenGLRenderBackend()
 {
     static LLOpenGLRenderBackend backend;
+    return backend;
+}
+
+LLRenderBackend& getVulkanRenderBackend()
+{
+    static LLVulkanRenderBackend backend;
     return backend;
 }
