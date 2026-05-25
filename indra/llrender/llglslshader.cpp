@@ -68,6 +68,15 @@ U64 LLGLSLShader::sTotalSamplesDrawn = 0;
 U32 LLGLSLShader::sTotalBinds = 0;
 boost::json::value LLGLSLShader::sDefaultStats;
 
+namespace
+{
+bool should_noop_legacy_glsl_runtime_for_vulkan_probe()
+{
+    return getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getRenderBackend().isReady();
+}
+}
+
 //UI shader -- declared here so llui_libtest will link properly
 LLGLSLShader    gUIProgram;
 LLGLSLShader    gSolidColorProgram;
@@ -1053,6 +1062,13 @@ void LLGLSLShader::bind()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
 
+    if (!mProgramObject && should_noop_legacy_glsl_runtime_for_vulkan_probe())
+    {
+        sCurBoundShader = LLRenderProgramHandle();
+        sCurBoundShaderPtr = this;
+        return;
+    }
+
     llassert_always(mProgramObject);
 
     gGL.flush();
@@ -1083,6 +1099,12 @@ void LLGLSLShader::bind()
 
 void LLGLSLShader::bind(U8 variant)
 {
+    if (should_noop_legacy_glsl_runtime_for_vulkan_probe())
+    {
+        bind();
+        return;
+    }
+
     llassert_always(mGLTFVariants.size() == LLGLSLShader::NUM_GLTF_VARIANTS);
     llassert_always(variant < LLGLSLShader::NUM_GLTF_VARIANTS);
     mGLTFVariants[variant].bind();
@@ -1090,6 +1112,12 @@ void LLGLSLShader::bind(U8 variant)
 
 void LLGLSLShader::bind(bool rigged)
 {
+    if (should_noop_legacy_glsl_runtime_for_vulkan_probe())
+    {
+        bind();
+        return;
+    }
+
     if (rigged)
     {
         llassert_always(mRiggedVariant);
@@ -1131,6 +1159,11 @@ S32 LLGLSLShader::bindTexture(S32 uniform, LLTexture* texture, LLTexUnit::eTextu
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
 
+    if (!mProgramObject && should_noop_legacy_glsl_runtime_for_vulkan_probe())
+    {
+        return -1;
+    }
+
     if (uniform < 0 || uniform >= (S32)mTexture.size())
     {
         LL_WARNS_ONCE("Shader") << "Uniform index out of bounds. Size: " << (S32)mUniform.size() << " index: " << uniform << LL_ENDL;
@@ -1151,6 +1184,11 @@ S32 LLGLSLShader::bindTexture(S32 uniform, LLTexture* texture, LLTexUnit::eTextu
 S32 LLGLSLShader::bindTexture(S32 uniform, LLRenderTarget* texture, bool depth, LLTexUnit::eTextureFilterOptions mode, U32 index)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
+
+    if (!mProgramObject && should_noop_legacy_glsl_runtime_for_vulkan_probe())
+    {
+        return -1;
+    }
 
     if (uniform < 0 || uniform >= (S32)mTexture.size())
     {
@@ -1204,6 +1242,11 @@ S32 LLGLSLShader::unbindTexture(S32 uniform, LLTexUnit::eTextureType mode)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
 
+    if (!mProgramObject && should_noop_legacy_glsl_runtime_for_vulkan_probe())
+    {
+        return -1;
+    }
+
     if (uniform < 0 || uniform >= (S32)mTexture.size())
     {
         LL_WARNS_ONCE("Shader") << "Uniform index out of bounds. Size: " << (S32)mUniform.size() << " index: " << uniform << LL_ENDL;
@@ -1230,6 +1273,11 @@ S32 LLGLSLShader::enableTexture(S32 uniform, LLTexUnit::eTextureType mode)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
 
+    if (!mProgramObject && should_noop_legacy_glsl_runtime_for_vulkan_probe())
+    {
+        return -1;
+    }
+
     if (uniform < 0 || uniform >= (S32)mTexture.size())
     {
         LL_WARNS_ONCE("Shader") << "Uniform index out of bounds. Size: " << (S32)mUniform.size() << " index: " << uniform << LL_ENDL;
@@ -1250,6 +1298,11 @@ S32 LLGLSLShader::enableTexture(S32 uniform, LLTexUnit::eTextureType mode)
 S32 LLGLSLShader::disableTexture(S32 uniform, LLTexUnit::eTextureType mode)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
+
+    if (!mProgramObject && should_noop_legacy_glsl_runtime_for_vulkan_probe())
+    {
+        return -1;
+    }
 
     if (uniform < 0 || uniform >= (S32)mTexture.size())
     {
@@ -1349,6 +1402,10 @@ void LLGLSLShader::fastUniform1f(U32 index, LLGLfloat x)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
     llassert(sCurBoundShaderPtr == this);
+    if (!mProgramObject && should_noop_legacy_glsl_runtime_for_vulkan_probe())
+    {
+        return;
+    }
     llassert(mProgramObject);
     llassert(mUniform.size() <= index);
     llassert(mUniform[index] >= 0);

@@ -41,6 +41,8 @@
 #include "hbxxh.h"
 #include "glm/gtc/type_ptr.hpp"
 
+#include <vector>
+
 #if LL_WINDOWS
 extern void APIENTRY gl_debug_callback(GLenum source,
                                 GLenum type,
@@ -251,6 +253,7 @@ void LLTexUnit::bindFast(LLTexture* texture)
         gl_tex->forceUpdateBindStats();
         texture->bindDefaultImage(mIndex);
     }
+    mCurrTexType = gl_tex->getTarget();
     getRenderBackend().bindTexture(to_render_texture_target(gl_tex->getTarget()), mCurrTexture);
     mHasMipMaps = gl_tex->mHasMipMaps;
     if (gl_tex->mTexOptionsDirty)
@@ -475,7 +478,12 @@ void LLTexUnit::unbind(eTextureType type)
     activate();
 
     // Disabled caching of binding state.
-    if (mCurrTexType == type)
+    const bool force_vulkan_fallback =
+        type == LLTexUnit::TT_TEXTURE &&
+        getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getRenderBackend().isReady();
+
+    if (mCurrTexType == type || force_vulkan_fallback)
     {
         mCurrTexture = 0;
 
@@ -496,7 +504,12 @@ void LLTexUnit::unbindFast(eTextureType type)
     activate();
 
     // Disabled caching of binding state.
-    if (mCurrTexType == type)
+    const bool force_vulkan_fallback =
+        type == LLTexUnit::TT_TEXTURE &&
+        getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getRenderBackend().isReady();
+
+    if (mCurrTexType == type || force_vulkan_fallback)
     {
         mCurrTexture = 0;
 
@@ -1710,6 +1723,26 @@ void LLRender::flush()
             LLVertexBuffer *vb;
 
             U32 attribute_mask = LLGLSLShader::sCurBoundShaderPtr->mAttributeMask;
+            if (getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+                getRenderBackend().isReady())
+            {
+                static bool logged_vulkan_ui_flush = false;
+                if (!logged_vulkan_ui_flush)
+                {
+                    LL_INFOS("RenderBackend")
+                        << "Vulkan UI bridge saw LLRender::flush with mode "
+                        << mMode
+                        << ", count "
+                        << count
+                        << ", attribute mask 0x"
+                        << std::hex
+                        << attribute_mask
+                        << std::dec
+                        << "."
+                        << LL_ENDL;
+                    logged_vulkan_ui_flush = true;
+                }
+            }
 
             if (sBufferDataList)
             {
@@ -1729,6 +1762,15 @@ void LLRender::flush()
                 vb = bufferfromCache(attribute_mask, count);
             }
 
+            if (getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+                getRenderBackend().isReady())
+            {
+                getRenderBackend().setActiveTextureUnit(0);
+                getRenderBackend().bindTexture(
+                    to_render_texture_target(LLTexUnit::TT_TEXTURE),
+                    gGL.getTexUnit(0)->mCurrTexture);
+            }
+
             drawBuffer(vb, mMode, count);
         }
         else
@@ -1743,6 +1785,10 @@ void LLRender::flush()
 
 LLVertexBuffer* LLRender::bufferfromCache(U32 attribute_mask, U32 count)
 {
+    const bool vulkan_ready =
+        getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getRenderBackend().isReady();
+
     LLVertexBuffer *vb = nullptr;
     HBXXH64 hash;
 
@@ -1758,6 +1804,16 @@ LLVertexBuffer* LLRender::bufferfromCache(U32 attribute_mask, U32 count)
         if (attribute_mask & LLVertexBuffer::MAP_COLOR)
         {
             hash.update((U8*)mColorsp.get(), count * sizeof(LLColor4U));
+        }
+
+        if (vulkan_ready)
+        {
+            hash.update(
+                (U8*)&mMatrix[MM_MODELVIEW][mMatIdx[MM_MODELVIEW]],
+                sizeof(glm::mat4));
+            hash.update(
+                (U8*)&mMatrix[MM_PROJECTION][mMatIdx[MM_PROJECTION]],
+                sizeof(glm::mat4));
         }
 
         hash.finalize();
@@ -1823,7 +1879,40 @@ LLVertexBuffer* LLRender::genBuffer(U32 attribute_mask, S32 count)
 
     vb->setBuffer();
 
-    vb->setPositionData(mVerticesp.get());
+    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getRenderBackend().isReady())
+    {
+        std::vector<LLVector4a> transformed_positions(count);
+        glm::mat4 modelview_projection =
+            mMatrix[MM_PROJECTION][mMatIdx[MM_PROJECTION]] *
+            mMatrix[MM_MODELVIEW][mMatIdx[MM_MODELVIEW]];
+
+        for (S32 i = 0; i < count; ++i)
+        {
+            const F32* position = mVerticesp[i].getF32ptr();
+            glm::vec4 clip_position =
+                modelview_projection *
+                glm::vec4(position[0], position[1], position[2], 1.f);
+
+            if (clip_position.w != 0.f)
+            {
+                clip_position.x /= clip_position.w;
+                clip_position.y /= clip_position.w;
+                clip_position.z /= clip_position.w;
+            }
+
+            transformed_positions[i].set(
+                clip_position.x,
+                clip_position.y,
+                clip_position.z);
+        }
+
+        vb->setPositionData(transformed_positions.data());
+    }
+    else
+    {
+        vb->setPositionData(mVerticesp.get());
+    }
 
     if (attribute_mask & LLVertexBuffer::MAP_TEXCOORD0)
     {

@@ -23,6 +23,37 @@
 
 #include "llrenderbackend.h"
 #include "llrenderbackendopengl.h"
+#include "llrenderbackendvulkan.h"
+#include "llstring.h"
+
+namespace
+{
+LLRenderBackend& select_render_backend()
+{
+    std::string backend_name = LLStringUtil::getenv("MARE_RENDER_BACKEND");
+    LLStringUtil::trim(backend_name);
+    LLStringUtil::toLower(backend_name);
+
+    if (backend_name == "vulkan" || backend_name == "vk")
+    {
+        LL_WARNS("RenderBackend")
+            << "MARE_RENDER_BACKEND=vulkan selected. "
+            << "The Vulkan backend is experimental and currently renders bootstrap UI draw commands."
+            << LL_ENDL;
+        return getVulkanRenderBackend();
+    }
+
+    if (!backend_name.empty() && backend_name != "opengl" && backend_name != "gl")
+    {
+        LL_WARNS("RenderBackend")
+            << "Unknown MARE_RENDER_BACKEND value '" << backend_name
+            << "'. Falling back to OpenGL."
+            << LL_ENDL;
+    }
+
+    return getOpenGLRenderBackend();
+}
+}
 
 LLRenderBackend::~LLRenderBackend() = default;
 
@@ -46,5 +77,6 @@ const char* getRenderBackendTypeName(LLRenderBackendType type)
 
 LLRenderBackend& getRenderBackend()
 {
-    return getOpenGLRenderBackend();
+    static LLRenderBackend& backend = select_render_backend();
+    return backend;
 }

@@ -28,10 +28,89 @@
 
 #include "llfontvertexbuffer.h"
 
+#include "llrender.h"
+#include "llrenderbackend.h"
 #include "llvertexbuffer.h"
 
 
 bool LLFontVertexBuffer::sEnableBufferCollection = true;
+
+namespace
+{
+bool use_vulkan_relative_font_origin()
+{
+    return getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getRenderBackend().isReady();
+}
+
+class LLScopedVulkanFontViewport
+{
+public:
+    LLScopedVulkanFontViewport(bool enabled, const LLCoordGL& origin)
+        : mEnabled(enabled)
+    {
+        if (!mEnabled)
+        {
+            return;
+        }
+
+        mSavedViewport[0] = gGLViewport[0];
+        mSavedViewport[1] = gGLViewport[1];
+        mSavedViewport[2] = gGLViewport[2];
+        mSavedViewport[3] = gGLViewport[3];
+
+        getRenderBackend().setViewport(
+            mSavedViewport[0] + origin.mX,
+            mSavedViewport[1] - origin.mY,
+            mSavedViewport[2],
+            mSavedViewport[3]);
+    }
+
+    ~LLScopedVulkanFontViewport()
+    {
+        if (mEnabled)
+        {
+            getRenderBackend().setViewport(
+                mSavedViewport[0],
+                mSavedViewport[1],
+                mSavedViewport[2],
+                mSavedViewport[3]);
+        }
+    }
+
+private:
+    bool mEnabled = false;
+    S32 mSavedViewport[4] = {};
+};
+
+class LLScopedVulkanRelativeFontOrigin
+{
+public:
+    explicit LLScopedVulkanRelativeFontOrigin(bool enabled)
+        : mEnabled(enabled)
+        , mViewportScope(enabled, LLFontGL::sCurOrigin)
+    {
+        if (mEnabled)
+        {
+            mSavedOrigin = LLFontGL::sCurOrigin;
+            LLFontGL::sCurOrigin.set(0, 0);
+        }
+    }
+
+    ~LLScopedVulkanRelativeFontOrigin()
+    {
+        if (mEnabled)
+        {
+            LLFontGL::sCurOrigin = mSavedOrigin;
+        }
+    }
+
+private:
+    bool mEnabled = false;
+    LLCoordGL mSavedOrigin;
+    LLScopedVulkanFontViewport mViewportScope;
+};
+}
 
 LLFontVertexBuffer::LLFontVertexBuffer()
 {
@@ -126,6 +205,7 @@ S32 LLFontVertexBuffer::render(
         // For debug purposes and performance testing
         return fontp->render(text, begin_offset, x, y, color, halign, valign, style, shadow, max_chars, max_pixels, right_x, use_ellipses, use_color);
     }
+    const bool use_relative_vulkan_origin = use_vulkan_relative_font_origin();
     if (mBufferList.empty())
     {
         genBuffers(fontp, text, begin_offset, x, y, color, halign, valign,
@@ -146,9 +226,11 @@ S32 LLFontVertexBuffer::render(
              || mLastScaleY != LLFontGL::sScaleY
              || mLastVertDPI != LLFontGL::sVertDPI
              || mLastHorizDPI != LLFontGL::sHorizDPI
-             || mLastOrigin != LLFontGL::sCurOrigin
+             || (!use_relative_vulkan_origin && mLastOrigin != LLFontGL::sCurOrigin)
+             || mLastDepth != LLFontGL::sCurDepth
              || mLastResGeneration != LLFontGL::sResolutionGeneration
-             || mLastFontCacheGen != fontp->getCacheGeneration())
+             || mLastFontCacheGen != fontp->getCacheGeneration()
+             || mUseVulkanRelativeOrigin != use_relative_vulkan_origin)
     {
         genBuffers(fontp, text, begin_offset, x, y, color, halign, valign,
             style, shadow, max_chars, max_pixels, right_x, use_ellipses, use_color);
@@ -178,6 +260,8 @@ void LLFontVertexBuffer::genBuffers(
     bool use_ellipses,
     bool use_color)
 {
+    const bool use_relative_vulkan_origin = use_vulkan_relative_font_origin();
+
     // todo: add a debug build assert if this triggers too often for to long?
     mBufferList.clear();
     // Save before rendreing, it can change mid-render,
@@ -185,9 +269,12 @@ void LLFontVertexBuffer::genBuffers(
     mLastFontCacheGen = fontp->getCacheGeneration();
 
     gGL.beginList(&mBufferList);
-    mChars = fontp->render(text, begin_offset, x, y, color, halign, valign,
-        style, shadow, max_chars, max_pixels, right_x, use_ellipses, use_color);
-    gGL.endList();
+    {
+        LLScopedVulkanRelativeFontOrigin relative_vulkan_origin(use_relative_vulkan_origin);
+        mChars = fontp->render(text, begin_offset, x, y, color, halign, valign,
+            style, shadow, max_chars, max_pixels, right_x, use_ellipses, use_color);
+        gGL.endList();
+    }
 
     mLastFont = fontp;
     mLastOffset = begin_offset;
@@ -206,7 +293,9 @@ void LLFontVertexBuffer::genBuffers(
     mLastVertDPI = LLFontGL::sVertDPI;
     mLastHorizDPI = LLFontGL::sHorizDPI;
     mLastOrigin = LLFontGL::sCurOrigin;
+    mLastDepth = LLFontGL::sCurDepth;
     mLastResGeneration = LLFontGL::sResolutionGeneration;
+    mUseVulkanRelativeOrigin = use_relative_vulkan_origin;
 
     if (right_x)
     {
@@ -217,6 +306,11 @@ void LLFontVertexBuffer::genBuffers(
 void LLFontVertexBuffer::renderBuffers()
 {
     gGL.flush(); // deliberately empty pending verts
+
+    LLScopedVulkanFontViewport relative_vulkan_viewport(
+        mUseVulkanRelativeOrigin && use_vulkan_relative_font_origin(),
+        LLFontGL::sCurOrigin);
+
     gGL.getTexUnit(0)->enable(LLTexUnit::TT_TEXTURE);
     gGL.pushUIMatrix();
 

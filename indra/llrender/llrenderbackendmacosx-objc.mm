@@ -28,6 +28,8 @@
 
 #include "llnativeview-objc.h"
 
+extern bool gHiDPISupport;
+
 @interface LLRenderMacOSXContextAttachment : NSObject
 {
     NSOpenGLContext* mContext;
@@ -99,6 +101,26 @@
 @end
 
 static char sRenderContextAttachmentKey;
+
+static CGFloat get_effective_backing_scale(NSView* native_view)
+{
+    if (!gHiDPISupport)
+    {
+        return 1.0;
+    }
+
+    CGFloat backing_scale = [[native_view window] backingScaleFactor];
+    if (backing_scale <= 0.0)
+    {
+        backing_scale = [[NSScreen mainScreen] backingScaleFactor];
+    }
+    if (backing_scale <= 0.0)
+    {
+        backing_scale = 1.0;
+    }
+
+    return backing_scale;
+}
 
 static LLRenderMacOSXContextAttachment* get_context_attachment(void* view)
 {
@@ -182,4 +204,97 @@ void ll_render_macosx_destroy_native_view(void* view)
     }
 
     [(NSView*)view removeFromSuperview];
+}
+
+void* ll_render_macosx_create_metal_native_view(void* window)
+{
+    LLNativeView* native_view = [[LLNativeView alloc] initWithFrame:[(LLNSWindow*)window frame]
+                                                       withSamples:0
+                                                         andVsync:false];
+    if (native_view == nil)
+    {
+        NSLog(@"Failed to create native Metal view!", nil);
+        return nullptr;
+    }
+
+    [[NSBundle bundleWithPath:@"/System/Library/Frameworks/QuartzCore.framework"] load];
+    Class metal_layer_class = NSClassFromString(@"CAMetalLayer");
+    if (metal_layer_class == Nil)
+    {
+        NSLog(@"Failed to load CAMetalLayer!", nil);
+        [native_view release];
+        return nullptr;
+    }
+
+    id metal_layer = [metal_layer_class layer];
+    if (metal_layer == nil)
+    {
+        NSLog(@"Failed to create CAMetalLayer!", nil);
+        [native_view release];
+        return nullptr;
+    }
+
+    CGFloat backing_scale = get_effective_backing_scale(native_view);
+
+    NSRect native_bounds = [native_view bounds];
+    NSSize drawable_size = NSMakeSize(
+        native_bounds.size.width * backing_scale,
+        native_bounds.size.height * backing_scale);
+
+    [metal_layer setValue:[NSNumber numberWithBool:YES] forKey:@"opaque"];
+    [metal_layer setValue:[NSNumber numberWithDouble:backing_scale]
+                   forKey:@"contentsScale"];
+    [metal_layer setValue:[NSValue valueWithSize:drawable_size] forKey:@"drawableSize"];
+    [native_view setWantsLayer:YES];
+    [native_view setLayer:metal_layer];
+    [(LLNSWindow*)window setContentView:native_view];
+    return native_view;
+}
+
+void* ll_render_macosx_get_metal_layer(void* view)
+{
+    return [(NSView*)view layer];
+}
+
+bool ll_render_macosx_get_metal_layer_drawable_size(void* view, unsigned int* width, unsigned int* height)
+{
+    if (!view || !width || !height)
+    {
+        return false;
+    }
+
+    NSView* native_view = (NSView*)view;
+    id metal_layer = [native_view layer];
+    if (metal_layer == nil)
+    {
+        return false;
+    }
+
+    CGFloat backing_scale = get_effective_backing_scale(native_view);
+
+    NSRect native_bounds = [native_view bounds];
+    NSSize drawable_size = NSMakeSize(
+        native_bounds.size.width * backing_scale,
+        native_bounds.size.height * backing_scale);
+    [metal_layer setValue:[NSNumber numberWithDouble:backing_scale]
+                   forKey:@"contentsScale"];
+    [metal_layer setValue:[NSValue valueWithSize:drawable_size] forKey:@"drawableSize"];
+
+    *width = drawable_size.width > 1.0 ? (unsigned int)drawable_size.width : 1U;
+    *height = drawable_size.height > 1.0 ? (unsigned int)drawable_size.height : 1U;
+    return true;
+}
+
+bool ll_render_macosx_get_native_view_size(void* view, unsigned int* width, unsigned int* height)
+{
+    if (!view || !width || !height)
+    {
+        return false;
+    }
+
+    NSView* native_view = (NSView*)view;
+    NSRect native_bounds = [native_view bounds];
+    *width = native_bounds.size.width > 1.0 ? (unsigned int)native_bounds.size.width : 1U;
+    *height = native_bounds.size.height > 1.0 ? (unsigned int)native_bounds.size.height : 1U;
+    return true;
 }

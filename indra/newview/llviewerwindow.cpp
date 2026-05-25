@@ -28,6 +28,7 @@
 #include "llviewerwindow.h"
 
 // system library includes
+#include <cstdlib>
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -1984,6 +1985,15 @@ LLViewerWindow::LLViewerWindow(const Params& p)
 
     if (NULL == mWindow)
     {
+        if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+        {
+            LLSplashScreen::update("Vulkan backend probe stopped before viewer startup.");
+            LL_WARNS("Window")
+                << "Vulkan backend probe finished before viewer startup; exiting without full viewer shutdown."
+                << LL_ENDL;
+            std::_Exit(1);
+        }
+
         LLSplashScreen::update(LLTrans::getString("StartupRequireDriverUpdate"));
 
         LL_WARNS("Window") << "Failed to create window, to be shutting Down, be sure your graphics driver is updated." << LL_ENDL ;

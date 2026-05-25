@@ -134,8 +134,8 @@ attributedStringInfo getSegments(NSAttributedString *str)
 
 
     NSRect wnd_rect = [[self window] frame];
-    NSRect dev_rect = [self convertRectToBacking:wnd_rect];
-    if (!NSEqualSizes(wnd_rect.size,dev_rect.size))
+    NSRect dev_rect = gHiDPISupport ? [self convertRectToBacking:wnd_rect] : wnd_rect;
+    if (!NSEqualSizes(wnd_rect.size, dev_rect.size))
     {
         callResize(dev_rect.size.width, dev_rect.size.height);
     }
@@ -143,7 +143,7 @@ attributedStringInfo getSegments(NSAttributedString *str)
 
 - (void)windowResized:(NSNotification *)notification;
 {
-    NSSize dev_sz = [self convertSizeToBacking:[self frame].size];
+    NSSize dev_sz = gHiDPISupport ? [self convertSizeToBacking:[self frame].size] : [self frame].size;
     callResize(dev_sz.width, dev_sz.height);
 }
 
@@ -210,6 +210,26 @@ attributedStringInfo getSegments(NSAttributedString *str)
     return self;
 }
 
+- (NSPoint)viewPointForEvent:(NSEvent*)event
+{
+    NSPoint point = [event locationInWindow];
+    return gHiDPISupport ? [self convertPointToBacking:point] : point;
+}
+
+- (NSPoint)viewDeltaForEvent:(NSEvent*)event
+{
+    NSSize delta = NSMakeSize([event deltaX], [event deltaY]);
+    delta = gHiDPISupport ? [self convertSizeToBacking:delta] : delta;
+    return NSMakePoint(delta.width, delta.height);
+}
+
+- (void)updateMousePositionForEvent:(NSEvent*)event
+{
+    NSPoint point = [self viewPointForEvent:event];
+    mMousePos[0] = point.x;
+    mMousePos[1] = point.y;
+}
+
 #if LL_DARWIN
 #pragma clang diagnostic pop
 #endif
@@ -219,6 +239,8 @@ attributedStringInfo getSegments(NSAttributedString *str)
 
 - (void) mouseDown:(NSEvent *)theEvent
 {
+    [self updateMousePositionForEvent:theEvent];
+
     // Apparently people still use this?
     if ([theEvent modifierFlags] & NSEventModifierFlagCommand &&
         !([theEvent modifierFlags] & NSEventModifierFlagControl) &&
@@ -244,29 +266,30 @@ attributedStringInfo getSegments(NSAttributedString *str)
 {
     if (mSimulatedRightClick)
     {
+        [self updateMousePositionForEvent:theEvent];
         callRightMouseUp(mMousePos, [theEvent modifierFlags]);
         mSimulatedRightClick = false;
     } else {
-        NSPoint mPoint = [self convertPointToBacking:[theEvent locationInWindow]];
-        mMousePos[0] = mPoint.x;
-        mMousePos[1] = mPoint.y;
+        [self updateMousePositionForEvent:theEvent];
         callLeftMouseUp(mMousePos, [theEvent modifierFlags]);
     }
 }
 
 - (void) rightMouseDown:(NSEvent *)theEvent
 {
+    [self updateMousePositionForEvent:theEvent];
     callRightMouseDown(mMousePos, [theEvent modifierFlags]);
 }
 
 - (void) rightMouseUp:(NSEvent *)theEvent
 {
+    [self updateMousePositionForEvent:theEvent];
     callRightMouseUp(mMousePos, [theEvent modifierFlags]);
 }
 
 - (void)mouseMoved:(NSEvent *)theEvent
 {
-    NSPoint dev_delta = [self convertPointToBacking:NSMakePoint([theEvent deltaX], [theEvent deltaY])];
+    NSPoint dev_delta = [self viewDeltaForEvent:theEvent];
 
     float mouseDeltas[] = {
         float(dev_delta.x),
@@ -275,9 +298,7 @@ attributedStringInfo getSegments(NSAttributedString *str)
 
     callDeltaUpdate(mouseDeltas, 0);
 
-    NSPoint mPoint = [self convertPointToBacking:[theEvent locationInWindow]];
-    mMousePos[0] = mPoint.x;
-    mMousePos[1] = mPoint.y;
+    [self updateMousePositionForEvent:theEvent];
     callMouseMoved(mMousePos, 0);
 }
 
@@ -290,7 +311,7 @@ attributedStringInfo getSegments(NSAttributedString *str)
     // The old CoreGraphics APIs we previously relied on are now flagged as obsolete.
     // NSEvent isn't obsolete, and provides us with the correct deltas.
 
-    NSPoint dev_delta = [self convertPointToBacking:NSMakePoint([theEvent deltaX], [theEvent deltaY])];
+    NSPoint dev_delta = [self viewDeltaForEvent:theEvent];
 
     float mouseDeltas[] = {
         float(dev_delta.x),
@@ -299,19 +320,19 @@ attributedStringInfo getSegments(NSAttributedString *str)
 
     callDeltaUpdate(mouseDeltas, 0);
 
-    NSPoint mPoint = [self convertPointToBacking:[theEvent locationInWindow]];
-    mMousePos[0] = mPoint.x;
-    mMousePos[1] = mPoint.y;
+    [self updateMousePositionForEvent:theEvent];
     callMouseDragged(mMousePos, 0);
 }
 
 - (void) otherMouseDown:(NSEvent *)theEvent
 {
+    [self updateMousePositionForEvent:theEvent];
     callOtherMouseDown(mMousePos, [theEvent modifierFlags], [theEvent buttonNumber]);
 }
 
 - (void) otherMouseUp:(NSEvent *)theEvent
 {
+    [self updateMousePositionForEvent:theEvent];
     callOtherMouseUp(mMousePos, [theEvent modifierFlags], [theEvent buttonNumber]);
 }
 

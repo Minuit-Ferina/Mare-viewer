@@ -33,7 +33,9 @@
 #include "llviewercontrol.h"
 #include "llversioninfo.h"
 
+#include "llrenderbackend.h"
 #include "llrender.h"
+#include "llvertexbuffer.h"
 #include "llenvironment.h"
 #include "llerrorcontrol.h"
 #include "llworld.h"
@@ -77,6 +79,12 @@ S32 clamp_terrain_mapping(S32 mapping)
     mapping = llclamp(mapping, 1, 3);
     if (mapping == 2) { mapping = 1; }
     return mapping;
+}
+
+bool should_skip_legacy_glsl_for_vulkan_probe()
+{
+    return getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getRenderBackend().isReady();
 }
 
 //utility shaders
@@ -548,6 +556,27 @@ void LLViewerShaderMgr::setShaders()
     {
         // Viewer will show 'hardware requirements' warning later
         LL_INFOS("ShaderLoading") << "Not supported hardware/software" << LL_ENDL;
+        return;
+    }
+
+    if (should_skip_legacy_glsl_for_vulkan_probe())
+    {
+        LL_WARNS("Shader")
+            << "Skipping legacy GLSL shader loading for the Vulkan startup probe."
+            << LL_ENDL;
+        mVertexShaderObjects.clear();
+        mFragmentShaderObjects.clear();
+        unloadShaders();
+        for (S32 i = 0; i < SHADER_COUNT; i++)
+        {
+            mShaderLevel[i] = 0;
+        }
+        gUIProgram.mAttributeMask =
+            LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_COLOR;
+        mMaxAvatarShaderLevel = 0;
+        gPipeline.mShadersLoaded = true;
         return;
     }
 

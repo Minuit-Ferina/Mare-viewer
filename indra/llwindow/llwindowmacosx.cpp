@@ -198,15 +198,32 @@ LLWindowMacOSX::LLWindowMacOSX(LLWindowCallbacks* callbacks,
 
     // Stash an object pointer for OSMessageBox()
     gWindowImplementation = this;
-    // Create the GL context and set it up for windowed or fullscreen, as appropriate.
-    if(createContext(x, y, width, height, 32, fullscreen, enable_vsync))
+    // Create the rendering context and set it up for windowed or fullscreen, as appropriate.
+    if (!createContext(x, y, width, height, 32, fullscreen, enable_vsync))
     {
-        if(mWindow != NULL)
-        {
-            makeWindowOrderFront(mWindow);
-        }
+        return;
+    }
 
-        if (!getRenderBackend().initContextCapabilities())
+    if (mWindow != NULL)
+    {
+        makeWindowOrderFront(mWindow);
+    }
+
+    if (!getRenderBackend().initContextCapabilities())
+    {
+        if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+        {
+            setupFailure(
+                "Mare Viewer stopped during the experimental Vulkan backend bootstrap.\n"
+                "Vulkan reached native context, swapchain, render pass, framebuffers,\n"
+                "triangle pipeline, and command buffers, then presented one triangle frame probe.\n"
+                "Real scene rendering is not implemented yet.\n"
+                "Set MARE_VULKAN_CONTINUE_AFTER_PROBE=1 only to probe the next startup blocker.\n"
+                "Unset MARE_RENDER_BACKEND to run with the default OpenGL backend.",
+                "Vulkan backend incomplete",
+                OSMB_OK);
+        }
+        else
         {
             setupFailure(
                 "Second Life is unable to run because your video card drivers\n"
@@ -215,15 +232,15 @@ LLWindowMacOSX::LLWindowMacOSX(LLWindowCallbacks* callbacks,
                 "If you continue to receive this message, contact customer service.",
                 "Error",
                 OSMB_OK);
-            return;
         }
-
-        //start with arrow cursor
-        initCursors();
-        setCursor( UI_CURSOR_ARROW );
-
-        allowLanguageTextInput(NULL, false);
+        return;
     }
+
+    //start with arrow cursor
+    initCursors();
+    setCursor( UI_CURSOR_ARROW );
+
+    allowLanguageTextInput(NULL, false);
 
     mCallbacks = callbacks;
     stop_glerror();
@@ -736,7 +753,10 @@ bool LLWindowMacOSX::createContext(int x, int y, int width, int height, int bits
 
         if (!getRenderBackend().createNativeContext(desc, mRenderContext))
         {
-            setupFailure("Can't create GL rendering context", "Error", OSMB_OK);
+            setupFailure(
+                std::string("Can't create ") + getRenderBackend().getName() + " rendering context",
+                "Error",
+                OSMB_OK);
             return false;
         }
 
@@ -753,7 +773,10 @@ bool LLWindowMacOSX::createContext(int x, int y, int width, int height, int bits
     {
         if (!getRenderBackend().makeNativeContextCurrent(mRenderContext.mContext))
         {
-            setupFailure("Can't activate GL rendering context", "Error", OSMB_OK);
+            setupFailure(
+                std::string("Can't activate ") + getRenderBackend().getName() + " rendering context",
+                "Error",
+                OSMB_OK);
             return false;
         }
     }
@@ -957,7 +980,8 @@ bool LLWindowMacOSX::getSize(LLCoordScreen *size)
     }
     else if(mWindow)
     {
-        CGSize sz = getBackingViewRect(mWindow, mNativeView).size;
+        CGSize sz = gHiDPISupport ? getBackingViewRect(mWindow, mNativeView).size
+                                  : getContentViewRect(mWindow).size;
 
         size->mX = sz.width;
         size->mY = sz.height;
@@ -983,7 +1007,8 @@ bool LLWindowMacOSX::getSize(LLCoordWindow *size)
     }
     else if(mWindow)
     {
-        CGSize sz = getBackingViewRect(mWindow, mNativeView).size;
+        CGSize sz = gHiDPISupport ? getBackingViewRect(mWindow, mNativeView).size
+                                  : getContentViewRect(mWindow).size;
 
         size->mX = sz.width;
         size->mY = sz.height;
@@ -1477,6 +1502,16 @@ void LLWindowMacOSX::setupFailure(const std::string& text, const std::string& ca
     destroyContext();
 
     OSMessageBox(text, caption, type);
+
+    if (mWindow != NULL)
+    {
+        NSWindowRef dead_window = mWindow;
+        mWindow = NULL;
+        closeWindow(dead_window);
+    }
+
+    mNativeView = NULL;
+    mRenderContext = {};
 }
 
             // Note on event recording - QUIT is a known special case and we are choosing NOT to record it for the record and playback feature
@@ -2555,7 +2590,7 @@ MASK LLWindowMacOSX::modifiersToMask(S16 modifiers)
 
 F32 LLWindowMacOSX::getSystemUISize()
 {
-    return ::getDeviceUnitSize(mNativeView);
+    return gHiDPISupport ? ::getDeviceUnitSize(mNativeView) : 1.f;
 }
 
 #if LL_OS_DRAGDROP_ENABLED

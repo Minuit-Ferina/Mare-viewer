@@ -3796,6 +3796,9 @@ LLSD LLAppViewer::getViewerInfo() const
         getRenderBackend().getInfoString(LLRenderInfoString::Vendor));
     info["GRAPHICS_CARD"] = ll_safe_string(
         getRenderBackend().getInfoString(LLRenderInfoString::Renderer));
+    info["RENDER_BACKEND"] = getRenderBackend().getName();
+    info["RENDER_BACKEND_VERSION"] = ll_safe_string(
+        getRenderBackend().getInfoString(LLRenderInfoString::Version));
 
 #if LL_WINDOWS
     std::string drvinfo;
@@ -3843,8 +3846,7 @@ LLSD LLAppViewer::getViewerInfo() const
         info["RLV_VERSION"] = "Disabled";
     }
 
-    info["OPENGL_VERSION"] = ll_safe_string(
-        getRenderBackend().getInfoString(LLRenderInfoString::Version));
+    info["OPENGL_VERSION"] = info["RENDER_BACKEND_VERSION"];
 
     // Settings
 
@@ -4035,7 +4037,14 @@ std::string LLAppViewer::getViewerInfoString(bool default_string) const
     {
         support << "\n" << LLTrans::getString("AboutDriver", args, default_string);
     }
-    support << "\n" << LLTrans::getString("AboutOGL", args, default_string);
+    if (getRenderBackend().getType() == LLRenderBackendType::OpenGL)
+    {
+        support << "\n" << LLTrans::getString("AboutOGL", args, default_string);
+    }
+    else
+    {
+        support << "\n" << LLTrans::getString("AboutRenderBackend", args, default_string);
+    }
     support << "\n\n" << LLTrans::getString("AboutSettings", args, default_string);
 #if LL_DARWIN
     support << "\n" << LLTrans::getString("AboutOSXHiDPI", args, default_string);
