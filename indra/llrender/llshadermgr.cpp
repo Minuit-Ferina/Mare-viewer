@@ -951,7 +951,7 @@ LLRenderShaderHandle LLShaderMgr::loadShaderFile(const std::string& filename, S3
     return ret;
 }
 
-bool LLShaderMgr::linkProgramObject(LLGLuint obj, bool suppress_errors)
+bool LLShaderMgr::linkProgramObject(LLRenderProgramHandle obj, bool suppress_errors)
 {
     //check for errors
     {
@@ -968,12 +968,12 @@ bool LLShaderMgr::linkProgramObject(LLGLuint obj, bool suppress_errors)
         {
             //an error occured, print log
             LL_SHADER_LOADING_WARNS() << "GLSL Linker Error:" << LL_ENDL;
-            dumpObjectLog(obj, true, "linker");
+            dumpObjectLog(obj.asLegacyName(), true, "linker");
             return success;
         }
     }
 
-    std::string log = get_program_log(obj);
+    std::string log = get_program_log(obj.asLegacyName());
     LLStringUtil::toLower(log);
     if (log.find("software") != std::string::npos)
     {
@@ -984,7 +984,7 @@ bool LLShaderMgr::linkProgramObject(LLGLuint obj, bool suppress_errors)
     return success;
 }
 
-bool LLShaderMgr::validateProgramObject(LLGLuint obj)
+bool LLShaderMgr::validateProgramObject(LLRenderProgramHandle obj)
 {
     //check program validity against current GL
     getOpenGLRenderBackend().validateProgram(obj);
@@ -993,11 +993,11 @@ bool LLShaderMgr::validateProgramObject(LLGLuint obj)
     if (success == GL_FALSE)
     {
         LL_SHADER_LOADING_WARNS() << "GLSL program not valid: " << LL_ENDL;
-        dumpObjectLog(obj);
+        dumpObjectLog(obj.asLegacyName());
     }
     else
     {
-        dumpObjectLog(obj, false);
+        dumpObjectLog(obj.asLegacyName(), false);
     }
 
     return success;

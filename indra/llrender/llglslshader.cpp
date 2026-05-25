@@ -53,7 +53,7 @@ using std::pair;
 using std::make_pair;
 using std::string;
 
-LLGLuint LLGLSLShader::sCurBoundShader = 0;
+LLRenderProgramHandle LLGLSLShader::sCurBoundShader;
 LLGLSLShader* LLGLSLShader::sCurBoundShaderPtr = NULL;
 S32 LLGLSLShader::sIndexedTextureChannels = 0;
 U32 LLGLSLShader::sMaxGLTFMaterials = 0;
@@ -327,7 +327,7 @@ bool LLGLSLShader::readProfileQuery(bool for_runtime, bool force_read)
 
 
 LLGLSLShader::LLGLSLShader()
-    : mProgramObject(0),
+    : mProgramObject(),
     mAttributeMask(0),
     mTotalUniformSize(0),
     mActiveTextureChannels(0),
@@ -366,7 +366,7 @@ void LLGLSLShader::unloadInternal()
 
     if (mProgramObject)
     {
-        LLGLuint obj[1024];
+        LLRenderShaderHandle obj[1024];
         GLsizei count = 0;
         getOpenGLRenderBackend().getAttachedShaders(mProgramObject, 1024, &count, obj);
 
@@ -385,7 +385,7 @@ void LLGLSLShader::unloadInternal()
 
         getOpenGLRenderBackend().deleteProgram(mProgramObject);
 
-        mProgramObject = 0;
+        mProgramObject = LLRenderProgramHandle();
     }
 
     if (mTimerQuery)
@@ -434,8 +434,8 @@ bool LLGLSLShader::createShader()
     mShaderHash = hash();
 
     // Create program
-    mProgramObject = getOpenGLRenderBackend().createProgram();
-    if (mProgramObject == 0)
+    mProgramObject = getOpenGLRenderBackend().createProgramHandle();
+    if (!mProgramObject)
     {
         // Shouldn't happen if shader related extensions, like ARB_vertex_shader, exist.
         LL_SHADER_LOADING_WARNS() << "Failed to create handle for shader: " << mName << LL_ENDL;
@@ -585,7 +585,7 @@ bool LLGLSLShader::attachVertexObject(std::string object_path)
         stop_glerror();
         getOpenGLRenderBackend().attachShader(mProgramObject, LLShaderMgr::instance()->mVertexShaderObjects[object_path]);
 #if DEBUG_SHADER_INCLUDES
-        dumpAttachObject("attachVertexObject", mProgramObject, object_path);
+        dumpAttachObject("attachVertexObject", mProgramObject.asLegacyName(), object_path);
 #endif // DEBUG_SHADER_INCLUDES
         stop_glerror();
         return true;
@@ -607,7 +607,7 @@ bool LLGLSLShader::attachFragmentObject(std::string object_path)
         stop_glerror();
         getOpenGLRenderBackend().attachShader(mProgramObject, LLShaderMgr::instance()->mFragmentShaderObjects[object_path]);
 #if DEBUG_SHADER_INCLUDES
-        dumpAttachObject("attachFragmentObject", mProgramObject, object_path);
+        dumpAttachObject("attachFragmentObject", mProgramObject.asLegacyName(), object_path);
 #endif // DEBUG_SHADER_INCLUDES
         stop_glerror();
         return true;
@@ -630,7 +630,7 @@ void LLGLSLShader::attachObject(LLRenderShaderHandle object)
         getOpenGLRenderBackend().attachShader(mProgramObject, object);
 #if DEBUG_SHADER_INCLUDES
         std::string object_path("???");
-        dumpAttachObject("attachObject", mProgramObject, object_path);
+        dumpAttachObject("attachObject", mProgramObject.asLegacyName(), object_path);
 #endif // DEBUG_SHADER_INCLUDES
         stop_glerror();
     }
@@ -1038,7 +1038,7 @@ bool LLGLSLShader::link(bool suppress_errors)
 
     if (!success && !suppress_errors)
     {
-        LLShaderMgr::instance()->dumpObjectLog(mProgramObject, !success, mName);
+        LLShaderMgr::instance()->dumpObjectLog(mProgramObject.asLegacyName(), !success, mName);
     }
 
     if (success)
@@ -1053,7 +1053,7 @@ void LLGLSLShader::bind()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
 
-    llassert_always(mProgramObject != 0);
+    llassert_always(mProgramObject);
 
     gGL.flush();
 
@@ -1112,8 +1112,8 @@ void LLGLSLShader::unbind(void)
         sCurBoundShaderPtr->readProfileQuery();
     }
 
-    getOpenGLRenderBackend().useProgram(0);
-    sCurBoundShader = 0;
+    getOpenGLRenderBackend().useProgram(LLRenderProgramHandle());
+    sCurBoundShader = LLRenderProgramHandle();
     sCurBoundShaderPtr = NULL;
 }
 
@@ -2090,6 +2090,6 @@ LLUUID LLGLSLShader::hash()
 
 #if LL_PROFILER_ENABLE_RENDER_DOC
 void LLGLSLShader::setLabel(const char* label) {
-    LL_LABEL_OBJECT_GL(GL_PROGRAM, mProgramObject, strlen(label), label);
+    LL_LABEL_OBJECT_GL(GL_PROGRAM, mProgramObject.asLegacyName(), strlen(label), label);
 }
 #endif

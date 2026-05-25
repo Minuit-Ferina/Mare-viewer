@@ -171,7 +171,7 @@ public:
     LLGLSLShader();
     ~LLGLSLShader();
 
-    static LLGLuint sCurBoundShader;
+    static LLRenderProgramHandle sCurBoundShader;
     static LLGLSLShader* sCurBoundShaderPtr;
     static S32 sIndexedTextureChannels;
 
@@ -284,7 +284,7 @@ public:
     //helper to conditionally bind mRiggedVariant instead of this
     void bind(bool rigged);
 
-    bool isComplete() const { return mProgramObject != 0; }
+    bool isComplete() const { return mProgramObject.isValid(); }
 
     LLUUID hash();
 
@@ -294,7 +294,7 @@ public:
     U32 mMatHash[LLRender::NUM_MATRIX_MODES];
     U32 mLightHash;
 
-    LLGLuint mProgramObject;
+    LLRenderProgramHandle mProgramObject;
 #if LL_RELEASE_WITH_DEBUG_INFO
     struct attr_name
     {

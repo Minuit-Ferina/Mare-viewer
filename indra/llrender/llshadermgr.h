@@ -365,8 +365,8 @@ public:
     bool attachShaderFeatures(LLGLSLShader * shader);
     void dumpObjectLog(LLGLuint ret, bool warns = true, const std::string& filename = "");
     void dumpShaderSource(U32 shader_code_count, char** shader_code_text);
-    bool    linkProgramObject(LLGLuint obj, bool suppress_errors = false);
-    bool    validateProgramObject(LLGLuint obj);
+    bool    linkProgramObject(LLRenderProgramHandle obj, bool suppress_errors = false);
+    bool    validateProgramObject(LLRenderProgramHandle obj);
     LLRenderShaderHandle loadShaderFile(const std::string& filename, S32 & shader_level, LLRenderShaderStage stage, std::map<std::string, std::string>* defines = NULL, S32 texture_index_channels = -1);
 
     // Implemented in the application to actually point to the shader directory.
