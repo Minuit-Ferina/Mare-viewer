@@ -932,9 +932,8 @@ bool LLRender::init(bool needs_vertex_buffer)
 #endif
 
     { //bind a dummy vertex array object so we're core profile compliant
-        U32 ret;
-        getOpenGLRenderBackend().generateVertexArrays(1, &ret);
-        getOpenGLRenderBackend().bindVertexArray(ret);
+        LLRenderVertexArrayHandle dummy_array = getOpenGLRenderBackend().createVertexArrayHandle();
+        getOpenGLRenderBackend().bindVertexArray(dummy_array);
     }
 
     if (needs_vertex_buffer)

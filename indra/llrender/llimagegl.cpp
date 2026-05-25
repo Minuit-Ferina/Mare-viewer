@@ -314,15 +314,15 @@ S32 LLImageGL::sMaxCategories = 1 ;
 
 //optimization for when we don't need to calculate mIsMask
 bool LLImageGL::sSkipAnalyzeAlpha;
-U32  LLImageGL::sScratchPBO = 0;
+LLRenderBufferHandle LLImageGL::sScratchPBO;
 U32  LLImageGL::sScratchPBOSize = 0;
 U32* LLImageGL::sManualScratch = nullptr;
 
-static void ensure_scratch_pbo_created(U32& pbo, U32& pbo_size);
-static void delete_scratch_pbo(U32& pbo, U32& pbo_size);
-static void bind_scratch_pbo_for_pixel_pack(U32 pbo);
+static void ensure_scratch_pbo_created(LLRenderBufferHandle& pbo, U32& pbo_size);
+static void delete_scratch_pbo(LLRenderBufferHandle& pbo, U32& pbo_size);
+static void bind_scratch_pbo_for_pixel_pack(LLRenderBufferHandle pbo);
 static void unbind_pixel_pack_buffer();
-static void bind_scratch_pbo_for_pixel_unpack(U32 pbo);
+static void bind_scratch_pbo_for_pixel_unpack(LLRenderBufferHandle pbo);
 static void unbind_pixel_unpack_buffer();
 static void resize_pixel_pack_buffer(U64 size);
 static void query_texture_level_parameter(LLGLenum target, S32 level, LLGLenum parameter, LLGLint* value);
@@ -878,43 +878,43 @@ static void copy_current_framebuffer_to_texture_region(LLGLenum target, S32 leve
         height);
 }
 
-static void ensure_scratch_pbo_created(U32& pbo, U32& pbo_size)
+static void ensure_scratch_pbo_created(LLRenderBufferHandle& pbo, U32& pbo_size)
 {
-    if (pbo == 0)
+    if (!pbo)
     {
-        getOpenGLRenderBackend().generateBuffers(1, &pbo);
+        pbo = getOpenGLRenderBackend().createBufferHandle();
         pbo_size = 0;
     }
 }
 
-static void delete_scratch_pbo(U32& pbo, U32& pbo_size)
+static void delete_scratch_pbo(LLRenderBufferHandle& pbo, U32& pbo_size)
 {
-    if (pbo != 0)
+    if (pbo)
     {
-        getOpenGLRenderBackend().deleteBuffers(1, &pbo);
-        pbo = 0;
+        getOpenGLRenderBackend().deleteBufferHandle(pbo);
+        pbo = LLRenderBufferHandle();
         pbo_size = 0;
     }
 }
 
-static void bind_scratch_pbo_for_pixel_pack(U32 pbo)
+static void bind_scratch_pbo_for_pixel_pack(LLRenderBufferHandle pbo)
 {
     getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::PixelPack, pbo);
 }
 
 static void unbind_pixel_pack_buffer()
 {
-    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::PixelPack, 0);
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::PixelPack, LLRenderBufferHandle());
 }
 
-static void bind_scratch_pbo_for_pixel_unpack(U32 pbo)
+static void bind_scratch_pbo_for_pixel_unpack(LLRenderBufferHandle pbo)
 {
     getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::PixelUnpack, pbo);
 }
 
 static void unbind_pixel_unpack_buffer()
 {
-    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::PixelUnpack, 0);
+    getOpenGLRenderBackend().bindBuffer(LLRenderBufferTarget::PixelUnpack, LLRenderBufferHandle());
 }
 
 static void resize_pixel_pack_buffer(U64 size)

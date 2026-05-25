@@ -616,6 +616,28 @@ struct LLRenderQueryHandle
     }
 };
 
+struct LLRenderVertexArrayHandle
+{
+    U32 mValue = 0;
+
+    LLRenderVertexArrayHandle() = default;
+    explicit LLRenderVertexArrayHandle(U32 value) : mValue(value) {}
+
+    U32 asLegacyName() const { return mValue; }
+    bool isValid() const { return mValue != 0; }
+    explicit operator bool() const { return isValid(); }
+
+    friend bool operator==(LLRenderVertexArrayHandle lhs, LLRenderVertexArrayHandle rhs)
+    {
+        return lhs.mValue == rhs.mValue;
+    }
+
+    friend bool operator!=(LLRenderVertexArrayHandle lhs, LLRenderVertexArrayHandle rhs)
+    {
+        return !(lhs == rhs);
+    }
+};
+
 struct LLRenderPassDesc
 {
     const char* mDebugName = nullptr;
@@ -904,6 +926,19 @@ public:
     virtual bool hasVertexArraySupport() const = 0;
     virtual void generateVertexArrays(S32 count, U32* arrays) = 0;
     virtual void bindVertexArray(U32 array) = 0;
+
+    LLRenderVertexArrayHandle createVertexArrayHandle()
+    {
+        U32 array = 0;
+        generateVertexArrays(1, &array);
+        return LLRenderVertexArrayHandle(array);
+    }
+
+    void bindVertexArray(LLRenderVertexArrayHandle array)
+    {
+        bindVertexArray(array.asLegacyName());
+    }
+
     virtual void generateQueries(S32 count, U32* queries) = 0;
     virtual void deleteQueries(S32 count, const U32* queries) = 0;
     virtual void beginQuery(LLRenderQueryTarget target, U32 query) = 0;
