@@ -836,7 +836,7 @@ void gl_line_3d( const LLVector3& start, const LLVector3& end, const LLColor4& c
     gGL.color4f(color.mV[VRED], color.mV[VGREEN], color.mV[VBLUE], color.mV[VALPHA]);
 
     gGL.flush();
-    getOpenGLRenderBackend().setLineWidth(2.5f);
+    getRenderBackend().setLineWidth(2.5f);
 
     gGL.begin(LLRender::LINES);
     {
@@ -1806,12 +1806,12 @@ void LLRender2D::setLineWidth(F32 width)
     static F32 range[2]{0.0};
     if (range[1] == 0)
     {
-        LLRenderFloatRange line_width_range = getOpenGLRenderBackend().getLineWidthRange(true);
+        LLRenderFloatRange line_width_range = getRenderBackend().getLineWidthRange(true);
         range[0] = line_width_range.mMinimum;
         range[1] = line_width_range.mMaximum;
     }
     width *= lerp(LLRender::sUIGLScaleFactor.mV[VX], LLRender::sUIGLScaleFactor.mV[VY], 0.5f);
-    getOpenGLRenderBackend().setLineWidth(llclamp(width, range[0], range[1]));
+    getRenderBackend().setLineWidth(llclamp(width, range[0], range[1]));
 }
 
 LLPointer<LLUIImage> LLRender2D::getUIImageByID(const LLUUID& image_id, S32 priority)

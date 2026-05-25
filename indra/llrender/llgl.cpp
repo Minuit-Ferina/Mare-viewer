@@ -142,29 +142,29 @@ void APIENTRY gl_debug_callback(GLenum source,
     LL_WARNS() << "-----------------------" << LL_ENDL;
 
     GLint vao = 0;
-    getOpenGLRenderBackend().getLegacyInteger(GL_VERTEX_ARRAY_BINDING, &vao);
+    getRenderBackend().getLegacyInteger(GL_VERTEX_ARRAY_BINDING, &vao);
     GLint vbo = 0;
-    getOpenGLRenderBackend().getLegacyInteger(GL_ARRAY_BUFFER_BINDING, &vbo);
+    getRenderBackend().getLegacyInteger(GL_ARRAY_BUFFER_BINDING, &vbo);
     GLint vbo_size = 0;
     if (vbo != 0)
     {
-        getOpenGLRenderBackend().getLegacyBufferObjectParameterInteger(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &vbo_size);
+        getRenderBackend().getLegacyBufferObjectParameterInteger(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &vbo_size);
     }
     GLint ibo = 0;
-    getOpenGLRenderBackend().getLegacyInteger(GL_ELEMENT_ARRAY_BUFFER_BINDING, &ibo);
+    getRenderBackend().getLegacyInteger(GL_ELEMENT_ARRAY_BUFFER_BINDING, &ibo);
     GLint ibo_size = 0;
     if (ibo != 0)
     {
-        getOpenGLRenderBackend().getLegacyBufferObjectParameterInteger(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &ibo_size);
+        getRenderBackend().getLegacyBufferObjectParameterInteger(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &ibo_size);
     }
     GLint ubo = 0;
-    getOpenGLRenderBackend().getLegacyInteger(GL_UNIFORM_BUFFER_BINDING, &ubo);
+    getRenderBackend().getLegacyInteger(GL_UNIFORM_BUFFER_BINDING, &ubo);
     GLint ubo_size = 0;
     GLint ubo_immutable = 0;
     if (ubo != 0)
     {
-        getOpenGLRenderBackend().getLegacyBufferObjectParameterInteger(GL_UNIFORM_BUFFER, GL_BUFFER_SIZE, &ubo_size);
-        getOpenGLRenderBackend().getLegacyBufferObjectParameterInteger(GL_UNIFORM_BUFFER, GL_BUFFER_IMMUTABLE_STORAGE, &ubo_immutable);
+        getRenderBackend().getLegacyBufferObjectParameterInteger(GL_UNIFORM_BUFFER, GL_BUFFER_SIZE, &ubo_size);
+        getRenderBackend().getLegacyBufferObjectParameterInteger(GL_UNIFORM_BUFFER, GL_BUFFER_IMMUTABLE_STORAGE, &ubo_immutable);
     }
 
     // No needs to halt when is called from LLViewerWindow::stopGL()
@@ -1084,10 +1084,10 @@ bool LLGLManager::initGL()
         std::stringstream str;
 
         GLint count = 0;
-        getOpenGLRenderBackend().getLegacyInteger(GL_NUM_EXTENSIONS, &count);
+        getRenderBackend().getLegacyInteger(GL_NUM_EXTENSIONS, &count);
         for (GLint i = 0; i < count; ++i)
         {
-            std::string ext = ll_safe_string(getOpenGLRenderBackend().getLegacyStringIndexed(GL_EXTENSIONS, i));
+            std::string ext = ll_safe_string(getRenderBackend().getLegacyStringIndexed(GL_EXTENSIONS, i));
             str << ext << " ";
             LL_DEBUGS("GLExtensions") << ext << LL_ENDL;
         }
@@ -1109,10 +1109,10 @@ bool LLGLManager::initGL()
 
     // Extract video card strings and convert to upper case to
     // work around driver-to-driver variation in capitalization.
-    mGLVendor = ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_VENDOR));
+    mGLVendor = ll_safe_string(getRenderBackend().getLegacyString(GL_VENDOR));
     LLStringUtil::toUpper(mGLVendor);
 
-    mGLRenderer = ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_RENDERER));
+    mGLRenderer = ll_safe_string(getRenderBackend().getLegacyString(GL_RENDERER));
     LLStringUtil::toUpper(mGLRenderer);
 
     parse_gl_version( &mDriverVersionMajor,
@@ -1130,7 +1130,7 @@ bool LLGLManager::initGL()
 
     if (mGLVersion >= 2.1f && LLImageGL::sCompressTextures)
     { //use texture compression
-        getOpenGLRenderBackend().setLegacyHint(GL_TEXTURE_COMPRESSION_HINT, GL_NICEST);
+        getRenderBackend().setLegacyHint(GL_TEXTURE_COMPRESSION_HINT, GL_NICEST);
     }
     else
     { //GL version is < 3.0, always disable texture compression
@@ -1210,7 +1210,7 @@ bool LLGLManager::initGL()
     else if (mHasNVXGpuMemoryInfo)
     {
         GLint mem_kb = 0;
-        getOpenGLRenderBackend().getLegacyInteger(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX, &mem_kb);
+        getRenderBackend().getLegacyInteger(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX, &mem_kb);
         mVRAM = mem_kb / 1024;
 
         if (mVRAM != 0)
@@ -1229,14 +1229,14 @@ bool LLGLManager::initGL()
         LL_WARNS("RenderInit") << "VRAM detected via MemInfo OpenGL extension most likely broken. Reverting to " << mVRAM << " MB" << LL_ENDL;
     }
 
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_TEXTURE_IMAGE_UNITS, &mNumTextureImageUnits);
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_COLOR_TEXTURE_SAMPLES, &mMaxColorTextureSamples);
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_DEPTH_TEXTURE_SAMPLES, &mMaxDepthTextureSamples);
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_INTEGER_SAMPLES, &mMaxIntegerSamples);
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_SAMPLE_MASK_WORDS, &mMaxSampleMaskWords);
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_SAMPLES, &mMaxSamples);
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_VARYING_VECTORS, &mMaxVaryingVectors);
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_UNIFORM_BLOCK_SIZE, &mMaxUniformBlockSize);
+    getRenderBackend().getLegacyInteger(GL_MAX_TEXTURE_IMAGE_UNITS, &mNumTextureImageUnits);
+    getRenderBackend().getLegacyInteger(GL_MAX_COLOR_TEXTURE_SAMPLES, &mMaxColorTextureSamples);
+    getRenderBackend().getLegacyInteger(GL_MAX_DEPTH_TEXTURE_SAMPLES, &mMaxDepthTextureSamples);
+    getRenderBackend().getLegacyInteger(GL_MAX_INTEGER_SAMPLES, &mMaxIntegerSamples);
+    getRenderBackend().getLegacyInteger(GL_MAX_SAMPLE_MASK_WORDS, &mMaxSampleMaskWords);
+    getRenderBackend().getLegacyInteger(GL_MAX_SAMPLES, &mMaxSamples);
+    getRenderBackend().getLegacyInteger(GL_MAX_VARYING_VECTORS, &mMaxVaryingVectors);
+    getRenderBackend().getLegacyInteger(GL_MAX_UNIFORM_BLOCK_SIZE, &mMaxUniformBlockSize);
 
     // sanity clamp max uniform block size to 64k just in case
     // there's some implementation that reports a crazy value
@@ -1244,7 +1244,7 @@ bool LLGLManager::initGL()
 
     if (mHasAnisotropic)
     {
-        getOpenGLRenderBackend().getLegacyFloat(GL_MAX_TEXTURE_MAX_ANISOTROPY, &mMaxAnisotropy);
+        getRenderBackend().getLegacyFloat(GL_MAX_TEXTURE_MAX_ANISOTROPY, &mMaxAnisotropy);
     }
 
     initGLStates();
@@ -1263,9 +1263,9 @@ void LLGLManager::getGLInfo(LLSD& info)
     }
     else
     {
-        info["GLInfo"]["GLVendor"] = ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_VENDOR));
-        info["GLInfo"]["GLRenderer"] = ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_RENDERER));
-        info["GLInfo"]["GLVersion"] = ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_VERSION));
+        info["GLInfo"]["GLVendor"] = ll_safe_string(getRenderBackend().getLegacyString(GL_VENDOR));
+        info["GLInfo"]["GLRenderer"] = ll_safe_string(getRenderBackend().getLegacyString(GL_RENDERER));
+        info["GLInfo"]["GLVersion"] = ll_safe_string(getRenderBackend().getLegacyString(GL_VERSION));
     }
 
 #if !LL_MESA_HEADLESS
@@ -1291,9 +1291,9 @@ std::string LLGLManager::getGLInfoString()
     }
     else
     {
-        info_str += std::string("GL_VENDOR      ") + ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_VENDOR)) + std::string("\n");
-        info_str += std::string("GL_RENDERER    ") + ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_RENDERER)) + std::string("\n");
-        info_str += std::string("GL_VERSION     ") + ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_VERSION)) + std::string("\n");
+        info_str += std::string("GL_VENDOR      ") + ll_safe_string(getRenderBackend().getLegacyString(GL_VENDOR)) + std::string("\n");
+        info_str += std::string("GL_RENDERER    ") + ll_safe_string(getRenderBackend().getLegacyString(GL_RENDERER)) + std::string("\n");
+        info_str += std::string("GL_VERSION     ") + ll_safe_string(getRenderBackend().getLegacyString(GL_VERSION)) + std::string("\n");
     }
 
 #if !LL_MESA_HEADLESS
@@ -1315,9 +1315,9 @@ void LLGLManager::printGLInfoString()
     }
     else
     {
-        LL_INFOS("RenderInit") << "GL_VENDOR:     " << ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_VENDOR)) << LL_ENDL;
-        LL_INFOS("RenderInit") << "GL_RENDERER:   " << ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_RENDERER)) << LL_ENDL;
-        LL_INFOS("RenderInit") << "GL_VERSION:    " << ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_VERSION)) << LL_ENDL;
+        LL_INFOS("RenderInit") << "GL_VENDOR:     " << ll_safe_string(getRenderBackend().getLegacyString(GL_VENDOR)) << LL_ENDL;
+        LL_INFOS("RenderInit") << "GL_RENDERER:   " << ll_safe_string(getRenderBackend().getLegacyString(GL_RENDERER)) << LL_ENDL;
+        LL_INFOS("RenderInit") << "GL_VERSION:    " << ll_safe_string(getRenderBackend().getLegacyString(GL_VERSION)) << LL_ENDL;
     }
 
 #if !LL_MESA_HEADLESS
@@ -1336,7 +1336,7 @@ std::string LLGLManager::getRawGLString()
     }
     else
     {
-        gl_string = ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_VENDOR)) + " " + ll_safe_string(getOpenGLRenderBackend().getLegacyString(GL_RENDERER));
+        gl_string = ll_safe_string(getRenderBackend().getLegacyString(GL_VENDOR)) + " " + ll_safe_string(getRenderBackend().getLegacyString(GL_RENDERER));
     }
     return gl_string;
 }
@@ -1373,7 +1373,7 @@ void LLGLManager::shutdownGL()
 {
     if (mInited)
     {
-        getOpenGLRenderBackend().finishCommands();
+        getRenderBackend().finishCommands();
         stop_glerror();
         mInited = false;
     }
@@ -1387,9 +1387,9 @@ void LLGLManager::initExtensions()
 #if LL_DARWIN
     GLint num_extensions = 0;
     std::string all_extensions{""};
-    getOpenGLRenderBackend().getLegacyInteger(GL_NUM_EXTENSIONS, &num_extensions);
+    getRenderBackend().getLegacyInteger(GL_NUM_EXTENSIONS, &num_extensions);
     for(GLint i = 0; i < num_extensions; ++i) {
-        char const * extension = getOpenGLRenderBackend().getLegacyStringIndexed(GL_EXTENSIONS, i);
+        char const * extension = getRenderBackend().getLegacyStringIndexed(GL_EXTENSIONS, i);
         all_extensions += extension;
         all_extensions += ' ';
     }
@@ -1413,9 +1413,9 @@ void LLGLManager::initExtensions()
     }
 
     // Misc
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_ELEMENTS_VERTICES, (GLint*) &mGLMaxVertexRange);
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_ELEMENTS_INDICES, (GLint*) &mGLMaxIndexRange);
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_TEXTURE_SIZE, (GLint*) &mGLMaxTextureSize);
+    getRenderBackend().getLegacyInteger(GL_MAX_ELEMENTS_VERTICES, (GLint*) &mGLMaxVertexRange);
+    getRenderBackend().getLegacyInteger(GL_MAX_ELEMENTS_INDICES, (GLint*) &mGLMaxIndexRange);
+    getRenderBackend().getLegacyInteger(GL_MAX_TEXTURE_SIZE, (GLint*) &mGLMaxTextureSize);
 
     mInited = true;
 
@@ -2270,7 +2270,7 @@ void rotate_quat(LLQuaternion& rotation)
 
 void flush_glerror()
 {
-    getOpenGLRenderBackend().getErrorCode();
+    getRenderBackend().getErrorCode();
 }
 
 //this function outputs gl error to the log file, does not crash the code.
@@ -2282,7 +2282,7 @@ void log_glerror()
     }
     //  Create or update texture to be used with this data
     GLenum error;
-    error = getOpenGLRenderBackend().getErrorCode();
+    error = getRenderBackend().getErrorCode();
     while (LL_UNLIKELY(error))
     {
         GLubyte const * gl_error_msg = gluErrorString(error);
@@ -2296,7 +2296,7 @@ void log_glerror()
             // you'll probably have to grep for the number in glext.h.
             LL_WARNS() << "GL Error: UNKNOWN 0x" << std::hex << error << std::dec << LL_ENDL;
         }
-        error = getOpenGLRenderBackend().getErrorCode();
+        error = getRenderBackend().getErrorCode();
     }
 }
 
@@ -2304,7 +2304,7 @@ void do_assert_glerror()
 {
     //  Create or update texture to be used with this data
     GLenum error;
-    error = getOpenGLRenderBackend().getErrorCode();
+    error = getRenderBackend().getErrorCode();
     bool quit = false;
     if (LL_UNLIKELY(error))
     {
@@ -2372,8 +2372,8 @@ void assert_glerror()
 
 void clear_glerror()
 {
-    getOpenGLRenderBackend().getErrorCode();
-    getOpenGLRenderBackend().getErrorCode();
+    getRenderBackend().getErrorCode();
+    getRenderBackend().getErrorCode();
 }
 
 ///////////////////////////////////////////////////////////////
@@ -2487,7 +2487,7 @@ void LLGLState::initClass()
 
     //make sure multisample defaults to disabled
     sStateMap[GL_MULTISAMPLE] = GL_FALSE;
-    getOpenGLRenderBackend().setCapability(LLRenderCapability::Multisample, false);
+    getRenderBackend().setCapability(LLRenderCapability::Multisample, false);
 }
 
 //static
@@ -2504,11 +2504,11 @@ void LLGLState::resetTextureStates()
     gGL.flush();
     GLint maxTextureUnits;
 
-    getOpenGLRenderBackend().getLegacyInteger(GL_MAX_TEXTURE_UNITS_ARB, &maxTextureUnits);
+    getRenderBackend().getLegacyInteger(GL_MAX_TEXTURE_UNITS_ARB, &maxTextureUnits);
     for (S32 j = maxTextureUnits-1; j >=0; j--)
     {
         gGL.getTexUnit(j)->activate();
-        getOpenGLRenderBackend().setClientActiveTextureUnit(j);
+        getRenderBackend().setClientActiveTextureUnit(j);
         j == 0 ? gGL.getTexUnit(j)->enable(LLTexUnit::TT_TEXTURE) : gGL.getTexUnit(j)->disable();
     }
 }
@@ -2531,10 +2531,10 @@ void LLGLState::checkStates(LLGLboolean writeAlpha)
     }
 
     GLint srcRGB, dstRGB, srcAlpha, dstAlpha;
-    getOpenGLRenderBackend().getLegacyInteger(GL_BLEND_SRC_RGB, &srcRGB);
-    getOpenGLRenderBackend().getLegacyInteger(GL_BLEND_DST_RGB, &dstRGB);
-    getOpenGLRenderBackend().getLegacyInteger(GL_BLEND_SRC_ALPHA, &srcAlpha);
-    getOpenGLRenderBackend().getLegacyInteger(GL_BLEND_DST_ALPHA, &dstAlpha);
+    getRenderBackend().getLegacyInteger(GL_BLEND_SRC_RGB, &srcRGB);
+    getRenderBackend().getLegacyInteger(GL_BLEND_DST_RGB, &dstRGB);
+    getRenderBackend().getLegacyInteger(GL_BLEND_SRC_ALPHA, &srcAlpha);
+    getRenderBackend().getLegacyInteger(GL_BLEND_DST_ALPHA, &dstAlpha);
     llassert_always(srcRGB == GL_SRC_ALPHA);
     llassert_always(srcAlpha == GL_SRC_ALPHA);
     llassert_always(dstRGB == GL_ONE_MINUS_SRC_ALPHA);
@@ -2553,7 +2553,7 @@ void LLGLState::checkStates(LLGLboolean writeAlpha)
     {
         LLGLenum state = iter->first;
         LLGLboolean cur_state = iter->second;
-        LLGLboolean gl_state = getOpenGLRenderBackend().isLegacyCapabilityEnabled(state);
+        LLGLboolean gl_state = getRenderBackend().isLegacyCapabilityEnabled(state);
         if(cur_state != gl_state)
         {
             dumpStates();
@@ -2594,13 +2594,13 @@ void LLGLState::setEnabled(S32 enabled)
     else if (enabled == ENABLED_STATE && sStateMap[mState] != GL_TRUE)
     {
         gGL.flush();
-        getOpenGLRenderBackend().setLegacyCapability(mState, true);
+        getRenderBackend().setLegacyCapability(mState, true);
         sStateMap[mState] = GL_TRUE;
     }
     else if (enabled == DISABLED_STATE && sStateMap[mState] != GL_FALSE)
     {
         gGL.flush();
-        getOpenGLRenderBackend().setLegacyCapability(mState, false);
+        getRenderBackend().setLegacyCapability(mState, false);
         sStateMap[mState] = GL_FALSE;
     }
     mIsEnabled = enabled;
@@ -2615,11 +2615,11 @@ LLGLState::~LLGLState()
         {
             if (!gDebugSession)
             {
-                llassert_always(sStateMap[mState] == getOpenGLRenderBackend().isLegacyCapabilityEnabled(mState));
+                llassert_always(sStateMap[mState] == getRenderBackend().isLegacyCapabilityEnabled(mState));
             }
             else
             {
-                if (sStateMap[mState] != getOpenGLRenderBackend().isLegacyCapabilityEnabled(mState))
+                if (sStateMap[mState] != getRenderBackend().isLegacyCapabilityEnabled(mState))
                 {
                     ll_fail("GL enabled state does not match expected");
                 }
@@ -2631,12 +2631,12 @@ LLGLState::~LLGLState()
             gGL.flush();
             if (mWasEnabled)
             {
-                getOpenGLRenderBackend().setLegacyCapability(mState, true);
+                getRenderBackend().setLegacyCapability(mState, true);
                 sStateMap[mState] = GL_TRUE;
             }
             else
             {
-                getOpenGLRenderBackend().setLegacyCapability(mState, false);
+                getRenderBackend().setLegacyCapability(mState, false);
                 sStateMap[mState] = GL_FALSE;
             }
         }
@@ -2658,7 +2658,7 @@ void parse_gl_version( S32* major, S32* minor, S32* release, std::string* vendor
     // GL_VERSION returns a null-terminated string with the format:
     // <major>.<minor>[.<release>] [<vendor specific>]
 
-    const char* version = getOpenGLRenderBackend().getLegacyString(GL_VERSION);
+    const char* version = getRenderBackend().getLegacyString(GL_VERSION);
     *major = 0;
     *minor = 0;
     *release = 0;
@@ -2741,7 +2741,7 @@ void parse_glsl_version(S32& major, S32& minor)
     // GL_SHADING_LANGUAGE_VERSION returns a null-terminated string with the format:
     // <major>.<minor>[.<release>] [<vendor specific>]
 
-    const char* version = getOpenGLRenderBackend().getLegacyString(GL_SHADING_LANGUAGE_VERSION);
+    const char* version = getRenderBackend().getLegacyString(GL_SHADING_LANGUAGE_VERSION);
     major = 0;
     minor = 0;
 
@@ -2856,19 +2856,19 @@ LLGLDepthTest::LLGLDepthTest(LLGLboolean depth_enabled, LLGLboolean write_enable
     if (depth_enabled != sDepthEnabled)
     {
         gGL.flush();
-        getOpenGLRenderBackend().setCapability(LLRenderCapability::DepthTest, depth_enabled != GL_FALSE);
+        getRenderBackend().setCapability(LLRenderCapability::DepthTest, depth_enabled != GL_FALSE);
         sDepthEnabled = depth_enabled;
     }
     if (depth_func != sDepthFunc)
     {
         gGL.flush();
-        getOpenGLRenderBackend().setDepthFunction(to_render_depth_function(depth_func));
+        getRenderBackend().setDepthFunction(to_render_depth_function(depth_func));
         sDepthFunc = depth_func;
     }
     if (write_enabled != sWriteEnabled)
     {
         gGL.flush();
-        getOpenGLRenderBackend().setDepthWriteEnabled(write_enabled != GL_FALSE);
+        getRenderBackend().setDepthWriteEnabled(write_enabled != GL_FALSE);
         sWriteEnabled = write_enabled;
     }
 }
@@ -2887,19 +2887,19 @@ LLGLDepthTest::~LLGLDepthTest()
     if (sDepthEnabled != mPrevDepthEnabled )
     {
         gGL.flush();
-        getOpenGLRenderBackend().setCapability(LLRenderCapability::DepthTest, mPrevDepthEnabled != GL_FALSE);
+        getRenderBackend().setCapability(LLRenderCapability::DepthTest, mPrevDepthEnabled != GL_FALSE);
         sDepthEnabled = mPrevDepthEnabled;
     }
     if (sDepthFunc != mPrevDepthFunc)
     {
         gGL.flush();
-        getOpenGLRenderBackend().setDepthFunction(to_render_depth_function(mPrevDepthFunc));
+        getRenderBackend().setDepthFunction(to_render_depth_function(mPrevDepthFunc));
         sDepthFunc = mPrevDepthFunc;
     }
     if (sWriteEnabled != mPrevWriteEnabled )
     {
         gGL.flush();
-        getOpenGLRenderBackend().setDepthWriteEnabled(mPrevWriteEnabled != GL_FALSE);
+        getRenderBackend().setDepthWriteEnabled(mPrevWriteEnabled != GL_FALSE);
         sWriteEnabled = mPrevWriteEnabled;
     }
 }
@@ -2911,10 +2911,10 @@ void LLGLDepthTest::checkState()
         GLint func = 0;
         GLboolean mask = GL_FALSE;
 
-        getOpenGLRenderBackend().getLegacyInteger(GL_DEPTH_FUNC, &func);
-        getOpenGLRenderBackend().getLegacyBoolean(GL_DEPTH_WRITEMASK, &mask);
+        getRenderBackend().getLegacyInteger(GL_DEPTH_FUNC, &func);
+        getRenderBackend().getLegacyBoolean(GL_DEPTH_WRITEMASK, &mask);
 
-        if (getOpenGLRenderBackend().isLegacyCapabilityEnabled(GL_DEPTH_TEST) != sDepthEnabled ||
+        if (getRenderBackend().isLegacyCapabilityEnabled(GL_DEPTH_TEST) != sDepthEnabled ||
             sWriteEnabled != mask ||
             sDepthFunc != func)
         {
@@ -2978,7 +2978,7 @@ LLGLSyncFence::~LLGLSyncFence()
 {
     if (mSync)
     {
-        getOpenGLRenderBackend().deleteSyncObject(mSync);
+        getRenderBackend().deleteSyncObject(mSync);
     }
 }
 
@@ -2986,9 +2986,9 @@ void LLGLSyncFence::placeFence()
 {
     if (mSync)
     {
-        getOpenGLRenderBackend().deleteSyncObject(mSync);
+        getRenderBackend().deleteSyncObject(mSync);
     }
-    mSync = static_cast<GLsync>(getOpenGLRenderBackend().createSyncObject());
+    mSync = static_cast<GLsync>(getRenderBackend().createSyncObject());
 }
 
 bool LLGLSyncFence::isCompleted()
@@ -2996,7 +2996,7 @@ bool LLGLSyncFence::isCompleted()
     bool ret = true;
     if (mSync)
     {
-        GLenum status = getOpenGLRenderBackend().clientWaitSyncObjectStatus(mSync, 1);
+        GLenum status = getRenderBackend().clientWaitSyncObjectStatus(mSync, 1);
         if (status == GL_TIMEOUT_EXPIRED)
         {
             ret = false;
@@ -3009,7 +3009,7 @@ void LLGLSyncFence::wait()
 {
     if (mSync)
     {
-        while (getOpenGLRenderBackend().clientWaitSyncObjectStatus(mSync, FENCE_WAIT_TIME_NANOSECONDS) == GL_TIMEOUT_EXPIRED)
+        while (getRenderBackend().clientWaitSyncObjectStatus(mSync, FENCE_WAIT_TIME_NANOSECONDS) == GL_TIMEOUT_EXPIRED)
         { //track the number of times we've waited here
         }
     }

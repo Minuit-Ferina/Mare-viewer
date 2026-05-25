@@ -253,17 +253,17 @@ void LLGLSLShader::placeProfileQuery(bool for_runtime)
     {
         if (!mTimerQuery)
         {
-            mSamplesQuery = getOpenGLRenderBackend().createQueryHandle();
-            mTimerQuery = getOpenGLRenderBackend().createQueryHandle();
-            mPrimitivesQuery = getOpenGLRenderBackend().createQueryHandle();
+            mSamplesQuery = getRenderBackend().createQueryHandle();
+            mTimerQuery = getRenderBackend().createQueryHandle();
+            mPrimitivesQuery = getRenderBackend().createQueryHandle();
         }
 
-        getOpenGLRenderBackend().beginQuery(LLRenderQueryTarget::TimeElapsed, mTimerQuery);
+        getRenderBackend().beginQuery(LLRenderQueryTarget::TimeElapsed, mTimerQuery);
 
         if (!for_runtime)
         {
-            getOpenGLRenderBackend().beginQuery(LLRenderQueryTarget::SamplesPassed, mSamplesQuery);
-            getOpenGLRenderBackend().beginQuery(LLRenderQueryTarget::PrimitivesGenerated, mPrimitivesQuery);
+            getRenderBackend().beginQuery(LLRenderQueryTarget::SamplesPassed, mSamplesQuery);
+            getRenderBackend().beginQuery(LLRenderQueryTarget::PrimitivesGenerated, mPrimitivesQuery);
         }
     }
 }
@@ -274,11 +274,11 @@ bool LLGLSLShader::readProfileQuery(bool for_runtime, bool force_read)
     {
         if (!mProfilePending)
         {
-            getOpenGLRenderBackend().endQuery(LLRenderQueryTarget::TimeElapsed);
+            getRenderBackend().endQuery(LLRenderQueryTarget::TimeElapsed);
             if (!for_runtime)
             {
-                getOpenGLRenderBackend().endQuery(LLRenderQueryTarget::SamplesPassed);
-                getOpenGLRenderBackend().endQuery(LLRenderQueryTarget::PrimitivesGenerated);
+                getRenderBackend().endQuery(LLRenderQueryTarget::SamplesPassed);
+                getRenderBackend().endQuery(LLRenderQueryTarget::PrimitivesGenerated);
             }
             mProfilePending = for_runtime;
         }
@@ -286,7 +286,7 @@ bool LLGLSLShader::readProfileQuery(bool for_runtime, bool force_read)
         if (mProfilePending && for_runtime && !force_read)
         {
             U64 result = 0;
-            getOpenGLRenderBackend().getQueryObjectUnsignedInteger64(mTimerQuery, LLRenderQueryParameter::ResultAvailable, &result);
+            getRenderBackend().getQueryObjectUnsignedInteger64(mTimerQuery, LLRenderQueryParameter::ResultAvailable, &result);
 
             if (result != GL_TRUE)
             {
@@ -295,17 +295,17 @@ bool LLGLSLShader::readProfileQuery(bool for_runtime, bool force_read)
         }
 
         U64 time_elapsed = 0;
-        getOpenGLRenderBackend().getQueryObjectUnsignedInteger64(mTimerQuery, LLRenderQueryParameter::Result, &time_elapsed);
+        getRenderBackend().getQueryObjectUnsignedInteger64(mTimerQuery, LLRenderQueryParameter::Result, &time_elapsed);
         mTimeElapsed += time_elapsed;
         mProfilePending = false;
 
         if (!for_runtime)
         {
             U64 samples_passed = 0;
-            getOpenGLRenderBackend().getQueryObjectUnsignedInteger64(mSamplesQuery, LLRenderQueryParameter::Result, &samples_passed);
+            getRenderBackend().getQueryObjectUnsignedInteger64(mSamplesQuery, LLRenderQueryParameter::Result, &samples_passed);
 
             U64 primitives_generated = 0;
-            getOpenGLRenderBackend().getQueryObjectUnsignedInteger64(mPrimitivesQuery, LLRenderQueryParameter::Result, &primitives_generated);
+            getRenderBackend().getQueryObjectUnsignedInteger64(mPrimitivesQuery, LLRenderQueryParameter::Result, &primitives_generated);
             sTotalTimeElapsed += time_elapsed;
 
             sTotalSamplesDrawn += samples_passed;
@@ -368,40 +368,40 @@ void LLGLSLShader::unloadInternal()
     {
         LLRenderShaderHandle obj[1024];
         GLsizei count = 0;
-        getOpenGLRenderBackend().getAttachedShaders(mProgramObject, 1024, &count, obj);
+        getRenderBackend().getAttachedShaders(mProgramObject, 1024, &count, obj);
 
         for (GLsizei i = 0; i < count; i++)
         {
-            getOpenGLRenderBackend().detachShader(mProgramObject, obj[i]);
+            getRenderBackend().detachShader(mProgramObject, obj[i]);
         }
 
         for (GLsizei i = 0; i < count; i++)
         {
-            if (getOpenGLRenderBackend().isShader(obj[i]))
+            if (getRenderBackend().isShader(obj[i]))
             {
-                getOpenGLRenderBackend().deleteShader(obj[i]);
+                getRenderBackend().deleteShader(obj[i]);
             }
         }
 
-        getOpenGLRenderBackend().deleteProgram(mProgramObject);
+        getRenderBackend().deleteProgram(mProgramObject);
 
         mProgramObject = LLRenderProgramHandle();
     }
 
     if (mTimerQuery)
     {
-        getOpenGLRenderBackend().deleteQueryHandle(mTimerQuery);
+        getRenderBackend().deleteQueryHandle(mTimerQuery);
         mTimerQuery = LLRenderQueryHandle();
     }
 
     if (mSamplesQuery)
     {
-        getOpenGLRenderBackend().deleteQueryHandle(mSamplesQuery);
+        getRenderBackend().deleteQueryHandle(mSamplesQuery);
         mSamplesQuery = LLRenderQueryHandle();
     }
 
     //hack to make apple not complain
-    getOpenGLRenderBackend().getErrorCode();
+    getRenderBackend().getErrorCode();
 
     stop_glerror();
 }
@@ -434,7 +434,7 @@ bool LLGLSLShader::createShader()
     mShaderHash = hash();
 
     // Create program
-    mProgramObject = getOpenGLRenderBackend().createProgramHandle();
+    mProgramObject = getRenderBackend().createProgramHandle();
     if (!mProgramObject)
     {
         // Shouldn't happen if shader related extensions, like ARB_vertex_shader, exist.
@@ -564,14 +564,14 @@ void dumpAttachObject(const char* func_name, LLGLuint program_object, const std:
     LLGLint      info_len_expect = 0;
     LLGLint      info_len_actual = 0;
 
-    getOpenGLRenderBackend().getShaderInteger(program_object, LLRenderShaderParameter::InfoLogLength, &info_len_expect);
+    getRenderBackend().getShaderInteger(program_object, LLRenderShaderParameter::InfoLogLength, &info_len_expect);
     fprintf(stderr, " * %-20s(), log size: %d, %s\n", func_name, info_len_expect, object_path.c_str());
 
     if (info_len_expect > 0)
     {
         fprintf(stderr, " ========== %s() ========== \n", func_name);
         info_log = new GLchar[info_len_expect];
-        getOpenGLRenderBackend().getProgramInfoLog(program_object, info_len_expect, &info_len_actual, info_log);
+        getRenderBackend().getProgramInfoLog(program_object, info_len_expect, &info_len_actual, info_log);
         fprintf(stderr, "%s\n", info_log);
         delete[] info_log;
     }
@@ -583,7 +583,7 @@ bool LLGLSLShader::attachVertexObject(std::string object_path)
     if (LLShaderMgr::instance()->mVertexShaderObjects.count(object_path) > 0)
     {
         stop_glerror();
-        getOpenGLRenderBackend().attachShader(mProgramObject, LLShaderMgr::instance()->mVertexShaderObjects[object_path]);
+        getRenderBackend().attachShader(mProgramObject, LLShaderMgr::instance()->mVertexShaderObjects[object_path]);
 #if DEBUG_SHADER_INCLUDES
         dumpAttachObject("attachVertexObject", mProgramObject.asLegacyName(), object_path);
 #endif // DEBUG_SHADER_INCLUDES
@@ -605,7 +605,7 @@ bool LLGLSLShader::attachFragmentObject(std::string object_path)
     if (LLShaderMgr::instance()->mFragmentShaderObjects.count(object_path) > 0)
     {
         stop_glerror();
-        getOpenGLRenderBackend().attachShader(mProgramObject, LLShaderMgr::instance()->mFragmentShaderObjects[object_path]);
+        getRenderBackend().attachShader(mProgramObject, LLShaderMgr::instance()->mFragmentShaderObjects[object_path]);
 #if DEBUG_SHADER_INCLUDES
         dumpAttachObject("attachFragmentObject", mProgramObject.asLegacyName(), object_path);
 #endif // DEBUG_SHADER_INCLUDES
@@ -627,7 +627,7 @@ void LLGLSLShader::attachObject(LLRenderShaderHandle object)
     if (object)
     {
         stop_glerror();
-        getOpenGLRenderBackend().attachShader(mProgramObject, object);
+        getRenderBackend().attachShader(mProgramObject, object);
 #if DEBUG_SHADER_INCLUDES
         std::string object_path("???");
         dumpAttachObject("attachObject", mProgramObject.asLegacyName(), object_path);
@@ -662,7 +662,7 @@ bool LLGLSLShader::mapAttributes()
         for (U32 i = 0; i < LLShaderMgr::instance()->mReservedAttribs.size(); i++)
         {
             const char* name = LLShaderMgr::instance()->mReservedAttribs[i].c_str();
-            getOpenGLRenderBackend().bindAttributeLocation(mProgramObject, i, name);
+            getRenderBackend().bindAttributeLocation(mProgramObject, i, name);
         }
 
         //link the program
@@ -685,7 +685,7 @@ bool LLGLSLShader::mapAttributes()
         for (U32 i = 0; i < LLShaderMgr::instance()->mReservedAttribs.size(); i++)
         {
             const char* name = LLShaderMgr::instance()->mReservedAttribs[i].c_str();
-            S32 index = getOpenGLRenderBackend().getAttributeLocation(mProgramObject, name);
+            S32 index = getRenderBackend().getAttributeLocation(mProgramObject, name);
             if (index != -1)
             {
 #if LL_RELEASE_WITH_DEBUG_INFO
@@ -720,7 +720,7 @@ void LLGLSLShader::mapUniform(LLGLint index)
     name[0] = 0;
 
 
-    getOpenGLRenderBackend().getActiveUniform(mProgramObject, index, 1024, &length, &size, &type, name);
+    getRenderBackend().getActiveUniform(mProgramObject, index, 1024, &length, &size, &type, name);
     if (size > 0)
     {
         switch (type)
@@ -763,7 +763,7 @@ void LLGLSLShader::mapUniform(LLGLint index)
         mTotalUniformSize += size;
     }
 
-    S32 location = getOpenGLRenderBackend().getUniformLocation(mProgramObject, name);
+    S32 location = getRenderBackend().getUniformLocation(mProgramObject, name);
     if (location != -1)
     {
         //chop off "[0]" so we can always access the first element
@@ -829,7 +829,7 @@ LLGLint LLGLSLShader::mapUniformTextureChannel(LLGLint location, LLGLenum type, 
         LLGLint ret = mActiveTextureChannels;
         if (size == 1)
         {
-            getOpenGLRenderBackend().setUniformInteger(location, mActiveTextureChannels);
+            getRenderBackend().setUniformInteger(location, mActiveTextureChannels);
             mActiveTextureChannels++;
         }
         else
@@ -842,7 +842,7 @@ LLGLint LLGLSLShader::mapUniformTextureChannel(LLGLint location, LLGLenum type, 
             {
                 channel[i] = mActiveTextureChannels++;
             }
-            getOpenGLRenderBackend().setUniformIntegerVector(location, size, channel);
+            getRenderBackend().setUniformIntegerVector(location, size, channel);
         }
 
         return ret;
@@ -870,7 +870,7 @@ bool LLGLSLShader::mapUniforms()
 
     //get the number of active uniforms
     LLGLint activeCount;
-    getOpenGLRenderBackend().getProgramInteger(mProgramObject, LLRenderProgramParameter::ActiveUniforms, &activeCount);
+    getRenderBackend().getProgramInteger(mProgramObject, LLRenderProgramParameter::ActiveUniforms, &activeCount);
 
     //........................................................................................................................................
     //........................................................................................
@@ -897,12 +897,12 @@ bool LLGLSLShader::mapUniforms()
     */
 
 
-    S32 diffuseMap = getOpenGLRenderBackend().getUniformLocation(mProgramObject, "diffuseMap");
-    S32 specularMap = getOpenGLRenderBackend().getUniformLocation(mProgramObject, "specularMap");
-    S32 bumpMap = getOpenGLRenderBackend().getUniformLocation(mProgramObject, "bumpMap");
-    S32 altDiffuseMap = getOpenGLRenderBackend().getUniformLocation(mProgramObject, "altDiffuseMap");
-    S32 environmentMap = getOpenGLRenderBackend().getUniformLocation(mProgramObject, "environmentMap");
-    S32 reflectionMap = getOpenGLRenderBackend().getUniformLocation(mProgramObject, "reflectionMap");
+    S32 diffuseMap = getRenderBackend().getUniformLocation(mProgramObject, "diffuseMap");
+    S32 specularMap = getRenderBackend().getUniformLocation(mProgramObject, "specularMap");
+    S32 bumpMap = getRenderBackend().getUniformLocation(mProgramObject, "bumpMap");
+    S32 altDiffuseMap = getRenderBackend().getUniformLocation(mProgramObject, "altDiffuseMap");
+    S32 environmentMap = getRenderBackend().getUniformLocation(mProgramObject, "environmentMap");
+    S32 reflectionMap = getRenderBackend().getUniformLocation(mProgramObject, "reflectionMap");
 
     std::set<S32> skip_index;
 
@@ -919,7 +919,7 @@ bool LLGLSLShader::mapUniforms()
         {
             name[0] = '\0';
 
-            getOpenGLRenderBackend().getActiveUniform(mProgramObject, i, 1024, &length, &size, &type, name);
+            getRenderBackend().getActiveUniform(mProgramObject, i, 1024, &length, &size, &type, name);
 
             if (-1 == diffuseMap && std::string(name) == "diffuseMap")
             {
@@ -1016,10 +1016,10 @@ bool LLGLSLShader::mapUniforms()
 
     for (U32 i = 0; i < NUM_UNIFORM_BLOCKS; ++i)
     {
-        LLGLuint UBOBlockIndex = getOpenGLRenderBackend().getUniformBlockIndex(mProgramObject, ubo_names[i]);
+        LLGLuint UBOBlockIndex = getRenderBackend().getUniformBlockIndex(mProgramObject, ubo_names[i]);
         if (UBOBlockIndex != GL_INVALID_INDEX)
         {
-            getOpenGLRenderBackend().bindUniformBlock(mProgramObject, UBOBlockIndex, i);
+            getRenderBackend().bindUniformBlock(mProgramObject, UBOBlockIndex, i);
         }
     }
 
@@ -1064,7 +1064,7 @@ void LLGLSLShader::bind()
             sCurBoundShaderPtr->readProfileQuery();
         }
         LLVertexBuffer::unbind();
-        getOpenGLRenderBackend().useProgram(mProgramObject);
+        getRenderBackend().useProgram(mProgramObject);
         sCurBoundShader = mProgramObject;
         sCurBoundShaderPtr = this;
         placeProfileQuery();
@@ -1112,7 +1112,7 @@ void LLGLSLShader::unbind(void)
         sCurBoundShaderPtr->readProfileQuery();
     }
 
-    getOpenGLRenderBackend().useProgram(LLRenderProgramHandle());
+    getRenderBackend().useProgram(LLRenderProgramHandle());
     sCurBoundShader = LLRenderProgramHandle();
     sCurBoundShaderPtr = NULL;
 }
@@ -1312,7 +1312,7 @@ void LLGLSLShader::uniform1i(U32 index, LLGLint x)
             const auto& iter = mValue.find(mUniform[index]);
             if (iter == mValue.end() || iter->second.mV[0] != x)
             {
-                getOpenGLRenderBackend().setUniformInteger(mUniform[index], x);
+                getRenderBackend().setUniformInteger(mUniform[index], x);
                 mValue[mUniform[index]] = LLVector4((F32)x, 0.f, 0.f, 0.f);
             }
         }
@@ -1338,7 +1338,7 @@ void LLGLSLShader::uniform1f(U32 index, LLGLfloat x)
             const auto& iter = mValue.find(mUniform[index]);
             if (iter == mValue.end() || iter->second.mV[0] != x)
             {
-                getOpenGLRenderBackend().setUniformFloat(mUniform[index], x);
+                getRenderBackend().setUniformFloat(mUniform[index], x);
                 mValue[mUniform[index]] = LLVector4(x, 0.f, 0.f, 0.f);
             }
         }
@@ -1352,7 +1352,7 @@ void LLGLSLShader::fastUniform1f(U32 index, LLGLfloat x)
     llassert(mProgramObject);
     llassert(mUniform.size() <= index);
     llassert(mUniform[index] >= 0);
-    getOpenGLRenderBackend().setUniformFloat(mUniform[index], x);
+    getRenderBackend().setUniformFloat(mUniform[index], x);
 }
 
 void LLGLSLShader::uniform2f(U32 index, LLGLfloat x, LLGLfloat y)
@@ -1375,7 +1375,7 @@ void LLGLSLShader::uniform2f(U32 index, LLGLfloat x, LLGLfloat y)
             LLVector4 vec(x, y, 0.f, 0.f);
             if (iter == mValue.end() || shouldChange(iter->second, vec))
             {
-                getOpenGLRenderBackend().setUniformFloat2(mUniform[index], x, y);
+                getRenderBackend().setUniformFloat2(mUniform[index], x, y);
                 mValue[mUniform[index]] = vec;
             }
         }
@@ -1402,7 +1402,7 @@ void LLGLSLShader::uniform3f(U32 index, LLGLfloat x, LLGLfloat y, LLGLfloat z)
             LLVector4 vec(x, y, z, 0.f);
             if (iter == mValue.end() || shouldChange(iter->second, vec))
             {
-                getOpenGLRenderBackend().setUniformFloat3(mUniform[index], x, y, z);
+                getRenderBackend().setUniformFloat3(mUniform[index], x, y, z);
                 mValue[mUniform[index]] = vec;
             }
         }
@@ -1429,7 +1429,7 @@ void LLGLSLShader::uniform4f(U32 index, LLGLfloat x, LLGLfloat y, LLGLfloat z, L
             LLVector4 vec(x, y, z, w);
             if (iter == mValue.end() || shouldChange(iter->second, vec))
             {
-                getOpenGLRenderBackend().setUniformFloat4(mUniform[index], x, y, z, w);
+                getRenderBackend().setUniformFloat4(mUniform[index], x, y, z, w);
                 mValue[mUniform[index]] = vec;
             }
         }
@@ -1456,7 +1456,7 @@ void LLGLSLShader::uniform1iv(U32 index, U32 count, const LLGLint* v)
             LLVector4 vec((F32)v[0], 0.f, 0.f, 0.f);
             if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
             {
-                getOpenGLRenderBackend().setUniformIntegerVector(mUniform[index], count, v);
+                getRenderBackend().setUniformIntegerVector(mUniform[index], count, v);
                 mValue[mUniform[index]] = vec;
             }
         }
@@ -1483,7 +1483,7 @@ void LLGLSLShader::uniform4iv(U32 index, U32 count, const LLGLint* v)
             LLVector4 vec((F32)v[0], (F32)v[1], (F32)v[2], (F32)v[3]);
             if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
             {
-                getOpenGLRenderBackend().setUniformIntegerVector(mUniform[index], count, v);
+                getRenderBackend().setUniformIntegerVector(mUniform[index], count, v);
                 mValue[mUniform[index]] = vec;
             }
         }
@@ -1511,7 +1511,7 @@ void LLGLSLShader::uniform1fv(U32 index, U32 count, const LLGLfloat* v)
             LLVector4 vec(v[0], 0.f, 0.f, 0.f);
             if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
             {
-                getOpenGLRenderBackend().setUniformFloatVector(mUniform[index], count, v);
+                getRenderBackend().setUniformFloatVector(mUniform[index], count, v);
                 mValue[mUniform[index]] = vec;
             }
         }
@@ -1538,7 +1538,7 @@ void LLGLSLShader::uniform2fv(U32 index, U32 count, const LLGLfloat* v)
             LLVector4 vec(v[0], v[1], 0.f, 0.f);
             if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
             {
-                getOpenGLRenderBackend().setUniformFloatVector2(mUniform[index], count, v);
+                getRenderBackend().setUniformFloatVector2(mUniform[index], count, v);
                 mValue[mUniform[index]] = vec;
             }
         }
@@ -1565,7 +1565,7 @@ void LLGLSLShader::uniform3fv(U32 index, U32 count, const LLGLfloat* v)
             LLVector4 vec(v[0], v[1], v[2], 0.f);
             if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
             {
-                getOpenGLRenderBackend().setUniformFloatVector3(mUniform[index], count, v);
+                getRenderBackend().setUniformFloatVector3(mUniform[index], count, v);
                 mValue[mUniform[index]] = vec;
             }
         }
@@ -1593,7 +1593,7 @@ void LLGLSLShader::uniform4fv(U32 index, U32 count, const LLGLfloat* v)
             if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
             {
                 LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
-                getOpenGLRenderBackend().setUniformFloatVector4(mUniform[index], count, v);
+                getRenderBackend().setUniformFloatVector4(mUniform[index], count, v);
                 mValue[mUniform[index]] = vec;
             }
         }
@@ -1621,7 +1621,7 @@ void LLGLSLShader::uniform4uiv(U32 index, U32 count, const LLGLuint* v)
             if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
             {
                 LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
-                getOpenGLRenderBackend().setUniformUnsignedIntegerVector4(mUniform[index], count, v);
+                getRenderBackend().setUniformUnsignedIntegerVector4(mUniform[index], count, v);
                 mValue[mUniform[index]] = vec;
             }
         }
@@ -1644,7 +1644,7 @@ void LLGLSLShader::uniformMatrix2fv(U32 index, U32 count, LLGLboolean transpose,
 
         if (mUniform[index] >= 0)
         {
-            getOpenGLRenderBackend().setUniformMatrix2(mUniform[index], count, transpose, v);
+            getRenderBackend().setUniformMatrix2(mUniform[index], count, transpose, v);
         }
     }
 }
@@ -1665,7 +1665,7 @@ void LLGLSLShader::uniformMatrix3fv(U32 index, U32 count, LLGLboolean transpose,
 
         if (mUniform[index] >= 0)
         {
-            getOpenGLRenderBackend().setUniformMatrix3(mUniform[index], count, transpose, v);
+            getRenderBackend().setUniformMatrix3(mUniform[index], count, transpose, v);
         }
     }
 }
@@ -1686,7 +1686,7 @@ void LLGLSLShader::uniformMatrix3x4fv(U32 index, U32 count, LLGLboolean transpos
 
         if (mUniform[index] >= 0)
         {
-            getOpenGLRenderBackend().setUniformMatrix3x4(mUniform[index], count, transpose, v);
+            getRenderBackend().setUniformMatrix3x4(mUniform[index], count, transpose, v);
         }
     }
 }
@@ -1707,7 +1707,7 @@ void LLGLSLShader::uniformMatrix4fv(U32 index, U32 count, LLGLboolean transpose,
 
         if (mUniform[index] >= 0)
         {
-            getOpenGLRenderBackend().setUniformMatrix4(mUniform[index], count, transpose, v);
+            getRenderBackend().setUniformMatrix4(mUniform[index], count, transpose, v);
         }
     }
 }
@@ -1725,7 +1725,7 @@ LLGLint LLGLSLShader::getUniformLocation(const LLStaticHashedString& uniform)
             if (gDebugGL)
             {
                 stop_glerror();
-                if (iter->second != getOpenGLRenderBackend().getUniformLocation(mProgramObject, uniform.String().c_str()))
+                if (iter->second != getRenderBackend().getUniformLocation(mProgramObject, uniform.String().c_str()))
                 {
                     LL_ERRS() << "Uniform does not match." << LL_ENDL;
                 }
@@ -1781,7 +1781,7 @@ void LLGLSLShader::uniform1i(const LLStaticHashedString& uniform, LLGLint v)
         LLVector4 vec((F32)v, 0.f, 0.f, 0.f);
         if (iter == mValue.end() || shouldChange(iter->second, vec))
         {
-            getOpenGLRenderBackend().setUniformInteger(location, v);
+            getRenderBackend().setUniformInteger(location, v);
             mValue[location] = vec;
         }
     }
@@ -1799,7 +1799,7 @@ void LLGLSLShader::uniform1iv(const LLStaticHashedString& uniform, U32 count, co
         if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
         {
             LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
-            getOpenGLRenderBackend().setUniformIntegerVector(location, count, v);
+            getRenderBackend().setUniformIntegerVector(location, count, v);
             mValue[location] = vec;
         }
     }
@@ -1817,7 +1817,7 @@ void LLGLSLShader::uniform4iv(const LLStaticHashedString& uniform, U32 count, co
         if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
         {
             LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
-            getOpenGLRenderBackend().setUniformIntegerVector4(location, count, v);
+            getRenderBackend().setUniformIntegerVector4(location, count, v);
             mValue[location] = vec;
         }
     }
@@ -1834,7 +1834,7 @@ void LLGLSLShader::uniform2i(const LLStaticHashedString& uniform, LLGLint i, LLG
         LLVector4 vec((F32)i, (F32)j, 0.f, 0.f);
         if (iter == mValue.end() || shouldChange(iter->second, vec))
         {
-            getOpenGLRenderBackend().setUniformInteger2(location, i, j);
+            getRenderBackend().setUniformInteger2(location, i, j);
             mValue[location] = vec;
         }
     }
@@ -1852,7 +1852,7 @@ void LLGLSLShader::uniform1f(const LLStaticHashedString& uniform, LLGLfloat v)
         LLVector4 vec(v, 0.f, 0.f, 0.f);
         if (iter == mValue.end() || shouldChange(iter->second, vec))
         {
-            getOpenGLRenderBackend().setUniformFloat(location, v);
+            getRenderBackend().setUniformFloat(location, v);
             mValue[location] = vec;
         }
     }
@@ -1869,7 +1869,7 @@ void LLGLSLShader::uniform2f(const LLStaticHashedString& uniform, LLGLfloat x, L
         LLVector4 vec(x, y, 0.f, 0.f);
         if (iter == mValue.end() || shouldChange(iter->second, vec))
         {
-            getOpenGLRenderBackend().setUniformFloat2(location, x, y);
+            getRenderBackend().setUniformFloat2(location, x, y);
             mValue[location] = vec;
         }
     }
@@ -1887,7 +1887,7 @@ void LLGLSLShader::uniform3f(const LLStaticHashedString& uniform, LLGLfloat x, L
         LLVector4 vec(x, y, z, 0.f);
         if (iter == mValue.end() || shouldChange(iter->second, vec))
         {
-            getOpenGLRenderBackend().setUniformFloat3(location, x, y, z);
+            getRenderBackend().setUniformFloat3(location, x, y, z);
             mValue[location] = vec;
         }
     }
@@ -1904,7 +1904,7 @@ void LLGLSLShader::uniform4f(const LLStaticHashedString& uniform, LLGLfloat x, L
         LLVector4 vec(x, y, z, w);
         if (iter == mValue.end() || shouldChange(iter->second, vec))
         {
-            getOpenGLRenderBackend().setUniformFloat4(location, x, y, z, w);
+            getRenderBackend().setUniformFloat4(location, x, y, z, w);
             mValue[location] = vec;
         }
     }
@@ -1921,7 +1921,7 @@ void LLGLSLShader::uniform1fv(const LLStaticHashedString& uniform, U32 count, co
         LLVector4 vec(v[0], 0.f, 0.f, 0.f);
         if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
         {
-            getOpenGLRenderBackend().setUniformFloatVector(location, count, v);
+            getRenderBackend().setUniformFloatVector(location, count, v);
             mValue[location] = vec;
         }
     }
@@ -1938,7 +1938,7 @@ void LLGLSLShader::uniform2fv(const LLStaticHashedString& uniform, U32 count, co
         LLVector4 vec(v[0], v[1], 0.f, 0.f);
         if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
         {
-            getOpenGLRenderBackend().setUniformFloatVector2(location, count, v);
+            getRenderBackend().setUniformFloatVector2(location, count, v);
             mValue[location] = vec;
         }
     }
@@ -1955,7 +1955,7 @@ void LLGLSLShader::uniform3fv(const LLStaticHashedString& uniform, U32 count, co
         LLVector4 vec(v[0], v[1], v[2], 0.f);
         if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
         {
-            getOpenGLRenderBackend().setUniformFloatVector3(location, count, v);
+            getRenderBackend().setUniformFloatVector3(location, count, v);
             mValue[location] = vec;
         }
     }
@@ -1973,7 +1973,7 @@ void LLGLSLShader::uniform4fv(const LLStaticHashedString& uniform, U32 count, co
         if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
         {
             LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
-            getOpenGLRenderBackend().setUniformFloatVector4(location, count, v);
+            getRenderBackend().setUniformFloatVector4(location, count, v);
             mValue[location] = vec;
         }
     }
@@ -1991,7 +1991,7 @@ void LLGLSLShader::uniform4uiv(const LLStaticHashedString& uniform, U32 count, c
         if (iter == mValue.end() || shouldChange(iter->second, vec) || count != 1)
         {
             LL_PROFILE_ZONE_SCOPED_CATEGORY_SHADER;
-            getOpenGLRenderBackend().setUniformUnsignedIntegerVector4(location, count, v);
+            getRenderBackend().setUniformUnsignedIntegerVector4(location, count, v);
             mValue[location] = vec;
         }
     }
@@ -2005,7 +2005,7 @@ void LLGLSLShader::uniformMatrix4fv(const LLStaticHashedString& uniform, U32 cou
     if (location >= 0)
     {
         stop_glerror();
-        getOpenGLRenderBackend().setUniformMatrix4(location, count, transpose, v);
+        getRenderBackend().setUniformMatrix4(location, count, transpose, v);
         stop_glerror();
     }
 }
@@ -2015,7 +2015,7 @@ void LLGLSLShader::vertexAttrib4f(U32 index, LLGLfloat x, LLGLfloat y, LLGLfloat
 {
     if (mAttribute[index] > 0)
     {
-        getOpenGLRenderBackend().setVertexAttribute4(mAttribute[index], x, y, z, w);
+        getRenderBackend().setVertexAttribute4(mAttribute[index], x, y, z, w);
     }
 }
 
@@ -2023,7 +2023,7 @@ void LLGLSLShader::vertexAttrib4fv(U32 index, LLGLfloat* v)
 {
     if (mAttribute[index] > 0)
     {
-        getOpenGLRenderBackend().setVertexAttributeVector4(mAttribute[index], v);
+        getRenderBackend().setVertexAttributeVector4(mAttribute[index], v);
     }
 }
 

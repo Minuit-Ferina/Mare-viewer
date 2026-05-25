@@ -1457,11 +1457,6 @@ public:
 };
 
 const char* getRenderBackendTypeName(LLRenderBackendType type);
-U32 getOpenGLPixelFormatValue(LLRenderPixelFormat format);
-U32 getOpenGLPixelTypeValue(LLRenderPixelType type);
-LLRenderBackend& getNullRenderBackend();
 LLRenderBackend& getRenderBackend();
-LLRenderBackend& getOpenGLRenderBackend();
-LLRenderBackend& getVulkanRenderBackend();
 
 #endif

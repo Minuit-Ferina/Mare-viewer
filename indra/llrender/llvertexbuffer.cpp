@@ -346,22 +346,22 @@ static LLRenderVertexAttributeType to_render_vertex_attribute_type(GLenum type)
 
 static void generate_vertex_buffer_names(GLsizei count, LLRenderBufferHandle* buffers)
 {
-    getOpenGLRenderBackend().generateBufferHandles(count, buffers);
+    getRenderBackend().generateBufferHandles(count, buffers);
 }
 
 static void delete_vertex_buffer_names(GLsizei count, const LLRenderBufferHandle* buffers)
 {
-    getOpenGLRenderBackend().deleteBufferHandles(count, buffers);
+    getRenderBackend().deleteBufferHandles(count, buffers);
 }
 
 static void bind_vertex_buffer_target(GLenum target, LLRenderBufferHandle buffer)
 {
-    getOpenGLRenderBackend().bindBuffer(to_render_buffer_target(target), buffer);
+    getRenderBackend().bindBuffer(to_render_buffer_target(target), buffer);
 }
 
 static void allocate_vertex_buffer_storage(GLenum target, U32 size, const void* data, GLenum usage)
 {
-    getOpenGLRenderBackend().allocateBufferStorage(
+    getRenderBackend().allocateBufferStorage(
         to_render_buffer_target(target),
         size,
         data,
@@ -370,22 +370,22 @@ static void allocate_vertex_buffer_storage(GLenum target, U32 size, const void* 
 
 static void upload_vertex_buffer_sub_data(GLenum target, U32 offset, U32 size, const void* data)
 {
-    getOpenGLRenderBackend().updateBufferSubData(to_render_buffer_target(target), offset, size, data);
+    getRenderBackend().updateBufferSubData(to_render_buffer_target(target), offset, size, data);
 }
 
 static void enable_vertex_attribute_array(GLuint location)
 {
-    getOpenGLRenderBackend().enableVertexAttributeArray(location);
+    getRenderBackend().enableVertexAttributeArray(location);
 }
 
 static void disable_vertex_attribute_array(GLuint location)
 {
-    getOpenGLRenderBackend().disableVertexAttributeArray(location);
+    getRenderBackend().disableVertexAttributeArray(location);
 }
 
 static void set_vertex_attribute_pointer(GLuint location, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void* pointer)
 {
-    getOpenGLRenderBackend().setVertexAttributePointer(
+    getRenderBackend().setVertexAttributePointer(
         location,
         size,
         to_render_vertex_attribute_type(type),
@@ -396,7 +396,7 @@ static void set_vertex_attribute_pointer(GLuint location, GLint size, GLenum typ
 
 static void set_integer_vertex_attribute_pointer(GLuint location, GLint size, GLenum type, GLsizei stride, const void* pointer)
 {
-    getOpenGLRenderBackend().setIntegerVertexAttributePointer(
+    getRenderBackend().setIntegerVertexAttributePointer(
         location,
         size,
         to_render_vertex_attribute_type(type),
@@ -406,7 +406,7 @@ static void set_integer_vertex_attribute_pointer(GLuint location, GLint size, GL
 
 static void draw_vertex_buffer_range(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum index_type, const void* indices)
 {
-    getOpenGLRenderBackend().drawIndexedRange(
+    getRenderBackend().drawIndexedRange(
         to_render_primitive_type(mode),
         start,
         end,
@@ -417,7 +417,7 @@ static void draw_vertex_buffer_range(GLenum mode, GLuint start, GLuint end, GLsi
 
 static void draw_vertex_buffer_arrays(GLenum mode, GLint first, GLsizei count)
 {
-    getOpenGLRenderBackend().drawArrays(to_render_primitive_type(mode), first, count);
+    getRenderBackend().drawArrays(to_render_primitive_type(mode), first, count);
 }
 
 // batch buffer object name generation

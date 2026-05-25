@@ -334,5 +334,6 @@ public:
     const char* getInfoString(LLRenderInfoString) override { return ""; }
 };
 
+LLRenderBackend& getNullRenderBackend();
 
 #endif

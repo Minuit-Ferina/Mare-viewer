@@ -1,6 +1,6 @@
 /**
- * @file llrenderbackend.cpp
- * @brief Common render backend entry points.
+ * @file llrenderbackendopengl.h
+ * @brief OpenGL render backend implementation helpers.
  *
  * $LicenseInfo:firstyear=2026&license=viewerlgpl$
  * This library is free software; you can redistribute it and/or
@@ -19,32 +19,13 @@
  * $/LicenseInfo$
  */
 
-#include "linden_common.h"
+#ifndef LL_LLRENDERBACKENDOPENGL_H
+#define LL_LLRENDERBACKENDOPENGL_H
 
 #include "llrenderbackend.h"
-#include "llrenderbackendopengl.h"
 
-LLRenderBackend::~LLRenderBackend() = default;
+U32 getOpenGLPixelFormatValue(LLRenderPixelFormat format);
+U32 getOpenGLPixelTypeValue(LLRenderPixelType type);
+LLRenderBackend& getOpenGLRenderBackend();
 
-const char* getRenderBackendTypeName(LLRenderBackendType type)
-{
-    switch (type)
-    {
-    case LLRenderBackendType::OpenGL:
-        return "OpenGL";
-    case LLRenderBackendType::Vulkan:
-        return "Vulkan";
-    case LLRenderBackendType::Metal:
-        return "Metal";
-    case LLRenderBackendType::Null:
-        return "Null";
-    case LLRenderBackendType::Unknown:
-    default:
-        return "Unknown";
-    }
-}
-
-LLRenderBackend& getRenderBackend()
-{
-    return getOpenGLRenderBackend();
-}
+#endif

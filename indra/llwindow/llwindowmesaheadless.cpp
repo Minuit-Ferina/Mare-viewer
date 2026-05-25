@@ -30,6 +30,7 @@
 #include "llwindowmesaheadless.h"
 
 #include "llrenderbackend.h"
+#include "llrenderbackendopengl.h"
 #include "llrendercontext.h"
 
 #define MESA_CHANNEL_TYPE getOpenGLPixelTypeValue(LLRenderPixelType::UnsignedShort)

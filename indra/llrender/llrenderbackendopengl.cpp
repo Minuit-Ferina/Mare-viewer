@@ -21,7 +21,7 @@
 
 #include "linden_common.h"
 
-#include "llrenderbackend.h"
+#include "llrenderbackendopengl.h"
 
 #include "llglcontainment.h"
 #include "llglheaders.h"

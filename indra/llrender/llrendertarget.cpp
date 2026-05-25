@@ -91,7 +91,7 @@ void check_current_draw_framebuffer_status()
 {
     if (gDebugGL)
     {
-        if (!getOpenGLRenderBackend().isDrawFramebufferComplete())
+        if (!getRenderBackend().isDrawFramebufferComplete())
         {
             LL_WARNS() << "check_framebuffer_status failed" << LL_ENDL;
             ll_fail("check_framebuffer_status failed");
@@ -104,7 +104,7 @@ void set_render_target_viewport(U32 width, U32 height)
     LLRenderViewport viewport;
     viewport.mWidth = static_cast<F32>(width);
     viewport.mHeight = static_cast<F32>(height);
-    getOpenGLRenderBackend().setViewport(viewport);
+    getRenderBackend().setViewport(viewport);
     LLRenderTarget::sCurResX = width;
     LLRenderTarget::sCurResY = height;
 }
@@ -116,36 +116,36 @@ void restore_default_framebuffer_viewport()
     viewport.mY = static_cast<F32>(gGLViewport[1]);
     viewport.mWidth = static_cast<F32>(gGLViewport[2]);
     viewport.mHeight = static_cast<F32>(gGLViewport[3]);
-    getOpenGLRenderBackend().setViewport(viewport);
+    getRenderBackend().setViewport(viewport);
     LLRenderTarget::sCurResX = gGLViewport[2];
     LLRenderTarget::sCurResY = gGLViewport[3];
 }
 
 void bind_render_target_fbo(LLRenderFramebufferHandle fbo)
 {
-    getOpenGLRenderBackend().bindReadWriteFramebuffer(fbo);
+    getRenderBackend().bindReadWriteFramebuffer(fbo);
     LLRenderTarget::sCurFBO = fbo.asLegacyName();
 }
 
 void bind_attachment_fbo(LLRenderFramebufferHandle fbo)
 {
-    getOpenGLRenderBackend().bindReadWriteFramebuffer(fbo);
+    getRenderBackend().bindReadWriteFramebuffer(fbo);
 }
 
 LLRenderFramebufferHandle generate_framebuffer_handle()
 {
-    return getOpenGLRenderBackend().createFramebufferHandle();
+    return getRenderBackend().createFramebufferHandle();
 }
 
 void delete_framebuffer_handle(LLRenderFramebufferHandle& fbo)
 {
-    getOpenGLRenderBackend().deleteFramebufferHandle(fbo);
+    getRenderBackend().deleteFramebufferHandle(fbo);
     fbo = LLRenderFramebufferHandle();
 }
 
 void restore_tracked_fbo_binding()
 {
-    getOpenGLRenderBackend().bindReadWriteFramebuffer(LLRenderTarget::sCurFBO);
+    getRenderBackend().bindReadWriteFramebuffer(LLRenderTarget::sCurFBO);
 }
 
 void set_framebuffer_texture_attachment(
@@ -153,7 +153,7 @@ void set_framebuffer_texture_attachment(
     LLTexUnit::eTextureType usage,
     LLRenderTextureHandle texture)
 {
-    getOpenGLRenderBackend().attachFramebufferTexture2D(
+    getRenderBackend().attachFramebufferTexture2D(
         attachment,
         to_render_texture_target(usage),
         texture,
@@ -169,36 +169,36 @@ void clear_framebuffer_texture_attachment(
 
 void bind_default_framebuffer_for_flush()
 {
-    getOpenGLRenderBackend().bindReadWriteFramebuffer(0);
+    getRenderBackend().bindReadWriteFramebuffer(0);
     LLRenderTarget::sCurFBO = 0;
 }
 
 void forget_current_fbo_and_bind_default()
 {
     LLRenderTarget::sCurFBO = 0;
-    getOpenGLRenderBackend().bindReadWriteFramebuffer(0);
+    getRenderBackend().bindReadWriteFramebuffer(0);
 }
 
 void set_render_target_buffer_routing(U32 color_attachment_count)
 {
-    getOpenGLRenderBackend().setFramebufferBufferRouting(color_attachment_count);
+    getRenderBackend().setFramebufferBufferRouting(color_attachment_count);
 }
 
 void restore_default_framebuffer_buffer_routing()
 {
-    getOpenGLRenderBackend().restoreDefaultFramebufferBufferRouting();
+    getRenderBackend().restoreDefaultFramebufferBufferRouting();
 }
 
 void generate_bound_render_target_mipmaps()
 {
-    getOpenGLRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
+    getRenderBackend().generateMipmaps(LLRenderTextureTarget::Texture2D);
 }
 
 void clear_render_target_buffers(LLRenderClearMask mask)
 {
     LLRenderPassDesc desc;
     desc.mClearMask = mask;
-    getOpenGLRenderBackend().clear(desc);
+    getRenderBackend().clear(desc);
 }
 
 void set_render_target_scissor(U32 width, U32 height)
@@ -207,12 +207,12 @@ void set_render_target_scissor(U32 width, U32 height)
     scissor.mWidth = width;
     scissor.mHeight = height;
     scissor.mEnabled = true;
-    getOpenGLRenderBackend().setScissor(scissor);
+    getRenderBackend().setScissor(scissor);
 }
 
 bool render_target_texture_allocation_failed()
 {
-    return getOpenGLRenderBackend().hasError();
+    return getRenderBackend().hasError();
 }
 }
 

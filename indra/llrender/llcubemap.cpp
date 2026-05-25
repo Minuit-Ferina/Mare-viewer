@@ -224,8 +224,8 @@ void LLCubeMap::initEnvironmentMap(const std::vector<LLPointer<LLImageRaw> >& ra
     enableTexture(0);
     bind();
     mImages[0]->setFilteringOption(LLTexUnit::TFO_ANISOTROPIC);
-    getOpenGLRenderBackend().setCapability(LLRenderCapability::TextureCubeMapSeamless, true);
-    getOpenGLRenderBackend().generateMipmaps(LLRenderTextureTarget::TextureCubeMap);
+    getRenderBackend().setCapability(LLRenderCapability::TextureCubeMapSeamless, true);
+    getRenderBackend().generateMipmaps(LLRenderTextureTarget::TextureCubeMap);
     gGL.getTexUnit(0)->disable();
     disable();
 }
@@ -241,7 +241,7 @@ void LLCubeMap::generateMipMaps()
     mImages[0]->setFilteringOption(LLTexUnit::TFO_BILINEAR);
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_TEXTURE("cmgmm - glGenerateMipmap");
-        getOpenGLRenderBackend().generateMipmaps(LLRenderTextureTarget::TextureCubeMap);
+        getRenderBackend().generateMipmaps(LLRenderTextureTarget::TextureCubeMap);
     }
     gGL.getTexUnit(0)->disable();
     disable();

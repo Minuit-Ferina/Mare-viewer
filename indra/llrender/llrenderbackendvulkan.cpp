@@ -21,6 +21,8 @@
 
 #include "linden_common.h"
 
+#include "llrenderbackendvulkan.h"
+
 #include "llrenderbackendnull.h"
 
 #if LL_WINDOWS

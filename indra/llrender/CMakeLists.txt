@@ -73,6 +73,8 @@ set(llrender_HEADER_FILES
     llrenderbackend.h
     llrenderbackendmacosx-objc.h
     llrenderbackendnull.h
+    llrenderbackendopengl.h
+    llrenderbackendvulkan.h
     llrendercontext.h
     llrenderstate.h
     llrendernavprim.h

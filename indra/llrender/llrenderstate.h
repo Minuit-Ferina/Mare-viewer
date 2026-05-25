@@ -329,14 +329,14 @@ public:
         {
             S32 shiny = (S32)(shininess * 128.f);
             shiny = llclamp(shiny, 0, 128);
-            getOpenGLRenderBackend().setLegacyMaterialSpecular(color.mV, shiny);
+            getRenderBackend().setLegacyMaterialSpecular(color.mV, shiny);
         }
     }
     ~LLGLSSpecular()
     {
         if (mShininess > 0.f)
         {
-            getOpenGLRenderBackend().setLegacyMaterialSpecular(LLColor4(0.f, 0.f, 0.f, 0.f).mV, 0);
+            getRenderBackend().setLegacyMaterialSpecular(LLColor4(0.f, 0.f, 0.f, 0.f).mV, 0);
         }
     }
 };
