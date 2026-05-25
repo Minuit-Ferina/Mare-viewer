@@ -1320,9 +1320,9 @@ void LLReflectionMapManager::updateUniforms()
     mProbeData.heroProbeCount = gPipeline.mHeroProbeManager.mHeroData.heroProbeCount;
 
     //copy mProbeData into uniform buffer object
-    if (mUBO == 0)
+    if (!mUBO)
     {
-        getRenderBackend().generateBuffers(1, &mUBO);
+        mUBO = getRenderBackend().createBufferHandle();
     }
 
     {
@@ -1333,7 +1333,7 @@ void LLReflectionMapManager::updateUniforms()
             sizeof(ReflectionProbeData),
             &mProbeData,
             LLRenderBufferUsage::StreamDraw);
-        getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
+        getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, LLRenderBufferHandle());
     }
 
 #if 0
@@ -1359,7 +1359,7 @@ void LLReflectionMapManager::setUniforms()
         return;
     }
 
-    if (mUBO == 0)
+    if (!mUBO)
     {
         updateUniforms();
     }
@@ -1592,8 +1592,8 @@ void LLReflectionMapManager::cleanup()
     mDefaultProbe = nullptr;
     mUpdatingProbe = nullptr;
 
-    getRenderBackend().deleteBuffers(1, &mUBO);
-    mUBO = 0;
+    getRenderBackend().deleteBufferHandle(mUBO);
+    mUBO = LLRenderBufferHandle();
 
     // note: also called on teleport (not just shutdown), so make sure we're in a good "starting" state
     initCubeFree();

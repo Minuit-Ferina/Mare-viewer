@@ -395,7 +395,7 @@ Skin::~Skin()
 {
     if (mUBO)
     {
-        getRenderBackend().deleteBuffers(1, &mUBO);
+        getRenderBackend().deleteBufferHandle(mUBO);
     }
 }
 
@@ -406,9 +406,9 @@ void Skin::uploadMatrixPalette(Asset& asset)
 
     U32 max_joints = LLSkinningUtil::getMaxGLTFJointCount();
 
-    if (mUBO == 0)
+    if (!mUBO)
     {
-        getRenderBackend().generateBuffers(1, &mUBO);
+        mUBO = getRenderBackend().createBufferHandle();
     }
 
     size_t joint_count = llmin<size_t>(max_joints, mJoints.size());
@@ -458,7 +458,7 @@ void Skin::uploadMatrixPalette(Asset& asset)
         glmp.size() * sizeof(F32),
         glmp.data(),
         LLRenderBufferUsage::StreamDraw);
-    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
+    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, LLRenderBufferHandle());
 }
 
 bool Skin::prep(Asset& asset)

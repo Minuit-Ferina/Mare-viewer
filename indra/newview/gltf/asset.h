@@ -237,7 +237,7 @@ namespace LL
             S32 mInverseBindMatrices = INVALID_INDEX;
             S32 mSkeleton = INVALID_INDEX;
 
-            U32 mUBO = 0;
+            LLRenderBufferHandle mUBO;
             std::vector<S32> mJoints;
             std::string mName;
             std::vector<mat4> mInverseBindMatricesData;
@@ -392,10 +392,10 @@ namespace LL
             RenderData mRenderData[2];
 
             // UBO for storing node transforms
-            U32 mNodesUBO = 0;
+            LLRenderBufferHandle mNodesUBO;
 
             // UBO for storing material data
-            U32 mMaterialsUBO = 0;
+            LLRenderBufferHandle mMaterialsUBO;
             bool mLoadIntoVRAM = false;
 
             std::vector<std::string> mUnsupportedExtensions;

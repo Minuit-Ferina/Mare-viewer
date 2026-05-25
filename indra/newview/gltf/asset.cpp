@@ -179,9 +179,9 @@ void Asset::uploadTransforms()
         mp[idx + 11] = m[14];
     }
 
-    if (mNodesUBO == 0)
+    if (!mNodesUBO)
     {
-        getRenderBackend().generateBuffers(1, &mNodesUBO);
+        mNodesUBO = getRenderBackend().createBufferHandle();
     }
 
     getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mNodesUBO);
@@ -190,7 +190,7 @@ void Asset::uploadTransforms()
         glmp.size() * sizeof(F32),
         glmp.data(),
         LLRenderBufferUsage::StreamDraw);
-    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
+    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, LLRenderBufferHandle());
 }
 
 void Asset::uploadMaterials()
@@ -232,9 +232,9 @@ void Asset::uploadMaterials()
             min_alpha);
     }
 
-    if (mMaterialsUBO == 0)
+    if (!mMaterialsUBO)
     {
-        getRenderBackend().generateBuffers(1, &mMaterialsUBO);
+        mMaterialsUBO = getRenderBackend().createBufferHandle();
     }
 
     getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, mMaterialsUBO);
@@ -243,7 +243,7 @@ void Asset::uploadMaterials()
         md.size() * sizeof(vec4),
         md.data(),
         LLRenderBufferUsage::StreamDraw);
-    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, 0);
+    getRenderBackend().bindBuffer(LLRenderBufferTarget::Uniform, LLRenderBufferHandle());
 }
 
 S32 Asset::lineSegmentIntersect(const LLVector4a& start, const LLVector4a& end,

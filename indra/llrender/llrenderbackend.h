@@ -523,6 +523,28 @@ struct LLRenderFramebufferHandle
     }
 };
 
+struct LLRenderBufferHandle
+{
+    U32 mValue = 0;
+
+    LLRenderBufferHandle() = default;
+    explicit LLRenderBufferHandle(U32 value) : mValue(value) {}
+
+    U32 asLegacyName() const { return mValue; }
+    bool isValid() const { return mValue != 0; }
+    explicit operator bool() const { return isValid(); }
+
+    friend bool operator==(LLRenderBufferHandle lhs, LLRenderBufferHandle rhs)
+    {
+        return lhs.mValue == rhs.mValue;
+    }
+
+    friend bool operator!=(LLRenderBufferHandle lhs, LLRenderBufferHandle rhs)
+    {
+        return !(lhs == rhs);
+    }
+};
+
 struct LLRenderProgramHandle
 {
     U32 mValue = 0;
@@ -733,6 +755,48 @@ public:
     virtual void deleteBuffers(S32 count, const U32* buffers) = 0;
     virtual void bindBuffer(LLRenderBufferTarget target, U32 buffer) = 0;
     virtual void bindBufferBase(LLRenderBufferTarget target, U32 index, U32 buffer) = 0;
+
+    LLRenderBufferHandle createBufferHandle()
+    {
+        U32 buffer = 0;
+        generateBuffers(1, &buffer);
+        return LLRenderBufferHandle(buffer);
+    }
+
+    void generateBufferHandles(S32 count, LLRenderBufferHandle* buffers)
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+        std::vector<U32> legacy_names(count);
+        generateBuffers(count, legacy_names.data());
+        for (S32 i = 0; i < count; ++i)
+        {
+            buffers[i] = LLRenderBufferHandle(legacy_names[i]);
+        }
+    }
+
+    void deleteBufferHandle(LLRenderBufferHandle buffer)
+    {
+        U32 legacy_name = buffer.asLegacyName();
+        if (legacy_name)
+        {
+            deleteBuffers(1, &legacy_name);
+        }
+    }
+
+    void bindBuffer(LLRenderBufferTarget target, LLRenderBufferHandle buffer)
+    {
+        bindBuffer(target, buffer.asLegacyName());
+    }
+
+    void bindBufferBase(LLRenderBufferTarget target, U32 index, LLRenderBufferHandle buffer)
+    {
+        bindBufferBase(target, index, buffer.asLegacyName());
+    }
+
     virtual void allocateBufferStorage(
         LLRenderBufferTarget target,
         U64 size,
