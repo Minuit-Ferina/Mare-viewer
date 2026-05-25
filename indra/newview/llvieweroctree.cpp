@@ -789,36 +789,36 @@ void LLViewerOctreeGroup::checkStates()
 //-------------------------------------------------------------------------------------------
 //occulsion culling functions and classes
 //-------------------------------------------------------------------------------------------
-std::set<U32> LLOcclusionCullingGroup::sPendingQueries;
+std::set<LLRenderQueryHandle> LLOcclusionCullingGroup::sPendingQueries;
 
-static std::queue<U32> sFreeQueries;
+static std::queue<LLRenderQueryHandle> sFreeQueries;
 
 #define QUERY_POOL_SIZE 1024
 
-U32 LLOcclusionCullingGroup::getNewOcclusionQueryObjectName()
+LLRenderQueryHandle LLOcclusionCullingGroup::getNewOcclusionQueryObjectName()
 {
     LL_PROFILE_ZONE_SCOPED;
 
     if (sFreeQueries.empty())
     {
         //seed 1024 query names into the free query pool
-        U32 queries[1024];
-        getRenderBackend().generateQueries(1024, queries);
-        for (int i = 0; i < 1024; ++i)
+        LLRenderQueryHandle queries[QUERY_POOL_SIZE];
+        getRenderBackend().generateQueryHandles(QUERY_POOL_SIZE, queries);
+        for (int i = 0; i < QUERY_POOL_SIZE; ++i)
         {
             sFreeQueries.push(queries[i]);
         }
     }
 
     // pull from pool
-    U32 ret = sFreeQueries.front();
+    LLRenderQueryHandle ret = sFreeQueries.front();
     sFreeQueries.pop();
     return ret;
 }
 
-void LLOcclusionCullingGroup::releaseOcclusionQueryObjectName(U32 name)
+void LLOcclusionCullingGroup::releaseOcclusionQueryObjectName(LLRenderQueryHandle name)
 {
-    if (name != 0)
+    if (name)
     {
         LL_PROFILE_ZONE_SCOPED;
         sFreeQueries.push(name);
@@ -871,7 +871,7 @@ LLOcclusionCullingGroup::LLOcclusionCullingGroup(OctreeNode* node, LLViewerOctre
 
     for (U32 i = 0; i < LLViewerCamera::NUM_CAMERAS; i++)
     {
-        mOcclusionQuery[i] = 0;
+        mOcclusionQuery[i] = LLRenderQueryHandle();
         mOcclusionCheckCount[i] = 0;
         mOcclusionIssued[i] = 0;
         mOcclusionState[i] = parent ? SG_STATE_INHERIT_MASK & parent->mOcclusionState[i] : 0;
@@ -925,7 +925,7 @@ void LLOcclusionCullingGroup::releaseOcclusionQueryObjectNames()
         if (mOcclusionQuery[i])
         {
             releaseOcclusionQueryObjectName(mOcclusionQuery[i]);
-            mOcclusionQuery[i] = 0;
+            mOcclusionQuery[i] = LLRenderQueryHandle();
         }
     }
 }
@@ -943,7 +943,7 @@ void LLOcclusionCullingGroup::setOcclusionState(U32 state, S32 mode /* = STATE_M
         if ((state & DISCARD_QUERY) && mOcclusionQuery[LLViewerCamera::sCurCameraID])
         {
             releaseOcclusionQueryObjectName(mOcclusionQuery[LLViewerCamera::sCurCameraID]);
-            mOcclusionQuery[LLViewerCamera::sCurCameraID] = 0;
+            mOcclusionQuery[LLViewerCamera::sCurCameraID] = LLRenderQueryHandle();
         }
         break;
 
@@ -971,7 +971,7 @@ void LLOcclusionCullingGroup::setOcclusionState(U32 state, S32 mode /* = STATE_M
             if ((state & DISCARD_QUERY) && mOcclusionQuery[i])
             {
                 releaseOcclusionQueryObjectName(mOcclusionQuery[i]);
-                mOcclusionQuery[i] = 0;
+                mOcclusionQuery[i] = LLRenderQueryHandle();
             }
         }
         break;
@@ -1119,7 +1119,7 @@ void LLOcclusionCullingGroup::checkOcclusion()
         if (isOcclusionState(DISCARD_QUERY))
         {   // delete the query to avoid holding onto hundreds of pending queries
             releaseOcclusionQueryObjectName(mOcclusionQuery[LLViewerCamera::sCurCameraID]);
-            mOcclusionQuery[LLViewerCamera::sCurCameraID] = 0;
+            mOcclusionQuery[LLViewerCamera::sCurCameraID] = LLRenderQueryHandle();
             // mark non-occluded
             clearOcclusionState(LLOcclusionCullingGroup::OCCLUDED, LLOcclusionCullingGroup::STATE_MODE_DIFF);
             clearOcclusionState(QUERY_PENDING | DISCARD_QUERY);

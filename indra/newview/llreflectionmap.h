@@ -29,6 +29,7 @@
 #include "llcubemaparray.h"
 #include "llgltypes.h"
 #include "llmemory.h"
+#include "llrenderbackend.h"
 
 class LLSpatialGroup;
 class LLViewerObject;
@@ -134,7 +135,7 @@ public:
     U32 mPriority = 0;
 
     // occlusion culling state
-    U32 mOcclusionQuery = 0;
+    LLRenderQueryHandle mOcclusionQuery;
     bool mOccluded = false;
     U32 mOcclusionPendingFrames = 0;
 

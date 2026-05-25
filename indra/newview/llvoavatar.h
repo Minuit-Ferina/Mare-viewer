@@ -579,7 +579,7 @@ private:
     S32         mNumInitFaces; //number of faces generated when creating the avatar drawable, does not inculde splitted faces due to long vertex buffer.
 
     // profile handle
-    U32 mGPUTimerQuery = 0;
+    LLRenderQueryHandle mGPUTimerQuery;
 
     // profile results
 
@@ -1303,4 +1303,3 @@ void dump_sequential_xml(const std::string outprefix, const LLSD& content);
 void dump_visual_param(apr_file_t* file, LLVisualParam* viewer_param, F32 value);
 
 #endif // LL_VOAVATAR_H
-

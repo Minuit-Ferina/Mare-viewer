@@ -402,7 +402,7 @@ LLPipeline::LLPipeline() :
     mRenderDebugFeatureMask(0),
     mRenderDebugMask(0),
     mOldRenderDebugMask(0),
-    mMeshDirtyQueryObject(0),
+    mMeshDirtyQueryObject(),
     mGroupQ1Locked(false),
     mResetVertexBuffers(false),
     mLastRebuildPool(NULL),
@@ -733,8 +733,8 @@ void LLPipeline::destroyGL()
 
     if (mMeshDirtyQueryObject)
     {
-        getRenderBackend().deleteQueries(1, &mMeshDirtyQueryObject);
-        mMeshDirtyQueryObject = 0;
+        getRenderBackend().deleteQueryHandle(mMeshDirtyQueryObject);
+        mMeshDirtyQueryObject = LLRenderQueryHandle();
     }
 }
 
@@ -3816,7 +3816,7 @@ void LLPipeline::postSort(LLCamera &camera)
 
         if (!mMeshDirtyQueryObject)
         {
-            getRenderBackend().generateQueries(1, &mMeshDirtyQueryObject);
+            mMeshDirtyQueryObject = getRenderBackend().createQueryHandle();
         }
 
         getRenderBackend().beginQuery(

@@ -12511,9 +12511,9 @@ bool LLVOAvatar::isTextureVisible(LLAvatarAppearanceDefines::ETextureIndex type,
 
 void LLVOAvatar::placeProfileQuery()
 {
-    if (mGPUTimerQuery == 0)
+    if (!mGPUTimerQuery)
     {
-        getRenderBackend().generateQueries(1, &mGPUTimerQuery);
+        mGPUTimerQuery = getRenderBackend().createQueryHandle();
     }
 
     getRenderBackend().beginQuery(LLRenderQueryTarget::TimeElapsed, mGPUTimerQuery);

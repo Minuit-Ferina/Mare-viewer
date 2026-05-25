@@ -46,7 +46,7 @@ LLReflectionMap::~LLReflectionMap()
 {
     if (mOcclusionQuery)
     {
-        getRenderBackend().deleteQueries(1, &mOcclusionQuery);
+        getRenderBackend().deleteQueryHandle(mOcclusionQuery);
     }
 }
 
@@ -337,10 +337,10 @@ void LLReflectionMap::doOcclusion(const LLVector4a& eye)
         return;
     }
 
-    if (mOcclusionQuery == 0)
+    if (!mOcclusionQuery)
     { // no query was previously issued, allocate one and issue
         LL_PROFILE_ZONE_NAMED_CATEGORY_PIPELINE("rmdo - generate queries");
-        getRenderBackend().generateQueries(1, &mOcclusionQuery);
+        mOcclusionQuery = getRenderBackend().createQueryHandle();
         do_query = true;
     }
     else

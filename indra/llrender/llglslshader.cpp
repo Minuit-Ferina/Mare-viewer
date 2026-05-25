@@ -251,11 +251,11 @@ void LLGLSLShader::placeProfileQuery(bool for_runtime)
 {
     if (sProfileEnabled || for_runtime)
     {
-        if (mTimerQuery == 0)
+        if (!mTimerQuery)
         {
-            getOpenGLRenderBackend().generateQueries(1, &mSamplesQuery);
-            getOpenGLRenderBackend().generateQueries(1, &mTimerQuery);
-            getOpenGLRenderBackend().generateQueries(1, &mPrimitivesQuery);
+            mSamplesQuery = getOpenGLRenderBackend().createQueryHandle();
+            mTimerQuery = getOpenGLRenderBackend().createQueryHandle();
+            mPrimitivesQuery = getOpenGLRenderBackend().createQueryHandle();
         }
 
         getOpenGLRenderBackend().beginQuery(LLRenderQueryTarget::TimeElapsed, mTimerQuery);
@@ -335,9 +335,9 @@ LLGLSLShader::LLGLSLShader()
     mShaderGroup(SG_DEFAULT),
     mFeatures(),
     mUniformsDirty(false),
-    mTimerQuery(0),
-    mSamplesQuery(0),
-    mPrimitivesQuery(0)
+    mTimerQuery(),
+    mSamplesQuery(),
+    mPrimitivesQuery()
 {
 
 }
@@ -390,14 +390,14 @@ void LLGLSLShader::unloadInternal()
 
     if (mTimerQuery)
     {
-        getOpenGLRenderBackend().deleteQueries(1, &mTimerQuery);
-        mTimerQuery = 0;
+        getOpenGLRenderBackend().deleteQueryHandle(mTimerQuery);
+        mTimerQuery = LLRenderQueryHandle();
     }
 
     if (mSamplesQuery)
     {
-        getOpenGLRenderBackend().deleteQueries(1, &mSamplesQuery);
-        mSamplesQuery = 0;
+        getOpenGLRenderBackend().deleteQueryHandle(mSamplesQuery);
+        mSamplesQuery = LLRenderQueryHandle();
     }
 
     //hack to make apple not complain

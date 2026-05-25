@@ -65,7 +65,7 @@ LLSceneMonitor::LLSceneMonitor() :
     mDiffTolerance(0.1f),
     mDiffState(WAITING_FOR_NEXT_DIFF),
     mDebugViewerVisible(false),
-    mQueryObject(0),
+    mQueryObject(),
     mDiffPixelRatio(0.5f)
 {
     mFrames[0] = NULL;
@@ -96,10 +96,10 @@ void LLSceneMonitor::reset()
 
     unfreezeScene();
 
-    if(mQueryObject > 0)
+    if(mQueryObject)
     {
         LLOcclusionCullingGroup::releaseOcclusionQueryObjectName(mQueryObject);
-        mQueryObject = 0;
+        mQueryObject = LLRenderQueryHandle();
     }
 }
 

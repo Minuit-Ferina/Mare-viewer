@@ -329,9 +329,9 @@ public:
 
     //statistics for profiling shader performance
     bool mProfilePending = false;
-    U32 mTimerQuery;
-    U32 mSamplesQuery;
-    U32 mPrimitivesQuery;
+    LLRenderQueryHandle mTimerQuery;
+    LLRenderQueryHandle mSamplesQuery;
+    LLRenderQueryHandle mPrimitivesQuery;
 
     U64 mTimeElapsed;
     static U64 sTotalTimeElapsed;

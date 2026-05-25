@@ -24,6 +24,8 @@
 
 #include "stdtypes.h"
 
+#include <vector>
+
 using LLRenderDebugMessageCallback = void (*)();
 
 enum class LLRenderBackendType : U8
@@ -565,6 +567,33 @@ struct LLRenderShaderHandle
     }
 };
 
+struct LLRenderQueryHandle
+{
+    U32 mValue = 0;
+
+    LLRenderQueryHandle() = default;
+    explicit LLRenderQueryHandle(U32 value) : mValue(value) {}
+
+    U32 asLegacyName() const { return mValue; }
+    bool isValid() const { return mValue != 0; }
+    explicit operator bool() const { return isValid(); }
+
+    friend bool operator==(LLRenderQueryHandle lhs, LLRenderQueryHandle rhs)
+    {
+        return lhs.mValue == rhs.mValue;
+    }
+
+    friend bool operator!=(LLRenderQueryHandle lhs, LLRenderQueryHandle rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bool operator<(LLRenderQueryHandle lhs, LLRenderQueryHandle rhs)
+    {
+        return lhs.mValue < rhs.mValue;
+    }
+};
+
 struct LLRenderPassDesc
 {
     const char* mDebugName = nullptr;
@@ -823,6 +852,59 @@ public:
         U32 query,
         LLRenderQueryParameter parameter,
         U32* value) = 0;
+
+    LLRenderQueryHandle createQueryHandle()
+    {
+        U32 query = 0;
+        generateQueries(1, &query);
+        return LLRenderQueryHandle(query);
+    }
+
+    void generateQueryHandles(S32 count, LLRenderQueryHandle* queries)
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+        std::vector<U32> legacy_names(count);
+        generateQueries(count, legacy_names.data());
+        for (S32 i = 0; i < count; ++i)
+        {
+            queries[i] = LLRenderQueryHandle(legacy_names[i]);
+        }
+    }
+
+    void deleteQueryHandle(LLRenderQueryHandle query)
+    {
+        U32 legacy_name = query.asLegacyName();
+        if (legacy_name)
+        {
+            deleteQueries(1, &legacy_name);
+        }
+    }
+
+    void beginQuery(LLRenderQueryTarget target, LLRenderQueryHandle query)
+    {
+        beginQuery(target, query.asLegacyName());
+    }
+
+    void getQueryObjectUnsignedInteger64(
+        LLRenderQueryHandle query,
+        LLRenderQueryParameter parameter,
+        U64* value)
+    {
+        getQueryObjectUnsignedInteger64(query.asLegacyName(), parameter, value);
+    }
+
+    void getQueryObjectUnsignedInteger(
+        LLRenderQueryHandle query,
+        LLRenderQueryParameter parameter,
+        U32* value)
+    {
+        getQueryObjectUnsignedInteger(query.asLegacyName(), parameter, value);
+    }
+
     virtual U32 createProgram() = 0;
     virtual void deleteProgram(U32 program) = 0;
     virtual U32 createShader(LLRenderShaderStage stage) = 0;

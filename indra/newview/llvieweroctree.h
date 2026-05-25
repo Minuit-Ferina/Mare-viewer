@@ -37,6 +37,7 @@
 #include "llvector4a.h"
 #include "llquaternion.h"
 #include "lloctree.h"
+#include "llrenderbackend.h"
 #include "llviewercamera.h"
 
 class LLViewerRegion;
@@ -319,8 +320,8 @@ public:
     LLViewerOctreePartition* getSpatialPartition()const {return mSpatialPartition;}
     bool isAnyRecentlyVisible() const;
 
-    static U32 getNewOcclusionQueryObjectName();
-    static void releaseOcclusionQueryObjectName(U32 name);
+    static LLRenderQueryHandle getNewOcclusionQueryObjectName();
+    static void releaseOcclusionQueryObjectName(LLRenderQueryHandle name);
 
 protected:
     void releaseOcclusionQueryObjectNames();
@@ -335,11 +336,11 @@ protected:
     S32         mLODHash;
 
     LLViewerOctreePartition* mSpatialPartition;
-    U32                      mOcclusionQuery[LLViewerCamera::NUM_CAMERAS];
+    LLRenderQueryHandle      mOcclusionQuery[LLViewerCamera::NUM_CAMERAS];
     U32                      mOcclusionCheckCount[LLViewerCamera::NUM_CAMERAS];
 
 public:
-    static std::set<U32> sPendingQueries;
+    static std::set<LLRenderQueryHandle> sPendingQueries;
 };//LL_ALIGN_POSTFIX(16);
 
 class LLViewerOctreePartition
