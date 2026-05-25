@@ -3442,7 +3442,7 @@ void LLModelPreview::renderNonSkinnedModels(bool show_textures, bool show_edges)
 
             // Zero this variable for an obligatory buffer initialization
             // See https://github.com/secondlife/viewer/issues/912
-            LLVertexBuffer::sGLRenderBuffer = 0;
+            LLVertexBuffer::sGLRenderBuffer = LLRenderBufferHandle();
             LLVertexBuffer* buffer = mVertexBuffer[mPreviewLOD][model][i];
             buffer->setBuffer();
             buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
@@ -3576,7 +3576,7 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
 
                         // Zero this variable for an obligatory buffer initialization
                         // See https://github.com/secondlife/viewer/issues/912
-                        LLVertexBuffer::sGLRenderBuffer = 0;
+                        LLVertexBuffer::sGLRenderBuffer = LLRenderBufferHandle();
                         LLVertexBuffer* buffer = mVertexBuffer[LLModel::LOD_PHYSICS][model][i];
                         buffer->setBuffer();
                         buffer->drawRange(LLRender::TRIANGLES, 0, buffer->getNumVerts() - 1, buffer->getNumIndices(), 0);
@@ -3642,7 +3642,7 @@ void LLModelPreview::renderPhysicsPreview(F32 physics_explode)
                         {
                             // Zero this variable for an obligatory buffer initialization
                             // See https://github.com/secondlife/viewer/issues/912
-                            LLVertexBuffer::sGLRenderBuffer = 0;
+                            LLVertexBuffer::sGLRenderBuffer = LLRenderBufferHandle();
                             LLVertexBuffer* buffer = mVertexBuffer[LLModel::LOD_PHYSICS][model][v];
                             buffer->setBuffer();
                             LLStrider<LLVector3> pos_strider;
@@ -3762,7 +3762,7 @@ void LLModelPreview::renderSkinnedPreview(LLFloaterModelPreview* fmp, PreviewCam
 
                     // Zero this variable for an obligatory buffer initialization
                     // See https://github.com/secondlife/viewer/issues/912
-                    LLVertexBuffer::sGLRenderBuffer = 0;
+                    LLVertexBuffer::sGLRenderBuffer = LLRenderBufferHandle();
                     LLVertexBuffer* buffer = mVertexBuffer[mPreviewLOD][model][i];
                     buffer->setBuffer();
                     buffer->draw(LLRender::TRIANGLES, buffer->getNumIndices(), 0);

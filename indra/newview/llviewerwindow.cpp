@@ -55,6 +55,7 @@
 #include "llxmltree.h"
 #include "llslurl.h"
 #include "llrenderbackend.h"
+#include "llrendercontext.h"
 #include "llrender.h"
 
 #include "stringize.h"

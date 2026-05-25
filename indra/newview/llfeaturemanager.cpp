@@ -50,13 +50,13 @@
 #include "llboost.h"
 #include "llweb.h"
 #include "llviewershadermgr.h"
+#include "llrendercontext.h"
 #include "llstring.h"
 #include "stringize.h"
 #include "llcorehttputil.h"
 
 #if LL_WINDOWS
 #include "lldxhardware.h"
-#include "llrendercontext.h"
 #endif
 
 #if LL_DARWIN
