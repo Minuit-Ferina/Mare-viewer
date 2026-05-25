@@ -39,7 +39,7 @@ ALLOWED_RUNTIME_GL_CALL_PATHS = {
 }
 
 ALLOWED_GL_CONTEXT_LIFECYCLE_PATHS = {
-    "indra/llrender/llrenderbackend.cpp",
+    "indra/llrender/llrenderbackendopengl.cpp",
 }
 
 KNOWN_GL_FALSE_POSITIVE_NAMES = {

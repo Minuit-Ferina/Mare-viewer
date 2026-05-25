@@ -1,6 +1,6 @@
 /**
- * @file llrenderbackend.cpp
- * @brief Common render backend entry points.
+ * @file llrenderbackendnull.cpp
+ * @brief Null render backend entry point.
  *
  * $LicenseInfo:firstyear=2026&license=viewerlgpl$
  * This library is free software; you can redistribute it and/or
@@ -21,29 +21,10 @@
 
 #include "linden_common.h"
 
-#include "llrenderbackend.h"
+#include "llrenderbackendnull.h"
 
-LLRenderBackend::~LLRenderBackend() = default;
-
-const char* getRenderBackendTypeName(LLRenderBackendType type)
+LLRenderBackend& getNullRenderBackend()
 {
-    switch (type)
-    {
-    case LLRenderBackendType::OpenGL:
-        return "OpenGL";
-    case LLRenderBackendType::Vulkan:
-        return "Vulkan";
-    case LLRenderBackendType::Metal:
-        return "Metal";
-    case LLRenderBackendType::Null:
-        return "Null";
-    case LLRenderBackendType::Unknown:
-    default:
-        return "Unknown";
-    }
-}
-
-LLRenderBackend& getRenderBackend()
-{
-    return getOpenGLRenderBackend();
+    static LLNullRenderBackend backend;
+    return backend;
 }

@@ -27,6 +27,9 @@ set(llrender_SOURCE_FILES
     llrender.cpp
     llrender2dutils.cpp
     llrenderbackend.cpp
+    llrenderbackendnull.cpp
+    llrenderbackendopengl.cpp
+    llrenderbackendvulkan.cpp
     llrendernavprim.cpp
     llrendersphere.cpp
     llrendertarget.cpp
@@ -69,6 +72,7 @@ set(llrender_HEADER_FILES
     llrender2dutils.h
     llrenderbackend.h
     llrenderbackendmacosx-objc.h
+    llrenderbackendnull.h
     llrendercontext.h
     llrenderstate.h
     llrendernavprim.h
