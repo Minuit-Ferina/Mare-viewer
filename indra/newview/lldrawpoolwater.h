@@ -64,6 +64,7 @@ public:
     S32 getNumPostDeferredPasses() override;
     void beginPostDeferredPass(S32 pass) override;
     void renderPostDeferred(S32 pass) override;
+    bool emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass) override;
 
     void prerender() override;
 

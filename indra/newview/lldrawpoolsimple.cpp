@@ -37,6 +37,7 @@
 #include "llviewershadermgr.h"
 #include "llrenderbackend.h"
 #include "llrender.h"
+#include "llworldrendercommand.h"
 #include "gltfscenemanager.h"
 
 //MK
@@ -48,6 +49,23 @@
 static LLTrace::BlockTimerStatHandle FTM_RENDER_SIMPLE_DEFERRED("Deferred Simple");
 static LLTrace::BlockTimerStatHandle FTM_RENDER_GRASS_DEFERRED("Deferred Grass");
 
+bool LLDrawPoolGlow::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    if (gAgent.mRRInterface.mVisionRestricted)
+    {
+        return false;
+    }
+
+    commands.appendRenderMap(
+        LLRenderPass::PASS_GLOW,
+        LLWorldRenderMaterialClass::Glow,
+        true,
+        true,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_TEXCOORD0);
+    return true;
+}
+
 void LLDrawPoolGlow::renderPostDeferred(S32 pass)
 {
 //MK
@@ -58,6 +76,15 @@ void LLDrawPoolGlow::renderPostDeferred(S32 pass)
     }
 //mk
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
+
+    if (use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs)
+    {
+        LLWorldRenderCommandBuffer commands;
+        emitPostDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
+
     LLGLSLShader* shader = &gDeferredEmissiveProgram;
 
     LLGLEnable blend(LLRenderCapability::Blend);
@@ -109,10 +136,38 @@ S32 LLDrawPoolSimple::getNumDeferredPasses()
     return 1;
 }
 
+bool LLDrawPoolSimple::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    commands.appendRenderMap(
+        LLRenderPass::PASS_SIMPLE,
+        LLWorldRenderMaterialClass::SimpleOpaque,
+        true,
+        true,
+        VERTEX_DATA_MASK);
+    return true;
+}
+
 void LLDrawPoolSimple::renderDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL; //LL_RECORD_BLOCK_TIME(FTM_RENDER_SIMPLE_DEFERRED);
     LLGLDisable blend(LLRenderCapability::Blend);
+
+    if (use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs)
+    {
+        static bool logged = false;
+        if (!logged)
+        {
+            LL_INFOS("RenderBackend")
+                << "Vulkan simple path is emitting static simple commands."
+                << LL_ENDL;
+            logged = true;
+        }
+
+        LLWorldRenderCommandBuffer commands;
+        emitDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
 
     //render static
     gDeferredDiffuseProgram.bind();
@@ -125,9 +180,38 @@ void LLDrawPoolSimple::renderDeferred(S32 pass)
 
 static LLTrace::BlockTimerStatHandle FTM_RENDER_ALPHA_MASK_DEFERRED("Deferred Alpha Mask");
 
+bool LLDrawPoolAlphaMask::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    commands.appendRenderMap(
+        LLRenderPass::PASS_ALPHA_MASK,
+        LLWorldRenderMaterialClass::AlphaMask,
+        true,
+        true,
+        VERTEX_DATA_MASK);
+    return true;
+}
+
 void LLDrawPoolAlphaMask::renderDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL; //LL_RECORD_BLOCK_TIME(FTM_RENDER_ALPHA_MASK_DEFERRED);
+
+    if (use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs)
+    {
+        static bool logged = false;
+        if (!logged)
+        {
+            LL_INFOS("RenderBackend")
+                << "Vulkan simple path is emitting static alpha-mask commands."
+                << LL_ENDL;
+            logged = true;
+        }
+
+        LLWorldRenderCommandBuffer commands;
+        emitDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
+
     LLGLSLShader* shader = &gDeferredDiffuseAlphaMaskProgram;
 
     //render static
@@ -146,9 +230,37 @@ LLDrawPoolGrass::LLDrawPoolGrass() :
 
 }
 
+bool LLDrawPoolGrass::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    commands.appendRenderMap(
+        LLRenderPass::PASS_GRASS,
+        LLWorldRenderMaterialClass::Grass,
+        true,
+        true,
+        VERTEX_DATA_MASK);
+    return true;
+}
+
 void LLDrawPoolGrass::renderDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
+    if (use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs)
+    {
+        static bool logged = false;
+        if (!logged)
+        {
+            LL_INFOS("RenderBackend")
+                << "Vulkan simple path is emitting grass commands."
+                << LL_ENDL;
+            logged = true;
+        }
+
+        LLWorldRenderCommandBuffer commands;
+        emitDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
+
     {
         gDeferredNonIndexedDiffuseAlphaMaskProgram.bind();
         gDeferredNonIndexedDiffuseAlphaMaskProgram.setMinimumAlpha(0.5f);
@@ -164,9 +276,33 @@ LLDrawPoolFullbright::LLDrawPoolFullbright() :
 {
 }
 
+bool LLDrawPoolFullbright::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    if (LLPipeline::sRenderingHUDs)
+    {
+        return false;
+    }
+
+    commands.appendRenderMap(
+        LLRenderPass::PASS_FULLBRIGHT,
+        LLWorldRenderMaterialClass::Fullbright,
+        true,
+        true,
+        VERTEX_DATA_MASK);
+    return true;
+}
+
 void LLDrawPoolFullbright::renderPostDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL; //LL_RECORD_BLOCK_TIME(FTM_RENDER_FULLBRIGHT);
+
+    if (use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs)
+    {
+        LLWorldRenderCommandBuffer commands;
+        emitPostDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
 
     LLGLSLShader* shader = nullptr;
     if (LLPipeline::sRenderingHUDs)
@@ -192,9 +328,33 @@ void LLDrawPoolFullbright::renderPostDeferred(S32 pass)
     }
 }
 
+bool LLDrawPoolFullbrightAlphaMask::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    if (LLPipeline::sRenderingHUDs)
+    {
+        return false;
+    }
+
+    commands.appendRenderMap(
+        LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK,
+        LLWorldRenderMaterialClass::FullbrightAlphaMask,
+        true,
+        true,
+        VERTEX_DATA_MASK);
+    return true;
+}
+
 void LLDrawPoolFullbrightAlphaMask::renderPostDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL; //LL_RECORD_BLOCK_TIME(FTM_RENDER_FULLBRIGHT);
+
+    if (use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs)
+    {
+        LLWorldRenderCommandBuffer commands;
+        emitPostDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
 
     // render unrigged unlit GLTF
     LL::GLTFSceneManager::instance().render(true, false, true);

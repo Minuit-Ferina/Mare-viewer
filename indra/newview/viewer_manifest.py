@@ -83,6 +83,17 @@ class ViewerManifest(LLManifest):
 
                 # include the entire shaders directory recursively
                 self.path("shaders")
+                vulkan_bridge_shader_dir = os.path.join(
+                    self.args['build'],
+                    "generated",
+                    "shaders",
+                    "vulkan",
+                    "bridge")
+                if os.path.isdir(vulkan_bridge_shader_dir):
+                    with self.prefix(
+                            src=vulkan_bridge_shader_dir,
+                            dst="shaders/vulkan/bridge"):
+                        self.path("*.spv")
                 # include the extracted list of contributors
                 contributions_path = os.path.join(self.args['source'], "..", "..", "doc", "contributions.txt")
                 contributor_names = self.extract_names(contributions_path)
@@ -851,6 +862,34 @@ class DarwinManifest(ViewerManifest):
     build_data_json_platform = 'mac'
     address_size = 64
 
+    def get_vulkan_sdk_path(self):
+        vulkan_sdk = os.environ.get("VULKAN_SDK", "").strip()
+        return vulkan_sdk if os.path.isdir(vulkan_sdk) else ""
+
+    def copy_vulkan_runtime_libraries(self):
+        vulkan_sdk = self.get_vulkan_sdk_path()
+        if not vulkan_sdk:
+            print("VULKAN_SDK is not set; skipping optional Vulkan runtime library copy.")
+            return
+
+        vulkan_libdir = os.path.join(vulkan_sdk, "lib")
+        for libfile in (
+                    "libMoltenVK.dylib",
+                    "libvulkan.1.dylib",
+                    "libvulkan.dylib",
+                    ):
+            libpath = os.path.join(vulkan_libdir, libfile)
+            self.path_optional(os.path.realpath(libpath), libfile)
+
+    def copy_vulkan_license_file(self):
+        vulkan_sdk = self.get_vulkan_sdk_path()
+        if not vulkan_sdk:
+            return
+
+        vulkan_license = os.path.normpath(
+            os.path.join(vulkan_sdk, os.pardir, "Licenses", "LICENSE.txt"))
+        self.path_optional(vulkan_license, "vulkan-sdk-license.txt")
+
     def finish_build_data_dict(self, build_data_dict):
         build_data_dict.update({'Bundle Id':self.args['bundleid']})
         return build_data_dict
@@ -905,6 +944,8 @@ class DarwinManifest(ViewerManifest):
                                 "libalut.dylib",
                                 ):
                         self.path(libfile)
+
+                self.copy_vulkan_runtime_libraries()
 
                 # WebRTC libraries
                 with self.prefix(src=os.path.join(self.args['build'], os.pardir,
@@ -994,6 +1035,7 @@ class DarwinManifest(ViewerManifest):
                     self.path("*.tif")
 
                 self.path("licenses-mac.txt", dst="licenses.txt")
+                self.copy_vulkan_license_file()
                 self.path("featuretable_mac.txt")
                 self.path("cube.dae")
 

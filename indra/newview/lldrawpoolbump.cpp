@@ -52,6 +52,7 @@
 #include "llmodel.h"
 #include "llrenderstate.h"
 #include "llrendercontext.h"
+#include "llworldrendercommand.h"
 
 //#include "llimagebmp.h"
 //#include "../tools/imdebug/imdebug.h"
@@ -540,9 +541,31 @@ S32 LLDrawPoolBump::getNumDeferredPasses()
     return 1;
 }
 
+bool LLDrawPoolBump::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    commands.appendRenderMap(
+        LLRenderPass::PASS_BUMP,
+        LLWorldRenderMaterialClass::Bump,
+        true,
+        false,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_NORMAL |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_COLOR);
+    return true;
+}
+
 void LLDrawPoolBump::renderDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL; //LL_RECORD_BLOCK_TIME(FTM_RENDER_BUMP);
+
+    if (use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs)
+    {
+        LLWorldRenderCommandBuffer commands;
+        emitDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
 
     shiny = true;
     for (int i = 0; i < 2; ++i)
@@ -597,6 +620,14 @@ void LLDrawPoolBump::renderPostDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
 
+    if (use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs)
+    {
+        LLWorldRenderCommandBuffer commands;
+        emitPostDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
+
     S32 num_passes = LLPipeline::sRenderingHUDs ? 1 : 2; // skip rigged pass when rendering HUDs
 
     for (int i = 0; i < num_passes; ++i)
@@ -613,6 +644,29 @@ void LLDrawPoolBump::renderPostDeferred(S32 pass)
         renderBump(LLRenderPass::PASS_POST_BUMP);
         endBump();
     }
+}
+
+bool LLDrawPoolBump::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    commands.appendRenderMap(
+        LLRenderPass::PASS_FULLBRIGHT_SHINY,
+        LLWorldRenderMaterialClass::FullbrightShiny,
+        true,
+        true,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_NORMAL |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_COLOR);
+
+    commands.appendRenderMap(
+        LLRenderPass::PASS_POST_BUMP,
+        LLWorldRenderMaterialClass::PostBump,
+        true,
+        false,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_TEXCOORD1);
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////

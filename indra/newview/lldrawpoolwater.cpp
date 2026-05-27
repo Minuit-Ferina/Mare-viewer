@@ -49,6 +49,7 @@
 #include "llsettingssky.h"
 #include "llsettingswater.h"
 #include "llrenderstate.h"
+#include "llworldrendercommand.h"
 
 bool LLDrawPoolWater::sSkipScreenCopy = false;
 bool LLDrawPoolWater::sNeedsReflectionUpdate = true;
@@ -140,6 +141,15 @@ void LLDrawPoolWater::beginPostDeferredPass(S32 pass)
 void LLDrawPoolWater::renderPostDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
+
+    if (use_vulkan_world_command_path())
+    {
+        LLWorldRenderCommandBuffer commands;
+        emitPostDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
+
     LLGLDisable blend(LLRenderCapability::Blend);
 
     gGL.setColorMask(true, true);
@@ -305,6 +315,58 @@ void LLDrawPoolWater::renderPostDeferred(S32 pass)
     gPipeline.unbindDeferredShader(*shader);
 
     gGL.setColorMask(true, false);
+}
+
+bool LLDrawPoolWater::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    LLViewerTexture* texture = mWaterImagep[0].notNull() ?
+        mWaterImagep[0].get() :
+        mOpaqueWaterImagep.get();
+
+    if (texture)
+    {
+        texture->addTextureStats(1024.f * 1024.f);
+    }
+
+    for (LLFace* const& face : mDrawFace)
+    {
+        if (!face)
+        {
+            continue;
+        }
+
+        LLVertexBuffer* vertex_buffer = face->getVertexBuffer();
+        if (!vertex_buffer || !face->getGeomCount() || !face->getIndicesCount())
+        {
+            continue;
+        }
+
+        const LLDrawable* drawable = face->getDrawable();
+        const LLViewerRegion* region = drawable ? drawable->getRegion() : nullptr;
+
+        commands.appendDrawRange(
+            vertex_buffer,
+            texture,
+            LLWorldRenderMaterialClass::Water,
+            LLDrawPool::POOL_WATER,
+            region ? &region->mRenderMatrix : nullptr,
+            face->getGeomIndex(),
+            face->getGeomIndex() + face->getGeomCount() - 1,
+            face->getIndicesCount(),
+            face->getIndicesStart(),
+            texture != nullptr,
+            false,
+            VERTEX_DATA_MASK);
+
+        LLVOWater* water = static_cast<LLVOWater*>(face->getViewerObject());
+        if (water && !water->getIsEdgePatch())
+        {
+            sNeedsReflectionUpdate = true;
+            sNeedsDistortionUpdate = true;
+        }
+    }
+
+    return true;
 }
 
 void LLDrawPoolWater::pushWaterPlanes(int pass)

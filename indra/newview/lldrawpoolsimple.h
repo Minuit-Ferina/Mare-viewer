@@ -30,6 +30,7 @@
 #include "lldrawpool.h"
 
 class LLGLSLShader;
+class LLWorldRenderCommandBuffer;
 
 class LLDrawPoolSimple final : public LLRenderPass
 {
@@ -47,6 +48,7 @@ public:
 
     S32 getNumDeferredPasses() override;
     void renderDeferred(S32 pass) override;
+    bool emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass) override;
 };
 
 class LLDrawPoolGrass final : public LLRenderPass
@@ -65,6 +67,7 @@ public:
 
     S32 getNumDeferredPasses() override { return 1; }
     void renderDeferred(S32 pass) override;
+    bool emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass) override;
 };
 
 class LLDrawPoolAlphaMask final : public LLRenderPass
@@ -83,6 +86,7 @@ public:
 
     S32 getNumDeferredPasses() override { return 1; }
     void renderDeferred(S32 pass) override;
+    bool emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass) override;
 };
 
 class LLDrawPoolFullbrightAlphaMask final : public LLRenderPass
@@ -100,6 +104,7 @@ public:
 
     S32 getNumPostDeferredPasses() override { return 1; }
     void renderPostDeferred(S32 pass) override;
+    bool emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass) override;
 };
 
 
@@ -118,6 +123,7 @@ public:
 
     S32 getNumPostDeferredPasses() override { return 1; }
     void renderPostDeferred(S32 pass) override;
+    bool emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass) override;
 };
 
 class LLDrawPoolGlow final : public LLRenderPass
@@ -136,6 +142,7 @@ public:
 
     S32 getNumPostDeferredPasses() override { return 1; }
     void renderPostDeferred(S32 pass) override;
+    bool emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass) override;
 };
 
 #endif // LL_LLDRAWPOOLSIMPLE_H

@@ -31,6 +31,7 @@
 #include "llviewershadermgr.h"
 #include "pipeline.h"
 #include "gltfscenemanager.h"
+#include "llworldrendercommand.h"
 
 LLDrawPoolGLTFPBR::LLDrawPoolGLTFPBR(U32 type) :
     LLRenderPass(type)
@@ -54,6 +55,14 @@ void LLDrawPoolGLTFPBR::renderDeferred(S32 pass)
 {
     llassert(!LLPipeline::sRenderingHUDs);
 
+    if (use_vulkan_world_command_path())
+    {
+        LLWorldRenderCommandBuffer commands;
+        emitDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
+
     if (mRenderType == LLPipeline::RENDER_TYPE_PASS_GLTF_PBR_ALPHA_MASK)
     {
         LL::GLTFSceneManager::instance().renderOpaque();
@@ -68,6 +77,22 @@ void LLDrawPoolGLTFPBR::renderDeferred(S32 pass)
     pushRiggedGLTFBatches(mRenderType + 1);
 }
 
+bool LLDrawPoolGLTFPBR::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    commands.appendRenderMap(
+        mRenderType,
+        mRenderType == LLPipeline::RENDER_TYPE_PASS_GLTF_PBR_ALPHA_MASK ?
+            LLWorldRenderMaterialClass::GLTFPBRAlphaMask :
+            LLWorldRenderMaterialClass::GLTFPBR,
+        true,
+        false,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_NORMAL |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_COLOR);
+    return true;
+}
+
 S32 LLDrawPoolGLTFPBR::getNumPostDeferredPasses()
 {
     return 1;
@@ -75,6 +100,14 @@ S32 LLDrawPoolGLTFPBR::getNumPostDeferredPasses()
 
 void LLDrawPoolGLTFPBR::renderPostDeferred(S32 pass)
 {
+    if (use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs)
+    {
+        LLWorldRenderCommandBuffer commands;
+        emitPostDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
+
     if (LLPipeline::sRenderingHUDs)
     {
         gHUDPBROpaqueProgram.bind();
@@ -93,3 +126,22 @@ void LLDrawPoolGLTFPBR::renderPostDeferred(S32 pass)
     }
 }
 
+bool LLDrawPoolGLTFPBR::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    if (LLPipeline::sRenderingHUDs ||
+        mRenderType != LLPipeline::RENDER_TYPE_PASS_GLTF_PBR)
+    {
+        return false;
+    }
+
+    commands.appendRenderMap(
+        LLRenderPass::PASS_GLTF_GLOW,
+        LLWorldRenderMaterialClass::Glow,
+        true,
+        false,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_NORMAL |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_COLOR);
+    return true;
+}

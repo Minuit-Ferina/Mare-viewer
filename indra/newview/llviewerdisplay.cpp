@@ -147,6 +147,72 @@ void render_disconnected_background();
 void getProfileStatsContext(boost::json::object& stats);
 std::string getProfileStatsFilename();
 
+static bool use_vulkan_world_path()
+{
+    return getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getRenderBackend().isReady();
+}
+
+static void render_vulkan_existing_world_geometry()
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan existing world draw pools");
+
+    static bool logged = false;
+    if (!logged)
+    {
+        LL_INFOS("RenderBackend")
+            << "Vulkan world path is invoking supported world draw pools through command emission."
+            << LL_ENDL;
+        logged = true;
+    }
+
+    gPipeline.pushRenderTypeMask();
+    gPipeline.andRenderTypeMask(
+        LLPipeline::RENDER_TYPE_TERRAIN,
+        LLPipeline::RENDER_TYPE_SIMPLE,
+        LLPipeline::RENDER_TYPE_ALPHA_MASK,
+        LLPipeline::RENDER_TYPE_GRASS,
+        LLPipeline::RENDER_TYPE_TREE,
+        LLPipeline::RENDER_TYPE_BUMP,
+        LLPipeline::RENDER_TYPE_MATERIALS,
+        LLPipeline::RENDER_TYPE_GLTF_PBR,
+        LLPipeline::RENDER_TYPE_GLTF_PBR_ALPHA_MASK,
+        LLPipeline::END_RENDER_TYPES);
+    gPipeline.renderGeomDeferred(*LLViewerCamera::getInstance(), false);
+    gPipeline.popRenderTypeMask();
+    gGL.setColorMask(true, true);
+}
+
+static void render_vulkan_existing_world_post_geometry()
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan existing post-deferred world draw pools");
+
+    gPipeline.pushRenderTypeMask();
+    gPipeline.andRenderTypeMask(
+        LLPipeline::RENDER_TYPE_FULLBRIGHT,
+        LLPipeline::RENDER_TYPE_FULLBRIGHT_ALPHA_MASK,
+        LLPipeline::RENDER_TYPE_BUMP,
+        LLPipeline::RENDER_TYPE_ALPHA_PRE_WATER,
+        LLPipeline::RENDER_TYPE_ALPHA_POST_WATER,
+        LLPipeline::RENDER_TYPE_GLOW,
+        LLPipeline::RENDER_TYPE_GLTF_PBR,
+        LLPipeline::RENDER_TYPE_WATER,
+        LLPipeline::RENDER_TYPE_VOIDWATER,
+        LLPipeline::END_RENDER_TYPES);
+    gPipeline.renderGeomPostDeferred(*LLViewerCamera::getInstance());
+    gPipeline.popRenderTypeMask();
+    gGL.setColorMask(true, true);
+}
+
+static void render_vulkan_world()
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan existing world");
+
+    gViewerWindow->setup3DRender();
+    render_vulkan_existing_world_geometry();
+    render_vulkan_existing_world_post_geometry();
+}
+
 void display_startup()
 {
     if (   !gViewerWindow
@@ -460,6 +526,40 @@ static void update_tp_display(bool minimized)
     }
 }
 
+static void render_vulkan_world_frame()
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan world frame");
+    static bool logged = false;
+    if (!logged)
+    {
+        LL_WARNS("RenderBackend")
+            << "Vulkan world path is active. Scene updates continue and supported draw pools use the world command bridge."
+            << LL_ENDL;
+        logged = true;
+    }
+
+    LLColor4 clear_color = gSky.mVOSkyp ?
+        gSky.getSkyFogColor() :
+        LLColor4(0.025f, 0.03f, 0.04f, 1.f);
+
+    gGL.setColorMask(true, true);
+    getRenderBackend().setClearColor(
+        clear_color.mV[VRED],
+        clear_color.mV[VGREEN],
+        clear_color.mV[VBLUE],
+        1.f);
+    getRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+
+    LLGLSUIDefault gls_ui;
+    gPipeline.disableLights();
+    render_vulkan_world();
+    gViewerWindow->setup2DRender();
+    gViewerWindow->draw();
+    gViewerWindow->updateDebugText();
+    gViewerWindow->drawDebugText();
+    gGL.flush();
+}
+
 // Paint the display!
 void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
 {
@@ -467,6 +567,8 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
     LL_PROFILE_GPU_ZONE("Render");
 
     LLPerfStats::RecordSceneTime T (LLPerfStats::StatType_t::RENDER_DISPLAY); // render time capture - This is the main stat for overall rendering.
+
+    const bool vulkan_backend_ready = use_vulkan_world_path();
 
     if (gWindowResized)
     { //skip render on frames where window has been resized
@@ -476,7 +578,10 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
         getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
         gViewerWindow->getWindow()->swapBuffers();
         LLPipeline::refreshCachedSettings();
-        gPipeline.resizeScreenTexture();
+        if (!vulkan_backend_ready)
+        {
+            gPipeline.resizeScreenTexture();
+        }
         gResizeScreenTexture = false;
         gWindowResized = false;
         return;
@@ -484,7 +589,10 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
 
     if (gResizeShadowTexture)
     { //skip render on frames where window has been resized
-        gPipeline.resizeShadowTexture();
+        if (!vulkan_backend_ready)
+        {
+            gPipeline.resizeShadowTexture();
+        }
         gResizeShadowTexture = false;
     }
 
@@ -606,6 +714,8 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
         display_startup();
         return;
     }
+
+    const bool vulkan_world_path = vulkan_backend_ready;
 
     if (gShaderProfileFrame)
     {
@@ -749,7 +859,8 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
     //if (gRRenabled && gAgent.mRRInterface.mContainsCamFocus)
     //{
 //mk
-    if (gPipeline.hasRenderDebugFeatureMask(LLPipeline::RENDER_DEBUG_FEATURE_DYNAMIC_TEXTURES))
+    if (!vulkan_world_path &&
+        gPipeline.hasRenderDebugFeatureMask(LLPipeline::RENDER_DEBUG_FEATURE_DYNAMIC_TEXTURES))
     {
         LLAppViewer::instance()->pingMainloopTimeout("Display:DynamicTextures");
         LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Update Dynamic Textures");
@@ -771,7 +882,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
     {
         // Render mirrors and associated hero probes before we render the rest of the scene.
         // This ensures the scene state in the hero probes are exactly the same as the rest of the scene before we render it.
-        if (gPipeline.RenderMirrors && !gSnapshot)
+        if (!vulkan_world_path && gPipeline.RenderMirrors && !gSnapshot)
         {
             LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Update hero probes");
             LL_PROFILE_GPU_ZONE("hero manager")
@@ -853,7 +964,10 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
             LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("display - 2")
             if (gResizeScreenTexture)
             {
-                gPipeline.resizeScreenTexture();
+                if (!vulkan_world_path)
+                {
+                    gPipeline.resizeScreenTexture();
+                }
                 gResizeScreenTexture = false;
             }
 
@@ -862,7 +976,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
 
             LLGLState::checkStates();
 
-            if (!for_snapshot)
+            if (!vulkan_world_path && !for_snapshot)
             {
                 if (gFrameCount > 1 && !for_snapshot)
                 { //for some reason, ATI 4800 series will error out if you
@@ -970,6 +1084,17 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
             gSky.updateSky();
         }
 
+        if (vulkan_world_path)
+        {
+            LLAppViewer::instance()->pingMainloopTimeout("Display:VulkanWorld");
+            render_vulkan_world_frame();
+            if (!for_snapshot)
+            {
+                swap();
+            }
+        }
+        else
+        {
         if(gUseWireframe)
         {
             getRenderBackend().setClearColor(0.5f, 0.5f, 0.5f, 0.f);
@@ -1106,7 +1231,9 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
             render_ui();
             swap();
         }
+        }
 
+        LLPipeline::sUnderWaterRender = false;
         LLSpatialGroup::sNoDelete = false;
         gPipeline.clearReferences();
     }

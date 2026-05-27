@@ -33,6 +33,48 @@
 #include "llglcommonfunc.h"
 #include "llrenderbackend.h"
 #include "llvoavatar.h"
+#include "llworldrendercommand.h"
+
+namespace
+{
+bool get_material_render_pass(S32 pass, U32& render_pass, bool& rigged)
+{
+    static const U32 type_list[] =
+    {
+        LLRenderPass::PASS_MATERIAL,
+        LLRenderPass::PASS_MATERIAL_ALPHA_MASK,
+        LLRenderPass::PASS_MATERIAL_ALPHA_EMISSIVE,
+        LLRenderPass::PASS_SPECMAP,
+        LLRenderPass::PASS_SPECMAP_MASK,
+        LLRenderPass::PASS_SPECMAP_EMISSIVE,
+        LLRenderPass::PASS_NORMMAP,
+        LLRenderPass::PASS_NORMMAP_MASK,
+        LLRenderPass::PASS_NORMMAP_EMISSIVE,
+        LLRenderPass::PASS_NORMSPEC,
+        LLRenderPass::PASS_NORMSPEC_MASK,
+        LLRenderPass::PASS_NORMSPEC_EMISSIVE,
+    };
+
+    rigged = false;
+    if (pass >= 12)
+    {
+        rigged = true;
+        pass -= 12;
+    }
+
+    if (pass < 0 || pass >= static_cast<S32>(sizeof(type_list) / sizeof(type_list[0])))
+    {
+        return false;
+    }
+
+    render_pass = type_list[pass];
+    if (rigged)
+    {
+        render_pass += 1;
+    }
+    return true;
+}
+}
 
 LLDrawPoolMaterials::LLDrawPoolMaterials()
 :  LLRenderPass(LLDrawPool::POOL_MATERIALS)
@@ -106,39 +148,20 @@ void LLDrawPoolMaterials::endDeferredPass(S32 pass)
 void LLDrawPoolMaterials::renderDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_MATERIAL;
-    static const U32 type_list[] =
-    {
-        LLRenderPass::PASS_MATERIAL,
-        //LLRenderPass::PASS_MATERIAL_ALPHA,
-        LLRenderPass::PASS_MATERIAL_ALPHA_MASK,
-        LLRenderPass::PASS_MATERIAL_ALPHA_EMISSIVE,
-        LLRenderPass::PASS_SPECMAP,
-        //LLRenderPass::PASS_SPECMAP_BLEND,
-        LLRenderPass::PASS_SPECMAP_MASK,
-        LLRenderPass::PASS_SPECMAP_EMISSIVE,
-        LLRenderPass::PASS_NORMMAP,
-        //LLRenderPass::PASS_NORMMAP_BLEND,
-        LLRenderPass::PASS_NORMMAP_MASK,
-        LLRenderPass::PASS_NORMMAP_EMISSIVE,
-        LLRenderPass::PASS_NORMSPEC,
-        //LLRenderPass::PASS_NORMSPEC_BLEND,
-        LLRenderPass::PASS_NORMSPEC_MASK,
-        LLRenderPass::PASS_NORMSPEC_EMISSIVE,
-    };
 
     bool rigged = false;
-    if (pass >= 12)
+    U32 type = 0;
+    if (!get_material_render_pass(pass, type, rigged))
     {
-        rigged = true;
-        pass -= 12;
+        return;
     }
 
-    llassert(pass < sizeof(type_list)/sizeof(U32));
-
-    U32 type = type_list[pass];
-    if (rigged)
+    if (use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs)
     {
-        type += 1;
+        LLWorldRenderCommandBuffer commands;
+        emitDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
     }
 
     LLCullResult::drawinfo_iterator begin = gPipeline.beginRenderMap(type);
@@ -287,4 +310,25 @@ void LLDrawPoolMaterials::renderDeferred(S32 pass)
             gGL.matrixMode(LLRender::MM_MODELVIEW);
         }
     }
+}
+
+bool LLDrawPoolMaterials::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    bool rigged = false;
+    U32 type = 0;
+    if (!get_material_render_pass(pass, type, rigged) || rigged)
+    {
+        return false;
+    }
+
+    commands.appendRenderMap(
+        type,
+        LLWorldRenderMaterialClass::LegacyMaterial,
+        true,
+        false,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_NORMAL |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_COLOR);
+    return true;
 }

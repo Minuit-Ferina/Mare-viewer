@@ -1401,6 +1401,11 @@ bool LLImageGL::setImage(const U8* data_in, bool data_hasmips /* = false */, S32
         }
     }
     stop_glerror();
+    if (!getRenderBackend().didLastTextureUploadSucceed())
+    {
+        mGLTextureCreated = false;
+        return false;
+    }
     mGLTextureCreated = true;
     return true;
 }
@@ -1535,7 +1540,16 @@ bool LLImageGL::setSubImage(const U8* datap, S32 data_width, S32 data_height, S3
     }
 
     // HACK: allow the caller to explicitly force the fast path (i.e. using glTexSubImage2D here instead of calling setImage) even when updating the full texture.
-    if (!force_fast_update && x_pos == 0 && y_pos == 0 && width == getWidth() && height == getHeight() && data_width == width && data_height == height)
+    const bool prefer_full_image_update =
+        getRenderBackend().getType() != LLRenderBackendType::Vulkan;
+    if (prefer_full_image_update &&
+        !force_fast_update &&
+        x_pos == 0 &&
+        y_pos == 0 &&
+        width == getWidth() &&
+        height == getHeight() &&
+        data_width == width &&
+        data_height == height)
     {
         setImage(datap, false, tex_name);
     }
@@ -1918,7 +1932,10 @@ void LLImageGL::setManualImage(U32 target, S32 miplevel, S32 intformat, S32 widt
                 sub_image_lines(target, miplevel, 0, 0, width, height, pixformat, pixtype, src, width);
             }
         }
-        alloc_tex_image(width, height, intformat, 1);
+        if (getRenderBackend().didLastTextureUploadSucceed())
+        {
+            alloc_tex_image(width, height, intformat, 1);
+        }
     }
     stop_glerror();
 }
@@ -2129,6 +2146,7 @@ bool LLImageGL::createGLTexture(S32 discard_level, const U8* data_in, bool data_
     }
 
     GLuint old_texname = mTexName;
+    S8 old_discard_level = mCurrentDiscardLevel;
     GLuint new_texname = 0;
     if (usename != 0)
     {
@@ -2167,6 +2185,15 @@ bool LLImageGL::createGLTexture(S32 discard_level, const U8* data_in, bool data_
         LL_PROFILE_ZONE_NAMED("cglt - late setImage");
         if (!setImage(data_in, data_hasmips, new_texname))
         {
+            if (new_texname != 0 && new_texname != old_texname && usename == 0)
+            {
+                LLImageGL::deleteTextures(1, &new_texname);
+            }
+            if (tex_name != nullptr)
+            {
+                *tex_name = old_texname;
+            }
+            mCurrentDiscardLevel = old_discard_level;
             return false;
         }
     }
@@ -2932,6 +2959,16 @@ void LLImageGL::resetCurTexSizebar()
 bool LLImageGL::scaleDown(S32 desired_discard)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
+
+    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+    {
+        if (desired_discard > mMaxDiscardLevel && mTexName != 0)
+        {
+            destroyGLTexture();
+            return true;
+        }
+        return false;
+    }
 
     if (mTarget != GL_TEXTURE_2D
         || mFormatInternal == -1 // not initialized

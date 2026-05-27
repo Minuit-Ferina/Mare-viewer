@@ -339,6 +339,12 @@ enum class LLRenderStencilOperation : U8
     Replace,
 };
 
+enum class LLRenderWorldShaderClass : U8
+{
+    Textured,
+    Terrain,
+};
+
 enum class LLRenderMatrixMode : U8
 {
     ModelView,
@@ -470,6 +476,19 @@ struct LLRenderBlendState
     LLRenderBlendFactor mColorDestination = LLRenderBlendFactor::Zero;
     LLRenderBlendFactor mAlphaSource = LLRenderBlendFactor::One;
     LLRenderBlendFactor mAlphaDestination = LLRenderBlendFactor::Zero;
+};
+
+struct LLRenderWorldTerrainParameters
+{
+    F32 mDetailScale = 1.f;
+    F32 mOffsetX = 0.f;
+    F32 mOffsetY = 0.f;
+};
+
+struct LLRenderWorldTextureTransform
+{
+    F32 mS[4] = { 1.f, 0.f, 0.f, 0.f };
+    F32 mT[4] = { 0.f, 1.f, 0.f, 0.f };
 };
 
 struct LLRenderTargetDesc
@@ -725,6 +744,11 @@ public:
     virtual void setCullFace(LLRenderCullFace face) = 0;
     virtual void setDepthFunction(LLRenderDepthFunction function) = 0;
     virtual void setDepthWriteEnabled(bool enabled) = 0;
+    virtual void setAlphaMaskCutoff(F32 cutoff) = 0;
+    virtual void setWorldDrawEnabled(bool enabled) = 0;
+    virtual void setWorldShaderClass(LLRenderWorldShaderClass shader_class) = 0;
+    virtual void setWorldTerrainParameters(const LLRenderWorldTerrainParameters& parameters) = 0;
+    virtual void setWorldTextureTransform(const LLRenderWorldTextureTransform& transform) = 0;
     virtual LLRenderFloatRange getLineWidthRange(bool smooth) const = 0;
     virtual void setPixelStoreInteger(LLRenderPixelStoreParameter parameter, S32 value) = 0;
     virtual S32 getActiveTextureUnit() const = 0;
@@ -1302,6 +1326,7 @@ public:
         LLRenderPixelFormat format,
         LLRenderPixelType type,
         const void* data) = 0;
+    virtual bool didLastTextureUploadSucceed() const { return true; }
     virtual LLRenderTextureHandle createTexture2D(LLRenderTextureFormat internal_format, S32 width, S32 height) = 0;
     virtual void readPixels(
         S32 x,

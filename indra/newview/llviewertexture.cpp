@@ -65,6 +65,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "llmimetypes.h"
+#include "llrenderbackend.h"
 #include "llrendercontext.h"
 // statics
 LLPointer<LLViewerTexture>        LLViewerTexture::sNullImagep = nullptr;
@@ -103,11 +104,58 @@ F32 LLViewerTexture::sCurrentTime = 0.0f;
 
 constexpr F32 MEMORY_CHECK_WAIT_TIME = 1.0f;
 constexpr F32 MIN_VRAM_BUDGET = 768.f;
+constexpr F32 VULKAN_PROTOTYPE_TEXTURE_BUDGET = 512.f;
+constexpr U32 VULKAN_PROTOTYPE_MAX_TEXTURE_RESOLUTION = 512;
 F32 LLViewerTexture::sFreeVRAMMegabytes = MIN_VRAM_BUDGET;
 
 LLViewerTexture::EDebugTexels LLViewerTexture::sDebugTexelsMode = LLViewerTexture::DEBUG_TEXELS_OFF;
 
 const F64 log_2 = log(2.0);
+
+namespace
+{
+bool use_vulkan_prototype_texture_limits()
+{
+    return getRenderBackend().getType() == LLRenderBackendType::Vulkan;
+}
+
+bool should_load_full_resolution_textures()
+{
+    static LLCachedControl<bool> textures_fullres(gSavedSettings, "TextureLoadFullRes", false);
+    if (textures_fullres && use_vulkan_prototype_texture_limits())
+    {
+        static bool logged_fullres_override = false;
+        if (!logged_fullres_override)
+        {
+            LL_WARNS() << "Ignoring TextureLoadFullRes while the Vulkan prototype backend is active."
+                       << LL_ENDL;
+            logged_fullres_override = true;
+        }
+        return false;
+    }
+    return textures_fullres;
+}
+
+U32 get_max_texture_resolution_for_backend()
+{
+    static LLCachedControl<U32> max_texture_resolution(gSavedSettings, "RenderMaxTextureResolution", 2048);
+    U32 max_tex_res = (U32)llclamp((U32)max_texture_resolution, 512, LLGLTexture::MAX_IMAGE_SIZE_DEFAULT);
+    if (use_vulkan_prototype_texture_limits())
+    {
+        const U32 clamped_tex_res = llmin(max_tex_res, VULKAN_PROTOTYPE_MAX_TEXTURE_RESOLUTION);
+        static bool logged_vulkan_texture_resolution = false;
+        if (!logged_vulkan_texture_resolution && clamped_tex_res < max_tex_res)
+        {
+            LL_WARNS() << "Clamping Vulkan prototype max texture resolution from "
+                       << max_tex_res << " to " << clamped_tex_res
+                       << LL_ENDL;
+            logged_vulkan_texture_resolution = true;
+        }
+        max_tex_res = clamped_tex_res;
+    }
+    return max_tex_res;
+}
+}
 
 //----------------------------------------------------------------------------------------------
 //namespace: LLViewerTextureAccess
@@ -512,6 +560,19 @@ void LLViewerTexture::updateClass()
     // While we're at it, assume we have 1024 to play with at minimum when the divisor is in use.  Works more elegantly with the logic below this.
     // -Geenz 2025-03-21
     F32 budget = max_vram_budget == 0 ? llmax(1024, (F32)gGLManager.mVRAM / tex_vram_divisor) : (F32)max_vram_budget;
+    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+    {
+        static bool logged_vulkan_budget = false;
+        const F32 clamped_budget = llmin(budget, VULKAN_PROTOTYPE_TEXTURE_BUDGET);
+        if (!logged_vulkan_budget && clamped_budget < budget)
+        {
+            LL_WARNS() << "Clamping Vulkan prototype texture budget from "
+                       << budget << "MB to " << clamped_budget << "MB"
+                       << LL_ENDL;
+            logged_vulkan_budget = true;
+        }
+        budget = clamped_budget;
+    }
 
     // Try to leave at least half a GB for everyone else and for bias,
     // but keep at least 768MB for ourselves
@@ -519,6 +580,10 @@ void LLViewerTexture::updateClass()
     // can negatively impact performance, so leave 20% of a breathing room for
     // 'bias' calculation to kick in.
     F32 target = llmax(llmin(budget - 512.f, budget * 0.8f), MIN_VRAM_BUDGET);
+    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+    {
+        target = llmax(128.f, budget * 0.75f);
+    }
     sFreeVRAMMegabytes = target - used;
 
     F32 over_pct = (used - target) / target;
@@ -1750,15 +1815,13 @@ void LLViewerFetchedTexture::processTextureStats()
     {
         updateVirtualSize();
 
-        static LLCachedControl<bool> textures_fullres(gSavedSettings,"TextureLoadFullRes", false);
+        const bool textures_fullres = should_load_full_resolution_textures();
 
         U32 max_tex_res = MAX_IMAGE_SIZE_DEFAULT;
         if (mBoostLevel < LLGLTexture::BOOST_HIGH)
         {
             // restrict texture resolution to download based on RenderMaxTextureResolution
-            static LLCachedControl<U32> max_texture_resolution(gSavedSettings, "RenderMaxTextureResolution", 2048);
-            // sanity clamp debug setting to avoid settings hack shenanigans
-            max_tex_res = (U32)llclamp((U32)max_texture_resolution, 512, MAX_IMAGE_SIZE_DEFAULT);
+            max_tex_res = get_max_texture_resolution_for_backend();
             mMaxVirtualSize = llmin(mMaxVirtualSize, (F32)(max_tex_res * max_tex_res));
         }
 
@@ -3016,15 +3079,13 @@ void LLViewerLODTexture::processTextureStats()
 
     bool did_downscale = false;
 
-    static LLCachedControl<bool> textures_fullres(gSavedSettings,"TextureLoadFullRes", false);
+    const bool textures_fullres = should_load_full_resolution_textures();
 
     F32 max_tex_res = MAX_IMAGE_SIZE_DEFAULT;
     if (mBoostLevel < LLGLTexture::BOOST_HIGH)
     {
         // restrict texture resolution to download based on RenderMaxTextureResolution
-        static LLCachedControl<U32> max_texture_resolution(gSavedSettings, "RenderMaxTextureResolution", 2048);
-        // sanity clamp debug setting to avoid settings hack shenanigans
-        max_tex_res = (F32)llclamp((S32)max_texture_resolution, 512, MAX_IMAGE_SIZE_DEFAULT);
+        max_tex_res = (F32)get_max_texture_resolution_for_backend();
         mMaxVirtualSize = llmin(mMaxVirtualSize, max_tex_res * max_tex_res);
     }
 

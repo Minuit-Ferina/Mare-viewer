@@ -65,6 +65,7 @@ public:
     void beginDeferredPass(S32 pass) override;
     void endDeferredPass(S32 pass) override;
     void renderDeferred(S32 pass) override;
+    bool emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass) override;
 };
 
 #endif //LL_LLDRAWPOOLMATERIALS_H

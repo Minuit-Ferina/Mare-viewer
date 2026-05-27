@@ -40,6 +40,7 @@
 #include "llviewercontrol.h"
 #include "llviewerregion.h"
 #include "llenvironment.h"
+#include "llworldrendercommand.h"
 
 S32 LLDrawPoolTree::sDiffTex = 0;
 static LLGLSLShader* shader = NULL;
@@ -67,6 +68,14 @@ void LLDrawPoolTree::renderDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED;
 
+    if (use_vulkan_world_command_path())
+    {
+        LLWorldRenderCommandBuffer commands;
+        emitDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
+
     if (mDrawFace.empty())
     {
         return;
@@ -92,6 +101,48 @@ void LLDrawPoolTree::renderDeferred(S32 pass)
             buff->drawRange(LLRender::TRIANGLES, 0, buff->getNumVerts() - 1, buff->getNumIndices(), 0);
         }
     }
+}
+
+bool LLDrawPoolTree::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    if (mDrawFace.empty())
+    {
+        return false;
+    }
+
+    mTexturep->addTextureStats(1024.f * 1024.f);
+
+    for (LLFace* face : mDrawFace)
+    {
+        if (!face)
+        {
+            continue;
+        }
+
+        LLVertexBuffer* vertex_buffer = face->getVertexBuffer();
+        const LLDrawable* drawable = face->getDrawable();
+        const LLViewerRegion* region = drawable ? drawable->getRegion() : nullptr;
+        if (!vertex_buffer || !vertex_buffer->getNumVerts() || !vertex_buffer->getNumIndices())
+        {
+            continue;
+        }
+
+        commands.appendDrawRange(
+            vertex_buffer,
+            mTexturep,
+            LLWorldRenderMaterialClass::Tree,
+            LLDrawPool::POOL_TREE,
+            region ? &region->mRenderMatrix : nullptr,
+            0,
+            vertex_buffer->getNumVerts() - 1,
+            vertex_buffer->getNumIndices(),
+            0,
+            true,
+            false,
+            VERTEX_DATA_MASK);
+    }
+
+    return true;
 }
 
 void LLDrawPoolTree::endDeferredPass(S32 pass)

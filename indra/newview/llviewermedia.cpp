@@ -41,6 +41,7 @@
 #include "llfocusmgr.h"
 #include "llimagegl.h"
 #include "llkeyboard.h"
+#include "llrenderbackend.h"
 #include "lllogininstance.h"
 #include "llmarketplacefunctions.h"
 #include "llmediaentry.h"
@@ -3044,7 +3045,11 @@ void LLViewerMediaImpl::update()
     if (preMediaTexUpdate(media_tex, data, data_width, data_height, x_pos, y_pos, width, height))
     {
         // Push update to worker thread
-        auto main_queue = LLImageGLThread::sEnabledMedia ? mMainQueue.lock() : nullptr;
+        const bool vulkan_backend =
+            getRenderBackend().getType() == LLRenderBackendType::Vulkan;
+        auto main_queue = !vulkan_backend && LLImageGLThread::sEnabledMedia ?
+            mMainQueue.lock() :
+            nullptr;
         if (main_queue)
         {
             mTextureUpdatePending = true;
@@ -3130,6 +3135,17 @@ void LLViewerMediaImpl::doMediaTexUpdate(LLViewerMediaTexture* media_tex, U8* da
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_MEDIA;
     LLCoros::LockType lock(mLock); // don't allow media source tear-down during update
+
+    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+    {
+        LLImageGL* gl_texture = media_tex->getGLTexture();
+        const LLGLuint tex_name = gl_texture ? gl_texture->getTexName() : 0;
+        if (tex_name != 0)
+        {
+            media_tex->setSubImage(data, data_width, data_height, x_pos, y_pos, width, height, tex_name);
+            return;
+        }
+    }
 
     // wrap "data" in an LLImageRaw but do NOT make a copy
     LLPointer<LLImageRaw> raw = new LLImageRaw(data, media_tex->getWidth(), media_tex->getHeight(), media_tex->getComponents(), true);

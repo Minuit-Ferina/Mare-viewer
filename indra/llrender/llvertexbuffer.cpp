@@ -420,6 +420,12 @@ static void draw_vertex_buffer_arrays(GLenum mode, GLint first, GLsizei count)
     getRenderBackend().drawArrays(to_render_primitive_type(mode), first, count);
 }
 
+static bool use_apple_vbo_upload_path()
+{
+    return gGLManager.mIsApple &&
+        getRenderBackend().getType() != LLRenderBackendType::Vulkan;
+}
+
 // batch buffer object name generation
 static LLRenderBufferHandle gen_buffer()
 {
@@ -537,6 +543,71 @@ public:
         }
 
         mAllocated -= size;
+        STOP_GLERROR;
+        if (name)
+        {
+            delete_buffers(1, &name);
+        }
+        STOP_GLERROR;
+    }
+};
+
+class LLDedicatedVBOPool final : public LLVBOPool
+{
+public:
+    U64 mAllocated = 0;
+
+    U64 getVramBytesUsed() override
+    {
+        return mAllocated;
+    }
+
+    void allocate(GLenum type, U32 size, LLRenderBufferHandle& name, U8*& data) override
+    {
+        LL_PROFILE_ZONE_SCOPED_CATEGORY_VERTEX;
+        STOP_GLERROR;
+        llassert(type == GL_ARRAY_BUFFER || type == GL_ELEMENT_ARRAY_BUFFER);
+        llassert(!name);
+        llassert(data == nullptr);
+        llassert(size >= 2);
+
+        mAllocated += size;
+        name = gen_buffer();
+        bind_vertex_buffer_target(type, name);
+        allocate_vertex_buffer_storage(type, size, nullptr, GL_DYNAMIC_DRAW);
+        if (type == GL_ELEMENT_ARRAY_BUFFER)
+        {
+            LLVertexBuffer::sGLRenderIndices = name;
+        }
+        else
+        {
+            LLVertexBuffer::sGLRenderBuffer = name;
+        }
+
+        data = (U8*)ll_aligned_malloc_16(size);
+        STOP_GLERROR;
+    }
+
+    void free(GLenum type, U32 size, LLRenderBufferHandle name, U8* data) override
+    {
+        LL_PROFILE_ZONE_SCOPED_CATEGORY_VERTEX;
+        llassert(type == GL_ARRAY_BUFFER || type == GL_ELEMENT_ARRAY_BUFFER);
+        llassert(size >= 2);
+
+        if (data)
+        {
+            ll_aligned_free_16(data);
+        }
+
+        if (mAllocated >= size)
+        {
+            mAllocated -= size;
+        }
+        else
+        {
+            mAllocated = 0;
+        }
+
         STOP_GLERROR;
         if (name)
         {
@@ -1099,10 +1170,15 @@ void LLVertexBuffer::initClass(LLWindow* window)
 {
     llassert(sVBOPool == nullptr);
 
-    if (gGLManager.mIsApple)
+    if (use_apple_vbo_upload_path())
     {
         LL_INFOS() << "VBO Pooling Disabled" << LL_ENDL;
         sVBOPool = new LLAppleVBOPool();
+    }
+    else if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+    {
+        LL_INFOS() << "VBO Pooling Enabled for Vulkan" << LL_ENDL;
+        sVBOPool = new LLDefaultVBOPool();
     }
     else
     {
@@ -1443,7 +1519,7 @@ U8* LLVertexBuffer::mapVertexBuffer(LLVertexBuffer::AttributeType type, U32 inde
         count = mNumVerts - index;
     }
 
-    if (!gGLManager.mIsApple)
+    if (!use_apple_vbo_upload_path())
     {
         U32 start = mOffsets[type] + sTypeSize[type] * index;
         U32 end = start + sTypeSize[type] * count-1;
@@ -1480,7 +1556,7 @@ U8* LLVertexBuffer::mapIndexBuffer(U32 index, S32 count)
         count = mNumIndices-index;
     }
 
-    if (!gGLManager.mIsApple)
+    if (!use_apple_vbo_upload_path())
     {
         U32 start = sizeof(U16) * index;
         U32 end = start + sizeof(U16) * count-1;
@@ -1515,7 +1591,7 @@ U8* LLVertexBuffer::mapIndexBuffer(U32 index, S32 count)
 //  dst -- mMappedData or mMappedIndexData
 void LLVertexBuffer::flush_vbo(LLGLenum target, U32 start, U32 end, void* data, U8* dst)
 {
-    if (gGLManager.mIsApple)
+    if (use_apple_vbo_upload_path())
     {
         // on OS X, flush_vbo doesn't actually write to the GL buffer, so be sure to call
         // _mapBuffer to tag the buffer for flushing to GL
@@ -1581,7 +1657,7 @@ void LLVertexBuffer::_unmapBuffer()
         }
     };
 
-    if (gGLManager.mIsApple)
+    if (use_apple_vbo_upload_path())
     {
         STOP_GLERROR;
         if (mMappedData)
@@ -1833,7 +1909,18 @@ void LLVertexBuffer::setBuffer()
         "Attribute mask mismatch! mTypeMask should be a superset of data_mask.  data_mask: 0x"
                 << std::hex << data_mask << " mTypeMask: 0x" << mTypeMask << " Missing: 0x" << (data_mask & ~mTypeMask) <<  std::dec);
 
-    if (sGLRenderBuffer != mGLBuffer)
+    const bool force_backend_vertex_state =
+        getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getRenderBackend().isReady();
+
+    if (force_backend_vertex_state)
+    {
+        bind_vertex_buffer_target(GL_ARRAY_BUFFER, mGLBuffer);
+        sGLRenderBuffer = mGLBuffer;
+        setupVertexBuffer();
+        sLastMask = data_mask;
+    }
+    else if (sGLRenderBuffer != mGLBuffer)
     {
         bind_vertex_buffer_target(GL_ARRAY_BUFFER, mGLBuffer);
         sGLRenderBuffer = mGLBuffer;
@@ -1846,7 +1933,7 @@ void LLVertexBuffer::setBuffer()
         sLastMask = data_mask;
     }
 
-    if (mGLIndices != sGLRenderIndices)
+    if (force_backend_vertex_state || mGLIndices != sGLRenderIndices)
     {
         bind_vertex_buffer_target(GL_ELEMENT_ARRAY_BUFFER, mGLIndices);
         sGLRenderIndices = mGLIndices;

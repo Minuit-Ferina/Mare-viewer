@@ -52,6 +52,7 @@
 #include "llenvironment.h"
 #include "llsettingsvo.h"
 #include "llrenderstate.h"
+#include "llworldrendercommand.h"
 
 const F32 DETAIL_SCALE = 1.f/16.f;
 int DebugDetailMap = 0;
@@ -148,7 +149,10 @@ void LLDrawPoolTerrain::endDeferredPass(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL; //LL_RECORD_BLOCK_TIME(FTM_RENDER_TERRAIN);
     LLFacePool::endRenderPass(pass);
-    sShader->unbind();
+    if (sShader)
+    {
+        sShader->unbind();
+    }
 }
 
 void LLDrawPoolTerrain::renderDeferred(S32 pass)
@@ -169,6 +173,41 @@ void LLDrawPoolTerrain::renderDeferred(S32 pass)
         hilightParcelOwners();
     }
 
+}
+
+bool LLDrawPoolTerrain::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    LLViewerRegion* regionp = nullptr;
+    LLVLComposition* compp = nullptr;
+    if (!mDrawFace.empty() && mDrawFace[0])
+    {
+        LLDrawable* drawablep = mDrawFace[0]->getDrawable();
+        LLViewerObject* vobjp = drawablep ? drawablep->getVObj() : nullptr;
+        regionp = vobjp ? vobjp->getRegion() : nullptr;
+        compp = regionp ? regionp->getComposition() : nullptr;
+    }
+
+    LLVector3d region_origin_global = gAgent.getRegion()->getOriginGlobal();
+    const F32 offset_x = (F32)fmod(region_origin_global.mdV[VX], 1.0/(F64)sDetailScale)*sDetailScale;
+    const F32 offset_y = (F32)fmod(region_origin_global.mdV[VY], 1.0/(F64)sDetailScale)*sDetailScale;
+
+    for (LLFace* face : mDrawFace)
+    {
+        if (face)
+        {
+            commands.appendTerrainFace(
+                *face,
+                compp ? compp->mDetailTextures[0].get() : nullptr,
+                compp ? compp->mDetailTextures[1].get() : nullptr,
+                compp ? compp->mDetailTextures[2].get() : nullptr,
+                compp ? compp->mDetailTextures[3].get() : nullptr,
+                m2DAlphaRampImagep.get(),
+                sDetailScale,
+                offset_x,
+                offset_y);
+        }
+    }
+    return true;
 }
 
 void LLDrawPoolTerrain::beginShadowPass(S32 pass)

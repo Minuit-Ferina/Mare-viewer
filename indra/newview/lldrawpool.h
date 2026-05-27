@@ -40,6 +40,7 @@ class LLDrawInfo;
 class LLVOAvatar;
 class LLGLSLShader;
 class LLMeshSkinInfo;
+class LLWorldRenderCommandBuffer;
 
 class LLDrawPool
 {
@@ -99,11 +100,13 @@ public:
     virtual void endDeferredPass(S32 pass);
     virtual S32 getNumDeferredPasses();
     virtual void renderDeferred(S32 pass = 0);
+    virtual bool emitDeferredCommands(LLWorldRenderCommandBuffer&, S32 pass = 0) { return false; }
 
     virtual void beginPostDeferredPass(S32 pass);
     virtual void endPostDeferredPass(S32 pass);
     virtual S32 getNumPostDeferredPasses();
     virtual void renderPostDeferred(S32 pass = 0);
+    virtual bool emitPostDeferredCommands(LLWorldRenderCommandBuffer&, S32 pass = 0) { return false; }
 
     virtual void beginShadowPass(S32 pass);
     virtual void endShadowPass(S32 pass);

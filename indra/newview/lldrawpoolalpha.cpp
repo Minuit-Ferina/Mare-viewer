@@ -49,6 +49,7 @@
 #include "llglcommonfunc.h"
 #include "llvoavatar.h"
 #include "gltfscenemanager.h"
+#include "llworldrendercommand.h"
 
 #include "llenvironment.h"
 
@@ -660,6 +661,14 @@ void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
 
+    if (use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs)
+    {
+        LLWorldRenderCommandBuffer commands;
+        emitPostDeferredCommands(commands, pass);
+        submit_vulkan_world_commands(commands);
+        return;
+    }
+
     if (LLPipeline::isWaterClip() && getType() == LLDrawPool::POOL_ALPHA_PRE_WATER)
     { // don't render alpha objects on the other side of the water plane if water is opaque
         return;
@@ -690,6 +699,59 @@ void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
     {
         renderDepthOfFieldAlphaPass();
     }
+}
+
+bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    if (LLPipeline::sRenderingHUDs ||
+        (LLPipeline::isWaterClip() && getType() == LLDrawPool::POOL_ALPHA_PRE_WATER))
+    {
+        return false;
+    }
+
+    LLEnvironment& env = LLEnvironment::instance();
+    const AlphaPassContext context =
+    {
+        false,
+        false,
+        is_above_water_alpha_pool(getType()),
+        env.getWaterHeight()
+    };
+
+    LLCullResult::sg_iterator begin = begin_alpha_groups(false);
+    LLCullResult::sg_iterator end = end_alpha_groups(false);
+
+    for (LLCullResult::sg_iterator group_iter = begin; group_iter != end; ++group_iter)
+    {
+        LLSpatialGroup* group = *group_iter;
+        if (!is_renderable_alpha_group(group) ||
+            !is_alpha_group_on_rendered_side_of_water(group, context.above_water, context.water_height))
+        {
+            continue;
+        }
+
+        LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_draw_info(group, context.rigged);
+        for (LLSpatialGroup::drawmap_elem_t::iterator draw_iter = draw_info.begin();
+             draw_iter != draw_info.end();
+             ++draw_iter)
+        {
+            LLDrawInfo& params = **draw_iter;
+            if (!is_alpha_draw_info_for_pass(params, context.rigged))
+            {
+                continue;
+            }
+
+            commands.appendDrawInfo(
+                params,
+                LLWorldRenderMaterialClass::Alpha,
+                LLRenderPass::PASS_ALPHA,
+                true,
+                true,
+                VERTEX_DATA_MASK);
+        }
+    }
+
+    return true;
 }
 
 void LLDrawPoolAlpha::setupForwardAlphaRenderState()

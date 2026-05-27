@@ -1168,6 +1168,12 @@ public:
         LLGLContainment::setDepthMask(static_cast<LLGLboolean>(enabled));
     }
 
+    void setAlphaMaskCutoff(F32) override {}
+    void setWorldDrawEnabled(bool) override {}
+    void setWorldShaderClass(LLRenderWorldShaderClass) override {}
+    void setWorldTerrainParameters(const LLRenderWorldTerrainParameters&) override {}
+    void setWorldTextureTransform(const LLRenderWorldTextureTransform&) override {}
+
     LLRenderFloatRange getLineWidthRange(bool smooth) const override
     {
         LLGLfloat range[2] = {1.f, 1.f};

@@ -100,6 +100,7 @@
 #include "llvowater.h"
 #include "llvotree.h"
 #include "llvopartgroup.h"
+#include "llworldrendercommand.h"
 #include "llworld.h"
 #include "llcubemap.h"
 #include "llviewershadermgr.h"
@@ -4185,6 +4186,8 @@ void LLPipeline::renderGeomDeferred(LLCamera& camera, bool do_occlusion)
 
         LLGLState::checkStates();
 
+        const bool use_vulkan_commands = use_vulkan_world_command_path();
+
         if (LLViewerShaderMgr::instance()->mShaderLevel[LLViewerShaderMgr::SHADER_DEFERRED] > 1)
         {
             //update reflection probe uniform
@@ -4197,6 +4200,7 @@ void LLPipeline::renderGeomDeferred(LLCamera& camera, bool do_occlusion)
         gGL.setColorMask(true, true);
 
         pool_set_t::iterator iter1 = mPools.begin();
+        LLWorldRenderCommandBuffer vulkan_commands;
 
         while ( iter1 != mPools.end() )
         {
@@ -4224,18 +4228,37 @@ void LLPipeline::renderGeomDeferred(LLCamera& camera, bool do_occlusion)
                 for( S32 i = 0; i < poolp->getNumDeferredPasses(); i++ )
                 {
                     LLVertexBuffer::unbind();
-                    poolp->beginDeferredPass(i);
-                    for (iter2 = iter1; iter2 != mPools.end(); iter2++)
+                    if (use_vulkan_commands)
                     {
-                        LLDrawPool *p = *iter2;
-                        if (p->getType() != cur_type)
+                        for (iter2 = iter1; iter2 != mPools.end(); iter2++)
                         {
-                            break;
-                        }
+                            LLDrawPool *p = *iter2;
+                            if (p->getType() != cur_type)
+                            {
+                                break;
+                            }
 
-                        if ( !p->getSkipRenderFlag() ) { p->renderDeferred(i); }
+                            if (!p->getSkipRenderFlag())
+                            {
+                                p->emitDeferredCommands(vulkan_commands, i);
+                            }
+                        }
                     }
-                    poolp->endDeferredPass(i);
+                    else
+                    {
+                        poolp->beginDeferredPass(i);
+                        for (iter2 = iter1; iter2 != mPools.end(); iter2++)
+                        {
+                            LLDrawPool *p = *iter2;
+                            if (p->getType() != cur_type)
+                            {
+                                break;
+                            }
+
+                            if ( !p->getSkipRenderFlag() ) { p->renderDeferred(i); }
+                        }
+                        poolp->endDeferredPass(i);
+                    }
                     LLVertexBuffer::unbind();
 
                     LLGLState::checkStates();
@@ -4255,6 +4278,14 @@ void LLPipeline::renderGeomDeferred(LLCamera& camera, bool do_occlusion)
             }
             iter1 = iter2;
             stop_glerror();
+        }
+
+        if (use_vulkan_commands)
+        {
+            gGLLastMatrix = NULL;
+            gGL.matrixMode(LLRender::MM_MODELVIEW);
+            gGL.loadMatrix(gGLModelView);
+            submit_vulkan_world_commands(vulkan_commands);
         }
 
         gGLLastMatrix = NULL;
@@ -4290,6 +4321,7 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
     bool done_atmospherics = LLPipeline::sRenderingHUDs; //skip atmospherics on huds
     bool done_water_haze = done_atmospherics;
     bool done_water_exclusion = false;
+    const bool use_vulkan_commands = use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs;
 
     // do water exclusion just before water pass.
     U32 water_exclusion_pass = LLDrawPool::POOL_WATEREXCLUSION;
@@ -4312,6 +4344,7 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
     gGL.setColorMask(true, false);
 
     pool_set_t::iterator iter1 = mPools.begin();
+    LLWorldRenderCommandBuffer vulkan_commands;
 
     if (gDebugGL || gDebugPipeline)
     {
@@ -4330,19 +4363,19 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
 
         cur_type = poolp->getType();
 
-        if (cur_type >= water_exclusion_pass && !done_water_exclusion)
+        if (!use_vulkan_commands && cur_type >= water_exclusion_pass && !done_water_exclusion)
         { // do water exclusion against depth buffer before rendering alpha
             doWaterExclusionMask();
             done_water_exclusion = true;
         }
 
-        if (cur_type >= atmospherics_pass && !done_atmospherics)
+        if (!use_vulkan_commands && cur_type >= atmospherics_pass && !done_atmospherics)
         { // do atmospherics against depth buffer before rendering alpha
             doAtmospherics();
             done_atmospherics = true;
         }
 
-        if (cur_type >= water_haze_pass && !done_water_haze)
+        if (!use_vulkan_commands && cur_type >= water_haze_pass && !done_water_haze)
         { // do water haze against depth buffer before rendering alpha
             doWaterHaze();
             done_water_haze = true;
@@ -4359,18 +4392,37 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
             for( S32 i = 0; i < poolp->getNumPostDeferredPasses(); i++ )
             {
                 LLVertexBuffer::unbind();
-                poolp->beginPostDeferredPass(i);
-                for (iter2 = iter1; iter2 != mPools.end(); iter2++)
+                if (use_vulkan_commands)
                 {
-                    LLDrawPool *p = *iter2;
-                    if (p->getType() != cur_type)
+                    for (iter2 = iter1; iter2 != mPools.end(); iter2++)
                     {
-                        break;
-                    }
+                        LLDrawPool *p = *iter2;
+                        if (p->getType() != cur_type)
+                        {
+                            break;
+                        }
 
-                    p->renderPostDeferred(i);
+                        if (!p->getSkipRenderFlag())
+                        {
+                            p->emitPostDeferredCommands(vulkan_commands, i);
+                        }
+                    }
                 }
-                poolp->endPostDeferredPass(i);
+                else
+                {
+                    poolp->beginPostDeferredPass(i);
+                    for (iter2 = iter1; iter2 != mPools.end(); iter2++)
+                    {
+                        LLDrawPool *p = *iter2;
+                        if (p->getType() != cur_type)
+                        {
+                            break;
+                        }
+
+                        p->renderPostDeferred(i);
+                    }
+                    poolp->endPostDeferredPass(i);
+                }
                 LLVertexBuffer::unbind();
 
                 if (gDebugGL || gDebugPipeline)
@@ -4395,11 +4447,19 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
         stop_glerror();
     }
 
+    if (use_vulkan_commands)
+    {
+        gGLLastMatrix = NULL;
+        gGL.matrixMode(LLRender::MM_MODELVIEW);
+        gGL.loadMatrix(gGLModelView);
+        submit_vulkan_world_commands(vulkan_commands);
+    }
+
     gGLLastMatrix = NULL;
     gGL.matrixMode(LLRender::MM_MODELVIEW);
     gGL.loadMatrix(gGLModelView);
 
-    if (!gCubeSnapshot)
+    if (!use_vulkan_commands && !gCubeSnapshot)
     {
         // debug displays
         renderHighlights();

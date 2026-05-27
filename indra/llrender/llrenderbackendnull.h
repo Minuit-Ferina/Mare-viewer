@@ -67,6 +67,11 @@ public:
     void setCullFace(LLRenderCullFace) override {}
     void setDepthFunction(LLRenderDepthFunction) override {}
     void setDepthWriteEnabled(bool) override {}
+    void setAlphaMaskCutoff(F32) override {}
+    void setWorldDrawEnabled(bool) override {}
+    void setWorldShaderClass(LLRenderWorldShaderClass) override {}
+    void setWorldTerrainParameters(const LLRenderWorldTerrainParameters&) override {}
+    void setWorldTextureTransform(const LLRenderWorldTextureTransform&) override {}
     LLRenderFloatRange getLineWidthRange(bool) const override { return {1.f, 1.f}; }
     void setPixelStoreInteger(LLRenderPixelStoreParameter, S32) override {}
     S32 getActiveTextureUnit() const override { return 0; }
