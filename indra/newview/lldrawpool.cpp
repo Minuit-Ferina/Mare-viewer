@@ -650,6 +650,13 @@ bool LLRenderPass::uploadMatrixPalette(LLDrawInfo& params)
     return uploadMatrixPalette(params.mAvatar, params.mSkinInfo);
 }
 
+static void set_backend_skinning_matrix_palette(const LLVOAvatar::MatrixPaletteCache& mpc, U32 count)
+{
+    getRenderBackend().setWorldSkinningMatrixPalette(
+        count,
+        mpc.mGLMp.empty() ? nullptr : mpc.mGLMp.data());
+}
+
 //static
 bool LLRenderPass::uploadMatrixPalette(LLVOAvatar* avatar, LLMeshSkinInfo* skinInfo)
 {
@@ -657,6 +664,7 @@ bool LLRenderPass::uploadMatrixPalette(LLVOAvatar* avatar, LLMeshSkinInfo* skinI
 
     if (!avatar)
     {
+        getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
         return false;
     }
     const LLVOAvatar::MatrixPaletteCache& mpc = avatar->updateSkinInfoMatrixPalette(skinInfo);
@@ -665,9 +673,11 @@ bool LLRenderPass::uploadMatrixPalette(LLVOAvatar* avatar, LLMeshSkinInfo* skinI
     if (count == 0)
     {
         //skin info not loaded yet, don't render
+        getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
         return false;
     }
 
+    set_backend_skinning_matrix_palette(mpc, count);
     LLGLSLShader::sCurBoundShaderPtr->uniformMatrix3x4fv(LLViewerShaderMgr::AVATAR_MATRIX,
         count,
         false,
@@ -687,6 +697,7 @@ bool LLRenderPass::uploadMatrixPalette(LLVOAvatar* avatar, LLMeshSkinInfo* skinI
 
     if (!avatar)
     {
+        getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
         return false;
     }
 
@@ -704,10 +715,15 @@ bool LLRenderPass::uploadMatrixPalette(LLVOAvatar* avatar, LLMeshSkinInfo* skinI
 
     if (!skipLastSkin)
     {
+        set_backend_skinning_matrix_palette(mpc, count);
         LLGLSLShader::sCurBoundShaderPtr->uniformMatrix3x4fv(LLViewerShaderMgr::AVATAR_MATRIX,
             count,
             false,
             (F32*)&(mpc.mGLMp[0]));
+    }
+    else
+    {
+        getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
     }
 
     return !skipLastSkin;
@@ -724,6 +740,7 @@ bool LLRenderPass::uploadMatrixPalette(LLVOAvatar* avatar, LLMeshSkinInfo* skinI
 
     if (!avatar)
     {
+        getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
         return false;
     }
 
@@ -742,10 +759,15 @@ bool LLRenderPass::uploadMatrixPalette(LLVOAvatar* avatar, LLMeshSkinInfo* skinI
 
     if (!skipLastSkin)
     {
+        set_backend_skinning_matrix_palette(mpc, count);
         LLGLSLShader::sCurBoundShaderPtr->uniformMatrix3x4fv(LLViewerShaderMgr::AVATAR_MATRIX,
             count,
             false,
             (F32*)&(mpc.mGLMp[0]));
+    }
+    else
+    {
+        getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
     }
 
     return !skipLastSkin;

@@ -36,6 +36,7 @@
 #include "llui.h"
 #include "llimageworker.h"
 #include "llrender.h"
+#include "llrenderbackend.h"
 
 #include "lltooltip.h"
 #include "llappviewer.h"
@@ -527,8 +528,18 @@ void LLGLTexMemBar::draw()
    F64 raw_image_bytes_MB = raw_image_bytes / (1024.0 * 1024.0);
    F64 saved_raw_image_bytes_MB = saved_raw_image_bytes / (1024.0 * 1024.0);
    F64 aux_raw_image_bytes_MB = aux_raw_image_bytes / (1024.0 * 1024.0);
+   const bool is_vulkan_backend = getRenderBackend().getType() == LLRenderBackendType::Vulkan;
    F64 texture_bytes_alloc = LLImageGL::getTextureBytesAllocated() / 1024.0 / 512.0;
    F64 vertex_bytes_alloc = LLVertexBuffer::getBytesAllocated() / 1024.0 / 512.0;
+   if (is_vulkan_backend)
+   {
+       texture_bytes_alloc =
+           static_cast<F64>(getRenderBackend().getTextureMemoryAllocatedBytes()) /
+           (1024.0 * 1024.0);
+       vertex_bytes_alloc =
+           static_cast<F64>(getRenderBackend().getBufferMemoryAllocatedBytes()) /
+           (1024.0 * 1024.0);
+   }
    F64 render_bytes_alloc = LLRenderTarget::sBytesAllocated / 1024.0 / 512.0;
 
     //----------------------------------------------------------------------------
@@ -1071,4 +1082,3 @@ bool LLTextureView::handleKey(KEY key, MASK mask, bool called_from_parent)
 {
     return false;
 }
-

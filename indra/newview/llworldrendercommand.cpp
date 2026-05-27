@@ -26,6 +26,7 @@
 #include "lldrawable.h"
 #include "lldrawpool.h"
 #include "llface.h"
+#include "llfetchedgltfmaterial.h"
 #include "m4math.h"
 #include "llrenderbackend.h"
 #include "llrenderstate.h"
@@ -36,6 +37,9 @@
 
 namespace
 {
+constexpr F32 WORLD_RENDER_MINIMUM_ALPHA = 0.004f;
+constexpr F32 AVATAR_RENDER_MINIMUM_ALPHA = 0.2f;
+
 LLWorldRenderPassClass get_world_render_pass_class(LLWorldRenderMaterialClass material_class)
 {
     switch (material_class)
@@ -127,7 +131,10 @@ F32 get_world_render_alpha_mask_cutoff(const LLWorldRenderCommand& command)
         case LLWorldRenderMaterialClass::Tree:
         case LLWorldRenderMaterialClass::FullbrightAlphaMask:
         case LLWorldRenderMaterialClass::GLTFPBRAlphaMask:
+        case LLWorldRenderMaterialClass::Avatar:
             return command.mAlphaMaskCutoff;
+        case LLWorldRenderMaterialClass::Alpha:
+            return WORLD_RENDER_MINIMUM_ALPHA;
         case LLWorldRenderMaterialClass::LegacyMaterial:
             return is_material_alpha_mask_source_pass(command.mSourcePass) ?
                 command.mAlphaMaskCutoff :
@@ -235,6 +242,29 @@ void LLWorldRenderCommandBuffer::appendDrawInfo(
     command.mTextureList = params.mTextureList;
     command.mTextureMatrix = params.mTextureMatrix;
     command.mAlphaMaskCutoff = params.mAlphaMaskCutoff;
+    command.mAvatar = params.mAvatar;
+    command.mSkinInfo = params.mSkinInfo;
+    command.mRigged = params.mAvatar != nullptr && params.mSkinInfo != nullptr;
+    if (command.mRigged &&
+        command.mMaterialClass == LLWorldRenderMaterialClass::Alpha)
+    {
+        // Match the legacy alpha path: rigged alpha draws populate depth before
+        // later alpha sorting uses that depth.
+        command.mDepthMode = LLWorldRenderDepthMode::ReadWrite;
+    }
+    if (params.mGLTFMaterial.notNull())
+    {
+        if (params.mGLTFMaterial->mDoubleSided)
+        {
+            command.mCullMode = LLWorldRenderCullMode::Disabled;
+        }
+        if (command.mTexture.isNull() &&
+            params.mGLTFMaterial->mBaseColorTexture.notNull())
+        {
+            command.mTexture = params.mGLTFMaterial->mBaseColorTexture;
+        }
+        command.mAlphaMaskCutoff = params.mGLTFMaterial->mAlphaCutoff;
+    }
     if (batch_textures && command.mTextureList.size() > 1)
     {
         command.mAttributeMask |= LLVertexBuffer::MAP_TEXTURE_INDEX;
@@ -342,6 +372,43 @@ void LLWorldRenderCommandBuffer::appendDrawRange(
     command.mUseTexture = use_texture;
     command.mBatchTextures = batch_textures;
     mCommands.push_back(command);
+}
+
+void LLWorldRenderCommandBuffer::appendAvatarDrawRange(
+    LLVertexBuffer* vertex_buffer,
+    LLViewerTexture* texture,
+    U32 source_pass,
+    U32 start,
+    U32 end,
+    U32 count,
+    U32 offset,
+    const std::vector<F32>& skinning_matrix_palette,
+    U32 skinning_matrix_count,
+    U32 attribute_mask)
+{
+    const size_t command_count = mCommands.size();
+    appendDrawRange(
+        vertex_buffer,
+        texture,
+        LLWorldRenderMaterialClass::Avatar,
+        source_pass,
+        nullptr,
+        start,
+        end,
+        count,
+        offset,
+        true,
+        false,
+        attribute_mask);
+    if (mCommands.size() == command_count)
+    {
+        return;
+    }
+
+    LLWorldRenderCommand& command = mCommands.back();
+    command.mSkinningMatrixPalette = skinning_matrix_palette;
+    command.mSkinningMatrixCount = skinning_matrix_count;
+    command.mAlphaMaskCutoff = AVATAR_RENDER_MINIMUM_ALPHA;
 }
 
 void LLWorldRenderCommandBuffer::appendRenderMap(
@@ -452,7 +519,26 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
             active_attribute_mask = command.mAttributeMask;
             gUIProgram.mAttributeMask = active_attribute_mask;
             gUIProgram.bind();
+            LLVertexBuffer::setupClientArrays(active_attribute_mask);
             program_bound = true;
+        }
+
+        if (command.mRigged)
+        {
+            if (!LLRenderPass::uploadMatrixPalette(command.mAvatar, command.mSkinInfo))
+            {
+                continue;
+            }
+        }
+        else if (command.mSkinningMatrixCount > 0 && !command.mSkinningMatrixPalette.empty())
+        {
+            getRenderBackend().setWorldSkinningMatrixPalette(
+                command.mSkinningMatrixCount,
+                command.mSkinningMatrixPalette.data());
+        }
+        else
+        {
+            getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
         }
 
         LLRenderPass::applyModelMatrix(command.mModelMatrix);
@@ -519,5 +605,7 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
     getRenderBackend().setAlphaMaskCutoff(-1.f);
     getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Textured);
     getRenderBackend().setWorldTerrainParameters({});
+    getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
     gUIProgram.mAttributeMask = saved_attribute_mask;
+    LLVertexBuffer::setupClientArrays(saved_attribute_mask);
 }

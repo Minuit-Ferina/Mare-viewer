@@ -182,6 +182,21 @@ struct LLVkPhysicalDeviceMemoryProperties
     LLVkMemoryHeap memoryHeaps[16];
 };
 
+struct LLVkPhysicalDeviceMemoryBudgetPropertiesEXT
+{
+    S32 sType;
+    void* pNext;
+    U64 heapBudget[16];
+    U64 heapUsage[16];
+};
+
+struct LLVkPhysicalDeviceMemoryProperties2
+{
+    S32 sType;
+    void* pNext;
+    LLVkPhysicalDeviceMemoryProperties memoryProperties;
+};
+
 struct LLVkMemoryRequirements
 {
     U64 size;
@@ -809,6 +824,13 @@ struct LLVkDescriptorImageInfo
     S32 imageLayout;
 };
 
+struct LLVkDescriptorBufferInfo
+{
+    LLVkBuffer buffer;
+    U64 offset;
+    U64 range;
+};
+
 struct LLVkWriteDescriptorSet
 {
     S32 sType;
@@ -859,6 +881,8 @@ using LLVulkanGetPhysicalDeviceProperties =
     void (*)(LLVkPhysicalDevice, void*);
 using LLVulkanGetPhysicalDeviceMemoryProperties =
     void (*)(LLVkPhysicalDevice, LLVkPhysicalDeviceMemoryProperties*);
+using LLVulkanGetPhysicalDeviceMemoryProperties2 =
+    void (*)(LLVkPhysicalDevice, LLVkPhysicalDeviceMemoryProperties2*);
 using LLVulkanGetPhysicalDeviceSurfaceSupportKHR =
     S32 (*)(LLVkPhysicalDevice, U32, LLVkSurfaceKHR, U32*);
 using LLVulkanEnumerateDeviceExtensionProperties =
@@ -996,9 +1020,11 @@ constexpr S32 LL_VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO = 40;
 constexpr S32 LL_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO = 42;
 constexpr S32 LL_VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO = 43;
 constexpr S32 LL_VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER = 44;
+constexpr S32 LL_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2 = 1000059006;
 constexpr S32 LL_VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR = 1000001000;
 constexpr S32 LL_VK_STRUCTURE_TYPE_PRESENT_INFO_KHR = 1000001001;
 constexpr S32 LL_VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT = 1000217000;
+constexpr S32 LL_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT = 1000237000;
 constexpr U32 LL_VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR = 0x00000001;
 constexpr U32 LL_VK_QUEUE_GRAPHICS_BIT = 0x00000001;
 constexpr U32 LL_VK_QUEUE_FAMILY_IGNORED = 0xffffffff;
@@ -1012,8 +1038,10 @@ constexpr S32 LL_VK_FORMAT_B8G8R8A8_UNORM = 44;
 constexpr S32 LL_VK_FORMAT_R8G8B8A8_SRGB = 43;
 constexpr S32 LL_VK_FORMAT_B8G8R8A8_SRGB = 50;
 constexpr S32 LL_VK_FORMAT_R32_UINT = 98;
+constexpr S32 LL_VK_FORMAT_R32_SFLOAT = 100;
 constexpr S32 LL_VK_FORMAT_R32G32_SFLOAT = 103;
 constexpr S32 LL_VK_FORMAT_R32G32B32_SFLOAT = 106;
+constexpr S32 LL_VK_FORMAT_R32G32B32A32_SFLOAT = 109;
 constexpr S32 LL_VK_FORMAT_D32_SFLOAT = 126;
 constexpr S32 LL_VK_INDEX_TYPE_UINT16 = 0;
 constexpr S32 LL_VK_INDEX_TYPE_UINT32 = 1;
@@ -1034,10 +1062,12 @@ constexpr U32 LL_VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT = 0x00000020;
 constexpr U32 LL_VK_IMAGE_USAGE_TRANSFER_DST_BIT = 0x00000002;
 constexpr U32 LL_VK_IMAGE_USAGE_SAMPLED_BIT = 0x00000004;
 constexpr U32 LL_VK_BUFFER_USAGE_TRANSFER_SRC_BIT = 0x00000001;
+constexpr U32 LL_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT = 0x00000020;
 constexpr U32 LL_VK_BUFFER_USAGE_INDEX_BUFFER_BIT = 0x00000040;
 constexpr U32 LL_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT = 0x00000080;
 constexpr U32 MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES = 262144;
 constexpr U32 MARE_VULKAN_MAX_TEXTURE_BINDINGS = 8;
+constexpr U32 MARE_VULKAN_SKINNING_DESCRIPTOR_BINDING = 8;
 constexpr U32 MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY = 4096;
 constexpr U32 MARE_VULKAN_TEXTURE_DESCRIPTOR_CAPACITY =
     MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY *
@@ -1045,9 +1075,16 @@ constexpr U32 MARE_VULKAN_TEXTURE_DESCRIPTOR_CAPACITY =
 constexpr U64 MARE_VULKAN_BYTES_PER_MEGABYTE = 1024 * 1024;
 constexpr U64 MARE_VULKAN_DEFAULT_TEXTURE_MEMORY_BUDGET_MB = 1024;
 constexpr U64 MARE_VULKAN_DEFAULT_BUFFER_MEMORY_BUDGET_MB = 1024;
-constexpr U64 MARE_VULKAN_DEFAULT_TEXTURE_UPLOAD_FRAME_BUDGET_MB = 0;
+constexpr U64 MARE_VULKAN_DEFAULT_BUFFER_MEMORY_RESERVE_MB = 128;
+constexpr U64 MARE_VULKAN_DEFAULT_HEAP_MEMORY_RESERVE_MB = 512;
+constexpr U64 MARE_VULKAN_DEFAULT_SKINNED_POSITION_FRAME_BUDGET_MB = 64;
+constexpr U64 MARE_VULKAN_SKINNING_PALETTE_BUFFER_GROWTH_BYTES =
+    4 * MARE_VULKAN_BYTES_PER_MEGABYTE;
+constexpr U64 MARE_VULKAN_DEFAULT_TEXTURE_UPLOAD_FRAME_BUDGET_MB = 32;
 constexpr U32 MARE_VULKAN_DEFAULT_TEXTURE_UPLOAD_FRAME_COUNT_BUDGET = 0;
 constexpr S32 MARE_VULKAN_DEFAULT_MAX_TEXTURE_DIMENSION = 2048;
+constexpr U32 MARE_VULKAN_MAX_SKINNING_MATRICES = 110;
+constexpr U32 LL_VK_MEMORY_HEAP_DEVICE_LOCAL_BIT = 0x00000001;
 constexpr U32 LL_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT = 0x00000001;
 constexpr U32 LL_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT = 0x00000002;
 constexpr U32 LL_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT = 0x00000004;
@@ -1064,6 +1101,7 @@ constexpr S32 LL_VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT = 1;
 constexpr S32 LL_VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE = 2;
 constexpr S32 LL_VK_BORDER_COLOR_INT_OPAQUE_BLACK = 3;
 constexpr S32 LL_VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER = 1;
+constexpr S32 LL_VK_DESCRIPTOR_TYPE_STORAGE_BUFFER = 7;
 constexpr U32 LL_VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT = 0x00000001;
 constexpr S32 LL_VK_DYNAMIC_STATE_VIEWPORT = 0;
 constexpr S32 LL_VK_DYNAMIC_STATE_SCISSOR = 1;
@@ -1132,6 +1170,7 @@ constexpr const char* LL_VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME = "VK_KHR
 constexpr const char* LL_VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME = "VK_KHR_portability_subset";
 constexpr const char* LL_VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME =
     "VK_KHR_get_physical_device_properties2";
+constexpr const char* LL_VK_EXT_MEMORY_BUDGET_EXTENSION_NAME = "VK_EXT_memory_budget";
 
 std::string format_vulkan_megabytes(U64 bytes)
 {
@@ -1429,6 +1468,9 @@ struct LLVulkanPendingDraw
     LLRenderWorldShaderClass mWorldShaderClass = LLRenderWorldShaderClass::Textured;
     LLRenderWorldTerrainParameters mTerrainParameters;
     LLRenderWorldTextureTransform mTextureTransform;
+    std::vector<F32> mSkinningMatrixPalette;
+    U32 mSkinningMatrixOffset = 0;
+    U32 mSkinningMatrixCount = 0;
     bool mDepthTestEnabled = false;
     bool mDepthWriteEnabled = true;
     LLRenderDepthFunction mDepthFunction = LLRenderDepthFunction::LessEqual;
@@ -1472,6 +1514,13 @@ struct LLVulkanBufferResource
     U64 mMemorySize = 0;
     bool mMemoryAccounted = false;
     void* mMappedData = nullptr;
+};
+
+struct LLVulkanPendingBufferAllocation
+{
+    U64 mSize = 0;
+    U32 mUsageFlags = 0;
+    LLRenderBufferUsage mUsage = LLRenderBufferUsage::StaticDraw;
 };
 
 struct LLVulkanTextureResource
@@ -1536,10 +1585,17 @@ struct LLVulkanNativeContext
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mTerrainPipelines = {};
     LLVulkanBufferResource mDefaultTexCoordBuffer;
     LLVulkanBufferResource mDefaultColorBuffer;
+    LLVulkanBufferResource mSkinningMatrixPaletteBuffer;
+    std::vector<LLVulkanBufferResource> mTransientFrameBuffers;
+    U64 mTransientFrameBufferBytes = 0;
     U32 mGraphicsQueueFamilyIndex = LL_VK_QUEUE_FAMILY_IGNORED;
     U32 mPresentQueueFamilyIndex = LL_VK_QUEUE_FAMILY_IGNORED;
     LLVkExtent2D mSwapchainExtent = {0, 0};
     LLVkExtent2D mNativeViewExtent = {0, 0};
+    LLVkPhysicalDeviceMemoryProperties mMemoryProperties = {};
+    std::array<U64, 16> mMemoryHeapBudgetBytes = {};
+    std::array<U64, 16> mMemoryHeapUsageBytes = {};
+    U32 mReportedVideoMemoryMB = 0;
     F32 mDrawableScaleX = 1.f;
     F32 mDrawableScaleY = 1.f;
     S32 mSwapchainImageFormat = LL_VK_FORMAT_UNDEFINED;
@@ -1578,6 +1634,7 @@ struct LLVulkanNativeContext
     LLVulkanCmdBindIndexBuffer mCmdBindIndexBuffer = nullptr;
     LLVulkanCmdDrawIndexed mCmdDrawIndexed = nullptr;
     LLVulkanGetPhysicalDeviceMemoryProperties mGetPhysicalDeviceMemoryProperties = nullptr;
+    LLVulkanGetPhysicalDeviceMemoryProperties2 mGetPhysicalDeviceMemoryProperties2 = nullptr;
     LLVulkanCreateBuffer mCreateBuffer = nullptr;
     LLVulkanDestroyBuffer mDestroyBuffer = nullptr;
     LLVulkanGetBufferMemoryRequirements mGetBufferMemoryRequirements = nullptr;
@@ -1612,8 +1669,10 @@ struct LLVulkanNativeContext
     U64 mRecordMissingBufferCount = 0;
     U64 mRecordMissingAttributeCount = 0;
     U64 mBufferMemoryAllocatedBytes = 0;
+    U64 mEffectiveBufferMemoryBudgetBytes = 0;
     U64 mTextureUploadCount = 0;
     U64 mTextureMemoryAllocatedBytes = 0;
+    U64 mEffectiveTextureMemoryBudgetBytes = 0;
     U64 mTextureUploadBudgetFrame = std::numeric_limits<U64>::max();
     U64 mTextureUploadBytesThisFrame = 0;
     U32 mTextureUploadsThisFrame = 0;
@@ -1628,6 +1687,9 @@ struct LLVulkanNativeContext
     S32 mLargestTextureWidth = 0;
     S32 mLargestTextureHeight = 0;
     bool mFrameRenderingFailed = false;
+    bool mMemoryBudgetExtensionEnabled = false;
+    bool mHasMemoryProperties = false;
+    bool mHasMemoryBudget = false;
     bool mLoggedFirstUIDraw = false;
     bool mLoggedFirstEmptyFrame = false;
     bool mLoggedUIDrawTelemetry = false;
@@ -1637,6 +1699,9 @@ struct LLVulkanNativeContext
     bool mLoggedTextureUploadThrottle = false;
     bool mLoggedTextureOversize = false;
     bool mLoggedBufferMemoryBudgetExceeded = false;
+    bool mLoggedTransientFrameBufferBudgetExceeded = false;
+    bool mLoggedHeapMemoryBudgetExceeded = false;
+    bool mLoggedSkinningPaletteBufferAllocationFailed = false;
     bool mLastTextureUploadSucceeded = true;
     std::vector<LLVkPhysicalDevice> mPhysicalDevices;
     std::vector<LLVkImage> mSwapchainImages;
@@ -1668,6 +1733,8 @@ thread_local bool gCurrentVulkanWorldDrawEnabled = false;
 thread_local LLRenderWorldShaderClass gCurrentVulkanWorldShaderClass = LLRenderWorldShaderClass::Textured;
 thread_local LLRenderWorldTerrainParameters gCurrentVulkanTerrainParameters;
 thread_local LLRenderWorldTextureTransform gCurrentVulkanTextureTransform;
+thread_local std::vector<F32> gCurrentVulkanSkinningMatrixPalette;
+thread_local U32 gCurrentVulkanSkinningMatrixCount = 0;
 thread_local S32 gVulkanUnpackRowLength = 0;
 U32 gNextVulkanBufferHandle = 1;
 U32 gNextVulkanTextureHandle = 1;
@@ -1676,6 +1743,7 @@ thread_local std::array<U32, 16> gBoundVulkanTextures = {};
 U32 gBoundVulkanVertexBuffer = 0;
 U32 gBoundVulkanIndexBuffer = 0;
 std::unordered_map<U32, LLVulkanBufferResource> gVulkanBuffers;
+std::unordered_map<U32, LLVulkanPendingBufferAllocation> gPendingVulkanBufferAllocations;
 std::unordered_map<U32, LLVulkanTextureResource> gVulkanTextures;
 std::unordered_map<U32, LLVulkanTextureSamplerState> gVulkanTextureSamplerStates;
 std::map<LLVulkanPendingDraw::texture_bindings_t, LLVkDescriptorSet> gVulkanTextureDescriptorSetCache;
@@ -1899,19 +1967,384 @@ F32 get_vulkan_viewport_scale_y(
     return 1.f;
 }
 
-bool find_vulkan_memory_type(
-    const LLVulkanNativeContext& context,
-    U32 type_filter,
-    U32 properties,
-    U32& memory_type_index)
+U32 get_vulkan_reported_video_memory_megabytes(const LLVulkanNativeContext& context);
+
+bool refresh_vulkan_memory_properties(LLVulkanNativeContext& context)
 {
-    if (!context.mGetPhysicalDeviceMemoryProperties)
+    if (!context.mPhysicalDevice || !context.mGetPhysicalDeviceMemoryProperties)
     {
         return false;
     }
 
-    LLVkPhysicalDeviceMemoryProperties memory_properties = {};
-    context.mGetPhysicalDeviceMemoryProperties(context.mPhysicalDevice, &memory_properties);
+    context.mMemoryHeapBudgetBytes.fill(0);
+    context.mMemoryHeapUsageBytes.fill(0);
+    context.mHasMemoryBudget = false;
+
+    if (context.mMemoryBudgetExtensionEnabled && context.mGetPhysicalDeviceMemoryProperties2)
+    {
+        LLVkPhysicalDeviceMemoryBudgetPropertiesEXT budget_properties =
+        {
+            LL_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,
+            nullptr,
+            {},
+            {}
+        };
+        LLVkPhysicalDeviceMemoryProperties2 memory_properties =
+        {
+            LL_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,
+            &budget_properties,
+            {}
+        };
+
+        context.mGetPhysicalDeviceMemoryProperties2(context.mPhysicalDevice, &memory_properties);
+        context.mMemoryProperties = memory_properties.memoryProperties;
+        context.mHasMemoryProperties = true;
+        context.mHasMemoryBudget = true;
+
+        const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, 16);
+        for (U32 i = 0; i < heap_count; ++i)
+        {
+            context.mMemoryHeapBudgetBytes[i] = budget_properties.heapBudget[i];
+            context.mMemoryHeapUsageBytes[i] = budget_properties.heapUsage[i];
+        }
+        context.mReportedVideoMemoryMB =
+            get_vulkan_reported_video_memory_megabytes(context);
+        return true;
+    }
+
+    context.mGetPhysicalDeviceMemoryProperties(context.mPhysicalDevice, &context.mMemoryProperties);
+    context.mHasMemoryProperties = true;
+
+    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, 16);
+    for (U32 i = 0; i < heap_count; ++i)
+    {
+        context.mMemoryHeapBudgetBytes[i] = context.mMemoryProperties.memoryHeaps[i].size;
+    }
+    context.mReportedVideoMemoryMB =
+        get_vulkan_reported_video_memory_megabytes(context);
+    return true;
+}
+
+bool vulkan_heap_has_host_visible_memory_type(
+    const LLVulkanNativeContext& context,
+    U32 heap_index)
+{
+    if (!context.mHasMemoryProperties)
+    {
+        return false;
+    }
+
+    const U32 memory_type_count = llmin<U32>(context.mMemoryProperties.memoryTypeCount, 32);
+    for (U32 i = 0; i < memory_type_count; ++i)
+    {
+        const LLVkMemoryType& memory_type = context.mMemoryProperties.memoryTypes[i];
+        if (memory_type.heapIndex == heap_index &&
+            (memory_type.propertyFlags & LL_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void log_vulkan_memory_properties(const LLVulkanNativeContext& context)
+{
+    if (!context.mHasMemoryProperties)
+    {
+        return;
+    }
+
+    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, 16);
+    LL_INFOS("RenderBackend")
+        << "Vulkan memory budget extension "
+        << (context.mHasMemoryBudget ? "enabled" : "unavailable")
+        << "; reporting "
+        << heap_count
+        << " heap(s)."
+        << LL_ENDL;
+
+    for (U32 i = 0; i < heap_count; ++i)
+    {
+        const LLVkMemoryHeap& heap = context.mMemoryProperties.memoryHeaps[i];
+        const bool device_local = (heap.flags & LL_VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0;
+        const bool host_visible = vulkan_heap_has_host_visible_memory_type(context, i);
+        LL_INFOS("RenderBackend")
+            << "Vulkan heap "
+            << i
+            << ": size "
+            << format_vulkan_megabytes(heap.size)
+            << ", budget "
+            << format_vulkan_megabytes(context.mMemoryHeapBudgetBytes[i])
+            << ", usage "
+            << format_vulkan_megabytes(context.mMemoryHeapUsageBytes[i])
+            << ", device-local "
+            << device_local
+            << ", host-visible-type "
+            << host_visible
+            << "."
+            << LL_ENDL;
+    }
+}
+
+U64 get_vulkan_reported_video_memory_bytes(const LLVulkanNativeContext& context)
+{
+    if (!context.mHasMemoryProperties)
+    {
+        return 0;
+    }
+
+    U64 largest_device_local_budget = 0;
+    U64 largest_heap_budget = 0;
+    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, 16);
+    for (U32 i = 0; i < heap_count; ++i)
+    {
+        const LLVkMemoryHeap& heap = context.mMemoryProperties.memoryHeaps[i];
+        U64 budget = context.mMemoryHeapBudgetBytes[i];
+        if (budget == 0)
+        {
+            budget = heap.size;
+        }
+
+        largest_heap_budget = llmax(largest_heap_budget, budget);
+        if ((heap.flags & LL_VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0)
+        {
+            largest_device_local_budget = llmax(largest_device_local_budget, budget);
+        }
+    }
+
+    return largest_device_local_budget > 0 ? largest_device_local_budget : largest_heap_budget;
+}
+
+U64 get_vulkan_reported_free_video_memory_bytes(const LLVulkanNativeContext& context)
+{
+    if (!context.mHasMemoryProperties)
+    {
+        return 0;
+    }
+
+    U64 selected_budget = 0;
+    U64 selected_usage = 0;
+    U64 largest_any_budget = 0;
+    U64 largest_any_usage = 0;
+    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, 16);
+    for (U32 i = 0; i < heap_count; ++i)
+    {
+        const LLVkMemoryHeap& heap = context.mMemoryProperties.memoryHeaps[i];
+        U64 budget = context.mMemoryHeapBudgetBytes[i];
+        if (budget == 0)
+        {
+            budget = heap.size;
+        }
+        const U64 usage = context.mMemoryHeapUsageBytes[i];
+
+        if (budget > largest_any_budget)
+        {
+            largest_any_budget = budget;
+            largest_any_usage = usage;
+        }
+
+        if ((heap.flags & LL_VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0 &&
+            budget > selected_budget)
+        {
+            selected_budget = budget;
+            selected_usage = usage;
+        }
+    }
+
+    if (selected_budget == 0)
+    {
+        selected_budget = largest_any_budget;
+        selected_usage = largest_any_usage;
+    }
+    return selected_budget > selected_usage ? selected_budget - selected_usage : 0;
+}
+
+U32 get_vulkan_reported_video_memory_megabytes(const LLVulkanNativeContext& context)
+{
+    const U64 bytes = get_vulkan_reported_video_memory_bytes(context);
+    return static_cast<U32>(
+        std::min<U64>(
+            bytes / MARE_VULKAN_BYTES_PER_MEGABYTE,
+            std::numeric_limits<U32>::max()));
+}
+
+U32 get_vulkan_memory_type_heap_index(
+    const LLVulkanNativeContext& context,
+    U32 memory_type_index)
+{
+    if (!context.mHasMemoryProperties ||
+        memory_type_index >= context.mMemoryProperties.memoryTypeCount ||
+        memory_type_index >= 32)
+    {
+        return 16;
+    }
+
+    return context.mMemoryProperties.memoryTypes[memory_type_index].heapIndex;
+}
+
+U64 get_vulkan_heap_memory_reserve_bytes()
+{
+    static const U64 reserve_bytes = []()
+    {
+        U64 reserve_mb = MARE_VULKAN_DEFAULT_HEAP_MEMORY_RESERVE_MB;
+        if (const char* reserve_override = std::getenv("MARE_VULKAN_HEAP_MEMORY_RESERVE_MB"))
+        {
+            reserve_mb = std::strtoull(reserve_override, nullptr, 10);
+        }
+        return reserve_mb * MARE_VULKAN_BYTES_PER_MEGABYTE;
+    }();
+
+    return reserve_bytes;
+}
+
+bool get_vulkan_memory_budget_override_bytes(
+    const char* name,
+    U64& budget_bytes)
+{
+    if (const char* budget_override = std::getenv(name))
+    {
+        const U64 parsed_budget = std::strtoull(budget_override, nullptr, 10);
+        if (parsed_budget > 0)
+        {
+            budget_bytes = parsed_budget * MARE_VULKAN_BYTES_PER_MEGABYTE;
+            return true;
+        }
+    }
+    return false;
+}
+
+U64 get_vulkan_derived_memory_budget_bytes(
+    LLVulkanNativeContext& context,
+    U32 memory_type_index,
+    U64 fallback_budget,
+    U32 unified_heap_divisor,
+    U32 dedicated_heap_numerator,
+    U32 dedicated_heap_denominator)
+{
+    if (!context.mMemoryBudgetExtensionEnabled ||
+        !context.mGetPhysicalDeviceMemoryProperties2 ||
+        !refresh_vulkan_memory_properties(context) ||
+        !context.mHasMemoryBudget)
+    {
+        return fallback_budget;
+    }
+
+    const U32 heap_index = get_vulkan_memory_type_heap_index(context, memory_type_index);
+    if (heap_index >= 16 ||
+        heap_index >= context.mMemoryProperties.memoryHeapCount)
+    {
+        return fallback_budget;
+    }
+
+    const U64 heap_budget = context.mMemoryHeapBudgetBytes[heap_index];
+    if (heap_budget == 0)
+    {
+        return fallback_budget;
+    }
+
+    const U64 heap_reserve = llmin(get_vulkan_heap_memory_reserve_bytes(), heap_budget);
+    const U64 usable_budget = heap_budget > heap_reserve ? heap_budget - heap_reserve : 0;
+    if (usable_budget == 0)
+    {
+        return fallback_budget;
+    }
+
+    const LLVkMemoryType& memory_type = context.mMemoryProperties.memoryTypes[memory_type_index];
+    const bool device_local =
+        (context.mMemoryProperties.memoryHeaps[heap_index].flags &
+         LL_VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0;
+    const bool host_visible =
+        (memory_type.propertyFlags & LL_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
+    const U64 conservative_floor = llmin(fallback_budget, 256 * MARE_VULKAN_BYTES_PER_MEGABYTE);
+
+    if (device_local && !host_visible && dedicated_heap_denominator > 0)
+    {
+        const U64 dedicated_budget =
+            (usable_budget / dedicated_heap_denominator) * dedicated_heap_numerator;
+        return llmax(fallback_budget, dedicated_budget);
+    }
+
+    const U64 unified_budget =
+        unified_heap_divisor > 0 ?
+        usable_budget / unified_heap_divisor :
+        fallback_budget;
+    return llmin(fallback_budget, llmax(conservative_floor, unified_budget));
+}
+
+bool can_commit_vulkan_heap_memory(
+    LLVulkanNativeContext& context,
+    U32 memory_type_index,
+    U64 size,
+    const char* allocation_label)
+{
+    if (!context.mMemoryBudgetExtensionEnabled ||
+        !context.mGetPhysicalDeviceMemoryProperties2 ||
+        !refresh_vulkan_memory_properties(context) ||
+        !context.mHasMemoryBudget)
+    {
+        return true;
+    }
+
+    const U32 heap_index = get_vulkan_memory_type_heap_index(context, memory_type_index);
+    if (heap_index >= 16)
+    {
+        return true;
+    }
+
+    const U64 heap_budget = context.mMemoryHeapBudgetBytes[heap_index];
+    const U64 heap_usage = context.mMemoryHeapUsageBytes[heap_index];
+    if (heap_budget == 0)
+    {
+        return true;
+    }
+
+    const U64 heap_reserve = llmin(get_vulkan_heap_memory_reserve_bytes(), heap_budget);
+    const U64 available =
+        heap_budget > heap_usage + heap_reserve ?
+        heap_budget - heap_usage - heap_reserve :
+        0;
+    if (size <= available)
+    {
+        return true;
+    }
+
+    if (!context.mLoggedHeapMemoryBudgetExceeded)
+    {
+        LL_WARNS("RenderBackend")
+            << "Vulkan "
+            << allocation_label
+            << " allocation refused by heap memory budget. Heap "
+            << heap_index
+            << " budget "
+            << format_vulkan_megabytes(heap_budget)
+            << ", usage "
+            << format_vulkan_megabytes(heap_usage)
+            << ", reserve "
+            << format_vulkan_megabytes(heap_reserve)
+            << ", available "
+            << format_vulkan_megabytes(available)
+            << ", requested "
+            << format_vulkan_megabytes(size)
+            << ". Override reserve with MARE_VULKAN_HEAP_MEMORY_RESERVE_MB for testing."
+            << LL_ENDL;
+        context.mLoggedHeapMemoryBudgetExceeded = true;
+    }
+    return false;
+}
+
+bool find_vulkan_memory_type(
+    LLVulkanNativeContext& context,
+    U32 type_filter,
+    U32 properties,
+    U32& memory_type_index)
+{
+    if (!context.mHasMemoryProperties &&
+        !refresh_vulkan_memory_properties(context))
+    {
+        return false;
+    }
+
+    const LLVkPhysicalDeviceMemoryProperties& memory_properties = context.mMemoryProperties;
     for (U32 i = 0; i < memory_properties.memoryTypeCount; ++i)
     {
         if ((type_filter & (1u << i)) &&
@@ -2144,13 +2577,128 @@ LLVulkanDrawBounds compute_vulkan_draw_bounds(
     return bounds;
 }
 
+bool find_vulkan_draw_max_vertex_index(
+    const LLVulkanPendingDraw& draw,
+    const LLVulkanBufferResource* index_buffer,
+    U32& max_vertex_index)
+{
+    if (draw.mCount <= 0)
+    {
+        return false;
+    }
+
+    max_vertex_index = 0;
+    if (!draw.mIndexed)
+    {
+        max_vertex_index = static_cast<U32>(draw.mFirst + draw.mCount - 1);
+        return true;
+    }
+
+    if (!index_buffer)
+    {
+        return false;
+    }
+
+    bool found_index = false;
+    for (S32 i = 0; i < draw.mCount; ++i)
+    {
+        U32 vertex_index = 0;
+        if (!read_vulkan_draw_index(draw, *index_buffer, static_cast<U32>(i), vertex_index))
+        {
+            return false;
+        }
+        max_vertex_index = found_index ? llmax(max_vertex_index, vertex_index) : vertex_index;
+        found_index = true;
+    }
+    return found_index;
+}
+
+bool read_vulkan_vertex_vec3(
+    const LLVulkanBufferResource& vertex_buffer,
+    const LLVulkanVertexAttributeState& attribute,
+    U32 vertex_index,
+    glm::vec3& value)
+{
+    const U32 stride = attribute.mStride > 0 ? attribute.mStride : 16;
+    const U64 offset = attribute.mOffset + static_cast<U64>(vertex_index) * stride;
+    if (!vertex_buffer.mMappedData || offset + sizeof(F32) * 3 > vertex_buffer.mSize)
+    {
+        return false;
+    }
+
+    const F32* source =
+        reinterpret_cast<const F32*>(static_cast<const U8*>(vertex_buffer.mMappedData) + offset);
+    value = glm::vec3(source[0], source[1], source[2]);
+    return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+}
+
+bool read_vulkan_vertex_weight4(
+    const LLVulkanBufferResource& vertex_buffer,
+    const LLVulkanVertexAttributeState& attribute,
+    U32 vertex_index,
+    glm::vec4& value)
+{
+    const U32 stride = attribute.mStride > 0 ? attribute.mStride : 16;
+    const U64 offset = attribute.mOffset + static_cast<U64>(vertex_index) * stride;
+    if (!vertex_buffer.mMappedData || offset + sizeof(F32) * 4 > vertex_buffer.mSize)
+    {
+        return false;
+    }
+
+    const F32* source =
+        reinterpret_cast<const F32*>(static_cast<const U8*>(vertex_buffer.mMappedData) + offset);
+    value = glm::vec4(source[0], source[1], source[2], source[3]);
+    return std::isfinite(value.x) && std::isfinite(value.y) &&
+        std::isfinite(value.z) && std::isfinite(value.w);
+}
+
+glm::vec3 skin_vulkan_position(
+    const glm::vec3& position,
+    const glm::vec4& packed_weights,
+    const LLVulkanPendingDraw& draw)
+{
+    glm::vec4 indices = glm::floor(packed_weights);
+    glm::vec4 weights = packed_weights - indices;
+    F32 weight_sum = weights.x + weights.y + weights.z + weights.w;
+    if (weight_sum <= 0.f)
+    {
+        weights = glm::vec4(1.f, 0.f, 0.f, 0.f);
+        weight_sum = 1.f;
+    }
+    weights /= weight_sum;
+
+    glm::vec3 skinned(0.f);
+    for (U32 i = 0; i < 4; ++i)
+    {
+        const F32 weight = weights[i];
+        if (weight <= 0.f)
+        {
+            continue;
+        }
+
+        const U32 matrix_index = static_cast<U32>(
+            llclamp(
+                static_cast<S32>(indices[i]),
+                0,
+                static_cast<S32>(draw.mSkinningMatrixCount - 1)));
+        const F32* matrix = draw.mSkinningMatrixPalette.data() + matrix_index * 12;
+        glm::vec3 transformed(
+            matrix[0] * position.x + matrix[4] * position.y + matrix[8] * position.z + matrix[3],
+            matrix[1] * position.x + matrix[5] * position.y + matrix[9] * position.z + matrix[7],
+            matrix[2] * position.x + matrix[6] * position.y + matrix[10] * position.z + matrix[11]);
+        skinned += transformed * weight;
+    }
+    return skinned;
+}
+
 bool create_vulkan_buffer_resource(
     LLVulkanNativeContext& context,
     U64 size,
     U32 usage,
     const void* data,
     LLVulkanBufferResource& resource,
-    U64 replaced_memory_size = 0);
+    U64 replaced_memory_size = 0,
+    bool allow_reserved_budget = false);
 
 void destroy_vulkan_buffer_resource(
     LLVulkanNativeContext& context,
@@ -2182,10 +2730,22 @@ void destroy_vulkan_buffer_resource(
     resource = {};
 }
 
+void destroy_vulkan_transient_frame_buffers(LLVulkanNativeContext& context)
+{
+    for (LLVulkanBufferResource& resource : context.mTransientFrameBuffers)
+    {
+        destroy_vulkan_buffer_resource(context, resource);
+    }
+    context.mTransientFrameBuffers.clear();
+    context.mTransientFrameBufferBytes = 0;
+}
+
 void destroy_all_vulkan_buffer_resources(LLVulkanNativeContext& context)
 {
+    destroy_vulkan_transient_frame_buffers(context);
     destroy_vulkan_buffer_resource(context, context.mDefaultTexCoordBuffer);
     destroy_vulkan_buffer_resource(context, context.mDefaultColorBuffer);
+    destroy_vulkan_buffer_resource(context, context.mSkinningMatrixPaletteBuffer);
 
     for (auto& entry : gVulkanBuffers)
     {
@@ -2193,8 +2753,11 @@ void destroy_all_vulkan_buffer_resources(LLVulkanNativeContext& context)
     }
 
     gVulkanBuffers.clear();
+    gPendingVulkanBufferAllocations.clear();
     gPendingVulkanDraws.clear();
     gCurrentVulkanVertexAttributes = {};
+    gCurrentVulkanSkinningMatrixPalette.clear();
+    gCurrentVulkanSkinningMatrixCount = 0;
     gBoundVulkanVertexBuffer = 0;
     gBoundVulkanIndexBuffer = 0;
     gCurrentVulkanViewport = {};
@@ -2207,19 +2770,23 @@ bool create_vulkan_buffer_resource(
     U32 usage,
     const void* data,
     LLVulkanBufferResource& resource,
-    U64 replaced_memory_size);
+    U64 replaced_memory_size,
+    bool allow_reserved_budget);
 
 bool create_vulkan_default_ui_attribute_buffers(LLVulkanNativeContext& context)
 {
     std::vector<F32> default_texcoords(MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES * 2, 0.f);
     std::vector<U8> default_colors(MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES * 4, 255);
+    std::array<F32, 12> default_skinning_palette = {};
 
     if (!create_vulkan_buffer_resource(
             context,
             default_texcoords.size() * sizeof(F32),
             LL_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             default_texcoords.data(),
-            context.mDefaultTexCoordBuffer))
+            context.mDefaultTexCoordBuffer,
+            0,
+            true))
     {
         return false;
     }
@@ -2229,9 +2796,25 @@ bool create_vulkan_default_ui_attribute_buffers(LLVulkanNativeContext& context)
             default_colors.size() * sizeof(U8),
             LL_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             default_colors.data(),
-            context.mDefaultColorBuffer))
+            context.mDefaultColorBuffer,
+            0,
+            true))
     {
         destroy_vulkan_buffer_resource(context, context.mDefaultTexCoordBuffer);
+        return false;
+    }
+
+    if (!create_vulkan_buffer_resource(
+            context,
+            default_skinning_palette.size() * sizeof(F32),
+            LL_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            default_skinning_palette.data(),
+            context.mSkinningMatrixPaletteBuffer,
+            0,
+            true))
+    {
+        destroy_vulkan_buffer_resource(context, context.mDefaultTexCoordBuffer);
+        destroy_vulkan_buffer_resource(context, context.mDefaultColorBuffer);
         return false;
     }
 
@@ -2247,8 +2830,61 @@ U64 get_vulkan_buffer_memory_budget_bytes()
 {
     static const U64 budget_bytes = []()
     {
-        U64 budget_mb = MARE_VULKAN_DEFAULT_BUFFER_MEMORY_BUDGET_MB;
-        if (const char* budget_override = std::getenv("MARE_VULKAN_BUFFER_MEMORY_BUDGET_MB"))
+        U64 override_bytes = 0;
+        if (get_vulkan_memory_budget_override_bytes(
+                "MARE_VULKAN_BUFFER_MEMORY_BUDGET_MB",
+                override_bytes))
+        {
+            return override_bytes;
+        }
+        return MARE_VULKAN_DEFAULT_BUFFER_MEMORY_BUDGET_MB * MARE_VULKAN_BYTES_PER_MEGABYTE;
+    }();
+
+    return budget_bytes;
+}
+
+U64 get_vulkan_buffer_memory_budget_bytes(
+    LLVulkanNativeContext& context,
+    U32 memory_type_index)
+{
+    U64 override_bytes = 0;
+    if (get_vulkan_memory_budget_override_bytes(
+            "MARE_VULKAN_BUFFER_MEMORY_BUDGET_MB",
+            override_bytes))
+    {
+        return override_bytes;
+    }
+
+    return get_vulkan_derived_memory_budget_bytes(
+        context,
+        memory_type_index,
+        get_vulkan_buffer_memory_budget_bytes(),
+        8,
+        1,
+        4);
+}
+
+U64 get_vulkan_buffer_memory_reserve_bytes()
+{
+    static const U64 reserve_bytes = []()
+    {
+        U64 reserve_mb = MARE_VULKAN_DEFAULT_BUFFER_MEMORY_RESERVE_MB;
+        if (const char* reserve_override = std::getenv("MARE_VULKAN_BUFFER_MEMORY_RESERVE_MB"))
+        {
+            reserve_mb = std::strtoull(reserve_override, nullptr, 10);
+        }
+        return reserve_mb * MARE_VULKAN_BYTES_PER_MEGABYTE;
+    }();
+
+    return reserve_bytes;
+}
+
+U64 get_vulkan_skinned_position_frame_budget_bytes()
+{
+    static const U64 budget_bytes = []()
+    {
+        U64 budget_mb = MARE_VULKAN_DEFAULT_SKINNED_POSITION_FRAME_BUDGET_MB;
+        if (const char* budget_override = std::getenv("MARE_VULKAN_SKINNED_POSITION_FRAME_BUDGET_MB"))
         {
             const U64 parsed_budget = std::strtoull(budget_override, nullptr, 10);
             if (parsed_budget > 0)
@@ -2262,41 +2898,67 @@ U64 get_vulkan_buffer_memory_budget_bytes()
     return budget_bytes;
 }
 
+bool can_use_vulkan_reserved_buffer_memory(LLRenderBufferUsage usage)
+{
+    return usage == LLRenderBufferUsage::DynamicDraw ||
+           usage == LLRenderBufferUsage::StreamDraw ||
+           usage == LLRenderBufferUsage::StreamCopy;
+}
+
 bool can_commit_vulkan_buffer_memory(
     LLVulkanNativeContext& context,
     U64 size,
     U32 usage,
-    U64 replaced_memory_size = 0)
+    U32 memory_type_index,
+    U64 replaced_memory_size = 0,
+    bool allow_reserved_budget = false)
 {
-    const U64 budget = get_vulkan_buffer_memory_budget_bytes();
+    const U64 total_budget = get_vulkan_buffer_memory_budget_bytes(context, memory_type_index);
+    context.mEffectiveBufferMemoryBudgetBytes = total_budget;
+    const U64 reserve = llmin(get_vulkan_buffer_memory_reserve_bytes(), total_budget);
+    const U64 budget = allow_reserved_budget ? total_budget : total_budget - reserve;
     const U64 current = context.mBufferMemoryAllocatedBytes;
     const U64 current_without_replaced =
         current >= replaced_memory_size ?
         current - replaced_memory_size :
         0;
-    if (current_without_replaced + size <= budget)
+    if (current_without_replaced + size > budget)
     {
-        return true;
+        ++context.mSkippedBufferMemoryBudgetCount;
+        if (!context.mLoggedBufferMemoryBudgetExceeded)
+        {
+            LL_WARNS("RenderBackend")
+                << "Vulkan buffer allocation refused because local buffer memory budget would be exceeded. "
+                << "Current "
+                << (current / MARE_VULKAN_BYTES_PER_MEGABYTE)
+                << "MB, requested "
+                << (size / MARE_VULKAN_BYTES_PER_MEGABYTE)
+                << "MB, budget "
+                << (budget / MARE_VULKAN_BYTES_PER_MEGABYTE)
+                << "MB, reserve "
+                << (reserve / MARE_VULKAN_BYTES_PER_MEGABYTE)
+                << "MB, reserved access "
+                << allow_reserved_budget
+                << ", usage flags "
+                << usage
+                << ". Override with MARE_VULKAN_BUFFER_MEMORY_BUDGET_MB for testing."
+                << LL_ENDL;
+            context.mLoggedBufferMemoryBudgetExceeded = true;
+        }
+        return false;
     }
 
-    ++context.mSkippedBufferMemoryBudgetCount;
-    if (!context.mLoggedBufferMemoryBudgetExceeded)
+    if (!can_commit_vulkan_heap_memory(
+            context,
+            memory_type_index,
+            size,
+            "buffer"))
     {
-        LL_WARNS("RenderBackend")
-            << "Vulkan buffer allocation refused because buffer memory budget would be exceeded. "
-            << "Current "
-            << (current / MARE_VULKAN_BYTES_PER_MEGABYTE)
-            << "MB, requested "
-            << (size / MARE_VULKAN_BYTES_PER_MEGABYTE)
-            << "MB, budget "
-            << (budget / MARE_VULKAN_BYTES_PER_MEGABYTE)
-            << "MB, usage flags "
-            << usage
-            << ". Override with MARE_VULKAN_BUFFER_MEMORY_BUDGET_MB for testing."
-            << LL_ENDL;
-        context.mLoggedBufferMemoryBudgetExceeded = true;
+        ++context.mSkippedBufferMemoryBudgetCount;
+        return false;
     }
-    return false;
+
+    return true;
 }
 
 bool create_vulkan_buffer_resource(
@@ -2305,7 +2967,8 @@ bool create_vulkan_buffer_resource(
     U32 usage,
     const void* data,
     LLVulkanBufferResource& resource,
-    U64 replaced_memory_size)
+    U64 replaced_memory_size,
+    bool allow_reserved_budget)
 {
     if (!context.mCreateBuffer ||
         !context.mGetBufferMemoryRequirements ||
@@ -2348,15 +3011,6 @@ bool create_vulkan_buffer_resource(
         context.mDevice,
         resource.mBuffer,
         &memory_requirements);
-    if (!can_commit_vulkan_buffer_memory(
-            context,
-            memory_requirements.size,
-            usage,
-            replaced_memory_size))
-    {
-        destroy_vulkan_buffer_resource(context, resource);
-        return false;
-    }
 
     U32 memory_type_index = 0;
     if (!find_vulkan_memory_type(
@@ -2368,6 +3022,18 @@ bool create_vulkan_buffer_resource(
         LL_WARNS("RenderBackend")
             << "No host-visible coherent Vulkan memory type for buffer."
             << LL_ENDL;
+        destroy_vulkan_buffer_resource(context, resource);
+        return false;
+    }
+
+    if (!can_commit_vulkan_buffer_memory(
+            context,
+            memory_requirements.size,
+            usage,
+            memory_type_index,
+            replaced_memory_size,
+            allow_reserved_budget))
+    {
         destroy_vulkan_buffer_resource(context, resource);
         return false;
     }
@@ -2438,23 +3104,300 @@ bool create_vulkan_buffer_resource(
     return true;
 }
 
+U64 get_vulkan_skinning_palette_buffer_size(U64 required_size)
+{
+    const U64 minimum_size = 12 * sizeof(F32);
+    if (required_size <= minimum_size)
+    {
+        return minimum_size;
+    }
+
+    const U64 growth = MARE_VULKAN_SKINNING_PALETTE_BUFFER_GROWTH_BYTES;
+    return ((required_size + growth - 1) / growth) * growth;
+}
+
+bool ensure_vulkan_skinning_matrix_palette_buffer(
+    LLVulkanNativeContext& context,
+    U64 required_size)
+{
+    const U64 buffer_size = get_vulkan_skinning_palette_buffer_size(required_size);
+    if (context.mSkinningMatrixPaletteBuffer.mBuffer &&
+        context.mSkinningMatrixPaletteBuffer.mMappedData &&
+        context.mSkinningMatrixPaletteBuffer.mSize >= buffer_size)
+    {
+        return true;
+    }
+
+    LLVulkanBufferResource new_resource;
+    const U64 replaced_memory_size =
+        context.mSkinningMatrixPaletteBuffer.mMemoryAccounted ?
+        context.mSkinningMatrixPaletteBuffer.mMemorySize :
+        0;
+    if (!create_vulkan_buffer_resource(
+            context,
+            buffer_size,
+            LL_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            nullptr,
+            new_resource,
+            replaced_memory_size,
+            true))
+    {
+        if (!context.mLoggedSkinningPaletteBufferAllocationFailed)
+        {
+            LL_WARNS("RenderBackend")
+                << "Unable to allocate Vulkan skinning matrix palette buffer of "
+                << (buffer_size / MARE_VULKAN_BYTES_PER_MEGABYTE)
+                << "MB. Rigged world draws will fall back to the CPU skinning bridge."
+                << LL_ENDL;
+            context.mLoggedSkinningPaletteBufferAllocationFailed = true;
+        }
+        return false;
+    }
+
+    destroy_vulkan_texture_descriptor_set_cache(context);
+    destroy_vulkan_buffer_resource(context, context.mSkinningMatrixPaletteBuffer);
+    context.mSkinningMatrixPaletteBuffer = new_resource;
+    return true;
+}
+
+bool prepare_vulkan_skinning_matrix_palette_buffer(LLVulkanNativeContext& context)
+{
+    std::vector<F32> palette_data;
+    for (LLVulkanPendingDraw& draw : gPendingVulkanDraws)
+    {
+        draw.mSkinningMatrixOffset = 0;
+        if (draw.mSkinningMatrixCount == 0)
+        {
+            continue;
+        }
+
+        const U32 matrix_count =
+            llmin(draw.mSkinningMatrixCount, MARE_VULKAN_MAX_SKINNING_MATRICES);
+        const size_t float_count = static_cast<size_t>(matrix_count) * 12;
+        if (draw.mSkinningMatrixPalette.size() < float_count)
+        {
+            draw.mSkinningMatrixCount = 0;
+            continue;
+        }
+
+        draw.mSkinningMatrixOffset = static_cast<U32>(palette_data.size() / 12);
+        palette_data.insert(
+            palette_data.end(),
+            draw.mSkinningMatrixPalette.begin(),
+            draw.mSkinningMatrixPalette.begin() + float_count);
+        draw.mSkinningMatrixCount = matrix_count;
+    }
+
+    if (palette_data.empty())
+    {
+        return true;
+    }
+
+    const U64 required_size = palette_data.size() * sizeof(F32);
+    if (!ensure_vulkan_skinning_matrix_palette_buffer(context, required_size) ||
+        !context.mSkinningMatrixPaletteBuffer.mMappedData ||
+        context.mSkinningMatrixPaletteBuffer.mSize < required_size)
+    {
+        return false;
+    }
+
+    std::memcpy(
+        context.mSkinningMatrixPaletteBuffer.mMappedData,
+        palette_data.data(),
+        static_cast<size_t>(required_size));
+    return true;
+}
+
+void track_vulkan_pending_buffer_allocation(
+    U32 handle,
+    U64 size,
+    U32 usage_flags,
+    LLRenderBufferUsage usage)
+{
+    if (!handle || size == 0)
+    {
+        return;
+    }
+
+    gPendingVulkanBufferAllocations[handle] =
+    {
+        size,
+        usage_flags,
+        usage
+    };
+}
+
+bool retry_vulkan_pending_buffer_allocation(
+    LLVulkanNativeContext& context,
+    U32 handle,
+    U64 minimum_size)
+{
+    auto pending_iter = gPendingVulkanBufferAllocations.find(handle);
+    if (pending_iter == gPendingVulkanBufferAllocations.end())
+    {
+        return false;
+    }
+
+    LLVulkanPendingBufferAllocation pending = pending_iter->second;
+    pending.mSize = llmax(pending.mSize, minimum_size);
+
+    auto resource_iter = gVulkanBuffers.find(handle);
+    const U64 replaced_memory_size =
+        resource_iter != gVulkanBuffers.end() && resource_iter->second.mMemoryAccounted ?
+        resource_iter->second.mMemorySize :
+        0;
+
+    LLVulkanBufferResource new_resource;
+    if (!create_vulkan_buffer_resource(
+            context,
+            pending.mSize,
+            pending.mUsageFlags,
+            nullptr,
+            new_resource,
+            replaced_memory_size,
+            can_use_vulkan_reserved_buffer_memory(pending.mUsage)))
+    {
+        pending_iter->second = pending;
+        return false;
+    }
+
+    if (new_resource.mMappedData && new_resource.mSize > 0)
+    {
+        std::memset(new_resource.mMappedData, 0, static_cast<size_t>(new_resource.mSize));
+    }
+
+    if (resource_iter != gVulkanBuffers.end())
+    {
+        destroy_vulkan_buffer_resource(context, resource_iter->second);
+        resource_iter->second = new_resource;
+    }
+    else
+    {
+        gVulkanBuffers.emplace(handle, new_resource);
+    }
+    gPendingVulkanBufferAllocations.erase(pending_iter);
+    return true;
+}
+
+const LLVulkanBufferResource* create_vulkan_skinned_position_buffer(
+    LLVulkanNativeContext& context,
+    const LLVulkanPendingDraw& draw,
+    const LLVulkanBufferResource& vertex_buffer,
+    const LLVulkanBufferResource* index_buffer)
+{
+    if (draw.mSkinningMatrixCount == 0 ||
+        draw.mSkinningMatrixPalette.size() < static_cast<size_t>(draw.mSkinningMatrixCount) * 12 ||
+        !draw.mAttributes[0].mEnabled ||
+        !draw.mAttributes[10].mEnabled)
+    {
+        return nullptr;
+    }
+
+    U32 max_vertex_index = 0;
+    if (!find_vulkan_draw_max_vertex_index(draw, index_buffer, max_vertex_index))
+    {
+        return nullptr;
+    }
+
+    std::vector<glm::vec4> skinned_positions(static_cast<size_t>(max_vertex_index) + 1);
+    for (U32 vertex_index = 0; vertex_index <= max_vertex_index; ++vertex_index)
+    {
+        glm::vec3 position;
+        glm::vec4 weights;
+        if (!read_vulkan_vertex_vec3(
+                vertex_buffer,
+                draw.mAttributes[0],
+                vertex_index,
+                position) ||
+            !read_vulkan_vertex_weight4(
+                vertex_buffer,
+                draw.mAttributes[10],
+                vertex_index,
+                weights))
+        {
+            return nullptr;
+        }
+
+        const glm::vec3 skinned = skin_vulkan_position(position, weights, draw);
+        skinned_positions[vertex_index] = glm::vec4(skinned, 1.f);
+    }
+
+    const U64 skinned_position_size = skinned_positions.size() * sizeof(glm::vec4);
+    const U64 transient_budget = get_vulkan_skinned_position_frame_budget_bytes();
+    if (transient_budget > 0 &&
+        context.mTransientFrameBufferBytes + skinned_position_size > transient_budget)
+    {
+        if (!context.mLoggedTransientFrameBufferBudgetExceeded)
+        {
+            LL_WARNS("RenderBackend")
+                << "Vulkan skinned position buffer skipped because transient frame buffer budget would be exceeded. "
+                << "Current "
+                << (context.mTransientFrameBufferBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+                << "MB, requested "
+                << (skinned_position_size / MARE_VULKAN_BYTES_PER_MEGABYTE)
+                << "MB, budget "
+                << (transient_budget / MARE_VULKAN_BYTES_PER_MEGABYTE)
+                << "MB. Override with MARE_VULKAN_SKINNED_POSITION_FRAME_BUDGET_MB for testing."
+                << LL_ENDL;
+            context.mLoggedTransientFrameBufferBudgetExceeded = true;
+        }
+        return nullptr;
+    }
+
+    LLVulkanBufferResource skinned_buffer;
+    if (!create_vulkan_buffer_resource(
+            context,
+            skinned_position_size,
+            LL_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            skinned_positions.data(),
+            skinned_buffer,
+            0,
+            false))
+    {
+        return nullptr;
+    }
+
+    context.mTransientFrameBufferBytes += skinned_buffer.mMemorySize;
+    context.mTransientFrameBuffers.push_back(skinned_buffer);
+    return &context.mTransientFrameBuffers.back();
+}
+
 U64 get_vulkan_texture_memory_budget_bytes()
 {
     static const U64 budget_bytes = []()
     {
-        U64 budget_mb = MARE_VULKAN_DEFAULT_TEXTURE_MEMORY_BUDGET_MB;
-        if (const char* budget_override = std::getenv("MARE_VULKAN_TEXTURE_MEMORY_BUDGET_MB"))
+        U64 override_bytes = 0;
+        if (get_vulkan_memory_budget_override_bytes(
+                "MARE_VULKAN_TEXTURE_MEMORY_BUDGET_MB",
+                override_bytes))
         {
-            const U64 parsed_budget = std::strtoull(budget_override, nullptr, 10);
-            if (parsed_budget > 0)
-            {
-                budget_mb = parsed_budget;
-            }
+            return override_bytes;
         }
-        return budget_mb * MARE_VULKAN_BYTES_PER_MEGABYTE;
+        return MARE_VULKAN_DEFAULT_TEXTURE_MEMORY_BUDGET_MB * MARE_VULKAN_BYTES_PER_MEGABYTE;
     }();
 
     return budget_bytes;
+}
+
+U64 get_vulkan_texture_memory_budget_bytes(
+    LLVulkanNativeContext& context,
+    U32 memory_type_index)
+{
+    U64 override_bytes = 0;
+    if (get_vulkan_memory_budget_override_bytes(
+            "MARE_VULKAN_TEXTURE_MEMORY_BUDGET_MB",
+            override_bytes))
+    {
+        return override_bytes;
+    }
+
+    return get_vulkan_derived_memory_budget_bytes(
+        context,
+        memory_type_index,
+        get_vulkan_texture_memory_budget_bytes(),
+        4,
+        3,
+        5);
 }
 
 U64 get_vulkan_texture_upload_frame_budget_bytes()
@@ -2619,54 +3562,65 @@ bool can_commit_vulkan_texture_memory(
     LLVulkanNativeContext& context,
     U64 old_size,
     U64 new_size,
+    U32 memory_type_index,
     U32 handle,
     S32 width,
     S32 height)
 {
-    const U64 budget = get_vulkan_texture_memory_budget_bytes();
+    const U64 budget = get_vulkan_texture_memory_budget_bytes(context, memory_type_index);
+    context.mEffectiveTextureMemoryBudgetBytes = budget;
     const U64 current = context.mTextureMemoryAllocatedBytes;
     const U64 current_without_old = current >= old_size ? current - old_size : 0;
     const U64 requested_total = current_without_old + new_size;
 
     if (!context.mLoggedTextureMemoryBudget)
     {
-        LL_WARNS("RenderBackend")
-            << "Vulkan texture memory budget is "
+        LL_INFOS("RenderBackend")
+            << "Vulkan local texture memory budget is "
             << format_vulkan_megabytes(budget)
             << ". Override with MARE_VULKAN_TEXTURE_MEMORY_BUDGET_MB for testing."
             << LL_ENDL;
         context.mLoggedTextureMemoryBudget = true;
     }
 
-    if (requested_total <= budget)
+    if (requested_total > budget)
     {
-        return true;
+        ++context.mSkippedTextureMemoryBudgetCount;
+        if (!context.mLoggedTextureMemoryBudgetExceeded)
+        {
+            LL_WARNS("RenderBackend")
+                << "Vulkan texture upload refused by local texture memory budget. Handle "
+                << handle
+                << " size "
+                << width
+                << "x"
+                << height
+                << " requires "
+                << format_vulkan_megabytes(new_size)
+                << ", current texture memory is "
+                << format_vulkan_megabytes(current)
+                << ", requested total would be "
+                << format_vulkan_megabytes(requested_total)
+                << ", budget is "
+                << format_vulkan_megabytes(budget)
+                << "."
+                << LL_ENDL;
+            context.mLoggedTextureMemoryBudgetExceeded = true;
+        }
+        return false;
     }
 
-    ++context.mSkippedTextureMemoryBudgetCount;
-    if (!context.mLoggedTextureMemoryBudgetExceeded)
+    if (!can_commit_vulkan_heap_memory(
+            context,
+            memory_type_index,
+            new_size,
+            "texture"))
     {
-        LL_WARNS("RenderBackend")
-            << "Vulkan texture upload refused by memory budget. Handle "
-            << handle
-            << " size "
-            << width
-            << "x"
-            << height
-            << " requires "
-            << format_vulkan_megabytes(new_size)
-            << ", current texture memory is "
-            << format_vulkan_megabytes(current)
-            << ", requested total would be "
-            << format_vulkan_megabytes(requested_total)
-            << ", budget is "
-            << format_vulkan_megabytes(budget)
-            << "."
-            << LL_ENDL;
-        context.mLoggedTextureMemoryBudgetExceeded = true;
+        ++context.mSkippedTextureMemoryBudgetCount;
+        return false;
     }
 
-    return false;
+    return true;
 }
 
 void destroy_vulkan_texture_resource(
@@ -2905,6 +3859,16 @@ bool create_vulkan_depth_attachment(LLVulkanNativeContext& context)
         LL_WARNS("RenderBackend")
             << "No device-local Vulkan memory type for depth attachment."
             << LL_ENDL;
+        destroy_vulkan_depth_attachment(context);
+        return false;
+    }
+
+    if (!can_commit_vulkan_heap_memory(
+            context,
+            memory_type_index,
+            memory_requirements.size,
+            "depth"))
+    {
         destroy_vulkan_depth_attachment(context);
         return false;
     }
@@ -3437,7 +4401,14 @@ LLVkDescriptorSet get_vulkan_texture_descriptor_set(
         return nullptr;
     }
 
-    std::array<LLVkWriteDescriptorSet, MARE_VULKAN_MAX_TEXTURE_BINDINGS> write_descriptors = {};
+    LLVkDescriptorBufferInfo skinning_buffer_info =
+    {
+        context.mSkinningMatrixPaletteBuffer.mBuffer,
+        0,
+        context.mSkinningMatrixPaletteBuffer.mSize
+    };
+
+    std::array<LLVkWriteDescriptorSet, MARE_VULKAN_MAX_TEXTURE_BINDINGS + 1> write_descriptors = {};
     for (U32 i = 0; i < MARE_VULKAN_MAX_TEXTURE_BINDINGS; ++i)
     {
         write_descriptors[i] =
@@ -3455,9 +4426,29 @@ LLVkDescriptorSet get_vulkan_texture_descriptor_set(
         };
     }
 
+    U32 write_descriptor_count = MARE_VULKAN_MAX_TEXTURE_BINDINGS;
+    if (context.mSkinningMatrixPaletteBuffer.mBuffer &&
+        context.mSkinningMatrixPaletteBuffer.mSize > 0)
+    {
+        write_descriptors[write_descriptor_count] =
+        {
+            LL_VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            nullptr,
+            descriptor_set,
+            MARE_VULKAN_SKINNING_DESCRIPTOR_BINDING,
+            0,
+            1,
+            LL_VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            nullptr,
+            &skinning_buffer_info,
+            nullptr
+        };
+        ++write_descriptor_count;
+    }
+
     context.mUpdateDescriptorSets(
         context.mDevice,
-        static_cast<U32>(write_descriptors.size()),
+        write_descriptor_count,
         write_descriptors.data(),
         0,
         nullptr);
@@ -3496,7 +4487,9 @@ bool upload_vulkan_texture_pixels_to_image(
             pixels.size(),
             LL_VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             pixels.data(),
-            staging))
+            staging,
+            0,
+            false))
     {
         return false;
     }
@@ -3655,17 +4648,6 @@ bool upload_vulkan_texture_resource(
     LLVkMemoryRequirements memory_requirements = {};
     context.mGetImageMemoryRequirements(context.mDevice, new_resource.mImage, &memory_requirements);
     new_resource.mMemorySize = memory_requirements.size;
-    if (!can_commit_vulkan_texture_memory(
-            context,
-            old_memory_size,
-            new_resource.mMemorySize,
-            handle,
-            width,
-            height))
-    {
-        destroy_vulkan_texture_resource(context, new_resource);
-        return false;
-    }
 
     U32 memory_type_index = 0;
     if (!find_vulkan_memory_type(
@@ -3675,6 +4657,19 @@ bool upload_vulkan_texture_resource(
             memory_type_index))
     {
         LL_WARNS("RenderBackend") << "No device-local Vulkan memory type for texture." << LL_ENDL;
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    if (!can_commit_vulkan_texture_memory(
+            context,
+            old_memory_size,
+            new_resource.mMemorySize,
+            memory_type_index,
+            handle,
+            width,
+            height))
+    {
         destroy_vulkan_texture_resource(context, new_resource);
         return false;
     }
@@ -3829,6 +4824,15 @@ constexpr U32 LL_LEGACY_GL_RG = 0x8227;
 constexpr U32 LL_LEGACY_GL_BGRA = 0x80e1;
 constexpr U32 LL_LEGACY_GL_UNSIGNED_BYTE = 0x1401;
 constexpr U32 LL_LEGACY_GL_SCISSOR_TEST = 0x0c11;
+
+bool is_vulkan_glyph_texture_format(U32 format)
+{
+    return format == LL_LEGACY_GL_ALPHA ||
+           format == LL_LEGACY_GL_LUMINANCE ||
+           format == LL_LEGACY_GL_LUMINANCE_ALPHA ||
+           format == LL_LEGACY_GL_RED ||
+           format == LL_LEGACY_GL_RG;
+}
 
 bool convert_texture_pixels_to_rgba8(
     S32 width,
@@ -4339,6 +5343,7 @@ bool create_vulkan_device(LLVulkanNativeContext& context)
     }
 
     std::vector<const char*> enabled_device_extensions;
+    context.mMemoryBudgetExtensionEnabled = false;
     for (LLVkPhysicalDevice physical_device : context.mPhysicalDevices)
     {
         std::vector<LLVkExtensionProperties> available_extensions =
@@ -4364,6 +5369,11 @@ bool create_vulkan_device(LLVulkanNativeContext& context)
         if (has_vulkan_extension(available_extensions, LL_VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME))
         {
             enabled_device_extensions.push_back(LL_VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+        }
+        if (has_vulkan_extension(available_extensions, LL_VK_EXT_MEMORY_BUDGET_EXTENSION_NAME))
+        {
+            enabled_device_extensions.push_back(LL_VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+            context.mMemoryBudgetExtensionEnabled = true;
         }
 
         context.mPhysicalDevice = physical_device;
@@ -4442,6 +5452,15 @@ bool create_vulkan_device(LLVulkanNativeContext& context)
     context.mGetPhysicalDeviceMemoryProperties =
         reinterpret_cast<LLVulkanGetPhysicalDeviceMemoryProperties>(
             loader.getInstanceProcAddress(context.mInstance, "vkGetPhysicalDeviceMemoryProperties"));
+    context.mGetPhysicalDeviceMemoryProperties2 =
+        reinterpret_cast<LLVulkanGetPhysicalDeviceMemoryProperties2>(
+            loader.getInstanceProcAddress(context.mInstance, "vkGetPhysicalDeviceMemoryProperties2"));
+    if (!context.mGetPhysicalDeviceMemoryProperties2)
+    {
+        context.mGetPhysicalDeviceMemoryProperties2 =
+            reinterpret_cast<LLVulkanGetPhysicalDeviceMemoryProperties2>(
+                loader.getInstanceProcAddress(context.mInstance, "vkGetPhysicalDeviceMemoryProperties2KHR"));
+    }
     context.mCreateBuffer =
         reinterpret_cast<LLVulkanCreateBuffer>(
             get_vulkan_device_proc_address(context, "vkCreateBuffer"));
@@ -4492,6 +5511,18 @@ bool create_vulkan_device(LLVulkanNativeContext& context)
             << LL_ENDL;
         return false;
     }
+    if (context.mMemoryBudgetExtensionEnabled && !context.mGetPhysicalDeviceMemoryProperties2)
+    {
+        LL_WARNS("RenderBackend")
+            << "Vulkan device exposes "
+            << LL_VK_EXT_MEMORY_BUDGET_EXTENSION_NAME
+            << " but the memory properties 2 entry point is unavailable; falling back to static memory caps."
+            << LL_ENDL;
+        context.mMemoryBudgetExtensionEnabled = false;
+    }
+
+    refresh_vulkan_memory_properties(context);
+    log_vulkan_memory_properties(context);
 
     get_device_queue(context.mDevice, context.mGraphicsQueueFamilyIndex, 0, &context.mGraphicsQueue);
     get_device_queue(context.mDevice, context.mPresentQueueFamilyIndex, 0, &context.mPresentQueue);
@@ -4530,6 +5561,14 @@ void destroy_vulkan_device(LLVulkanNativeContext& context)
     context.mDestroyDevice = nullptr;
     context.mDeviceWaitIdle = nullptr;
     context.mGetPhysicalDeviceMemoryProperties = nullptr;
+    context.mGetPhysicalDeviceMemoryProperties2 = nullptr;
+    context.mMemoryBudgetExtensionEnabled = false;
+    context.mHasMemoryProperties = false;
+    context.mHasMemoryBudget = false;
+    context.mMemoryProperties = {};
+    context.mMemoryHeapBudgetBytes = {};
+    context.mMemoryHeapUsageBytes = {};
+    context.mReportedVideoMemoryMB = 0;
     context.mCreateBuffer = nullptr;
     context.mDestroyBuffer = nullptr;
     context.mGetBufferMemoryRequirements = nullptr;
@@ -5645,7 +6684,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         return false;
     }
 
-    std::array<LLVkDescriptorSetLayoutBinding, MARE_VULKAN_MAX_TEXTURE_BINDINGS> sampler_bindings = {};
+    std::array<LLVkDescriptorSetLayoutBinding, MARE_VULKAN_MAX_TEXTURE_BINDINGS + 1> sampler_bindings = {};
     for (U32 i = 0; i < MARE_VULKAN_MAX_TEXTURE_BINDINGS; ++i)
     {
         sampler_bindings[i] =
@@ -5657,6 +6696,14 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
             nullptr
         };
     }
+    sampler_bindings[MARE_VULKAN_MAX_TEXTURE_BINDINGS] =
+    {
+        MARE_VULKAN_SKINNING_DESCRIPTOR_BINDING,
+        LL_VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        1,
+        LL_VK_SHADER_STAGE_VERTEX_BIT,
+        nullptr
+    };
 
     LLVkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info =
     {
@@ -5682,10 +6729,18 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         return false;
     }
 
-    LLVkDescriptorPoolSize descriptor_pool_size =
+    std::array<LLVkDescriptorPoolSize, 2> descriptor_pool_sizes =
     {
-        LL_VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        MARE_VULKAN_TEXTURE_DESCRIPTOR_CAPACITY
+        LLVkDescriptorPoolSize
+        {
+            LL_VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            MARE_VULKAN_TEXTURE_DESCRIPTOR_CAPACITY
+        },
+        LLVkDescriptorPoolSize
+        {
+            LL_VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY
+        }
     };
     LLVkDescriptorPoolCreateInfo descriptor_pool_create_info =
     {
@@ -5693,8 +6748,8 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         nullptr,
         LL_VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
         MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY,
-        1,
-        &descriptor_pool_size
+        static_cast<U32>(descriptor_pool_sizes.size()),
+        descriptor_pool_sizes.data()
     };
 
     result = context.mCreateDescriptorPool(
@@ -6078,6 +7133,39 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         ui_attributes
     };
 
+    LLVkVertexInputBindingDescription world_bindings[7] =
+    {
+        { 0, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
+        { 1, 8, LL_VK_VERTEX_INPUT_RATE_VERTEX },
+        { 2, 4, LL_VK_VERTEX_INPUT_RATE_VERTEX },
+        { 3, 8, LL_VK_VERTEX_INPUT_RATE_VERTEX },
+        { 4, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
+        { 5, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
+        { 6, 4, LL_VK_VERTEX_INPUT_RATE_VERTEX },
+    };
+
+    LLVkVertexInputAttributeDescription world_attributes[7] =
+    {
+        { 0, 0, LL_VK_FORMAT_R32G32B32_SFLOAT, 0 },
+        { 2, 1, LL_VK_FORMAT_R32G32_SFLOAT, 0 },
+        { 6, 2, LL_VK_FORMAT_R8G8B8A8_UNORM, 0 },
+        { 3, 3, LL_VK_FORMAT_R32G32_SFLOAT, 0 },
+        { 13, 4, LL_VK_FORMAT_R32_UINT, 0 },
+        { 10, 5, LL_VK_FORMAT_R32G32B32A32_SFLOAT, 0 },
+        { 9, 6, LL_VK_FORMAT_R32_SFLOAT, 0 },
+    };
+
+    LLVkPipelineVertexInputStateCreateInfo world_vertex_input =
+    {
+        LL_VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        nullptr,
+        0,
+        7,
+        world_bindings,
+        7,
+        world_attributes
+    };
+
     LLVkPipelineColorBlendAttachmentState ui_color_blend_attachment =
     {
         1,
@@ -6187,6 +7275,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
                     to_vulkan_world_pipeline_index(i, blend_pipeline, depth_pipeline);
                 LLVkGraphicsPipelineCreateInfo world_pipeline_create_info = ui_pipeline_create_info;
                 world_pipeline_create_info.pStages = world_shader_stages;
+                world_pipeline_create_info.pVertexInputState = &world_vertex_input;
                 world_pipeline_create_info.pDepthStencilState = &world_depth_stencil;
                 world_pipeline_create_info.pColorBlendState = &world_color_blend;
                 world_pipeline_create_info.layout = context.mWorldPipelineLayout;
@@ -6216,6 +7305,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
 
                 LLVkGraphicsPipelineCreateInfo terrain_pipeline_create_info = world_pipeline_create_info;
                 terrain_pipeline_create_info.pStages = terrain_shader_stages;
+                terrain_pipeline_create_info.pVertexInputState = &ui_vertex_input;
 
                 result = create_graphics_pipelines(
                     context.mDevice,
@@ -6768,6 +7858,9 @@ bool record_vulkan_frame_command_buffer(
         return false;
     }
 
+    const bool gpu_skinning_palette_ready =
+        prepare_vulkan_skinning_matrix_palette_buffer(context);
+
     LLVkCommandBufferBeginInfo begin_info =
     {
         LL_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -6816,6 +7909,10 @@ bool record_vulkan_frame_command_buffer(
     U32 ui_draw_count = 0;
     U32 missing_buffer_count = 0;
     U32 missing_attribute_count = 0;
+    U32 classic_avatar_skinning_draw_count = 0;
+    U32 rigged_skinning_draw_count = 0;
+    U32 skipped_classic_avatar_skinning_draw_count = 0;
+    U32 skipped_rigged_skinning_draw_count = 0;
     LLVulkanDrawBounds largest_textured_bounds;
     U32 largest_textured_draw_texture = 0;
     S32 largest_textured_draw_texture_width = 0;
@@ -6879,6 +7976,30 @@ bool record_vulkan_frame_command_buffer(
             draw.mUseWorldVertexShader ? context.mWorldPipelineLayout : context.mUIPipelineLayout;
         U32 primitive_pipeline_index = to_vulkan_ui_pipeline_index(draw.mMode);
         LLVkPipeline pipeline = nullptr;
+        const bool draw_has_rigged_skinning =
+            draw.mUseWorldVertexShader &&
+            draw.mWorldShaderClass != LLRenderWorldShaderClass::Terrain &&
+            draw.mSkinningMatrixCount > 0 &&
+            draw.mAttributes[10].mEnabled;
+        const bool draw_has_classic_avatar_skinning =
+            draw.mUseWorldVertexShader &&
+            draw.mWorldShaderClass != LLRenderWorldShaderClass::Terrain &&
+            draw.mSkinningMatrixCount > 0 &&
+            draw.mAttributes[9].mEnabled;
+        const bool draw_has_skinning =
+            draw_has_rigged_skinning || draw_has_classic_avatar_skinning;
+        bool use_gpu_skinning =
+            draw_has_skinning &&
+            gpu_skinning_palette_ready &&
+            context.mSkinningMatrixPaletteBuffer.mBuffer;
+        if (draw_has_classic_avatar_skinning)
+        {
+            ++classic_avatar_skinning_draw_count;
+        }
+        if (draw_has_rigged_skinning)
+        {
+            ++rigged_skinning_draw_count;
+        }
         if (draw.mUseWorldVertexShader)
         {
             U32 world_pipeline_index =
@@ -6894,6 +8015,7 @@ bool record_vulkan_frame_command_buffer(
             }
             if (!pipeline)
             {
+                use_gpu_skinning = false;
                 world_pipeline_index = to_vulkan_world_pipeline_index(
                     to_vulkan_ui_pipeline_index(LLRenderPrimitiveType::Triangles),
                     draw.mWorldBlendPipeline,
@@ -6946,16 +8068,54 @@ bool record_vulkan_frame_command_buffer(
 
         LLVkBuffer position_buffer = buffer_iter->second.mBuffer;
         U64 position_offset = draw.mAttributes[0].mOffset;
+        const bool needs_cpu_skinning =
+            draw_has_rigged_skinning &&
+            !use_gpu_skinning;
+        if (draw_has_classic_avatar_skinning && !use_gpu_skinning)
+        {
+            ++skipped_classic_avatar_skinning_draw_count;
+            ++missing_attribute_count;
+            continue;
+        }
+        if (needs_cpu_skinning)
+        {
+            const LLVulkanBufferResource* skinned_position_buffer =
+                create_vulkan_skinned_position_buffer(
+                    context,
+                    draw,
+                    buffer_iter->second,
+                    index_resource);
+            if (!skinned_position_buffer)
+            {
+                ++skipped_rigged_skinning_draw_count;
+                ++missing_attribute_count;
+                continue;
+            }
 
-        LLVkBuffer vertex_buffers[5] =
+            position_buffer = skinned_position_buffer->mBuffer;
+            position_offset = 0;
+        }
+
+        LLVkBuffer weight_buffer = draw.mAttributes[9].mEnabled ?
+            buffer_iter->second.mBuffer :
+            context.mDefaultColorBuffer.mBuffer;
+        if (!weight_buffer)
+        {
+            ++missing_attribute_count;
+            continue;
+        }
+
+        LLVkBuffer vertex_buffers[7] =
         {
             position_buffer,
             texcoord_buffer,
             color_buffer,
             texcoord1_buffer,
-            position_buffer
+            buffer_iter->second.mBuffer,
+            buffer_iter->second.mBuffer,
+            weight_buffer
         };
-        U64 offsets[5] =
+        U64 offsets[7] =
         {
             position_offset,
             draw.mAttributes[2].mEnabled ? draw.mAttributes[2].mOffset : 0,
@@ -6963,7 +8123,13 @@ bool record_vulkan_frame_command_buffer(
             draw.mAttributes[3].mEnabled ? draw.mAttributes[3].mOffset : 0,
             draw.mAttributes[13].mEnabled ?
                 draw.mAttributes[13].mOffset :
-                position_offset + 12
+                position_offset + 12,
+            draw.mAttributes[10].mEnabled ?
+                draw.mAttributes[10].mOffset :
+                position_offset,
+            draw.mAttributes[9].mEnabled ?
+                draw.mAttributes[9].mOffset :
+                0
         };
 
         LLVkDescriptorSet descriptor_set =
@@ -7069,13 +8235,13 @@ bool record_vulkan_frame_command_buffer(
             push_constants.mParams = glm::vec4(
                 draw.mAlphaMaskCutoff,
                 draw.mAttributes[13].mEnabled ? 1.f : 0.f,
-                0.f,
-                0.f);
+                use_gpu_skinning ? static_cast<F32>(draw.mSkinningMatrixOffset) : 0.f,
+                use_gpu_skinning ? static_cast<F32>(draw.mSkinningMatrixCount) : 0.f);
             push_constants.mTerrainParameters = glm::vec4(
                 draw.mTerrainParameters.mDetailScale,
                 draw.mTerrainParameters.mOffsetX,
                 draw.mTerrainParameters.mOffsetY,
-                0.f);
+                draw_has_classic_avatar_skinning && use_gpu_skinning ? 1.f : 0.f);
             push_constants.mTextureTransformS = glm::vec4(
                 draw.mTextureTransform.mS[0],
                 draw.mTextureTransform.mS[1],
@@ -7094,7 +8260,17 @@ bool record_vulkan_frame_command_buffer(
                 sizeof(push_constants),
                 &push_constants);
         }
-        context.mCmdBindVertexBuffers(command_buffer, 0, 5, vertex_buffers, offsets);
+        const U32 vertex_buffer_count =
+            draw.mUseWorldVertexShader &&
+            draw.mWorldShaderClass != LLRenderWorldShaderClass::Terrain ?
+            7 :
+            5;
+        context.mCmdBindVertexBuffers(
+            command_buffer,
+            0,
+            vertex_buffer_count,
+            vertex_buffers,
+            offsets);
         if (draw.mIndexed)
         {
             context.mCmdBindIndexBuffer(
@@ -7174,6 +8350,14 @@ bool record_vulkan_frame_command_buffer(
             << gPendingVulkanDraws.size()
             << ", recorded this frame "
             << ui_draw_count
+            << ", classic avatar skinning draws "
+            << classic_avatar_skinning_draw_count
+            << ", rigged skinning draws "
+            << rigged_skinning_draw_count
+            << ", skipped classic avatar skinning draws "
+            << skipped_classic_avatar_skinning_draw_count
+            << ", skipped rigged skinning draws "
+            << skipped_rigged_skinning_draw_count
             << ", missing buffers "
             << context.mRecordMissingBufferCount
             << ", missing attributes "
@@ -7183,7 +8367,10 @@ bool record_vulkan_frame_command_buffer(
             << ", buffer memory "
             << (context.mBufferMemoryAllocatedBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
             << "MB/"
-            << (get_vulkan_buffer_memory_budget_bytes() / MARE_VULKAN_BYTES_PER_MEGABYTE)
+            << ((context.mEffectiveBufferMemoryBudgetBytes ?
+                    context.mEffectiveBufferMemoryBudgetBytes :
+                    get_vulkan_buffer_memory_budget_bytes()) /
+                MARE_VULKAN_BYTES_PER_MEGABYTE)
             << "MB, budget-refused buffer allocations "
             << context.mSkippedBufferMemoryBudgetCount
             << ", textures "
@@ -7199,7 +8386,10 @@ bool record_vulkan_frame_command_buffer(
             << "), texture memory "
             << (context.mTextureMemoryAllocatedBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
             << "MB/"
-            << (get_vulkan_texture_memory_budget_bytes() / MARE_VULKAN_BYTES_PER_MEGABYTE)
+            << ((context.mEffectiveTextureMemoryBudgetBytes ?
+                    context.mEffectiveTextureMemoryBudgetBytes :
+                    get_vulkan_texture_memory_budget_bytes()) /
+                MARE_VULKAN_BYTES_PER_MEGABYTE)
             << "MB, missing texture subimages "
             << context.mSkippedTextureSubImageMissingResourceCount
             << ", out-of-bounds texture subimages "
@@ -7401,6 +8591,7 @@ bool present_vulkan_frame(
     {
         return false;
     }
+    destroy_vulkan_transient_frame_buffers(context);
 
     S32 result = context.mResetFences(context.mDevice, 1, &frame_sync.mInFlightFence);
     if (result != LL_VK_SUCCESS)
@@ -7797,12 +8988,17 @@ public:
         context.mView = view;
         context.mContext = native_context;
         context.mPixelFormat = nullptr;
-        context.mVRAM = 0;
+        context.mVRAM = native_context->mReportedVideoMemoryMB;
 
         LL_WARNS("RenderBackend")
             << "Vulkan backend created a macOS CAMetalLayer native view, VkInstance, surface, device, swapchain, "
             << "image views, render pass, bootstrap/UI pipelines, framebuffers, command buffers, and frame sync. "
             << "A first clear frame was presented. Real scene rendering is still pending."
+            << LL_ENDL;
+        LL_INFOS("RenderBackend")
+            << "Vulkan reported texture memory budget for viewer info: "
+            << context.mVRAM
+            << "MB."
             << LL_ENDL;
         return true;
 #else
@@ -8005,6 +9201,22 @@ public:
     void setWorldTextureTransform(const LLRenderWorldTextureTransform& transform) override
     {
         gCurrentVulkanTextureTransform = transform;
+    }
+
+    void setWorldSkinningMatrixPalette(U32 count, const F32* values) override
+    {
+        if (!values || count == 0)
+        {
+            gCurrentVulkanSkinningMatrixPalette.clear();
+            gCurrentVulkanSkinningMatrixCount = 0;
+            return;
+        }
+
+        gCurrentVulkanSkinningMatrixCount =
+            llmin(count, MARE_VULKAN_MAX_SKINNING_MATRICES);
+        gCurrentVulkanSkinningMatrixPalette.assign(
+            values,
+            values + static_cast<size_t>(gCurrentVulkanSkinningMatrixCount) * 12);
     }
 
     void setLegacyCapability(U32 capability, bool enabled) override
@@ -8240,6 +9452,7 @@ public:
         }
 
         const U64 upload_bytes = static_cast<U64>(width) * static_cast<U64>(height) * 4;
+        const bool is_glyph_texture = is_vulkan_glyph_texture_format(format);
         if (!can_accept_vulkan_texture_upload_request(
                 *gCurrentVulkanContext,
                 texture,
@@ -8247,8 +9460,8 @@ public:
                 height,
                 upload_bytes,
                 true,
-                data != nullptr,
-                data != nullptr))
+                data != nullptr && !is_glyph_texture,
+                data != nullptr && !is_glyph_texture))
         {
             return;
         }
@@ -8371,6 +9584,7 @@ public:
         }
 
         const U64 upload_bytes = static_cast<U64>(width) * static_cast<U64>(height) * 4;
+        const bool is_glyph_texture = is_vulkan_glyph_texture_format(format);
         if (!can_accept_vulkan_texture_upload_request(
                 *gCurrentVulkanContext,
                 texture,
@@ -8379,7 +9593,7 @@ public:
                 upload_bytes,
                 false,
                 false,
-                true))
+                !is_glyph_texture))
         {
             return;
         }
@@ -8430,6 +9644,7 @@ public:
 
         for (S32 i = 0; i < count; ++i)
         {
+            gPendingVulkanBufferAllocations.erase(buffers[i]);
             auto iter = gVulkanBuffers.find(buffers[i]);
             if (iter != gVulkanBuffers.end())
             {
@@ -8455,7 +9670,7 @@ public:
         LLRenderBufferTarget target,
         U64 size,
         const void* data,
-        LLRenderBufferUsage) override
+        LLRenderBufferUsage usage) override
     {
         if (!gCurrentVulkanContext || size == 0)
         {
@@ -8483,8 +9698,14 @@ public:
                 to_vulkan_buffer_usage(target),
                 data,
                 new_resource,
-                replaced_memory_size))
+                replaced_memory_size,
+                can_use_vulkan_reserved_buffer_memory(usage)))
         {
+            track_vulkan_pending_buffer_allocation(
+                handle,
+                size,
+                to_vulkan_buffer_usage(target),
+                usage);
             if (!had_existing_resource)
             {
                 gVulkanBuffers.erase(handle);
@@ -8494,6 +9715,7 @@ public:
 
         destroy_vulkan_buffer_resource(*gCurrentVulkanContext, resource);
         resource = new_resource;
+        gPendingVulkanBufferAllocations.erase(handle);
     }
 
     void updateBufferSubData(
@@ -8505,13 +9727,32 @@ public:
         U32 handle = target == LLRenderBufferTarget::Index ?
             gBoundVulkanIndexBuffer :
             gBoundVulkanVertexBuffer;
+        if (!gCurrentVulkanContext || !handle || !data || size == 0)
+        {
+            return;
+        }
+
+        const U64 update_end = static_cast<U64>(offset) + size;
         auto iter = gVulkanBuffers.find(handle);
         if (iter == gVulkanBuffers.end() ||
             !iter->second.mMappedData ||
-            !data ||
-            offset + size > iter->second.mSize)
+            update_end > iter->second.mSize)
         {
-            return;
+            if (!retry_vulkan_pending_buffer_allocation(
+                    *gCurrentVulkanContext,
+                    handle,
+                    update_end))
+            {
+                return;
+            }
+
+            iter = gVulkanBuffers.find(handle);
+            if (iter == gVulkanBuffers.end() ||
+                !iter->second.mMappedData ||
+                update_end > iter->second.mSize)
+            {
+                return;
+            }
         }
 
         std::memcpy(
@@ -8671,6 +9912,37 @@ public:
         draw.mWorldShaderClass = gCurrentVulkanWorldShaderClass;
         draw.mTerrainParameters = gCurrentVulkanTerrainParameters;
         draw.mTextureTransform = gCurrentVulkanTextureTransform;
+        if (draw.mUseWorldVertexShader &&
+            (draw.mAttributes[9].mEnabled || draw.mAttributes[10].mEnabled) &&
+            gCurrentVulkanSkinningMatrixCount > 0 &&
+            !gCurrentVulkanSkinningMatrixPalette.empty())
+        {
+            draw.mSkinningMatrixCount = gCurrentVulkanSkinningMatrixCount;
+            draw.mSkinningMatrixPalette = gCurrentVulkanSkinningMatrixPalette;
+        }
+        if (draw.mUseWorldVertexShader &&
+            (draw.mAttributes[9].mEnabled || draw.mAttributes[10].mEnabled))
+        {
+            static U32 sLoggedSkinningDraws = 0;
+            if (sLoggedSkinningDraws < 32)
+            {
+                LL_INFOS("RenderBackend")
+                    << "Vulkan queued skinning draw "
+                    << sLoggedSkinningDraws
+                    << ": classic weight "
+                    << draw.mAttributes[9].mEnabled
+                    << ", weight4 "
+                    << draw.mAttributes[10].mEnabled
+                    << ", matrix count "
+                    << draw.mSkinningMatrixCount
+                    << ", count "
+                    << draw.mCount
+                    << ", indexed "
+                    << draw.mIndexed
+                    << LL_ENDL;
+                ++sLoggedSkinningDraws;
+            }
+        }
         draw.mDepthTestEnabled = gCurrentVulkanDepthTestEnabled;
         draw.mDepthWriteEnabled = gCurrentVulkanDepthWriteEnabled;
         draw.mDepthFunction = gCurrentVulkanDepthFunction;
@@ -8713,6 +9985,78 @@ public:
         const void* indices) override
     {
         queueDraw(mode, 0, count, true, index_type, indices);
+    }
+
+    void getInteger(LLRenderIntegerParameter parameter, S32* value) override
+    {
+        if (!value)
+        {
+            return;
+        }
+
+        *value = 0;
+        LLVulkanNativeContext* context = gCurrentVulkanContext;
+        if (!context)
+        {
+            return;
+        }
+
+        refresh_vulkan_memory_properties(*context);
+        U64 bytes = 0;
+        switch (parameter)
+        {
+        case LLRenderIntegerParameter::DedicatedVideoMemoryKB:
+            bytes = get_vulkan_reported_video_memory_bytes(*context);
+            break;
+        case LLRenderIntegerParameter::FreeVideoMemoryKB:
+            bytes = get_vulkan_reported_free_video_memory_bytes(*context);
+            break;
+        default:
+            return;
+        }
+
+        *value = static_cast<S32>(
+            std::min<U64>(
+                bytes / 1024,
+                static_cast<U64>(std::numeric_limits<S32>::max())));
+    }
+
+    U64 getTextureMemoryAllocatedBytes() const override
+    {
+        return gCurrentVulkanContext ?
+            gCurrentVulkanContext->mTextureMemoryAllocatedBytes :
+            0;
+    }
+
+    U64 getTextureMemoryBudgetBytes() const override
+    {
+        if (!gCurrentVulkanContext)
+        {
+            return get_vulkan_texture_memory_budget_bytes();
+        }
+
+        return gCurrentVulkanContext->mEffectiveTextureMemoryBudgetBytes ?
+            gCurrentVulkanContext->mEffectiveTextureMemoryBudgetBytes :
+            get_vulkan_texture_memory_budget_bytes();
+    }
+
+    U64 getBufferMemoryAllocatedBytes() const override
+    {
+        return gCurrentVulkanContext ?
+            gCurrentVulkanContext->mBufferMemoryAllocatedBytes :
+            0;
+    }
+
+    U64 getBufferMemoryBudgetBytes() const override
+    {
+        if (!gCurrentVulkanContext)
+        {
+            return get_vulkan_buffer_memory_budget_bytes();
+        }
+
+        return gCurrentVulkanContext->mEffectiveBufferMemoryBudgetBytes ?
+            gCurrentVulkanContext->mEffectiveBufferMemoryBudgetBytes :
+            get_vulkan_buffer_memory_budget_bytes();
     }
 
     const char* getInfoString(LLRenderInfoString parameter) override

@@ -46,6 +46,7 @@
 #include "llviewertexturelist.h"
 #include "llviewerjointmesh.h"
 #include "llvoavatar.h"
+#include "llworldrendercommand.h"
 #include "llsky.h"
 #include "pipeline.h"
 #include "llviewershadermgr.h"
@@ -100,22 +101,22 @@ static LLMatrix4a   gJointMatAligned[32];
 static LLMatrix3    gJointRotUnaligned[32];
 static LLVector4    gJointPivot[32];
 
-//-----------------------------------------------------------------------------
-// uploadJointMatrices()
-//-----------------------------------------------------------------------------
-void LLViewerJointMesh::uploadJointMatrices()
+namespace
 {
-    S32 joint_num;
-    LLPolyMesh *reference_mesh = mMesh->getReferenceMesh();
-    LLDrawPool *poolp = mFace ? mFace->getPool() : NULL;
-    bool hardware_skinning = (poolp && poolp->getShaderLevel() > 0);
+S32 update_avatar_joint_matrices(LLPolyMesh* reference_mesh, bool apply_modelview)
+{
+    if (!reference_mesh)
+    {
+        return 0;
+    }
 
-    //calculate joint matrices
-    for (joint_num = 0; joint_num < reference_mesh->mJointRenderData.size(); joint_num++)
+    const S32 joint_count =
+        llmin(static_cast<S32>(reference_mesh->mJointRenderData.size()), LL_CHARACTER_MAX_JOINTS_PER_MESH);
+    for (S32 joint_num = 0; joint_num < joint_count; joint_num++)
     {
         LLMatrix4 joint_mat = *reference_mesh->mJointRenderData[joint_num]->mWorldMatrix;
 
-        if (hardware_skinning)
+        if (apply_modelview)
         {
             joint_mat *= LLDrawPoolAvatar::getModelView();
         }
@@ -126,10 +127,9 @@ void LLViewerJointMesh::uploadJointMatrices()
     bool last_pivot_uploaded{ false };
     S32 j = 0;
 
-    //upload joint pivots
-    for (joint_num = 0; joint_num < reference_mesh->mJointRenderData.size(); joint_num++)
+    for (S32 joint_num = 0; joint_num < joint_count; joint_num++)
     {
-        LLSkinJoint *sj = reference_mesh->mJointRenderData[joint_num]->mSkinJoint;
+        LLSkinJoint* sj = reference_mesh->mJointRenderData[joint_num]->mSkinJoint;
         if (sj)
         {
             if (!last_pivot_uploaded)
@@ -152,7 +152,6 @@ void LLViewerJointMesh::uploadJointMatrices()
         }
     }
 
-    //add pivot point into transform
     for (S32 i = 0; i < j; i++)
     {
         LLVector3 pivot;
@@ -161,13 +160,79 @@ void LLViewerJointMesh::uploadJointMatrices()
         gJointMatUnaligned[i].translate(pivot);
     }
 
+    return joint_count;
+}
+
+void copy_avatar_joint_palette(S32 joint_count, std::vector<F32>& palette)
+{
+    palette.clear();
+    palette.resize(static_cast<size_t>(joint_count) * NUM_AXES * 4);
+
+    for (S32 joint_num = 0; joint_num < joint_count; joint_num++)
+    {
+        LLMatrix4 joint_mat = gJointMatUnaligned[joint_num];
+        joint_mat.transpose();
+
+        for (S32 axis = 0; axis < NUM_AXES; axis++)
+        {
+            F32* vector = joint_mat.mMatrix[axis];
+            U32 offset = (joint_num * NUM_AXES + axis) * 4;
+            memcpy(palette.data() + offset, vector, sizeof(F32) * 4);
+        }
+    }
+}
+
+LLViewerTexture* get_avatar_world_command_texture(
+    LLGLTexture* texture,
+    LLTexLayerSet* layer_set,
+    U32 test_image_name,
+    bool is_dummy)
+{
+    if (test_image_name)
+    {
+        return LLViewerTextureManager::getFetchedTexture(IMG_DEFAULT);
+    }
+
+    LLViewerTexLayerSet* layerset = dynamic_cast<LLViewerTexLayerSet*>(layer_set);
+    if (!is_dummy && layerset)
+    {
+        if (layerset->hasComposite())
+        {
+            return layerset->getViewerComposite();
+        }
+        return LLViewerTextureManager::getFetchedTexture(IMG_DEFAULT);
+    }
+
+    if (!is_dummy && texture)
+    {
+        LLViewerTexture* viewer_texture = dynamic_cast<LLViewerTexture*>(texture);
+        if (viewer_texture)
+        {
+            return viewer_texture;
+        }
+    }
+
+    return LLViewerTextureManager::getFetchedTexture(IMG_DEFAULT);
+}
+}
+
+//-----------------------------------------------------------------------------
+// uploadJointMatrices()
+//-----------------------------------------------------------------------------
+void LLViewerJointMesh::uploadJointMatrices()
+{
+    LLPolyMesh *reference_mesh = mMesh->getReferenceMesh();
+    LLDrawPool *poolp = mFace ? mFace->getPool() : NULL;
+    bool hardware_skinning = (poolp && poolp->getShaderLevel() > 0);
+    S32 joint_count = update_avatar_joint_matrices(reference_mesh, hardware_skinning);
+
     // upload matrices
     if (hardware_skinning)
     {
         F32 mat[45*4];
         memset(mat, 0, sizeof(F32)*45*4);
 
-        for (joint_num = 0; joint_num < reference_mesh->mJointRenderData.size(); joint_num++)
+        for (S32 joint_num = 0; joint_num < joint_count; joint_num++)
         {
             gJointMatUnaligned[joint_num].transpose();
 
@@ -188,7 +253,7 @@ void LLViewerJointMesh::uploadJointMatrices()
     else
     {
         //load gJointMatUnaligned into gJointMatAligned
-        for (joint_num = 0; joint_num < reference_mesh->mJointRenderData.size(); ++joint_num)
+        for (S32 joint_num = 0; joint_num < joint_count; ++joint_num)
         {
             gJointMatAligned[joint_num].loadu(gJointMatUnaligned[joint_num]);
         }
@@ -317,6 +382,97 @@ U32 LLViewerJointMesh::drawShape( F32 pixelArea, bool first_pass, bool is_dummy)
     triangle_count += count;
 
     return triangle_count;
+}
+
+U32 LLViewerJointMesh::appendWorldCommand(
+    LLWorldRenderCommandBuffer& commands,
+    F32 pixelArea,
+    bool first_pass,
+    bool is_dummy)
+{
+    if (!mValid || !mMesh || !mFace || !mVisible ||
+        !mFace->getVertexBuffer() ||
+        mMesh->getNumFaces() == 0)
+    {
+        return 0;
+    }
+
+    if (!mMesh->hasWeights())
+    {
+        return 0;
+    }
+
+    LLPolyMesh* reference_mesh = mMesh->getReferenceMesh();
+    const S32 joint_count = update_avatar_joint_matrices(reference_mesh, false);
+    if (joint_count <= 0)
+    {
+        return 0;
+    }
+
+    std::vector<F32> skinning_matrix_palette;
+    copy_avatar_joint_palette(joint_count, skinning_matrix_palette);
+
+    LLViewerTexture* texture = get_avatar_world_command_texture(
+        mTexture.get(),
+        mLayerSet,
+        mTestImageName,
+        is_dummy);
+
+    const U32 count = mMesh->mFaceIndexCount;
+    if (!mMesh->mFaceVertexCount || !count)
+    {
+        return 0;
+    }
+    const U32 start = mMesh->mFaceVertexOffset;
+    const U32 end = start + mMesh->mFaceVertexCount - 1;
+    const U32 offset = mMesh->mFaceIndexOffset;
+
+    static U32 sLoggedVulkanAvatarCommands = 0;
+    if (sLoggedVulkanAvatarCommands < 24)
+    {
+        LLViewerFetchedTexture* fetched_texture =
+            dynamic_cast<LLViewerFetchedTexture*>(texture);
+        LL_INFOS("RenderBackend")
+            << "Vulkan avatar command "
+            << sLoggedVulkanAvatarCommands
+            << ": mesh "
+            << getName()
+            << ", indices "
+            << count
+            << ", vertices "
+            << mMesh->mFaceVertexCount
+            << ", joints "
+            << joint_count
+            << ", texture "
+            << (texture ? texture->getID().asString() : std::string("null"))
+            << ", texture type "
+            << (texture ? static_cast<S32>(texture->getType()) : -1)
+            << ", texname "
+            << (texture ? texture->getTexName() : 0)
+            << ", has texture "
+            << (texture ? texture->hasGLTexture() : false)
+            << ", discard "
+            << (texture ? texture->getDiscardLevel() : -1)
+            << ", raw discard "
+            << (fetched_texture ? fetched_texture->getRawImageLevel() : -1)
+            << LL_ENDL;
+        ++sLoggedVulkanAvatarCommands;
+    }
+
+    commands.appendAvatarDrawRange(
+        mFace->getVertexBuffer(),
+        texture,
+        LLDrawPool::POOL_AVATAR,
+        start,
+        end,
+        count,
+        offset,
+        skinning_matrix_palette,
+        static_cast<U32>(joint_count),
+        LLDrawPoolAvatar::VERTEX_DATA_MASK);
+
+    gPipeline.addTrianglesDrawn(count);
+    return count;
 }
 
 //-----------------------------------------------------------------------------

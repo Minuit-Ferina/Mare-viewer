@@ -87,9 +87,21 @@ bool LLDrawPoolGLTFPBR::emitDeferredCommands(LLWorldRenderCommandBuffer& command
         true,
         false,
         LLVertexBuffer::MAP_VERTEX |
-            LLVertexBuffer::MAP_NORMAL |
+        LLVertexBuffer::MAP_NORMAL |
             LLVertexBuffer::MAP_TEXCOORD0 |
             LLVertexBuffer::MAP_COLOR);
+    commands.appendRenderMap(
+        mRenderType + 1,
+        mRenderType == LLPipeline::RENDER_TYPE_PASS_GLTF_PBR_ALPHA_MASK ?
+            LLWorldRenderMaterialClass::GLTFPBRAlphaMask :
+            LLWorldRenderMaterialClass::GLTFPBR,
+        true,
+        false,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_NORMAL |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_COLOR |
+            LLVertexBuffer::MAP_WEIGHT4);
     return true;
 }
 
@@ -143,5 +155,15 @@ bool LLDrawPoolGLTFPBR::emitPostDeferredCommands(LLWorldRenderCommandBuffer& com
             LLVertexBuffer::MAP_NORMAL |
             LLVertexBuffer::MAP_TEXCOORD0 |
             LLVertexBuffer::MAP_COLOR);
+    commands.appendRenderMap(
+        LLRenderPass::PASS_GLTF_GLOW_RIGGED,
+        LLWorldRenderMaterialClass::Glow,
+        true,
+        false,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_NORMAL |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_COLOR |
+            LLVertexBuffer::MAP_WEIGHT4);
     return true;
 }

@@ -252,6 +252,7 @@ void LLTexUnit::bindFast(LLTexture* texture)
         texture->forceImmediateUpdate();
         gl_tex->forceUpdateBindStats();
         texture->bindDefaultImage(mIndex);
+        return;
     }
     mCurrTexType = gl_tex->getTarget();
     getRenderBackend().bindTexture(to_render_texture_target(gl_tex->getTarget()), mCurrTexture);

@@ -72,6 +72,14 @@ static const F32 MINIMUM_ALPHA = 0.004f; // ~ 1/255
 // minimum alpha before discarding a fragment when rendering impostors
 static const F32 MINIMUM_IMPOSTOR_ALPHA = 0.1f;
 
+namespace
+{
+U32 with_weight4_attribute(U32 mask)
+{
+    return mask | static_cast<U32>(LLVertexBuffer::MAP_WEIGHT4);
+}
+}
+
 static bool is_particle_or_hud_particle_group(LLSpatialGroup* group)
 {
     const U32 partition_type = group->getSpatialPartition()->mPartitionType;
@@ -710,44 +718,47 @@ bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
     }
 
     LLEnvironment& env = LLEnvironment::instance();
-    const AlphaPassContext context =
+    for (bool rigged : { true, false })
     {
-        false,
-        false,
-        is_above_water_alpha_pool(getType()),
-        env.getWaterHeight()
-    };
-
-    LLCullResult::sg_iterator begin = begin_alpha_groups(false);
-    LLCullResult::sg_iterator end = end_alpha_groups(false);
-
-    for (LLCullResult::sg_iterator group_iter = begin; group_iter != end; ++group_iter)
-    {
-        LLSpatialGroup* group = *group_iter;
-        if (!is_renderable_alpha_group(group) ||
-            !is_alpha_group_on_rendered_side_of_water(group, context.above_water, context.water_height))
+        const AlphaPassContext context =
         {
-            continue;
-        }
+            false,
+            rigged,
+            is_above_water_alpha_pool(getType()),
+            env.getWaterHeight()
+        };
 
-        LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_draw_info(group, context.rigged);
-        for (LLSpatialGroup::drawmap_elem_t::iterator draw_iter = draw_info.begin();
-             draw_iter != draw_info.end();
-             ++draw_iter)
+        LLCullResult::sg_iterator begin = begin_alpha_groups(rigged);
+        LLCullResult::sg_iterator end = end_alpha_groups(rigged);
+
+        for (LLCullResult::sg_iterator group_iter = begin; group_iter != end; ++group_iter)
         {
-            LLDrawInfo& params = **draw_iter;
-            if (!is_alpha_draw_info_for_pass(params, context.rigged))
+            LLSpatialGroup* group = *group_iter;
+            if (!is_renderable_alpha_group(group) ||
+                !is_alpha_group_on_rendered_side_of_water(group, context.above_water, context.water_height))
             {
                 continue;
             }
 
-            commands.appendDrawInfo(
-                params,
-                LLWorldRenderMaterialClass::Alpha,
-                LLRenderPass::PASS_ALPHA,
-                true,
-                true,
-                VERTEX_DATA_MASK);
+            LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_draw_info(group, context.rigged);
+            for (LLSpatialGroup::drawmap_elem_t::iterator draw_iter = draw_info.begin();
+                 draw_iter != draw_info.end();
+                 ++draw_iter)
+            {
+                LLDrawInfo& params = **draw_iter;
+                if (!is_alpha_draw_info_for_pass(params, context.rigged))
+                {
+                    continue;
+                }
+
+                commands.appendDrawInfo(
+                    params,
+                    LLWorldRenderMaterialClass::Alpha,
+                    rigged ? LLRenderPass::PASS_ALPHA_RIGGED : LLRenderPass::PASS_ALPHA,
+                    true,
+                    true,
+                    rigged ? with_weight4_attribute(get_alpha_vertex_data_mask()) : get_alpha_vertex_data_mask());
+            }
         }
     }
 

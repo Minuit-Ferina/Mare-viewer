@@ -316,9 +316,19 @@ bool LLDrawPoolMaterials::emitDeferredCommands(LLWorldRenderCommandBuffer& comma
 {
     bool rigged = false;
     U32 type = 0;
-    if (!get_material_render_pass(pass, type, rigged) || rigged)
+    if (!get_material_render_pass(pass, type, rigged))
     {
         return false;
+    }
+
+    U32 mask =
+        LLVertexBuffer::MAP_VERTEX |
+        LLVertexBuffer::MAP_NORMAL |
+        LLVertexBuffer::MAP_TEXCOORD0 |
+        LLVertexBuffer::MAP_COLOR;
+    if (rigged)
+    {
+        mask |= LLVertexBuffer::MAP_WEIGHT4;
     }
 
     commands.appendRenderMap(
@@ -326,9 +336,6 @@ bool LLDrawPoolMaterials::emitDeferredCommands(LLWorldRenderCommandBuffer& comma
         LLWorldRenderMaterialClass::LegacyMaterial,
         true,
         false,
-        LLVertexBuffer::MAP_VERTEX |
-            LLVertexBuffer::MAP_NORMAL |
-            LLVertexBuffer::MAP_TEXCOORD0 |
-            LLVertexBuffer::MAP_COLOR);
+        mask);
     return true;
 }

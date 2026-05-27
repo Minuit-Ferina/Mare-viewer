@@ -173,6 +173,8 @@ static void render_vulkan_existing_world_geometry()
         LLPipeline::RENDER_TYPE_ALPHA_MASK,
         LLPipeline::RENDER_TYPE_GRASS,
         LLPipeline::RENDER_TYPE_TREE,
+        LLPipeline::RENDER_TYPE_AVATAR,
+        LLPipeline::RENDER_TYPE_CONTROL_AV,
         LLPipeline::RENDER_TYPE_BUMP,
         LLPipeline::RENDER_TYPE_MATERIALS,
         LLPipeline::RENDER_TYPE_GLTF_PBR,

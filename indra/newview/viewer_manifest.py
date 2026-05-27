@@ -866,6 +866,19 @@ class DarwinManifest(ViewerManifest):
         vulkan_sdk = os.environ.get("VULKAN_SDK", "").strip()
         return vulkan_sdk if os.path.isdir(vulkan_sdk) else ""
 
+    def ad_hoc_sign_dev_binary(self, path):
+        if 'signature' in self.args:
+            return
+        if not os.path.exists(path):
+            return
+
+        self.run_command([
+            "codesign",
+            "--force",
+            "--sign", "-",
+            "--timestamp=none",
+            path])
+
     def copy_vulkan_runtime_libraries(self):
         vulkan_sdk = self.get_vulkan_sdk_path()
         if not vulkan_sdk:
@@ -879,7 +892,8 @@ class DarwinManifest(ViewerManifest):
                     "libvulkan.dylib",
                     ):
             libpath = os.path.join(vulkan_libdir, libfile)
-            self.path_optional(os.path.realpath(libpath), libfile)
+            if self.path_optional(os.path.realpath(libpath), libfile):
+                self.ad_hoc_sign_dev_binary(self.dst_path_of(libfile))
 
     def copy_vulkan_license_file(self):
         vulkan_sdk = self.get_vulkan_sdk_path()
@@ -1099,6 +1113,7 @@ class DarwinManifest(ViewerManifest):
                 # SLVoice executable
                 with self.prefix(src=os.path.join(pkgdir, 'bin', 'release')):
                     self.path("SLVoice")
+                    self.ad_hoc_sign_dev_binary(self.dst_path_of("SLVoice"))
 
                 # Vivox libraries
                 for libfile in (
@@ -1106,6 +1121,7 @@ class DarwinManifest(ViewerManifest):
                                 'libvivoxsdk.dylib',
                                 ):
                     self.path2basename(relpkgdir, libfile)
+                    self.ad_hoc_sign_dev_binary(self.dst_path_of(libfile))
 
                 # Fmod studio dylibs (vary based on configuration)
                 if self.manifest_bool('fmodstudio'):

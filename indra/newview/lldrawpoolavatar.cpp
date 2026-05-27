@@ -52,6 +52,7 @@
 #include "llviewerpartsim.h"
 #include "llviewercontrol.h" // for gSavedSettings
 #include "llviewertexturelist.h"
+#include "llworldrendercommand.h"
 
 // <FS:Zi> Add avatar hitbox debug
 #include "llviewercontrol.h"
@@ -224,6 +225,144 @@ void LLDrawPoolAvatar::renderDeferred(S32 pass)
     LL_PROFILE_ZONE_SCOPED_CATEGORY_AVATAR;
 
     render(pass);
+}
+
+bool LLDrawPoolAvatar::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    LL_PROFILE_ZONE_SCOPED_CATEGORY_AVATAR;
+
+    auto log_avatar_command_state = [this, pass](const char* reason, LLVOAvatar* avatarp = nullptr)
+    {
+        static U32 sLoggedAvatarCommandState = 0;
+        if (sLoggedAvatarCommandState >= 32)
+        {
+            return;
+        }
+
+        LL_INFOS("RenderBackend")
+            << "Vulkan avatar deferred command state "
+            << sLoggedAvatarCommandState
+            << ": pass "
+            << pass
+            << ", reason "
+            << reason
+            << ", draw faces "
+            << mDrawFace.size();
+
+        if (avatarp)
+        {
+            LL_CONT
+                << ", self "
+                << avatarp->isSelf()
+                << ", ui "
+                << avatarp->isUIAvatar()
+                << ", control "
+                << avatarp->isControlAvatar()
+                << ", dead "
+                << avatarp->isDead()
+                << ", fully loaded "
+                << avatarp->isFullyLoaded()
+                << ", impostor "
+                << avatarp->isImpostor()
+                << ", appearance "
+                << static_cast<S32>(avatarp->getOverallAppearance());
+        }
+
+        LL_CONT << LL_ENDL;
+        ++sLoggedAvatarCommandState;
+    };
+
+    struct LLScopedAvatarDeferredCommandState
+    {
+        LLScopedAvatarDeferredCommandState()
+        {
+            LLDrawPoolAvatar::sSkipTransparent = true;
+            is_deferred_render = true;
+        }
+
+        ~LLScopedAvatarDeferredCommandState()
+        {
+            LLDrawPoolAvatar::sSkipTransparent = false;
+            is_deferred_render = false;
+        }
+    } scoped_state;
+
+    if (LLPipeline::sImpostorRender)
+    {
+        ++pass;
+    }
+
+    if (pass != 2)
+    {
+        if (pass == 0)
+        {
+            log_avatar_command_state("non-skinned pass");
+        }
+        return false;
+    }
+
+    if (mDrawFace.empty())
+    {
+        log_avatar_command_state("empty draw face list");
+        return false;
+    }
+
+    const LLFace* facep = mDrawFace[0];
+    if (!facep->getDrawable())
+    {
+        log_avatar_command_state("missing drawable");
+        return false;
+    }
+
+    LLVOAvatar* avatarp = (LLVOAvatar*)facep->getDrawable()->getVObj().get();
+    if (!avatarp || avatarp->isDead() || avatarp->mDrawable.isNull())
+    {
+        log_avatar_command_state("missing or dead avatar", avatarp);
+        return false;
+    }
+
+    if (!avatarp->isFullyLoaded())
+    {
+        log_avatar_command_state("avatar not fully loaded", avatarp);
+        return true;
+    }
+
+    static LLCachedControl<bool> friends_only(gSavedSettings, "RenderAvatarFriendsOnly", false);
+    if (friends_only()
+        && !avatarp->isUIAvatar()
+        && !avatarp->isControlAvatar()
+        && !avatarp->isSelf()
+        && !avatarp->isBuddy())
+    {
+        log_avatar_command_state("friends-only filter", avatarp);
+        return true;
+    }
+
+    const bool impostor = !LLPipeline::sImpostorRender && avatarp->isImpostor();
+    if (avatarp->isInMuteList()
+        || (LLVOAvatar::AOA_NORMAL != avatarp->getOverallAppearance() && !avatarp->needsImpostorUpdate()))
+    {
+        log_avatar_command_state("avatar render filter", avatarp);
+        return true;
+    }
+
+    if (impostor)
+    {
+        // The Vulkan world path does not render avatar impostor billboards yet.
+        // Keep the real skinned avatar visible instead of distance-clipping it.
+        log_avatar_command_state("impostor skinned fallback", avatarp);
+    }
+
+    LLVOAvatar* attached_av = avatarp->getAttachedAvatar();
+    if (attached_av && (LLVOAvatar::AOA_NORMAL != attached_av->getOverallAppearance() || !gPipeline.hasRenderType(LLPipeline::RENDER_TYPE_AVATAR)))
+    {
+        log_avatar_command_state("attached avatar render filter", avatarp);
+        return true;
+    }
+
+    log_avatar_command_state("emitting skinned commands", avatarp);
+    avatarp->emitSkinnedWorldCommands(commands);
+    return true;
 }
 
 S32 LLDrawPoolAvatar::getNumPostDeferredPasses()
@@ -980,4 +1119,3 @@ LLColor3 LLDrawPoolAvatar::getDebugColor() const
 {
     return LLColor3(0.f, 1.f, 0.f);
 }
-

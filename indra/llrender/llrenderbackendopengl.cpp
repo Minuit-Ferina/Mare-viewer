@@ -1173,6 +1173,7 @@ public:
     void setWorldShaderClass(LLRenderWorldShaderClass) override {}
     void setWorldTerrainParameters(const LLRenderWorldTerrainParameters&) override {}
     void setWorldTextureTransform(const LLRenderWorldTextureTransform&) override {}
+    void setWorldSkinningMatrixPalette(U32, const F32*) override {}
 
     LLRenderFloatRange getLineWidthRange(bool smooth) const override
     {

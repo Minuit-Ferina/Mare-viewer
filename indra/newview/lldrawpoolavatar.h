@@ -90,6 +90,7 @@ typedef enum
     /*virtual*/ void beginDeferredPass(S32 pass);
     /*virtual*/ void endDeferredPass(S32 pass);
     /*virtual*/ void renderDeferred(S32 pass);
+    bool emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass);
 
     /*virtual*/ S32 getNumPostDeferredPasses();
     /*virtual*/ void beginPostDeferredPass(S32 pass);

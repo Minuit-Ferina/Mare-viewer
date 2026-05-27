@@ -104,7 +104,6 @@ F32 LLViewerTexture::sCurrentTime = 0.0f;
 
 constexpr F32 MEMORY_CHECK_WAIT_TIME = 1.0f;
 constexpr F32 MIN_VRAM_BUDGET = 768.f;
-constexpr F32 VULKAN_PROTOTYPE_TEXTURE_BUDGET = 512.f;
 constexpr U32 VULKAN_PROTOTYPE_MAX_TEXTURE_RESOLUTION = 512;
 F32 LLViewerTexture::sFreeVRAMMegabytes = MIN_VRAM_BUDGET;
 
@@ -548,8 +547,22 @@ void LLViewerTexture::updateClass()
     static LLCachedControl<U32> tex_vram_divisor(gSavedSettings, "RenderTextureVRAMDivisor", 2);
     static LLCachedControl<U32> max_vram_budget(gSavedSettings, "RenderMaxVRAMBudget", 0);
 
+    const bool is_vulkan_backend = getRenderBackend().getType() == LLRenderBackendType::Vulkan;
+
     F64 texture_bytes_alloc = LLImageGL::getTextureBytesAllocated() / 1024.0 / 512.0;
     F64 vertex_bytes_alloc = LLVertexBuffer::getBytesAllocated() / 1024.0 / 512.0;
+    F32 backend_texture_budget = 0.f;
+    if (is_vulkan_backend)
+    {
+        const U64 backend_texture_bytes = getRenderBackend().getTextureMemoryAllocatedBytes();
+        const U64 backend_budget_bytes = getRenderBackend().getTextureMemoryBudgetBytes();
+        texture_bytes_alloc =
+            static_cast<F64>(backend_texture_bytes) / (1024.0 * 1024.0);
+        vertex_bytes_alloc = 0.0;
+        backend_texture_budget =
+            static_cast<F32>(
+                static_cast<F64>(backend_budget_bytes) / (1024.0 * 1024.0));
+    }
 
     // get an estimate of how much video memory we're using
     // NOTE: our metrics miss about half the vram we use, so this biases high but turns out to typically be within 5% of the real number
@@ -560,18 +573,9 @@ void LLViewerTexture::updateClass()
     // While we're at it, assume we have 1024 to play with at minimum when the divisor is in use.  Works more elegantly with the logic below this.
     // -Geenz 2025-03-21
     F32 budget = max_vram_budget == 0 ? llmax(1024, (F32)gGLManager.mVRAM / tex_vram_divisor) : (F32)max_vram_budget;
-    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+    if (is_vulkan_backend && backend_texture_budget > 0.f)
     {
-        static bool logged_vulkan_budget = false;
-        const F32 clamped_budget = llmin(budget, VULKAN_PROTOTYPE_TEXTURE_BUDGET);
-        if (!logged_vulkan_budget && clamped_budget < budget)
-        {
-            LL_WARNS() << "Clamping Vulkan prototype texture budget from "
-                       << budget << "MB to " << clamped_budget << "MB"
-                       << LL_ENDL;
-            logged_vulkan_budget = true;
-        }
-        budget = clamped_budget;
+        budget = max_vram_budget == 0 ? backend_texture_budget : llmin(budget, backend_texture_budget);
     }
 
     // Try to leave at least half a GB for everyone else and for bias,
@@ -580,7 +584,7 @@ void LLViewerTexture::updateClass()
     // can negatively impact performance, so leave 20% of a breathing room for
     // 'bias' calculation to kick in.
     F32 target = llmax(llmin(budget - 512.f, budget * 0.8f), MIN_VRAM_BUDGET);
-    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+    if (is_vulkan_backend)
     {
         target = llmax(128.f, budget * 0.75f);
     }

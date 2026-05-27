@@ -32,6 +32,8 @@
 class LLDrawInfo;
 class LLFace;
 class LLMatrix4;
+class LLMeshSkinInfo;
+class LLVOAvatar;
 
 enum class LLWorldRenderMaterialClass : U8
 {
@@ -46,6 +48,7 @@ enum class LLWorldRenderMaterialClass : U8
     LegacyMaterial,
     GLTFPBR,
     GLTFPBRAlphaMask,
+    Avatar,
     Alpha,
     Glow,
     Water,
@@ -95,6 +98,10 @@ struct LLWorldRenderCommand
 
     const LLMatrix4* mModelMatrix = nullptr;
     const LLMatrix4* mTextureMatrix = nullptr;
+    LLVOAvatar* mAvatar = nullptr;
+    LLMeshSkinInfo* mSkinInfo = nullptr;
+    std::vector<F32> mSkinningMatrixPalette;
+    U32 mSkinningMatrixCount = 0;
 
     U32 mStart = 0;
     U32 mEnd = 0;
@@ -107,6 +114,7 @@ struct LLWorldRenderCommand
     F32 mTerrainOffsetY = 0.f;
     bool mUseTexture = true;
     bool mBatchTextures = false;
+    bool mRigged = false;
 };
 
 class LLWorldRenderCommandBuffer
@@ -154,6 +162,18 @@ public:
         U32 offset,
         bool use_texture,
         bool batch_textures,
+        U32 attribute_mask);
+
+    void appendAvatarDrawRange(
+        LLVertexBuffer* vertex_buffer,
+        LLViewerTexture* texture,
+        U32 source_pass,
+        U32 start,
+        U32 end,
+        U32 count,
+        U32 offset,
+        const std::vector<F32>& skinning_matrix_palette,
+        U32 skinning_matrix_count,
         U32 attribute_mask);
 
     void appendRenderMap(

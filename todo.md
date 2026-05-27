@@ -5,11 +5,46 @@ Upstream context: Firestorm Viewer.
 
 Current rule: phase 17 is active on branch `phase17`. Preserve the completed
 OpenGL containment, header guardrails, and UI ownership helper boundaries. Add
-only backend-neutral rendering interface vocabulary first; do not route runtime
-rendering through it until a specific owner migration is selected. Do not run
-broad `mare-viewer` integration rebuilds unless explicitly selected for a
-branch checkpoint. Do not move source files, do not change runtime behavior
-without an explicit task, and do not start a direct Vulkan port.
+only backend-neutral rendering interface vocabulary where possible. Runtime
+Vulkan renderer work is now explicitly selected for phase 17; keep packets
+small, source-local, and easy to revert. Do not run broad `mare-viewer`
+integration rebuilds unless explicitly selected for a branch checkpoint. Do not
+move source files, and keep the OpenGL path working while the Vulkan path is
+filled in.
+
+## Active Vulkan Renderer Gaps
+
+- [x] Establish a Vulkan backend/context/swapchain path through MoltenVK.
+- [x] Render bootstrap UI, login UI, CEF login page, and partial world geometry
+      through the Vulkan command bridge.
+- [x] Add conservative Vulkan texture and buffer memory budgets so the viewer
+      does not exhaust unified memory and stall WindowServer.
+- [x] Expose Vulkan memory heap/budget information to the viewer memory reports.
+- [x] Add a basic world-textured Vulkan shader path and move its GLSL source out
+      of inline C++.
+- [x] Port enough rigged `weight4` mesh handling to display some attachments.
+- [ ] Start `LLDrawPoolAvatar`: emit Vulkan world commands for the classic
+      avatar skinned opaque pass instead of skipping avatar deferred pass 2.
+- [ ] Add classic avatar skinning support to the Vulkan bridge shader
+      (`weight` plus 15-joint matrix palette), separate from rigged `weight4`.
+- [ ] Bind baked/composited avatar body textures through the command bridge.
+- [ ] Add rigid avatar pass support for eyes and other non-weighted avatar
+      meshes.
+- [ ] Add avatar alpha/post-deferred support for hair, eyelashes, skirt, and
+      alpha layers.
+- [ ] Add impostor/avatar fallback rendering for muted, jellydolled, or distant
+      avatars.
+- [ ] Finish rigged mesh material coverage: alpha, alpha mask, PBR base color,
+      normal, ORM, emissive, double-sided state, and texture transforms.
+- [ ] Replace the current single-color world pass with a deferred/G-buffer
+      equivalent before treating Vulkan as visually complete.
+- [ ] Port lighting, environment, shadows, reflections, water, glow,
+      post-process, and upscaler passes after geometry coverage is stable.
+- [ ] Harden Vulkan resource lifetime: texture reload after budget refusal,
+      stale white-texture recovery, buffer reuse, and viewport-driven eviction.
+- [ ] Keep OpenGL as the comparison path until a dedicated smoke test confirms
+      the Vulkan path can reach login, load a scene, resize, and shut down
+      without memory growth.
 
 ## Done
 

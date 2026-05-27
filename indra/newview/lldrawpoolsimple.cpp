@@ -49,6 +49,14 @@
 static LLTrace::BlockTimerStatHandle FTM_RENDER_SIMPLE_DEFERRED("Deferred Simple");
 static LLTrace::BlockTimerStatHandle FTM_RENDER_GRASS_DEFERRED("Deferred Grass");
 
+namespace
+{
+U32 with_weight4_attribute(U32 mask)
+{
+    return mask | static_cast<U32>(LLVertexBuffer::MAP_WEIGHT4);
+}
+}
+
 bool LLDrawPoolGlow::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
 {
     if (gAgent.mRRInterface.mVisionRestricted)
@@ -63,6 +71,14 @@ bool LLDrawPoolGlow::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comman
         true,
         LLVertexBuffer::MAP_VERTEX |
             LLVertexBuffer::MAP_TEXCOORD0);
+    commands.appendRenderMap(
+        LLRenderPass::PASS_GLOW_RIGGED,
+        LLWorldRenderMaterialClass::Glow,
+        true,
+        true,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_WEIGHT4);
     return true;
 }
 
@@ -144,6 +160,12 @@ bool LLDrawPoolSimple::emitDeferredCommands(LLWorldRenderCommandBuffer& commands
         true,
         true,
         VERTEX_DATA_MASK);
+    commands.appendRenderMap(
+        LLRenderPass::PASS_SIMPLE_RIGGED,
+        LLWorldRenderMaterialClass::SimpleOpaque,
+        true,
+        true,
+        with_weight4_attribute(VERTEX_DATA_MASK));
     return true;
 }
 
@@ -188,6 +210,12 @@ bool LLDrawPoolAlphaMask::emitDeferredCommands(LLWorldRenderCommandBuffer& comma
         true,
         true,
         VERTEX_DATA_MASK);
+    commands.appendRenderMap(
+        LLRenderPass::PASS_ALPHA_MASK_RIGGED,
+        LLWorldRenderMaterialClass::AlphaMask,
+        true,
+        true,
+        with_weight4_attribute(VERTEX_DATA_MASK));
     return true;
 }
 
@@ -289,6 +317,12 @@ bool LLDrawPoolFullbright::emitPostDeferredCommands(LLWorldRenderCommandBuffer& 
         true,
         true,
         VERTEX_DATA_MASK);
+    commands.appendRenderMap(
+        LLRenderPass::PASS_FULLBRIGHT_RIGGED,
+        LLWorldRenderMaterialClass::Fullbright,
+        true,
+        true,
+        with_weight4_attribute(VERTEX_DATA_MASK));
     return true;
 }
 
@@ -341,6 +375,12 @@ bool LLDrawPoolFullbrightAlphaMask::emitPostDeferredCommands(LLWorldRenderComman
         true,
         true,
         VERTEX_DATA_MASK);
+    commands.appendRenderMap(
+        LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK_RIGGED,
+        LLWorldRenderMaterialClass::FullbrightAlphaMask,
+        true,
+        true,
+        with_weight4_attribute(VERTEX_DATA_MASK));
     return true;
 }
 

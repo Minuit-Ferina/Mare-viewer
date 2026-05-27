@@ -749,6 +749,7 @@ public:
     virtual void setWorldShaderClass(LLRenderWorldShaderClass shader_class) = 0;
     virtual void setWorldTerrainParameters(const LLRenderWorldTerrainParameters& parameters) = 0;
     virtual void setWorldTextureTransform(const LLRenderWorldTextureTransform& transform) = 0;
+    virtual void setWorldSkinningMatrixPalette(U32 count, const F32* values) = 0;
     virtual LLRenderFloatRange getLineWidthRange(bool smooth) const = 0;
     virtual void setPixelStoreInteger(LLRenderPixelStoreParameter parameter, S32 value) = 0;
     virtual S32 getActiveTextureUnit() const = 0;
@@ -1479,6 +1480,10 @@ public:
     virtual void pushMatrix() = 0;
     virtual void popMatrix() = 0;
     virtual const char* getInfoString(LLRenderInfoString parameter) = 0;
+    virtual U64 getTextureMemoryAllocatedBytes() const;
+    virtual U64 getTextureMemoryBudgetBytes() const;
+    virtual U64 getBufferMemoryAllocatedBytes() const;
+    virtual U64 getBufferMemoryBudgetBytes() const;
 };
 
 const char* getRenderBackendTypeName(LLRenderBackendType type);

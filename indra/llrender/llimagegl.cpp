@@ -415,11 +415,27 @@ void LLImageGL::initClass(LLWindow* window, S32 num_catagories, bool skip_analyz
 
     ensure_scratch_pbo_created(sScratchPBO, sScratchPBOSize);
 
-    if (thread_texture_loads || thread_media_updates)
+    const bool vulkan_backend =
+        getRenderBackend().getType() == LLRenderBackendType::Vulkan;
+    bool enable_thread_texture_loads =
+        gGLManager.mGLVersion > 3.95f && thread_texture_loads;
+    bool enable_thread_media_updates =
+        gGLManager.mGLVersion > 3.95f && thread_media_updates;
+
+    if (vulkan_backend && enable_thread_texture_loads)
+    {
+        LL_WARNS_ONCE("Texture")
+            << "Disabling threaded texture creation for the Vulkan backend; "
+            << "texture uploads require the active Vulkan render context."
+            << LL_ENDL;
+        enable_thread_texture_loads = false;
+    }
+
+    if (enable_thread_texture_loads || enable_thread_media_updates)
     {
         LLImageGLThread::createInstance(window);
-        LLImageGLThread::sEnabledTextures = gGLManager.mGLVersion > 3.95f ? thread_texture_loads : false;
-        LLImageGLThread::sEnabledMedia = gGLManager.mGLVersion > 3.95f ? thread_media_updates : false;
+        LLImageGLThread::sEnabledTextures = enable_thread_texture_loads;
+        LLImageGLThread::sEnabledMedia = enable_thread_media_updates;
     }
 }
 

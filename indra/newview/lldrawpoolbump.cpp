@@ -552,6 +552,16 @@ bool LLDrawPoolBump::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, 
             LLVertexBuffer::MAP_NORMAL |
             LLVertexBuffer::MAP_TEXCOORD0 |
             LLVertexBuffer::MAP_COLOR);
+    commands.appendRenderMap(
+        LLRenderPass::PASS_BUMP_RIGGED,
+        LLWorldRenderMaterialClass::Bump,
+        true,
+        false,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_NORMAL |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_COLOR |
+            LLVertexBuffer::MAP_WEIGHT4);
     return true;
 }
 
@@ -657,6 +667,16 @@ bool LLDrawPoolBump::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comman
             LLVertexBuffer::MAP_NORMAL |
             LLVertexBuffer::MAP_TEXCOORD0 |
             LLVertexBuffer::MAP_COLOR);
+    commands.appendRenderMap(
+        LLRenderPass::PASS_FULLBRIGHT_SHINY_RIGGED,
+        LLWorldRenderMaterialClass::FullbrightShiny,
+        true,
+        true,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_NORMAL |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_COLOR |
+            LLVertexBuffer::MAP_WEIGHT4);
 
     commands.appendRenderMap(
         LLRenderPass::PASS_POST_BUMP,
@@ -666,6 +686,15 @@ bool LLDrawPoolBump::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comman
         LLVertexBuffer::MAP_VERTEX |
             LLVertexBuffer::MAP_TEXCOORD0 |
             LLVertexBuffer::MAP_TEXCOORD1);
+    commands.appendRenderMap(
+        LLRenderPass::PASS_POST_BUMP_RIGGED,
+        LLWorldRenderMaterialClass::PostBump,
+        true,
+        false,
+        LLVertexBuffer::MAP_VERTEX |
+            LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_TEXCOORD1 |
+            LLVertexBuffer::MAP_WEIGHT4);
     return true;
 }
 

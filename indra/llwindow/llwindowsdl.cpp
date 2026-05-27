@@ -1161,6 +1161,15 @@ F32 LLWindowSDL::getPixelAspectRatio()
 
 U32 LLWindowSDL::getAvailableVRAMMegabytes()
 {
+    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+    {
+        const U64 budget = getRenderBackend().getTextureMemoryBudgetBytes();
+        const U64 allocated = getRenderBackend().getTextureMemoryAllocatedBytes();
+        return budget > allocated ?
+            static_cast<U32>((budget - allocated) / (1024 * 1024)) :
+            0;
+    }
+
     static const U32 mb = 1024*1024;
     static const U32 total_factor = 2;
     return gGLManager.mVRAM - (LLImageGL::getTextureBytesAllocated() * total_factor/mb);

@@ -76,6 +76,7 @@ class FetchAvatarBirthdate;
 
 struct LLAppearanceMessageContents;
 class LLViewerJointMesh;
+class LLWorldRenderCommandBuffer;
 
 const F32 MAX_AVATAR_LOD_FACTOR = 1.0f;
 
@@ -550,6 +551,7 @@ public:
 
     U32         renderRigid();
     U32         renderSkinned();
+    U32         emitSkinnedWorldCommands(LLWorldRenderCommandBuffer& commands);
     F32         getLastSkinTime() { return mLastSkinTime; }
     U32         renderTransparent(bool first_pass);
     void        renderCollisionVolumes();

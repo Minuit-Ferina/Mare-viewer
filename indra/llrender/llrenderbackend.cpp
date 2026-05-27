@@ -57,6 +57,26 @@ LLRenderBackend& select_render_backend()
 
 LLRenderBackend::~LLRenderBackend() = default;
 
+U64 LLRenderBackend::getTextureMemoryAllocatedBytes() const
+{
+    return 0;
+}
+
+U64 LLRenderBackend::getTextureMemoryBudgetBytes() const
+{
+    return 0;
+}
+
+U64 LLRenderBackend::getBufferMemoryAllocatedBytes() const
+{
+    return 0;
+}
+
+U64 LLRenderBackend::getBufferMemoryBudgetBytes() const
+{
+    return 0;
+}
+
 const char* getRenderBackendTypeName(LLRenderBackendType type)
 {
     switch (type)

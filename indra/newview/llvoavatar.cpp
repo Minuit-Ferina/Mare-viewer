@@ -5791,6 +5791,146 @@ U32 LLVOAvatar::renderSkinned()
     return num_indices;
 }
 
+U32 LLVOAvatar::emitSkinnedWorldCommands(LLWorldRenderCommandBuffer& commands)
+{
+    LL_PROFILE_ZONE_SCOPED_CATEGORY_AVATAR;
+
+    U32 num_indices = 0;
+
+    if (!mIsBuilt || mDrawable.isNull())
+    {
+        static U32 sLoggedAvatarBuildSkips = 0;
+        if (sLoggedAvatarBuildSkips < 16)
+        {
+            LL_INFOS("RenderBackend")
+                << "Vulkan avatar skinned command skipped before mesh update "
+                << sLoggedAvatarBuildSkips
+                << ": built "
+                << mIsBuilt
+                << ", has drawable "
+                << !mDrawable.isNull()
+                << LL_ENDL;
+            ++sLoggedAvatarBuildSkips;
+        }
+        return num_indices;
+    }
+
+    LLFace* face = mDrawable->getFace(0);
+
+    bool needs_rebuild = !face || !face->getVertexBuffer() || mDrawable->isState(LLDrawable::REBUILD_GEOMETRY);
+
+    if (needs_rebuild || mDirtyMesh)
+    {
+        if (needs_rebuild || mDirtyMesh >= 2 || mVisibilityRank <= 4)
+        {
+            updateMeshData();
+            mDirtyMesh = 0;
+            mNeedsSkin = true;
+            mDrawable->clearState(LLDrawable::REBUILD_GEOMETRY);
+        }
+    }
+
+    mNeedsSkin = false;
+
+    if (isSelf() && !gAgent.needsRenderAvatar())
+    {
+        static U32 sLoggedSelfAvatarSkips = 0;
+        if (sLoggedSelfAvatarSkips < 16)
+        {
+            LL_INFOS("RenderBackend")
+                << "Vulkan avatar skinned command skipped for self avatar "
+                << sLoggedSelfAvatarSkips
+                << ": needs render avatar "
+                << gAgent.needsRenderAvatar()
+                << LL_ENDL;
+            ++sLoggedSelfAvatarSkips;
+        }
+        return num_indices;
+    }
+
+    static U32 sLoggedAvatarSkinnedState = 0;
+    if (sLoggedAvatarSkinnedState < 32)
+    {
+        LLViewerJoint* head_mesh = getViewerJoint(MESH_ID_HEAD);
+        LLViewerJoint* upper_mesh = getViewerJoint(MESH_ID_UPPER_BODY);
+        LLViewerJoint* lower_mesh = getViewerJoint(MESH_ID_LOWER_BODY);
+
+        LL_INFOS("RenderBackend")
+            << "Vulkan avatar skinned command state "
+            << sLoggedAvatarSkinnedState
+            << ": self "
+            << isSelf()
+            << ", ui "
+            << isUIAvatar()
+            << ", dummy "
+            << mIsDummy
+            << ", skip opaque "
+            << LLDrawPoolAvatar::sSkipOpaque
+            << ", needs head "
+            << gAgent.needsRenderHead()
+            << ", head visible "
+            << isTextureVisible(TEX_HEAD_BAKED)
+            << ", upper visible "
+            << isTextureVisible(TEX_UPPER_BAKED)
+            << ", lower visible "
+            << isTextureVisible(TEX_LOWER_BAKED)
+            << ", head mesh "
+            << (head_mesh != nullptr)
+            << ", upper mesh "
+            << (upper_mesh != nullptr)
+            << ", lower mesh "
+            << (lower_mesh != nullptr)
+            << LL_ENDL;
+        ++sLoggedAvatarSkinnedState;
+    }
+
+    bool first_pass = true;
+    if (!LLDrawPoolAvatar::sSkipOpaque)
+    {
+        if (isUIAvatar() && mIsDummy)
+        {
+            LLViewerJoint* hair_mesh = getViewerJoint(MESH_ID_HAIR);
+            if (hair_mesh)
+            {
+                num_indices += hair_mesh->emitWorldCommands(commands, mAdjustedPixelArea, first_pass, mIsDummy);
+            }
+            first_pass = false;
+        }
+        if (!isSelf() || gAgent.needsRenderHead() || LLPipeline::sShadowRender)
+        {
+            if (isTextureVisible(TEX_HEAD_BAKED) || (getOverallAppearance() == AOA_JELLYDOLL && !isControlAvatar()) || isUIAvatar())
+            {
+                LLViewerJoint* head_mesh = getViewerJoint(MESH_ID_HEAD);
+                if (head_mesh)
+                {
+                    num_indices += head_mesh->emitWorldCommands(commands, mAdjustedPixelArea, first_pass, mIsDummy);
+                }
+                first_pass = false;
+            }
+        }
+        if (isTextureVisible(TEX_UPPER_BAKED) || (getOverallAppearance() == AOA_JELLYDOLL && !isControlAvatar()) || isUIAvatar())
+        {
+            LLViewerJoint* upper_mesh = getViewerJoint(MESH_ID_UPPER_BODY);
+            if (upper_mesh)
+            {
+                num_indices += upper_mesh->emitWorldCommands(commands, mAdjustedPixelArea, first_pass, mIsDummy);
+            }
+            first_pass = false;
+        }
+
+        if (isTextureVisible(TEX_LOWER_BAKED) || (getOverallAppearance() == AOA_JELLYDOLL && !isControlAvatar()) || isUIAvatar())
+        {
+            LLViewerJoint* lower_mesh = getViewerJoint(MESH_ID_LOWER_BODY);
+            if (lower_mesh)
+            {
+                num_indices += lower_mesh->emitWorldCommands(commands, mAdjustedPixelArea, first_pass, mIsDummy);
+            }
+        }
+    }
+
+    return num_indices;
+}
+
 U32 LLVOAvatar::renderTransparent(bool first_pass)
 {
     U32 num_indices = 0;
