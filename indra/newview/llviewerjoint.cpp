@@ -33,6 +33,7 @@
 
 #include "llrenderbackend.h"
 #include "llrender.h"
+#include "llworldrendercommand.h"
 #include "llmath.h"
 
 #include "llvoavatar.h"
@@ -204,6 +205,54 @@ U32 LLViewerJoint::emitWorldCommands(
     return triangle_count;
 }
 
+U32 LLViewerJoint::emitTransparentWorldCommands(
+    LLWorldRenderCommandBuffer& commands,
+    F32 pixelArea,
+    bool first_pass,
+    bool is_dummy)
+{
+    U32 triangle_count = 0;
+
+    if (mValid)
+    {
+        if (is_dummy || LLPipeline::sShadowRender ||
+            (isTransparent() && !LLPipeline::sReflectionRender))
+        {
+            triangle_count += appendWorldCommand(
+                commands,
+                pixelArea,
+                first_pass,
+                is_dummy,
+                true);
+        }
+    }
+
+    for (LLJoint* j : mChildren)
+    {
+        LLAvatarJoint* joint = static_cast<LLAvatarJoint*>(j);
+        F32 jointLOD = joint->getLOD();
+        if (pixelArea >= jointLOD || sDisableLOD)
+        {
+            LLViewerJoint* viewer_joint = dynamic_cast<LLViewerJoint*>(joint);
+            if (viewer_joint)
+            {
+                triangle_count += viewer_joint->emitTransparentWorldCommands(
+                    commands,
+                    pixelArea,
+                    true,
+                    is_dummy);
+            }
+
+            if (jointLOD != DEFAULT_AVATAR_JOINT_LOD)
+            {
+                break;
+            }
+        }
+    }
+
+    return triangle_count;
+}
+
 //--------------------------------------------------------------------
 // drawShape()
 //--------------------------------------------------------------------
@@ -212,7 +261,12 @@ U32 LLViewerJoint::drawShape( F32 pixelArea, bool first_pass, bool is_dummy )
     return 0;
 }
 
-U32 LLViewerJoint::appendWorldCommand(LLWorldRenderCommandBuffer& commands, F32 pixelArea, bool first_pass, bool is_dummy)
+U32 LLViewerJoint::appendWorldCommand(
+    LLWorldRenderCommandBuffer& commands,
+    F32 pixelArea,
+    bool first_pass,
+    bool is_dummy,
+    bool alpha_pass)
 {
     return 0;
 }

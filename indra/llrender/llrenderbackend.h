@@ -485,6 +485,52 @@ struct LLRenderWorldTerrainParameters
     F32 mOffsetY = 0.f;
 };
 
+struct LLRenderWorldMaterialParameters
+{
+    enum MaterialFlag : U32
+    {
+        HasNormalMap = 1u << 0,
+        HasORMMap = 1u << 1,
+        Fullbright = 1u << 2,
+        Glow = 1u << 3,
+        Water = 1u << 4,
+        HasSpecularMap = 1u << 5,
+        AlphaBlend = 1u << 6,
+        AlphaMask = 1u << 7,
+        DoubleSided = 1u << 8,
+        LegacyBump = 1u << 9,
+        LegacyShiny = 1u << 10,
+        GLTFPBR = 1u << 11,
+        PostDeferred = 1u << 12,
+    };
+
+    F32 mBaseColorRed = 1.f;
+    F32 mBaseColorGreen = 1.f;
+    F32 mBaseColorBlue = 1.f;
+    F32 mBaseColorAlpha = 1.f;
+    F32 mEmissiveColorRed = 0.f;
+    F32 mEmissiveColorGreen = 0.f;
+    F32 mEmissiveColorBlue = 0.f;
+    F32 mHasEmissiveMap = 0.f;
+    F32 mBaseTextureScaleS = 1.f;
+    F32 mBaseTextureScaleT = 1.f;
+    F32 mBaseTextureRotation = 0.f;
+    F32 mBaseTextureOffsetS = 0.f;
+    F32 mBaseTextureOffsetT = 0.f;
+    F32 mRoughnessFactor = 1.f;
+    F32 mMetallicFactor = 1.f;
+    F32 mHasORMMap = 0.f;
+    F32 mMaterialFlags = 0.f;
+    F32 mSpecularColorRed = 1.f;
+    F32 mSpecularColorGreen = 1.f;
+    F32 mSpecularColorBlue = 1.f;
+    F32 mEnvIntensity = 0.f;
+    F32 mDiffuseAlphaMode = 0.f;
+    F32 mGLTFAlphaMode = 0.f;
+    F32 mBump = 0.f;
+    F32 mShiny = 0.f;
+};
+
 struct LLRenderWorldTextureTransform
 {
     F32 mS[4] = { 1.f, 0.f, 0.f, 0.f };
@@ -748,6 +794,7 @@ public:
     virtual void setWorldDrawEnabled(bool enabled) = 0;
     virtual void setWorldShaderClass(LLRenderWorldShaderClass shader_class) = 0;
     virtual void setWorldTerrainParameters(const LLRenderWorldTerrainParameters& parameters) = 0;
+    virtual void setWorldMaterialParameters(const LLRenderWorldMaterialParameters& parameters) = 0;
     virtual void setWorldTextureTransform(const LLRenderWorldTextureTransform& transform) = 0;
     virtual void setWorldSkinningMatrixPalette(U32 count, const F32* values) = 0;
     virtual LLRenderFloatRange getLineWidthRange(bool smooth) const = 0;
@@ -776,6 +823,7 @@ public:
     virtual void generateMipmaps(LLRenderTextureTarget target) = 0;
     virtual void generateTextures(S32 count, U32* textures) = 0;
     virtual void deleteTextures(S32 count, const U32* textures) = 0;
+    virtual bool isTextureResident(U32 texture) const { return true; }
 
     LLRenderTextureHandle createTextureHandle()
     {
@@ -1328,6 +1376,7 @@ public:
         LLRenderPixelType type,
         const void* data) = 0;
     virtual bool didLastTextureUploadSucceed() const { return true; }
+    virtual bool shouldRetryLastTextureUploadLater() const { return false; }
     virtual LLRenderTextureHandle createTexture2D(LLRenderTextureFormat internal_format, S32 width, S32 height) = 0;
     virtual void readPixels(
         S32 x,

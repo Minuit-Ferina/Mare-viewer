@@ -431,6 +431,7 @@ private:
     bool processFetchResults(S32& desired_discard, S32 current_discard, S32 fetch_discard, F32 decode_priority);
 
     void saveRawImage() ;
+    bool retryVulkanTextureCreateAtLowerResolution();
 
 private:
     bool  mFullyLoaded;

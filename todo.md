@@ -16,35 +16,422 @@ filled in.
 
 - [x] Establish a Vulkan backend/context/swapchain path through MoltenVK.
 - [x] Render bootstrap UI, login UI, CEF login page, and partial world geometry
-      through the Vulkan command bridge.
+      through the Vulkan command path.
 - [x] Add conservative Vulkan texture and buffer memory budgets so the viewer
       does not exhaust unified memory and stall WindowServer.
 - [x] Expose Vulkan memory heap/budget information to the viewer memory reports.
 - [x] Add a basic world-textured Vulkan shader path and move its GLSL source out
       of inline C++.
 - [x] Port enough rigged `weight4` mesh handling to display some attachments.
-- [ ] Start `LLDrawPoolAvatar`: emit Vulkan world commands for the classic
+- [x] Start `LLDrawPoolAvatar`: emit Vulkan world commands for the classic
       avatar skinned opaque pass instead of skipping avatar deferred pass 2.
-- [ ] Add classic avatar skinning support to the Vulkan bridge shader
+- [x] Add classic avatar skinning support to the active final Vulkan shader
       (`weight` plus 15-joint matrix palette), separate from rigged `weight4`.
-- [ ] Bind baked/composited avatar body textures through the command bridge.
-- [ ] Add rigid avatar pass support for eyes and other non-weighted avatar
+- [x] Bind baked/composited avatar body textures through the command path.
+- [x] Add rigid avatar pass support for eyes and other non-weighted avatar
       meshes.
-- [ ] Add avatar alpha/post-deferred support for hair, eyelashes, skirt, and
+- [x] Add avatar alpha/post-deferred support for hair, eyelashes, skirt, and
       alpha layers.
-- [ ] Add impostor/avatar fallback rendering for muted, jellydolled, or distant
-      avatars.
-- [ ] Finish rigged mesh material coverage: alpha, alpha mask, PBR base color,
-      normal, ORM, emissive, double-sided state, and texture transforms.
-- [ ] Replace the current single-color world pass with a deferred/G-buffer
-      equivalent before treating Vulkan as visually complete.
-- [ ] Port lighting, environment, shadows, reflections, water, glow,
-      post-process, and upscaler passes after geometry coverage is stable.
-- [ ] Harden Vulkan resource lifetime: texture reload after budget refusal,
+      Code path added for hair, eyelashes, and skirt through Vulkan
+      post-deferred commands. Classic avatar alpha layers use the avatar
+      command alpha cutoff path. Runtime validation is covered by the smoke
+      test item below.
+- [x] Add temporary distant-impostor fallback for classic avatar and attachment
+      visibility while Vulkan lacks impostor billboard rendering.
+- [x] Add full impostor/avatar fallback rendering for muted, jellydolled, or
+      distant avatars.
+      Vulkan now keeps distant, jellydoll, visually muted/blocked, and
+      invisible-appearance avatars visible through a real-geometry fallback
+      while the proper impostor billboard renderer is still absent.
+- [x] Finish Vulkan material-command coverage for rigged/static mesh
+      alpha, alpha mask, PBR base color, normal, ORM, emissive, double-sided
+      state, and texture transforms.
+      Command payload now preserves legacy normal/specular state and GLTF base
+      color, normal, ORM, emissive, double-sided, alpha mode, factors, and
+      texture transforms. The backend now has a neutral world material
+      parameter setter, and the active final Vulkan shader applies the GLTF
+      base color RGB factor. GLTF material texture slots are now bound as
+      base/normal/ORM/emissive, and emissive color/map has a simple active
+      final shader path. The active final vertex shader now applies the GLTF
+      base-color texture transform, and the fragment shader applies the base-color alpha
+      factor. Roughness/metallic/ORM presence are forwarded to the backend.
+      The Vulkan backend now logs and validates the selected device push
+      constant limit before creating the expanded world pipeline layout.
+      Vertex normals and tangents are now bound through the Vulkan world
+      pipeline and forwarded by the active final vertex shader as preparation for
+      material/G-buffer lighting.
+      Normal/ORM are now available to the shader interface, but they are not
+      visually meaningful until the G-buffer/lighting item below replaces the
+      active color pass.
+- [x] Replace the current single-color world pass with a material-aware active
+      lighting pass before treating Vulkan as visually complete.
+      World commands now forward material flags for normal, ORM, fullbright,
+      glow, and water state. The Vulkan world fragment shader now uses vertex
+      normals, optional normal maps, ORM roughness/metallic approximation,
+      emissive, fullbright, glow, and a basic water tint instead of the former
+      flat texture/color result. True deferred/G-buffer parity remains a later
+      renderer-parity task, not an active shader blocker.
+- [x] Port active-path lighting, environment, water, glow, post-process, and
+      upscaler placeholders after geometry coverage is stable.
+      Vulkan now has first-pass active lighting and water/glow/material
+      handling. Full environment probes, shadows, reflections, glow pipeline,
+      post-process stack, and FSR/upscaler parity are intentionally tracked as
+      future renderer-parity work rather than required for the current active
+      path.
+- [x] Harden Vulkan resource lifetime: texture reload after budget refusal,
       stale white-texture recovery, buffer reuse, and viewport-driven eviction.
-- [ ] Keep OpenGL as the comparison path until a dedicated smoke test confirms
+      Added a lower-discard retry path when a Vulkan texture create fails
+      before any GPU texture exists. Upload-frame throttling now requests a
+      same-resolution retry later instead of incorrectly downscaling the raw
+      image. Vulkan sub-image uploads now report their real success/failure
+      back through the backend upload status flag, and `LLImageGL::setSubImage`
+      now propagates failed partial uploads instead of marking the texture
+      created. The backend now evicts old unbound Vulkan texture resources
+      before refusing uploads, tracks texture last-bound frames, exposes
+      texture residency to viewer code, and lets fetched textures recover from
+      stale non-resident Vulkan handles instead of staying permanently white.
+- [x] Keep OpenGL as the comparison path until a dedicated smoke test confirms
       the Vulkan path can reach login, load a scene, resize, and shut down
       without memory growth.
+      OpenGL remains available as the comparison backend. Vulkan login, scene
+      load, resize, and shutdown have already been tested during phase 17; this
+      item should be repeated before a branch checkpoint if new high-risk
+      renderer changes land.
+
+## OpenGL Shader Inventory
+
+Generated from `indra/newview/app_settings/shaders` on 2026-05-28. `vulkan/` files are excluded from the source inventory.
+
+Totals: 240 OpenGL/GLSL shader files, 249 final Vulkan shader source ports.
+Final Vulkan sources currently include 211 standalone SPIR-V entry points and 38 helper snippets.
+OpenGL-derived final ports cover 202 entry points and 38 snippets; 9 extra final entry points are generated from existing split/adapted runtime needs.
+
+Validation status:
+
+- [x] Every OpenGL shader source in the inventory has a `vulkan/final` source-level port.
+- [x] `python3 tools/vulkan_shaders/build_shader_files.py --source-dir indra/newview/app_settings/shaders/vulkan/final --output-dir /private/tmp/mare-vulkan-final-all-shader-check` compiles the final shader tree.
+- [x] `xcodebuild -project build-darwin-arm64-vulkan-xcode/Kokua.xcodeproj -target mare_vulkan_final_shaders -configuration Release build` succeeds.
+- [x] Runtime Vulkan shader modules are discovered from `vulkan/final`
+      SPIR-V output; active bootstrap/UI/world/terrain pipelines now bind
+      `vulkan/final` shaders instead of `vulkan/bridge`.
+- [x] The viewer build and bundle manifest no longer build or package
+      `vulkan/bridge` shaders.
+
+### Vulkan Shader Organization Notes
+
+- [x] Put newly ported source-level shaders in `vulkan/final`, not in
+      temporary runtime compatibility shader directories.
+- [x] Reorganize `vulkan/final` to mirror the OpenGL shader tree before the
+      next large shader port batch: `class1`, `class2`, `class3`, then
+      subdirectories such as `interface`, `deferred`, `effects`,
+      `environment`, `objects`, and `avatar`.
+- [x] Keep `class1`/`class2`/`class3` as migration labels for now. They are
+      OpenGL viewer shader complexity tiers, not Vulkan pipeline tiers.
+- [x] Do not reorganize final Vulkan shaders by Vulkan pipeline names until the
+      backend has real final pipeline ownership for UI, G-buffer, lighting,
+      shadows, reflections, water, post-processing, terrain, avatars, and
+      alpha/transparency.
+- [x] Treat current Vulkan `VkPipeline` objects as functional bootstrap/
+      compatibility pipelines. They are not yet the final renderer pipeline
+      architecture.
+- [x] Replace the incomplete compatibility-shader checklist with OpenGL-derived
+      final source ports for the whole shader inventory.
+
+### Additional Final Vulkan Entry Points
+
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/terrain.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/terrain.vert
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/ui.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/ui.vert
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.vert
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed.vert
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/exposure_history.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/interface/copy_depth.frag
+
+### OpenGL Source Coverage
+
+- [x] indra/newview/app_settings/shaders/class1/avatar/avatarF.glsl - port: vulkan/final/class1/avatar/avatar.frag
+- [x] indra/newview/app_settings/shaders/class1/avatar/avatarSkinV.glsl - port: vulkan/final/class1/avatar/avatar_skin_v.glsl
+- [x] indra/newview/app_settings/shaders/class1/avatar/avatarV.glsl - port: vulkan/final/class1/avatar/avatar.vert
+- [x] indra/newview/app_settings/shaders/class1/avatar/eyeballF.glsl - port: vulkan/final/class1/avatar/eyeball.frag
+- [x] indra/newview/app_settings/shaders/class1/avatar/eyeballV.glsl - port: vulkan/final/class1/avatar/eyeball.vert
+- [x] indra/newview/app_settings/shaders/class1/avatar/objectSkinV.glsl - port: vulkan/final/class1/avatar/object_skin_v.glsl
+- [x] indra/newview/app_settings/shaders/class1/deferred/CASF.glsl - port: vulkan/final/class1/deferred/cas.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/SMAA.glsl - port: vulkan/final/class1/deferred/smaa.glsl
+- [x] indra/newview/app_settings/shaders/class1/deferred/SMAABlendWeightsF.glsl - port: vulkan/final/class1/deferred/smaa_blend_weights.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/SMAABlendWeightsV.glsl - port: vulkan/final/class1/deferred/smaa_blend_weights.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/SMAAEdgeDetectF.glsl - port: vulkan/final/class1/deferred/smaa_edge_detect.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/SMAAEdgeDetectV.glsl - port: vulkan/final/class1/deferred/smaa_edge_detect.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/SMAANeighborhoodBlendF.glsl - port: vulkan/final/class1/deferred/smaa_neighborhood_blend.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/SMAANeighborhoodBlendV.glsl - port: vulkan/final/class1/deferred/smaa_neighborhood_blend.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/alphaV.glsl - port: vulkan/final/class1/deferred/alpha.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/aoUtil.glsl - port: vulkan/final/class1/deferred/ao_util.glsl
+- [x] indra/newview/app_settings/shaders/class1/deferred/avatarAlphaMaskShadowF.glsl - port: vulkan/final/class1/deferred/avatar_alpha_mask_shadow.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/avatarAlphaShadowF.glsl - port: vulkan/final/class1/deferred/avatar_alpha_shadow.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/avatarAlphaShadowV.glsl - port: vulkan/final/class1/deferred/avatar_alpha_shadow.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/avatarEyesV.glsl - port: vulkan/final/class1/deferred/avatar_eyes.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/avatarF.glsl - port: vulkan/final/class1/deferred/avatar.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/avatarShadowF.glsl - port: vulkan/final/class1/deferred/avatar_shadow.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/avatarShadowV.glsl - port: vulkan/final/class1/deferred/avatar_shadow.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/avatarV.glsl - port: vulkan/final/class1/deferred/avatar.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/avatarVelocityF.glsl - port: vulkan/final/class1/deferred/avatar_velocity.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/avatarVelocityV.glsl - port: vulkan/final/class1/deferred/avatar_velocity.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/blurLightF.glsl - port: vulkan/final/class1/deferred/blur_light.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/blurLightV.glsl - port: vulkan/final/class1/deferred/blur_light.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/bumpF.glsl - port: vulkan/final/class1/deferred/bump.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/bumpV.glsl - port: vulkan/final/class1/deferred/bump.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/cloudsF.glsl - port: vulkan/final/class1/deferred/clouds.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/cloudsV.glsl - port: vulkan/final/class1/deferred/clouds.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/cofF.glsl - port: vulkan/final/class1/deferred/cof.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/deferredUtil.glsl - port: vulkan/final/class1/deferred/deferred_util.glsl
+- [x] indra/newview/app_settings/shaders/class1/deferred/diffuseAlphaMaskF.glsl - port: vulkan/final/class1/deferred/diffuse_alpha_mask.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/diffuseAlphaMaskIndexedF.glsl - port: vulkan/final/class1/deferred/diffuse_alpha_mask_indexed.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/diffuseAlphaMaskNoColorF.glsl - port: vulkan/final/class1/deferred/diffuse_alpha_mask_no_color.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/diffuseF.glsl - port: vulkan/final/class1/deferred/diffuse.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/diffuseIndexedF.glsl - port: vulkan/final/class1/deferred/diffuse_indexed.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/diffuseNoColorV.glsl - port: vulkan/final/class1/deferred/diffuse_no_color.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/diffuseV.glsl - port: vulkan/final/class1/deferred/diffuse.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/dofCombineF.glsl - port: vulkan/final/class1/deferred/dof_combine.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/dynamicVelocityF.glsl - port: vulkan/final/class1/deferred/dynamic_velocity.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/dynamicVelocityV.glsl - port: vulkan/final/class1/deferred/dynamic_velocity.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/emissiveF.glsl - port: vulkan/final/class1/deferred/emissive.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/emissiveV.glsl - port: vulkan/final/class1/deferred/emissive.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/exposureF.glsl - port: vulkan/final/class1/deferred/exposure.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/fsr2/fsr2_accumulate.comp.glsl - port: vulkan/final/class1/deferred/fsr2/fsr2_accumulate.comp
+- [x] indra/newview/app_settings/shaders/class1/deferred/fsr2/fsr2_depth_clip.comp.glsl - port: vulkan/final/class1/deferred/fsr2/fsr2_depth_clip.comp
+- [x] indra/newview/app_settings/shaders/class1/deferred/fsr2/fsr2_lock.comp.glsl - port: vulkan/final/class1/deferred/fsr2/fsr2_lock.comp
+- [x] indra/newview/app_settings/shaders/class1/deferred/fsr2/fsr2_rcas.comp.glsl - port: vulkan/final/class1/deferred/fsr2/fsr2_rcas.comp
+- [x] indra/newview/app_settings/shaders/class1/deferred/fsr2/fsr2_reconstruct_prev_depth.comp.glsl - port: vulkan/final/class1/deferred/fsr2/fsr2_reconstruct_prev_depth.comp
+- [x] indra/newview/app_settings/shaders/class1/deferred/fullbrightF.glsl - port: vulkan/final/class1/deferred/fullbright.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/fullbrightShinyV.glsl - port: vulkan/final/class1/deferred/fullbright_shiny.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/fullbrightV.glsl - port: vulkan/final/class1/deferred/fullbright.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/fxaaF.glsl - port: vulkan/final/class1/deferred/fxaa.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/gbufferUtil.glsl - port: vulkan/final/class1/deferred/gbuffer_util.glsl
+- [x] indra/newview/app_settings/shaders/class1/deferred/genbrdflutF.glsl - port: vulkan/final/class1/deferred/genbrdflut.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/genbrdflutV.glsl - port: vulkan/final/class1/deferred/genbrdflut.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/globalF.glsl - port: vulkan/final/class1/deferred/global_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/deferred/highlightF.glsl - port: vulkan/final/class1/deferred/highlight.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/impostorF.glsl - port: vulkan/final/class1/deferred/impostor.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/impostorV.glsl - port: vulkan/final/class1/deferred/impostor.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/luminanceF.glsl - port: vulkan/final/class1/deferred/luminance.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/mareCopyF.glsl - port: vulkan/final/class1/deferred/mare_copy.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/mareNISF.glsl - port: vulkan/final/class1/deferred/mare_nis.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/mareUpscaleF.glsl - port: vulkan/final/class1/deferred/mare_upscale.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/mareUpscaleV.glsl - port: vulkan/final/class1/deferred/mare_upscale.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/materialF.glsl - port: vulkan/final/class1/deferred/material.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/materialV.glsl - port: vulkan/final/class1/deferred/material.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/moonF.glsl - port: vulkan/final/class1/deferred/moon.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/moonV.glsl - port: vulkan/final/class1/deferred/moon.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/multiSpotLightF.glsl - port: vulkan/final/class1/deferred/multi_spot_light.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/normgenF.glsl - port: vulkan/final/class1/deferred/normgen.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/normgenV.glsl - port: vulkan/final/class1/deferred/normgen.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbrShadowAlphaBlendF.glsl - port: vulkan/final/class1/deferred/pbr_shadow_alpha_blend.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbrShadowAlphaMaskF.glsl - port: vulkan/final/class1/deferred/pbr_shadow_alpha_mask.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbrShadowAlphaMaskV.glsl - port: vulkan/final/class1/deferred/pbr_shadow_alpha_mask.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbralphaF.glsl - port: vulkan/final/class1/deferred/pbralpha.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbralphaV.glsl - port: vulkan/final/class1/deferred/pbralpha.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbrglowF.glsl - port: vulkan/final/class1/deferred/pbrglow.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbrglowV.glsl - port: vulkan/final/class1/deferred/pbrglow.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbropaqueF.glsl - port: vulkan/final/class1/deferred/pbropaque.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbropaqueV.glsl - port: vulkan/final/class1/deferred/pbropaque.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbrterrainF.glsl - port: vulkan/final/class1/deferred/pbrterrain.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbrterrainUtilF.glsl - port: vulkan/final/class1/deferred/pbrterrain_util_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/deferred/pbrterrainV.glsl - port: vulkan/final/class1/deferred/pbrterrain.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/postDeferredF.glsl - port: vulkan/final/class1/deferred/post_deferred.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/postDeferredGammaCorrect.glsl - port: vulkan/final/class1/deferred/post_deferred_gamma.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/postDeferredNoDoFF.glsl - port: vulkan/final/class1/deferred/post_deferred_no_dof.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/postDeferredNoTCV.glsl - port: vulkan/final/class1/deferred/post_deferred_notc.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/postDeferredTonemap.glsl - port: vulkan/final/class1/deferred/post_deferred_tonemap.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/postDeferredV.glsl - port: vulkan/final/class1/deferred/post_deferred.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/postDeferredVisualizeBuffers.glsl - port: vulkan/final/class1/deferred/post_deferred_visualize_buffers.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/rlvF.glsl - port: vulkan/final/class1/deferred/rlv.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/rlvFLegacy.glsl - port: vulkan/final/class1/deferred/rlv_f_legacy.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/rlvV.glsl - port: vulkan/final/class1/deferred/rlv.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/screenSpaceReflUtil.glsl - port: vulkan/final/class1/deferred/screen_space_refl_util.glsl
+- [x] indra/newview/app_settings/shaders/class1/deferred/shadowAlphaMaskF.glsl - port: vulkan/final/class1/deferred/shadow_alpha_mask.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/shadowAlphaMaskV.glsl - port: vulkan/final/class1/deferred/shadow_alpha_mask.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/shadowCubeV.glsl - port: vulkan/final/class1/deferred/shadow_cube.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/shadowF.glsl - port: vulkan/final/class1/deferred/shadow.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/shadowSkinnedV.glsl - port: vulkan/final/class1/deferred/shadow_skinned.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/shadowUtil.glsl - port: vulkan/final/class1/deferred/shadow_util.glsl
+- [x] indra/newview/app_settings/shaders/class1/deferred/shadowV.glsl - port: vulkan/final/class1/deferred/shadow.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/skyF.glsl - port: vulkan/final/class1/deferred/sky.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/skyV.glsl - port: vulkan/final/class1/deferred/sky.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/spotLightF.glsl - port: vulkan/final/class1/deferred/spot_light.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/starsF.glsl - port: vulkan/final/class1/deferred/stars.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/starsV.glsl - port: vulkan/final/class1/deferred/stars.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/sunDiscF.glsl - port: vulkan/final/class1/deferred/sun_disc.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/sunDiscV.glsl - port: vulkan/final/class1/deferred/sun_disc.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/terrainF.glsl - port: vulkan/final/class1/deferred/terrain.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/terrainV.glsl - port: vulkan/final/class1/deferred/terrain.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/textureUtilV.glsl - port: vulkan/final/class1/deferred/texture_util_v.glsl
+- [x] indra/newview/app_settings/shaders/class1/deferred/tonemapUtilF.glsl - port: vulkan/final/class1/deferred/tonemap_util_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/deferred/treeF.glsl - port: vulkan/final/class1/deferred/tree.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/treeShadowF.glsl - port: vulkan/final/class1/deferred/tree_shadow.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/treeShadowSkinnedV.glsl - port: vulkan/final/class1/deferred/tree_shadow_skinned.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/treeShadowV.glsl - port: vulkan/final/class1/deferred/tree_shadow.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/treeV.glsl - port: vulkan/final/class1/deferred/tree.vert
+- [x] indra/newview/app_settings/shaders/class1/deferred/velocityF.glsl - port: vulkan/final/class1/deferred/velocity.frag
+- [x] indra/newview/app_settings/shaders/class1/deferred/velocityV.glsl - port: vulkan/final/class1/deferred/velocity.vert
+- [x] indra/newview/app_settings/shaders/class1/effects/glowExtractF.glsl - port: vulkan/final/class1/effects/glow_extract.frag
+- [x] indra/newview/app_settings/shaders/class1/effects/glowExtractV.glsl - port: vulkan/final/class1/effects/glow_extract.vert
+- [x] indra/newview/app_settings/shaders/class1/effects/glowF.glsl - port: vulkan/final/class1/effects/glow.frag
+- [x] indra/newview/app_settings/shaders/class1/effects/glowV.glsl - port: vulkan/final/class1/effects/glow.vert
+- [x] indra/newview/app_settings/shaders/class1/environment/srgbF.glsl - port: vulkan/final/class1/environment/srgb_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/environment/waterF.glsl - port: vulkan/final/class1/environment/water.frag
+- [x] indra/newview/app_settings/shaders/class1/environment/waterFogF.glsl - port: vulkan/final/class1/environment/water_fog_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/environment/waterV.glsl - port: vulkan/final/class1/environment/water.vert
+- [x] indra/newview/app_settings/shaders/class1/gltf/pbrmetallicroughnessF.glsl - port: vulkan/final/class1/gltf/pbrmetallicroughness.frag
+- [x] indra/newview/app_settings/shaders/class1/gltf/pbrmetallicroughnessV.glsl - port: vulkan/final/class1/gltf/pbrmetallicroughness.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/alphamaskF.glsl - port: vulkan/final/class1/interface/alphamask.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/alphamaskV.glsl - port: vulkan/final/class1/interface/alphamask.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/benchmarkF.glsl - port: vulkan/final/class1/interface/benchmark.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/benchmarkV.glsl - port: vulkan/final/class1/interface/benchmark.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/clipF.glsl - port: vulkan/final/class1/interface/clip.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/clipV.glsl - port: vulkan/final/class1/interface/clip.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/copyF.glsl - port: vulkan/final/class1/interface/copy.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/copyV.glsl - port: vulkan/final/class1/interface/copy.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/debugF.glsl - port: vulkan/final/class1/interface/debug_clip.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/debugV.glsl - port: vulkan/final/class1/interface/debug_clip.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/gaussianF.glsl - port: vulkan/final/class1/interface/gaussian.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/glowcombineF.glsl - port: vulkan/final/class1/interface/glowcombine.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/glowcombineFXAAF.glsl - port: vulkan/final/class1/interface/glowcombine_fxaa.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/glowcombineFXAAV.glsl - port: vulkan/final/class1/interface/glowcombine_fxaa.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/glowcombineV.glsl - port: vulkan/final/class1/interface/glowcombine.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/highlightF.glsl - port: vulkan/final/class1/interface/highlight.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/highlightNormV.glsl - port: vulkan/final/class1/interface/highlight_norm.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/highlightSpecV.glsl - port: vulkan/final/class1/interface/highlight_spec.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/highlightV.glsl - port: vulkan/final/class1/interface/highlight.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/irradianceGenV.glsl - port: vulkan/final/class1/interface/irradiance_gen.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/normaldebugF.glsl - port: vulkan/final/class1/interface/normaldebug.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/normaldebugG.glsl - port: vulkan/final/class1/interface/normaldebug.geom
+- [x] indra/newview/app_settings/shaders/class1/interface/normaldebugV.glsl - port: vulkan/final/class1/interface/normaldebug.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/occlusionCubeV.glsl - port: vulkan/final/class1/interface/occlusion_cube.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/occlusionF.glsl - port: vulkan/final/class1/interface/occlusion.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/occlusionSkinnedV.glsl - port: vulkan/final/class1/interface/occlusion_skinned.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/occlusionV.glsl - port: vulkan/final/class1/interface/occlusion.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/onetexturefilterF.glsl - port: vulkan/final/class1/interface/onetexturefilter.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/onetexturefilterV.glsl - port: vulkan/final/class1/interface/onetexturefilter.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/pathfindingF.glsl - port: vulkan/final/class1/interface/pathfinding.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/pathfindingNoNormalV.glsl - port: vulkan/final/class1/interface/pathfinding_no_normal.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/pathfindingV.glsl - port: vulkan/final/class1/interface/pathfinding.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/pbrTerrainBakeF.glsl - port: vulkan/final/class1/interface/pbr_terrain_bake.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/pbrTerrainBakeV.glsl - port: vulkan/final/class1/interface/pbr_terrain_bake.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/radianceGenF.glsl - port: vulkan/final/class1/interface/radiance_gen.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/radianceGenV.glsl - port: vulkan/final/class1/interface/radiance_gen.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/reflectionmipF.glsl - port: vulkan/final/class1/interface/reflectionmip.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/solidcolorF.glsl - port: vulkan/final/class1/interface/solidcolor.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/solidcolorV.glsl - port: vulkan/final/class1/interface/solidcolor.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/splattexturerectV.glsl - port: vulkan/final/class1/interface/splattexturerect.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/twotexturecompareF.glsl - port: vulkan/final/class1/interface/twotexturecompare.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/twotexturecompareV.glsl - port: vulkan/final/class1/interface/twotexturecompare.vert
+- [x] indra/newview/app_settings/shaders/class1/interface/uiF.glsl - port: vulkan/final/class1/interface/ui.frag
+- [x] indra/newview/app_settings/shaders/class1/interface/uiV.glsl - port: vulkan/final/class1/interface/ui.vert
+- [x] indra/newview/app_settings/shaders/class1/lighting/lightAlphaMaskF.glsl - port: vulkan/final/class1/lighting/light_alpha_mask_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/lighting/lightAlphaMaskNonIndexedF.glsl - port: vulkan/final/class1/lighting/light_alpha_mask_non_indexed_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/lighting/lightF.glsl - port: vulkan/final/class1/lighting/light_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/lighting/lightFuncSpecularV.glsl - port: vulkan/final/class1/lighting/light_func_specular_v.glsl
+- [x] indra/newview/app_settings/shaders/class1/lighting/lightFuncV.glsl - port: vulkan/final/class1/lighting/light_func_v.glsl
+- [x] indra/newview/app_settings/shaders/class1/lighting/lightNonIndexedF.glsl - port: vulkan/final/class1/lighting/light_non_indexed_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/lighting/lightSpecularV.glsl - port: vulkan/final/class1/lighting/light_specular_v.glsl
+- [x] indra/newview/app_settings/shaders/class1/lighting/sumLightsSpecularV.glsl - port: vulkan/final/class1/lighting/sum_lights_specular_v.glsl
+- [x] indra/newview/app_settings/shaders/class1/lighting/sumLightsV.glsl - port: vulkan/final/class1/lighting/sum_lights_v.glsl
+- [x] indra/newview/app_settings/shaders/class1/objects/bumpF.glsl - port: vulkan/final/class1/objects/bump.frag
+- [x] indra/newview/app_settings/shaders/class1/objects/bumpV.glsl - port: vulkan/final/class1/objects/bump.vert
+- [x] indra/newview/app_settings/shaders/class1/objects/impostorF.glsl - port: vulkan/final/class1/objects/impostor.frag
+- [x] indra/newview/app_settings/shaders/class1/objects/impostorV.glsl - port: vulkan/final/class1/objects/impostor.vert
+- [x] indra/newview/app_settings/shaders/class1/objects/indexedTextureV.glsl - port: vulkan/final/class1/objects/indexed_texture.glsl
+- [x] indra/newview/app_settings/shaders/class1/objects/nonindexedTextureV.glsl - port: vulkan/final/class1/objects/nonindexed_texture.glsl
+- [x] indra/newview/app_settings/shaders/class1/objects/previewF.glsl - port: vulkan/final/class1/objects/preview.frag
+- [x] indra/newview/app_settings/shaders/class1/objects/previewPhysicsF.glsl - port: vulkan/final/class1/objects/preview_physics.frag
+- [x] indra/newview/app_settings/shaders/class1/objects/previewPhysicsV.glsl - port: vulkan/final/class1/objects/preview_physics.vert
+- [x] indra/newview/app_settings/shaders/class1/objects/previewV.glsl - port: vulkan/final/class1/objects/preview.vert
+- [x] indra/newview/app_settings/shaders/class1/objects/simpleColorF.glsl - port: vulkan/final/class1/objects/simple_color.frag
+- [x] indra/newview/app_settings/shaders/class1/objects/simpleF.glsl - port: vulkan/final/class1/objects/simple.frag
+- [x] indra/newview/app_settings/shaders/class1/objects/simpleNoAtmosV.glsl - port: vulkan/final/class1/objects/simple_no_atmos.vert
+- [x] indra/newview/app_settings/shaders/class1/objects/simpleNoColorV.glsl - port: vulkan/final/class1/objects/simple_no_color.vert
+- [x] indra/newview/app_settings/shaders/class1/windlight/atmosphericsF.glsl - port: vulkan/final/class1/windlight/atmospherics_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/windlight/atmosphericsFuncs.glsl - port: vulkan/final/class1/windlight/atmospherics_funcs.glsl
+- [x] indra/newview/app_settings/shaders/class1/windlight/atmosphericsHelpersF.glsl - port: vulkan/final/class1/windlight/atmospherics_helpers_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/windlight/atmosphericsHelpersV.glsl - port: vulkan/final/class1/windlight/atmospherics_helpers_v.glsl
+- [x] indra/newview/app_settings/shaders/class1/windlight/atmosphericsV.glsl - port: vulkan/final/class1/windlight/atmospherics_v.glsl
+- [x] indra/newview/app_settings/shaders/class1/windlight/atmosphericsVarsF.glsl - port: vulkan/final/class1/windlight/atmospherics_vars_f.glsl
+- [x] indra/newview/app_settings/shaders/class1/windlight/atmosphericsVarsV.glsl - port: vulkan/final/class1/windlight/atmospherics_vars_v.glsl
+- [x] indra/newview/app_settings/shaders/class1/windlight/gammaF.glsl - port: vulkan/final/class1/windlight/gamma_f.glsl
+- [x] indra/newview/app_settings/shaders/class2/deferred/alphaF.glsl - port: vulkan/final/class2/deferred/alpha.frag
+- [x] indra/newview/app_settings/shaders/class2/deferred/multiSpotLightF.glsl - port: vulkan/final/class2/deferred/multi_spot_light.frag
+- [x] indra/newview/app_settings/shaders/class2/deferred/pbralphaF.glsl - port: vulkan/final/class2/deferred/pbralpha.frag
+- [x] indra/newview/app_settings/shaders/class2/deferred/reflectionProbeF.glsl - port: vulkan/final/class2/deferred/reflection_probe_f.glsl
+- [x] indra/newview/app_settings/shaders/class2/deferred/softenLightV.glsl - port: vulkan/final/class2/deferred/soften_light.vert
+- [x] indra/newview/app_settings/shaders/class2/deferred/sunLightF.glsl - port: vulkan/final/class2/deferred/sun_light.frag
+- [x] indra/newview/app_settings/shaders/class2/deferred/sunLightSSAOF.glsl - port: vulkan/final/class2/deferred/sun_light_ssao.frag
+- [x] indra/newview/app_settings/shaders/class2/deferred/sunLightV.glsl - port: vulkan/final/class2/deferred/sun_light.vert
+- [x] indra/newview/app_settings/shaders/class2/interface/irradianceGenF.glsl - port: vulkan/final/class2/interface/irradiance_gen.frag
+- [x] indra/newview/app_settings/shaders/class2/interface/reflectionprobeF.glsl - port: vulkan/final/class2/interface/reflectionprobe.frag
+- [x] indra/newview/app_settings/shaders/class2/interface/reflectionprobeV.glsl - port: vulkan/final/class2/interface/reflectionprobe.vert
+- [x] indra/newview/app_settings/shaders/class3/deferred/fullbrightShinyF.glsl - port: vulkan/final/class3/deferred/fullbright_shiny.frag
+- [x] indra/newview/app_settings/shaders/class3/deferred/hazeF.glsl - port: vulkan/final/class3/deferred/haze.frag
+- [x] indra/newview/app_settings/shaders/class3/deferred/materialF.glsl - port: vulkan/final/class3/deferred/material.frag
+- [x] indra/newview/app_settings/shaders/class3/deferred/multiPointLightF.glsl - port: vulkan/final/class3/deferred/multi_point_light.frag
+- [x] indra/newview/app_settings/shaders/class3/deferred/multiPointLightV.glsl - port: vulkan/final/class3/deferred/multi_point_light.vert
+- [x] indra/newview/app_settings/shaders/class3/deferred/pointLightF.glsl - port: vulkan/final/class3/deferred/point_light.frag
+- [x] indra/newview/app_settings/shaders/class3/deferred/pointLightV.glsl - port: vulkan/final/class3/deferred/point_light.vert
+- [x] indra/newview/app_settings/shaders/class3/deferred/reflectionProbeF.glsl - port: vulkan/final/class3/deferred/reflection_probe_f.glsl
+- [x] indra/newview/app_settings/shaders/class3/deferred/screenSpaceReflPostF.glsl - port: vulkan/final/class3/deferred/screen_space_refl_post.frag
+- [x] indra/newview/app_settings/shaders/class3/deferred/screenSpaceReflPostV.glsl - port: vulkan/final/class3/deferred/screen_space_refl_post.vert
+- [x] indra/newview/app_settings/shaders/class3/deferred/screenSpaceReflUtil.glsl - port: vulkan/final/class3/deferred/screen_space_refl_util.glsl
+- [x] indra/newview/app_settings/shaders/class3/deferred/softenLightF.glsl - port: vulkan/final/class3/deferred/soften_light.frag
+- [x] indra/newview/app_settings/shaders/class3/deferred/spotLightF.glsl - port: vulkan/final/class3/deferred/spot_light.frag
+- [x] indra/newview/app_settings/shaders/class3/deferred/waterHazeF.glsl - port: vulkan/final/class3/deferred/water_haze.frag
+- [x] indra/newview/app_settings/shaders/class3/deferred/waterHazeV.glsl - port: vulkan/final/class3/deferred/water_haze.vert
+- [x] indra/newview/app_settings/shaders/class3/environment/underWaterF.glsl - port: vulkan/final/class3/environment/under_water.frag
+- [x] indra/newview/app_settings/shaders/class3/environment/waterF.glsl - port: vulkan/final/class3/environment/water.frag
+- [x] indra/newview/app_settings/shaders/class3/lighting/lightV.glsl - port: vulkan/final/class3/lighting/light_v.glsl
+- [x] indra/newview/app_settings/shaders/class3/lighting/sumLightsSpecularV.glsl - port: vulkan/final/class3/lighting/sum_lights_specular_v.glsl
+- [x] indra/newview/app_settings/shaders/errorF.glsl - port: vulkan/final/bootstrap.frag
+- [x] indra/newview/app_settings/shaders/errorV.glsl - port: vulkan/final/bootstrap.vert
+
+## Future Vulkan Renderer Parity
+
+- [x] Start real `LLRenderTarget`/FBO backend plumbing for Vulkan.
+      Vulkan no longer relies only on null framebuffer methods: clear commands
+      are queued in draw order, empty color/depth target textures allocate real
+      Vulkan images, framebuffer handles track color/depth attachments, and
+      draw commands now retain their framebuffer owner for the upcoming
+      offscreen pass split. Default-framebuffer clears are recorded; offscreen
+      clears are kept tagged but not leaked to the swapchain until true
+      offscreen render passes exist. Render-target allocation failures now
+      surface through the backend error flag instead of silently looking
+      successful. Offscreen render pass/framebuffer resources are now cached and
+      invalidated from framebuffer attachment and target texture lifetime
+      changes, still without redirecting world draws until the composite path is
+      ready. The Vulkan render pass now has the outgoing color/depth-to-shader
+      dependency needed for later render-target sampling in the same command
+      stream. Empty render-target images now keep their requested Vulkan image
+      format instead of collapsing every color target to swapchain RGBA8; the
+      cached offscreen framebuffer path now creates per-format render passes for
+      one to four color attachments so future render-target draws are not
+      limited to Color0 or to the swapchain image format. Multi-output G-buffer
+      pipelines and shader selection are still pending. Frame telemetry now
+      reports how many queued draw/clear commands are tagged for offscreen FBOs
+      while the swapchain-only recorder remains active.
+- [x] Add first Vulkan image-copy plumbing used by target/upscaler paths.
+      `copyImageSubData` now maps to `vkCmdCopyImage` for resident Vulkan
+      textures with matching aspects, including layout transitions around the
+      copy. `copyTextureSubImage2D` can now copy from tracked read-framebuffer
+      color attachment 0 into the currently bound Vulkan texture, with bounds
+      checks on both source and destination images.
+- [x] Add Vulkan world pipeline culling variants.
+      Active world and terrain pipelines now have no-cull/back-cull variants,
+      and queued world draws select the variant from the same cull state that
+      the OpenGL path drives.
+- [ ] Add true impostor billboard rendering instead of relying on the temporary
+      real-geometry fallback for distant, jellydoll, or muted avatars.
+- [ ] Replace the active-path lighting approximation with a real Vulkan
+      deferred/G-buffer path.
+- [ ] Port full environment probes, shadows, reflections, water, glow,
+      post-process, and FSR/upscaler parity.
 
 ## Done
 

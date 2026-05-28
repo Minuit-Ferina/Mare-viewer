@@ -1656,6 +1656,11 @@ bool LLImageGL::setSubImage(const U8* datap, S32 data_width, S32 data_height, S3
 
         set_texture_unpack_row_length(0);
         stop_glerror();
+        if (!getRenderBackend().didLastTextureUploadSucceed())
+        {
+            mGLTextureCreated = false;
+            return false;
+        }
         mGLTextureCreated = true;
     }
     return true;

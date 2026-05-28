@@ -83,17 +83,23 @@ class ViewerManifest(LLManifest):
 
                 # include the entire shaders directory recursively
                 self.path("shaders")
-                vulkan_bridge_shader_dir = os.path.join(
-                    self.args['build'],
-                    "generated",
-                    "shaders",
-                    "vulkan",
-                    "bridge")
-                if os.path.isdir(vulkan_bridge_shader_dir):
-                    with self.prefix(
-                            src=vulkan_bridge_shader_dir,
-                            dst="shaders/vulkan/bridge"):
-                        self.path("*.spv")
+                for vulkan_shader_group in ("final",):
+                    vulkan_shader_dir = os.path.join(
+                        self.args['build'],
+                        "generated",
+                        "shaders",
+                        "vulkan",
+                        vulkan_shader_group)
+                    if os.path.isdir(vulkan_shader_dir):
+                        for root, _dirs, files in os.walk(vulkan_shader_dir):
+                            if not any(filename.endswith(".spv") for filename in files):
+                                continue
+                            relative_dir = os.path.relpath(root, vulkan_shader_dir)
+                            destination_dir = os.path.join("shaders", "vulkan", vulkan_shader_group)
+                            if relative_dir != ".":
+                                destination_dir = os.path.join(destination_dir, relative_dir)
+                            with self.prefix(src=root, dst=destination_dir):
+                                self.path("*.spv")
                 # include the extracted list of contributors
                 contributions_path = os.path.join(self.args['source'], "..", "..", "doc", "contributions.txt")
                 contributor_names = self.extract_names(contributions_path)

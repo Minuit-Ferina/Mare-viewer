@@ -1647,6 +1647,76 @@ bool LLViewerFetchedTexture::createTexture(S32 usename/*= 0*/)
     return res;
 }
 
+bool LLViewerFetchedTexture::retryVulkanTextureCreateAtLowerResolution()
+{
+    if (!use_vulkan_prototype_texture_limits() ||
+        hasGLTexture() ||
+        mRawImage.isNull() ||
+        mRawDiscardLevel < 0 ||
+        mRawDiscardLevel >= getMaxDiscardLevel() ||
+        mCreatePending)
+    {
+        return false;
+    }
+
+    if (getRenderBackend().shouldRetryLastTextureUploadLater())
+    {
+        static U32 sLoggedVulkanTextureUploadDeferrals = 0;
+        if (sLoggedVulkanTextureUploadDeferrals < 32)
+        {
+            LL_WARNS("Texture")
+                << "Deferring Vulkan texture create retry for "
+                << mID
+                << " at "
+                << mRawImage->getWidth()
+                << "x"
+                << mRawImage->getHeight()
+                << ", discard "
+                << mRawDiscardLevel
+                << " because the backend throttled this frame's texture uploads."
+                << LL_ENDL;
+            ++sLoggedVulkanTextureUploadDeferrals;
+        }
+
+        mNeedsCreateTexture = false;
+        addToCreateTexture();
+        return true;
+    }
+
+    const S32 old_width = mRawImage->getWidth();
+    const S32 old_height = mRawImage->getHeight();
+    const S32 new_width = llmax(1, old_width >> 1);
+    const S32 new_height = llmax(1, old_height >> 1);
+    if (new_width == old_width && new_height == old_height)
+    {
+        return false;
+    }
+
+    mRawImage->scale(new_width, new_height);
+    ++mRawDiscardLevel;
+
+    static U32 sLoggedVulkanTextureCreateRetries = 0;
+    if (sLoggedVulkanTextureCreateRetries < 32)
+    {
+        LL_WARNS("Texture")
+            << "Retrying Vulkan texture create for "
+            << mID
+            << " at lower resolution "
+            << new_width
+            << "x"
+            << new_height
+            << ", discard "
+            << mRawDiscardLevel
+            << "."
+            << LL_ENDL;
+        ++sLoggedVulkanTextureCreateRetries;
+    }
+
+    mNeedsCreateTexture = false;
+    addToCreateTexture();
+    return true;
+}
+
 void LLViewerFetchedTexture::postCreateTexture()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_TEXTURE;
@@ -1659,6 +1729,11 @@ void LLViewerFetchedTexture::postCreateTexture()
 #endif
 
     setActive();
+
+    if (!hasGLTexture() && retryVulkanTextureCreateAtLowerResolution())
+    {
+        return;
+    }
 
     // rebuild any volumes that are using this texture for sculpts in case their LoD has changed
     for (U32 i = 0; i < mNumVolumes[LLRender::SCULPT_TEX]; ++i)
@@ -2116,6 +2191,26 @@ bool LLViewerFetchedTexture::updateFetch()
     { // fix for crash inside getCurrentDiscardLevelForFetching (shouldn't happen but appears to be happening)
         llassert(false);
         return false;
+    }
+
+    if (use_vulkan_prototype_texture_limits() &&
+        hasGLTexture() &&
+        !getRenderBackend().isTextureResident(mGLTexturep->getTexName()))
+    {
+        static U32 sLoggedVulkanTextureEvictionRecoveries = 0;
+        if (sLoggedVulkanTextureEvictionRecoveries < 32)
+        {
+            LL_WARNS("Texture")
+                << "Recovering evicted Vulkan texture "
+                << mID
+                << " handle "
+                << mGLTexturep->getTexName()
+                << " by dropping the stale viewer-side GL texture state."
+                << LL_ENDL;
+            ++sLoggedVulkanTextureEvictionRecoveries;
+        }
+        destroyGLTexture();
+        mFullyLoaded = false;
     }
 
     S32 current_discard = getCurrentDiscardLevelForFetching();

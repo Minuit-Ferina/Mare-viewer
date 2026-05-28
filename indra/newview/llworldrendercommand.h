@@ -23,9 +23,12 @@
 #define LL_LLWORLDRENDERCOMMAND_H
 
 #include "llpointer.h"
+#include "m4math.h"
 #include "llrender.h"
 #include "llviewertexture.h"
 #include "llvertexbuffer.h"
+#include "v3color.h"
+#include "v4color.h"
 
 #include <vector>
 
@@ -82,6 +85,16 @@ enum class LLWorldRenderCullMode : U8
     Disabled,
 };
 
+struct LLWorldRenderTextureTransform2D
+{
+    F32 mOffsetS = 0.f;
+    F32 mOffsetT = 0.f;
+    F32 mScaleS = 1.f;
+    F32 mScaleT = 1.f;
+    F32 mRotation = 0.f;
+    bool mValid = false;
+};
+
 struct LLWorldRenderCommand
 {
     LLWorldRenderMaterialClass mMaterialClass = LLWorldRenderMaterialClass::SimpleOpaque;
@@ -94,10 +107,18 @@ struct LLWorldRenderCommand
 
     LLPointer<LLVertexBuffer> mVertexBuffer;
     LLPointer<LLViewerTexture> mTexture;
+    LLPointer<LLViewerTexture> mNormalMap;
+    LLPointer<LLViewerTexture> mSpecularMap;
+    LLPointer<LLViewerTexture> mORMMap;
+    LLPointer<LLViewerTexture> mEmissiveMap;
     std::vector<LLPointer<LLViewerTexture> > mTextureList;
 
     const LLMatrix4* mModelMatrix = nullptr;
+    LLMatrix4 mOwnedModelMatrix;
+    bool mHasOwnedModelMatrix = false;
     const LLMatrix4* mTextureMatrix = nullptr;
+    const LLMatrix4* mNormalMapMatrix = nullptr;
+    const LLMatrix4* mSpecularMapMatrix = nullptr;
     LLVOAvatar* mAvatar = nullptr;
     LLMeshSkinInfo* mSkinInfo = nullptr;
     std::vector<F32> mSkinningMatrixPalette;
@@ -108,13 +129,32 @@ struct LLWorldRenderCommand
     U32 mCount = 0;
     U32 mOffset = 0;
 
+    LLColor4 mBaseColor = LLColor4(1.f, 1.f, 1.f, 1.f);
+    LLColor3 mEmissiveColor = LLColor3(0.f, 0.f, 0.f);
+    LLVector4 mSpecColor = LLVector4(1.f, 1.f, 1.f, 0.5f);
+    LLWorldRenderTextureTransform2D mBaseColorTextureTransform;
+    LLWorldRenderTextureTransform2D mNormalTextureTransform;
+    LLWorldRenderTextureTransform2D mORMTextureTransform;
+    LLWorldRenderTextureTransform2D mEmissiveTextureTransform;
+    F32 mMetallicFactor = 1.f;
+    F32 mRoughnessFactor = 1.f;
+    F32 mEnvIntensity = 0.f;
     F32 mAlphaMaskCutoff = 0.5f;
     F32 mTerrainDetailScale = 1.f;
     F32 mTerrainOffsetX = 0.f;
     F32 mTerrainOffsetY = 0.f;
+    LLRender::eBlendFactor mBlendFuncSrc = LLRender::BF_SOURCE_ALPHA;
+    LLRender::eBlendFactor mBlendFuncDst = LLRender::BF_ONE_MINUS_SOURCE_ALPHA;
+    U8 mDiffuseAlphaMode = 0;
+    U8 mGLTFAlphaMode = 0;
+    U8 mBump = 0;
+    U8 mShiny = 0;
     bool mUseTexture = true;
     bool mBatchTextures = false;
     bool mRigged = false;
+    bool mDoubleSided = false;
+    bool mFullbright = false;
+    bool mHasGlow = false;
 };
 
 class LLWorldRenderCommandBuffer
@@ -167,6 +207,7 @@ public:
     void appendAvatarDrawRange(
         LLVertexBuffer* vertex_buffer,
         LLViewerTexture* texture,
+        LLWorldRenderMaterialClass material_class,
         U32 source_pass,
         U32 start,
         U32 end,
@@ -174,6 +215,18 @@ public:
         U32 offset,
         const std::vector<F32>& skinning_matrix_palette,
         U32 skinning_matrix_count,
+        U32 attribute_mask);
+
+    void appendAvatarRigidDrawRange(
+        LLVertexBuffer* vertex_buffer,
+        LLViewerTexture* texture,
+        const LLMatrix4& model_matrix,
+        LLWorldRenderMaterialClass material_class,
+        U32 source_pass,
+        U32 start,
+        U32 end,
+        U32 count,
+        U32 offset,
         U32 attribute_mask);
 
     void appendRenderMap(

@@ -74,6 +74,33 @@ F32 LLDrawPoolAvatar::sMinimumAlpha = 0.2f;
 static bool is_deferred_render = false;
 static bool is_post_deferred_render = false;
 
+static bool should_skip_vulkan_avatar_real_geometry_fallback(LLVOAvatar* avatarp)
+{
+    const LLVOAvatar::AvatarOverallAppearance appearance = avatarp->getOverallAppearance();
+    if (appearance == LLVOAvatar::AOA_INVISIBLE)
+    {
+        return false;
+    }
+
+    return appearance != LLVOAvatar::AOA_NORMAL &&
+        appearance != LLVOAvatar::AOA_JELLYDOLL &&
+        !avatarp->needsImpostorUpdate();
+}
+
+static bool should_skip_vulkan_attached_avatar_real_geometry_fallback(LLVOAvatar* attached_av)
+{
+    if (!attached_av)
+    {
+        return false;
+    }
+
+    const LLVOAvatar::AvatarOverallAppearance appearance = attached_av->getOverallAppearance();
+    return (appearance != LLVOAvatar::AOA_NORMAL &&
+            appearance != LLVOAvatar::AOA_JELLYDOLL &&
+            appearance != LLVOAvatar::AOA_INVISIBLE) ||
+        !gPipeline.hasRenderType(LLPipeline::RENDER_TYPE_AVATAR);
+}
+
 extern bool gUseGLPick;
 
 F32 CLOTHING_GRAVITY_EFFECT = 0.7f;
@@ -292,7 +319,7 @@ bool LLDrawPoolAvatar::emitDeferredCommands(LLWorldRenderCommandBuffer& commands
         ++pass;
     }
 
-    if (pass != 2)
+    if (pass != 1 && pass != 2)
     {
         if (pass == 0)
         {
@@ -339,8 +366,7 @@ bool LLDrawPoolAvatar::emitDeferredCommands(LLWorldRenderCommandBuffer& commands
     }
 
     const bool impostor = !LLPipeline::sImpostorRender && avatarp->isImpostor();
-    if (avatarp->isInMuteList()
-        || (LLVOAvatar::AOA_NORMAL != avatarp->getOverallAppearance() && !avatarp->needsImpostorUpdate()))
+    if (should_skip_vulkan_avatar_real_geometry_fallback(avatarp))
     {
         log_avatar_command_state("avatar render filter", avatarp);
         return true;
@@ -354,9 +380,16 @@ bool LLDrawPoolAvatar::emitDeferredCommands(LLWorldRenderCommandBuffer& commands
     }
 
     LLVOAvatar* attached_av = avatarp->getAttachedAvatar();
-    if (attached_av && (LLVOAvatar::AOA_NORMAL != attached_av->getOverallAppearance() || !gPipeline.hasRenderType(LLPipeline::RENDER_TYPE_AVATAR)))
+    if (should_skip_vulkan_attached_avatar_real_geometry_fallback(attached_av))
     {
         log_avatar_command_state("attached avatar render filter", avatarp);
+        return true;
+    }
+
+    if (pass == 1)
+    {
+        log_avatar_command_state("emitting rigid commands", avatarp);
+        avatarp->emitRigidWorldCommands(commands);
         return true;
     }
 
@@ -412,6 +445,142 @@ void LLDrawPoolAvatar::renderPostDeferred(S32 pass)
         render(2);
     }
     is_post_deferred_render = false;
+}
+
+bool LLDrawPoolAvatar::emitPostDeferredCommands(
+    LLWorldRenderCommandBuffer& commands,
+    S32 pass)
+{
+    LL_PROFILE_ZONE_SCOPED_CATEGORY_AVATAR;
+
+    auto log_avatar_command_state = [this, pass](const char* reason, LLVOAvatar* avatarp = nullptr)
+    {
+        static U32 sLoggedAvatarPostCommandState = 0;
+        if (sLoggedAvatarPostCommandState >= 32)
+        {
+            return;
+        }
+
+        LL_INFOS("RenderBackend")
+            << "Vulkan avatar post-deferred command state "
+            << sLoggedAvatarPostCommandState
+            << ": pass "
+            << pass
+            << ", reason "
+            << reason
+            << ", draw faces "
+            << mDrawFace.size();
+
+        if (avatarp)
+        {
+            LL_CONT
+                << ", self "
+                << avatarp->isSelf()
+                << ", ui "
+                << avatarp->isUIAvatar()
+                << ", control "
+                << avatarp->isControlAvatar()
+                << ", dead "
+                << avatarp->isDead()
+                << ", fully loaded "
+                << avatarp->isFullyLoaded()
+                << ", impostor "
+                << avatarp->isImpostor()
+                << ", appearance "
+                << static_cast<S32>(avatarp->getOverallAppearance());
+        }
+
+        LL_CONT << LL_ENDL;
+        ++sLoggedAvatarPostCommandState;
+    };
+
+    struct LLScopedAvatarPostDeferredCommandState
+    {
+        LLScopedAvatarPostDeferredCommandState(U32 shader_level)
+        {
+            mSavedShaderLevel = sShaderLevel;
+            LLDrawPoolAvatar::sSkipOpaque = true;
+            sShaderLevel = shader_level;
+            sRenderingSkinned = true;
+            is_post_deferred_render = true;
+        }
+
+        ~LLScopedAvatarPostDeferredCommandState()
+        {
+            sRenderingSkinned = false;
+            LLDrawPoolAvatar::sSkipOpaque = false;
+            is_post_deferred_render = false;
+            sShaderLevel = mSavedShaderLevel;
+        }
+
+        U32 mSavedShaderLevel = 0;
+    } scoped_state(mShaderLevel);
+
+    if (pass != 0)
+    {
+        log_avatar_command_state("unsupported post-deferred pass");
+        return false;
+    }
+
+    if (mDrawFace.empty())
+    {
+        log_avatar_command_state("empty draw face list");
+        return false;
+    }
+
+    const LLFace* facep = mDrawFace[0];
+    if (!facep->getDrawable())
+    {
+        log_avatar_command_state("missing drawable");
+        return false;
+    }
+
+    LLVOAvatar* avatarp = (LLVOAvatar*)facep->getDrawable()->getVObj().get();
+    if (!avatarp || avatarp->isDead() || avatarp->mDrawable.isNull())
+    {
+        log_avatar_command_state("missing or dead avatar", avatarp);
+        return false;
+    }
+
+    if (!avatarp->isFullyLoaded())
+    {
+        log_avatar_command_state("avatar not fully loaded", avatarp);
+        return true;
+    }
+
+    static LLCachedControl<bool> friends_only(gSavedSettings, "RenderAvatarFriendsOnly", false);
+    if (friends_only()
+        && !avatarp->isUIAvatar()
+        && !avatarp->isControlAvatar()
+        && !avatarp->isSelf()
+        && !avatarp->isBuddy())
+    {
+        log_avatar_command_state("friends-only filter", avatarp);
+        return true;
+    }
+
+    const bool impostor = !LLPipeline::sImpostorRender && avatarp->isImpostor();
+    if (should_skip_vulkan_avatar_real_geometry_fallback(avatarp))
+    {
+        log_avatar_command_state("avatar render filter", avatarp);
+        return true;
+    }
+
+    if (impostor)
+    {
+        log_avatar_command_state("impostor alpha fallback", avatarp);
+    }
+
+    LLVOAvatar* attached_av = avatarp->getAttachedAvatar();
+    if (should_skip_vulkan_attached_avatar_real_geometry_fallback(attached_av))
+    {
+        log_avatar_command_state("attached avatar render filter", avatarp);
+        return true;
+    }
+
+    log_avatar_command_state("emitting transparent commands", avatarp);
+    avatarp->emitTransparentWorldCommands(commands, true);
+    return true;
 }
 
 S32 LLDrawPoolAvatar::getNumShadowPasses()

@@ -5885,6 +5885,10 @@ U32 LLVOAvatar::emitSkinnedWorldCommands(LLWorldRenderCommandBuffer& commands)
     }
 
     bool first_pass = true;
+    const bool vulkan_appearance_fallback =
+        getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getOverallAppearance() != AOA_NORMAL &&
+        !isControlAvatar();
     if (!LLDrawPoolAvatar::sSkipOpaque)
     {
         if (isUIAvatar() && mIsDummy)
@@ -5898,7 +5902,8 @@ U32 LLVOAvatar::emitSkinnedWorldCommands(LLWorldRenderCommandBuffer& commands)
         }
         if (!isSelf() || gAgent.needsRenderHead() || LLPipeline::sShadowRender)
         {
-            if (isTextureVisible(TEX_HEAD_BAKED) || (getOverallAppearance() == AOA_JELLYDOLL && !isControlAvatar()) || isUIAvatar())
+            if (isTextureVisible(TEX_HEAD_BAKED) || vulkan_appearance_fallback ||
+                (getOverallAppearance() == AOA_JELLYDOLL && !isControlAvatar()) || isUIAvatar())
             {
                 LLViewerJoint* head_mesh = getViewerJoint(MESH_ID_HEAD);
                 if (head_mesh)
@@ -5908,7 +5913,8 @@ U32 LLVOAvatar::emitSkinnedWorldCommands(LLWorldRenderCommandBuffer& commands)
                 first_pass = false;
             }
         }
-        if (isTextureVisible(TEX_UPPER_BAKED) || (getOverallAppearance() == AOA_JELLYDOLL && !isControlAvatar()) || isUIAvatar())
+        if (isTextureVisible(TEX_UPPER_BAKED) || vulkan_appearance_fallback ||
+            (getOverallAppearance() == AOA_JELLYDOLL && !isControlAvatar()) || isUIAvatar())
         {
             LLViewerJoint* upper_mesh = getViewerJoint(MESH_ID_UPPER_BODY);
             if (upper_mesh)
@@ -5918,7 +5924,8 @@ U32 LLVOAvatar::emitSkinnedWorldCommands(LLWorldRenderCommandBuffer& commands)
             first_pass = false;
         }
 
-        if (isTextureVisible(TEX_LOWER_BAKED) || (getOverallAppearance() == AOA_JELLYDOLL && !isControlAvatar()) || isUIAvatar())
+        if (isTextureVisible(TEX_LOWER_BAKED) || vulkan_appearance_fallback ||
+            (getOverallAppearance() == AOA_JELLYDOLL && !isControlAvatar()) || isUIAvatar())
         {
             LLViewerJoint* lower_mesh = getViewerJoint(MESH_ID_LOWER_BODY);
             if (lower_mesh)
@@ -5980,6 +5987,65 @@ U32 LLVOAvatar::renderTransparent(bool first_pass)
     return num_indices;
 }
 
+U32 LLVOAvatar::emitTransparentWorldCommands(
+    LLWorldRenderCommandBuffer& commands,
+    bool first_pass)
+{
+    U32 num_indices = 0;
+    const bool vulkan_appearance_fallback =
+        getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getOverallAppearance() != AOA_NORMAL &&
+        !isControlAvatar();
+
+    if (isWearingWearableType(LLWearableType::WT_SKIRT) &&
+        (isUIAvatar() || isTextureVisible(TEX_SKIRT_BAKED) || vulkan_appearance_fallback))
+    {
+        LLViewerJoint* skirt_mesh = getViewerJoint(MESH_ID_SKIRT);
+        if (skirt_mesh)
+        {
+            num_indices += skirt_mesh->emitTransparentWorldCommands(
+                commands,
+                mAdjustedPixelArea,
+                false,
+                mIsDummy);
+        }
+        first_pass = false;
+    }
+
+    if (!isSelf() || gAgent.needsRenderHead() || LLPipeline::sShadowRender)
+    {
+        if (isTextureVisible(TEX_HEAD_BAKED) || vulkan_appearance_fallback)
+        {
+            LLViewerJoint* eyelash_mesh = getViewerJoint(MESH_ID_EYELASH);
+            if (eyelash_mesh)
+            {
+                num_indices += eyelash_mesh->emitTransparentWorldCommands(
+                    commands,
+                    mAdjustedPixelArea,
+                    first_pass,
+                    mIsDummy);
+            }
+            first_pass = false;
+        }
+
+        if ((isTextureVisible(TEX_HAIR_BAKED) || vulkan_appearance_fallback) &&
+            (getOverallAppearance() != AOA_JELLYDOLL))
+        {
+            LLViewerJoint* hair_mesh = getViewerJoint(MESH_ID_HAIR);
+            if (hair_mesh)
+            {
+                num_indices += hair_mesh->emitTransparentWorldCommands(
+                    commands,
+                    mAdjustedPixelArea,
+                    first_pass,
+                    mIsDummy);
+            }
+        }
+    }
+
+    return num_indices;
+}
+
 //-----------------------------------------------------------------------------
 // renderRigid()
 //-----------------------------------------------------------------------------
@@ -6008,6 +6074,45 @@ U32 LLVOAvatar::renderRigid()
         if(eyeball_right)
         {
             num_indices += eyeball_right->render(mAdjustedPixelArea, true, mIsDummy);
+        }
+    }
+
+    return num_indices;
+}
+
+U32 LLVOAvatar::emitRigidWorldCommands(LLWorldRenderCommandBuffer& commands)
+{
+    U32 num_indices = 0;
+
+    if (!mIsBuilt)
+    {
+        return 0;
+    }
+
+    if (isSelf() && (!gAgent.needsRenderAvatar() || !gAgent.needsRenderHead()))
+    {
+        return 0;
+    }
+
+    const bool vulkan_appearance_fallback =
+        getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+        getOverallAppearance() != AOA_NORMAL &&
+        !isControlAvatar();
+
+    if (isTextureVisible(TEX_EYES_BAKED) ||
+        vulkan_appearance_fallback ||
+        (getOverallAppearance() == AOA_JELLYDOLL && !isControlAvatar()) ||
+        isUIAvatar())
+    {
+        LLViewerJoint* eyeball_left = getViewerJoint(MESH_ID_EYEBALL_LEFT);
+        LLViewerJoint* eyeball_right = getViewerJoint(MESH_ID_EYEBALL_RIGHT);
+        if (eyeball_left)
+        {
+            num_indices += eyeball_left->emitWorldCommands(commands, mAdjustedPixelArea, true, mIsDummy);
+        }
+        if (eyeball_right)
+        {
+            num_indices += eyeball_right->emitWorldCommands(commands, mAdjustedPixelArea, true, mIsDummy);
         }
     }
 

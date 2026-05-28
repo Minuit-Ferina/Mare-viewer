@@ -96,6 +96,7 @@ typedef enum
     /*virtual*/ void beginPostDeferredPass(S32 pass);
     /*virtual*/ void endPostDeferredPass(S32 pass);
     /*virtual*/ void renderPostDeferred(S32 pass);
+    bool emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass);
 
     /*virtual*/ S32 getNumShadowPasses();
     /*virtual*/ void beginShadowPass(S32 pass);

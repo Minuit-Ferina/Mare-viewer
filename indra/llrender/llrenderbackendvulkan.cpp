@@ -42,24 +42,28 @@
 #include <array>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <iomanip>
 #include <ios>
 #include <limits>
 #include <map>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#ifndef MARE_VULKAN_BRIDGE_SHADER_DIR
-#define MARE_VULKAN_BRIDGE_SHADER_DIR ""
+#ifndef MARE_VULKAN_FINAL_SHADER_DIR
+#define MARE_VULKAN_FINAL_SHADER_DIR ""
 #endif
 
 namespace
@@ -446,6 +450,13 @@ struct LLVkOffset2D
     S32 y;
 };
 
+struct LLVkOffset3D
+{
+    S32 x;
+    S32 y;
+    S32 z;
+};
+
 struct LLVkRect2D
 {
     LLVkOffset2D offset;
@@ -543,6 +554,20 @@ struct LLVkRenderPassBeginInfo
     LLVkRect2D renderArea;
     U32 clearValueCount;
     const LLVkClearValue* pClearValues;
+};
+
+struct LLVkClearAttachment
+{
+    U32 aspectMask;
+    U32 colorAttachment;
+    LLVkClearValue clearValue;
+};
+
+struct LLVkClearRect
+{
+    LLVkRect2D rect;
+    U32 baseArrayLayer;
+    U32 layerCount;
 };
 
 struct LLVkShaderModuleCreateInfo
@@ -845,6 +870,19 @@ struct LLVkWriteDescriptorSet
     const void* pTexelBufferView;
 };
 
+struct alignas(8) LLVkPhysicalDeviceLimitsHeader
+{
+    U32 maxImageDimension1D;
+    U32 maxImageDimension2D;
+    U32 maxImageDimension3D;
+    U32 maxImageDimensionCube;
+    U32 maxImageArrayLayers;
+    U32 maxTexelBufferElements;
+    U32 maxUniformBufferRange;
+    U32 maxStorageBufferRange;
+    U32 maxPushConstantsSize;
+};
+
 struct LLVkPhysicalDevicePropertiesHeader
 {
     U32 apiVersion;
@@ -853,7 +891,16 @@ struct LLVkPhysicalDevicePropertiesHeader
     U32 deviceID;
     S32 deviceType;
     char deviceName[LL_VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
+    U8 pipelineCacheUUID[16];
+    LLVkPhysicalDeviceLimitsHeader limits;
 };
+
+static_assert(
+    offsetof(LLVkPhysicalDevicePropertiesHeader, limits) == 296,
+    "LLVkPhysicalDevicePropertiesHeader must match VkPhysicalDeviceProperties layout");
+static_assert(
+    offsetof(LLVkPhysicalDeviceLimitsHeader, maxPushConstantsSize) == 32,
+    "LLVkPhysicalDeviceLimitsHeader must match VkPhysicalDeviceLimits layout");
 
 struct LLVkBufferImageCopy
 {
@@ -863,6 +910,15 @@ struct LLVkBufferImageCopy
     LLVkImageSubresourceLayers imageSubresource;
     S32 imageOffset[3];
     LLVkExtent3D imageExtent;
+};
+
+struct LLVkImageCopy
+{
+    LLVkImageSubresourceLayers srcSubresource;
+    LLVkOffset3D srcOffset;
+    LLVkImageSubresourceLayers dstSubresource;
+    LLVkOffset3D dstOffset;
+    LLVkExtent3D extent;
 };
 
 using LLVulkanCreateInstance = S32 (*)(const LLVkInstanceCreateInfo*, const void*, LLVkInstance*);
@@ -936,6 +992,8 @@ using LLVulkanCreateFramebuffer = S32 (*)(LLVkDevice, const LLVkFramebufferCreat
 using LLVulkanDestroyFramebuffer = void (*)(LLVkDevice, LLVkFramebuffer, const void*);
 using LLVulkanCmdBeginRenderPass = void (*)(LLVkCommandBuffer, const LLVkRenderPassBeginInfo*, S32);
 using LLVulkanCmdEndRenderPass = void (*)(LLVkCommandBuffer);
+using LLVulkanCmdClearAttachments =
+    void (*)(LLVkCommandBuffer, U32, const LLVkClearAttachment*, U32, const LLVkClearRect*);
 using LLVulkanCreateShaderModule = S32 (*)(LLVkDevice, const LLVkShaderModuleCreateInfo*, const void*, LLVkShaderModule*);
 using LLVulkanDestroyShaderModule = void (*)(LLVkDevice, LLVkShaderModule, const void*);
 using LLVulkanCreatePipelineLayout =
@@ -966,6 +1024,8 @@ using LLVulkanCmdSetViewport = void (*)(LLVkCommandBuffer, U32, U32, const LLVkV
 using LLVulkanCmdSetScissor = void (*)(LLVkCommandBuffer, U32, U32, const LLVkRect2D*);
 using LLVulkanCmdCopyBufferToImage =
     void (*)(LLVkCommandBuffer, LLVkBuffer, LLVkImage, S32, U32, const LLVkBufferImageCopy*);
+using LLVulkanCmdCopyImage =
+    void (*)(LLVkCommandBuffer, LLVkImage, S32, LLVkImage, S32, U32, const LLVkImageCopy*);
 using LLVulkanCreateSampler = S32 (*)(LLVkDevice, const LLVkSamplerCreateInfo*, const void*, LLVkSampler*);
 using LLVulkanDestroySampler = void (*)(LLVkDevice, LLVkSampler, const void*);
 using LLVulkanCreateDescriptorSetLayout =
@@ -1033,15 +1093,24 @@ constexpr S32 LL_VK_SUBOPTIMAL_KHR = 1000001003;
 constexpr S32 LL_VK_ERROR_OUT_OF_DATE_KHR = -1000001004;
 constexpr U32 LL_VK_EXTENT_UNDEFINED = 0xffffffff;
 constexpr S32 LL_VK_FORMAT_UNDEFINED = 0;
+constexpr S32 LL_VK_FORMAT_R8_UNORM = 9;
+constexpr S32 LL_VK_FORMAT_R8G8_UNORM = 16;
 constexpr S32 LL_VK_FORMAT_R8G8B8A8_UNORM = 37;
 constexpr S32 LL_VK_FORMAT_B8G8R8A8_UNORM = 44;
 constexpr S32 LL_VK_FORMAT_R8G8B8A8_SRGB = 43;
 constexpr S32 LL_VK_FORMAT_B8G8R8A8_SRGB = 50;
+constexpr S32 LL_VK_FORMAT_A2B10G10R10_UNORM_PACK32 = 64;
+constexpr S32 LL_VK_FORMAT_R16_UNORM = 70;
+constexpr S32 LL_VK_FORMAT_R16_SFLOAT = 76;
+constexpr S32 LL_VK_FORMAT_R16G16_SFLOAT = 83;
+constexpr S32 LL_VK_FORMAT_R16G16B16A16_UNORM = 91;
+constexpr S32 LL_VK_FORMAT_R16G16B16A16_SFLOAT = 97;
 constexpr S32 LL_VK_FORMAT_R32_UINT = 98;
 constexpr S32 LL_VK_FORMAT_R32_SFLOAT = 100;
 constexpr S32 LL_VK_FORMAT_R32G32_SFLOAT = 103;
 constexpr S32 LL_VK_FORMAT_R32G32B32_SFLOAT = 106;
 constexpr S32 LL_VK_FORMAT_R32G32B32A32_SFLOAT = 109;
+constexpr S32 LL_VK_FORMAT_B10G11R11_UFLOAT_PACK32 = 122;
 constexpr S32 LL_VK_FORMAT_D32_SFLOAT = 126;
 constexpr S32 LL_VK_INDEX_TYPE_UINT16 = 0;
 constexpr S32 LL_VK_INDEX_TYPE_UINT32 = 1;
@@ -1059,6 +1128,7 @@ constexpr U32 LL_VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR = 0x00000004;
 constexpr U32 LL_VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR = 0x00000008;
 constexpr U32 LL_VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT = 0x00000010;
 constexpr U32 LL_VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT = 0x00000020;
+constexpr U32 LL_VK_IMAGE_USAGE_TRANSFER_SRC_BIT = 0x00000001;
 constexpr U32 LL_VK_IMAGE_USAGE_TRANSFER_DST_BIT = 0x00000002;
 constexpr U32 LL_VK_IMAGE_USAGE_SAMPLED_BIT = 0x00000004;
 constexpr U32 LL_VK_BUFFER_USAGE_TRANSFER_SRC_BIT = 0x00000001;
@@ -1113,6 +1183,7 @@ constexpr S32 LL_VK_IMAGE_LAYOUT_UNDEFINED = 0;
 constexpr S32 LL_VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL = 2;
 constexpr S32 LL_VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL = 3;
 constexpr S32 LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL = 5;
+constexpr S32 LL_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL = 6;
 constexpr S32 LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL = 7;
 constexpr S32 LL_VK_IMAGE_LAYOUT_PRESENT_SRC_KHR = 1000001002;
 constexpr S32 LL_VK_ATTACHMENT_LOAD_OP_CLEAR = 1;
@@ -1131,6 +1202,7 @@ constexpr U32 LL_VK_PIPELINE_STAGE_TRANSFER_BIT = 0x00001000;
 constexpr U32 LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT = 0x00000100;
 constexpr U32 LL_VK_ACCESS_SHADER_READ_BIT = 0x00000020;
 constexpr U32 LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT = 0x00000400;
+constexpr U32 LL_VK_ACCESS_TRANSFER_READ_BIT = 0x00000800;
 constexpr U32 LL_VK_ACCESS_TRANSFER_WRITE_BIT = 0x00001000;
 constexpr S32 LL_VK_SUBPASS_CONTENTS_INLINE = 0;
 constexpr U32 LL_VK_SHADER_STAGE_VERTEX_BIT = 0x00000001;
@@ -1144,6 +1216,7 @@ constexpr S32 LL_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP = 4;
 constexpr S32 LL_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN = 5;
 constexpr S32 LL_VK_POLYGON_MODE_FILL = 0;
 constexpr U32 LL_VK_CULL_MODE_NONE = 0;
+constexpr U32 LL_VK_CULL_MODE_BACK_BIT = 0x00000002;
 constexpr S32 LL_VK_FRONT_FACE_COUNTER_CLOCKWISE = 0;
 constexpr S32 LL_VK_COMPARE_OP_LESS_OR_EQUAL = 3;
 constexpr S32 LL_VK_COMPARE_OP_ALWAYS = 7;
@@ -1159,10 +1232,12 @@ constexpr U32 LL_VK_COLOR_COMPONENT_A_BIT = 0x00000008;
 constexpr U32 MARE_VULKAN_PRIMITIVE_PIPELINE_COUNT = 7;
 constexpr U32 MARE_VULKAN_WORLD_BLEND_PIPELINE_COUNT = 3;
 constexpr U32 MARE_VULKAN_WORLD_DEPTH_PIPELINE_COUNT = 3;
+constexpr U32 MARE_VULKAN_WORLD_CULL_PIPELINE_COUNT = 2;
 constexpr U32 MARE_VULKAN_WORLD_PIPELINE_COUNT =
     MARE_VULKAN_PRIMITIVE_PIPELINE_COUNT *
     MARE_VULKAN_WORLD_BLEND_PIPELINE_COUNT *
-    MARE_VULKAN_WORLD_DEPTH_PIPELINE_COUNT;
+    MARE_VULKAN_WORLD_DEPTH_PIPELINE_COUNT *
+    MARE_VULKAN_WORLD_CULL_PIPELINE_COUNT;
 constexpr const char* LL_VK_KHR_SURFACE_EXTENSION_NAME = "VK_KHR_surface";
 constexpr const char* LL_VK_EXT_METAL_SURFACE_EXTENSION_NAME = "VK_EXT_metal_surface";
 constexpr const char* LL_VK_KHR_SWAPCHAIN_EXTENSION_NAME = "VK_KHR_swapchain";
@@ -1445,10 +1520,22 @@ enum class LLVulkanWorldDepthPipeline : U8
     ReadWrite,
 };
 
+enum class LLVulkanWorldCullPipeline : U8
+{
+    None,
+    Back,
+};
+
 struct LLVulkanPendingDraw
 {
     using texture_bindings_t = std::array<U32, MARE_VULKAN_MAX_TEXTURE_BINDINGS>;
 
+    bool mClearOnly = false;
+    LLRenderClearMask mClearMask = LL_RENDER_CLEAR_NONE;
+    LLRenderClearColor mClearColor = {0.f, 0.f, 0.f, 1.f};
+    F32 mClearDepth = 1.f;
+    U32 mClearStencil = 0;
+    U32 mFramebuffer = 0;
     U32 mBuffer = 0;
     U32 mIndexBuffer = 0;
     U32 mTexture = 0;
@@ -1465,8 +1552,10 @@ struct LLVulkanPendingDraw
     bool mUseWorldVertexShader = false;
     LLVulkanWorldBlendPipeline mWorldBlendPipeline = LLVulkanWorldBlendPipeline::Opaque;
     LLVulkanWorldDepthPipeline mWorldDepthPipeline = LLVulkanWorldDepthPipeline::ReadWrite;
+    LLVulkanWorldCullPipeline mWorldCullPipeline = LLVulkanWorldCullPipeline::Back;
     LLRenderWorldShaderClass mWorldShaderClass = LLRenderWorldShaderClass::Textured;
     LLRenderWorldTerrainParameters mTerrainParameters;
+    LLRenderWorldMaterialParameters mMaterialParameters;
     LLRenderWorldTextureTransform mTextureTransform;
     std::vector<F32> mSkinningMatrixPalette;
     U32 mSkinningMatrixOffset = 0;
@@ -1486,6 +1575,12 @@ struct LLVulkanWorldPushConstants
     glm::vec4 mTerrainParameters = glm::vec4(1.f, 0.f, 0.f, 0.f);
     glm::vec4 mTextureTransformS = glm::vec4(1.f, 0.f, 0.f, 0.f);
     glm::vec4 mTextureTransformT = glm::vec4(0.f, 1.f, 0.f, 0.f);
+    glm::vec4 mMaterialExtra = glm::vec4(0.f, 0.f, 0.f, 0.f);
+    glm::vec4 mBaseTextureTransform0 = glm::vec4(1.f, 1.f, 0.f, 0.f);
+    glm::vec4 mBaseTextureTransform1 = glm::vec4(0.f, 0.f, 0.f, 0.f);
+    glm::vec4 mMaterialPBR = glm::vec4(1.f, 1.f, 0.f, 0.f);
+    glm::vec4 mMaterialLegacy = glm::vec4(1.f, 1.f, 1.f, 0.f);
+    glm::vec4 mMaterialModes = glm::vec4(0.f, 0.f, 0.f, 0.f);
 };
 
 struct LLVulkanDrawBounds
@@ -1533,7 +1628,22 @@ struct LLVulkanTextureResource
     U64 mMemorySize = 0;
     S32 mWidth = 0;
     S32 mHeight = 0;
+    S32 mFormat = LL_VK_FORMAT_R8G8B8A8_UNORM;
+    U32 mAspectMask = LL_VK_IMAGE_ASPECT_COLOR_BIT;
     bool mMemoryAccounted = false;
+    U64 mLastBoundFrame = 0;
+};
+
+struct LLVulkanFramebufferResource
+{
+    std::array<U32, 4> mColorTextures = {};
+    U32 mDepthTexture = 0;
+    U32 mColorAttachmentCount = 0;
+    LLVkFramebuffer mFramebuffer = nullptr;
+    U64 mRenderPassKey = 0;
+    S32 mWidth = 0;
+    S32 mHeight = 0;
+    bool mDirty = true;
 };
 
 struct LLVulkanDepthAttachment
@@ -1553,6 +1663,12 @@ struct LLVulkanTextureSamplerState
     LLRenderTextureAddressMode mAddressModeW = LLRenderTextureAddressMode::Repeat;
 };
 
+struct LLVulkanFinalShaderModule
+{
+    LLVkShaderModule mModule = nullptr;
+    std::string mPath;
+};
+
 struct LLVulkanNativeContext
 {
     LLVkInstance mInstance = nullptr;
@@ -1560,12 +1676,15 @@ struct LLVulkanNativeContext
     LLVkPhysicalDevice mPhysicalDevice = nullptr;
     std::string mPhysicalDeviceVendor;
     std::string mPhysicalDeviceName;
+    U32 mMaxPushConstantsSize = 0;
     LLVkDevice mDevice = nullptr;
     LLVkQueue mGraphicsQueue = nullptr;
     LLVkQueue mPresentQueue = nullptr;
     LLVkSwapchainKHR mSwapchain = nullptr;
     LLVkCommandPool mCommandPool = nullptr;
     LLVkRenderPass mRenderPass = nullptr;
+    LLVkRenderPass mOffscreenRenderPass = nullptr;
+    std::unordered_map<U64, LLVkRenderPass> mOffscreenRenderPasses;
     LLVkShaderModule mBootstrapVertexShader = nullptr;
     LLVkShaderModule mBootstrapFragmentShader = nullptr;
     LLVkShaderModule mUIVertexShader = nullptr;
@@ -1574,6 +1693,7 @@ struct LLVulkanNativeContext
     LLVkShaderModule mWorldFragmentShader = nullptr;
     LLVkShaderModule mTerrainVertexShader = nullptr;
     LLVkShaderModule mTerrainFragmentShader = nullptr;
+    std::unordered_map<std::string, LLVulkanFinalShaderModule> mFinalShaderModules;
     LLVkPipelineLayout mBootstrapPipelineLayout = nullptr;
     LLVkPipelineLayout mUIPipelineLayout = nullptr;
     LLVkPipelineLayout mWorldPipelineLayout = nullptr;
@@ -1585,6 +1705,8 @@ struct LLVulkanNativeContext
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mTerrainPipelines = {};
     LLVulkanBufferResource mDefaultTexCoordBuffer;
     LLVulkanBufferResource mDefaultColorBuffer;
+    LLVulkanBufferResource mDefaultNormalBuffer;
+    LLVulkanBufferResource mDefaultTangentBuffer;
     LLVulkanBufferResource mSkinningMatrixPaletteBuffer;
     std::vector<LLVulkanBufferResource> mTransientFrameBuffers;
     U64 mTransientFrameBufferBytes = 0;
@@ -1609,7 +1731,9 @@ struct LLVulkanNativeContext
     LLVulkanDestroyCommandPool mDestroyCommandPool = nullptr;
     LLVulkanAllocateCommandBuffers mAllocateCommandBuffers = nullptr;
     LLVulkanFreeCommandBuffers mFreeCommandBuffers = nullptr;
+    LLVulkanCreateRenderPass mCreateRenderPass = nullptr;
     LLVulkanDestroyRenderPass mDestroyRenderPass = nullptr;
+    LLVulkanCreateFramebuffer mCreateFramebuffer = nullptr;
     LLVulkanDestroyFramebuffer mDestroyFramebuffer = nullptr;
     LLVulkanDestroySemaphore mDestroySemaphore = nullptr;
     LLVulkanCreateFence mCreateFence = nullptr;
@@ -1626,6 +1750,7 @@ struct LLVulkanNativeContext
     LLVulkanDeviceWaitIdle mDeviceWaitIdle = nullptr;
     LLVulkanCmdBeginRenderPass mCmdBeginRenderPass = nullptr;
     LLVulkanCmdEndRenderPass mCmdEndRenderPass = nullptr;
+    LLVulkanCmdClearAttachments mCmdClearAttachments = nullptr;
     LLVulkanDestroyShaderModule mDestroyShaderModule = nullptr;
     LLVulkanDestroyPipelineLayout mDestroyPipelineLayout = nullptr;
     LLVulkanDestroyPipeline mDestroyPipeline = nullptr;
@@ -1682,6 +1807,8 @@ struct LLVulkanNativeContext
     U64 mSkippedTextureMemoryBudgetCount = 0;
     U64 mSkippedTextureUploadThrottleCount = 0;
     U64 mSkippedTextureOversizeCount = 0;
+    U64 mEvictedTextureCount = 0;
+    U64 mEvictedTextureMemoryBytes = 0;
     U64 mSkippedBufferMemoryBudgetCount = 0;
     U32 mLargestTextureHandle = 0;
     S32 mLargestTextureWidth = 0;
@@ -1698,11 +1825,13 @@ struct LLVulkanNativeContext
     bool mLoggedTextureMemoryBudgetExceeded = false;
     bool mLoggedTextureUploadThrottle = false;
     bool mLoggedTextureOversize = false;
+    bool mLoggedTextureEviction = false;
     bool mLoggedBufferMemoryBudgetExceeded = false;
     bool mLoggedTransientFrameBufferBudgetExceeded = false;
     bool mLoggedHeapMemoryBudgetExceeded = false;
     bool mLoggedSkinningPaletteBufferAllocationFailed = false;
     bool mLastTextureUploadSucceeded = true;
+    bool mLastTextureUploadDeferred = false;
     std::vector<LLVkPhysicalDevice> mPhysicalDevices;
     std::vector<LLVkImage> mSwapchainImages;
     std::vector<LLVkImageView> mSwapchainImageViews;
@@ -1732,23 +1861,247 @@ thread_local F32 gCurrentVulkanAlphaMaskCutoff = -1.f;
 thread_local bool gCurrentVulkanWorldDrawEnabled = false;
 thread_local LLRenderWorldShaderClass gCurrentVulkanWorldShaderClass = LLRenderWorldShaderClass::Textured;
 thread_local LLRenderWorldTerrainParameters gCurrentVulkanTerrainParameters;
+thread_local LLRenderWorldMaterialParameters gCurrentVulkanMaterialParameters;
 thread_local LLRenderWorldTextureTransform gCurrentVulkanTextureTransform;
 thread_local std::vector<F32> gCurrentVulkanSkinningMatrixPalette;
 thread_local U32 gCurrentVulkanSkinningMatrixCount = 0;
 thread_local S32 gVulkanUnpackRowLength = 0;
 U32 gNextVulkanBufferHandle = 1;
 U32 gNextVulkanTextureHandle = 1;
+U32 gNextVulkanFramebufferHandle = 1;
 thread_local S32 gActiveVulkanTextureUnit = 0;
 thread_local std::array<U32, 16> gBoundVulkanTextures = {};
+thread_local U32 gBoundVulkanReadFramebuffer = 0;
+thread_local U32 gBoundVulkanDrawFramebuffer = 0;
+thread_local U32 gVulkanFramebufferColorAttachmentCount = 1;
 U32 gBoundVulkanVertexBuffer = 0;
 U32 gBoundVulkanIndexBuffer = 0;
 std::unordered_map<U32, LLVulkanBufferResource> gVulkanBuffers;
 std::unordered_map<U32, LLVulkanPendingBufferAllocation> gPendingVulkanBufferAllocations;
 std::unordered_map<U32, LLVulkanTextureResource> gVulkanTextures;
 std::unordered_map<U32, LLVulkanTextureSamplerState> gVulkanTextureSamplerStates;
+std::unordered_map<U32, LLVulkanFramebufferResource> gVulkanFramebuffers;
 std::map<LLVulkanPendingDraw::texture_bindings_t, LLVkDescriptorSet> gVulkanTextureDescriptorSetCache;
 std::array<LLVulkanVertexAttributeState, 16> gCurrentVulkanVertexAttributes = {};
 std::vector<LLVulkanPendingDraw> gPendingVulkanDraws;
+
+void destroy_vulkan_framebuffer_resource(
+    LLVulkanNativeContext& context,
+    LLVulkanFramebufferResource& resource)
+{
+    if (resource.mFramebuffer && context.mDestroyFramebuffer && context.mDevice)
+    {
+        context.mDestroyFramebuffer(context.mDevice, resource.mFramebuffer, nullptr);
+    }
+    resource.mFramebuffer = nullptr;
+    resource.mRenderPassKey = 0;
+    resource.mWidth = 0;
+    resource.mHeight = 0;
+    resource.mDirty = true;
+}
+
+void destroy_all_vulkan_framebuffer_resources(LLVulkanNativeContext& context)
+{
+    for (auto& entry : gVulkanFramebuffers)
+    {
+        destroy_vulkan_framebuffer_resource(context, entry.second);
+    }
+}
+
+void invalidate_vulkan_framebuffers_for_texture(U32 texture)
+{
+    if (!texture)
+    {
+        return;
+    }
+
+    for (auto& entry : gVulkanFramebuffers)
+    {
+        LLVulkanFramebufferResource& framebuffer = entry.second;
+        if (framebuffer.mDepthTexture == texture ||
+            std::find(
+                framebuffer.mColorTextures.begin(),
+                framebuffer.mColorTextures.end(),
+                texture) != framebuffer.mColorTextures.end())
+        {
+            framebuffer.mDirty = true;
+        }
+    }
+}
+
+U64 make_vulkan_offscreen_render_pass_key(
+    const std::array<S32, 4>& color_formats,
+    U32 color_format_count,
+    S32 depth_format)
+{
+    U64 hash = 1469598103934665603ULL;
+    auto mix = [&hash](U32 value)
+    {
+        hash ^= value;
+        hash *= 1099511628211ULL;
+    };
+
+    mix(color_format_count);
+    const U32 max_color_format_count = static_cast<U32>(color_formats.size());
+    for (U32 i = 0; i < color_format_count && i < max_color_format_count; ++i)
+    {
+        mix(static_cast<U32>(color_formats[i]));
+    }
+    mix(static_cast<U32>(depth_format));
+    return hash;
+}
+
+LLVkRenderPass get_vulkan_offscreen_render_pass(
+    LLVulkanNativeContext& context,
+    const std::array<S32, 4>& color_formats,
+    U32 color_format_count,
+    S32 depth_format);
+
+LLVkFramebuffer get_vulkan_offscreen_framebuffer(
+    LLVulkanNativeContext& context,
+    U32 framebuffer_handle)
+{
+    if (!framebuffer_handle ||
+        !context.mCreateFramebuffer ||
+        !context.mDestroyFramebuffer)
+    {
+        return nullptr;
+    }
+
+    auto framebuffer_iter = gVulkanFramebuffers.find(framebuffer_handle);
+    if (framebuffer_iter == gVulkanFramebuffers.end())
+    {
+        return nullptr;
+    }
+
+    LLVulkanFramebufferResource& framebuffer = framebuffer_iter->second;
+    const U32 color_attachment_count =
+        llclamp(framebuffer.mColorAttachmentCount, 0U, static_cast<U32>(framebuffer.mColorTextures.size()));
+    if (color_attachment_count == 0 ||
+        !framebuffer.mDepthTexture)
+    {
+        return nullptr;
+    }
+
+    std::array<LLVkImageView, 5> attachments = {};
+    std::array<S32, 4> color_formats = {};
+    S32 width = 0;
+    S32 height = 0;
+    for (U32 i = 0; i < color_attachment_count; ++i)
+    {
+        U32 color_texture_handle = framebuffer.mColorTextures[i];
+        if (!color_texture_handle)
+        {
+            return nullptr;
+        }
+
+        auto color_iter = gVulkanTextures.find(color_texture_handle);
+        if (color_iter == gVulkanTextures.end())
+        {
+            return nullptr;
+        }
+
+        const LLVulkanTextureResource& color_texture = color_iter->second;
+        if (!color_texture.mImageView ||
+            color_texture.mAspectMask != LL_VK_IMAGE_ASPECT_COLOR_BIT ||
+            color_texture.mWidth <= 0 ||
+            color_texture.mHeight <= 0)
+        {
+            return nullptr;
+        }
+
+        if (i == 0)
+        {
+            width = color_texture.mWidth;
+            height = color_texture.mHeight;
+        }
+        else if (color_texture.mWidth != width ||
+            color_texture.mHeight != height)
+        {
+            return nullptr;
+        }
+
+        attachments[i] = color_texture.mImageView;
+        color_formats[i] = color_texture.mFormat;
+    }
+
+    auto depth_iter = gVulkanTextures.find(framebuffer.mDepthTexture);
+    if (depth_iter == gVulkanTextures.end())
+    {
+        return nullptr;
+    }
+
+    const LLVulkanTextureResource& depth_texture = depth_iter->second;
+    if (!depth_texture.mImageView ||
+        depth_texture.mAspectMask != LL_VK_IMAGE_ASPECT_DEPTH_BIT ||
+        depth_texture.mWidth != width ||
+        depth_texture.mHeight != height)
+    {
+        return nullptr;
+    }
+    attachments[color_attachment_count] = depth_texture.mImageView;
+
+    const U64 render_pass_key =
+        make_vulkan_offscreen_render_pass_key(color_formats, color_attachment_count, depth_texture.mFormat);
+    LLVkRenderPass render_pass =
+        get_vulkan_offscreen_render_pass(
+            context,
+            color_formats,
+            color_attachment_count,
+            depth_texture.mFormat);
+    if (!render_pass)
+    {
+        return nullptr;
+    }
+
+    if (!framebuffer.mDirty &&
+        framebuffer.mFramebuffer &&
+        framebuffer.mRenderPassKey == render_pass_key &&
+        framebuffer.mWidth == width &&
+        framebuffer.mHeight == height)
+    {
+        return framebuffer.mFramebuffer;
+    }
+
+    destroy_vulkan_framebuffer_resource(context, framebuffer);
+
+    LLVkFramebufferCreateInfo create_info =
+    {
+        LL_VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        nullptr,
+        0,
+        render_pass,
+        color_attachment_count + 1,
+        attachments.data(),
+        static_cast<U32>(width),
+        static_cast<U32>(height),
+        1
+    };
+
+    S32 result = context.mCreateFramebuffer(
+        context.mDevice,
+        &create_info,
+        nullptr,
+        &framebuffer.mFramebuffer);
+    if (result != LL_VK_SUCCESS || !framebuffer.mFramebuffer)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkCreateFramebuffer(offscreen) failed with result "
+            << result
+            << LL_ENDL;
+        framebuffer.mFramebuffer = nullptr;
+        framebuffer.mDirty = true;
+        framebuffer.mWidth = 0;
+        framebuffer.mHeight = 0;
+        return nullptr;
+    }
+
+    framebuffer.mWidth = width;
+    framebuffer.mHeight = height;
+    framebuffer.mRenderPassKey = render_pass_key;
+    framebuffer.mDirty = false;
+    return framebuffer.mFramebuffer;
+}
 
 void destroy_vulkan_texture_descriptor_set_cache(LLVulkanNativeContext& context)
 {
@@ -1914,15 +2267,25 @@ LLVulkanWorldDepthPipeline to_vulkan_world_depth_pipeline()
         LLVulkanWorldDepthPipeline::ReadOnly;
 }
 
+LLVulkanWorldCullPipeline to_vulkan_world_cull_pipeline()
+{
+    return gCurrentVulkanCullFaceEnabled && gCurrentVulkanCullFace == LLRenderCullFace::Back ?
+        LLVulkanWorldCullPipeline::Back :
+        LLVulkanWorldCullPipeline::None;
+}
+
 U32 to_vulkan_world_pipeline_index(
     U32 primitive_pipeline_index,
     LLVulkanWorldBlendPipeline blend_pipeline,
-    LLVulkanWorldDepthPipeline depth_pipeline)
+    LLVulkanWorldDepthPipeline depth_pipeline,
+    LLVulkanWorldCullPipeline cull_pipeline)
 {
     return primitive_pipeline_index +
         MARE_VULKAN_PRIMITIVE_PIPELINE_COUNT *
             (static_cast<U32>(blend_pipeline) +
-             MARE_VULKAN_WORLD_BLEND_PIPELINE_COUNT * static_cast<U32>(depth_pipeline));
+             MARE_VULKAN_WORLD_BLEND_PIPELINE_COUNT *
+                (static_cast<U32>(depth_pipeline) +
+                 MARE_VULKAN_WORLD_DEPTH_PIPELINE_COUNT * static_cast<U32>(cull_pipeline)));
 }
 
 U32 to_vulkan_buffer_usage(LLRenderBufferTarget target)
@@ -2426,6 +2789,65 @@ LLVkRect2D to_vulkan_scissor(
     };
 }
 
+void record_vulkan_clear_command(
+    LLVulkanNativeContext& context,
+    LLVkCommandBuffer command_buffer,
+    const LLVulkanPendingDraw& clear_command)
+{
+    if (!context.mCmdClearAttachments || clear_command.mClearMask == LL_RENDER_CLEAR_NONE)
+    {
+        return;
+    }
+    if (clear_command.mFramebuffer != 0)
+    {
+        (void)get_vulkan_offscreen_framebuffer(context, clear_command.mFramebuffer);
+        return;
+    }
+
+    std::array<LLVkClearAttachment, 2> attachments = {};
+    U32 attachment_count = 0;
+
+    if (clear_command.mClearMask & LL_RENDER_CLEAR_COLOR)
+    {
+        LLVkClearAttachment& attachment = attachments[attachment_count++];
+        attachment.aspectMask = LL_VK_IMAGE_ASPECT_COLOR_BIT;
+        attachment.colorAttachment = 0;
+        attachment.clearValue.color[0] = clear_command.mClearColor.mRed;
+        attachment.clearValue.color[1] = clear_command.mClearColor.mGreen;
+        attachment.clearValue.color[2] = clear_command.mClearColor.mBlue;
+        attachment.clearValue.color[3] = clear_command.mClearColor.mAlpha;
+    }
+
+    if (clear_command.mClearMask & LL_RENDER_CLEAR_DEPTH)
+    {
+        LLVkClearAttachment& attachment = attachments[attachment_count++];
+        attachment.aspectMask = LL_VK_IMAGE_ASPECT_DEPTH_BIT;
+        attachment.clearValue.depthStencil.depth = clear_command.mClearDepth;
+        attachment.clearValue.depthStencil.stencil = clear_command.mClearStencil;
+    }
+
+    if (attachment_count == 0)
+    {
+        return;
+    }
+
+    LLVkRect2D clear_rect =
+        to_vulkan_scissor(context, clear_command.mViewport, clear_command.mScissor);
+    LLVkClearRect rect =
+    {
+        clear_rect,
+        0,
+        1
+    };
+
+    context.mCmdClearAttachments(
+        command_buffer,
+        attachment_count,
+        attachments.data(),
+        1,
+        &rect);
+}
+
 bool read_vulkan_draw_position(
     const LLVulkanPendingDraw& draw,
     const LLVulkanBufferResource& vertex_buffer,
@@ -2745,6 +3167,8 @@ void destroy_all_vulkan_buffer_resources(LLVulkanNativeContext& context)
     destroy_vulkan_transient_frame_buffers(context);
     destroy_vulkan_buffer_resource(context, context.mDefaultTexCoordBuffer);
     destroy_vulkan_buffer_resource(context, context.mDefaultColorBuffer);
+    destroy_vulkan_buffer_resource(context, context.mDefaultNormalBuffer);
+    destroy_vulkan_buffer_resource(context, context.mDefaultTangentBuffer);
     destroy_vulkan_buffer_resource(context, context.mSkinningMatrixPaletteBuffer);
 
     for (auto& entry : gVulkanBuffers)
@@ -2756,12 +3180,16 @@ void destroy_all_vulkan_buffer_resources(LLVulkanNativeContext& context)
     gPendingVulkanBufferAllocations.clear();
     gPendingVulkanDraws.clear();
     gCurrentVulkanVertexAttributes = {};
+    gCurrentVulkanMaterialParameters = {};
     gCurrentVulkanSkinningMatrixPalette.clear();
     gCurrentVulkanSkinningMatrixCount = 0;
     gBoundVulkanVertexBuffer = 0;
     gBoundVulkanIndexBuffer = 0;
     gCurrentVulkanViewport = {};
     gCurrentVulkanScissor = {};
+    gBoundVulkanReadFramebuffer = 0;
+    gBoundVulkanDrawFramebuffer = 0;
+    gVulkanFramebufferColorAttachmentCount = 1;
 }
 
 bool create_vulkan_buffer_resource(
@@ -2777,7 +3205,16 @@ bool create_vulkan_default_ui_attribute_buffers(LLVulkanNativeContext& context)
 {
     std::vector<F32> default_texcoords(MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES * 2, 0.f);
     std::vector<U8> default_colors(MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES * 4, 255);
+    std::vector<F32> default_normals(MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES * 4, 0.f);
+    std::vector<F32> default_tangents(MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES * 4, 0.f);
     std::array<F32, 12> default_skinning_palette = {};
+
+    for (U32 i = 0; i < MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES; ++i)
+    {
+        default_normals[(i * 4) + 2] = 1.f;
+        default_tangents[(i * 4) + 0] = 1.f;
+        default_tangents[(i * 4) + 3] = 1.f;
+    }
 
     if (!create_vulkan_buffer_resource(
             context,
@@ -2806,6 +3243,35 @@ bool create_vulkan_default_ui_attribute_buffers(LLVulkanNativeContext& context)
 
     if (!create_vulkan_buffer_resource(
             context,
+            default_normals.size() * sizeof(F32),
+            LL_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            default_normals.data(),
+            context.mDefaultNormalBuffer,
+            0,
+            true))
+    {
+        destroy_vulkan_buffer_resource(context, context.mDefaultTexCoordBuffer);
+        destroy_vulkan_buffer_resource(context, context.mDefaultColorBuffer);
+        return false;
+    }
+
+    if (!create_vulkan_buffer_resource(
+            context,
+            default_tangents.size() * sizeof(F32),
+            LL_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            default_tangents.data(),
+            context.mDefaultTangentBuffer,
+            0,
+            true))
+    {
+        destroy_vulkan_buffer_resource(context, context.mDefaultTexCoordBuffer);
+        destroy_vulkan_buffer_resource(context, context.mDefaultColorBuffer);
+        destroy_vulkan_buffer_resource(context, context.mDefaultNormalBuffer);
+        return false;
+    }
+
+    if (!create_vulkan_buffer_resource(
+            context,
             default_skinning_palette.size() * sizeof(F32),
             LL_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
             default_skinning_palette.data(),
@@ -2815,6 +3281,8 @@ bool create_vulkan_default_ui_attribute_buffers(LLVulkanNativeContext& context)
     {
         destroy_vulkan_buffer_resource(context, context.mDefaultTexCoordBuffer);
         destroy_vulkan_buffer_resource(context, context.mDefaultColorBuffer);
+        destroy_vulkan_buffer_resource(context, context.mDefaultNormalBuffer);
+        destroy_vulkan_buffer_resource(context, context.mDefaultTangentBuffer);
         return false;
     }
 
@@ -3438,6 +3906,21 @@ U32 get_vulkan_texture_upload_frame_count_budget()
     return count_budget;
 }
 
+U64 get_vulkan_texture_eviction_min_age_frames()
+{
+    static const U64 min_age_frames = []()
+    {
+        U64 frames = 180;
+        if (const char* age_override = std::getenv("MARE_VULKAN_TEXTURE_EVICTION_MIN_AGE_FRAMES"))
+        {
+            frames = std::strtoull(age_override, nullptr, 10);
+        }
+        return frames;
+    }();
+
+    return min_age_frames;
+}
+
 S32 get_vulkan_max_texture_dimension()
 {
     static const S32 max_dimension = []()
@@ -3525,6 +4008,7 @@ bool can_accept_vulkan_texture_upload_request(
     if (too_many_uploads || too_many_bytes)
     {
         ++context.mSkippedTextureUploadThrottleCount;
+        context.mLastTextureUploadDeferred = true;
         if (!context.mLoggedTextureUploadThrottle)
         {
             LL_WARNS("RenderBackend")
@@ -3684,8 +4168,100 @@ void destroy_vulkan_texture_resource(
     resource = {};
 }
 
+bool evict_vulkan_texture_resources_for_upload(
+    LLVulkanNativeContext& context,
+    U32 protected_handle,
+    U64 old_size,
+    U64 new_size,
+    U64 budget)
+{
+    const U64 current_without_old =
+        context.mTextureMemoryAllocatedBytes >= old_size ?
+        context.mTextureMemoryAllocatedBytes - old_size :
+        0;
+    if (current_without_old + new_size <= budget)
+    {
+        return true;
+    }
+
+    const U64 min_age_frames = get_vulkan_texture_eviction_min_age_frames();
+    bool evicted = false;
+    while (context.mTextureMemoryAllocatedBytes >= old_size &&
+           context.mTextureMemoryAllocatedBytes - old_size + new_size > budget)
+    {
+        auto candidate = gVulkanTextures.end();
+        U64 candidate_age = 0;
+        U64 candidate_size = 0;
+
+        for (auto iter = gVulkanTextures.begin(); iter != gVulkanTextures.end(); ++iter)
+        {
+            const U32 handle = iter->first;
+            const LLVulkanTextureResource& resource = iter->second;
+            if (handle == 0 ||
+                handle == protected_handle ||
+                !resource.mMemoryAccounted ||
+                resource.mMemorySize == 0)
+            {
+                continue;
+            }
+
+            const U64 last_bound_frame = resource.mLastBoundFrame;
+            const U64 age =
+                context.mPresentedFrameCount >= last_bound_frame ?
+                context.mPresentedFrameCount - last_bound_frame :
+                0;
+            if (age < min_age_frames)
+            {
+                continue;
+            }
+
+            if (candidate == gVulkanTextures.end() ||
+                age > candidate_age ||
+                (age == candidate_age && resource.mMemorySize > candidate_size))
+            {
+                candidate = iter;
+                candidate_age = age;
+                candidate_size = resource.mMemorySize;
+            }
+        }
+
+        if (candidate == gVulkanTextures.end())
+        {
+            break;
+        }
+
+        const U32 evicted_handle = candidate->first;
+        const U64 evicted_size = candidate->second.mMemorySize;
+        destroy_vulkan_texture_resource(context, candidate->second);
+        gVulkanTextures.erase(candidate);
+        ++context.mEvictedTextureCount;
+        context.mEvictedTextureMemoryBytes += evicted_size;
+        evicted = true;
+
+        if (!context.mLoggedTextureEviction)
+        {
+            LL_WARNS("RenderBackend")
+                << "Evicted Vulkan texture "
+                << evicted_handle
+                << " after "
+                << candidate_age
+                << " unbound frame(s), freeing "
+                << format_vulkan_megabytes(evicted_size)
+                << " for a new upload. Override age with "
+                << "MARE_VULKAN_TEXTURE_EVICTION_MIN_AGE_FRAMES."
+                << LL_ENDL;
+            context.mLoggedTextureEviction = true;
+        }
+    }
+
+    return evicted &&
+        context.mTextureMemoryAllocatedBytes >= old_size &&
+        context.mTextureMemoryAllocatedBytes - old_size + new_size <= budget;
+}
+
 void destroy_all_vulkan_texture_resources(LLVulkanNativeContext& context)
 {
+    destroy_all_vulkan_framebuffer_resources(context);
     destroy_vulkan_texture_descriptor_set_cache(context);
 
     for (auto& entry : gVulkanTextures)
@@ -3695,6 +4271,7 @@ void destroy_all_vulkan_texture_resources(LLVulkanNativeContext& context)
 
     gVulkanTextures.clear();
     gVulkanTextureSamplerStates.clear();
+    gVulkanFramebuffers.clear();
     gBoundVulkanTextures = {};
 }
 
@@ -4145,7 +4722,8 @@ void transition_vulkan_texture_layout(
     LLVkCommandBuffer command_buffer,
     LLVkImage image,
     S32 old_layout,
-    S32 new_layout)
+    S32 new_layout,
+    U32 aspect_mask = LL_VK_IMAGE_ASPECT_COLOR_BIT)
 {
     U32 src_access = 0;
     U32 dst_access = 0;
@@ -4157,6 +4735,12 @@ void transition_vulkan_texture_layout(
     {
         dst_access = LL_VK_ACCESS_TRANSFER_WRITE_BIT;
     }
+    else if (old_layout == LL_VK_IMAGE_LAYOUT_UNDEFINED &&
+        new_layout == LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        dst_access = LL_VK_ACCESS_SHADER_READ_BIT;
+        dst_stage = LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
     else if (old_layout == LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
         new_layout == LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
     {
@@ -4165,10 +4749,26 @@ void transition_vulkan_texture_layout(
         src_stage = LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         dst_stage = LL_VK_PIPELINE_STAGE_TRANSFER_BIT;
     }
+    else if (old_layout == LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL &&
+        new_layout == LL_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+    {
+        src_access = LL_VK_ACCESS_SHADER_READ_BIT;
+        dst_access = LL_VK_ACCESS_TRANSFER_READ_BIT;
+        src_stage = LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dst_stage = LL_VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
     else if (old_layout == LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
         new_layout == LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
     {
         src_access = LL_VK_ACCESS_TRANSFER_WRITE_BIT;
+        dst_access = LL_VK_ACCESS_SHADER_READ_BIT;
+        src_stage = LL_VK_PIPELINE_STAGE_TRANSFER_BIT;
+        dst_stage = LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if (old_layout == LL_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL &&
+        new_layout == LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        src_access = LL_VK_ACCESS_TRANSFER_READ_BIT;
         dst_access = LL_VK_ACCESS_SHADER_READ_BIT;
         src_stage = LL_VK_PIPELINE_STAGE_TRANSFER_BIT;
         dst_stage = LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
@@ -4187,7 +4787,7 @@ void transition_vulkan_texture_layout(
         image,
         LLVkImageSubresourceRange
         {
-            LL_VK_IMAGE_ASPECT_COLOR_BIT,
+            aspect_mask,
             0,
             1,
             0,
@@ -4298,7 +4898,7 @@ bool create_vulkan_texture_sampler(
     return true;
 }
 
-const LLVulkanTextureResource* get_vulkan_texture_resource_or_fallback(
+LLVulkanTextureResource* get_vulkan_texture_resource_or_fallback(
     U32 handle,
     U32& resolved_handle)
 {
@@ -4341,13 +4941,14 @@ LLVkDescriptorSet get_vulkan_texture_descriptor_set(
     {
         const U32 requested_handle = textures[i];
         U32 resolved_handle = 0;
-        const LLVulkanTextureResource* resource =
+        LLVulkanTextureResource* resource =
             get_vulkan_texture_resource_or_fallback(requested_handle, resolved_handle);
         if (!resource)
         {
             return nullptr;
         }
 
+        resource->mLastBoundFrame = context.mPresentedFrameCount;
         key[i] = resolved_handle;
         image_infos[i] =
         {
@@ -4608,6 +5209,11 @@ bool upload_vulkan_texture_resource(
     LLVulkanTextureResource new_resource;
     new_resource.mWidth = width;
     new_resource.mHeight = height;
+    new_resource.mFormat = LL_VK_FORMAT_R8G8B8A8_UNORM;
+    new_resource.mAspectMask = LL_VK_IMAGE_ASPECT_COLOR_BIT;
+    new_resource.mLastBoundFrame = context.mPresentedFrameCount;
+
+    invalidate_vulkan_framebuffers_for_texture(handle);
 
     LLVkImageCreateInfo image_create_info =
     {
@@ -4626,7 +5232,10 @@ bool upload_vulkan_texture_resource(
         1,
         LL_VK_SAMPLE_COUNT_1_BIT,
         LL_VK_IMAGE_TILING_OPTIMAL,
-        LL_VK_IMAGE_USAGE_TRANSFER_DST_BIT | LL_VK_IMAGE_USAGE_SAMPLED_BIT,
+        LL_VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+            LL_VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+            LL_VK_IMAGE_USAGE_SAMPLED_BIT |
+            LL_VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         LL_VK_SHARING_MODE_EXCLUSIVE,
         0,
         nullptr,
@@ -4660,6 +5269,13 @@ bool upload_vulkan_texture_resource(
         destroy_vulkan_texture_resource(context, new_resource);
         return false;
     }
+
+    evict_vulkan_texture_resources_for_upload(
+        context,
+        handle,
+        old_memory_size,
+        new_resource.mMemorySize,
+        get_vulkan_texture_memory_budget_bytes(context, memory_type_index));
 
     if (!can_commit_vulkan_texture_memory(
             context,
@@ -4916,6 +5532,487 @@ bool convert_texture_pixels_to_rgba8(
     }
 
     return true;
+}
+
+bool is_vulkan_depth_render_texture_format(LLRenderTextureFormat format)
+{
+    return format == LLRenderTextureFormat::DepthComponent ||
+        format == LLRenderTextureFormat::DepthComponent24;
+}
+
+S32 to_vulkan_image_format(LLRenderTextureFormat format)
+{
+    switch (format)
+    {
+    case LLRenderTextureFormat::DepthComponent:
+    case LLRenderTextureFormat::DepthComponent24:
+        return LL_VK_FORMAT_D32_SFLOAT;
+    case LLRenderTextureFormat::RGBA:
+    case LLRenderTextureFormat::RGBA8:
+    case LLRenderTextureFormat::RGB:
+    case LLRenderTextureFormat::RGB8:
+        return LL_VK_FORMAT_R8G8B8A8_UNORM;
+    case LLRenderTextureFormat::RGBA16:
+        return LL_VK_FORMAT_R16G16B16A16_UNORM;
+    case LLRenderTextureFormat::RGBA16F:
+    case LLRenderTextureFormat::RGB16F:
+        return LL_VK_FORMAT_R16G16B16A16_SFLOAT;
+    case LLRenderTextureFormat::RGB10A2:
+        return LL_VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+    case LLRenderTextureFormat::R11G11B10F:
+        return LL_VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+    case LLRenderTextureFormat::Alpha:
+    case LLRenderTextureFormat::Alpha8:
+    case LLRenderTextureFormat::R8:
+    case LLRenderTextureFormat::Luminance:
+        return LL_VK_FORMAT_R8_UNORM;
+    case LLRenderTextureFormat::R16F:
+        return LL_VK_FORMAT_R16_SFLOAT;
+    case LLRenderTextureFormat::R32F:
+        return LL_VK_FORMAT_R32_SFLOAT;
+    case LLRenderTextureFormat::RG8:
+        return LL_VK_FORMAT_R8G8_UNORM;
+    case LLRenderTextureFormat::RG16F:
+        return LL_VK_FORMAT_R16G16_SFLOAT;
+    case LLRenderTextureFormat::RG32F:
+        return LL_VK_FORMAT_R32G32_SFLOAT;
+    case LLRenderTextureFormat::None:
+    default:
+        return LL_VK_FORMAT_R8G8B8A8_UNORM;
+    }
+}
+
+U32 to_vulkan_image_aspect_mask(LLRenderTextureFormat format)
+{
+    return is_vulkan_depth_render_texture_format(format) ?
+        LL_VK_IMAGE_ASPECT_DEPTH_BIT :
+        LL_VK_IMAGE_ASPECT_COLOR_BIT;
+}
+
+U32 to_vulkan_image_usage(LLRenderTextureFormat format)
+{
+    U32 usage =
+        LL_VK_IMAGE_USAGE_SAMPLED_BIT |
+        LL_VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+        LL_VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    if (is_vulkan_depth_render_texture_format(format))
+    {
+        usage |= LL_VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+    else
+    {
+        usage |= LL_VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    }
+    return usage;
+}
+
+S32 to_vulkan_framebuffer_color_index(LLRenderFramebufferAttachment attachment)
+{
+    switch (attachment)
+    {
+    case LLRenderFramebufferAttachment::Color0:
+        return 0;
+    case LLRenderFramebufferAttachment::Color1:
+        return 1;
+    case LLRenderFramebufferAttachment::Color2:
+        return 2;
+    case LLRenderFramebufferAttachment::Color3:
+        return 3;
+    default:
+        return -1;
+    }
+}
+
+bool is_vulkan_framebuffer_complete(U32 framebuffer)
+{
+    if (framebuffer == 0)
+    {
+        return true;
+    }
+
+    auto framebuffer_iter = gVulkanFramebuffers.find(framebuffer);
+    if (framebuffer_iter == gVulkanFramebuffers.end())
+    {
+        return false;
+    }
+
+    const LLVulkanFramebufferResource& resource = framebuffer_iter->second;
+    bool has_attachment = false;
+    for (U32 i = 0; i < resource.mColorAttachmentCount && i < resource.mColorTextures.size(); ++i)
+    {
+        U32 texture = resource.mColorTextures[i];
+        if (!texture)
+        {
+            return false;
+        }
+
+        auto texture_iter = gVulkanTextures.find(texture);
+        if (texture_iter == gVulkanTextures.end() ||
+            !texture_iter->second.mImage ||
+            !texture_iter->second.mImageView ||
+            texture_iter->second.mAspectMask != LL_VK_IMAGE_ASPECT_COLOR_BIT)
+        {
+            return false;
+        }
+        has_attachment = true;
+    }
+
+    if (resource.mDepthTexture)
+    {
+        auto texture_iter = gVulkanTextures.find(resource.mDepthTexture);
+        if (texture_iter == gVulkanTextures.end() ||
+            !texture_iter->second.mImage ||
+            !texture_iter->second.mImageView ||
+            texture_iter->second.mAspectMask != LL_VK_IMAGE_ASPECT_DEPTH_BIT)
+        {
+            return false;
+        }
+        has_attachment = true;
+    }
+
+    return has_attachment;
+}
+
+bool create_empty_vulkan_texture_resource(
+    LLVulkanNativeContext& context,
+    U32 handle,
+    S32 width,
+    S32 height,
+    LLRenderTextureFormat render_format)
+{
+    if (width <= 0 || height <= 0)
+    {
+        return false;
+    }
+
+    if (!ensure_vulkan_texture_entry_points(context) ||
+        !ensure_vulkan_command_entry_points(context))
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan empty texture allocation skipped because required entry points are not ready."
+            << LL_ENDL;
+        return false;
+    }
+
+    auto existing_iter = gVulkanTextures.find(handle);
+    const U64 old_memory_size =
+        existing_iter != gVulkanTextures.end() ?
+        existing_iter->second.mMemorySize :
+        0;
+
+    LLVulkanTextureResource new_resource;
+    new_resource.mWidth = width;
+    new_resource.mHeight = height;
+    new_resource.mAspectMask = to_vulkan_image_aspect_mask(render_format);
+    new_resource.mFormat = to_vulkan_image_format(render_format);
+    new_resource.mLastBoundFrame = context.mPresentedFrameCount;
+    invalidate_vulkan_framebuffers_for_texture(handle);
+
+    LLVkImageCreateInfo image_create_info =
+    {
+        LL_VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        nullptr,
+        0,
+        LL_VK_IMAGE_TYPE_2D,
+        new_resource.mFormat,
+        LLVkExtent3D
+        {
+            static_cast<U32>(width),
+            static_cast<U32>(height),
+            1
+        },
+        1,
+        1,
+        LL_VK_SAMPLE_COUNT_1_BIT,
+        LL_VK_IMAGE_TILING_OPTIMAL,
+        to_vulkan_image_usage(render_format),
+        LL_VK_SHARING_MODE_EXCLUSIVE,
+        0,
+        nullptr,
+        LL_VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    S32 result = context.mCreateImage(
+        context.mDevice,
+        &image_create_info,
+        nullptr,
+        &new_resource.mImage);
+    if (result != LL_VK_SUCCESS || !new_resource.mImage)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkCreateImage(empty texture) failed with result "
+            << result
+            << LL_ENDL;
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    LLVkMemoryRequirements memory_requirements = {};
+    context.mGetImageMemoryRequirements(context.mDevice, new_resource.mImage, &memory_requirements);
+    new_resource.mMemorySize = memory_requirements.size;
+
+    U32 memory_type_index = 0;
+    if (!find_vulkan_memory_type(
+            context,
+            memory_requirements.memoryTypeBits,
+            LL_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            memory_type_index))
+    {
+        LL_WARNS("RenderBackend")
+            << "No device-local Vulkan memory type for empty texture."
+            << LL_ENDL;
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    evict_vulkan_texture_resources_for_upload(
+        context,
+        handle,
+        old_memory_size,
+        new_resource.mMemorySize,
+        get_vulkan_texture_memory_budget_bytes(context, memory_type_index));
+
+    if (!can_commit_vulkan_texture_memory(
+            context,
+            old_memory_size,
+            new_resource.mMemorySize,
+            memory_type_index,
+            handle,
+            width,
+            height))
+    {
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    LLVkMemoryAllocateInfo allocate_info =
+    {
+        LL_VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        nullptr,
+        memory_requirements.size,
+        memory_type_index
+    };
+
+    result = context.mAllocateMemory(context.mDevice, &allocate_info, nullptr, &new_resource.mMemory);
+    if (result != LL_VK_SUCCESS || !new_resource.mMemory)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkAllocateMemory(empty texture) failed with result "
+            << result
+            << LL_ENDL;
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    result = context.mBindImageMemory(context.mDevice, new_resource.mImage, new_resource.mMemory, 0);
+    if (result != LL_VK_SUCCESS)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkBindImageMemory(empty texture) failed with result "
+            << result
+            << LL_ENDL;
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    LLVkImageViewCreateInfo image_view_create_info =
+    {
+        LL_VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        nullptr,
+        0,
+        new_resource.mImage,
+        LL_VK_IMAGE_VIEW_TYPE_2D,
+        new_resource.mFormat,
+        LLVkComponentMapping
+        {
+            LL_VK_COMPONENT_SWIZZLE_IDENTITY,
+            LL_VK_COMPONENT_SWIZZLE_IDENTITY,
+            LL_VK_COMPONENT_SWIZZLE_IDENTITY,
+            LL_VK_COMPONENT_SWIZZLE_IDENTITY
+        },
+        LLVkImageSubresourceRange
+        {
+            new_resource.mAspectMask,
+            0,
+            1,
+            0,
+            1
+        }
+    };
+
+    result = context.mCreateImageView(
+        context.mDevice,
+        &image_view_create_info,
+        nullptr,
+        &new_resource.mImageView);
+    if (result != LL_VK_SUCCESS || !new_resource.mImageView)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkCreateImageView(empty texture) failed with result "
+            << result
+            << LL_ENDL;
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    if (!create_vulkan_texture_sampler(
+            context,
+            get_vulkan_texture_sampler_state(handle),
+            new_resource.mSampler))
+    {
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    LLVkCommandBuffer command_buffer = nullptr;
+    if (!begin_vulkan_one_time_commands(context, command_buffer))
+    {
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        new_resource.mImage,
+        LL_VK_IMAGE_LAYOUT_UNDEFINED,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        new_resource.mAspectMask);
+
+    if (!end_vulkan_one_time_commands(context, command_buffer))
+    {
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    new_resource.mMemoryAccounted = true;
+    context.mTextureMemoryAllocatedBytes += new_resource.mMemorySize;
+    if (existing_iter != gVulkanTextures.end())
+    {
+        destroy_vulkan_texture_resource(context, existing_iter->second);
+        existing_iter->second = new_resource;
+    }
+    else
+    {
+        gVulkanTextures.emplace(handle, new_resource);
+    }
+
+    return true;
+}
+
+bool copy_vulkan_texture_resource(
+    LLVulkanNativeContext& context,
+    LLVulkanTextureResource& source,
+    S32 source_x,
+    S32 source_y,
+    LLVulkanTextureResource& destination,
+    S32 destination_x,
+    S32 destination_y,
+    S32 width,
+    S32 height)
+{
+    if (width <= 0 ||
+        height <= 0 ||
+        !source.mImage ||
+        !destination.mImage ||
+        source.mAspectMask != destination.mAspectMask)
+    {
+        return false;
+    }
+
+    LLVulkanCmdCopyImage copy_image =
+        reinterpret_cast<LLVulkanCmdCopyImage>(
+            get_vulkan_device_proc_address(context, "vkCmdCopyImage"));
+    if (!copy_image || !ensure_vulkan_command_entry_points(context))
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan image copy skipped because required entry points are not ready."
+            << LL_ENDL;
+        return false;
+    }
+
+    LLVkCommandBuffer command_buffer = nullptr;
+    if (!begin_vulkan_one_time_commands(context, command_buffer))
+    {
+        return false;
+    }
+
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        source.mImage,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        source.mAspectMask);
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        destination.mImage,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        destination.mAspectMask);
+
+    LLVkImageCopy copy_region =
+    {
+        LLVkImageSubresourceLayers
+        {
+            source.mAspectMask,
+            0,
+            0,
+            1
+        },
+        LLVkOffset3D
+        {
+            source_x,
+            source_y,
+            0
+        },
+        LLVkImageSubresourceLayers
+        {
+            destination.mAspectMask,
+            0,
+            0,
+            1
+        },
+        LLVkOffset3D
+        {
+            destination_x,
+            destination_y,
+            0
+        },
+        LLVkExtent3D
+        {
+            static_cast<U32>(width),
+            static_cast<U32>(height),
+            1
+        }
+    };
+
+    copy_image(
+        command_buffer,
+        source.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        destination.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &copy_region);
+
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        source.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        source.mAspectMask);
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        destination.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        destination.mAspectMask);
+
+    return end_vulkan_one_time_commands(context, command_buffer);
 }
 
 std::vector<LLVkExtensionProperties> get_instance_extensions(
@@ -5281,6 +6378,7 @@ void populate_vulkan_physical_device_info(
 {
     context.mPhysicalDeviceVendor = "Vulkan";
     context.mPhysicalDeviceName = "Vulkan device";
+    context.mMaxPushConstantsSize = 0;
 
     if (!get_physical_device_properties || !context.mPhysicalDevice)
     {
@@ -5295,6 +6393,7 @@ void populate_vulkan_physical_device_info(
     const LLVkPhysicalDevicePropertiesHeader* properties =
         reinterpret_cast<const LLVkPhysicalDevicePropertiesHeader*>(properties_storage.data());
     context.mPhysicalDeviceVendor = get_vulkan_vendor_name(properties->vendorID);
+    context.mMaxPushConstantsSize = properties->limits.maxPushConstantsSize;
 
     const char* name_begin = properties->deviceName;
     const char* name_end = static_cast<const char*>(
@@ -5545,6 +6644,14 @@ bool create_vulkan_device(LLVulkanNativeContext& context)
         << context.mPresentQueueFamilyIndex
         << "."
         << LL_ENDL;
+    if (context.mMaxPushConstantsSize)
+    {
+        LL_INFOS("RenderBackend")
+            << "Vulkan max push constants size: "
+            << context.mMaxPushConstantsSize
+            << " bytes."
+            << LL_ENDL;
+    }
     return true;
 }
 
@@ -5584,6 +6691,9 @@ void destroy_vulkan_device(LLVulkanNativeContext& context)
     context.mCreateSampler = nullptr;
     context.mDestroySampler = nullptr;
     context.mCmdCopyBufferToImage = nullptr;
+    context.mCreateRenderPass = nullptr;
+    context.mCreateFramebuffer = nullptr;
+    context.mDestroyFramebuffer = nullptr;
     context.mDevice = nullptr;
     context.mPhysicalDevice = nullptr;
     context.mGraphicsQueueFamilyIndex = LL_VK_QUEUE_FAMILY_IGNORED;
@@ -6050,14 +7160,14 @@ void destroy_vulkan_swapchain_image_views(LLVulkanNativeContext& context)
 
 bool create_vulkan_render_pass(LLVulkanNativeContext& context)
 {
-    LLVulkanCreateRenderPass create_render_pass =
+    context.mCreateRenderPass =
         reinterpret_cast<LLVulkanCreateRenderPass>(
             get_vulkan_device_proc_address(context, "vkCreateRenderPass"));
     context.mDestroyRenderPass =
         reinterpret_cast<LLVulkanDestroyRenderPass>(
             get_vulkan_device_proc_address(context, "vkDestroyRenderPass"));
 
-    if (!create_render_pass || !context.mDestroyRenderPass)
+    if (!context.mCreateRenderPass || !context.mDestroyRenderPass)
     {
         LL_WARNS("RenderBackend")
             << "Vulkan backend is missing required render-pass entry points."
@@ -6065,22 +7175,200 @@ bool create_vulkan_render_pass(LLVulkanNativeContext& context)
         return false;
     }
 
-    LLVkAttachmentDescription color_attachment =
+    auto create_single_color_depth_render_pass =
+        [&](S32 color_final_layout, LLVkRenderPass& render_pass) -> bool
     {
-        0,
-        context.mSwapchainImageFormat,
-        LL_VK_SAMPLE_COUNT_1_BIT,
-        LL_VK_ATTACHMENT_LOAD_OP_CLEAR,
-        LL_VK_ATTACHMENT_STORE_OP_STORE,
-        LL_VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        LL_VK_IMAGE_LAYOUT_UNDEFINED,
-        LL_VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+        LLVkAttachmentDescription color_attachment =
+        {
+            0,
+            context.mSwapchainImageFormat,
+            LL_VK_SAMPLE_COUNT_1_BIT,
+            LL_VK_ATTACHMENT_LOAD_OP_CLEAR,
+            LL_VK_ATTACHMENT_STORE_OP_STORE,
+            LL_VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            LL_VK_IMAGE_LAYOUT_UNDEFINED,
+            color_final_layout
+        };
+        LLVkAttachmentDescription depth_attachment =
+        {
+            0,
+            LL_VK_FORMAT_D32_SFLOAT,
+            LL_VK_SAMPLE_COUNT_1_BIT,
+            LL_VK_ATTACHMENT_LOAD_OP_CLEAR,
+            LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            LL_VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            LL_VK_IMAGE_LAYOUT_UNDEFINED,
+            LL_VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+        LLVkAttachmentDescription attachments[2] =
+        {
+            color_attachment,
+            depth_attachment
+        };
+
+        LLVkAttachmentReference color_attachment_reference =
+        {
+            0,
+            LL_VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        };
+        LLVkAttachmentReference depth_attachment_reference =
+        {
+            1,
+            LL_VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+
+        LLVkSubpassDescription subpass =
+        {
+            0,
+            LL_VK_PIPELINE_BIND_POINT_GRAPHICS,
+            0,
+            nullptr,
+            1,
+            &color_attachment_reference,
+            nullptr,
+            &depth_attachment_reference,
+            0,
+            nullptr
+        };
+
+        LLVkSubpassDependency dependencies[2] =
+        {
+            LLVkSubpassDependency
+            {
+                LL_VK_SUBPASS_EXTERNAL,
+                0,
+                LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                    LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                    LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                0,
+                LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                    LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                0
+            },
+            LLVkSubpassDependency
+            {
+                0,
+                LL_VK_SUBPASS_EXTERNAL,
+                LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                    LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                    LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                LL_VK_ACCESS_SHADER_READ_BIT,
+                0
+            }
+        };
+
+        LLVkRenderPassCreateInfo create_info =
+        {
+            LL_VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            nullptr,
+            0,
+            2,
+            attachments,
+            1,
+            &subpass,
+            2,
+            dependencies
+        };
+
+        S32 result = context.mCreateRenderPass(
+            context.mDevice,
+            &create_info,
+            nullptr,
+            &render_pass);
+        if (result != LL_VK_SUCCESS || !render_pass)
+        {
+            LL_WARNS("RenderBackend")
+                << "vkCreateRenderPass failed with result "
+                << result
+                << LL_ENDL;
+            return false;
+        }
+
+        return true;
     };
-    LLVkAttachmentDescription depth_attachment =
+
+    if (!create_single_color_depth_render_pass(
+            LL_VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            context.mRenderPass))
+    {
+        return false;
+    }
+
+    if (!create_single_color_depth_render_pass(
+            LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            context.mOffscreenRenderPass))
+    {
+        return false;
+    }
+
+    LL_INFOS("RenderBackend")
+        << "Vulkan swapchain and offscreen render passes created."
+        << LL_ENDL;
+    return true;
+}
+
+LLVkRenderPass get_vulkan_offscreen_render_pass(
+    LLVulkanNativeContext& context,
+    const std::array<S32, 4>& color_formats,
+    U32 color_format_count,
+    S32 depth_format)
+{
+    color_format_count = llclamp(color_format_count, 0U, static_cast<U32>(color_formats.size()));
+    if (!context.mCreateRenderPass ||
+        !context.mDestroyRenderPass ||
+        color_format_count == 0)
+    {
+        return nullptr;
+    }
+
+    const U64 key =
+        make_vulkan_offscreen_render_pass_key(color_formats, color_format_count, depth_format);
+    if (color_format_count == 1 &&
+        color_formats[0] == context.mSwapchainImageFormat &&
+        depth_format == LL_VK_FORMAT_D32_SFLOAT &&
+        context.mOffscreenRenderPass)
+    {
+        return context.mOffscreenRenderPass;
+    }
+
+    auto existing_iter = context.mOffscreenRenderPasses.find(key);
+    if (existing_iter != context.mOffscreenRenderPasses.end())
+    {
+        return existing_iter->second;
+    }
+
+    std::array<LLVkAttachmentDescription, 5> attachments = {};
+    std::array<LLVkAttachmentReference, 4> color_attachment_references = {};
+    for (U32 i = 0; i < color_format_count; ++i)
+    {
+        attachments[i] =
+        {
+            0,
+            color_formats[i],
+            LL_VK_SAMPLE_COUNT_1_BIT,
+            LL_VK_ATTACHMENT_LOAD_OP_CLEAR,
+            LL_VK_ATTACHMENT_STORE_OP_STORE,
+            LL_VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            LL_VK_IMAGE_LAYOUT_UNDEFINED,
+            LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        };
+        color_attachment_references[i] =
+        {
+            i,
+            LL_VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        };
+    }
+
+    attachments[color_format_count] =
     {
         0,
-        LL_VK_FORMAT_D32_SFLOAT,
+        depth_format,
         LL_VK_SAMPLE_COUNT_1_BIT,
         LL_VK_ATTACHMENT_LOAD_OP_CLEAR,
         LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -6088,50 +7376,52 @@ bool create_vulkan_render_pass(LLVulkanNativeContext& context)
         LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
         LL_VK_IMAGE_LAYOUT_UNDEFINED,
         LL_VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-    };
-    LLVkAttachmentDescription attachments[2] =
-    {
-        color_attachment,
-        depth_attachment
-    };
-
-    LLVkAttachmentReference color_attachment_reference =
-    {
-        0,
-        LL_VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     };
     LLVkAttachmentReference depth_attachment_reference =
     {
-        1,
+        color_format_count,
         LL_VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
     };
-
     LLVkSubpassDescription subpass =
     {
         0,
         LL_VK_PIPELINE_BIND_POINT_GRAPHICS,
         0,
         nullptr,
-        1,
-        &color_attachment_reference,
+        color_format_count,
+        color_attachment_references.data(),
         nullptr,
         &depth_attachment_reference,
         0,
         nullptr
     };
-
-    LLVkSubpassDependency dependency =
+    LLVkSubpassDependency dependencies[2] =
     {
-        LL_VK_SUBPASS_EXTERNAL,
-        0,
-        LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-            LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-            LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        0,
-        LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-            LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        0
+        LLVkSubpassDependency
+        {
+            LL_VK_SUBPASS_EXTERNAL,
+            0,
+            LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+            LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+            0,
+            LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            0
+        },
+        LLVkSubpassDependency
+        {
+            0,
+            LL_VK_SUBPASS_EXTERNAL,
+            LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+            LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            LL_VK_ACCESS_SHADER_READ_BIT,
+            0
+        }
     };
 
     LLVkRenderPassCreateInfo create_info =
@@ -6139,43 +7429,62 @@ bool create_vulkan_render_pass(LLVulkanNativeContext& context)
         LL_VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         nullptr,
         0,
-        2,
-        attachments,
+        color_format_count + 1,
+        attachments.data(),
         1,
         &subpass,
-        1,
-        &dependency
+        2,
+        dependencies
     };
 
-    S32 result = create_render_pass(
+    LLVkRenderPass render_pass = nullptr;
+    S32 result = context.mCreateRenderPass(
         context.mDevice,
         &create_info,
         nullptr,
-        &context.mRenderPass);
-    if (result != LL_VK_SUCCESS || !context.mRenderPass)
+        &render_pass);
+    if (result != LL_VK_SUCCESS || !render_pass)
     {
         LL_WARNS("RenderBackend")
-            << "vkCreateRenderPass failed with result "
+            << "vkCreateRenderPass(offscreen color attachments "
+            << color_format_count
+            << ") failed with result "
             << result
             << LL_ENDL;
-        return false;
+        return nullptr;
     }
 
-    LL_INFOS("RenderBackend")
-        << "Vulkan bootstrap render pass created."
-        << LL_ENDL;
-    return true;
+    context.mOffscreenRenderPasses.emplace(key, render_pass);
+    return render_pass;
 }
 
 void destroy_vulkan_render_pass(LLVulkanNativeContext& context)
 {
+    if (context.mDestroyRenderPass && context.mDevice)
+    {
+        for (const auto& entry : context.mOffscreenRenderPasses)
+        {
+            if (entry.second)
+            {
+                context.mDestroyRenderPass(context.mDevice, entry.second, nullptr);
+            }
+        }
+    }
+    context.mOffscreenRenderPasses.clear();
+
     if (context.mDestroyRenderPass && context.mDevice && context.mRenderPass)
     {
         context.mDestroyRenderPass(context.mDevice, context.mRenderPass, nullptr);
     }
+    if (context.mDestroyRenderPass && context.mDevice && context.mOffscreenRenderPass)
+    {
+        context.mDestroyRenderPass(context.mDevice, context.mOffscreenRenderPass, nullptr);
+    }
 
+    context.mCreateRenderPass = nullptr;
     context.mDestroyRenderPass = nullptr;
     context.mRenderPass = nullptr;
+    context.mOffscreenRenderPass = nullptr;
 }
 
 bool create_vulkan_shader_module(
@@ -6213,63 +7522,63 @@ bool create_vulkan_shader_module(
     return true;
 }
 
-std::string get_vulkan_bridge_shader_path(const std::string& shader_name)
+void add_unique_vulkan_shader_directory(
+    std::vector<std::string>& directories,
+    const std::string& directory)
 {
-    std::vector<std::string> candidates;
-    auto add_shader_path = [&shader_name](const std::string& directory)
+    if (!directory.empty() &&
+        std::find(directories.begin(), directories.end(), directory) == directories.end())
     {
-        if (gDirUtilp)
-        {
-            return gDirUtilp->add(directory, shader_name);
-        }
-        return directory + "/" + shader_name;
-    };
+        directories.push_back(directory);
+    }
+}
+
+std::vector<std::string> get_vulkan_final_shader_directories()
+{
+    std::vector<std::string> directories;
 
     if (const char* override_dir = std::getenv("MARE_VULKAN_SHADER_DIR"))
     {
         if (override_dir[0])
         {
-            candidates.push_back(add_shader_path(override_dir));
+            add_unique_vulkan_shader_directory(
+                directories,
+                gDirUtilp ?
+                    gDirUtilp->add(override_dir, "final") :
+                    std::string(override_dir) + "/final");
+            add_unique_vulkan_shader_directory(directories, override_dir);
         }
     }
 
-    if (MARE_VULKAN_BRIDGE_SHADER_DIR[0])
+    if (MARE_VULKAN_FINAL_SHADER_DIR[0])
     {
-        candidates.push_back(add_shader_path(MARE_VULKAN_BRIDGE_SHADER_DIR));
+        add_unique_vulkan_shader_directory(directories, MARE_VULKAN_FINAL_SHADER_DIR);
     }
 
     if (gDirUtilp)
     {
-        candidates.push_back(
+        add_unique_vulkan_shader_directory(
+            directories,
             gDirUtilp->getExpandedFilename(
                 LL_PATH_APP_SETTINGS,
-                "shaders/vulkan/bridge",
-                shader_name));
+                "shaders/vulkan",
+                "final"));
     }
 
-    for (const std::string& candidate : candidates)
-    {
-        if (LLFile::isfile(candidate))
-        {
-            return candidate;
-        }
-    }
-
-    return candidates.empty() ? shader_name : candidates.front();
+    return directories;
 }
 
-bool load_vulkan_bridge_shader_spirv(
-    const std::string& shader_name,
+bool load_vulkan_shader_spirv_file(
+    const std::string& shader_path,
     const char* label,
     std::vector<U32>& spirv)
 {
-    const std::string path = get_vulkan_bridge_shader_path(shader_name);
-    llifstream input(path, std::ios::binary | std::ios::ate);
+    llifstream input(shader_path, std::ios::binary | std::ios::ate);
     if (!input)
     {
         LL_WARNS("RenderBackend")
             << "Unable to open Vulkan " << label << " shader: "
-            << path
+            << shader_path
             << LL_ENDL;
         return false;
     }
@@ -6281,7 +7590,7 @@ bool load_vulkan_bridge_shader_spirv(
             << "Vulkan " << label << " shader has invalid SPIR-V byte size "
             << size
             << ": "
-            << path
+            << shader_path
             << LL_ENDL;
         return false;
     }
@@ -6295,13 +7604,150 @@ bool load_vulkan_bridge_shader_spirv(
     {
         LL_WARNS("RenderBackend")
             << "Unable to read Vulkan " << label << " shader: "
-            << path
+            << shader_path
             << LL_ENDL;
         spirv.clear();
         return false;
     }
 
     return true;
+}
+
+std::vector<std::pair<std::string, std::string>> discover_vulkan_final_shader_spirv()
+{
+    for (const std::string& directory : get_vulkan_final_shader_directories())
+    {
+        if (!LLFile::isdir(directory))
+        {
+            continue;
+        }
+
+        std::vector<std::pair<std::string, std::string>> shaders;
+        std::error_code ec;
+        std::filesystem::path root(directory);
+        std::filesystem::recursive_directory_iterator iter(
+            root,
+            std::filesystem::directory_options::skip_permission_denied,
+            ec);
+        std::filesystem::recursive_directory_iterator end;
+        for (; iter != end; iter.increment(ec))
+        {
+            if (ec)
+            {
+                ec.clear();
+                continue;
+            }
+
+            std::error_code file_ec;
+            if (!iter->is_regular_file(file_ec) ||
+                iter->path().extension() != ".spv")
+            {
+                continue;
+            }
+
+            std::filesystem::path relative = iter->path().lexically_relative(root);
+            shaders.emplace_back(
+                relative.generic_string(),
+                iter->path().string());
+        }
+
+        if (!shaders.empty())
+        {
+            std::sort(shaders.begin(), shaders.end());
+            return shaders;
+        }
+    }
+
+    return {};
+}
+
+void destroy_vulkan_final_shader_modules(LLVulkanNativeContext& context)
+{
+    if (context.mDestroyShaderModule && context.mDevice)
+    {
+        for (auto& shader : context.mFinalShaderModules)
+        {
+            if (shader.second.mModule)
+            {
+                context.mDestroyShaderModule(
+                    context.mDevice,
+                    shader.second.mModule,
+                    nullptr);
+            }
+        }
+    }
+
+    context.mFinalShaderModules.clear();
+}
+
+bool create_vulkan_final_shader_modules(
+    LLVulkanNativeContext& context,
+    LLVulkanCreateShaderModule create_shader_module)
+{
+    const std::vector<std::pair<std::string, std::string>> shader_paths =
+        discover_vulkan_final_shader_spirv();
+    if (shader_paths.empty())
+    {
+        LL_WARNS("RenderBackend")
+            << "No Vulkan final SPIR-V shaders were found."
+            << LL_ENDL;
+        return false;
+    }
+
+    for (const auto& shader_path : shader_paths)
+    {
+        std::vector<U32> spirv;
+        if (!load_vulkan_shader_spirv_file(
+                shader_path.second,
+                shader_path.first.c_str(),
+                spirv))
+        {
+            destroy_vulkan_final_shader_modules(context);
+            return false;
+        }
+
+        LLVkShaderModule shader_module = nullptr;
+        if (!create_vulkan_shader_module(
+                context,
+                create_shader_module,
+                spirv.data(),
+                spirv.size() * sizeof(U32),
+                shader_path.first.c_str(),
+                shader_module))
+        {
+            destroy_vulkan_final_shader_modules(context);
+            return false;
+        }
+
+        context.mFinalShaderModules.emplace(
+            shader_path.first,
+            LLVulkanFinalShaderModule { shader_module, shader_path.second });
+    }
+
+    LL_INFOS("RenderBackend")
+        << "Loaded "
+        << context.mFinalShaderModules.size()
+        << " Vulkan final shader modules."
+        << LL_ENDL;
+    return true;
+}
+
+LLVkShaderModule get_vulkan_final_shader_module(
+    LLVulkanNativeContext& context,
+    const std::string& shader_name,
+    const char* label)
+{
+    auto iter = context.mFinalShaderModules.find(shader_name);
+    if (iter == context.mFinalShaderModules.end() || !iter->second.mModule)
+    {
+        LL_WARNS("RenderBackend")
+            << "Vulkan final " << label << " shader module is missing: "
+            << shader_name
+            << LL_ENDL;
+        return nullptr;
+    }
+
+    return iter->second.mModule;
 }
 
 void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
@@ -6365,37 +7811,52 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
 
     if (context.mDestroyShaderModule && context.mDevice)
     {
+        std::unordered_set<LLVkShaderModule> destroyed_modules;
+        auto destroy_shader_module_once = [&](LLVkShaderModule shader_module)
+        {
+            if (shader_module && destroyed_modules.insert(shader_module).second)
+            {
+                context.mDestroyShaderModule(context.mDevice, shader_module, nullptr);
+            }
+        };
+
+        for (const auto& shader : context.mFinalShaderModules)
+        {
+            destroy_shader_module_once(shader.second.mModule);
+        }
+        context.mFinalShaderModules.clear();
+
         if (context.mBootstrapVertexShader)
         {
-            context.mDestroyShaderModule(context.mDevice, context.mBootstrapVertexShader, nullptr);
+            destroy_shader_module_once(context.mBootstrapVertexShader);
         }
         if (context.mBootstrapFragmentShader)
         {
-            context.mDestroyShaderModule(context.mDevice, context.mBootstrapFragmentShader, nullptr);
+            destroy_shader_module_once(context.mBootstrapFragmentShader);
         }
         if (context.mUIVertexShader)
         {
-            context.mDestroyShaderModule(context.mDevice, context.mUIVertexShader, nullptr);
+            destroy_shader_module_once(context.mUIVertexShader);
         }
         if (context.mUIFragmentShader)
         {
-            context.mDestroyShaderModule(context.mDevice, context.mUIFragmentShader, nullptr);
+            destroy_shader_module_once(context.mUIFragmentShader);
         }
         if (context.mWorldVertexShader)
         {
-            context.mDestroyShaderModule(context.mDevice, context.mWorldVertexShader, nullptr);
+            destroy_shader_module_once(context.mWorldVertexShader);
         }
         if (context.mWorldFragmentShader)
         {
-            context.mDestroyShaderModule(context.mDevice, context.mWorldFragmentShader, nullptr);
+            destroy_shader_module_once(context.mWorldFragmentShader);
         }
         if (context.mTerrainVertexShader)
         {
-            context.mDestroyShaderModule(context.mDevice, context.mTerrainVertexShader, nullptr);
+            destroy_shader_module_once(context.mTerrainVertexShader);
         }
         if (context.mTerrainFragmentShader)
         {
-            context.mDestroyShaderModule(context.mDevice, context.mTerrainFragmentShader, nullptr);
+            destroy_shader_module_once(context.mTerrainFragmentShader);
         }
     }
 
@@ -6601,84 +8062,36 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         return false;
     }
 
-    std::vector<U32> bootstrap_vertex_spv;
-    std::vector<U32> bootstrap_fragment_spv;
-    std::vector<U32> ui_vertex_spv;
-    std::vector<U32> ui_fragment_spv;
-    std::vector<U32> world_vertex_spv;
-    std::vector<U32> world_fragment_spv;
-    std::vector<U32> terrain_vertex_spv;
-    std::vector<U32> terrain_fragment_spv;
-
-    if (!load_vulkan_bridge_shader_spirv("bootstrap.vert.spv", "bootstrap vertex", bootstrap_vertex_spv) ||
-        !load_vulkan_bridge_shader_spirv("bootstrap.frag.spv", "bootstrap fragment", bootstrap_fragment_spv) ||
-        !load_vulkan_bridge_shader_spirv("ui.vert.spv", "UI vertex", ui_vertex_spv) ||
-        !load_vulkan_bridge_shader_spirv("ui.frag.spv", "UI fragment", ui_fragment_spv) ||
-        !load_vulkan_bridge_shader_spirv("world_textured.vert.spv", "world vertex", world_vertex_spv) ||
-        !load_vulkan_bridge_shader_spirv("world_textured.frag.spv", "world fragment", world_fragment_spv) ||
-        !load_vulkan_bridge_shader_spirv("terrain.vert.spv", "terrain vertex", terrain_vertex_spv) ||
-        !load_vulkan_bridge_shader_spirv("terrain.frag.spv", "terrain fragment", terrain_fragment_spv))
+    if (!create_vulkan_final_shader_modules(context, create_shader_module))
     {
         destroy_vulkan_graphics_pipelines(context);
         return false;
     }
 
-    if (!create_vulkan_shader_module(
-            context,
-            create_shader_module,
-            bootstrap_vertex_spv.data(),
-            bootstrap_vertex_spv.size() * sizeof(U32),
-            "bootstrap vertex",
-            context.mBootstrapVertexShader) ||
-        !create_vulkan_shader_module(
-            context,
-            create_shader_module,
-            bootstrap_fragment_spv.data(),
-            bootstrap_fragment_spv.size() * sizeof(U32),
-            "bootstrap fragment",
-            context.mBootstrapFragmentShader) ||
-        !create_vulkan_shader_module(
-            context,
-            create_shader_module,
-            ui_vertex_spv.data(),
-            ui_vertex_spv.size() * sizeof(U32),
-            "UI vertex",
-            context.mUIVertexShader) ||
-        !create_vulkan_shader_module(
-            context,
-            create_shader_module,
-            ui_fragment_spv.data(),
-            ui_fragment_spv.size() * sizeof(U32),
-            "UI fragment",
-            context.mUIFragmentShader) ||
-        !create_vulkan_shader_module(
-            context,
-            create_shader_module,
-            world_vertex_spv.data(),
-            world_vertex_spv.size() * sizeof(U32),
-            "world vertex",
-            context.mWorldVertexShader) ||
-        !create_vulkan_shader_module(
-            context,
-            create_shader_module,
-            world_fragment_spv.data(),
-            world_fragment_spv.size() * sizeof(U32),
-            "world fragment",
-            context.mWorldFragmentShader) ||
-        !create_vulkan_shader_module(
-            context,
-            create_shader_module,
-            terrain_vertex_spv.data(),
-            terrain_vertex_spv.size() * sizeof(U32),
-            "terrain vertex",
-            context.mTerrainVertexShader) ||
-        !create_vulkan_shader_module(
-            context,
-            create_shader_module,
-            terrain_fragment_spv.data(),
-            terrain_fragment_spv.size() * sizeof(U32),
-            "terrain fragment",
-            context.mTerrainFragmentShader))
+    context.mBootstrapVertexShader =
+        get_vulkan_final_shader_module(context, "bootstrap.vert.spv", "bootstrap vertex");
+    context.mBootstrapFragmentShader =
+        get_vulkan_final_shader_module(context, "bootstrap.frag.spv", "bootstrap fragment");
+    context.mUIVertexShader =
+        get_vulkan_final_shader_module(context, "active/ui.vert.spv", "UI vertex");
+    context.mUIFragmentShader =
+        get_vulkan_final_shader_module(context, "active/ui.frag.spv", "UI fragment");
+    context.mWorldVertexShader =
+        get_vulkan_final_shader_module(context, "active/world_textured.vert.spv", "world vertex");
+    context.mWorldFragmentShader =
+        get_vulkan_final_shader_module(context, "active/world_textured.frag.spv", "world fragment");
+    context.mTerrainVertexShader =
+        get_vulkan_final_shader_module(context, "active/terrain.vert.spv", "terrain vertex");
+    context.mTerrainFragmentShader =
+        get_vulkan_final_shader_module(context, "active/terrain.frag.spv", "terrain fragment");
+    if (!context.mBootstrapVertexShader ||
+        !context.mBootstrapFragmentShader ||
+        !context.mUIVertexShader ||
+        !context.mUIFragmentShader ||
+        !context.mWorldVertexShader ||
+        !context.mWorldFragmentShader ||
+        !context.mTerrainVertexShader ||
+        !context.mTerrainFragmentShader)
     {
         destroy_vulkan_graphics_pipelines(context);
         return false;
@@ -6788,11 +8201,27 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         0,
         nullptr
     };
+    const U32 world_push_constant_size =
+        static_cast<U32>(sizeof(LLVulkanWorldPushConstants));
+    const U32 max_push_constant_size =
+        context.mMaxPushConstantsSize ? context.mMaxPushConstantsSize : 128;
+    if (world_push_constant_size > max_push_constant_size)
+    {
+        LL_WARNS("RenderBackend")
+            << "Vulkan world push constants require "
+            << world_push_constant_size
+            << " bytes, but the selected device only supports "
+            << max_push_constant_size
+            << " bytes."
+            << LL_ENDL;
+        destroy_vulkan_graphics_pipelines(context);
+        return false;
+    }
     LLVkPushConstantRange world_push_constant_range =
     {
         LL_VK_SHADER_STAGE_VERTEX_BIT | LL_VK_SHADER_STAGE_FRAGMENT_BIT,
         0,
-        sizeof(LLVulkanWorldPushConstants)
+        world_push_constant_size
     };
     LLVkPipelineLayoutCreateInfo world_layout_create_info =
     {
@@ -7133,7 +8562,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         ui_attributes
     };
 
-    LLVkVertexInputBindingDescription world_bindings[7] =
+    LLVkVertexInputBindingDescription world_bindings[9] =
     {
         { 0, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
         { 1, 8, LL_VK_VERTEX_INPUT_RATE_VERTEX },
@@ -7142,9 +8571,11 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         { 4, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
         { 5, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
         { 6, 4, LL_VK_VERTEX_INPUT_RATE_VERTEX },
+        { 7, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
+        { 8, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
     };
 
-    LLVkVertexInputAttributeDescription world_attributes[7] =
+    LLVkVertexInputAttributeDescription world_attributes[9] =
     {
         { 0, 0, LL_VK_FORMAT_R32G32B32_SFLOAT, 0 },
         { 2, 1, LL_VK_FORMAT_R32G32_SFLOAT, 0 },
@@ -7153,6 +8584,8 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         { 13, 4, LL_VK_FORMAT_R32_UINT, 0 },
         { 10, 5, LL_VK_FORMAT_R32G32B32A32_SFLOAT, 0 },
         { 9, 6, LL_VK_FORMAT_R32_SFLOAT, 0 },
+        { 1, 7, LL_VK_FORMAT_R32G32B32_SFLOAT, 0 },
+        { 8, 8, LL_VK_FORMAT_R32G32B32A32_SFLOAT, 0 },
     };
 
     LLVkPipelineVertexInputStateCreateInfo world_vertex_input =
@@ -7160,9 +8593,9 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         LL_VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         nullptr,
         0,
-        7,
+        9,
         world_bindings,
-        7,
+        9,
         world_attributes
     };
 
@@ -7246,88 +8679,104 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
             return false;
         }
 
-        for (U32 depth_index = 0; depth_index < MARE_VULKAN_WORLD_DEPTH_PIPELINE_COUNT; ++depth_index)
+        for (U32 cull_index = 0; cull_index < MARE_VULKAN_WORLD_CULL_PIPELINE_COUNT; ++cull_index)
         {
-            LLVulkanWorldDepthPipeline depth_pipeline =
-                static_cast<LLVulkanWorldDepthPipeline>(depth_index);
-            LLVkPipelineDepthStencilStateCreateInfo world_depth_stencil =
-                make_vulkan_depth_stencil_state(depth_pipeline);
+            LLVulkanWorldCullPipeline cull_pipeline =
+                static_cast<LLVulkanWorldCullPipeline>(cull_index);
+            LLVkPipelineRasterizationStateCreateInfo world_rasterization = rasterization;
+            world_rasterization.cullMode =
+                cull_pipeline == LLVulkanWorldCullPipeline::Back ?
+                LL_VK_CULL_MODE_BACK_BIT :
+                LL_VK_CULL_MODE_NONE;
 
-            for (U32 blend_index = 0; blend_index < MARE_VULKAN_WORLD_BLEND_PIPELINE_COUNT; ++blend_index)
+            for (U32 depth_index = 0; depth_index < MARE_VULKAN_WORLD_DEPTH_PIPELINE_COUNT; ++depth_index)
             {
-                LLVulkanWorldBlendPipeline blend_pipeline =
-                    static_cast<LLVulkanWorldBlendPipeline>(blend_index);
-                LLVkPipelineColorBlendAttachmentState world_color_blend_attachment =
-                    make_vulkan_world_color_blend_attachment(blend_pipeline);
-                LLVkPipelineColorBlendStateCreateInfo world_color_blend =
+                LLVulkanWorldDepthPipeline depth_pipeline =
+                    static_cast<LLVulkanWorldDepthPipeline>(depth_index);
+                LLVkPipelineDepthStencilStateCreateInfo world_depth_stencil =
+                    make_vulkan_depth_stencil_state(depth_pipeline);
+
+                for (U32 blend_index = 0; blend_index < MARE_VULKAN_WORLD_BLEND_PIPELINE_COUNT; ++blend_index)
                 {
-                    LL_VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-                    nullptr,
-                    0,
-                    0,
-                    0,
-                    1,
-                    &world_color_blend_attachment,
-                    { 0.f, 0.f, 0.f, 0.f }
-                };
+                    LLVulkanWorldBlendPipeline blend_pipeline =
+                        static_cast<LLVulkanWorldBlendPipeline>(blend_index);
+                    LLVkPipelineColorBlendAttachmentState world_color_blend_attachment =
+                        make_vulkan_world_color_blend_attachment(blend_pipeline);
+                    LLVkPipelineColorBlendStateCreateInfo world_color_blend =
+                    {
+                        LL_VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+                        nullptr,
+                        0,
+                        0,
+                        0,
+                        1,
+                        &world_color_blend_attachment,
+                        { 0.f, 0.f, 0.f, 0.f }
+                    };
 
-                U32 world_pipeline_index =
-                    to_vulkan_world_pipeline_index(i, blend_pipeline, depth_pipeline);
-                LLVkGraphicsPipelineCreateInfo world_pipeline_create_info = ui_pipeline_create_info;
-                world_pipeline_create_info.pStages = world_shader_stages;
-                world_pipeline_create_info.pVertexInputState = &world_vertex_input;
-                world_pipeline_create_info.pDepthStencilState = &world_depth_stencil;
-                world_pipeline_create_info.pColorBlendState = &world_color_blend;
-                world_pipeline_create_info.layout = context.mWorldPipelineLayout;
+                    U32 world_pipeline_index =
+                        to_vulkan_world_pipeline_index(i, blend_pipeline, depth_pipeline, cull_pipeline);
+                    LLVkGraphicsPipelineCreateInfo world_pipeline_create_info = ui_pipeline_create_info;
+                    world_pipeline_create_info.pStages = world_shader_stages;
+                    world_pipeline_create_info.pVertexInputState = &world_vertex_input;
+                    world_pipeline_create_info.pRasterizationState = &world_rasterization;
+                    world_pipeline_create_info.pDepthStencilState = &world_depth_stencil;
+                    world_pipeline_create_info.pColorBlendState = &world_color_blend;
+                    world_pipeline_create_info.layout = context.mWorldPipelineLayout;
 
-                result = create_graphics_pipelines(
-                    context.mDevice,
-                    nullptr,
-                    1,
-                    &world_pipeline_create_info,
-                    nullptr,
-                    &context.mWorldPipelines[world_pipeline_index]);
-                if (result != LL_VK_SUCCESS || !context.mWorldPipelines[world_pipeline_index])
-                {
-                    LL_WARNS("RenderBackend")
-                        << "vkCreateGraphicsPipelines(world mode "
-                        << i
-                        << ", blend "
-                        << blend_index
-                        << ", depth "
-                        << depth_index
-                        << ") failed with result "
-                        << result
-                        << LL_ENDL;
-                    destroy_vulkan_graphics_pipelines(context);
-                    return false;
-                }
+                    result = create_graphics_pipelines(
+                        context.mDevice,
+                        nullptr,
+                        1,
+                        &world_pipeline_create_info,
+                        nullptr,
+                        &context.mWorldPipelines[world_pipeline_index]);
+                    if (result != LL_VK_SUCCESS || !context.mWorldPipelines[world_pipeline_index])
+                    {
+                        LL_WARNS("RenderBackend")
+                            << "vkCreateGraphicsPipelines(world mode "
+                            << i
+                            << ", blend "
+                            << blend_index
+                            << ", depth "
+                            << depth_index
+                            << ", cull "
+                            << cull_index
+                            << ") failed with result "
+                            << result
+                            << LL_ENDL;
+                        destroy_vulkan_graphics_pipelines(context);
+                        return false;
+                    }
 
-                LLVkGraphicsPipelineCreateInfo terrain_pipeline_create_info = world_pipeline_create_info;
-                terrain_pipeline_create_info.pStages = terrain_shader_stages;
-                terrain_pipeline_create_info.pVertexInputState = &ui_vertex_input;
+                    LLVkGraphicsPipelineCreateInfo terrain_pipeline_create_info = world_pipeline_create_info;
+                    terrain_pipeline_create_info.pStages = terrain_shader_stages;
+                    terrain_pipeline_create_info.pVertexInputState = &ui_vertex_input;
 
-                result = create_graphics_pipelines(
-                    context.mDevice,
-                    nullptr,
-                    1,
-                    &terrain_pipeline_create_info,
-                    nullptr,
-                    &context.mTerrainPipelines[world_pipeline_index]);
-                if (result != LL_VK_SUCCESS || !context.mTerrainPipelines[world_pipeline_index])
-                {
-                    LL_WARNS("RenderBackend")
-                        << "vkCreateGraphicsPipelines(terrain mode "
-                        << i
-                        << ", blend "
-                        << blend_index
-                        << ", depth "
-                        << depth_index
-                        << ") failed with result "
-                        << result
-                        << LL_ENDL;
-                    destroy_vulkan_graphics_pipelines(context);
-                    return false;
+                    result = create_graphics_pipelines(
+                        context.mDevice,
+                        nullptr,
+                        1,
+                        &terrain_pipeline_create_info,
+                        nullptr,
+                        &context.mTerrainPipelines[world_pipeline_index]);
+                    if (result != LL_VK_SUCCESS || !context.mTerrainPipelines[world_pipeline_index])
+                    {
+                        LL_WARNS("RenderBackend")
+                            << "vkCreateGraphicsPipelines(terrain mode "
+                            << i
+                            << ", blend "
+                            << blend_index
+                            << ", depth "
+                            << depth_index
+                            << ", cull "
+                            << cull_index
+                            << ") failed with result "
+                            << result
+                            << LL_ENDL;
+                        destroy_vulkan_graphics_pipelines(context);
+                        return false;
+                    }
                 }
             }
         }
@@ -7341,14 +8790,14 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
 
 bool create_vulkan_swapchain_framebuffers(LLVulkanNativeContext& context)
 {
-    LLVulkanCreateFramebuffer create_framebuffer =
+    context.mCreateFramebuffer =
         reinterpret_cast<LLVulkanCreateFramebuffer>(
             get_vulkan_device_proc_address(context, "vkCreateFramebuffer"));
     context.mDestroyFramebuffer =
         reinterpret_cast<LLVulkanDestroyFramebuffer>(
             get_vulkan_device_proc_address(context, "vkDestroyFramebuffer"));
 
-    if (!create_framebuffer || !context.mDestroyFramebuffer)
+    if (!context.mCreateFramebuffer || !context.mDestroyFramebuffer)
     {
         LL_WARNS("RenderBackend")
             << "Vulkan backend is missing required framebuffer entry points."
@@ -7385,7 +8834,7 @@ bool create_vulkan_swapchain_framebuffers(LLVulkanNativeContext& context)
             1
         };
 
-        S32 result = create_framebuffer(
+        S32 result = context.mCreateFramebuffer(
             context.mDevice,
             &create_info,
             nullptr,
@@ -7424,7 +8873,6 @@ void destroy_vulkan_swapchain_framebuffers(LLVulkanNativeContext& context)
     }
 
     context.mSwapchainFramebuffers.clear();
-    context.mDestroyFramebuffer = nullptr;
 }
 
 bool create_vulkan_command_buffers(LLVulkanNativeContext& context)
@@ -7815,12 +9263,16 @@ bool record_vulkan_frame_command_buffer(
     context.mCmdEndRenderPass =
         reinterpret_cast<LLVulkanCmdEndRenderPass>(
             get_vulkan_device_proc_address(context, "vkCmdEndRenderPass"));
+    context.mCmdClearAttachments =
+        reinterpret_cast<LLVulkanCmdClearAttachments>(
+            get_vulkan_device_proc_address(context, "vkCmdClearAttachments"));
 
     if (!context.mBeginCommandBuffer ||
         !context.mEndCommandBuffer ||
         !context.mResetCommandBuffer ||
         !context.mCmdBeginRenderPass ||
         !context.mCmdEndRenderPass ||
+        !context.mCmdClearAttachments ||
         !context.mCmdBindPipeline ||
         !context.mCmdDraw ||
         !context.mCmdBindIndexBuffer ||
@@ -7913,6 +9365,8 @@ bool record_vulkan_frame_command_buffer(
     U32 rigged_skinning_draw_count = 0;
     U32 skipped_classic_avatar_skinning_draw_count = 0;
     U32 skipped_rigged_skinning_draw_count = 0;
+    U32 offscreen_tagged_draw_count = 0;
+    U32 offscreen_tagged_clear_count = 0;
     LLVulkanDrawBounds largest_textured_bounds;
     U32 largest_textured_draw_texture = 0;
     S32 largest_textured_draw_texture_width = 0;
@@ -7943,6 +9397,20 @@ bool record_vulkan_frame_command_buffer(
     F32 largest_solid_strip_area = -1.f;
     for (const LLVulkanPendingDraw& draw : gPendingVulkanDraws)
     {
+        if (draw.mClearOnly)
+        {
+            if (draw.mFramebuffer != 0)
+            {
+                ++offscreen_tagged_clear_count;
+            }
+            record_vulkan_clear_command(context, command_buffer, draw);
+            continue;
+        }
+        if (draw.mFramebuffer != 0)
+        {
+            ++offscreen_tagged_draw_count;
+        }
+
         auto buffer_iter = gVulkanBuffers.find(draw.mBuffer);
         if (buffer_iter == gVulkanBuffers.end() ||
             !buffer_iter->second.mBuffer ||
@@ -8006,7 +9474,8 @@ bool record_vulkan_frame_command_buffer(
                 to_vulkan_world_pipeline_index(
                     primitive_pipeline_index,
                     draw.mWorldBlendPipeline,
-                    draw.mWorldDepthPipeline);
+                    draw.mWorldDepthPipeline,
+                    draw.mWorldCullPipeline);
             if (world_pipeline_index < context.mWorldPipelines.size())
             {
                 pipeline = draw.mWorldShaderClass == LLRenderWorldShaderClass::Terrain ?
@@ -8019,7 +9488,8 @@ bool record_vulkan_frame_command_buffer(
                 world_pipeline_index = to_vulkan_world_pipeline_index(
                     to_vulkan_ui_pipeline_index(LLRenderPrimitiveType::Triangles),
                     draw.mWorldBlendPipeline,
-                    draw.mWorldDepthPipeline);
+                    draw.mWorldDepthPipeline,
+                    draw.mWorldCullPipeline);
                 if (world_pipeline_index < context.mWorldPipelines.size())
                 {
                     pipeline = draw.mWorldShaderClass == LLRenderWorldShaderClass::Terrain ?
@@ -8059,8 +9529,14 @@ bool record_vulkan_frame_command_buffer(
         LLVkBuffer texcoord1_buffer = draw.mAttributes[3].mEnabled ?
             buffer_iter->second.mBuffer :
             context.mDefaultTexCoordBuffer.mBuffer;
+        LLVkBuffer normal_buffer = draw.mAttributes[1].mEnabled ?
+            buffer_iter->second.mBuffer :
+            context.mDefaultNormalBuffer.mBuffer;
+        LLVkBuffer tangent_buffer = draw.mAttributes[8].mEnabled ?
+            buffer_iter->second.mBuffer :
+            context.mDefaultTangentBuffer.mBuffer;
 
-        if (!texcoord_buffer || !color_buffer || !texcoord1_buffer)
+        if (!texcoord_buffer || !color_buffer || !texcoord1_buffer || !normal_buffer || !tangent_buffer)
         {
             ++missing_attribute_count;
             continue;
@@ -8105,7 +9581,7 @@ bool record_vulkan_frame_command_buffer(
             continue;
         }
 
-        LLVkBuffer vertex_buffers[7] =
+        LLVkBuffer vertex_buffers[9] =
         {
             position_buffer,
             texcoord_buffer,
@@ -8113,9 +9589,11 @@ bool record_vulkan_frame_command_buffer(
             texcoord1_buffer,
             buffer_iter->second.mBuffer,
             buffer_iter->second.mBuffer,
-            weight_buffer
+            weight_buffer,
+            normal_buffer,
+            tangent_buffer
         };
-        U64 offsets[7] =
+        U64 offsets[9] =
         {
             position_offset,
             draw.mAttributes[2].mEnabled ? draw.mAttributes[2].mOffset : 0,
@@ -8129,7 +9607,9 @@ bool record_vulkan_frame_command_buffer(
                 position_offset,
             draw.mAttributes[9].mEnabled ?
                 draw.mAttributes[9].mOffset :
-                0
+                0,
+            draw.mAttributes[1].mEnabled ? draw.mAttributes[1].mOffset : 0,
+            draw.mAttributes[8].mEnabled ? draw.mAttributes[8].mOffset : 0
         };
 
         LLVkDescriptorSet descriptor_set =
@@ -8237,11 +9717,22 @@ bool record_vulkan_frame_command_buffer(
                 draw.mAttributes[13].mEnabled ? 1.f : 0.f,
                 use_gpu_skinning ? static_cast<F32>(draw.mSkinningMatrixOffset) : 0.f,
                 use_gpu_skinning ? static_cast<F32>(draw.mSkinningMatrixCount) : 0.f);
-            push_constants.mTerrainParameters = glm::vec4(
-                draw.mTerrainParameters.mDetailScale,
-                draw.mTerrainParameters.mOffsetX,
-                draw.mTerrainParameters.mOffsetY,
-                draw_has_classic_avatar_skinning && use_gpu_skinning ? 1.f : 0.f);
+            if (draw.mWorldShaderClass == LLRenderWorldShaderClass::Terrain)
+            {
+                push_constants.mTerrainParameters = glm::vec4(
+                    draw.mTerrainParameters.mDetailScale,
+                    draw.mTerrainParameters.mOffsetX,
+                    draw.mTerrainParameters.mOffsetY,
+                    draw_has_classic_avatar_skinning && use_gpu_skinning ? 1.f : 0.f);
+            }
+            else
+            {
+                push_constants.mTerrainParameters = glm::vec4(
+                    draw.mMaterialParameters.mBaseColorRed,
+                    draw.mMaterialParameters.mBaseColorGreen,
+                    draw.mMaterialParameters.mBaseColorBlue,
+                    draw_has_classic_avatar_skinning && use_gpu_skinning ? 1.f : 0.f);
+            }
             push_constants.mTextureTransformS = glm::vec4(
                 draw.mTextureTransform.mS[0],
                 draw.mTextureTransform.mS[1],
@@ -8252,6 +9743,36 @@ bool record_vulkan_frame_command_buffer(
                 draw.mTextureTransform.mT[1],
                 draw.mTextureTransform.mT[2],
                 draw.mTextureTransform.mT[3]);
+            push_constants.mMaterialExtra = glm::vec4(
+                draw.mMaterialParameters.mEmissiveColorRed,
+                draw.mMaterialParameters.mEmissiveColorGreen,
+                draw.mMaterialParameters.mEmissiveColorBlue,
+                draw.mMaterialParameters.mHasEmissiveMap);
+            push_constants.mBaseTextureTransform0 = glm::vec4(
+                draw.mMaterialParameters.mBaseTextureScaleS,
+                draw.mMaterialParameters.mBaseTextureScaleT,
+                draw.mMaterialParameters.mBaseTextureRotation,
+                draw.mMaterialParameters.mBaseTextureOffsetS);
+            push_constants.mBaseTextureTransform1 = glm::vec4(
+                draw.mMaterialParameters.mBaseTextureOffsetT,
+                0.f,
+                0.f,
+                0.f);
+            push_constants.mMaterialPBR = glm::vec4(
+                draw.mMaterialParameters.mRoughnessFactor,
+                draw.mMaterialParameters.mMetallicFactor,
+                draw.mMaterialParameters.mMaterialFlags,
+                draw.mMaterialParameters.mBaseColorAlpha);
+            push_constants.mMaterialLegacy = glm::vec4(
+                draw.mMaterialParameters.mSpecularColorRed,
+                draw.mMaterialParameters.mSpecularColorGreen,
+                draw.mMaterialParameters.mSpecularColorBlue,
+                draw.mMaterialParameters.mEnvIntensity);
+            push_constants.mMaterialModes = glm::vec4(
+                draw.mMaterialParameters.mDiffuseAlphaMode,
+                draw.mMaterialParameters.mGLTFAlphaMode,
+                draw.mMaterialParameters.mBump,
+                draw.mMaterialParameters.mShiny);
             context.mCmdPushConstants(
                 command_buffer,
                 pipeline_layout,
@@ -8263,7 +9784,7 @@ bool record_vulkan_frame_command_buffer(
         const U32 vertex_buffer_count =
             draw.mUseWorldVertexShader &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::Terrain ?
-            7 :
+            9 :
             5;
         context.mCmdBindVertexBuffers(
             command_buffer,
@@ -8358,6 +9879,10 @@ bool record_vulkan_frame_command_buffer(
             << skipped_classic_avatar_skinning_draw_count
             << ", skipped rigged skinning draws "
             << skipped_rigged_skinning_draw_count
+            << ", offscreen-tagged draws "
+            << offscreen_tagged_draw_count
+            << ", offscreen-tagged clears "
+            << offscreen_tagged_clear_count
             << ", missing buffers "
             << context.mRecordMissingBufferCount
             << ", missing attributes "
@@ -8375,6 +9900,11 @@ bool record_vulkan_frame_command_buffer(
             << context.mSkippedBufferMemoryBudgetCount
             << ", textures "
             << gVulkanTextures.size()
+            << ", evicted textures "
+            << context.mEvictedTextureCount
+            << " ("
+            << (context.mEvictedTextureMemoryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+            << "MB)"
             << ", texture uploads "
             << context.mTextureUploadCount
             << ", largest texture "
@@ -9110,6 +10640,50 @@ public:
         };
     }
 
+    void clear(const LLRenderPassDesc& desc) override
+    {
+        if (desc.mClearMask == LL_RENDER_CLEAR_NONE)
+        {
+            return;
+        }
+
+        LLVulkanPendingDraw clear_command;
+        clear_command.mClearOnly = true;
+        clear_command.mClearMask = desc.mClearMask;
+        clear_command.mClearColor = desc.mClearColor;
+        clear_command.mClearDepth = desc.mClearDepth;
+        clear_command.mClearStencil = static_cast<U32>(desc.mClearStencil);
+        clear_command.mFramebuffer = gBoundVulkanDrawFramebuffer;
+        clear_command.mViewport =
+            desc.mViewport.mWidth > 0.f && desc.mViewport.mHeight > 0.f ?
+            desc.mViewport :
+            gCurrentVulkanViewport;
+        clear_command.mScissor =
+            desc.mScissor.mEnabled ?
+            desc.mScissor :
+            gCurrentVulkanScissor;
+        gPendingVulkanDraws.push_back(clear_command);
+    }
+
+    void clear(LLRenderClearMask clear_mask) override
+    {
+        if (clear_mask == LL_RENDER_CLEAR_NONE)
+        {
+            return;
+        }
+
+        LLVulkanPendingDraw clear_command;
+        clear_command.mClearOnly = true;
+        clear_command.mClearMask = clear_mask;
+        clear_command.mClearColor = gCurrentVulkanClearColor;
+        clear_command.mClearDepth = 1.f;
+        clear_command.mClearStencil = 0;
+        clear_command.mFramebuffer = gBoundVulkanDrawFramebuffer;
+        clear_command.mViewport = gCurrentVulkanViewport;
+        clear_command.mScissor = gCurrentVulkanScissor;
+        gPendingVulkanDraws.push_back(clear_command);
+    }
+
     void setClearColor(const LLRenderClearColor& color) override
     {
         gCurrentVulkanClearColor = color;
@@ -9198,6 +10772,11 @@ public:
         gCurrentVulkanTerrainParameters = parameters;
     }
 
+    void setWorldMaterialParameters(const LLRenderWorldMaterialParameters& parameters) override
+    {
+        gCurrentVulkanMaterialParameters = parameters;
+    }
+
     void setWorldTextureTransform(const LLRenderWorldTextureTransform& transform) override
     {
         gCurrentVulkanTextureTransform = transform;
@@ -9281,6 +10860,20 @@ public:
             }
             gVulkanTextureSamplerStates.erase(textures[i]);
         }
+    }
+
+    bool isTextureResident(U32 texture) const override
+    {
+        if (texture == 0)
+        {
+            return true;
+        }
+
+        auto iter = gVulkanTextures.find(texture);
+        return iter != gVulkanTextures.end() &&
+            iter->second.mImage &&
+            iter->second.mImageView &&
+            iter->second.mSampler;
     }
 
     void setTextureAddressMode(
@@ -9440,6 +11033,7 @@ public:
         }
 
         gCurrentVulkanContext->mLastTextureUploadSucceeded = false;
+        gCurrentVulkanContext->mLastTextureUploadDeferred = false;
 
         auto existing_texture = gVulkanTextures.find(texture);
         if (data == nullptr &&
@@ -9487,7 +11081,7 @@ public:
     void setTextureImage2D(
         LLRenderTextureTarget target,
         S32 level,
-        LLRenderTextureFormat,
+        LLRenderTextureFormat internal_format,
         S32 width,
         S32 height,
         S32 border,
@@ -9495,6 +11089,43 @@ public:
         LLRenderPixelType type,
         const void* data) override
     {
+        if (!data &&
+            level == 0 &&
+            gCurrentVulkanContext &&
+            width > 0 &&
+            height > 0)
+        {
+            U32 texture = gBoundVulkanTextures[gActiveVulkanTextureUnit];
+            if (!texture)
+            {
+                gCurrentVulkanContext->mLastTextureUploadSucceeded = false;
+                gCurrentVulkanContext->mLastTextureUploadDeferred = false;
+                return;
+            }
+
+            auto existing_texture = gVulkanTextures.find(texture);
+            const S32 expected_format = to_vulkan_image_format(internal_format);
+            if (existing_texture != gVulkanTextures.end() &&
+                existing_texture->second.mWidth == width &&
+                existing_texture->second.mHeight == height &&
+                existing_texture->second.mFormat == expected_format)
+            {
+                gCurrentVulkanContext->mLastTextureUploadSucceeded = true;
+                gCurrentVulkanContext->mLastTextureUploadDeferred = false;
+                return;
+            }
+
+            gCurrentVulkanContext->mLastTextureUploadSucceeded =
+                create_empty_vulkan_texture_resource(
+                    *gCurrentVulkanContext,
+                    texture,
+                    width,
+                    height,
+                    internal_format);
+            gCurrentVulkanContext->mLastTextureUploadDeferred = false;
+            return;
+        }
+
         U32 legacy_format = LL_LEGACY_GL_RGBA;
         switch (format)
         {
@@ -9530,6 +11161,11 @@ public:
         return !gCurrentVulkanContext || gCurrentVulkanContext->mLastTextureUploadSucceeded;
     }
 
+    bool shouldRetryLastTextureUploadLater() const override
+    {
+        return gCurrentVulkanContext && gCurrentVulkanContext->mLastTextureUploadDeferred;
+    }
+
     void setCompressedTextureImage2D(
         LLRenderTextureTarget,
         S32,
@@ -9543,6 +11179,7 @@ public:
         if (gCurrentVulkanContext)
         {
             gCurrentVulkanContext->mLastTextureUploadSucceeded = false;
+            gCurrentVulkanContext->mLastTextureUploadDeferred = false;
             ++gCurrentVulkanContext->mSkippedTextureUnsupportedUploadCount;
         }
     }
@@ -9562,6 +11199,9 @@ public:
         {
             return;
         }
+
+        gCurrentVulkanContext->mLastTextureUploadSucceeded = false;
+        gCurrentVulkanContext->mLastTextureUploadDeferred = false;
 
         U32 texture = gBoundVulkanTextures[gActiveVulkanTextureUnit];
         auto iter = gVulkanTextures.find(texture);
@@ -9606,15 +11246,141 @@ public:
             return;
         }
 
-        upload_vulkan_texture_pixels_to_image(
+        gCurrentVulkanContext->mLastTextureUploadSucceeded =
+            upload_vulkan_texture_pixels_to_image(
+                *gCurrentVulkanContext,
+                resource,
+                converted,
+                xoffset,
+                yoffset,
+                width,
+                height,
+                LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
+
+    void copyImageSubData(
+        LLRenderTextureHandle source_texture,
+        LLRenderTextureTarget,
+        S32 source_level,
+        S32 source_x,
+        S32 source_y,
+        S32,
+        LLRenderTextureHandle destination_texture,
+        LLRenderTextureTarget,
+        S32 destination_level,
+        S32 destination_x,
+        S32 destination_y,
+        S32,
+        S32 width,
+        S32 height,
+        S32) override
+    {
+        if (!gCurrentVulkanContext ||
+            source_level != 0 ||
+            destination_level != 0 ||
+            width <= 0 ||
+            height <= 0)
+        {
+            return;
+        }
+
+        auto source_iter = gVulkanTextures.find(source_texture.asLegacyName());
+        auto destination_iter = gVulkanTextures.find(destination_texture.asLegacyName());
+        if (source_iter == gVulkanTextures.end() ||
+            destination_iter == gVulkanTextures.end())
+        {
+            return;
+        }
+
+        LLVulkanTextureResource& source = source_iter->second;
+        LLVulkanTextureResource& destination = destination_iter->second;
+        if (source_x < 0 ||
+            source_y < 0 ||
+            destination_x < 0 ||
+            destination_y < 0 ||
+            source_x + width > source.mWidth ||
+            source_y + height > source.mHeight ||
+            destination_x + width > destination.mWidth ||
+            destination_y + height > destination.mHeight)
+        {
+            return;
+        }
+
+        copy_vulkan_texture_resource(
             *gCurrentVulkanContext,
-            resource,
-            converted,
+            source,
+            source_x,
+            source_y,
+            destination,
+            destination_x,
+            destination_y,
+            width,
+            height);
+    }
+
+    void copyTextureSubImage2D(
+        LLRenderTextureTarget,
+        S32 level,
+        S32 xoffset,
+        S32 yoffset,
+        S32 x,
+        S32 y,
+        S32 width,
+        S32 height) override
+    {
+        if (!gCurrentVulkanContext ||
+            level != 0 ||
+            width <= 0 ||
+            height <= 0)
+        {
+            return;
+        }
+
+        U32 destination_texture = gBoundVulkanTextures[gActiveVulkanTextureUnit];
+        if (!destination_texture || !gBoundVulkanReadFramebuffer)
+        {
+            return;
+        }
+
+        auto framebuffer_iter = gVulkanFramebuffers.find(gBoundVulkanReadFramebuffer);
+        if (framebuffer_iter == gVulkanFramebuffers.end())
+        {
+            return;
+        }
+
+        U32 source_texture = framebuffer_iter->second.mColorTextures[0];
+        auto source_iter = gVulkanTextures.find(source_texture);
+        auto destination_iter = gVulkanTextures.find(destination_texture);
+        if (source_iter == gVulkanTextures.end() ||
+            destination_iter == gVulkanTextures.end())
+        {
+            return;
+        }
+
+        LLVulkanTextureResource& source = source_iter->second;
+        LLVulkanTextureResource& destination = destination_iter->second;
+        if (x < 0 ||
+            y < 0 ||
+            xoffset < 0 ||
+            yoffset < 0 ||
+            x + width > source.mWidth ||
+            y + height > source.mHeight ||
+            xoffset + width > destination.mWidth ||
+            yoffset + height > destination.mHeight)
+        {
+            return;
+        }
+
+        copy_vulkan_texture_resource(
+            *gCurrentVulkanContext,
+            source,
+            x,
+            y,
+            destination,
             xoffset,
             yoffset,
             width,
-            height,
-            LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            height);
     }
 
     U32 getBoundTexture2D() override
@@ -9902,6 +11668,7 @@ public:
         draw.mCount = count;
         draw.mIndexType = vulkan_index_type;
         draw.mIndexed = indexed;
+        draw.mFramebuffer = gBoundVulkanDrawFramebuffer;
         draw.mViewport = gCurrentVulkanViewport;
         draw.mScissor = gCurrentVulkanScissor;
         draw.mAttributes = gCurrentVulkanVertexAttributes;
@@ -9909,8 +11676,10 @@ public:
         draw.mUseWorldVertexShader = gCurrentVulkanWorldDrawEnabled;
         draw.mWorldBlendPipeline = to_vulkan_world_blend_pipeline();
         draw.mWorldDepthPipeline = to_vulkan_world_depth_pipeline();
+        draw.mWorldCullPipeline = to_vulkan_world_cull_pipeline();
         draw.mWorldShaderClass = gCurrentVulkanWorldShaderClass;
         draw.mTerrainParameters = gCurrentVulkanTerrainParameters;
+        draw.mMaterialParameters = gCurrentVulkanMaterialParameters;
         draw.mTextureTransform = gCurrentVulkanTextureTransform;
         if (draw.mUseWorldVertexShader &&
             (draw.mAttributes[9].mEnabled || draw.mAttributes[10].mEnabled) &&
@@ -9985,6 +11754,184 @@ public:
         const void* indices) override
     {
         queueDraw(mode, 0, count, true, index_type, indices);
+    }
+
+    void generateFramebuffers(S32 count, U32* framebuffers) override
+    {
+        if (count <= 0 || !framebuffers)
+        {
+            return;
+        }
+
+        for (S32 i = 0; i < count; ++i)
+        {
+            U32 handle = gNextVulkanFramebufferHandle++;
+            framebuffers[i] = handle;
+            gVulkanFramebuffers.emplace(handle, LLVulkanFramebufferResource());
+        }
+    }
+
+    void deleteFramebuffers(S32 count, const U32* framebuffers) override
+    {
+        if (count <= 0 || !framebuffers)
+        {
+            return;
+        }
+
+        for (S32 i = 0; i < count; ++i)
+        {
+            U32 framebuffer = framebuffers[i];
+            if (!framebuffer)
+            {
+                continue;
+            }
+
+            if (gBoundVulkanReadFramebuffer == framebuffer)
+            {
+                gBoundVulkanReadFramebuffer = 0;
+            }
+            if (gBoundVulkanDrawFramebuffer == framebuffer)
+            {
+                gBoundVulkanDrawFramebuffer = 0;
+            }
+
+            auto framebuffer_iter = gVulkanFramebuffers.find(framebuffer);
+            if (framebuffer_iter != gVulkanFramebuffers.end())
+            {
+                if (gCurrentVulkanContext)
+                {
+                    destroy_vulkan_framebuffer_resource(
+                        *gCurrentVulkanContext,
+                        framebuffer_iter->second);
+                }
+                gVulkanFramebuffers.erase(framebuffer_iter);
+            }
+        }
+    }
+
+    void bindFramebuffer(LLRenderFramebufferBindPoint target, U32 framebuffer) override
+    {
+        if (framebuffer != 0 && gVulkanFramebuffers.find(framebuffer) == gVulkanFramebuffers.end())
+        {
+            gVulkanFramebuffers.emplace(framebuffer, LLVulkanFramebufferResource());
+        }
+
+        switch (target)
+        {
+        case LLRenderFramebufferBindPoint::Read:
+            gBoundVulkanReadFramebuffer = framebuffer;
+            break;
+        case LLRenderFramebufferBindPoint::Draw:
+            gBoundVulkanDrawFramebuffer = framebuffer;
+            break;
+        case LLRenderFramebufferBindPoint::ReadWrite:
+        default:
+            gBoundVulkanReadFramebuffer = framebuffer;
+            gBoundVulkanDrawFramebuffer = framebuffer;
+            break;
+        }
+    }
+
+    void bindReadWriteFramebuffer(U32 framebuffer) override
+    {
+        bindFramebuffer(LLRenderFramebufferBindPoint::ReadWrite, framebuffer);
+    }
+
+    LLRenderFramebufferStatus getReadWriteFramebufferStatus() const override
+    {
+        return is_vulkan_framebuffer_complete(gBoundVulkanDrawFramebuffer) ?
+            LLRenderFramebufferStatus::Complete :
+            LLRenderFramebufferStatus::IncompleteMissingAttachment;
+    }
+
+    bool isDrawFramebufferComplete() const override
+    {
+        return is_vulkan_framebuffer_complete(gBoundVulkanDrawFramebuffer);
+    }
+
+    void attachFramebufferTexture2D(
+        LLRenderFramebufferAttachment attachment,
+        LLRenderTextureTarget,
+        U32 texture,
+        S32) override
+    {
+        if (!gBoundVulkanDrawFramebuffer)
+        {
+            return;
+        }
+
+        LLVulkanFramebufferResource& framebuffer =
+            gVulkanFramebuffers[gBoundVulkanDrawFramebuffer];
+        if (attachment == LLRenderFramebufferAttachment::Depth)
+        {
+            if (framebuffer.mDepthTexture != texture)
+            {
+                framebuffer.mDepthTexture = texture;
+                framebuffer.mDirty = true;
+            }
+            return;
+        }
+
+        S32 color_index = to_vulkan_framebuffer_color_index(attachment);
+        if (color_index < 0 ||
+            static_cast<size_t>(color_index) >= framebuffer.mColorTextures.size())
+        {
+            return;
+        }
+
+        U32& color_texture = framebuffer.mColorTextures[static_cast<size_t>(color_index)];
+        if (color_texture != texture)
+        {
+            color_texture = texture;
+            framebuffer.mDirty = true;
+        }
+        if (texture)
+        {
+            framebuffer.mColorAttachmentCount = llmax(
+                framebuffer.mColorAttachmentCount,
+                static_cast<U32>(color_index + 1));
+        }
+        else
+        {
+            while (framebuffer.mColorAttachmentCount > 0 &&
+                framebuffer.mColorTextures[framebuffer.mColorAttachmentCount - 1] == 0)
+            {
+                --framebuffer.mColorAttachmentCount;
+            }
+        }
+    }
+
+    void setFramebufferBufferRouting(U32 color_attachment_count) override
+    {
+        gVulkanFramebufferColorAttachmentCount =
+            llclamp(color_attachment_count, 0U, 4U);
+        if (gBoundVulkanDrawFramebuffer)
+        {
+            LLVulkanFramebufferResource& framebuffer =
+                gVulkanFramebuffers[gBoundVulkanDrawFramebuffer];
+            if (framebuffer.mColorAttachmentCount != gVulkanFramebufferColorAttachmentCount)
+            {
+                framebuffer.mColorAttachmentCount = gVulkanFramebufferColorAttachmentCount;
+                framebuffer.mDirty = true;
+            }
+        }
+    }
+
+    void restoreDefaultFramebufferBufferRouting() override
+    {
+        gVulkanFramebufferColorAttachmentCount = 1;
+    }
+
+    bool hasError() override
+    {
+        return gCurrentVulkanContext &&
+            !gCurrentVulkanContext->mLastTextureUploadSucceeded &&
+            !gCurrentVulkanContext->mLastTextureUploadDeferred;
+    }
+
+    U32 getErrorCode() override
+    {
+        return hasError() ? 1 : 0;
     }
 
     void getInteger(LLRenderIntegerParameter parameter, S32* value) override

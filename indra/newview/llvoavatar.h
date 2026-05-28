@@ -550,6 +550,8 @@ public:
     std::set<LLUUID> mJellyAnims;
 
     U32         renderRigid();
+    U32         emitRigidWorldCommands(LLWorldRenderCommandBuffer& commands);
+    U32         emitTransparentWorldCommands(LLWorldRenderCommandBuffer& commands, bool first_pass);
     U32         renderSkinned();
     U32         emitSkinnedWorldCommands(LLWorldRenderCommandBuffer& commands);
     F32         getLastSkinTime() { return mLastSkinTime; }

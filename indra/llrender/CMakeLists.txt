@@ -111,11 +111,11 @@ endif (BUILD_HEADLESS)
 
 add_library (llrender ${llrender_SOURCE_FILES})
 target_include_directories( llrender  INTERFACE   ${CMAKE_CURRENT_SOURCE_DIR})
-get_filename_component(MARE_VULKAN_BRIDGE_SHADER_DIR
-    "${CMAKE_CURRENT_BINARY_DIR}/../newview/generated/shaders/vulkan/bridge"
+get_filename_component(MARE_VULKAN_FINAL_SHADER_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/../newview/generated/shaders/vulkan/final"
     ABSOLUTE)
 target_compile_definitions(llrender PRIVATE
-    MARE_VULKAN_BRIDGE_SHADER_DIR="${MARE_VULKAN_BRIDGE_SHADER_DIR}")
+    MARE_VULKAN_FINAL_SHADER_DIR="${MARE_VULKAN_FINAL_SHADER_DIR}")
 
 # Libraries on which this library depends, needed for Linux builds
 # Sort by high-level to low-level

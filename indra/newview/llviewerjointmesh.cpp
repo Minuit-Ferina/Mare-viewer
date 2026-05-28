@@ -388,7 +388,8 @@ U32 LLViewerJointMesh::appendWorldCommand(
     LLWorldRenderCommandBuffer& commands,
     F32 pixelArea,
     bool first_pass,
-    bool is_dummy)
+    bool is_dummy,
+    bool alpha_pass)
 {
     if (!mValid || !mMesh || !mFace || !mVisible ||
         !mFace->getVertexBuffer() ||
@@ -396,21 +397,6 @@ U32 LLViewerJointMesh::appendWorldCommand(
     {
         return 0;
     }
-
-    if (!mMesh->hasWeights())
-    {
-        return 0;
-    }
-
-    LLPolyMesh* reference_mesh = mMesh->getReferenceMesh();
-    const S32 joint_count = update_avatar_joint_matrices(reference_mesh, false);
-    if (joint_count <= 0)
-    {
-        return 0;
-    }
-
-    std::vector<F32> skinning_matrix_palette;
-    copy_avatar_joint_palette(joint_count, skinning_matrix_palette);
 
     LLViewerTexture* texture = get_avatar_world_command_texture(
         mTexture.get(),
@@ -426,6 +412,41 @@ U32 LLViewerJointMesh::appendWorldCommand(
     const U32 start = mMesh->mFaceVertexOffset;
     const U32 end = start + mMesh->mFaceVertexCount - 1;
     const U32 offset = mMesh->mFaceIndexOffset;
+    const LLWorldRenderMaterialClass material_class =
+        alpha_pass ?
+            LLWorldRenderMaterialClass::Alpha :
+            LLWorldRenderMaterialClass::Avatar;
+
+    if (!mMesh->hasWeights())
+    {
+        LLMatrix4 joint_to_world = getWorldMatrix();
+        commands.appendAvatarRigidDrawRange(
+            mFace->getVertexBuffer(),
+            texture,
+            joint_to_world,
+            material_class,
+            LLDrawPool::POOL_AVATAR,
+            start,
+            end,
+            count,
+            offset,
+            LLVertexBuffer::MAP_VERTEX |
+                LLVertexBuffer::MAP_NORMAL |
+                LLVertexBuffer::MAP_TEXCOORD0);
+
+        gPipeline.addTrianglesDrawn(count);
+        return count;
+    }
+
+    LLPolyMesh* reference_mesh = mMesh->getReferenceMesh();
+    const S32 joint_count = update_avatar_joint_matrices(reference_mesh, false);
+    if (joint_count <= 0)
+    {
+        return 0;
+    }
+
+    std::vector<F32> skinning_matrix_palette;
+    copy_avatar_joint_palette(joint_count, skinning_matrix_palette);
 
     static U32 sLoggedVulkanAvatarCommands = 0;
     if (sLoggedVulkanAvatarCommands < 24)
@@ -462,6 +483,7 @@ U32 LLViewerJointMesh::appendWorldCommand(
     commands.appendAvatarDrawRange(
         mFace->getVertexBuffer(),
         texture,
+        material_class,
         LLDrawPool::POOL_AVATAR,
         start,
         end,

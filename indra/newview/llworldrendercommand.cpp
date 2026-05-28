@@ -164,6 +164,38 @@ LLRenderWorldTextureTransform get_world_texture_transform(const LLMatrix4* matri
     return transform;
 }
 
+bool has_world_material_texture_bindings(const LLWorldRenderCommand& command)
+{
+    return command.mNormalMap.notNull() ||
+        command.mORMMap.notNull() ||
+        command.mEmissiveMap.notNull();
+}
+
+void bind_world_texture_unit(U32 unit, LLViewerTexture* texture)
+{
+    if (texture)
+    {
+        gGL.getTexUnit(unit)->bindFast(texture);
+    }
+    else
+    {
+        gGL.getTexUnit(unit)->unbindFast(LLTexUnit::TT_TEXTURE);
+    }
+}
+
+LLWorldRenderTextureTransform2D get_world_material_texture_transform(
+    const LLGLTFMaterial::TextureTransform& transform)
+{
+    LLWorldRenderTextureTransform2D result;
+    result.mOffsetS = transform.mOffset[VX];
+    result.mOffsetT = transform.mOffset[VY];
+    result.mScaleS = transform.mScale[VX];
+    result.mScaleT = transform.mScale[VY];
+    result.mRotation = transform.mRotation;
+    result.mValid = true;
+    return result;
+}
+
 LLRender::eBlendType get_scene_blend_type(LLWorldRenderBlendMode mode)
 {
     switch (mode)
@@ -176,6 +208,67 @@ LLRender::eBlendType get_scene_blend_type(LLWorldRenderBlendMode mode)
         default:
             return LLRender::BT_REPLACE;
     }
+}
+
+F32 get_world_material_flags(const LLWorldRenderCommand& command)
+{
+    U32 flags = 0;
+    if (command.mNormalMap.notNull())
+    {
+        flags |= LLRenderWorldMaterialParameters::HasNormalMap;
+    }
+    if (command.mORMMap.notNull())
+    {
+        flags |= LLRenderWorldMaterialParameters::HasORMMap;
+    }
+    if (command.mSpecularMap.notNull())
+    {
+        flags |= LLRenderWorldMaterialParameters::HasSpecularMap;
+    }
+    if (command.mFullbright)
+    {
+        flags |= LLRenderWorldMaterialParameters::Fullbright;
+    }
+    if (command.mHasGlow || command.mMaterialClass == LLWorldRenderMaterialClass::Glow)
+    {
+        flags |= LLRenderWorldMaterialParameters::Glow;
+    }
+    if (command.mMaterialClass == LLWorldRenderMaterialClass::Water)
+    {
+        flags |= LLRenderWorldMaterialParameters::Water;
+    }
+    if (command.mBlendMode == LLWorldRenderBlendMode::Alpha)
+    {
+        flags |= LLRenderWorldMaterialParameters::AlphaBlend;
+    }
+    if (get_world_render_alpha_mask_cutoff(command) >= 0.f)
+    {
+        flags |= LLRenderWorldMaterialParameters::AlphaMask;
+    }
+    if (command.mDoubleSided)
+    {
+        flags |= LLRenderWorldMaterialParameters::DoubleSided;
+    }
+    if (command.mBump != 0)
+    {
+        flags |= LLRenderWorldMaterialParameters::LegacyBump;
+    }
+    if (command.mShiny != 0 ||
+        command.mSpecularMap.notNull() ||
+        command.mEnvIntensity > 0.f)
+    {
+        flags |= LLRenderWorldMaterialParameters::LegacyShiny;
+    }
+    if (command.mMaterialClass == LLWorldRenderMaterialClass::GLTFPBR ||
+        command.mMaterialClass == LLWorldRenderMaterialClass::GLTFPBRAlphaMask)
+    {
+        flags |= LLRenderWorldMaterialParameters::GLTFPBR;
+    }
+    if (command.mPassClass == LLWorldRenderPassClass::PostDeferred)
+    {
+        flags |= LLRenderWorldMaterialParameters::PostDeferred;
+    }
+    return static_cast<F32>(flags);
 }
 
 void apply_world_render_command_state(const LLWorldRenderCommand& command)
@@ -241,7 +334,20 @@ void LLWorldRenderCommandBuffer::appendDrawInfo(
     LLWorldRenderCommand& command = mCommands.back();
     command.mTextureList = params.mTextureList;
     command.mTextureMatrix = params.mTextureMatrix;
+    command.mNormalMap = params.mNormalMap;
+    command.mSpecularMap = params.mSpecularMap;
+    command.mNormalMapMatrix = params.mNormalMapMatrix;
+    command.mSpecularMapMatrix = params.mSpecularMapMatrix;
+    command.mSpecColor = params.mSpecColor;
+    command.mEnvIntensity = params.mEnvIntensity;
     command.mAlphaMaskCutoff = params.mAlphaMaskCutoff;
+    command.mBlendFuncSrc = params.mBlendFuncSrc;
+    command.mBlendFuncDst = params.mBlendFuncDst;
+    command.mDiffuseAlphaMode = params.mDiffuseAlphaMode;
+    command.mBump = params.mBump;
+    command.mShiny = params.mShiny;
+    command.mFullbright = params.mFullbright;
+    command.mHasGlow = params.mHasGlow;
     command.mAvatar = params.mAvatar;
     command.mSkinInfo = params.mSkinInfo;
     command.mRigged = params.mAvatar != nullptr && params.mSkinInfo != nullptr;
@@ -254,6 +360,31 @@ void LLWorldRenderCommandBuffer::appendDrawInfo(
     }
     if (params.mGLTFMaterial.notNull())
     {
+        command.mBaseColor = params.mGLTFMaterial->mBaseColor;
+        command.mEmissiveColor = params.mGLTFMaterial->mEmissiveColor;
+        command.mMetallicFactor = params.mGLTFMaterial->mMetallicFactor;
+        command.mRoughnessFactor = params.mGLTFMaterial->mRoughnessFactor;
+        command.mGLTFAlphaMode = static_cast<U8>(params.mGLTFMaterial->mAlphaMode);
+        command.mDoubleSided = params.mGLTFMaterial->mDoubleSided;
+        command.mNormalMap = params.mGLTFMaterial->mNormalTexture;
+        command.mORMMap = params.mGLTFMaterial->mMetallicRoughnessTexture;
+        command.mEmissiveMap = params.mGLTFMaterial->mEmissiveTexture;
+        command.mBaseColorTextureTransform =
+            get_world_material_texture_transform(
+                params.mGLTFMaterial->mTextureTransform[
+                    LLGLTFMaterial::GLTF_TEXTURE_INFO_BASE_COLOR]);
+        command.mNormalTextureTransform =
+            get_world_material_texture_transform(
+                params.mGLTFMaterial->mTextureTransform[
+                    LLGLTFMaterial::GLTF_TEXTURE_INFO_NORMAL]);
+        command.mORMTextureTransform =
+            get_world_material_texture_transform(
+                params.mGLTFMaterial->mTextureTransform[
+                    LLGLTFMaterial::GLTF_TEXTURE_INFO_METALLIC_ROUGHNESS]);
+        command.mEmissiveTextureTransform =
+            get_world_material_texture_transform(
+                params.mGLTFMaterial->mTextureTransform[
+                    LLGLTFMaterial::GLTF_TEXTURE_INFO_EMISSIVE]);
         if (params.mGLTFMaterial->mDoubleSided)
         {
             command.mCullMode = LLWorldRenderCullMode::Disabled;
@@ -377,6 +508,7 @@ void LLWorldRenderCommandBuffer::appendDrawRange(
 void LLWorldRenderCommandBuffer::appendAvatarDrawRange(
     LLVertexBuffer* vertex_buffer,
     LLViewerTexture* texture,
+    LLWorldRenderMaterialClass material_class,
     U32 source_pass,
     U32 start,
     U32 end,
@@ -390,7 +522,7 @@ void LLWorldRenderCommandBuffer::appendAvatarDrawRange(
     appendDrawRange(
         vertex_buffer,
         texture,
-        LLWorldRenderMaterialClass::Avatar,
+        material_class,
         source_pass,
         nullptr,
         start,
@@ -408,6 +540,43 @@ void LLWorldRenderCommandBuffer::appendAvatarDrawRange(
     LLWorldRenderCommand& command = mCommands.back();
     command.mSkinningMatrixPalette = skinning_matrix_palette;
     command.mSkinningMatrixCount = skinning_matrix_count;
+    command.mAlphaMaskCutoff = AVATAR_RENDER_MINIMUM_ALPHA;
+}
+
+void LLWorldRenderCommandBuffer::appendAvatarRigidDrawRange(
+    LLVertexBuffer* vertex_buffer,
+    LLViewerTexture* texture,
+    const LLMatrix4& model_matrix,
+    LLWorldRenderMaterialClass material_class,
+    U32 source_pass,
+    U32 start,
+    U32 end,
+    U32 count,
+    U32 offset,
+    U32 attribute_mask)
+{
+    const size_t command_count = mCommands.size();
+    appendDrawRange(
+        vertex_buffer,
+        texture,
+        material_class,
+        source_pass,
+        nullptr,
+        start,
+        end,
+        count,
+        offset,
+        true,
+        false,
+        attribute_mask);
+    if (mCommands.size() == command_count)
+    {
+        return;
+    }
+
+    LLWorldRenderCommand& command = mCommands.back();
+    command.mOwnedModelMatrix = model_matrix;
+    command.mHasOwnedModelMatrix = true;
     command.mAlphaMaskCutoff = AVATAR_RENDER_MINIMUM_ALPHA;
 }
 
@@ -507,6 +676,34 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
         else
         {
             getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+            getRenderBackend().setWorldMaterialParameters(
+                {
+                    command.mBaseColor.mV[VRED],
+                    command.mBaseColor.mV[VGREEN],
+                    command.mBaseColor.mV[VBLUE],
+                    command.mBaseColor.mV[VALPHA],
+                    command.mEmissiveColor.mV[VRED],
+                    command.mEmissiveColor.mV[VGREEN],
+                    command.mEmissiveColor.mV[VBLUE],
+                    command.mEmissiveMap.notNull() ? 1.f : 0.f,
+                    command.mBaseColorTextureTransform.mScaleS,
+                    command.mBaseColorTextureTransform.mScaleT,
+                    command.mBaseColorTextureTransform.mRotation,
+                    command.mBaseColorTextureTransform.mOffsetS,
+                    command.mBaseColorTextureTransform.mOffsetT,
+                    command.mRoughnessFactor,
+                    command.mMetallicFactor,
+                    command.mORMMap.notNull() ? 1.f : 0.f,
+                    get_world_material_flags(command),
+                    command.mSpecColor.mV[VRED],
+                    command.mSpecColor.mV[VGREEN],
+                    command.mSpecColor.mV[VBLUE],
+                    command.mEnvIntensity,
+                    static_cast<F32>(command.mDiffuseAlphaMode),
+                    static_cast<F32>(command.mGLTFAlphaMode),
+                    static_cast<F32>(command.mBump),
+                    static_cast<F32>(command.mShiny),
+                });
         }
 
         if (!program_bound || active_attribute_mask != command.mAttributeMask)
@@ -541,7 +738,10 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
             getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
         }
 
-        LLRenderPass::applyModelMatrix(command.mModelMatrix);
+        LLRenderPass::applyModelMatrix(
+            command.mHasOwnedModelMatrix ?
+                &command.mOwnedModelMatrix :
+                command.mModelMatrix);
 
         bool tex_setup = false;
         if (command.mUseTexture)
@@ -559,6 +759,15 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
                         gGL.getTexUnit(i)->unbindFast(LLTexUnit::TT_TEXTURE);
                     }
                 }
+            }
+            else if (has_world_material_texture_bindings(command))
+            {
+                bind_world_texture_unit(0, command.mTexture);
+                bind_world_texture_unit(1, command.mNormalMap);
+                bind_world_texture_unit(2, command.mORMMap.notNull() ?
+                    command.mORMMap.get() :
+                    command.mSpecularMap.get());
+                bind_world_texture_unit(3, command.mEmissiveMap);
             }
             else if (command.mTexture.notNull())
             {
@@ -605,6 +814,7 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
     getRenderBackend().setAlphaMaskCutoff(-1.f);
     getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Textured);
     getRenderBackend().setWorldTerrainParameters({});
+    getRenderBackend().setWorldMaterialParameters({});
     getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
     gUIProgram.mAttributeMask = saved_attribute_mask;
     LLVertexBuffer::setupClientArrays(saved_attribute_mask);

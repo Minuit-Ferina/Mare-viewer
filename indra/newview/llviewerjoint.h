@@ -34,8 +34,8 @@
 #include "lljointpickname.h"
 
 class LLFace;
-class LLWorldRenderCommandBuffer;
 class LLViewerJointMesh;
+class LLWorldRenderCommandBuffer;
 
 //-----------------------------------------------------------------------------
 // class LLViewerJoint
@@ -57,13 +57,18 @@ public:
     // Derived classes may add text/graphic output.
     virtual U32 render( F32 pixelArea, bool first_pass = true, bool is_dummy = false ); // Returns triangle count
     virtual U32 emitWorldCommands(LLWorldRenderCommandBuffer& commands, F32 pixelArea, bool first_pass = true, bool is_dummy = false);
+    virtual U32 emitTransparentWorldCommands(LLWorldRenderCommandBuffer& commands, F32 pixelArea, bool first_pass = true, bool is_dummy = false);
 
     // Draws the shape attached to a joint.
     // Called by render().
     virtual U32 drawShape( F32 pixelArea, bool first_pass = true, bool is_dummy = false );
-    virtual U32 appendWorldCommand(LLWorldRenderCommandBuffer& commands, F32 pixelArea, bool first_pass = true, bool is_dummy = false);
+    virtual U32 appendWorldCommand(
+        LLWorldRenderCommandBuffer& commands,
+        F32 pixelArea,
+        bool first_pass = true,
+        bool is_dummy = false,
+        bool alpha_pass = false);
     virtual void drawNormals() {}
 };
 
 #endif // LL_LLVIEWERJOINT_H
-

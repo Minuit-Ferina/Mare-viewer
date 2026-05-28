@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile Mare Vulkan GLSL bridge shaders into standalone SPIR-V files."""
+"""Compile Mare Vulkan GLSL shaders into standalone SPIR-V files."""
 
 from __future__ import annotations
 
@@ -11,18 +11,9 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SHADER_DIR = REPO_ROOT / "indra/newview/app_settings/shaders/vulkan/bridge"
+DEFAULT_SHADER_DIR = REPO_ROOT / "indra/newview/app_settings/shaders/vulkan/final"
 
-SHADERS = [
-    "bootstrap.vert",
-    "bootstrap.frag",
-    "ui.vert",
-    "ui.frag",
-    "world_textured.vert",
-    "world_textured.frag",
-    "terrain.vert",
-    "terrain.frag",
-]
+SHADER_SUFFIXES = {".vert", ".frag", ".geom", ".comp"}
 
 
 def find_glslang(explicit: str | None) -> str:
@@ -57,6 +48,26 @@ def compile_shader(glslang: str, source: Path, output: Path) -> None:
     )
 
 
+def iter_shader_sources(source_dir: Path) -> list[Path]:
+    return sorted(
+        source
+        for source in source_dir.rglob("*")
+        if source.is_file() and source.suffix in SHADER_SUFFIXES
+    )
+
+
+def shader_output_path(source_dir: Path, output_dir: Path, shader_source: Path) -> Path:
+    relative_source = shader_source.relative_to(source_dir)
+    return output_dir / relative_source.parent / f"{relative_source.name}.spv"
+
+
+def remove_stale_spirv(output_dir: Path, expected_outputs: set[Path]) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for output in output_dir.rglob("*.spv"):
+        if output.relative_to(output_dir) not in expected_outputs:
+            output.unlink()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -67,7 +78,7 @@ def main() -> int:
         "--source-dir",
         type=Path,
         default=DEFAULT_SHADER_DIR,
-        help="Directory containing Vulkan bridge GLSL sources.",
+        help="Directory containing Vulkan GLSL sources.",
     )
     parser.add_argument(
         "--output-dir",
@@ -80,11 +91,23 @@ def main() -> int:
         raise SystemExit("Refusing to write generated .spv files into the source shader directory.")
 
     glslang = find_glslang(args.glslang)
-    for shader_name in SHADERS:
+    shader_sources = iter_shader_sources(args.source_dir)
+    if not shader_sources:
+        raise SystemExit(f"No Vulkan shader sources found in {args.source_dir}.")
+
+    remove_stale_spirv(
+        args.output_dir,
+        {
+            shader_output_path(args.source_dir, args.output_dir, shader_source).relative_to(args.output_dir)
+            for shader_source in shader_sources
+        },
+    )
+
+    for shader_source in shader_sources:
         compile_shader(
             glslang,
-            args.source_dir / shader_name,
-            args.output_dir / f"{shader_name}.spv",
+            shader_source,
+            shader_output_path(args.source_dir, args.output_dir, shader_source),
         )
     return 0
 

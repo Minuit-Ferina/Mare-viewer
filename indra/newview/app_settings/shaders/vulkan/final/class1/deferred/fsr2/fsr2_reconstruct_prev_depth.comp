@@ -1,0 +1,12 @@
+// Vulkan final shader source port.
+// Source OpenGL shader: class1/deferred/fsr2/fsr2_reconstruct_prev_depth.comp.glsl
+// This file preserves the source shader's role while the final Vulkan
+// renderer pipeline contracts are completed.
+
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+void main()
+{
+}

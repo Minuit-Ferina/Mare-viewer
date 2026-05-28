@@ -3026,12 +3026,32 @@ void LLPipeline::markVisible(LLDrawable *drawablep, LLCamera& camera)
                     if (vobj) // this test may not be needed, see above
                     {
                         LLVOAvatar* av = vobj->asAvatar();
+                        const bool vulkan_impostor_attachment_fallback =
+                            use_vulkan_world_command_path() &&
+                            !LLPipeline::sRenderingHUDs &&
+                            !LLPipeline::sImpostorRender;
+                        const bool skip_for_impostor =
+                            !sImpostorRender &&
+                            av &&
+                            av->isImpostor() &&
+                            !vulkan_impostor_attachment_fallback;
                         if (av &&
-                            ((!sImpostorRender && av->isImpostor()) //ignore impostor flag during impostor pass
+                            (skip_for_impostor //ignore impostor flag during impostor pass
                              || av->isInMuteList()
                              || (LLVOAvatar::AOA_JELLYDOLL == av->getOverallAppearance() && !av->needsImpostorUpdate()) ))
                         {
                             return;
+                        }
+                        if (av && vulkan_impostor_attachment_fallback && av->isImpostor())
+                        {
+                            static bool logged_vulkan_impostor_attachment_fallback = false;
+                            if (!logged_vulkan_impostor_attachment_fallback)
+                            {
+                                LL_INFOS("RenderBackend")
+                                    << "Vulkan world path is keeping impostor avatar attachments visible because impostor billboard rendering is not implemented yet."
+                                    << LL_ENDL;
+                                logged_vulkan_impostor_attachment_fallback = true;
+                            }
                         }
                     }
                 }

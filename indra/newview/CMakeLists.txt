@@ -1822,40 +1822,43 @@ set_source_files_properties(${viewer_SHADER_FILES}
                             PROPERTIES HEADER_FILE_ONLY TRUE)
 list(APPEND viewer_SOURCE_FILES ${viewer_SHADER_FILES})
 
-set(MARE_VULKAN_BRIDGE_SHADER_SOURCE_DIR
-    ${CMAKE_CURRENT_SOURCE_DIR}/app_settings/shaders/vulkan/bridge)
-set(MARE_VULKAN_BRIDGE_SHADER_OUTPUT_DIR
-    ${CMAKE_CURRENT_BINARY_DIR}/generated/shaders/vulkan/bridge)
-set(MARE_VULKAN_BRIDGE_SHADER_SOURCES
-    ${MARE_VULKAN_BRIDGE_SHADER_SOURCE_DIR}/bootstrap.vert
-    ${MARE_VULKAN_BRIDGE_SHADER_SOURCE_DIR}/bootstrap.frag
-    ${MARE_VULKAN_BRIDGE_SHADER_SOURCE_DIR}/ui.vert
-    ${MARE_VULKAN_BRIDGE_SHADER_SOURCE_DIR}/ui.frag
-    ${MARE_VULKAN_BRIDGE_SHADER_SOURCE_DIR}/world_textured.vert
-    ${MARE_VULKAN_BRIDGE_SHADER_SOURCE_DIR}/world_textured.frag
-    ${MARE_VULKAN_BRIDGE_SHADER_SOURCE_DIR}/terrain.vert
-    ${MARE_VULKAN_BRIDGE_SHADER_SOURCE_DIR}/terrain.frag)
-set(MARE_VULKAN_BRIDGE_SHADER_SPV
-    ${MARE_VULKAN_BRIDGE_SHADER_OUTPUT_DIR}/bootstrap.vert.spv
-    ${MARE_VULKAN_BRIDGE_SHADER_OUTPUT_DIR}/bootstrap.frag.spv
-    ${MARE_VULKAN_BRIDGE_SHADER_OUTPUT_DIR}/ui.vert.spv
-    ${MARE_VULKAN_BRIDGE_SHADER_OUTPUT_DIR}/ui.frag.spv
-    ${MARE_VULKAN_BRIDGE_SHADER_OUTPUT_DIR}/world_textured.vert.spv
-    ${MARE_VULKAN_BRIDGE_SHADER_OUTPUT_DIR}/world_textured.frag.spv
-    ${MARE_VULKAN_BRIDGE_SHADER_OUTPUT_DIR}/terrain.vert.spv
-    ${MARE_VULKAN_BRIDGE_SHADER_OUTPUT_DIR}/terrain.frag.spv)
-add_custom_command(
-    OUTPUT ${MARE_VULKAN_BRIDGE_SHADER_SPV}
-    COMMAND ${PYTHON_EXECUTABLE}
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/vulkan_shaders/build_shader_files.py
-        --source-dir ${MARE_VULKAN_BRIDGE_SHADER_SOURCE_DIR}
-        --output-dir ${MARE_VULKAN_BRIDGE_SHADER_OUTPUT_DIR}
-    DEPENDS
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/vulkan_shaders/build_shader_files.py
-        ${MARE_VULKAN_BRIDGE_SHADER_SOURCES}
-    COMMENT "Compiling Mare Vulkan bridge shaders")
-add_custom_target(mare_vulkan_bridge_shaders
-    DEPENDS ${MARE_VULKAN_BRIDGE_SHADER_SPV})
+function(add_mare_vulkan_shader_target TARGET_NAME SOURCE_SUBDIR OUTPUT_SUBDIR COMMENT_TEXT)
+    set(SHADER_SOURCE_DIR
+        ${CMAKE_CURRENT_SOURCE_DIR}/app_settings/shaders/vulkan/${SOURCE_SUBDIR})
+    set(SHADER_OUTPUT_DIR
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/shaders/vulkan/${OUTPUT_SUBDIR})
+    file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS
+        ${SHADER_SOURCE_DIR}/*.vert
+        ${SHADER_SOURCE_DIR}/*.frag
+        ${SHADER_SOURCE_DIR}/*.geom
+        ${SHADER_SOURCE_DIR}/*.comp)
+    list(SORT SHADER_SOURCES)
+
+    set(SHADER_SPV)
+    foreach(SHADER_SOURCE IN LISTS SHADER_SOURCES)
+        file(RELATIVE_PATH SHADER_RELATIVE_PATH ${SHADER_SOURCE_DIR} ${SHADER_SOURCE})
+        list(APPEND SHADER_SPV ${SHADER_OUTPUT_DIR}/${SHADER_RELATIVE_PATH}.spv)
+    endforeach()
+
+    add_custom_command(
+        OUTPUT ${SHADER_SPV}
+        COMMAND ${PYTHON_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/vulkan_shaders/build_shader_files.py
+            --source-dir ${SHADER_SOURCE_DIR}
+            --output-dir ${SHADER_OUTPUT_DIR}
+        DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/vulkan_shaders/build_shader_files.py
+            ${SHADER_SOURCES}
+        COMMENT ${COMMENT_TEXT})
+    add_custom_target(${TARGET_NAME}
+        DEPENDS ${SHADER_SPV})
+endfunction()
+
+add_mare_vulkan_shader_target(
+    mare_vulkan_final_shaders
+    final
+    final
+    "Compiling Mare Vulkan final shaders")
 
 set(viewer_APPSETTINGS_FILES
     app_settings/anim.ini
@@ -1934,7 +1937,7 @@ add_executable(${VIEWER_BINARY_NAME}
     MACOSX_BUNDLE
     ${viewer_SOURCE_FILES}
     )
-add_dependencies(${VIEWER_BINARY_NAME} mare_vulkan_bridge_shaders)
+add_dependencies(${VIEWER_BINARY_NAME} mare_vulkan_final_shaders)
 
 if (MARE_ENABLE_FSR2)
   target_compile_definitions(${VIEWER_BINARY_NAME} PRIVATE MARE_ENABLE_FSR2=1)
