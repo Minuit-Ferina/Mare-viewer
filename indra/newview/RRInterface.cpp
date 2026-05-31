@@ -202,22 +202,6 @@ namespace {
             cleanMathFloat(v.mV[2]);
         }
 
-        void refreshObjectTexturesAfterCamTexturesChange(LLViewerObject* object)
-        {
-            if (!object)
-            {
-                return;
-            }
-
-            object->setSelected(false);
-
-            if (getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
-                object->mDrawable.notNull())
-            {
-                gPipeline.markTextured(object->mDrawable);
-            }
-        }
-
     LLVector3 convert_direction_to_azimuth_and_elevation(LLVector3 dir)
     {
         // The azimuth routine is adapted from a LL routine removed from llvosky when EEP was introduced for
@@ -701,16 +685,10 @@ void refreshCachedVariable (std::string var)
         // silly hack, but we need to force all textures in world to be updated
         S32 i;
         for (i=0; i<gObjectList.getNumObjects(); ++i) {
-            refreshObjectTexturesAfterCamTexturesChange(gObjectList.getObject(i));
-        }
-
-        if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
-        {
-            LL_INFOS("RenderBackend")
-                << "Vulkan RLV camtextures changed; queued "
-                << gObjectList.getNumObjects()
-                << " objects for texture batch refresh."
-                << LL_ENDL;
+            LLViewerObject* object = gObjectList.getObject(i);
+            if (object) {
+                object->setSelected(false);
+            }
         }
 
         // Is there a uuid specified ?

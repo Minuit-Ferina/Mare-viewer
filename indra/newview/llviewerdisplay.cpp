@@ -1630,41 +1630,6 @@ static void render_vulkan_world_frame()
         logged = true;
     }
 
-    static bool sLoggedRlvMaskState = false;
-    static bool sLastRlvMaskState = false;
-    const bool rlv_world_mask_active =
-        gRRenabled && gAgent.mRRInterface.mVisionRestricted;
-    if (!sLoggedRlvMaskState || sLastRlvMaskState != rlv_world_mask_active)
-    {
-        LL_INFOS("RenderBackend")
-            << "Vulkan RLV world mask state: active "
-            << rlv_world_mask_active
-            << ", first garbage collection complete "
-            << gAgent.mRRInterface.mGarbageCollectorCalledOnce
-            << ", camdraw min/max "
-            << gAgent.mRRInterface.mCamDistDrawMin
-            << "/"
-            << gAgent.mRRInterface.mCamDistDrawMax
-            << ", camdraw alpha min/max "
-            << gAgent.mRRInterface.mCamDistDrawAlphaMin
-            << "/"
-            << gAgent.mRRInterface.mCamDistDrawAlphaMax
-            << ", camtextures "
-            << gAgent.mRRInterface.mContainsCamTextures
-            << ", setsphere "
-            << gAgent.mRRInterface.mContainsSetsphere
-            << "."
-            << LL_ENDL;
-        if (rlv_world_mask_active && !gAgent.mRRInterface.mGarbageCollectorCalledOnce)
-        {
-            LL_WARNS("RenderBackend")
-                << "Vulkan world may be intentionally masked by RLV blind startup until the first RLV garbage collection removes startup restrictions."
-                << LL_ENDL;
-        }
-        sLoggedRlvMaskState = true;
-        sLastRlvMaskState = rlv_world_mask_active;
-    }
-
     LLColor4 clear_color = gSky.mVOSkyp ?
         gSky.getSkyFogColor() :
         LLColor4(0.025f, 0.03f, 0.04f, 1.f);
