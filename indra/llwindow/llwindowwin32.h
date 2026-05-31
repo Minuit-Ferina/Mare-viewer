@@ -30,6 +30,7 @@
 // Limit Windows API to small and manageable set.
 #include "llwin32headers.h"
 
+#include "llrenderbackendtypes.h"
 #include "llwindow.h"
 #include "llwindowcallbacks.h"
 #include "lldragdropwin32.h"
@@ -192,6 +193,7 @@ protected:
     WCHAR       *mWindowClassName;
 
     HWND        mWindowHandle = 0;  // window handle
+    LLRenderNativeContext mRenderContext;
     HGLRC       mhRC = 0;           // OpenGL rendering context
     HDC         mhDC = 0;           // Windows Device context handle
     HINSTANCE   mhInstance;     // handle to application instance

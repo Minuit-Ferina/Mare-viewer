@@ -364,6 +364,12 @@ public:
     S32  getLightCount() const { return static_cast<S32>(mLights.size()); }
 
     void calcNearbyLights(LLCamera& camera);
+    void getVulkanDeferredLightSummary(
+        LLCamera& camera,
+        LLColor3& light_color,
+        F32& light_strength,
+        U32& visible_light_count,
+        LLVector3& dominant_light_screen) const;
     void setupHWLights();
     void setupAvatarLights(bool for_edit = false);
     void enableLights(U32 mask);

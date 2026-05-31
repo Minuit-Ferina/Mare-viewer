@@ -432,29 +432,29 @@ bool LLTexUnit::bind(LLRenderTarget* renderTarget, bool bindDepth)
         LLRenderTextureHandle texture = renderTarget->getDepthHandle();
         llassert(texture); // target MUST have a depth buffer attachment
 
-        bindManual(renderTarget->getUsage(), texture);
+        bindManual(renderTarget->getUsage(), texture, false, true);
     }
     else
     {
-        bindManual(renderTarget->getUsage(), renderTarget->getTextureHandle());
+        bindManual(renderTarget->getUsage(), renderTarget->getTextureHandle(), false, true);
     }
 
     return true;
 }
 
-bool LLTexUnit::bindManual(eTextureType type, LLRenderTextureHandle texture, bool hasMips)
+bool LLTexUnit::bindManual(eTextureType type, LLRenderTextureHandle texture, bool hasMips, bool forceBind)
 {
-    return bindManual(type, texture.asLegacyName(), hasMips);
+    return bindManual(type, texture.asLegacyName(), hasMips, forceBind);
 }
 
-bool LLTexUnit::bindManual(eTextureType type, U32 texture, bool hasMips)
+bool LLTexUnit::bindManual(eTextureType type, U32 texture, bool hasMips, bool forceBind)
 {
     if (mIndex < 0)
     {
         return false;
     }
 
-    if(mCurrTexture != texture)
+    if(forceBind || mCurrTexture != texture)
     {
         gGL.flush();
 
@@ -1789,9 +1789,20 @@ LLVertexBuffer* LLRender::bufferfromCache(U32 attribute_mask, U32 count)
     const bool vulkan_ready =
         getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
         getRenderBackend().isReady();
+    const bool vulkan_pretransform_immediate =
+        vulkan_ready &&
+        !getRenderBackend().isWorldDrawEnabled();
+    const bool vulkan_world_immediate =
+        vulkan_ready &&
+        getRenderBackend().isWorldDrawEnabled();
 
     LLVertexBuffer *vb = nullptr;
     HBXXH64 hash;
+
+    if (vulkan_world_immediate)
+    {
+        return genBuffer(attribute_mask, count);
+    }
 
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_VERTEX("vb cache hash");
@@ -1807,7 +1818,7 @@ LLVertexBuffer* LLRender::bufferfromCache(U32 attribute_mask, U32 count)
             hash.update((U8*)mColorsp.get(), count * sizeof(LLColor4U));
         }
 
-        if (vulkan_ready)
+        if (vulkan_pretransform_immediate)
         {
             hash.update(
                 (U8*)&mMatrix[MM_MODELVIEW][mMatIdx[MM_MODELVIEW]],
@@ -1881,7 +1892,8 @@ LLVertexBuffer* LLRender::genBuffer(U32 attribute_mask, S32 count)
     vb->setBuffer();
 
     if (getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
-        getRenderBackend().isReady())
+        getRenderBackend().isReady() &&
+        !getRenderBackend().isWorldDrawEnabled())
     {
         std::vector<LLVector4a> transformed_positions(count);
         glm::mat4 modelview_projection =

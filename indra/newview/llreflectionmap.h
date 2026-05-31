@@ -29,7 +29,7 @@
 #include "llcubemaparray.h"
 #include "llgltypes.h"
 #include "llmemory.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 
 class LLSpatialGroup;
 class LLViewerObject;

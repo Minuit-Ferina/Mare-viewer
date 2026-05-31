@@ -1,0 +1,106 @@
+name: Mare CI Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mare-ci-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }} ReleaseOS
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            runner: windows-2022
+            cache-platform: Windows
+          - name: macOS
+            runner: macos-15
+            cache-platform: macOS
+
+    env:
+      AUTOBUILD_ADDRSIZE: 64
+      AUTOBUILD_BUILD_ID: ${{ github.run_id }}
+      AUTOBUILD_CONFIGURATION: ReleaseOS
+      AUTOBUILD_CPU_COUNT: 4
+      AUTOBUILD_INSTALLABLE_CACHE: ${{ github.workspace }}/.autobuild-installables
+      AUTOBUILD_VARIABLES_FILE: ${{ github.workspace }}/.build-variables/variables
+      AUTOBUILD_VCS_INFO: "true"
+      AUTOBUILD_VSVER: "170"
+      AUTOBUILD_WIN_CMAKE_GEN: Visual Studio 17 2022
+      AUTOBUILD_WIN_VSPLATFORM: x64
+      LL_SKIP_REQUIRE_SYSROOT: 1
+      PYTHONUNBUFFERED: 1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Checkout build variables
+        uses: actions/checkout@v5
+        with:
+          repository: secondlife/build-variables
+          ref: master
+          path: .build-variables
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Setup MSBuild
+        if: runner.os == 'Windows'
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Select Xcode
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if [ -d /Applications/Xcode_16.4.app ]; then
+            sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          fi
+          xcodebuild -version
+
+      - name: Install autobuild
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install autobuild llsd
+
+      - name: Cache autobuild packages
+        uses: actions/cache@v4
+        with:
+          path: .autobuild-installables
+          key: ${{ matrix.cache-platform }}-64-ReleaseOS-${{ hashFiles('autobuild.xml') }}
+          restore-keys: |
+            ${{ matrix.cache-platform }}-64-ReleaseOS-
+            ${{ matrix.cache-platform }}-64-
+
+      - name: Configure
+        shell: bash
+        run: |
+          set -euxo pipefail
+          autobuild configure -A 64 -c ReleaseOS -- \
+            -DLL_TESTS:BOOL=OFF \
+            -DPACKAGE:BOOL=FALSE \
+            -DRELEASE_CRASH_REPORTING:BOOL=OFF \
+            -DHAVOK:BOOL=OFF \
+            -DUSE_OPENAL:BOOL=ON \
+            -DUNATTENDED:BOOL=ON \
+            -DVIEWER_CHANNEL:STRING="Mare Viewer"
+
+      - name: Build
+        shell: bash
+        run: |
+          set -euxo pipefail
+          autobuild build -A 64 -c ReleaseOS --no-configure

@@ -32,7 +32,7 @@
 #include "llfloater.h"
 #include "llcharacter.h"
 #include "llgltypes.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 #include "lltracerecording.h"
 
 class LLCharacter;

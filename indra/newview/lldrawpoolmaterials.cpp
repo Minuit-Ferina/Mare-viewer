@@ -37,6 +37,25 @@
 
 namespace
 {
+U32 with_weight4_attribute(U32 mask)
+{
+    return mask | static_cast<U32>(LLVertexBuffer::MAP_WEIGHT4);
+}
+
+U32 get_legacy_material_vertex_data_mask(bool rigged)
+{
+    U32 mask =
+        LLVertexBuffer::MAP_VERTEX |
+        LLVertexBuffer::MAP_NORMAL |
+        LLVertexBuffer::MAP_TANGENT |
+        LLVertexBuffer::MAP_TEXCOORD0 |
+        LLVertexBuffer::MAP_TEXCOORD1 |
+        LLVertexBuffer::MAP_TEXCOORD2 |
+        LLVertexBuffer::MAP_COLOR;
+
+    return rigged ? with_weight4_attribute(mask) : mask;
+}
+
 bool get_material_render_pass(S32 pass, U32& render_pass, bool& rigged)
 {
     static const U32 type_list[] =
@@ -321,21 +340,11 @@ bool LLDrawPoolMaterials::emitDeferredCommands(LLWorldRenderCommandBuffer& comma
         return false;
     }
 
-    U32 mask =
-        LLVertexBuffer::MAP_VERTEX |
-        LLVertexBuffer::MAP_NORMAL |
-        LLVertexBuffer::MAP_TEXCOORD0 |
-        LLVertexBuffer::MAP_COLOR;
-    if (rigged)
-    {
-        mask |= LLVertexBuffer::MAP_WEIGHT4;
-    }
-
     commands.appendRenderMap(
         type,
         LLWorldRenderMaterialClass::LegacyMaterial,
         true,
         false,
-        mask);
+        get_legacy_material_vertex_data_mask(rigged));
     return true;
 }

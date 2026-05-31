@@ -31,7 +31,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include "mareupscaler.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 
 class LLRenderTarget;
 

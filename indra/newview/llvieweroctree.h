@@ -37,7 +37,7 @@
 #include "llvector4a.h"
 #include "llquaternion.h"
 #include "lloctree.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 #include "llviewercamera.h"
 
 class LLViewerRegion;

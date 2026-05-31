@@ -33,7 +33,7 @@
 #include "llgltypes.h"
 #include "llpointer.h"
 #include "llrefcount.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 #include "v2math.h"
 #include "llunits.h"
 #include "llthreadsafequeue.h"

@@ -33,6 +33,36 @@
 #include "gltfscenemanager.h"
 #include "llworldrendercommand.h"
 
+namespace
+{
+U32 with_weight4_attribute(U32 mask)
+{
+    return mask | static_cast<U32>(LLVertexBuffer::MAP_WEIGHT4);
+}
+
+U32 get_gltf_pbr_glow_vertex_data_mask(bool rigged)
+{
+    U32 mask =
+        LLVertexBuffer::MAP_VERTEX |
+        LLVertexBuffer::MAP_TEXCOORD0 |
+        LLVertexBuffer::MAP_EMISSIVE;
+
+    return rigged ? with_weight4_attribute(mask) : mask;
+}
+
+U32 get_gltf_pbr_vertex_data_mask(bool rigged)
+{
+    U32 mask =
+        LLVertexBuffer::MAP_VERTEX |
+        LLVertexBuffer::MAP_NORMAL |
+        LLVertexBuffer::MAP_TANGENT |
+        LLVertexBuffer::MAP_TEXCOORD0 |
+        LLVertexBuffer::MAP_COLOR;
+
+    return rigged ? with_weight4_attribute(mask) : mask;
+}
+}
+
 LLDrawPoolGLTFPBR::LLDrawPoolGLTFPBR(U32 type) :
     LLRenderPass(type)
 {
@@ -86,10 +116,7 @@ bool LLDrawPoolGLTFPBR::emitDeferredCommands(LLWorldRenderCommandBuffer& command
             LLWorldRenderMaterialClass::GLTFPBR,
         true,
         false,
-        LLVertexBuffer::MAP_VERTEX |
-        LLVertexBuffer::MAP_NORMAL |
-            LLVertexBuffer::MAP_TEXCOORD0 |
-            LLVertexBuffer::MAP_COLOR);
+        get_gltf_pbr_vertex_data_mask(false));
     commands.appendRenderMap(
         mRenderType + 1,
         mRenderType == LLPipeline::RENDER_TYPE_PASS_GLTF_PBR_ALPHA_MASK ?
@@ -97,11 +124,7 @@ bool LLDrawPoolGLTFPBR::emitDeferredCommands(LLWorldRenderCommandBuffer& command
             LLWorldRenderMaterialClass::GLTFPBR,
         true,
         false,
-        LLVertexBuffer::MAP_VERTEX |
-            LLVertexBuffer::MAP_NORMAL |
-            LLVertexBuffer::MAP_TEXCOORD0 |
-            LLVertexBuffer::MAP_COLOR |
-            LLVertexBuffer::MAP_WEIGHT4);
+        get_gltf_pbr_vertex_data_mask(true));
     return true;
 }
 
@@ -151,19 +174,12 @@ bool LLDrawPoolGLTFPBR::emitPostDeferredCommands(LLWorldRenderCommandBuffer& com
         LLWorldRenderMaterialClass::Glow,
         true,
         false,
-        LLVertexBuffer::MAP_VERTEX |
-            LLVertexBuffer::MAP_NORMAL |
-            LLVertexBuffer::MAP_TEXCOORD0 |
-            LLVertexBuffer::MAP_COLOR);
+        get_gltf_pbr_glow_vertex_data_mask(false));
     commands.appendRenderMap(
         LLRenderPass::PASS_GLTF_GLOW_RIGGED,
         LLWorldRenderMaterialClass::Glow,
         true,
         false,
-        LLVertexBuffer::MAP_VERTEX |
-            LLVertexBuffer::MAP_NORMAL |
-            LLVertexBuffer::MAP_TEXCOORD0 |
-            LLVertexBuffer::MAP_COLOR |
-            LLVertexBuffer::MAP_WEIGHT4);
+        get_gltf_pbr_glow_vertex_data_mask(true));
     return true;
 }

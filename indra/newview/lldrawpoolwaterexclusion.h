@@ -48,14 +48,15 @@ public:
         VERTEX_DATA_MASK = LLVertexBuffer::MAP_VERTEX
     };
 
-    virtual U32 getVertexDataMask() { return VERTEX_DATA_MASK; }
+    U32 getVertexDataMask() override { return VERTEX_DATA_MASK; }
 
-    virtual void prerender() {}
+    void prerender() override {}
 
-    virtual void render(S32 pass = 0);
-    virtual void beginRenderPass(S32 pass) {}
-    virtual void endRenderPass(S32 pass) {}
-    virtual S32  getNumPasses() { return 1; }
+    void render(S32 pass = 0) override;
+    bool emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass) override;
+    void beginRenderPass(S32 pass) override {}
+    void endRenderPass(S32 pass) override {}
+    S32 getNumPasses() override { return 1; }
 };
 
 #endif // LL_LLDRAWPOOLWATEREXCLUSION_H

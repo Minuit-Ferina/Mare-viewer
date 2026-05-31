@@ -588,6 +588,7 @@ LLWindowWin32::LLWindowWin32(LLWindowCallbacks* callbacks,
     mKeyVirtualKey = 0;
     mhDC = NULL;
     mhRC = NULL;
+    mRenderContext = {};
     memset(mCurrentGammaRamp, 0, sizeof(mCurrentGammaRamp));
     memset(mPrevGammaRamp, 0, sizeof(mPrevGammaRamp));
     mCustomGammaSet = false;
@@ -1023,6 +1024,12 @@ void LLWindowWin32::close()
         getRenderBackend().shutdownContextCapabilities();
     }
 
+    if (mRenderContext.mContext)
+    {
+        LL_INFOS("Window") << "Releasing native render backend context" << LL_ENDL;
+        getRenderBackend().destroyNativeContext(mRenderContext);
+    }
+
     LL_DEBUGS("Window") << "Releasing Context" << LL_ENDL;
     if (mhRC)
     {
@@ -1191,7 +1198,7 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
     S32 height = size.mY;
     bool auto_show = false;
 
-    if (mhRC)
+    if (mhRC || mRenderContext.mContext)
     {
         auto_show = true;
         resetDisplayResolution();
@@ -1208,6 +1215,11 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
     mRefreshRate = current_refresh;
 
     getRenderBackend().shutdownContextCapabilities();
+    if (mRenderContext.mContext)
+    {
+        getRenderBackend().destroyNativeContext(mRenderContext);
+    }
+
     //destroy gl context
     if (mhRC)
     {
@@ -1334,6 +1346,83 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
     else
     {
         LL_WARNS("Window") << "Window creation failed, code: " << GetLastError() << LL_ENDL;
+    }
+
+    auto finish_window_context_setup = [&]() -> bool
+    {
+        SetWindowLongPtr(mWindowHandle, GWLP_USERDATA, (LONG_PTR)this);
+
+        // register this window as handling drag/drop events from the OS
+        DragAcceptFiles( mWindowHandle, TRUE );
+
+        mDragDrop->init( mWindowHandle );
+
+        //register joystick timer callback
+        SetTimer( mWindowHandle, 0, 1000 / 30, NULL ); // 30 fps timer
+
+        // ok to post quit messages now
+        mPostQuit = true;
+
+        // *HACK: Attempt to prevent startup crashes by deferring memory accounting
+        // until after some graphics setup. See SL-20177. -Cosmic,2023-09-18
+        mWindowThread->post([=]()
+        {
+            mWindowThread->glReady();
+        });
+
+        if (auto_show)
+        {
+            show();
+            getRenderBackend().setClearColor(0.0f, 0.0f, 0.0f, 0.f);
+            getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
+            swapBuffers();
+        }
+
+        return true;
+    };
+
+    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+    {
+        if (!mWindowHandle)
+        {
+            close();
+            return false;
+        }
+
+        LLRenderNativeContextDesc desc;
+        desc.mWindow = mWindowHandle;
+        desc.mSamples = mFSAASamples;
+        desc.mEnableVSync = enable_vsync;
+
+        if (!getRenderBackend().createNativeContext(desc, mRenderContext))
+        {
+            OSMessageBox(
+                std::string("Can't create ") + getRenderBackend().getName() + " rendering context",
+                mCallbacks->translateString("MBError"),
+                OSMB_OK);
+            close();
+            return false;
+        }
+
+        if (!getRenderBackend().makeNativeContextCurrent(mRenderContext.mContext))
+        {
+            OSMessageBox(
+                std::string("Can't activate ") + getRenderBackend().getName() + " rendering context",
+                mCallbacks->translateString("MBError"),
+                OSMB_OK);
+            close();
+            return false;
+        }
+
+        gGLManager.mVRAM = mRenderContext.mVRAM;
+        if (!getRenderBackend().initContextCapabilities())
+        {
+            LLError::LLUserWarningMsg::show(mCallbacks->translateString("MBVideoDrvErr"), 8/*LAST_EXEC_GRAPHICS_INIT*/);
+            close();
+            return false;
+        }
+
+        return finish_window_context_setup();
     }
 
     //-----------------------------------------------------------------------
@@ -1743,35 +1832,7 @@ const   S32   max_format  = (S32)num_formats - 1;
     // Disable vertical sync for swap
     toggleVSync(enable_vsync);
 
-    SetWindowLongPtr(mWindowHandle, GWLP_USERDATA, (LONG_PTR)this);
-
-    // register this window as handling drag/drop events from the OS
-    DragAcceptFiles( mWindowHandle, TRUE );
-
-    mDragDrop->init( mWindowHandle );
-
-    //register joystick timer callback
-    SetTimer( mWindowHandle, 0, 1000 / 30, NULL ); // 30 fps timer
-
-    // ok to post quit messages now
-    mPostQuit = true;
-
-    // *HACK: Attempt to prevent startup crashes by deferring memory accounting
-    // until after some graphics setup. See SL-20177. -Cosmic,2023-09-18
-    mWindowThread->post([=]()
-    {
-        mWindowThread->glReady();
-    });
-
-    if (auto_show)
-    {
-        show();
-        getRenderBackend().setClearColor(0.0f, 0.0f, 0.0f, 0.f);
-        getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
-        swapBuffers();
-    }
-
-    return true;
+    return finish_window_context_setup();
 }
 
 void LLWindowWin32::recreateWindow(RECT window_rect, DWORD dw_ex_style, DWORD dw_style)
@@ -1890,6 +1951,14 @@ void LLWindowWin32::recreateWindow(RECT window_rect, DWORD dw_ex_style, DWORD dw
 
 void* LLWindowWin32::createSharedContext()
 {
+    if (mRenderContext.mContext)
+    {
+        return getRenderBackend().createSharedNativeContext(
+            mRenderContext.mPixelFormat,
+            mRenderContext.mContext,
+            false);
+    }
+
     mMaxGLVersion = llclamp(mMaxGLVersion, 3.f, 4.6f);
 
     S32 version_major = llfloor(mMaxGLVersion);
@@ -1946,17 +2015,35 @@ void* LLWindowWin32::createSharedContext()
 
 void LLWindowWin32::makeContextCurrent(void* contextPtr)
 {
+    if (mRenderContext.mContext)
+    {
+        getRenderBackend().makeNativeContextCurrent(contextPtr ? contextPtr : mRenderContext.mContext);
+        return;
+    }
+
     wglMakeCurrent(mhDC, (HGLRC) contextPtr);
     LL_PROFILER_GPU_CONTEXT;
 }
 
 void LLWindowWin32::destroySharedContext(void* contextPtr)
 {
+    if (mRenderContext.mContext)
+    {
+        getRenderBackend().destroySharedNativeContext(contextPtr);
+        return;
+    }
+
     wglDeleteContext((HGLRC)contextPtr);
 }
 
 void LLWindowWin32::toggleVSync(bool enable_vsync)
 {
+    if (mRenderContext.mContext)
+    {
+        getRenderBackend().setNativeVSync(mRenderContext.mContext, enable_vsync);
+        return;
+    }
+
     if (wglSwapIntervalEXT == nullptr)
     {
         LL_INFOS("Window") << "VSync: wglSwapIntervalEXT not initialized" << LL_ENDL;
@@ -3714,9 +3801,17 @@ void LLWindowWin32::swapBuffers()
 {
     {
         LL_PROFILE_ZONE_SCOPED_CATEGORY_WIN32;
-        SwapBuffers(mhDC);
+        if (mRenderContext.mContext)
+        {
+            getRenderBackend().swapNativeBuffers(mRenderContext.mContext);
+        }
+        else
+        {
+            SwapBuffers(mhDC);
+        }
     }
 
+    if (!mRenderContext.mContext)
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_WIN32("GPU Collect");
         LL_PROFILER_GPU_COLLECT;

@@ -1915,6 +1915,13 @@ void LLVertexBuffer::setBuffer()
 
     if (force_backend_vertex_state)
     {
+        for (U32 type = 0; type < TYPE_MAX; ++type)
+        {
+            if (!(data_mask & (1U << type)))
+            {
+                disable_vertex_attribute_array(type);
+            }
+        }
         bind_vertex_buffer_target(GL_ARRAY_BUFFER, mGLBuffer);
         sGLRenderBuffer = mGLBuffer;
         setupVertexBuffer();

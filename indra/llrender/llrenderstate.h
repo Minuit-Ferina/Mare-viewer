@@ -31,7 +31,7 @@
 #include "glm/mat4x4.hpp"
 #include "lldefs.h"
 #include "llgltypes.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 #include "stdtypes.h"
 #include "v4color.h"
 
@@ -322,23 +322,8 @@ class LLGLSSpecular
 {
 public:
     F32 mShininess;
-    LLGLSSpecular(const LLColor4& color, F32 shininess)
-    {
-        mShininess = shininess;
-        if (mShininess > 0.0f)
-        {
-            S32 shiny = (S32)(shininess * 128.f);
-            shiny = llclamp(shiny, 0, 128);
-            getRenderBackend().setLegacyMaterialSpecular(color.mV, shiny);
-        }
-    }
-    ~LLGLSSpecular()
-    {
-        if (mShininess > 0.f)
-        {
-            getRenderBackend().setLegacyMaterialSpecular(LLColor4(0.f, 0.f, 0.f, 0.f).mV, 0);
-        }
-    }
+    LLGLSSpecular(const LLColor4& color, F32 shininess);
+    ~LLGLSSpecular();
 };
 
 #endif // LL_LLRENDERSTATE_H

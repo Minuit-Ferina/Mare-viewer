@@ -1860,6 +1860,43 @@ add_mare_vulkan_shader_target(
     final
     "Compiling Mare Vulkan final shaders")
 
+if (DARWIN)
+  add_executable(mare-vulkan-smoke
+    tests/mare_vulkan_smoke.cpp
+    tests/mare_vulkan_smoke_macosx-objc.mm
+    tests/mare_vulkan_smoke_macosx.h
+    )
+  add_dependencies(mare-vulkan-smoke mare_vulkan_final_shaders)
+  target_link_libraries(mare-vulkan-smoke
+    ${PNG_PRELOAD_ARCHIVES}
+    llaudio
+    llcharacter
+    llrender
+    llui
+    llwindow
+    llimage
+    llinventory
+    llmessage
+    llplugin
+    llprimitive
+    llfilesystem
+    llxml
+    llmath
+    llcorehttp
+    llcommon
+    llmeshoptimizer
+    llwebrtc
+    lllogin
+    llappearance
+    ${LLPHYSICSEXTENSIONS_LIBRARIES}
+    ll::bugsplat
+    ll::ndof
+    ll::tracy
+    ll::openxr
+    ll::oslibraries
+    )
+endif ()
+
 set(viewer_APPSETTINGS_FILES
     app_settings/anim.ini
     app_settings/autoreplace.xml

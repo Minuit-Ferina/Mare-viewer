@@ -1446,6 +1446,18 @@ S32 garbage_collector_cnt = -100; // give the garbage collector a moment before 
 //mk
 //ca
 
+static bool mare_vulkan_debug_skip_ui_after_world()
+{
+    if (getRenderBackend().getType() != LLRenderBackendType::Vulkan)
+    {
+        return false;
+    }
+
+    std::string value = LLStringUtil::getenv("MARE_VULKAN_DEBUG_SKIP_UI_AFTER_WORLD");
+    LLStringUtil::toLower(value);
+    return value == "1" || value == "true" || value == "yes" || value == "on";
+}
+
 bool LLAppViewer::frame()
 {
     bool ret = false;
@@ -1621,8 +1633,17 @@ bool LLAppViewer::doFrame()
 
             //MK
             // Do some RLV maintenance (garbage collector etc)
+            const bool progress_visible = gViewerWindow->getShowProgress();
+            const bool progress_hidden_by_vulkan_world_debug =
+                progress_visible && mare_vulkan_debug_skip_ui_after_world();
+            if (progress_hidden_by_vulkan_world_debug)
+            {
+                LL_DEBUGS_ONCE("RenderBackend")
+                    << "Vulkan world/UI isolation debug is allowing RLV garbage collection while progress UI remains logically visible."
+                    << LL_ENDL;
+            }
             if (gRRenabled && LLStartUp::getStartupState() == STATE_STARTED
-            && !gViewerWindow->getShowProgress())
+            && (!progress_visible || progress_hidden_by_vulkan_world_debug))
             {
                 static LLCachedControl<F32> sInitialGCAdditionalWait(gSavedSettings, "RestrainedLoveInitialGarbageCollectionAdditionalWait");
                 static LLCachedControl<F32> sNextGCAdditionalInterval(gSavedSettings, "RestrainedLoveGarbageCollectionAdditionalInterval");

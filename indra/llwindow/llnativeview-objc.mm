@@ -212,7 +212,7 @@ attributedStringInfo getSegments(NSAttributedString *str)
 
 - (NSPoint)viewPointForEvent:(NSEvent*)event
 {
-    NSPoint point = [event locationInWindow];
+    NSPoint point = [self convertPoint:[event locationInWindow] fromView:nil];
     return gHiDPISupport ? [self convertPointToBacking:point] : point;
 }
 

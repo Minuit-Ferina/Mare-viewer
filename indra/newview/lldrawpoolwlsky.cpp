@@ -45,6 +45,7 @@
 #include "llsettingsvo.h"
 #include "llviewercontrol.h"
 #include "llrenderstate.h"
+#include "llworldrendercommand.h"
 
 extern bool gCubeSnapshot;
 
@@ -138,6 +139,62 @@ static bool use_hdri_sky()
         gEXRImage.notNull() ? hdri_split > 0.f : // fallback to EEP sky when split screen is zero
         false; // no HDRI available, always use EEP sky
 
+}
+
+static LLViewerTexture* select_sky_face_texture(LLFace* face)
+{
+    if (!face)
+    {
+        return nullptr;
+    }
+
+    LLViewerTexture* texture = face->getTexture(LLRender::DIFFUSE_MAP);
+    if (!texture)
+    {
+        texture = face->getTexture(LLRender::ALTERNATE_DIFFUSE_MAP);
+    }
+    return texture;
+}
+
+static LLWorldRenderCommand* append_sky_face_command(
+    LLWorldRenderCommandBuffer& commands,
+    LLFace* face,
+    LLViewerTexture* texture,
+    const LLMatrix4& model_matrix,
+    const LLColor4& color,
+    LLWorldRenderMaterialClass material_class)
+{
+    if (!face || !texture || !face->getGeomCount() || !face->getIndicesCount())
+    {
+        return nullptr;
+    }
+
+    LLVertexBuffer* vertex_buffer = face->getVertexBuffer();
+    if (!vertex_buffer)
+    {
+        return nullptr;
+    }
+
+    LLWorldRenderCommand* command = commands.appendOwnedDrawRange(
+        vertex_buffer,
+        texture,
+        material_class,
+        LLDrawPool::POOL_WL_SKY,
+        model_matrix,
+        face->getGeomIndex(),
+        face->getGeomIndex() + face->getGeomCount() - 1,
+        face->getIndicesCount(),
+        face->getIndicesStart(),
+        true,
+        false,
+        LLVertexBuffer::MAP_VERTEX | LLVertexBuffer::MAP_TEXCOORD0,
+        LLRender::TRIANGLES);
+    if (command)
+    {
+        command->mBaseColor = color;
+        command->mFullbright = true;
+    }
+    return command;
 }
 
 void LLDrawPoolWLSky::renderSkyHazeDeferred(const LLVector3& camPosLocal, F32 camHeightLocal) const
@@ -467,6 +524,143 @@ void LLDrawPoolWLSky::renderHeavenlyBodies()
     gGL.popMatrix();
 }
 
+void LLDrawPoolWLSky::emitHeavenlyBodyCommands(
+    LLWorldRenderCommandBuffer& commands,
+    const LLMatrix4& model_matrix) const
+{
+    if (!gSky.mVOSkyp || use_hdri_sky())
+    {
+        return;
+    }
+
+    bool can_use_vertex_shaders = gPipeline.shadersLoaded();
+    bool can_use_windlight_shaders = gPipeline.canUseWindLightShaders();
+    if (!can_use_vertex_shaders || !can_use_windlight_shaders)
+    {
+        return;
+    }
+
+    LLFace* sun_face = gSky.mVOSkyp->mFace[LLVOSky::FACE_SUN];
+    if (gSky.mVOSkyp->getSun().getDraw() && sun_face)
+    {
+        LLColor4 color(gSky.mVOSkyp->getSun().getInterpColor());
+        append_sky_face_command(
+            commands,
+            sun_face,
+            select_sky_face_texture(sun_face),
+            model_matrix,
+            color,
+            LLWorldRenderMaterialClass::Alpha);
+    }
+
+    LLFace* moon_face = gSky.mVOSkyp->mFace[LLVOSky::FACE_MOON];
+    if (gSky.mVOSkyp->getMoon().getDraw() && moon_face)
+    {
+        LLColor4 color(gSky.mVOSkyp->getMoon().getInterpColor());
+        LLSettingsSky::ptr_t sky = LLEnvironment::instance().getCurrentSky();
+        if (sky)
+        {
+            const F32 moon_brightness = (F32)sky->getMoonBrightness();
+            color.mV[VRED] *= moon_brightness;
+            color.mV[VGREEN] *= moon_brightness;
+            color.mV[VBLUE] *= moon_brightness;
+        }
+        append_sky_face_command(
+            commands,
+            moon_face,
+            select_sky_face_texture(moon_face),
+            model_matrix,
+            color,
+            LLWorldRenderMaterialClass::Alpha);
+    }
+}
+
+void LLDrawPoolWLSky::emitStarCommands(
+    LLWorldRenderCommandBuffer& commands,
+    const LLMatrix4& model_matrix) const
+{
+    if (!gSky.mVOSkyp || !gSky.mVOWLSkyp || use_hdri_sky())
+    {
+        return;
+    }
+
+    LLSettingsSky::ptr_t sky = LLEnvironment::instance().getCurrentSky();
+    if (!sky)
+    {
+        return;
+    }
+
+    F32 star_alpha = sky->getStarBrightness() / 500.0f;
+    if (star_alpha < 0.001f)
+    {
+        return;
+    }
+
+    if (LLPipeline::sReflectionRender)
+    {
+        star_alpha = 1.0f;
+    }
+
+    LLViewerTexture* texture = gSky.mVOSkyp->getBloomTex();
+    if (!texture)
+    {
+        texture = gSky.mVOSkyp->getBloomTexNext();
+    }
+    if (!texture)
+    {
+        return;
+    }
+
+    gSky.mVOWLSkyp->appendStarsDrawCommands(
+        commands,
+        model_matrix,
+        texture,
+        LLColor4(1.f, 1.f, 1.f, star_alpha));
+}
+
+void LLDrawPoolWLSky::emitCloudCommands(
+    LLWorldRenderCommandBuffer& commands,
+    const LLMatrix4& model_matrix) const
+{
+    if (use_hdri_sky() ||
+        !gPipeline.hasRenderType(LLPipeline::RENDER_TYPE_CLOUDS) ||
+        !gSky.mVOSkyp ||
+        !gSky.mVOWLSkyp)
+    {
+        return;
+    }
+
+    LLSettingsSky::ptr_t sky = LLEnvironment::instance().getCurrentSky();
+    if (!sky || sky->getCloudScale() < 0.001f)
+    {
+        return;
+    }
+
+    LLViewerTexture* texture = gSky.mVOSkyp->getCloudNoiseTex();
+    if (!texture)
+    {
+        texture = gSky.mVOSkyp->getCloudNoiseTexNext();
+    }
+    if (!texture)
+    {
+        return;
+    }
+
+    LLColor3 cloud_color = sky->getCloudColor();
+    const F32 cloud_density = sky->getCloudPosDensity1().mV[VZ];
+    const F32 cloud_alpha =
+        llclamp(cloud_density * 0.5f + sky->getCloudVariance() * 0.05f, 0.05f, 0.55f);
+    gSky.mVOWLSkyp->appendCloudDrawCommands(
+        commands,
+        model_matrix,
+        texture,
+        LLColor4(
+            cloud_color.mV[VRED],
+            cloud_color.mV[VGREEN],
+            cloud_color.mV[VBLUE],
+            cloud_alpha));
+}
+
 void LLDrawPoolWLSky::renderDeferred(S32 pass)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL; //LL_RECORD_BLOCK_TIME(FTM_RENDER_WL_SKY);
@@ -496,6 +690,95 @@ void LLDrawPoolWLSky::renderDeferred(S32 pass)
             renderSkyCloudsDeferred(origin, camHeightLocal, cloud_shader);
         }
     }
+}
+
+bool LLDrawPoolWLSky::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    if (pass != 0)
+    {
+        return true;
+    }
+
+    if (!gPipeline.hasRenderType(LLPipeline::RENDER_TYPE_SKY) || gSky.mVOSkyp.isNull())
+    {
+        return true;
+    }
+
+    if (!gPipeline.canUseWindLightShaders() || gSky.mVOWLSkyp.isNull())
+    {
+        return true;
+    }
+
+    gSky.mVOSkyp->updateGeometry(gSky.mVOSkyp->mDrawable);
+    gSky.mVOWLSkyp->updateGeometry(gSky.mVOWLSkyp->mDrawable);
+
+    const F32 cam_height_local = LLEnvironment::instance().getCamHeight();
+    const LLVector3& origin = LLViewerCamera::getInstance()->getOrigin();
+
+    LLMatrix4 model_matrix;
+    model_matrix.setIdentity();
+    if (LLPipeline::sReflectionRender && origin.mV[VZ] > 256.f)
+    {
+        model_matrix.translate(
+            LLVector3(
+                origin.mV[VX],
+                origin.mV[VY],
+                256.f - origin.mV[VZ] * 0.5f));
+    }
+    else
+    {
+        model_matrix.translate(origin);
+    }
+    model_matrix.rotate(
+        120.f * DEG_TO_RAD,
+        LLVector4(1.f / F_SQRT3, 1.f / F_SQRT3, 1.f / F_SQRT3, 0.f));
+    LLMatrix4 scale_matrix;
+    scale_matrix.initScale(LLVector3(0.333f, 0.333f, 0.333f));
+    model_matrix *= scale_matrix;
+    model_matrix.translate(LLVector3(0.f, -cam_height_local, 0.f));
+
+    LLColor4 sky_color(0.45f, 0.58f, 0.76f, 1.f);
+    LLSettingsSky::ptr_t sky = LLEnvironment::instance().getCurrentSky();
+    if (sky)
+    {
+        sky_color = sky->getHazeColor();
+        sky_color.mV[VALPHA] = 1.f;
+    }
+
+    gSky.mVOWLSkyp->appendDomeDrawCommands(commands, model_matrix, sky_color);
+
+    LLMatrix4 sky_body_matrix;
+    sky_body_matrix.setIdentity();
+    sky_body_matrix.translate(origin);
+    emitHeavenlyBodyCommands(commands, sky_body_matrix);
+
+    if (!gCubeSnapshot)
+    {
+        LLMatrix4 star_matrix = sky_body_matrix;
+        star_matrix.rotate(
+            gFrameTimeSeconds * 0.01f * DEG_TO_RAD,
+            LLVector4(0.f, 0.f, 1.f, 0.f));
+        emitStarCommands(commands, star_matrix);
+    }
+    if (!gCubeSnapshot || gPipeline.mReflectionMapManager.isRadiancePass())
+    {
+        emitCloudCommands(commands, model_matrix);
+    }
+
+    if (!use_hdri_sky())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan WL sky emits the sky dome/haze fallback plus basic sun, moon, star, and cloud commands; halos, rainbows, HDRI sky, and final EEP sky shader ownership still need Vulkan parity work."
+            << LL_ENDL;
+    }
+    else
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan WL sky is using the sky dome/haze fallback instead of the legacy HDRI sky path."
+            << LL_ENDL;
+    }
+
+    return true;
 }
 
 LLViewerTexture* LLDrawPoolWLSky::getTexture()

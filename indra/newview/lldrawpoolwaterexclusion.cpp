@@ -34,6 +34,7 @@
 #include "llvoavatar.h"
 #include "lldrawpoolwater.h"
 #include "llrenderstate.h"
+#include "llworldrendercommand.h"
 
 LLDrawPoolWaterExclusion::LLDrawPoolWaterExclusion() : LLRenderPass(LLDrawPool::POOL_WATEREXCLUSION)
 {
@@ -74,4 +75,30 @@ void LLDrawPoolWaterExclusion::render(S32 pass)
     {
         gDrawColorProgram.unbind();
     }
+}
+
+bool LLDrawPoolWaterExclusion::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+    if (pass != 0)
+    {
+        return true;
+    }
+
+    LLDrawPoolWater* water_pool = static_cast<LLDrawPoolWater*>(gPipeline.getPool(LLDrawPool::POOL_WATER));
+    if (water_pool)
+    {
+        // Match the legacy mask order: water writes white, exclusion surfaces write black.
+        water_pool->emitWaterExclusionMaskCommands(commands, LLColor4(1.f, 1.f, 1.f, 1.f));
+    }
+
+    commands.appendRenderMapWithColor(
+        LLRenderPass::PASS_INVISIBLE,
+        LLWorldRenderMaterialClass::WaterExclusionMask,
+        false,
+        false,
+        VERTEX_DATA_MASK,
+        LLColor4(0.f, 0.f, 0.f, 1.f),
+        true);
+
+    return true;
 }

@@ -43,23 +43,24 @@ public:
     LLDrawPoolWLSky(void);
     /*virtual*/ ~LLDrawPoolWLSky();
 
-    /*virtual*/ bool isDead() { return false; }
+    bool isDead() override { return false; }
 
-    /*virtual*/ S32 getNumDeferredPasses() { return 1; }
-    /*virtual*/ void beginDeferredPass(S32 pass);
-    /*virtual*/ void endDeferredPass(S32 pass);
-    /*virtual*/ void renderDeferred(S32 pass);
+    S32 getNumDeferredPasses() override { return 1; }
+    void beginDeferredPass(S32 pass) override;
+    void endDeferredPass(S32 pass) override;
+    void renderDeferred(S32 pass) override;
+    bool emitDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass) override;
 
-    /*virtual*/ LLViewerTexture *getDebugTexture();
-    /*virtual*/ U32 getVertexDataMask() { return SKY_VERTEX_DATA_MASK; }
-    /*virtual*/ bool verify() const { return true; }        // Verify that all data in the draw pool is correct!
-    /*virtual*/ S32 getShaderLevel() const { return mShaderLevel; }
+    LLViewerTexture *getDebugTexture() override;
+    U32 getVertexDataMask() override { return SKY_VERTEX_DATA_MASK; }
+    bool verify() const override { return true; }        // Verify that all data in the draw pool is correct!
+    S32 getShaderLevel() const override { return mShaderLevel; }
 
     //static LLDrawPool* createPool(const U32 type, LLViewerTexture *tex0 = NULL);
 
-    /*virtual*/ LLViewerTexture* getTexture();
-    /*virtual*/ bool isFacePool() { return false; }
-    /*virtual*/ void resetDrawOrders();
+    LLViewerTexture* getTexture() override;
+    bool isFacePool() override { return false; }
+    void resetDrawOrders() override;
 
     static void cleanupGL();
     static void restoreGL();
@@ -71,6 +72,10 @@ private:
 
     void renderStarsDeferred(const LLVector3& camPosLocal) const;
     void renderHeavenlyBodies();
+
+    void emitHeavenlyBodyCommands(LLWorldRenderCommandBuffer& commands, const LLMatrix4& model_matrix) const;
+    void emitStarCommands(LLWorldRenderCommandBuffer& commands, const LLMatrix4& model_matrix) const;
+    void emitCloudCommands(LLWorldRenderCommandBuffer& commands, const LLMatrix4& model_matrix) const;
 };
 
 #endif // LL_DRAWPOOLWLSKY_H

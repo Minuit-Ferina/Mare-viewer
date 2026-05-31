@@ -30,7 +30,7 @@
 // LLRenderTarget is unavailible on the mapserver since it uses FBOs.
 
 #include "llrender.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 
 #include <vector>
 

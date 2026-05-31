@@ -71,6 +71,7 @@ set(llrender_HEADER_FILES
     llrender.h
     llrender2dutils.h
     llrenderbackend.h
+    llrenderbackendtypes.h
     llrenderbackendmacosx-objc.h
     llrenderbackendnull.h
     llrenderbackendopengl.h

@@ -32,7 +32,7 @@
 #include "llgltfmaterial.h"
 #include "llmaterial.h"
 #include "llmaterialmgr.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 #include "lltextureentry.h"
 #include "llselectmgr.h"
 

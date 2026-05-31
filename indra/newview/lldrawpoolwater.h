@@ -34,6 +34,7 @@ class LLFace;
 class LLHeavenBody;
 class LLWaterSurface;
 class LLGLSLShader;
+class LLColor4;
 
 class LLDrawPoolWater final: public LLFacePool
 {
@@ -76,6 +77,8 @@ public:
     void setNormalMaps(const LLUUID& normalMapId, const LLUUID& nextNormalMapId);
 
     void pushWaterPlanes(int pass);
+    void emitWaterExclusionMaskCommands(LLWorldRenderCommandBuffer& commands, const LLColor4& color) const;
+    void emitWaterHazeCommands(LLWorldRenderCommandBuffer& commands, const LLColor4& color) const;
 
 protected:
     void renderOpaqueLegacyWater();

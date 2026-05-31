@@ -85,14 +85,18 @@
 #include "llviewerwindow.h"
 #include "llvoavatarself.h"
 #include "llvograss.h"
+#include "llvertexbuffer.h"
 #include "llworld.h"
 #include "pipeline.h"
 
 #include <boost/json.hpp>
 
+#include <array>
 #include <filesystem>
 #include <iomanip>
+#include <set>
 #include <sstream>
+#include <vector>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -143,6 +147,7 @@ void render_hud_attachments();
 void render_ui_3d();
 void render_ui_2d();
 void render_disconnected_background();
+static void render_ui_internal(F32 zoom_factor, int subfield, bool finalize_scene);
 
 void getProfileStatsContext(boost::json::object& stats);
 std::string getProfileStatsFilename();
@@ -151,6 +156,113 @@ static bool use_vulkan_world_path()
 {
     return getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
         getRenderBackend().isReady();
+}
+
+static bool use_vulkan_smoke_sky_scene()
+{
+    static const bool enabled =
+        !LLStringUtil::getenv("MARE_VULKAN_SMOKE_SCENE").empty();
+    return enabled;
+}
+
+static bool get_vulkan_boolean_env(const char* name)
+{
+    std::string value = LLStringUtil::getenv(name);
+    LLStringUtil::toLower(value);
+    return value == "1" || value == "true" || value == "yes" || value == "on";
+}
+
+static bool use_vulkan_debug_copy_deferred_color_to_swapchain()
+{
+    static const bool enabled =
+        get_vulkan_boolean_env("MARE_VULKAN_DEBUG_COPY_DEFERRED_COLOR_TO_SWAPCHAIN");
+    return enabled;
+}
+
+static bool use_vulkan_debug_skip_ui_after_world()
+{
+    static const bool enabled =
+        get_vulkan_boolean_env("MARE_VULKAN_DEBUG_SKIP_UI_AFTER_WORLD");
+    return enabled;
+}
+
+static bool use_vulkan_debug_skip_rlv_render_limit()
+{
+    static const bool enabled =
+        get_vulkan_boolean_env("MARE_VULKAN_DEBUG_SKIP_RLV_RENDER_LIMIT");
+    return enabled;
+}
+
+static bool use_vulkan_debug_ui_stage_logs()
+{
+    static const bool enabled =
+        get_vulkan_boolean_env("MARE_VULKAN_DEBUG_UI_STAGE_LOGS");
+    return enabled;
+}
+
+static bool use_vulkan_debug_render_legacy_hud_attachments()
+{
+    static const bool enabled =
+        get_vulkan_boolean_env("MARE_VULKAN_DEBUG_RENDER_LEGACY_HUD_ATTACHMENTS");
+    return enabled;
+}
+
+static void log_vulkan_ui_stage_once(
+    const char* prefix,
+    const char* stage,
+    const char* env_name = nullptr)
+{
+    if (!use_vulkan_world_path())
+    {
+        return;
+    }
+
+    static std::set<std::string> logged;
+    std::string key = prefix;
+    key += ":";
+    key += stage;
+    if (env_name)
+    {
+        key += ":";
+        key += env_name;
+    }
+
+    if (!logged.insert(key).second)
+    {
+        return;
+    }
+
+    LL_INFOS("RenderBackend")
+        << prefix
+        << " Vulkan UI stage: "
+        << stage;
+    if (env_name)
+    {
+        LL_CONT << " via " << env_name;
+    }
+    LL_CONT << LL_ENDL;
+}
+
+static void trace_vulkan_ui_stage(const char* stage)
+{
+    if (use_vulkan_debug_ui_stage_logs())
+    {
+        log_vulkan_ui_stage_once("Reached", stage);
+    }
+}
+
+static bool should_skip_vulkan_ui_stage(
+    const char* env_name,
+    const char* stage)
+{
+    if (!use_vulkan_world_path() ||
+        !get_vulkan_boolean_env(env_name))
+    {
+        return false;
+    }
+
+    log_vulkan_ui_stage_once("Skipping", stage, env_name);
+    return true;
 }
 
 static void render_vulkan_existing_world_geometry()
@@ -168,6 +280,8 @@ static void render_vulkan_existing_world_geometry()
 
     gPipeline.pushRenderTypeMask();
     gPipeline.andRenderTypeMask(
+        LLPipeline::RENDER_TYPE_SKY,
+        LLPipeline::RENDER_TYPE_WL_SKY,
         LLPipeline::RENDER_TYPE_TERRAIN,
         LLPipeline::RENDER_TYPE_SIMPLE,
         LLPipeline::RENDER_TYPE_ALPHA_MASK,
@@ -206,13 +320,996 @@ static void render_vulkan_existing_world_post_geometry()
     gGL.setColorMask(true, true);
 }
 
-static void render_vulkan_world()
+static bool render_vulkan_world_to_deferred_screen(const LLColor4& clear_color)
 {
-    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan existing world");
+    if (!gPipeline.mRT ||
+        !gPipeline.mRT->deferredScreen.isComplete())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan deferredScreen is not available; falling back to direct swapchain world rendering."
+            << LL_ENDL;
+        return false;
+    }
 
+    gPipeline.mRT->deferredScreen.bindTarget();
+    if (!getRenderBackend().isDrawFramebufferComplete())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan deferredScreen backend framebuffer is incomplete; main render-target world pass cannot be recorded this frame."
+            << LL_ENDL;
+        gPipeline.mRT->deferredScreen.flush();
+        return false;
+    }
+
+    const LLColor4 smoke_sky_color(0.23f, 0.46f, 0.86f, 1.f);
+    const LLColor4& target_clear_color =
+        use_vulkan_smoke_sky_scene() ? smoke_sky_color : clear_color;
+
+    getRenderBackend().setClearColor(
+        target_clear_color.mV[VRED],
+        target_clear_color.mV[VGREEN],
+        target_clear_color.mV[VBLUE],
+        use_vulkan_smoke_sky_scene() ? 1.f : 0.f);
+    gPipeline.mRT->deferredScreen.clear();
+
+    if (use_vulkan_smoke_sky_scene())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan smoke scene is active: deferredScreen is filled with a synthetic sky color and normal world geometry is skipped."
+            << LL_ENDL;
+        gPipeline.mRT->deferredScreen.flush();
+        return true;
+    }
+
+    LLViewerCamera::sCurCameraID = LLViewerCamera::CAMERA_WORLD;
+    LLViewerCamera::getInstance()->setPerspective(
+        NOT_FOR_SELECTION,
+        0,
+        0,
+        gPipeline.mRT->deferredScreen.getWidth(),
+        gPipeline.mRT->deferredScreen.getHeight(),
+        false,
+        LLViewerCamera::getInstance()->getNear(),
+        MAX_FAR_CLIP * 2.f);
+
+    LLGLSPipeline gls_pipeline;
+    LLGLDisable blend(LLRenderCapability::Blend);
+    gPipeline.disableLights();
+    render_vulkan_existing_world_geometry();
+
+    gPipeline.mRT->deferredScreen.flush();
+    return true;
+}
+
+static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
+    U32 attachment_count,
+    bool deferred_depth_bound)
+{
+    LLRenderWorldMaterialParameters parameters;
+
+    LLEnvironment& environment = LLEnvironment::instance();
+    LLSettingsSky::ptr_t sky = environment.getCurrentSky();
+    static LLCachedControl<bool> should_auto_adjust(gSavedSettings, "RenderSkyAutoAdjustLegacy", false);
+
+    LLColor4 ambient(0.28f, 0.28f, 0.28f, 1.f);
+    LLColor3 diffuse_light(0.85f, 0.85f, 0.85f);
+    F32 direct_light_scale = 1.f;
+    F32 reflection_probe_ambiance = 0.f;
+    F32 tonemap_mix = 0.f;
+    if (sky)
+    {
+        ambient = sky->getTotalAmbient();
+        const F32 cloud_shadow = llclamp(sky->getCloudShadow(), 0.f, 1.f);
+        ambient += (LLColor4::white - ambient) * cloud_shadow * 0.5f;
+        direct_light_scale = 1.f - cloud_shadow;
+        reflection_probe_ambiance =
+            llclamp(sky->getReflectionProbeAmbiance(should_auto_adjust()), 0.f, 1.f);
+        tonemap_mix =
+            llclamp(sky->getTonemapMix(should_auto_adjust()), 0.f, 1.f);
+        gPipeline.setupHWLights();
+        const LLColor4& selected_diffuse =
+            environment.getIsSunUp() ? gPipeline.mSunDiffuse : gPipeline.mMoonDiffuse;
+        diffuse_light = LLColor3(selected_diffuse);
+    }
+
+    LLVector4 light_norm = environment.getClampedLightNorm();
+    if (sky)
+    {
+        light_norm = environment.getIsSunUp() ? gPipeline.mSunDir : gPipeline.mMoonDir;
+    }
+    glm::vec4 transformed_light =
+        get_current_modelview() *
+        glm::vec4(
+            light_norm.mV[VX],
+            light_norm.mV[VY],
+            light_norm.mV[VZ],
+            0.f);
+    parameters.mBaseColorRed = llclamp(ambient.mV[VRED], 0.f, 2.f);
+    parameters.mBaseColorGreen = llclamp(ambient.mV[VGREEN], 0.f, 2.f);
+    parameters.mBaseColorBlue = llclamp(ambient.mV[VBLUE], 0.f, 2.f);
+    parameters.mBaseColorAlpha = 1.f;
+    parameters.mEmissiveColorRed = llclamp(diffuse_light.mV[VRED], 0.f, 2.f);
+    parameters.mEmissiveColorGreen = llclamp(diffuse_light.mV[VGREEN], 0.f, 2.f);
+    parameters.mEmissiveColorBlue = llclamp(diffuse_light.mV[VBLUE], 0.f, 2.f);
+    parameters.mHasEmissiveMap = 0.f;
+    parameters.mSpecularColorRed = transformed_light.x;
+    parameters.mSpecularColorGreen = transformed_light.y;
+    parameters.mSpecularColorBlue = transformed_light.z;
+    parameters.mEnvIntensity = direct_light_scale;
+    parameters.mRoughnessFactor = static_cast<F32>(attachment_count);
+    const bool ssao_enabled =
+        deferred_depth_bound &&
+        LLPipeline::RenderDeferredSSAO &&
+        !gCubeSnapshot;
+    parameters.mMetallicFactor = ssao_enabled ? 1.f : 0.f;
+    parameters.mNormalTextureOffsetS =
+        ssao_enabled ? llclamp(LLPipeline::RenderSSAOScale, 0.f, 32.f) : 0.f;
+    parameters.mNormalTextureOffsetT =
+        ssao_enabled ? static_cast<F32>(llmin(LLPipeline::RenderSSAOMaxScale, 32U)) : 0.f;
+    parameters.mORMTextureScaleS =
+        ssao_enabled ? llclamp(LLPipeline::RenderSSAOFactor, 0.1f, 8.f) : 0.f;
+    parameters.mORMTextureScaleT =
+        ssao_enabled ? llclamp(LLPipeline::RenderSSAOEffect.mV[VX], 0.f, 2.f) : 0.f;
+
+    LLColor3 local_light_color = LLColor3::black;
+    F32 local_light_strength = 0.f;
+    U32 visible_light_count = 0;
+    LLVector3 dominant_light_screen(-1.f, -1.f, 0.f);
+    LLViewerCamera* camera = LLViewerCamera::getInstance();
+    if (camera)
+    {
+        gPipeline.getVulkanDeferredLightSummary(
+            *camera,
+            local_light_color,
+            local_light_strength,
+            visible_light_count,
+            dominant_light_screen);
+    }
+    parameters.mHasEmissiveMap = dominant_light_screen.mV[VZ];
+    parameters.mMaterialFlags = dominant_light_screen.mV[VX];
+    parameters.mBaseColorAlpha = dominant_light_screen.mV[VY];
+    parameters.mDiffuseAlphaMode = local_light_color.mV[VRED];
+    parameters.mGLTFAlphaMode = local_light_color.mV[VGREEN];
+    parameters.mBump = local_light_color.mV[VBLUE];
+    parameters.mShiny = local_light_strength;
+    parameters.mSceneAmbientRed = reflection_probe_ambiance;
+    parameters.mSceneAmbientGreen = tonemap_mix;
+    parameters.mSceneAmbientBlue = direct_light_scale;
+    parameters.mSceneDirectScale = sky ? 1.f : 0.f;
+
+    return parameters;
+}
+
+static LLRenderWorldMaterialParameters get_vulkan_final_composite_parameters(
+    U32 deferred_attachment_count,
+    bool deferred_depth_bound)
+{
+    LLRenderWorldMaterialParameters parameters;
+
+    static LLCachedControl<bool> build_no_post(gSavedSettings, "RenderDisablePostProcessing", false);
+    static LLCachedControl<bool> should_auto_adjust(gSavedSettings, "RenderSkyAutoAdjustLegacy", false);
+    static LLCachedControl<F32> exposure(gSavedSettings, "RenderExposure", 1.f);
+    static LLCachedControl<F32> display_gamma(gSavedSettings, "RenderDeferredDisplayGamma", 2.2f);
+    static LLCachedControl<U32> tonemap_type(gSavedSettings, "RenderTonemapType", 0U);
+    static LLCachedControl<F32> cas_sharpness(gSavedSettings, "RenderCASSharpness", 0.4f);
+
+    LLSettingsSky::ptr_t sky = LLEnvironment::instance().getCurrentSky();
+    bool no_post = true;
+    F32 tonemap_mix = 0.f;
+    if (sky)
+    {
+        no_post = gSnapshotNoPost ||
+                  sky->getReflectionProbeAmbiance(should_auto_adjust()) == 0.f ||
+                  (build_no_post && gFloaterTools && gFloaterTools->isAvailable());
+        if (!no_post)
+        {
+            tonemap_mix = llclamp(sky->getTonemapMix(should_auto_adjust()), 0.f, 1.f);
+        }
+    }
+
+    const F32 gamma = llclamp(display_gamma(), 0.1f, 8.f);
+    parameters.mBaseColorRed = no_post ? 1.f : llclamp(exposure(), 0.5f, 4.f);
+    parameters.mBaseColorGreen = no_post ? 1.f : 1.f / gamma;
+    parameters.mBaseColorBlue = no_post ? 0.f : 1.f;
+    parameters.mBaseColorAlpha = no_post ? 0.f : llclamp(cas_sharpness(), 0.f, 1.f);
+    parameters.mRoughnessFactor = tonemap_mix;
+    parameters.mMetallicFactor = no_post ? 0.f : static_cast<F32>(tonemap_type());
+    parameters.mMaterialFlags =
+        no_post || !LLPipeline::sRenderGlow ? 0.f : llclamp(LLPipeline::RenderGlowWarmthAmount, 0.f, 1.f);
+    parameters.mSpecularColorRed = no_post ? 0.f : static_cast<F32>(LLPipeline::RenderFSAAType);
+    parameters.mSpecularColorGreen =
+        LLPipeline::RenderBufferVisualization >= 0 && LLPipeline::RenderBufferVisualization <= 6 ?
+            static_cast<F32>(LLPipeline::RenderBufferVisualization) :
+            -1.f;
+    parameters.mSpecularColorBlue = static_cast<F32>(deferred_attachment_count);
+    const bool dof_enabled =
+        !no_post &&
+        deferred_depth_bound &&
+        (LLPipeline::RenderDepthOfFieldInEditMode || !LLToolMgr::getInstance()->inBuildMode()) &&
+        LLPipeline::RenderDepthOfField &&
+        !gCubeSnapshot;
+    parameters.mEnvIntensity = dof_enabled ? llclamp(LLPipeline::CameraMaxCoF, 0.f, 10.f) : 0.f;
+    parameters.mDiffuseAlphaMode =
+        no_post || !LLPipeline::sRenderGlow ? 0.f : llclamp(LLPipeline::RenderGlowStrength, 0.f, 2.f);
+    parameters.mGLTFAlphaMode =
+        no_post || !LLPipeline::sRenderGlow ? 0.f : llclamp(LLPipeline::RenderGlowMaxExtractAlpha, 0.f, 1.f);
+    parameters.mBump =
+        no_post || !LLPipeline::sRenderGlow ? 0.f : llclamp(LLPipeline::RenderGlowWidth, 0.f, 8.f);
+    parameters.mShiny =
+        no_post || !LLPipeline::sRenderGlow ? 0.f : static_cast<F32>(llclamp(LLPipeline::RenderGlowIterations, 0, 8));
+
+    return parameters;
+}
+
+static S32 get_vulkan_debug_deferred_attachment()
+{
+    static bool initialized = false;
+    static S32 debug_attachment = -1;
+    if (initialized)
+    {
+        return debug_attachment;
+    }
+    initialized = true;
+
+    const std::string value =
+        LLStringUtil::getenv("MARE_VULKAN_DEBUG_DEFERRED_ATTACHMENT");
+    if (value.empty())
+    {
+        return debug_attachment;
+    }
+
+    S32 parsed_attachment = -1;
+    if (!LLStringUtil::convertToS32(value, parsed_attachment))
+    {
+        LL_WARNS("RenderBackend")
+            << "Ignoring invalid MARE_VULKAN_DEBUG_DEFERRED_ATTACHMENT value '"
+            << value
+            << "'. Use 0, 1, 2, 3, or 4 for depth."
+            << LL_ENDL;
+        return debug_attachment;
+    }
+
+    debug_attachment = llclamp(parsed_attachment, -1, 4);
+    if (debug_attachment >= 0)
+    {
+        LL_WARNS("RenderBackend")
+            << "Vulkan deferred composite debug is showing attachment "
+            << debug_attachment
+            << " directly; normal deferred lighting/composite is bypassed for diagnosis."
+            << LL_ENDL;
+    }
+    return debug_attachment;
+}
+
+class LLVulkanCompositeMatrixScope
+{
+public:
+    LLVulkanCompositeMatrixScope()
+        : mMatrixMode(gGL.getMatrixMode()),
+          mProjection(gGL.getProjectionMatrix()),
+          mModelview(gGL.getModelviewMatrix())
+    {
+    }
+
+    ~LLVulkanCompositeMatrixScope()
+    {
+        set_current_projection(mProjection);
+        set_current_modelview(mModelview);
+        gGL.matrixMode(LLRender::MM_PROJECTION);
+        gGL.loadMatrix(glm::value_ptr(mProjection));
+        gGL.matrixMode(LLRender::MM_MODELVIEW);
+        gGL.loadMatrix(glm::value_ptr(mModelview));
+        gGL.matrixMode(mMatrixMode);
+    }
+
+private:
+    LLRender::eMatrixMode mMatrixMode;
+    glm::mat4 mProjection;
+    glm::mat4 mModelview;
+};
+
+template <typename T>
+static void append_vulkan_fullscreen_quad_bytes(std::vector<U8>& bytes, const T& value)
+{
+    const U8* begin = reinterpret_cast<const U8*>(&value);
+    bytes.insert(bytes.end(), begin, begin + sizeof(T));
+}
+
+struct LLVulkanFullscreenQuad
+{
+    LLRenderBufferHandle mVertexBuffer;
+    U64 mPositionOffset = 0;
+    U64 mTexCoordOffset = 0;
+    U64 mColorOffset = 0;
+};
+
+static LLVulkanFullscreenQuad sVulkanFullscreenQuad;
+
+static bool ensure_vulkan_fullscreen_quad()
+{
+    if (sVulkanFullscreenQuad.mVertexBuffer)
+    {
+        return true;
+    }
+
+    // World Vulkan pipelines use a fixed 16-byte position binding stride.
+    const std::array<std::array<F32, 4>, 6> positions =
+    {{
+        {{ -1.f, -1.f, 0.f, 1.f }},
+        {{  1.f, -1.f, 0.f, 1.f }},
+        {{ -1.f,  1.f, 0.f, 1.f }},
+        {{ -1.f,  1.f, 0.f, 1.f }},
+        {{  1.f, -1.f, 0.f, 1.f }},
+        {{  1.f,  1.f, 0.f, 1.f }},
+    }};
+    const std::array<std::array<F32, 2>, 6> texcoords =
+    {{
+        {{ 0.f, 1.f }},
+        {{ 1.f, 1.f }},
+        {{ 0.f, 0.f }},
+        {{ 0.f, 0.f }},
+        {{ 1.f, 1.f }},
+        {{ 1.f, 0.f }},
+    }};
+    const std::array<std::array<U8, 4>, 6> colors =
+    {{
+        {{ 255, 255, 255, 255 }},
+        {{ 255, 255, 255, 255 }},
+        {{ 255, 255, 255, 255 }},
+        {{ 255, 255, 255, 255 }},
+        {{ 255, 255, 255, 255 }},
+        {{ 255, 255, 255, 255 }},
+    }};
+
+    std::vector<U8> bytes;
+    bytes.reserve(
+        positions.size() * sizeof(positions[0]) +
+        texcoords.size() * sizeof(texcoords[0]) +
+        colors.size() * sizeof(colors[0]));
+
+    sVulkanFullscreenQuad.mPositionOffset = bytes.size();
+    for (const auto& position : positions)
+    {
+        append_vulkan_fullscreen_quad_bytes(bytes, position);
+    }
+
+    sVulkanFullscreenQuad.mTexCoordOffset = bytes.size();
+    for (const auto& texcoord : texcoords)
+    {
+        append_vulkan_fullscreen_quad_bytes(bytes, texcoord);
+    }
+
+    sVulkanFullscreenQuad.mColorOffset = bytes.size();
+    for (const auto& color : colors)
+    {
+        append_vulkan_fullscreen_quad_bytes(bytes, color);
+    }
+
+    LLRenderBackend& backend = getRenderBackend();
+    sVulkanFullscreenQuad.mVertexBuffer = backend.createBufferHandle();
+    if (!sVulkanFullscreenQuad.mVertexBuffer)
+    {
+        return false;
+    }
+
+    backend.bindBuffer(
+        LLRenderBufferTarget::Vertex,
+        sVulkanFullscreenQuad.mVertexBuffer);
+    backend.allocateBufferStorage(
+        LLRenderBufferTarget::Vertex,
+        bytes.size(),
+        bytes.data(),
+        LLRenderBufferUsage::StaticDraw);
+    return true;
+}
+
+static bool draw_vulkan_fullscreen_quad()
+{
+    if (!ensure_vulkan_fullscreen_quad())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Unable to create Vulkan fullscreen composite quad."
+            << LL_ENDL;
+        return false;
+    }
+
+    LLRenderBackend& backend = getRenderBackend();
+    for (U32 type = 0; type < LLVertexBuffer::TYPE_MAX; ++type)
+    {
+        backend.disableVertexAttributeArray(type);
+    }
+
+    backend.bindBuffer(
+        LLRenderBufferTarget::Vertex,
+        sVulkanFullscreenQuad.mVertexBuffer);
+    backend.enableVertexAttributeArray(LLVertexBuffer::TYPE_VERTEX);
+    backend.setVertexAttributePointer(
+        LLVertexBuffer::TYPE_VERTEX,
+        3,
+        LLRenderVertexAttributeType::Float32,
+        false,
+        16,
+        reinterpret_cast<const void*>(
+            static_cast<uintptr_t>(sVulkanFullscreenQuad.mPositionOffset)));
+    backend.enableVertexAttributeArray(LLVertexBuffer::TYPE_TEXCOORD0);
+    backend.setVertexAttributePointer(
+        LLVertexBuffer::TYPE_TEXCOORD0,
+        2,
+        LLRenderVertexAttributeType::Float32,
+        false,
+        8,
+        reinterpret_cast<const void*>(
+            static_cast<uintptr_t>(sVulkanFullscreenQuad.mTexCoordOffset)));
+    backend.enableVertexAttributeArray(LLVertexBuffer::TYPE_COLOR);
+    backend.setVertexAttributePointer(
+        LLVertexBuffer::TYPE_COLOR,
+        4,
+        LLRenderVertexAttributeType::UnsignedByte,
+        true,
+        4,
+        reinterpret_cast<const void*>(
+            static_cast<uintptr_t>(sVulkanFullscreenQuad.mColorOffset)));
+
+    gGL.matrixMode(LLRender::MM_PROJECTION);
+    gGL.loadIdentity();
+    gGL.matrixMode(LLRender::MM_MODELVIEW);
+    gGL.loadIdentity();
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+    return true;
+}
+
+static LLRect make_vulkan_target_rect(S32 width, S32 height)
+{
+    return LLRect(0, height, width, 0);
+}
+
+static LLRect get_vulkan_world_view_rect()
+{
+    return gViewerWindow ?
+        gViewerWindow->getWorldViewRectRaw() :
+        LLRect(0, 0, 0, 0);
+}
+
+static void set_vulkan_composite_viewport(const LLRect& rect)
+{
+    getRenderBackend().setViewport(
+        rect.mLeft,
+        rect.mBottom,
+        rect.getWidth(),
+        rect.getHeight());
+    getRenderBackend().setScissor(
+        rect.mLeft,
+        rect.mBottom,
+        rect.getWidth(),
+        rect.getHeight());
+}
+
+static void render_vulkan_deferred_screen_composite_quad(const LLRect& viewport_rect)
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan deferredScreen composite");
+    LLVulkanCompositeMatrixScope matrix_scope;
+
+    const U32 deferred_attachment_count =
+        llmin(gPipeline.mRT->deferredScreen.getNumTextures(), 4U);
+    const bool use_deferred_composite = deferred_attachment_count >= 3U;
+    const bool has_deferred_depth = gPipeline.mRT->deferredScreen.getDepth() != 0;
+    LLRenderWorldMaterialParameters deferred_composite_parameters;
+    if (use_deferred_composite)
+    {
+        deferred_composite_parameters =
+            get_vulkan_deferred_composite_parameters(
+                deferred_attachment_count,
+                has_deferred_depth);
+    }
+
+    LLGLSUIDefault gls_ui;
+    LLGLDepthTest depth(false);
+    LLGLDisable blend(LLRenderCapability::Blend);
+    LLGLDisable cull(LLRenderCapability::CullFace);
+
+    gViewerWindow->setup2DRender();
+    gGL.pushMatrix();
+    {
+        const LLVector2& display_scale = gViewerWindow->getDisplayScale();
+        gGL.scalef(display_scale.mV[VX], display_scale.mV[VY], 1.f);
+
+        const S32 debug_attachment = get_vulkan_debug_deferred_attachment();
+        bool debug_attachment_rendered = false;
+        if (debug_attachment >= 0)
+        {
+            if (use_deferred_composite)
+            {
+                gPipeline.mRT->deferredScreen.bindTexture(0, 0, LLTexUnit::TFO_BILINEAR);
+                for (U32 attachment = 0; attachment < deferred_attachment_count; ++attachment)
+                {
+                    gPipeline.mRT->deferredScreen.bindTexture(
+                        attachment,
+                        static_cast<S32>(attachment + 1),
+                        LLTexUnit::TFO_BILINEAR);
+                }
+
+                bool deferred_debug_depth_bound = false;
+                if (gPipeline.mRT->deferredScreen.getDepth() != 0)
+                {
+                    deferred_debug_depth_bound =
+                        gGL.getTexUnit(5)->bind(&gPipeline.mRT->deferredScreen, true);
+                }
+
+                LLRenderWorldMaterialParameters debug_composite_parameters =
+                    get_vulkan_final_composite_parameters(
+                        deferred_attachment_count,
+                        deferred_debug_depth_bound);
+                debug_composite_parameters.mSpecularColorGreen =
+                    static_cast<F32>(debug_attachment);
+                debug_composite_parameters.mSpecularColorBlue =
+                    static_cast<F32>(deferred_attachment_count);
+
+                getRenderBackend().setWorldDrawEnabled(true);
+                getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::FinalComposite);
+                getRenderBackend().setWorldMaterialParameters(debug_composite_parameters);
+                getRenderBackend().setWorldTextureTransform({});
+                getRenderBackend().setWorldTerrainParameters({});
+                getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
+                set_vulkan_composite_viewport(viewport_rect);
+                getRenderBackend().setCapability(LLRenderCapability::DepthTest, false);
+                getRenderBackend().setDepthWriteEnabled(false);
+                getRenderBackend().setCapability(LLRenderCapability::Blend, false);
+                getRenderBackend().setCapability(LLRenderCapability::CullFace, false);
+                getRenderBackend().setColorMask({ true, true, true, true });
+                draw_vulkan_fullscreen_quad();
+                getRenderBackend().setWorldDrawEnabled(false);
+                getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+                getRenderBackend().setWorldMaterialParameters({});
+                gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+                for (U32 attachment = 0; attachment < deferred_attachment_count; ++attachment)
+                {
+                    gGL.getTexUnit(static_cast<S32>(attachment + 1))->unbind(LLTexUnit::TT_TEXTURE);
+                }
+                if (deferred_debug_depth_bound)
+                {
+                    gGL.getTexUnit(5)->unbind(LLTexUnit::TT_TEXTURE);
+                }
+                debug_attachment_rendered = true;
+            }
+            else
+            {
+                LL_WARNS_ONCE("RenderBackend")
+                    << "Vulkan deferred composite debug attachment "
+                    << debug_attachment
+                    << " is unavailable."
+                    << LL_ENDL;
+            }
+        }
+
+        bool deferred_depth_bound = false;
+        if (!debug_attachment_rendered)
+        {
+            for (U32 attachment = 0; attachment < deferred_attachment_count; ++attachment)
+            {
+                gPipeline.mRT->deferredScreen.bindTexture(
+                    attachment,
+                    static_cast<S32>(attachment),
+                    LLTexUnit::TFO_BILINEAR);
+            }
+            if (gPipeline.mRT->deferredScreen.getDepth() != 0)
+            {
+                deferred_depth_bound =
+                    gGL.getTexUnit(4)->bind(&gPipeline.mRT->deferredScreen, true);
+            }
+
+            if (use_deferred_composite)
+            {
+                getRenderBackend().setWorldDrawEnabled(true);
+                getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::DeferredComposite);
+                getRenderBackend().setWorldTextureTransform({});
+                getRenderBackend().setWorldTerrainParameters({});
+                getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
+                getRenderBackend().setWorldMaterialParameters(
+                    deferred_composite_parameters);
+            }
+            else
+            {
+                LL_WARNS_ONCE("RenderBackend")
+                    << "Vulkan deferredScreen has fewer than three G-buffer attachments; using color-only swapchain composite."
+                    << LL_ENDL;
+            }
+
+            set_vulkan_composite_viewport(viewport_rect);
+            getRenderBackend().setCapability(LLRenderCapability::DepthTest, false);
+            getRenderBackend().setDepthWriteEnabled(false);
+            getRenderBackend().setCapability(LLRenderCapability::Blend, false);
+            getRenderBackend().setCapability(LLRenderCapability::CullFace, false);
+            getRenderBackend().setColorMask({ true, true, true, true });
+            draw_vulkan_fullscreen_quad();
+            if (use_deferred_composite)
+            {
+                getRenderBackend().setWorldDrawEnabled(false);
+                getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+                getRenderBackend().setWorldMaterialParameters({});
+            }
+            for (U32 attachment = 0; attachment < deferred_attachment_count; ++attachment)
+            {
+                gGL.getTexUnit(static_cast<S32>(attachment))->unbind(LLTexUnit::TT_TEXTURE);
+            }
+            if (deferred_depth_bound)
+            {
+                gGL.getTexUnit(4)->unbind(LLTexUnit::TT_TEXTURE);
+            }
+        }
+    }
+    gGL.popMatrix();
+}
+
+static void render_vulkan_final_composite_quad(
+    LLRenderTarget& source,
+    const LLRect& viewport_rect)
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan final composite quad");
+    LLVulkanCompositeMatrixScope matrix_scope;
+
+    LLGLSUIDefault gls_ui;
+    LLGLDepthTest depth(false);
+    LLGLDisable blend(LLRenderCapability::Blend);
+    LLGLDisable cull(LLRenderCapability::CullFace);
+
+    gViewerWindow->setup2DRender();
+    gGL.pushMatrix();
+    {
+        const LLVector2& display_scale = gViewerWindow->getDisplayScale();
+        gGL.scalef(display_scale.mV[VX], display_scale.mV[VY], 1.f);
+
+        source.bindTexture(0, 0, LLTexUnit::TFO_BILINEAR);
+        U32 deferred_attachment_count = 0;
+        bool deferred_depth_bound = false;
+        if (gPipeline.mRT &&
+            gPipeline.mRT->deferredScreen.isComplete())
+        {
+            deferred_attachment_count =
+                llmin(gPipeline.mRT->deferredScreen.getNumTextures(), 4U);
+            for (U32 attachment = 0; attachment < deferred_attachment_count; ++attachment)
+            {
+                gPipeline.mRT->deferredScreen.bindTexture(
+                    attachment,
+                    static_cast<S32>(attachment + 1),
+                    LLTexUnit::TFO_BILINEAR);
+            }
+            if (gPipeline.mRT->deferredScreen.getDepth() != 0)
+            {
+                deferred_depth_bound =
+                    gGL.getTexUnit(5)->bind(&gPipeline.mRT->deferredScreen, true);
+            }
+        }
+
+        getRenderBackend().setWorldDrawEnabled(true);
+        getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::FinalComposite);
+        getRenderBackend().setWorldTextureTransform({});
+        getRenderBackend().setWorldTerrainParameters({});
+        getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
+        getRenderBackend().setWorldMaterialParameters(
+            get_vulkan_final_composite_parameters(deferred_attachment_count, deferred_depth_bound));
+        set_vulkan_composite_viewport(viewport_rect);
+        getRenderBackend().setCapability(LLRenderCapability::DepthTest, false);
+        getRenderBackend().setDepthWriteEnabled(false);
+        getRenderBackend().setCapability(LLRenderCapability::Blend, false);
+        getRenderBackend().setCapability(LLRenderCapability::CullFace, false);
+        getRenderBackend().setColorMask({ true, true, true, true });
+        draw_vulkan_fullscreen_quad();
+        getRenderBackend().setWorldDrawEnabled(false);
+        getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+        getRenderBackend().setWorldMaterialParameters({});
+        gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+        for (U32 attachment = 0; attachment < deferred_attachment_count; ++attachment)
+        {
+            gGL.getTexUnit(static_cast<S32>(attachment + 1))->unbind(LLTexUnit::TT_TEXTURE);
+        }
+        if (deferred_depth_bound)
+        {
+            gGL.getTexUnit(5)->unbind(LLTexUnit::TT_TEXTURE);
+        }
+    }
+    gGL.popMatrix();
+}
+
+static void render_vulkan_screen_target_to_swapchain(
+    LLRenderTarget& target,
+    const LLColor4& clear_color)
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan final composite to swapchain");
+
+    getRenderBackend().setClearColor(
+        clear_color.mV[VRED],
+        clear_color.mV[VGREEN],
+        clear_color.mV[VBLUE],
+        1.f);
+    getRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+
+    render_vulkan_final_composite_quad(
+        target,
+        get_vulkan_world_view_rect());
+}
+
+static void render_vulkan_copy_target_to_target(
+    LLRenderTarget& source,
+    LLRenderTarget& destination,
+    const LLColor4& clear_color)
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan render target copy");
+    LLVulkanCompositeMatrixScope matrix_scope;
+
+    destination.bindTarget();
+    getRenderBackend().setClearColor(
+        clear_color.mV[VRED],
+        clear_color.mV[VGREEN],
+        clear_color.mV[VBLUE],
+        1.f);
+    destination.clear(LL_RENDER_CLEAR_COLOR);
+
+    LLGLSUIDefault gls_ui;
+    LLGLDepthTest depth(false);
+    LLGLDisable blend(LLRenderCapability::Blend);
+    LLGLDisable cull(LLRenderCapability::CullFace);
+
+    gViewerWindow->setup2DRender();
+    gGL.pushMatrix();
+    {
+        const LLVector2& display_scale = gViewerWindow->getDisplayScale();
+        gGL.scalef(display_scale.mV[VX], display_scale.mV[VY], 1.f);
+
+        source.bindTexture(0, 0, LLTexUnit::TFO_BILINEAR);
+        getRenderBackend().setWorldDrawEnabled(true);
+        getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+        getRenderBackend().setWorldTextureTransform({});
+        getRenderBackend().setWorldTerrainParameters({});
+        getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
+        getRenderBackend().setWorldMaterialParameters({});
+        getRenderBackend().setViewport(
+            0,
+            0,
+            destination.getWidth(),
+            destination.getHeight());
+        getRenderBackend().setScissor(
+            0,
+            0,
+            destination.getWidth(),
+            destination.getHeight());
+        getRenderBackend().setCapability(LLRenderCapability::DepthTest, false);
+        getRenderBackend().setDepthWriteEnabled(false);
+        getRenderBackend().setCapability(LLRenderCapability::Blend, false);
+        getRenderBackend().setCapability(LLRenderCapability::CullFace, false);
+        getRenderBackend().setColorMask({ true, true, true, true });
+        draw_vulkan_fullscreen_quad();
+        getRenderBackend().setWorldDrawEnabled(false);
+        gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+    }
+    gGL.popMatrix();
+
+    destination.flush();
+}
+
+static void render_vulkan_copy_target_to_swapchain(
+    LLRenderTarget& source,
+    const LLColor4& clear_color)
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan render target copy to swapchain");
+    LLVulkanCompositeMatrixScope matrix_scope;
+
+    getRenderBackend().setClearColor(
+        clear_color.mV[VRED],
+        clear_color.mV[VGREEN],
+        clear_color.mV[VBLUE],
+        1.f);
+    getRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+
+    LLGLSUIDefault gls_ui;
+    LLGLDepthTest depth(false);
+    LLGLDisable blend(LLRenderCapability::Blend);
+    LLGLDisable cull(LLRenderCapability::CullFace);
+
+    gViewerWindow->setup2DRender();
+    gGL.pushMatrix();
+    {
+        const LLVector2& display_scale = gViewerWindow->getDisplayScale();
+        gGL.scalef(display_scale.mV[VX], display_scale.mV[VY], 1.f);
+
+        source.bindTexture(0, 0, LLTexUnit::TFO_BILINEAR);
+        getRenderBackend().setWorldDrawEnabled(true);
+        getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+        getRenderBackend().setWorldTextureTransform({});
+        getRenderBackend().setWorldTerrainParameters({});
+        getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
+        getRenderBackend().setWorldMaterialParameters({});
+        set_vulkan_composite_viewport(get_vulkan_world_view_rect());
+        getRenderBackend().setCapability(LLRenderCapability::DepthTest, false);
+        getRenderBackend().setDepthWriteEnabled(false);
+        getRenderBackend().setCapability(LLRenderCapability::Blend, false);
+        getRenderBackend().setCapability(LLRenderCapability::CullFace, false);
+        getRenderBackend().setColorMask({ true, true, true, true });
+        draw_vulkan_fullscreen_quad();
+        getRenderBackend().setWorldDrawEnabled(false);
+        gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+    }
+    gGL.popMatrix();
+}
+
+static void render_vulkan_final_composite_target_to_target(
+    LLRenderTarget& source,
+    LLRenderTarget& destination,
+    const LLColor4& clear_color)
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan final composite to render target");
+
+    destination.bindTarget();
+    getRenderBackend().setClearColor(
+        clear_color.mV[VRED],
+        clear_color.mV[VGREEN],
+        clear_color.mV[VBLUE],
+        1.f);
+    destination.clear(LL_RENDER_CLEAR_COLOR);
+
+    render_vulkan_final_composite_quad(
+        source,
+        make_vulkan_target_rect(destination.getWidth(), destination.getHeight()));
+
+    destination.flush();
+}
+
+static LLRenderTarget* render_vulkan_deferred_screen_to_light_target(
+    const LLColor4& clear_color)
+{
+    if (!gPipeline.mRT ||
+        !gPipeline.mRT->deferredLight.isComplete())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan deferredLight target is not available; compositing deferredScreen directly to the screen target."
+            << LL_ENDL;
+        return nullptr;
+    }
+
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan deferred light composite");
+
+    LLRenderTarget& light_target = gPipeline.mRT->deferredLight;
+    light_target.bindTarget();
+    getRenderBackend().setClearColor(
+        clear_color.mV[VRED],
+        clear_color.mV[VGREEN],
+        clear_color.mV[VBLUE],
+        1.f);
+    light_target.clear(LL_RENDER_CLEAR_COLOR);
+
+    render_vulkan_deferred_screen_composite_quad(
+        make_vulkan_target_rect(light_target.getWidth(), light_target.getHeight()));
+
+    light_target.flush();
+    return &light_target;
+}
+
+static bool render_vulkan_lit_world_to_screen_target(
+    LLRenderTarget* lit_world_target,
+    const LLColor4& clear_color)
+{
+    if (!gPipeline.mRT ||
+        !gPipeline.mRT->screen.isComplete())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan screen render target is not available; compositing directly to the swapchain."
+            << LL_ENDL;
+        return false;
+    }
+
+    LLRenderTarget& screen_target = gPipeline.mRT->screen;
+    if (lit_world_target)
+    {
+        render_vulkan_copy_target_to_target(*lit_world_target, screen_target, clear_color);
+    }
+    else
+    {
+        screen_target.bindTarget();
+        getRenderBackend().setClearColor(
+            clear_color.mV[VRED],
+            clear_color.mV[VGREEN],
+            clear_color.mV[VBLUE],
+            1.f);
+        // Preserve the shared deferredScreen depth attachment for post-deferred
+        // overlays; the Vulkan offscreen render pass loads depth for color-only
+        // clears.
+        screen_target.clear(LL_RENDER_CLEAR_COLOR);
+
+        render_vulkan_deferred_screen_composite_quad(
+            make_vulkan_target_rect(screen_target.getWidth(), screen_target.getHeight()));
+        screen_target.flush();
+    }
+
+    screen_target.bindTarget();
+    gViewerWindow->setup3DRender();
+    gPipeline.disableLights();
+    render_vulkan_existing_world_post_geometry();
+
+    screen_target.flush();
+    return true;
+}
+
+static LLRenderTarget& render_vulkan_screen_target_to_post_target(
+    LLRenderTarget& screen_target,
+    const LLColor4& clear_color)
+{
+    if (!gPipeline.mRT ||
+        !gPipeline.mRT->deferredLight.isComplete())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan deferredLight target is not available; copying screen target directly to the swapchain."
+            << LL_ENDL;
+        return screen_target;
+    }
+
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan screen target post-compose");
+
+    LLRenderTarget& post_target = gPipeline.mRT->deferredLight;
+    render_vulkan_copy_target_to_target(screen_target, post_target, clear_color);
+    return post_target;
+}
+
+static LLRenderTarget& render_vulkan_post_target_to_final_target(
+    LLRenderTarget& post_target,
+    const LLColor4& clear_color,
+    bool& final_composite_applied)
+{
+    final_composite_applied = false;
+    if (!gPipeline.mPostPingMap.isComplete())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan final post-process target is not available; applying final composite directly to the swapchain."
+            << LL_ENDL;
+        return post_target;
+    }
+
+    render_vulkan_final_composite_target_to_target(
+        post_target,
+        gPipeline.mPostPingMap,
+        clear_color);
+    final_composite_applied = true;
+    return gPipeline.mPostPingMap;
+}
+
+static void render_vulkan_deferred_screen_to_swapchain(const LLColor4& clear_color)
+{
+    getRenderBackend().setClearColor(
+        clear_color.mV[VRED],
+        clear_color.mV[VGREEN],
+        clear_color.mV[VBLUE],
+        1.f);
+    getRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+
+    render_vulkan_deferred_screen_composite_quad(
+        get_vulkan_world_view_rect());
+}
+
+static bool use_vulkan_staged_post_targets()
+{
+    return false;
+}
+
+static bool use_vulkan_post_deferred_overlays_after_composite()
+{
+    return false;
+}
+
+static void render_vulkan_depth_prepass()
+{
+    LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan depth prepass");
+
+    LL_WARNS_ONCE("RenderBackend")
+        << "Vulkan is replaying deferred geometry as a depth prepass until deferred depth copy support exists."
+        << LL_ENDL;
+
+    LLGLSUIDefault gls_ui;
+    LLGLDepthTest depth(true, true, LLRenderDepthFunction::LessEqual);
+    LLGLDisable blend(LLRenderCapability::Blend);
+
+    gGL.setColorMask(false, false);
+    gPipeline.disableLights();
     gViewerWindow->setup3DRender();
     render_vulkan_existing_world_geometry();
-    render_vulkan_existing_world_post_geometry();
+    gGL.setColorMask(true, true);
 }
 
 void display_startup()
@@ -540,6 +1637,41 @@ static void render_vulkan_world_frame()
         logged = true;
     }
 
+    static bool sLoggedRlvMaskState = false;
+    static bool sLastRlvMaskState = false;
+    const bool rlv_world_mask_active =
+        gRRenabled && gAgent.mRRInterface.mVisionRestricted;
+    if (!sLoggedRlvMaskState || sLastRlvMaskState != rlv_world_mask_active)
+    {
+        LL_INFOS("RenderBackend")
+            << "Vulkan RLV world mask state: active "
+            << rlv_world_mask_active
+            << ", first garbage collection complete "
+            << gAgent.mRRInterface.mGarbageCollectorCalledOnce
+            << ", camdraw min/max "
+            << gAgent.mRRInterface.mCamDistDrawMin
+            << "/"
+            << gAgent.mRRInterface.mCamDistDrawMax
+            << ", camdraw alpha min/max "
+            << gAgent.mRRInterface.mCamDistDrawAlphaMin
+            << "/"
+            << gAgent.mRRInterface.mCamDistDrawAlphaMax
+            << ", camtextures "
+            << gAgent.mRRInterface.mContainsCamTextures
+            << ", setsphere "
+            << gAgent.mRRInterface.mContainsSetsphere
+            << "."
+            << LL_ENDL;
+        if (rlv_world_mask_active && !gAgent.mRRInterface.mGarbageCollectorCalledOnce)
+        {
+            LL_WARNS("RenderBackend")
+                << "Vulkan world may be intentionally masked by RLV blind startup until the first RLV garbage collection removes startup restrictions."
+                << LL_ENDL;
+        }
+        sLoggedRlvMaskState = true;
+        sLastRlvMaskState = rlv_world_mask_active;
+    }
+
     LLColor4 clear_color = gSky.mVOSkyp ?
         gSky.getSkyFogColor() :
         LLColor4(0.025f, 0.03f, 0.04f, 1.f);
@@ -550,16 +1682,98 @@ static void render_vulkan_world_frame()
         clear_color.mV[VGREEN],
         clear_color.mV[VBLUE],
         1.f);
-    getRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    const bool rendered_deferred_screen =
+        render_vulkan_world_to_deferred_screen(clear_color);
+    if (!rendered_deferred_screen)
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan deferredScreen did not render this frame; skipping direct world fallback so the main render-target path failure stays visible."
+            << LL_ENDL;
+    }
 
-    LLGLSUIDefault gls_ui;
-    gPipeline.disableLights();
-    render_vulkan_world();
-    gViewerWindow->setup2DRender();
-    gViewerWindow->draw();
-    gViewerWindow->updateDebugText();
-    gViewerWindow->drawDebugText();
-    gGL.flush();
+    if (rendered_deferred_screen)
+    {
+        if (use_vulkan_smoke_sky_scene())
+        {
+            LL_WARNS_ONCE("RenderBackend")
+                << "Vulkan smoke scene is copying the synthetic deferredScreen color target directly to the swapchain; deferred lighting/composite is bypassed for this test."
+                << LL_ENDL;
+            render_vulkan_copy_target_to_swapchain(
+                gPipeline.mRT->deferredScreen,
+                clear_color);
+        }
+        else if (use_vulkan_debug_copy_deferred_color_to_swapchain())
+        {
+            LL_WARNS_ONCE("RenderBackend")
+                << "Vulkan debug is copying deferredScreen color directly to the swapchain; deferred lighting/composite is bypassed for diagnosis."
+                << LL_ENDL;
+            render_vulkan_copy_target_to_swapchain(
+                gPipeline.mRT->deferredScreen,
+                clear_color);
+        }
+        else if (use_vulkan_staged_post_targets())
+        {
+            LLRenderTarget* lit_world_target =
+                render_vulkan_deferred_screen_to_light_target(clear_color);
+            if (render_vulkan_lit_world_to_screen_target(lit_world_target, clear_color))
+            {
+                LLRenderTarget& post_target =
+                    render_vulkan_screen_target_to_post_target(gPipeline.mRT->screen, clear_color);
+                bool final_composite_applied = false;
+                LLRenderTarget& final_world_target =
+                    render_vulkan_post_target_to_final_target(
+                        post_target,
+                        clear_color,
+                        final_composite_applied);
+                if (final_composite_applied)
+                {
+                    render_vulkan_copy_target_to_swapchain(final_world_target, clear_color);
+                }
+                else
+                {
+                    render_vulkan_screen_target_to_swapchain(final_world_target, clear_color);
+                }
+            }
+            else
+            {
+                render_vulkan_deferred_screen_to_swapchain(clear_color);
+                render_vulkan_depth_prepass();
+                LLGLSUIDefault gls_ui;
+                gViewerWindow->setup3DRender();
+                gPipeline.disableLights();
+                render_vulkan_existing_world_post_geometry();
+            }
+        }
+        else
+        {
+            LL_WARNS_ONCE("RenderBackend")
+                << "Vulkan staged post targets are bypassed after a black-frame regression; compositing deferredScreen directly to the swapchain until the offscreen hops are revalidated."
+                << LL_ENDL;
+            render_vulkan_deferred_screen_to_swapchain(clear_color);
+            if (use_vulkan_post_deferred_overlays_after_composite())
+            {
+                render_vulkan_depth_prepass();
+                LLGLSUIDefault gls_ui;
+                gViewerWindow->setup3DRender();
+                gPipeline.disableLights();
+                render_vulkan_existing_world_post_geometry();
+            }
+            else
+            {
+                LL_WARNS_ONCE("RenderBackend")
+                    << "Vulkan post-deferred overlays are skipped while diagnosing the deferredScreen black-frame path."
+                    << LL_ENDL;
+            }
+        }
+    }
+    else
+    {
+        getRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    }
+
+    // UI is submitted by render_ui_internal(..., false) after the Vulkan world
+    // frame so it uses the normal UI shader setup without re-entering
+    // renderFinalize().
 }
 
 // Paint the display!
@@ -580,10 +1794,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
         getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
         gViewerWindow->getWindow()->swapBuffers();
         LLPipeline::refreshCachedSettings();
-        if (!vulkan_backend_ready)
-        {
-            gPipeline.resizeScreenTexture();
-        }
+        gPipeline.resizeScreenTexture();
         gResizeScreenTexture = false;
         gWindowResized = false;
         return;
@@ -872,6 +2083,13 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
             getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
         }
     }
+    else if (vulkan_world_path &&
+        gPipeline.hasRenderDebugFeatureMask(LLPipeline::RENDER_DEBUG_FEATURE_DYNAMIC_TEXTURES))
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan skipped legacy OpenGL stage: dynamic texture update. Dynamic texture rendering still needs Vulkan render-target ownership."
+            << LL_ENDL;
+    }
 //MK
     //}
 //mk
@@ -890,6 +2108,12 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
             LL_PROFILE_GPU_ZONE("hero manager")
             gPipeline.mHeroProbeManager.update();
             gPipeline.mHeroProbeManager.renderProbes();
+        }
+        else if (vulkan_world_path && gPipeline.RenderMirrors && !gSnapshot)
+        {
+            LL_WARNS_ONCE("RenderBackend")
+                << "Vulkan skipped legacy OpenGL stage: hero/reflection probes. Probe rendering still needs Vulkan cubemap/render-target ownership."
+                << LL_ENDL;
         }
 
         LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("display - 1");
@@ -966,10 +2190,7 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
             LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("display - 2")
             if (gResizeScreenTexture)
             {
-                if (!vulkan_world_path)
-                {
-                    gPipeline.resizeScreenTexture();
-                }
+                gPipeline.resizeScreenTexture();
                 gResizeScreenTexture = false;
             }
 
@@ -1005,6 +2226,12 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
                 gViewerWindow->setup3DViewport();
 
                 LLGLState::checkStates();
+            }
+            else if (vulkan_world_path && !for_snapshot)
+            {
+                LL_WARNS_ONCE("RenderBackend")
+                    << "Vulkan skipped legacy OpenGL stage: sun shadow generation. Shadow maps still need Vulkan render-pass and shadow pipeline ownership."
+                    << LL_ENDL;
             }
             getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
         }
@@ -1092,6 +2319,17 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
             render_vulkan_world_frame();
             if (!for_snapshot)
             {
+                if (use_vulkan_debug_skip_ui_after_world())
+                {
+                    LL_WARNS_ONCE("RenderBackend")
+                        << "Vulkan debug is skipping UI after the world frame; this isolates world composite visibility from progress/UI overlays."
+                        << LL_ENDL;
+                }
+                else
+                {
+                    LLAppViewer::instance()->pingMainloopTimeout("Display:RenderUI");
+                    render_ui_internal(1.f, 0, false);
+                }
                 swap();
             }
         }
@@ -1472,6 +2710,23 @@ void render_hud_attachments()
     // smoothly interpolate current zoom level
     gAgentCamera.mHUDCurZoom = lerp(gAgentCamera.mHUDCurZoom, gAgentCamera.getAgentHUDTargetZoom(), LLSmoothInterpolation::getInterpolant(0.03f));
 
+    if (use_vulkan_world_path() &&
+        !use_vulkan_debug_render_legacy_hud_attachments())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan skipped legacy HUD attachment geometry. "
+            << "render_hud_attachments() uses the legacy post-deferred HUD pipeline and can cover the Vulkan world frame. "
+            << "Set MARE_VULKAN_DEBUG_RENDER_LEGACY_HUD_ATTACHMENTS=1 to re-enable it for isolation."
+            << LL_ENDL;
+        gGL.matrixMode(LLRender::MM_PROJECTION);
+        gGL.popMatrix();
+        gGL.matrixMode(LLRender::MM_MODELVIEW);
+        gGL.popMatrix();
+        set_current_projection(current_proj);
+        set_current_modelview(current_mod);
+        return;
+    }
+
     if (LLPipeline::sShowHUDAttachments && !gDisconnected && setup_hud_matrices())
     {
         LLPipeline::sRenderingHUDs = true;
@@ -1660,6 +2915,11 @@ bool setup_hud_matrices(const LLRect& screen_region)
 
 void render_ui(F32 zoom_factor, int subfield)
 {
+    render_ui_internal(zoom_factor, subfield, true);
+}
+
+static void render_ui_internal(F32 zoom_factor, int subfield, bool finalize_scene)
+{
     LLPerfStats::RecordSceneTime T ( LLPerfStats::StatType_t::RENDER_UI ); // render time capture - Primary UI stat can have HUD time overlap (TODO)
     LL_PROFILE_ZONE_SCOPED_CATEGORY_UI; //LL_RECORD_BLOCK_TIME(FTM_RENDER_UI);
     LL_PROFILE_GPU_ZONE("ui");
@@ -1683,25 +2943,94 @@ void render_ui(F32 zoom_factor, int subfield)
         gGL.popMatrix();
     }
 
-    // apply gamma correction and post effects
-    gPipeline.renderFinalize();
+    if (finalize_scene)
+    {
+        // apply gamma correction and post effects
+        gPipeline.renderFinalize();
+    }
 
 //MK
         // Draw a big black sphere around our avatar if the camera render is limited by RLV
         // This call happens only while the avatar is a cloud. This is a crutch while we wait
         // for the real call in lldrawpoolavatar.cpp to be possible.
-        if (gRRenabled && (!gAgentAvatarp || !gAgentAvatarp->isFullyLoaded() || !gAgent.mRRInterface.sRenderLimitRenderedThisFrame))
+        const bool avatar_render_limit_pending =
+            !gAgentAvatarp ||
+            !gAgentAvatarp->isFullyLoaded() ||
+            !gAgent.mRRInterface.sRenderLimitRenderedThisFrame;
+        const bool vulkan_world_path = use_vulkan_world_path() && !gDisconnected;
+        const bool draw_rlv_render_limit =
+            gRRenabled &&
+            avatar_render_limit_pending &&
+            (!vulkan_world_path || gAgent.mRRInterface.mVisionRestricted);
+
+        if (draw_rlv_render_limit)
         {
-            gAgent.mRRInterface.drawRenderLimit (TRUE); // force opaque because in this degraded case, it is possible to cheat if the outer sphere is not fully opaque because it will be rendered differently (probably the OpenGL engine is not configured for this at this stage)
+            if (vulkan_world_path && use_vulkan_debug_skip_rlv_render_limit())
+            {
+                LL_WARNS_ONCE("RenderBackend")
+                    << "Vulkan debug is skipping only the RLV render-limit overlay; normal UI still renders. "
+                    << "This isolates RLV startup/camera masking from the Vulkan world image."
+                    << LL_ENDL;
+            }
+            else
+            {
+                if (vulkan_world_path)
+                {
+                    LL_WARNS_ONCE("RenderBackend")
+                        << "Vulkan is drawing the RLV render-limit overlay in the UI phase; this may intentionally cover the world while camera restrictions are active. "
+                        << "First garbage collection complete "
+                        << gAgent.mRRInterface.mGarbageCollectorCalledOnce
+                        << ", camdraw min/max "
+                        << gAgent.mRRInterface.mCamDistDrawMin
+                        << "/"
+                        << gAgent.mRRInterface.mCamDistDrawMax
+                        << ", camtextures "
+                        << gAgent.mRRInterface.mContainsCamTextures
+                        << "."
+                        << LL_ENDL;
+                }
+                gAgent.mRRInterface.drawRenderLimit (TRUE); // force opaque because in this degraded case, it is possible to cheat if the outer sphere is not fully opaque because it will be rendered differently (probably the OpenGL engine is not configured for this at this stage)
+            }
+        }
+        else if (vulkan_world_path && gRRenabled && avatar_render_limit_pending && !gAgent.mRRInterface.mVisionRestricted)
+        {
+            static bool sLoggedInactiveVulkanRlvRenderLimit = false;
+            if (!sLoggedInactiveVulkanRlvRenderLimit)
+            {
+                LL_INFOS("RenderBackend")
+                    << "Vulkan skipped inactive RLV render-limit UI draw: avatar exists "
+                    << (gAgentAvatarp != nullptr)
+                    << ", avatar fully loaded "
+                    << (gAgentAvatarp && gAgentAvatarp->isFullyLoaded())
+                    << ", render limit rendered this frame "
+                    << gAgent.mRRInterface.sRenderLimitRenderedThisFrame
+                    << ", first garbage collection complete "
+                    << gAgent.mRRInterface.mGarbageCollectorCalledOnce
+                    << "."
+                    << LL_ENDL;
+                sLoggedInactiveVulkanRlvRenderLimit = true;
+            }
         }
 //mk
     {
         LLGLState::checkStates();
 
         LL_PROFILE_ZONE_NAMED_CATEGORY_UI("HUD");
-        render_hud_elements();
+        trace_vulkan_ui_stage("render_hud_elements");
+        if (!should_skip_vulkan_ui_stage(
+                "MARE_VULKAN_DEBUG_SKIP_UI_HUD_ELEMENTS",
+                "render_hud_elements"))
+        {
+            render_hud_elements();
+        }
         LLGLState::checkStates();
-        render_hud_attachments();
+        trace_vulkan_ui_stage("render_hud_attachments");
+        if (!should_skip_vulkan_ui_stage(
+                "MARE_VULKAN_DEBUG_SKIP_UI_HUD_ATTACHMENTS",
+                "render_hud_attachments"))
+        {
+            render_hud_attachments();
+        }
 
         LLGLState::checkStates();
 
@@ -1718,7 +3047,13 @@ void render_ui(F32 zoom_factor, int subfield)
             {
                 LL_PROFILE_ZONE_NAMED_CATEGORY_UI("UI 3D"); //LL_RECORD_BLOCK_TIME(FTM_RENDER_UI_3D);
                 LLGLState::checkStates();
-                render_ui_3d();
+                trace_vulkan_ui_stage("render_ui_3d");
+                if (!should_skip_vulkan_ui_stage(
+                        "MARE_VULKAN_DEBUG_SKIP_UI_3D",
+                        "render_ui_3d"))
+                {
+                    render_ui_3d();
+                }
                 LLGLState::checkStates();
             }
             else
@@ -1735,13 +3070,31 @@ void render_ui(F32 zoom_factor, int subfield)
         if (render_ui)
         {
             LL_PROFILE_ZONE_NAMED_CATEGORY_UI("UI 2D"); //LL_RECORD_BLOCK_TIME(FTM_RENDER_UI_2D);
-            LLHUDObject::renderAll();
-            render_ui_2d();
+            trace_vulkan_ui_stage("LLHUDObject::renderAll");
+            if (!should_skip_vulkan_ui_stage(
+                    "MARE_VULKAN_DEBUG_SKIP_UI_HUD_OBJECTS",
+                    "LLHUDObject::renderAll"))
+            {
+                LLHUDObject::renderAll();
+            }
+            trace_vulkan_ui_stage("render_ui_2d");
+            if (!should_skip_vulkan_ui_stage(
+                    "MARE_VULKAN_DEBUG_SKIP_UI_2D",
+                    "render_ui_2d"))
+            {
+                render_ui_2d();
+            }
         }
 
-        gViewerWindow->setup2DRender();
-        gViewerWindow->updateDebugText();
-        gViewerWindow->drawDebugText();
+        trace_vulkan_ui_stage("debug_text");
+        if (!should_skip_vulkan_ui_stage(
+                "MARE_VULKAN_DEBUG_SKIP_UI_DEBUG_TEXT",
+                "debug_text"))
+        {
+            gViewerWindow->setup2DRender();
+            gViewerWindow->updateDebugText();
+            gViewerWindow->drawDebugText();
+        }
     }
 
     if (!gSnapshot)
@@ -1913,7 +3266,12 @@ void render_ui_2d()
     stop_glerror();
 
     // render outline for HUD
-    if (isAgentAvatarValid() && gAgentCamera.mHUDCurZoom < 0.98f)
+    trace_vulkan_ui_stage("render_ui_2d HUD outline");
+    if (isAgentAvatarValid() &&
+        gAgentCamera.mHUDCurZoom < 0.98f &&
+        !should_skip_vulkan_ui_stage(
+            "MARE_VULKAN_DEBUG_SKIP_UI_HUD_OUTLINE",
+            "render_ui_2d HUD outline"))
     {
         gUIProgram.bind();
         gGL.pushMatrix();
@@ -1930,7 +3288,21 @@ void render_ui_2d()
         stop_glerror();
     }
 
-    if (LLPipeline::RenderUIBuffer)
+    gUIProgram.bind();
+    gGL.color4f(1.f, 1.f, 1.f, 1.f);
+
+    const bool vulkan_world_path = use_vulkan_world_path();
+    const bool render_ui_buffer =
+        LLPipeline::RenderUIBuffer &&
+        !vulkan_world_path;
+    if (LLPipeline::RenderUIBuffer && vulkan_world_path)
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan skipped RenderUIBuffer; compositing the UI offscreen with opaque copy can cover the world with the UI buffer clear color."
+            << LL_ENDL;
+    }
+
+    if (render_ui_buffer)
     {
         if (LLView::sIsRectDirty)
         {
@@ -1966,6 +3338,7 @@ void render_ui_2d()
 
                 getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
 
+                gUIProgram.bind();
                 gViewerWindow->draw();
             }
 
@@ -1990,7 +3363,14 @@ void render_ui_2d()
     }
     else
     {
-        gViewerWindow->draw();
+        trace_vulkan_ui_stage("gViewerWindow->draw");
+        if (!should_skip_vulkan_ui_stage(
+                "MARE_VULKAN_DEBUG_SKIP_UI_VIEWER_WINDOW_DRAW",
+                "gViewerWindow->draw"))
+        {
+            gUIProgram.bind();
+            gViewerWindow->draw();
+        }
     }
 
     // reset current origin for font rendering, in case of tiling render

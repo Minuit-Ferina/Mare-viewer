@@ -613,6 +613,29 @@ static U32 get_alpha_vertex_data_mask()
            LLVertexBuffer::MAP_TEXCOORD2;
 }
 
+static U32 get_alpha_emissive_vertex_data_mask(bool rigged)
+{
+    U32 mask =
+        (get_alpha_vertex_data_mask() & ~static_cast<U32>(LLVertexBuffer::MAP_COLOR)) |
+        LLVertexBuffer::MAP_EMISSIVE;
+
+    return rigged ? with_weight4_attribute(mask) : mask;
+}
+
+static void append_alpha_emissive_command(
+    LLWorldRenderCommandBuffer& commands,
+    LLDrawInfo& params,
+    bool rigged)
+{
+    commands.appendDrawInfo(
+        params,
+        LLWorldRenderMaterialClass::Glow,
+        rigged ? LLRenderPass::PASS_ALPHA_RIGGED : LLRenderPass::PASS_ALPHA,
+        true,
+        true,
+        get_alpha_emissive_vertex_data_mask(rigged));
+}
+
 void LLDrawPoolAlpha::prepareDeferredAlphaShaders(F32 water_sign)
 {
     emissive_shader = &gDeferredEmissiveProgram;
@@ -741,6 +764,9 @@ bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
             }
 
             LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_draw_info(group, context.rigged);
+            std::vector<LLDrawInfo*> legacy_emissives;
+            std::vector<LLDrawInfo*> pbr_emissives;
+
             for (LLSpatialGroup::drawmap_elem_t::iterator draw_iter = draw_info.begin();
                  draw_iter != draw_info.end();
                  ++draw_iter)
@@ -757,7 +783,77 @@ bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
                     rigged ? LLRenderPass::PASS_ALPHA_RIGGED : LLRenderPass::PASS_ALPHA,
                     true,
                     true,
-                    rigged ? with_weight4_attribute(get_alpha_vertex_data_mask()) : get_alpha_vertex_data_mask());
+                    rigged ? with_weight4_attribute(get_alpha_vertex_data_mask()) : get_alpha_vertex_data_mask(),
+                    false,
+                    should_write_alpha_depth(rigged, getType()));
+
+                if (should_queue_alpha_emissive(getType(), params))
+                {
+                    if (params.mGLTFMaterial.isNull())
+                    {
+                        legacy_emissives.push_back(&params);
+                    }
+                    else
+                    {
+                        pbr_emissives.push_back(&params);
+                    }
+                }
+            }
+
+            for (LLDrawInfo* params : legacy_emissives)
+            {
+                append_alpha_emissive_command(commands, *params, rigged);
+            }
+
+            for (LLDrawInfo* params : pbr_emissives)
+            {
+                append_alpha_emissive_command(commands, *params, rigged);
+            }
+        }
+    }
+
+    if (should_render_alpha_depth_of_field_pass(getType()))
+    {
+        const AlphaPassContext context =
+        {
+            false,
+            true,
+            is_above_water_alpha_pool(getType()),
+            env.getWaterHeight()
+        };
+
+        LLCullResult::sg_iterator begin = begin_alpha_groups(false);
+        LLCullResult::sg_iterator end = end_alpha_groups(false);
+
+        for (LLCullResult::sg_iterator group_iter = begin; group_iter != end; ++group_iter)
+        {
+            LLSpatialGroup* group = *group_iter;
+            if (!is_renderable_alpha_group(group) ||
+                !is_alpha_group_on_rendered_side_of_water(group, context.above_water, context.water_height))
+            {
+                continue;
+            }
+
+            LLSpatialGroup::drawmap_elem_t& draw_info = get_alpha_draw_info(group, context.rigged);
+            for (LLSpatialGroup::drawmap_elem_t::iterator draw_iter = draw_info.begin();
+                 draw_iter != draw_info.end();
+                 ++draw_iter)
+            {
+                LLDrawInfo& params = **draw_iter;
+                if (!is_alpha_draw_info_for_pass(params, context.rigged))
+                {
+                    continue;
+                }
+
+                commands.appendDrawInfo(
+                    params,
+                    LLWorldRenderMaterialClass::Alpha,
+                    LLRenderPass::PASS_ALPHA,
+                    true,
+                    true,
+                    get_alpha_vertex_data_mask(),
+                    true,
+                    true);
             }
         }
     }

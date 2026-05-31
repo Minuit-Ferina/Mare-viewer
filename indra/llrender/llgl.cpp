@@ -2904,6 +2904,25 @@ LLGLDepthTest::~LLGLDepthTest()
     }
 }
 
+LLGLSSpecular::LLGLSSpecular(const LLColor4& color, F32 shininess)
+    : mShininess(shininess)
+{
+    if (mShininess > 0.0f)
+    {
+        S32 shiny = static_cast<S32>(shininess * 128.f);
+        shiny = llclamp(shiny, 0, 128);
+        getRenderBackend().setLegacyMaterialSpecular(color.mV, shiny);
+    }
+}
+
+LLGLSSpecular::~LLGLSSpecular()
+{
+    if (mShininess > 0.f)
+    {
+        getRenderBackend().setLegacyMaterialSpecular(LLColor4(0.f, 0.f, 0.f, 0.f).mV, 0);
+    }
+}
+
 void LLGLDepthTest::checkState()
 {
     if (gDebugGL)

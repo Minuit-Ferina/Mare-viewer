@@ -30,7 +30,7 @@
 #include "llwindow.h"
 #include "llwindowcallbacks.h"
 #include "llwindowmacosx-objc.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 
 #include "lltimer.h"
 

@@ -5842,7 +5842,19 @@ void LLViewerWindow::setShowProgress(const bool show)
 {
     if (mProgressView)
     {
+        const bool was_visible = mProgressView->getVisible();
         mProgressView->setVisible(show);
+        if (getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
+            was_visible != mProgressView->getVisible())
+        {
+            LL_INFOS("RenderBackend")
+                << "Vulkan progress view visibility changed: "
+                << was_visible
+                << " -> "
+                << mProgressView->getVisible()
+                << "."
+                << LL_ENDL;
+        }
     }
 }
 

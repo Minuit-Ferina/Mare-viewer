@@ -69,6 +69,7 @@ public:
     void setDepthWriteEnabled(bool) override {}
     void setAlphaMaskCutoff(F32) override {}
     void setWorldDrawEnabled(bool) override {}
+    bool isWorldDrawEnabled() const override { return false; }
     void setWorldShaderClass(LLRenderWorldShaderClass) override {}
     void setWorldTerrainParameters(const LLRenderWorldTerrainParameters&) override {}
     void setWorldMaterialParameters(const LLRenderWorldMaterialParameters&) override {}

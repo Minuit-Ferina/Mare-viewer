@@ -47,6 +47,7 @@
 #include "llnotificationsutil.h"
 #include "llsecapi.h"
 #include "llstartup.h"
+#include "llstring.h"
 #include "lltextbox.h"
 #include "llui.h"
 #include "lluiconstants.h"
@@ -76,6 +77,13 @@
 
 namespace
 {
+bool mare_disable_rlv_from_environment()
+{
+    std::string value = LLStringUtil::getenv("MARE_DISABLE_RLV");
+    LLStringUtil::toLower(value);
+    return value == "1" || value == "true" || value == "yes" || value == "on";
+}
+
 template <typename T>
 [[maybe_unused]] T* get_owner_child(LLView* owner, const std::string& name, bool recurse = true)
 {
@@ -970,6 +978,7 @@ void LLPanelLogin::onClickConnect(bool commit_fields)
 //MK
         // If the RLV is active, force logging at the last location, always.
 #if RLV_ALWAYS_ON
+        if (!mare_disable_rlv_from_environment())
         {
 #else
         // CA: gRRenabled has been set up by now, so use it

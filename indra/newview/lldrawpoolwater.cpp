@@ -369,6 +369,88 @@ bool LLDrawPoolWater::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
     return true;
 }
 
+void LLDrawPoolWater::emitWaterExclusionMaskCommands(LLWorldRenderCommandBuffer& commands, const LLColor4& color) const
+{
+    LLMatrix4 identity;
+    identity.setIdentity();
+
+    for (LLFace* const& face : mDrawFace)
+    {
+        if (!face)
+        {
+            continue;
+        }
+
+        LLVertexBuffer* vertex_buffer = face->getVertexBuffer();
+        if (!vertex_buffer || !face->getGeomCount() || !face->getIndicesCount())
+        {
+            continue;
+        }
+
+        const LLDrawable* drawable = face->getDrawable();
+        const LLViewerRegion* region = drawable ? drawable->getRegion() : nullptr;
+        LLWorldRenderCommand* command = commands.appendOwnedDrawRange(
+            vertex_buffer,
+            nullptr,
+            LLWorldRenderMaterialClass::WaterExclusionMask,
+            LLDrawPool::POOL_WATEREXCLUSION,
+            region ? region->mRenderMatrix : identity,
+            face->getGeomIndex(),
+            face->getGeomIndex() + face->getGeomCount() - 1,
+            face->getIndicesCount(),
+            face->getIndicesStart(),
+            false,
+            false,
+            VERTEX_DATA_MASK);
+        if (command)
+        {
+            command->mBaseColor = color;
+            command->mFullbright = true;
+        }
+    }
+}
+
+void LLDrawPoolWater::emitWaterHazeCommands(LLWorldRenderCommandBuffer& commands, const LLColor4& color) const
+{
+    LLMatrix4 identity;
+    identity.setIdentity();
+
+    for (LLFace* const& face : mDrawFace)
+    {
+        if (!face)
+        {
+            continue;
+        }
+
+        LLVertexBuffer* vertex_buffer = face->getVertexBuffer();
+        if (!vertex_buffer || !face->getGeomCount() || !face->getIndicesCount())
+        {
+            continue;
+        }
+
+        const LLDrawable* drawable = face->getDrawable();
+        const LLViewerRegion* region = drawable ? drawable->getRegion() : nullptr;
+        LLWorldRenderCommand* command = commands.appendOwnedDrawRange(
+            vertex_buffer,
+            nullptr,
+            LLWorldRenderMaterialClass::WaterHaze,
+            LLDrawPool::POOL_WATER,
+            region ? region->mRenderMatrix : identity,
+            face->getGeomIndex(),
+            face->getGeomIndex() + face->getGeomCount() - 1,
+            face->getIndicesCount(),
+            face->getIndicesStart(),
+            false,
+            false,
+            VERTEX_DATA_MASK);
+        if (command)
+        {
+            command->mBaseColor = color;
+            command->mFullbright = true;
+        }
+    }
+}
+
 void LLDrawPoolWater::pushWaterPlanes(int pass)
 {
     LLVOWater* water = nullptr;

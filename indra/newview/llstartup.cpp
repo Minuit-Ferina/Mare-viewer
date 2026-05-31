@@ -310,6 +310,14 @@ void transition_back_to_login_panel(const std::string& emsg);
 // <FS:KC> FIRE-18250: Option to disable default eye movement
 void update_static_eyes();
 // </FS:KC> FIRE-18250
+
+static bool mare_disable_rlv_from_environment()
+{
+    std::string value = LLStringUtil::getenv("MARE_DISABLE_RLV");
+    LLStringUtil::toLower(value);
+    return value == "1" || value == "true" || value == "yes" || value == "on";
+}
+
 void callback_cache_name(const LLUUID& id, const std::string& full_name, bool is_group)
 {
     LLNameBox::refreshAll(id, full_name, is_group);
@@ -696,12 +704,26 @@ bool idle_startup()
 
             //CA - Moved here so we only do it once instead of many, many times on each idle
             //MK
+            const bool mare_disable_rlv = mare_disable_rlv_from_environment();
             #if RLV_ALWAYS_ON
-                gRRenabled = TRUE;
-                gSavedSettings.setBOOL("RestrainedLove",TRUE);
-                LL_INFOS() << "RLV initialisation: FTRLV version" << LL_ENDL;
+                if (mare_disable_rlv)
+                {
+                    gRRenabled = FALSE;
+                    LL_WARNS() << "RLV initialisation: disabled by MARE_DISABLE_RLV for renderer diagnostics." << LL_ENDL;
+                }
+                else
+                {
+                    gRRenabled = TRUE;
+                    gSavedSettings.setBOOL("RestrainedLove",TRUE);
+                    LL_INFOS() << "RLV initialisation: FTRLV version" << LL_ENDL;
+                }
             #else
                 gRRenabled = gSavedSettings.getBOOL("RestrainedLove");
+                if (mare_disable_rlv)
+                {
+                    gRRenabled = FALSE;
+                    LL_WARNS() << "RLV initialisation: disabled by MARE_DISABLE_RLV for renderer diagnostics." << LL_ENDL;
+                }
                 LL_INFOS() << "RLV initialisation: RLV active:" << gRRenabled << LL_ENDL;
             #endif
                 RRInterface::sRRNoSetEnv = gSavedSettings.getBOOL("RestrainedLoveNoSetEnv");
@@ -2076,9 +2098,9 @@ bool idle_startup()
         // have been received.
         // For this, we simulate the reception of those commands from a non-existent object.
 #if RLV_ALWAYS_ON
-        if (true)
+        if (!mare_disable_rlv_from_environment())
 #else
-        if (gRRenabled && gSavedSettings.getBOOL("KokuaRLVEnableBlindStartup"))
+        if (gRRenabled && !mare_disable_rlv_from_environment() && gSavedSettings.getBOOL("KokuaRLVEnableBlindStartup"))
 #endif
         {
             if (gAgent.mRRInterface.mRetainedCommands.empty()) // we test mRetainedCommands and not mSpecialObjectBehaviours because these commands below will be retained for a bit, they won't be executed right away.
@@ -2088,7 +2110,7 @@ bool idle_startup()
                 KokuaRLVFloaterSupport::addNameToLocalCache(id, name);
                 //KKA-810: add startim, share, shownearby, showhovertextworld and tplocal
 #if RLV_ALWAYS_ON
-                if (true)
+                if (!mare_disable_rlv_from_environment())
 #else
                 if (gSavedSettings.getBOOL("RestrainedLoveUseStrictGarbageCollectionRestrictions"))
 #endif
@@ -2098,7 +2120,7 @@ bool idle_startup()
                     gAgent.mRRInterface.handleCommand(id, "fly=n,sendchannel=n,interact=n,remoutfit=n,remattach=n,showinv=n,touchall=n,touchhud=n,camavdist:0=n,startim=n,share=n,shownearby=n,showhovertextworld=n,tplocal=n,shownames=n,showloc=n,showworldmap=n,showminimap=n,tploc=n,tplm=n,tplure=n,camdrawmin:1=n,camdrawmax:1.1=n,camdrawalphamin:0=n,camdrawalphamax:1=n,camtextures=n");
                     gViewerWindow->setUIVisibility(false); // hide all UI elements (Ok, you can still bring up additional floaters with hot keys, but the temptation is reduced)
 #if RLV_ALWAYS_ON
-                    if (true)
+                    if (!mare_disable_rlv_from_environment())
 #else
                     if (gSavedSettings.getBOOL("RestrainedLoveHideAvatarUntilGarbageCollection"))
 #endif
@@ -3741,7 +3763,7 @@ void LLStartUp::setStartSLURL(const LLSLURL& slurl)
         // KKA-998 Force login to last location for RLV (replaces broken logic in llAppViewer::initConfiguration() )
 //MK (CA)
 #if RLV_ALWAYS_ON
-        if (true)
+        if (!mare_disable_rlv_from_environment())
 #else
         // gRRenabled has been set up by now, so use it
         // if (gSavedSettings.getBOOL("RestrainedLove"))

@@ -190,6 +190,186 @@ bool LLDrawPoolTerrain::emitDeferredCommands(LLWorldRenderCommandBuffer& command
     LLVector3d region_origin_global = gAgent.getRegion()->getOriginGlobal();
     const F32 offset_x = (F32)fmod(region_origin_global.mdV[VX], 1.0/(F64)sDetailScale)*sDetailScale;
     const F32 offset_y = (F32)fmod(region_origin_global.mdV[VY], 1.0/(F64)sDetailScale)*sDetailScale;
+    const F32 region_scale = regionp ? regionp->getWidth() : 256.f;
+    U32 terrain_planar_sample_count = 1;
+    F32 terrain_triplanar_blend_factor = gSavedSettings.getF32("RenderTerrainPBRTriplanarBlendFactor");
+    LLViewerTexture* terrain_textures[LLVLComposition::ASSET_COUNT] =
+    {
+        compp ? compp->mDetailTextures[0].get() : nullptr,
+        compp ? compp->mDetailTextures[1].get() : nullptr,
+        compp ? compp->mDetailTextures[2].get() : nullptr,
+        compp ? compp->mDetailTextures[3].get() : nullptr,
+    };
+    LLViewerTexture* terrain_orm_textures[LLVLComposition::ASSET_COUNT] =
+    {
+        LLViewerFetchedTexture::sWhiteImagep.get(),
+        LLViewerFetchedTexture::sWhiteImagep.get(),
+        LLViewerFetchedTexture::sWhiteImagep.get(),
+        LLViewerFetchedTexture::sWhiteImagep.get(),
+    };
+    LLViewerTexture* terrain_emissive_textures[LLVLComposition::ASSET_COUNT] =
+    {
+        LLViewerFetchedTexture::sWhiteImagep.get(),
+        LLViewerFetchedTexture::sWhiteImagep.get(),
+        LLViewerFetchedTexture::sWhiteImagep.get(),
+        LLViewerFetchedTexture::sWhiteImagep.get(),
+    };
+    LLViewerTexture* terrain_normal_textures[LLVLComposition::ASSET_COUNT] =
+    {
+        LLViewerFetchedTexture::sFlatNormalImagep.get(),
+        LLViewerFetchedTexture::sFlatNormalImagep.get(),
+        LLViewerFetchedTexture::sFlatNormalImagep.get(),
+        LLViewerFetchedTexture::sFlatNormalImagep.get(),
+    };
+    LLViewerTexture* terrain_composition_texture = m2DAlphaRampImagep.get();
+    U32 terrain_paint_type = TERRAIN_PAINT_TYPE_HEIGHTMAP_WITH_NOISE;
+    LLPointer<LLFetchedGLTFMaterial> (*terrain_materials)[LLVLComposition::ASSET_COUNT] = nullptr;
+    if (compp)
+    {
+        const bool use_local_materials = gLocalTerrainMaterials.makeMaterialsReady(true, false);
+        if (use_local_materials)
+        {
+            terrain_materials = &gLocalTerrainMaterials.mDetailRenderMaterials;
+        }
+        else if (compp->getMaterialType() != LLTerrainMaterials::Type::TEXTURE)
+        {
+            compp->makeMaterialsReady(true, false);
+            terrain_materials = &compp->mDetailRenderMaterials;
+        }
+
+        if (terrain_materials)
+        {
+            terrain_planar_sample_count =
+                gSavedSettings.getS32("RenderTerrainPBRPlanarSampleCount") >= 3 ?
+                3U :
+                1U;
+            terrain_paint_type =
+                use_local_materials ?
+                gLocalTerrainMaterials.getPaintType() :
+                compp->getPaintType();
+            terrain_paint_type = llclamp(terrain_paint_type, 0U, static_cast<U32>(TERRAIN_PAINT_TYPE_COUNT - 1));
+            if (terrain_paint_type == TERRAIN_PAINT_TYPE_PBR_PAINTMAP)
+            {
+                terrain_composition_texture =
+                    use_local_materials ?
+                    gLocalTerrainMaterials.getPaintMap() :
+                    compp->getPaintMap();
+                if (!terrain_composition_texture)
+                {
+                    terrain_composition_texture = LLViewerTexture::sBlackImagep.get();
+                }
+            }
+        }
+
+        if (terrain_materials)
+        {
+            for (U32 i = 0; i < LLVLComposition::ASSET_COUNT; ++i)
+            {
+                const LLFetchedGLTFMaterial* fetched_material = (*terrain_materials)[i].get();
+                terrain_textures[i] =
+                    fetched_material && fetched_material->mBaseColorTexture ?
+                    fetched_material->mBaseColorTexture.get() :
+                    LLViewerFetchedTexture::sWhiteImagep.get();
+                terrain_orm_textures[i] =
+                    fetched_material && fetched_material->mMetallicRoughnessTexture ?
+                    fetched_material->mMetallicRoughnessTexture.get() :
+                    LLViewerFetchedTexture::sWhiteImagep.get();
+                terrain_emissive_textures[i] =
+                    fetched_material && fetched_material->mEmissiveTexture ?
+                    fetched_material->mEmissiveTexture.get() :
+                    LLViewerFetchedTexture::sWhiteImagep.get();
+                terrain_normal_textures[i] =
+                    fetched_material && fetched_material->mNormalTexture ?
+                    fetched_material->mNormalTexture.get() :
+                    LLViewerFetchedTexture::sFlatNormalImagep.get();
+            }
+        }
+    }
+
+    LLColor4 base_color_factors[LLVLComposition::ASSET_COUNT] =
+    {
+        LLColor4(1.f, 1.f, 1.f, 1.f),
+        LLColor4(1.f, 1.f, 1.f, 1.f),
+        LLColor4(1.f, 1.f, 1.f, 1.f),
+        LLColor4(1.f, 1.f, 1.f, 1.f),
+    };
+    F32 metallic_factors[LLVLComposition::ASSET_COUNT] =
+    {
+        0.f, 0.f, 0.f, 0.f,
+    };
+    F32 roughness_factors[LLVLComposition::ASSET_COUNT] =
+    {
+        1.f, 1.f, 1.f, 1.f,
+    };
+    LLColor4 emissive_minimum_alphas[LLVLComposition::ASSET_COUNT] =
+    {
+        LLColor4(0.f, 0.f, 0.f, 0.f),
+        LLColor4(0.f, 0.f, 0.f, 0.f),
+        LLColor4(0.f, 0.f, 0.f, 0.f),
+        LLColor4(0.f, 0.f, 0.f, 0.f),
+    };
+    LLGLTFMaterial::TextureTransform::PackTight terrain_texture_transforms[LLVLComposition::ASSET_COUNT];
+    if (compp)
+    {
+        for (U32 i = 0; i < LLVLComposition::ASSET_COUNT; ++i)
+        {
+            const LLGLTFMaterial* material =
+                terrain_materials ?
+                (*terrain_materials)[i].get() :
+                nullptr;
+            if (!material)
+            {
+                material = &LLGLTFMaterial::sDefault;
+            }
+            base_color_factors[i] = material->mBaseColor;
+            metallic_factors[i] = material->mMetallicFactor;
+            roughness_factors[i] = material->mRoughnessFactor;
+
+            F32 minimum_alpha = 0.f;
+            if (material->mAlphaMode == LLGLTFMaterial::ALPHA_MODE_MASK)
+            {
+                const F32 base_alpha = material->mBaseColor.mV[VALPHA];
+                minimum_alpha = base_alpha > 0.f ?
+                    material->mAlphaCutoff / base_alpha :
+                    material->mAlphaCutoff;
+            }
+            emissive_minimum_alphas[i] =
+                LLColor4(
+                    material->mEmissiveColor.mV[VRED],
+                    material->mEmissiveColor.mV[VGREEN],
+                    material->mEmissiveColor.mV[VBLUE],
+                    minimum_alpha);
+        }
+    }
+    for (U32 i = 0; i < LLVLComposition::ASSET_COUNT; ++i)
+    {
+        LLGLTFMaterial::TextureTransform transform;
+        if (terrain_materials)
+        {
+            const LLFetchedGLTFMaterial* fetched_material = (*terrain_materials)[i].get();
+            if (fetched_material)
+            {
+                transform = fetched_material->mTextureTransform[LLGLTFMaterial::GLTF_TEXTURE_INFO_BASE_COLOR];
+#ifdef SHOW_ASSERT
+                for (U32 ti = 1; ti < LLGLTFMaterial::GLTF_TEXTURE_INFO_COUNT; ++ti)
+                {
+                    llassert(fetched_material->mTextureTransform[0] == fetched_material->mTextureTransform[ti]);
+                }
+#endif
+            }
+            transform.mScale.mV[VX] *= sPBRDetailScale;
+            transform.mScale.mV[VY] *= sPBRDetailScale;
+        }
+        else
+        {
+            transform.mScale.mV[VX] = sDetailScale;
+            transform.mScale.mV[VY] = sDetailScale;
+            transform.mOffset.mV[VX] = offset_x;
+            transform.mOffset.mV[VY] = -offset_y;
+        }
+
+        transform.getPackedTight(terrain_texture_transforms[i]);
+    }
 
     for (LLFace* face : mDrawFace)
     {
@@ -197,11 +377,23 @@ bool LLDrawPoolTerrain::emitDeferredCommands(LLWorldRenderCommandBuffer& command
         {
             commands.appendTerrainFace(
                 *face,
-                compp ? compp->mDetailTextures[0].get() : nullptr,
-                compp ? compp->mDetailTextures[1].get() : nullptr,
-                compp ? compp->mDetailTextures[2].get() : nullptr,
-                compp ? compp->mDetailTextures[3].get() : nullptr,
-                m2DAlphaRampImagep.get(),
+                terrain_textures[0],
+                terrain_textures[1],
+                terrain_textures[2],
+                terrain_textures[3],
+                terrain_composition_texture,
+                terrain_orm_textures,
+                terrain_emissive_textures,
+                terrain_normal_textures,
+                base_color_factors,
+                metallic_factors,
+                roughness_factors,
+                emissive_minimum_alphas,
+                (F32*)terrain_texture_transforms,
+                region_scale,
+                terrain_paint_type,
+                terrain_planar_sample_count,
+                terrain_triplanar_blend_factor,
                 sDetailScale,
                 offset_x,
                 offset_y);

@@ -37,12 +37,17 @@ filled in.
       command alpha cutoff path. Runtime validation is covered by the smoke
       test item below.
 - [x] Add temporary distant-impostor fallback for classic avatar and attachment
-      visibility while Vulkan lacks impostor billboard rendering.
+      visibility while Vulkan lacked impostor billboard rendering.
+      This fallback now keeps real attachment geometry visible only while the
+      avatar's impostor billboard target is incomplete; complete billboard
+      targets suppress the real attachment fallback with the rest of the
+      impostor geometry.
 - [x] Add full impostor/avatar fallback rendering for muted, jellydolled, or
       distant avatars.
       Vulkan now keeps distant, jellydoll, visually muted/blocked, and
       invisible-appearance avatars visible through a real-geometry fallback
-      while the proper impostor billboard renderer is still absent.
+      while an impostor target is not complete. Complete impostor targets now
+      use the Vulkan billboard command path tracked below.
 - [x] Finish Vulkan material-command coverage for rigged/static mesh
       alpha, alpha mask, PBR base color, normal, ORM, emissive, double-sided
       state, and texture transforms.
@@ -59,7 +64,22 @@ filled in.
       constant limit before creating the expanded world pipeline layout.
       Vertex normals and tangents are now bound through the Vulkan world
       pipeline and forwarded by the active final vertex shader as preparation for
-      material/G-buffer lighting.
+      material/G-buffer lighting. The active world vertex shader now applies the
+      same classic-avatar and rigged `weight4` skinning palette to normals and
+      tangents as it applies to positions, so skinned G-buffer/material lighting
+      no longer uses stale object-space directions. The active world vertex
+      shader now also separates base-color transformed UVs from material-map
+      UVs, so normal/ORM/specular/emissive sampling no longer inherits the
+      base-color KHR texture transform by accident. The command/backend push
+      constants now transport GLTF normal, ORM, and emissive texture transforms,
+      and the active material/G-buffer shaders apply those transforms to their
+      matching texture slots. Those per-slot transforms are packed into the
+      existing material push-constant range to avoid widening the world push
+      constant block more than necessary. The runtime command path now submits
+      material parameters through a single helper after shader-class selection,
+      so future material fields do not need to be duplicated across every world
+      material branch. GLTF double-sided state already disables Vulkan culling
+      for the command and flips normals in the active material shaders.
       Normal/ORM are now available to the shader interface, but they are not
       visually meaningful until the G-buffer/lighting item below replaces the
       active color pass.
@@ -90,6 +110,10 @@ filled in.
       before refusing uploads, tracks texture last-bound frames, exposes
       texture residency to viewer code, and lets fetched textures recover from
       stale non-resident Vulkan handles instead of staying permanently white.
+      Existing `LLImageGL` textures attached to an `LLRenderTarget` through
+      `setColorAttachment()` now also publish size/format allocation
+      descriptors to the backend, so lazy Vulkan render-target recreation does
+      not depend only on the original upload call path.
 - [x] Keep OpenGL as the comparison path until a dedicated smoke test confirms
       the Vulkan path can reach login, load a scene, resize, and shut down
       without memory growth.
@@ -102,20 +126,29 @@ filled in.
 
 Generated from `indra/newview/app_settings/shaders` on 2026-05-28. `vulkan/` files are excluded from the source inventory.
 
-Totals: 240 OpenGL/GLSL shader files, 249 final Vulkan shader source ports.
-Final Vulkan sources currently include 211 standalone SPIR-V entry points and 38 helper snippets.
-OpenGL-derived final ports cover 202 entry points and 38 snippets; 9 extra final entry points are generated from existing split/adapted runtime needs.
+Totals: 240 OpenGL/GLSL shader files, 273 final Vulkan shader source files.
+Final Vulkan sources currently include 235 standalone SPIR-V entry points and
+38 helper snippets.
+OpenGL-derived final ports cover the generated source inventory; 33 extra final
+entry points are generated or adapted for current active/runtime Vulkan needs.
 
 Validation status:
 
 - [x] Every OpenGL shader source in the inventory has a `vulkan/final` source-level port.
-- [x] `python3 tools/vulkan_shaders/build_shader_files.py --source-dir indra/newview/app_settings/shaders/vulkan/final --output-dir /private/tmp/mare-vulkan-final-all-shader-check` compiles the final shader tree.
-- [x] `xcodebuild -project build-darwin-arm64-vulkan-xcode/Kokua.xcodeproj -target mare_vulkan_final_shaders -configuration Release build` succeeds.
+- [x] `python3 tools/vulkan_shaders/build_shader_files.py --source-dir indra/newview/app_settings/shaders/vulkan/final --output-dir /private/tmp/mare-vulkan-final-syntax-check` compiles the final shader tree.
+- [x] Re-run the final Vulkan shader build path before the next branch
+      checkpoint.
+      The arm64 Release viewer build on 2026-05-29 reached `BUILD SUCCEEDED`
+      and exercised `mare_vulkan_final_shaders` as part of the build/package
+      path. Re-run the standalone shader target only if shader-only packaging
+      changes land before the next commit.
 - [x] Runtime Vulkan shader modules are discovered from `vulkan/final`
       SPIR-V output; active bootstrap/UI/world/terrain pipelines now bind
       `vulkan/final` shaders instead of `vulkan/bridge`.
 - [x] The viewer build and bundle manifest no longer build or package
       `vulkan/bridge` shaders.
+- [ ] Before committing the current renderer packet, explicitly add the
+      currently untracked `vulkan/final/active/*.frag` shader sources.
 
 ### Vulkan Shader Organization Notes
 
@@ -139,10 +172,34 @@ Validation status:
 
 ### Additional Final Vulkan Entry Points
 
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/deferred_composite.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/final_composite.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/alpha.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/alpha_mask.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/alpha_mask_gbuffer.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/alpha_mask_gbuffer_emissive.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/avatar.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/avatar_gbuffer.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/avatar_gbuffer_emissive.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/fullbright.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/glow.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/haze.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/material.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/material_gbuffer.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/material_gbuffer_emissive.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/pbr.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/pbr_gbuffer.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/pbr_gbuffer_emissive.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/sky.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/terrain.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/terrain_gbuffer.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/terrain_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/terrain.vert
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/ui.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/ui.vert
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/water.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/world_gbuffer.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/active/world_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.vert
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed.vert
@@ -405,8 +462,7 @@ Validation status:
       surface through the backend error flag instead of silently looking
       successful. Offscreen render pass/framebuffer resources are now cached and
       invalidated from framebuffer attachment and target texture lifetime
-      changes, still without redirecting world draws until the composite path is
-      ready. The Vulkan render pass now has the outgoing color/depth-to-shader
+      changes. The Vulkan render pass now has the outgoing color/depth-to-shader
       dependency needed for later render-target sampling in the same command
       stream. Empty render-target images now keep their requested Vulkan image
       format instead of collapsing every color target to swapchain RGBA8; the
@@ -415,23 +471,1092 @@ Validation status:
       limited to Color0 or to the swapchain image format. Multi-output G-buffer
       pipelines and shader selection are still pending. Frame telemetry now
       reports how many queued draw/clear commands are tagged for offscreen FBOs
-      while the swapchain-only recorder remains active.
+      and how many are recorded into offscreen render passes.
 - [x] Add first Vulkan image-copy plumbing used by target/upscaler paths.
       `copyImageSubData` now maps to `vkCmdCopyImage` for resident Vulkan
       textures with matching aspects, including layout transitions around the
       copy. `copyTextureSubImage2D` can now copy from tracked read-framebuffer
       color attachment 0 into the currently bound Vulkan texture, with bounds
       checks on both source and destination images.
+- [x] Route the Vulkan world frame through `deferredScreen` before the
+      swapchain.
+      `render_vulkan_world_frame()` now binds `gPipeline.mRT->deferredScreen`,
+      clears and records the supported world draw pools into that offscreen
+      target, flushes back to the default framebuffer, and composites
+      attachment 0 to the swapchain before drawing the UI. This is the first
+      visible render-target graph step; true multi-output G-buffer lighting and
+      post-process parity remain pending below.
+- [x] Split active Vulkan world fragments between swapchain preview and
+      offscreen G-buffer output.
+      `active/world_textured.frag` and `active/terrain.frag` remain the direct
+      swapchain fallback shaders. New `active/world_gbuffer.frag` and
+      `active/terrain_gbuffer.frag` write diffuse/spec-or-ORM/normal data when
+      an offscreen render pass exposes multiple color attachments. The backend
+      selects those G-buffer fragments only for offscreen multi-attachment
+      pipeline sets, keeping direct-swapchain fallback pipelines unchanged.
+- [x] Separate offscreen G-buffer pipelines from offscreen color/post-deferred
+      pipelines.
+      Multi-attachment offscreen render passes now create both active color
+      pipelines and G-buffer pipelines. The recorder selects G-buffer pipelines
+      only for opaque deferred world draws, while sky, water, alpha, glow,
+      fullbright, and other post-deferred commands keep using color pipelines.
+      This prevents later visible overlays from being forced through G-buffer
+      fragments just because they target `deferredScreen`.
+- [x] Split the Vulkan frame into deferred geometry and post-deferred overlay
+      targets.
+      The offscreen `deferredScreen` pass now records only the deferred geometry
+      pass. After attachment 0 is composited to the swapchain, Vulkan records
+      post-deferred water, haze, alpha, glow, and overlay-style world commands
+      directly against the swapchain before the UI. This matches the intended
+      render graph ordering more closely than recording every world pass into
+      the G-buffer target.
+- [x] Add a dedicated Vulkan deferred composite pipeline slot.
+      The swapchain composite can now select `LLRenderWorldShaderClass::
+      DeferredComposite`, bind `deferredScreen` attachments 0/1/2, and use
+      `active/deferred_composite.frag` to do a first real G-buffer lighting
+      composite from diffuse, specular-or-ORM, and normal attachments. This is
+      still a minimal sun/ambient composite, not full OpenGL deferred parity
+      with SSAO, shadows, projectors, probes, glow, exposure, or tone mapping.
+      The G-buffer normal attachment uses alpha as a valid-G-buffer-pixel flag:
+      sky/background/color-only pixels keep `normal.a == 0`, while world and
+      terrain G-buffer fragments write `normal.a == 1`. The specular/ORM
+      attachment uses alpha `0` for legacy specular and `> 0.5` for GLTF/PBR
+      ORM, keeping the convention compatible with normalized render-target
+      formats.
+      If a target exposes fewer than three G-buffer attachments, the composite
+      falls back to a color-only copy and logs the missing attachment condition
+      once. Runtime telemetry now also reports deferred composite draw counts.
+      The composite lighting constants are now fed from the active EEP sky:
+      total ambient, selected sun/moon diffuse light, and clamped light
+      direction are passed through the existing world push constants instead of
+      being hardcoded in the fragment shader.
+- [x] Allow deferred/final composite shaders in offscreen Vulkan pipeline sets.
+      `screen`/post target render passes now have dedicated deferred-composite
+      and final-composite pipeline variants instead of only the swapchain
+      render pass owning those shaders. This keeps the nominal
+      `deferredScreen -> screen -> deferredLight -> mPostPingMap -> swapchain`
+      flow on the same composite shader owners when the world path stages
+      through offscreen targets.
+- [x] Add optional Vulkan emissive G-buffer attachment handling.
+      When `deferredScreen` exposes a fourth color attachment, offscreen
+      G-buffer pipelines now select `active/world_gbuffer_emissive.frag` or
+      `active/terrain_gbuffer_emissive.frag`. The world variant writes GLTF
+      emissive color/map contribution to attachment 3, and the deferred
+      composite binds/samples that attachment only when it exists. Three
+      attachment targets keep the existing diffuse/spec-or-ORM/normal path.
+- [x] Feed real terrain normals into the active Vulkan terrain G-buffer path.
+      Terrain command emission now includes `MAP_NORMAL`, terrain pipelines use
+      a vertex input layout that exposes the normal attribute, and both
+      `active/terrain_gbuffer*.frag` variants encode the terrain vertex normal
+      instead of a constant up-vector. This makes the current deferred composite
+      react to terrain slopes instead of lighting every patch as flat ground.
+- [x] Feed terrain GLTF base-color factors into the active Vulkan terrain path.
+      Terrain command emission now copies the four terrain material base-color
+      factors, the backend packs them into the existing world push-constant
+      range, and the active terrain/direct/G-buffer fragment shaders apply the
+      factor matching each detail texture before terrain layer blending.
+- [x] Feed terrain GLTF roughness, metallic, emissive-color, and minimum-alpha
+      factors into the active Vulkan terrain path.
+      Terrain commands now carry the four scalar roughness/metallic values plus
+      emissive RGB and mask cutoff policy per terrain material. The active
+      terrain G-buffer shaders blend those factors with the same layer weights
+      as the base textures, mark terrain as PBR in the ORM attachment, and
+      write emissive color when the four-attachment G-buffer path is available.
+- [x] Select terrain GLTF base-color textures in the active Vulkan terrain path.
+      `LLDrawPoolTerrain::emitDeferredCommands()` now mirrors the OpenGL
+      texture-vs-material decision enough to use `mDetailRenderMaterials[*].
+      mBaseColorTexture` for PBR/local material terrain, with the same white
+      fallback when a material texture is unavailable. Legacy texture terrain
+      still uses `mDetailTextures[*]`.
+- [x] Bind terrain GLTF ORM and emissive textures in the active Vulkan terrain
+      path.
+      Terrain command batches now reserve texture bindings for four
+      metallic-roughness/ORM maps and four emissive maps after the base-color
+      and alpha-ramp slots. The Vulkan world descriptor layout exposes 13
+      texture bindings, and the skinning storage buffer moved to binding 13.
+      Active terrain G-buffer shaders now sample ORM textures for occlusion,
+      roughness, and metallic, and the emissive terrain variants sample
+      emissive textures before applying the per-material emissive color.
+- [x] Bind terrain GLTF normal textures in the active Vulkan terrain G-buffer
+      path.
+      Terrain command batches now bind four normal maps after the base-color,
+      alpha-ramp, ORM, and emissive terrain slots. The Vulkan world descriptor
+      layout exposes 17 texture bindings, and the skinning storage buffer moved
+      to binding 17. Active terrain G-buffer shaders derive a fragment TBN from
+      terrain position/UV derivatives and encode the blended terrain normal map
+      into the normal attachment.
+- [x] Apply per-material terrain texture transforms in the active Vulkan terrain
+      path.
+      Terrain commands now carry the same four packed KHR texture transforms
+      that the OpenGL PBR terrain path sends to GLSL, including the
+      `RenderTerrainPBRScale` factor for material terrain. Legacy texture terrain
+      keeps its previous detail scale and region offset through an equivalent
+      fallback transform. Active terrain shaders now output one detail UV per
+      terrain material and sample base-color, ORM, emissive, and normal maps with
+      the matching transformed UV. Final triplanar tangent parity is still part
+      of the full terrain shader/render-graph work.
+- [x] Add active Vulkan PBR terrain paint-map composition.
+      Terrain command emission now chooses the same composition source as the
+      OpenGL path: heightmap/noise terrain binds the existing alpha-ramp, while
+      PBR paint-map terrain binds the RGB paint map, falling back to the black
+      image when no paint map is available. Terrain push constants carry paint
+      type plus region scale, and active terrain direct/G-buffer shaders compute
+      either alpha-ramp weights or paint-map weights before blending material
+      textures and factors.
+- [x] Add active Vulkan PBR terrain triplanar sampling for material textures.
+      Terrain commands now carry `RenderTerrainPBRPlanarSampleCount` and
+      `RenderTerrainPBRTriplanarBlendFactor` through the terrain push constants.
+      When the viewer requests three-plane terrain sampling, the active terrain
+      direct/G-buffer shaders use the same KHR material transforms to sample
+      color, ORM, and emissive maps from XY/YZ/XZ planes with normal-derived
+      triplanar weights.
+- [x] Add active Vulkan PBR terrain tangent-space normal parity.
+      Terrain Vulkan commands now request the terrain tangent attribute already
+      generated by `LLVOSurfacePatch`, and the Vulkan world draw path binds the
+      tangent stream for terrain draws. The active terrain vertex shader applies
+      the same KHR texture-transform tangent correction per material as the
+      OpenGL PBR terrain vertex shader. Active terrain G-buffer shaders now
+      sample normal maps in planar and triplanar modes, apply the same
+      axis-specific triplanar normal fixes, transform samples through the
+      material tangent frame, and blend the resulting normals by terrain
+      material weights.
+- [x] Align active Vulkan G-buffer normals with the OpenGL deferred normal
+      space.
+      Vulkan world draw commands now carry the current modelview and normal
+      matrices in the world push constants. The active world vertex shader
+      transforms static, classic-avatar, and rigged normals/tangents through
+      that normal matrix before material/direct and G-buffer shaders consume
+      them. The active terrain vertex shader now keeps object-space terrain
+      normal/position for triplanar texture selection, but emits a separate
+      view-space lighting normal and view-space material tangents for the
+      terrain G-buffer normal encode. The active deferred composite now samples
+      the sun/moon direction in the same view space before switching to 2D
+      composite rendering.
+- [x] Feed selected sun/moon diffuse color into the active Vulkan deferred
+      composite.
+      The active composite now calls the same `setupHWLights()` path used by
+      OpenGL deferred lighting and uses the selected sun or moon diffuse color
+      after the existing viewer normalization/clamping, instead of relying on a
+      generic sky light color. This keeps the current active composite closer
+      to OpenGL day/night lighting without adding new Vulkan light buffers.
+- [x] Keep the active Vulkan normal-matrix push constants bounded.
+      The backend still stores the current modelview per queued world draw so it
+      can compute the normal matrix, but the active shader push-constant block
+      no longer carries an unused modelview matrix. This preserves the
+      G-buffer normal-space fix while keeping the block smaller for MoltenVK and
+      lower-end Vulkan devices.
+- [x] Add a screen-dependent view vector to the active Vulkan deferred
+      composite.
+      `active/deferred_composite.frag` now derives an approximate view direction
+      from the composite UV and render-target aspect ratio instead of using a
+      constant camera-facing vector for every pixel. This is still not the final
+      OpenGL inverse-projection reconstruction, but PBR/legacy specular now
+      varies across the screen in the same direction as a real deferred
+      lighting pass.
+- [x] Feed active EEP scene lighting into direct/post-deferred Vulkan fallback
+      shaders.
+      World command submission now computes the active ambient color, selected
+      sun/moon diffuse color, cloud-shadow scale, and light direction once per
+      command batch, then passes it through the world push constants. Active
+      direct/fallback shaders for generic textured world, legacy material, PBR,
+      alpha, alpha-mask, avatar, direct terrain, sky, haze, and water rendering
+      now use those scene-lighting values instead of fully fixed light/tint
+      constants. This does not replace the real deferred lighting graph, but it
+      keeps fallback/post-deferred draws visually tied to the same EEP source as
+      the G-buffer composite.
 - [x] Add Vulkan world pipeline culling variants.
       Active world and terrain pipelines now have no-cull/back-cull variants,
       and queued world draws select the variant from the same cull state that
       the OpenGL path drives.
-- [ ] Add true impostor billboard rendering instead of relying on the temporary
-      real-geometry fallback for distant, jellydoll, or muted avatars.
+- [x] Add Vulkan world pipeline color-write variants and a temporary swapchain
+      depth prepass.
+      Queued Vulkan world draws now preserve the current color mask and select
+      enabled/disabled color-write pipeline variants. The direct swapchain
+      fallback can replay deferred geometry with color writes disabled to
+      populate swapchain depth before post-deferred alpha, water, glow, and
+      overlay draws. This remains a temporary fallback until all nominal Vulkan
+      paths preserve or copy deferred depth explicitly.
+- [x] Stage Vulkan deferred composite and post-deferred world overlays through
+      the pipeline `screen` render target before the final swapchain copy.
+      The staged path can composite `deferredScreen` into that offscreen target,
+      preserve the shared deferred depth attachment by using a color-only clear
+      with a depth-load render pass, record post-deferred world overlays into
+      the same target, then copy the screen target to the swapchain before UI.
+      This moves the available code path closer to the OpenGL render graph
+      without enabling the full post-process stack yet, but the staged path is
+      currently not the runtime default while the black-frame regression below
+      is isolated.
+      Offscreen render passes that load existing color attachments now use the
+      previous shader-readable final layout as their initial layout, and their
+      external dependency includes the shader-read/color-attachment transition
+      needed by same-command-buffer target reuse.
+- [x] Add a staged Vulkan deferred-light output through `deferredLight`.
+      The staged path can composite the active G-buffer in `deferredScreen`
+      into `mRT->deferredLight` first, then copy that lit scene into
+      `mRT->screen` before post-deferred water, haze, alpha, glow, and overlay
+      commands are recorded. If `deferredLight` is unavailable, the previous
+      direct `deferredScreen -> screen` composite remains as fallback. This is
+      still not the final OpenGL-equivalent light graph, and it is temporarily
+      disabled at runtime until each target hop is revalidated.
+- [x] Add a Vulkan post-compose target hop through `deferredLight` when it is
+      allocated.
+      The staged Vulkan world path can copy the completed `screen` target into
+      `mRT->deferredLight` before the final swapchain copy. This is still a
+      neutral copy, not tone mapping/glow/AA, but it creates the insertion point
+      where Vulkan-native exposure, glow, CAS/AA, DoF, and final composite
+      passes can replace the legacy `renderFinalize()` flow. `deferredLight` is
+      now explicitly allocated while the Vulkan world command path is active,
+      even when HDR/shadows/SSAO/DoF would otherwise leave it released, so this
+      post-compose insertion target is stable across settings.
+- [x] Add a Vulkan post-process target hop through `mPostPingMap`.
+      The staged Vulkan world path can continue from `deferredLight` into
+      `mPostPingMap` before the final swapchain copy, with a direct
+      `deferredLight -> swapchain` fallback if the post-process target is not
+      complete. This is still a neutral copy, but it gives Vulkan a stable
+      target matching the legacy post-finalize ping/pong chain where native
+      tonemap, glow, CAS/AA, DoF, and final combine passes can be inserted
+      incrementally.
+- [ ] Revalidate the staged Vulkan offscreen hops before making them nominal.
+      Runtime testing showed a black world with only UI visible after the
+      `deferredScreen -> deferredLight -> screen -> deferredLight ->
+      mPostPingMap -> swapchain` chain was enabled. The runtime path is
+      temporarily back to `deferredScreen -> swapchain` plus post-deferred
+      overlays so world visibility is preserved while each offscreen hop is
+      reintroduced and checked independently.
+      The latest black-world log showed `deferredScreen` passing the high-level
+      viewer completeness check while Vulkan framebuffer 4 had missing native
+      color/depth textures. The Vulkan world frame now checks backend
+      framebuffer completeness after binding `deferredScreen` and falls back to
+      direct swapchain world rendering when the offscreen target is incomplete.
+      Follow-up testing showed that permanently disabling `deferredScreen`
+      after the first backend-incomplete framebuffer hid the real failure mode.
+      The Vulkan world frame now retries the main `deferredScreen` path every
+      frame and does not replay direct world geometry when that target is
+      incomplete, so main render-target failures stay visible instead of being
+      hidden by a fallback.
+      Follow-up black-world logs showed offscreen clears still being queued for
+      incomplete render targets after direct swapchain world drawing. The Vulkan
+      command recorder now preflights offscreen framebuffers before ending the
+      active render pass, so an incomplete offscreen clear cannot force a later
+      swapchain pass reopen and clear over already-recorded world geometry.
+      Runtime validation after that recorder guard restored visible world
+      rendering. The remaining log debt is the 12 skipped offscreen clears for
+      incomplete `deferredScreen` attachments; resolve that by fixing Vulkan
+      render-target allocation/attachment ownership before re-enabling the
+      staged deferred/offscreen hops.
+- [ ] Re-test Vulkan render-target attachment ownership.
+      Vulkan now treats textures still attached to offscreen framebuffers as
+      framebuffer-owned resources: delayed `LLImageGL::deleteTextures()` calls
+      retain their allocation descriptors/native images until the framebuffer
+      detaches or is deleted, and texture-memory eviction skips attached
+      textures. This should remove stale `deferredScreen` attachment handles
+      with no lazy allocation descriptor.
+      Follow-up fix: render-target allocation descriptors are now marked
+      persistent after deletion, and `isDrawFramebufferComplete()` asks the
+      Vulkan backend to materialize the native offscreen framebuffer before
+      reporting incompleteness. The non-clean arm64 Release `mare-viewer` build
+      reached `BUILD SUCCEEDED` on 2026-05-29; runtime must confirm that
+      `deferredScreen backend framebuffer is incomplete` is gone and that
+      offscreen-recorded/G-buffer draw counts are non-zero.
+- [ ] Re-test macOS Vulkan HUD/cursor alignment.
+      Runtime testing after world visibility returned showed a visible offset
+      between HUD hit positions and the mouse. The macOS native view now converts
+      event positions from window coordinates into the active `LLNativeView`
+      before applying backing-pixel conversion, and backend-created render views
+      are initialized from the window content bounds instead of the window frame.
+- [x] Add a named Vulkan final-composite runtime shader and pipeline.
+      The final `mPostPingMap`/post target to swapchain copy now uses
+      `LLRenderWorldShaderClass::FinalComposite` and
+      `active/final_composite.frag` instead of the generic UI texture shader.
+      The shader is visually copy-equivalent for now, but it gives the final
+      swapchain composite a dedicated Vulkan pipeline owner for later gamma,
+      tone mapping, debug visualization, and final presentation policy. It
+      now receives Vulkan push constants derived from `RenderExposure`,
+      `RenderDeferredDisplayGamma`, `RenderTonemapType`, and the active sky's
+      `getTonemapMix()` while respecting the same no-post gating used by the
+      legacy tonemap path. This is still not full post-process parity:
+      exposure-map feedback, glow, CAS/AA, DoF, FXAA/SMAA, and the final
+      combine policy still need native Vulkan ownership.
+- [x] Feed `RenderCASSharpness` into the active Vulkan final composite.
+      `active/final_composite.frag` now applies a bounded CAS-like sharpening
+      step after exposure, tonemap, and gamma when post-processing is enabled.
+      This is only an active final-composite approximation; the source-ported
+      FidelityFX CAS shader and full AA/upscaler chain still need dedicated
+      Vulkan post-process pass ownership.
+- [x] Feed a first glow approximation into the active Vulkan final composite.
+      The final composite now receives `RenderGlowStrength`,
+      `RenderGlowWidth`, and `RenderGlowIterations` when `RenderGlow` is active,
+      and applies a bounded HDR-neighbor glow contribution. This is still not
+      the real OpenGL glow path: glow extraction, downsampled ping-pong blur,
+      warmth/noise controls, `mGlow` target ownership, and final glow combine
+      remain Vulkan render-graph work.
+- [x] Make the active Vulkan final-composite glow approximation consume more
+      legacy glow policy.
+      The final composite now also receives `RenderGlowMaxExtractAlpha` and
+      `RenderGlowWarmthAmount`, uses source alpha plus overbright/warmth
+      extraction, and samples an 8-tap horizontal/vertical kernel shaped like
+      the legacy glow blur. This is still a single-pass approximation; native
+      Vulkan glow extraction targets, ping-pong blur, noise, and final combine
+      remain render-graph work.
+- [x] Feed `RenderFSAAType` into the active Vulkan final composite.
+      The final composite now applies a bounded edge-aware smoothing pass when
+      FXAA or SMAA is requested. This is only an active-path approximation:
+      source-ported FXAA/SMAA shaders, edge/blend intermediate targets,
+      SMAA area/search/sample textures, quality presets, and final AA pass
+      ownership still need the real Vulkan post-process graph.
+- [x] Feed G-buffer visualization into the active Vulkan final composite.
+      When `RenderBufferVisualization` requests one of the deferred-screen
+      color/specular-or-ORM/normal/emissive attachments, the final composite now
+      binds the active Vulkan `deferredScreen` attachments and displays them
+      directly. Normal visualization now displays the complete encoded
+      `normal.xyz` payload used by the active G-buffer. Modes 4-6 also have
+      active approximations for luminance, edge/FXAA, and SMAA blend-weight
+      style debugging. Exposure-map, real FXAA/SMAA intermediate targets, and
+      other legacy debug visualizations still need dedicated Vulkan
+      post-process target ownership.
+- [x] Feed deferred depth into the active Vulkan final composite for a first
+      DoF approximation.
+      The final composite now binds `deferredScreen` depth when available and
+      applies a bounded depth-of-field blur when `RenderDepthOfField` is active.
+      This is not the full legacy DoF path: media/cursor/alt-focus selection,
+      focus-distance interpolation, CoF generation, half-resolution DoF target,
+      and final DoF combine still need native Vulkan post-process pass
+      ownership.
+- [x] Feed EEP cloud shadow into the active Vulkan deferred composite.
+      `get_vulkan_deferred_composite_parameters()` now increases ambient and
+      dims direct light using `LLSettingsSky::getCloudShadow()`, matching the
+      same broad WindLight lighting relationship before true sun/SSAO/shadow
+      passes are implemented.
+- [x] Feed a first local-light summary into the active Vulkan deferred
+      composite.
+      `LLPipeline::getVulkanDeferredLightSummary()` now exposes a read-only
+      aggregate from the same `mNearbyLights` list used by the legacy deferred
+      light pass, and `active/deferred_composite.frag` uses it as an initial
+      local-light contribution. This is intentionally not final local-light
+      parity: point/spot/projector volumes, screen-space attenuation, shadowed
+      projected lights, and multi-light fullscreen batches still need real
+      Vulkan deferred-light pipeline ownership.
+- [x] Add a screen-space dominant-light hint to the active Vulkan deferred
+      composite.
+      The local-light summary now also reports the dominant visible nearby
+      light's screen position and approximate radius. The active composite uses
+      that hint to attenuate the aggregate local-light contribution around the
+      dominant light instead of applying it uniformly across the whole frame.
+      This is still not the OpenGL local-light volume pass, but it moves the
+      active path toward screen-space deferred-light behavior.
+- [x] Feed deferred depth into the active Vulkan deferred composite for a first
+      SSAO approximation.
+      The deferred composite now binds the active `deferredScreen` depth
+      attachment and uses `RenderDeferredSSAO`, `RenderSSAOScale`,
+      `RenderSSAOMaxScale`, `RenderSSAOFactor`, and `RenderSSAOEffect` to
+      darken ambient/local-light contribution around nearby depth
+      discontinuities. This is still an active-path approximation: the OpenGL
+      shadow/SSAO light-map target, blur passes, sampling kernel, and sun/SSAO
+      soften-light shader are not Vulkan-native yet.
+- [x] Add an active Vulkan deferred-composite sky fallback for empty G-buffer
+      pixels.
+      Pixels without a valid G-buffer normal now keep any sky/color contribution
+      already drawn into attachment 0, but if that source is effectively black
+      the composite derives a simple horizon/zenith fallback from the current
+      EEP ambient/direct light colors. Background pixels with clear depth now
+      also blend toward that fallback so a flat deferred clear color cannot hide
+      the sky ramp if sky geometry did not contribute visibly. This does not
+      replace the final sky shader family, HDRI, halos, rainbows, clouds, stars,
+      or sun/moon blending; it is a guardrail so the deferred composite has a
+      visible background while the true sky path is still being completed.
+- [x] Feed depth and water-exclusion textures into active Vulkan haze draws.
+      `LLWorldRenderMaterialParameters` now carries explicit atmospheric-haze,
+      water-haze, and water-exclusion flags. The world command submit path binds
+      `deferredScreen` depth, `deferredScreen` scene color, and
+      `mWaterExclusionMask` for the relevant haze commands, using dedicated
+      Vulkan scene-input texture slots above the `tex0..tex7` world texture
+      batch range. The active haze shader uses those inputs to modulate
+      atmospheric/water fog alpha and color by screen depth, screen color, and
+      water exclusion. This is still not final
+      water/haze parity: the OpenGL copy-depth temp target, final haze shaders,
+      water plane uniforms, above/below-water policy, and final render graph
+      ownership still need Vulkan-native passes.
+- [x] Give active Vulkan sky dome draws a dedicated runtime shader/pipeline.
+      `LLRenderWorldShaderClass::Sky` now owns `active/sky.frag`, and both the
+      swapchain and offscreen Vulkan pipeline sets create sky pipeline variants.
+      Sky dome commands route through this shader instead of the generic
+      textured-world fragment path. This is still not final EEP sky parity:
+      HDRI sky, halos, rainbows, clouds, stars, sun/moon blending, and the
+      source-ported deferred sky shader family still need dedicated runtime
+      ownership.
+- [x] Make the active Vulkan sky gradient use dome direction instead of planar
+      sky UVs.
+      The shared active world vertex shader now forwards object-space position
+      to the active sky fragment shader, and `active/sky.frag` derives
+      horizon/zenith/rim color from the sky dome direction. This keeps the
+      current lightweight active sky path but removes the east/west planar-UV
+      gradient artifact while the final EEP/HDRI sky shader family is still
+      pending.
+- [x] Give active Vulkan water draws a dedicated runtime shader/pipeline.
+      `LLRenderWorldShaderClass::Water` now owns `active/water.frag`, and both
+      swapchain/offscreen Vulkan pipeline sets create water variants. Water
+      commands bind the active deferred depth and water-exclusion target where
+      available, and the shader uses those inputs for a first depth/exclusion
+      fade. Water commands now also bind deferred scene color so the active
+      shader can apply a first screen-color refraction mix. The depth and scene
+      color inputs are now reserved outside the `tex0..tex7` world texture
+      bindings, with the skinning storage descriptor moved beyond those slots.
+      This is still not
+      final water parity: reflection render targets, normal/displacement maps,
+      fresnel uniforms, above/below-water policy, water fog, and the
+      source-ported water shader family still need dedicated render graph
+      ownership.
+- [x] Give active Vulkan alpha draws a dedicated runtime shader/pipeline.
+      `LLRenderWorldShaderClass::Alpha` now owns `active/alpha.frag`, and both
+      swapchain/offscreen Vulkan pipeline sets create alpha variants. Alpha
+      commands no longer share the generic textured-world fragment path, while
+      still preserving the existing blend/depth/cull state selection and
+      skinning path. This is still not final transparency parity: sorted alpha
+      queues, rigged alpha depth prepass policy, GLTF alpha-mode variants,
+      post-water ordering, and emissive/glow subpasses still need Vulkan render
+      graph ownership.
+- [x] Give active Vulkan glow draws a dedicated runtime shader/pipeline.
+      `LLRenderWorldShaderClass::Glow` now owns `active/glow.frag`, and both
+      swapchain/offscreen Vulkan pipeline sets create glow variants. Glow
+      commands no longer share the generic textured-world fragment path and can
+      stay additive while the real glow extraction/blur/combine graph is still
+      pending.
+	- [x] Give active Vulkan alpha-mask/fullbright draws dedicated runtime
+	      shader/pipeline owners.
+	      `LLRenderWorldShaderClass::AlphaMask` now owns `active/alpha_mask.frag`
+	      for alpha-mask, grass, tree, and GLTF alpha-mask fallback draws.
+      `LLRenderWorldShaderClass::Fullbright` now owns `active/fullbright.frag`
+      for fullbright, fullbright alpha-mask, and fullbright-shiny fallback
+	      draws. Offscreen G-buffer draws can still choose the G-buffer pipeline
+	      when appropriate; the dedicated owners remove more post-deferred and
+	      direct-swapchain draws from the generic textured-world fragment path.
+	- [x] Give active Vulkan legacy material/PBR/avatar draws dedicated runtime
+	      shader/pipeline owners.
+	      `LLRenderWorldShaderClass::Material` now owns `active/material.frag`
+	      for legacy material, bump, and post-bump fallback draws.
+	      `LLRenderWorldShaderClass::PBR` now owns `active/pbr.frag` for GLTF
+	      PBR fallback draws, and `LLRenderWorldShaderClass::Avatar` owns
+	      `active/avatar.frag` for classic avatar fallback draws. Deferred opaque
+	      draws may still take the current G-buffer pipeline first, but direct
+	      and post-deferred fallback draws no longer share the generic
+	      textured-world fragment path.
+	- [x] Give active Vulkan haze and water-exclusion draws a dedicated runtime
+	      shader/pipeline owner.
+	      `LLRenderWorldShaderClass::Haze` now owns `active/haze.frag` for
+	      atmospheric haze, water haze, and water-exclusion-mask fallback draws.
+	      This preserves the current depth/exclusion texture consumption while
+	      removing another special material family from the generic
+	      textured-world fragment path. True parity still needs the final
+	      water/haze graph with screen-color sampling and explicit above/below
+	      water policy.
+	- [x] Split active Vulkan opaque G-buffer pipeline ownership for material,
+	      PBR, and avatar draws.
+	      Offscreen `deferredScreen` pipeline sets now create dedicated
+	      material, PBR, and avatar G-buffer variants. Opaque `Material`, `PBR`,
+	      and `Avatar` commands can select those G-buffer pipelines instead of
+	      sharing the generic world G-buffer slot, while simple opaque fallback
+	      geometry keeps the generic slot. This still does not finish true
+	      deferred parity: the lighting/composite side must consume the richer
+	      material classes with final OpenGL-equivalent light, shadow, probe, and
+	      alpha ordering behavior.
+	- [x] Make the active Vulkan deferred composite consume richer material
+	      signals from the G-buffer.
+	      Legacy material G-buffer shaders now encode a bounded shiny/specular
+	      weight in the specular attachment alpha while PBR keeps using alpha as
+	      its ORM/PBR discriminator. `active/deferred_composite.frag` now uses
+	      that distinction for separate legacy roughness/specular behavior, PBR
+	      fresnel, environment contribution, and local-light specular. This is
+	      still an active composite approximation: true parity still needs native
+	      OpenGL-equivalent shadow maps, reflection probes, projector lights,
+	      soften/SSAO passes, tone mapping, and final post-processing graph
+	      ownership.
+	- [x] Split active Vulkan alpha-mask G-buffer pipeline ownership.
+	      Alpha-mask, grass, tree, and GLTF alpha-mask deferred draws can now
+	      select dedicated alpha-mask G-buffer fragments instead of falling back
+	      to the generic world G-buffer pipeline. The new owner preserves alpha
+	      mode/cutoff discard, legacy specular/shiny encoding, GLTF ORM
+	      encoding, and optional emissive output for four-attachment G-buffer
+	      targets. This is still not final alpha parity: sorted alpha blending,
+	      shadow alpha, and post-water ordering remain separate renderer-graph
+	      work.
+	- [x] Add true impostor billboard rendering instead of relying on the temporary
+	      real-geometry fallback for distant, jellydoll, or muted avatars.
+	      When an avatar's `mImpostor` render target is complete, the Vulkan
+	      avatar deferred pass now queues a billboard command that samples the
+	      impostor texture and skips the real skinned/transparent geometry
+	      fallback for the later avatar passes. If the impostor target is not
+	      complete yet, the existing real-geometry fallback remains active to
+	      avoid making the avatar disappear. The active avatar/impostor shader
+	      path now marks `AvatarImpostor` through material flags: direct avatar
+	      rendering preserves the pre-rendered impostor color, and active avatar
+	      G-buffer variants consume the impostor normal/specular attachments from
+	      `tex1`/`tex2`. Final parity still needs Vulkan-native impostor target
+	      generation and dedicated final impostor pipeline ownership.
 - [ ] Replace the active-path lighting approximation with a real Vulkan
       deferred/G-buffer path.
+      Active deferred composite now receives the current EEP reflection-probe
+      ambiance through the existing scene push constants and uses it to bias
+      ambient/environment contribution in the active G-buffer composite. This
+      is still not true probe parity: the renderer still needs Vulkan-owned
+      reflection probe textures/cubemap arrays, probe selection, parallax
+      correction, shadowed light accumulation, and the OpenGL soften-light pass
+      structure.
+- [ ] Bind the OpenGL-derived final Vulkan shader families to real Vulkan
+      render-graph ownership instead of only compiling, package-validating, and
+      mapping them to named future pipeline owners.
 - [ ] Port full environment probes, shadows, reflections, water, glow,
       post-process, and FSR/upscaler parity.
+- [ ] Match OpenGL alpha/transparency behavior, including alpha mask/blend
+      modes, depth writes/tests, draw ordering, and CPU-side distance sorting
+      assumptions.
+      Active Vulkan alpha now receives the dedicated scene-depth texture binding
+      outside the `tex0..tex7` batch range and uses it as a conservative
+      clipping guard before lighting/blending. The remaining alpha work is still
+      open: sorted queues, exact pre/post-water ordering, final GLTF alpha
+      integration, shadow alpha, and GLTF scene depth-prepass coverage.
+      Active direct/fallback shaders, active glow, and active G-buffer material
+      variants now apply the transported legacy diffuse alpha modes and GLTF
+      alpha modes locally: `NONE`/`OPAQUE` force opacity, `MASK` applies cutoff
+      then writes opaque, `BLEND` preserves alpha where the active path can
+      represent it, and legacy `EMISSIVE` treats diffuse alpha as an emissive
+      mask. This improves material-mode parity for the active path, but final
+      sorted alpha queues, exact post-water ordering, shadow alpha, and
+      dedicated final alpha shader families remain open.
+      World command submission now carries explicit color/alpha write masks.
+      Active glow commands write alpha-only like the OpenGL glow pool, and the
+      Vulkan alpha post-deferred path records the OpenGL-style depth-only alpha
+      pass for DoF when the legacy path would do so. That pass writes depth
+      only with the same high alpha cutoff policy used by the OpenGL DoF alpha
+      pass.
+      Normal alpha commands now also carry the legacy alpha depth-write policy:
+      rigged alpha, alpha-mask/impostor depth requirements, and pre-water alpha
+      for water fog can write depth while preserving their normal color/alpha
+      blend behavior. The separate GLTF scene depth prepass for rigged alpha is
+      still open.
+      Alpha surfaces with `TYPE_EMISSIVE` now record the same second Vulkan
+      glow command that the OpenGL alpha path queues after the normal alpha
+      draw. The command uses the emissive vertex stream as color input and the
+      active `Glow` material class, writes alpha-only for destination glow
+      accumulation, and preserves the legacy per-group subpass order by
+      appending legacy-emissive then PBR-emissive glow commands after the
+      group's normal alpha draws. Remaining alpha parity still includes exact
+      sorted queues, shadow alpha, and full post-water ordering.
+- [ ] Complete render-target composition parity: multi-output G-buffer writes,
+      render-target sampling, resolve/copy steps, and final swapchain composite.
+      Active Vulkan G-buffer variants now store a full encoded normal in the
+      normal attachment `xyz`; the environment/intensity payload that was using
+      `normal.z` moved to `diffuse.a`, and the deferred composite now decodes
+      the complete normal before lighting. This improves the active lighting
+      input format, but the full OpenGL G-buffer layout, resolve sequence, and
+      multi-pass lighting graph remain open.
+      Screen-composite push constants now preserve `mBaseColorAlpha` for
+      deferred/final composite quads without reusing the classic-avatar
+      skinning flag slot. Full final-composite parity still needs the real
+      OpenGL post stack and render-target graph rather than this active
+      single-pass approximation.
+      The active Vulkan final composite can now render into the final
+      post-process render target (`mPostPingMap`) before a simple swapchain
+      copy. If that target is unavailable, the path falls back to the previous
+      direct-to-swapchain final composite. This creates a concrete render-graph
+      ownership point for future exposure/glow/DoF/AA passes instead of tying
+      final post solely to the swapchain.
+- [ ] Stabilize Vulkan resource lifetime and performance under long scene
+      sessions: texture eviction/reload, buffer reuse, memory budget reporting,
+      and no sustained memory growth or WindowServer stalls.
+      The backend now records the last frame where each resident Vulkan buffer
+      is actually used for a draw, reports stale buffer memory, and reports
+      queued buffer allocations that are still waiting for budget. Pending
+      buffer allocations now keep a bounded CPU copy of the initial data, plus
+      later sub-data writes when budget retries still fail, so a later retry
+      can restore the buffer content instead of recreating a zero-filled buffer;
+      draw recording now retries missing vertex/index buffers only when that
+      preserved CPU data exists. Resident buffers now also keep a bounded CPU
+      shadow copy when complete data is available; under buffer-budget pressure,
+      stale shadowed static buffers can be evicted into reconstructible pending
+      allocations and restored later by the same safe retry path. Dynamic and
+      stream buffers are deliberately excluded until runtime testing proves a
+      broader policy is safe. The stale-buffer age and telemetry cadence are
+      runtime-tunable through `MARE_VULKAN_STALE_BUFFER_AGE_FRAMES` and
+      `MARE_VULKAN_BUFFER_LIFETIME_TELEMETRY_INTERVAL_FRAMES`, so long-session
+      smoke tests can tune policy without rebuilding. Remaining work: tune the
+      eviction age/budget policy against long runtime sessions.
+- [ ] Run a dedicated Vulkan-vs-OpenGL smoke test checkpoint after the deferred,
+      alpha, post-process, and resource-lifetime parity work is integrated.
+
+## Future Vulkan Renderer Parity
+
+### Runtime Parity Inventory
+
+The arm64 Release viewer build on 2026-05-29 reached `BUILD SUCCEEDED` before
+the terrain tangent descriptor fix. Runtime testing then hit a MoltenVK pipeline
+compile failure because `active/terrain.vert` consumed `tangent` at location 8
+while the terrain vertex descriptor omitted that attribute. The descriptor fix
+is in `llrenderbackendvulkan.cpp`; `git diff --check` is clean and a targeted
+arm64 Release `llrender` Xcode build reached `BUILD SUCCEEDED` on 2026-05-29.
+It has not had a follow-up broad viewer build/runtime test yet.
+
+Before the latest shader/runtime cleanup, the viewer could start and render the
+world through Vulkan, but the image was still close to the previous active-path
+renderer and sky visibility still needed a fresh retest.
+
+Current runtime coverage:
+
+- [x] Active Vulkan pipelines are created for bootstrap, UI, textured world
+      geometry, and terrain.
+- [x] `renderGeomDeferred()` and `renderGeomPostDeferred()` can collect world
+      commands instead of directly executing the OpenGL draw-pool path.
+- [x] Command emitters exist for the main geometry pools already ported to the
+      active path: simple opaque, alpha mask, grass, tree, terrain, fullbright,
+      glow, bump/material, GLTF PBR, avatar, water, and alpha.
+- [x] Basic material payloads are forwarded for legacy material state and GLTF
+      PBR base/normal/ORM/emissive texture slots. Optional four-attachment
+      G-buffer targets now preserve emissive into the deferred composite, and
+      skinned world draws now skin normals/tangents before material lighting.
+      The active shader path now keeps base-color UV transforms separate from
+      material-map sampling UVs to avoid projecting normal/ORM/specular/emissive
+      maps through the base-color transform. GLTF normal, ORM, and emissive
+      texture transforms are now transported separately and consumed by the
+      active material and G-buffer shader families.
+- [x] Offscreen framebuffer/render-target plumbing exists far enough for tagged
+      draw and clear commands to target non-swapchain framebuffers.
+
+Known missing runtime coverage:
+
+- [x] WindLight/EEP sky starts emitting into the Vulkan command path.
+      `LLDrawPoolWLSky` now emits a Vulkan sky dome/haze fallback through
+      `emitDeferredCommands()`, and `LLVOWLSky` can append its dome strips as
+      backend-neutral world commands. It also emits basic textured sun, moon,
+      star, and cloud commands using existing `LLVOSky`/`LLVOWLSky` geometry.
+      The sky dome now has a dedicated active Vulkan shader/pipeline owner
+      instead of sharing the generic textured-world shader. The active deferred
+      composite also treats depth-clear pixels as background sky even if a
+      normal-buffer clear value is ambiguous, so sky fallback is no longer tied
+      only to normal-alpha state. This is still not final sky parity: HDRI sky
+      fallback, halos, rainbows, sun/moon texture blending, star twinkle/time
+      uniforms, cloud-noise blend/scroll/altitude/shadow uniforms, and final
+      EEP sky shader ownership remain open parity work.
+- [x] Water exclusion, atmospheric haze, and water haze now have Vulkan command
+      path coverage.
+      `doWaterExclusionMask()` now records its render target through
+      `LLDrawPoolWaterExclusion::emitPostDeferredCommands()` when Vulkan is
+      active. `doAtmospherics()` records a visible fullscreen haze
+      approximation, and `doWaterHaze()` records either a fullscreen underwater
+      water-fog overlay or above-water haze on water plane geometry. The active
+      haze shader now consumes deferred depth, scene color, and water-exclusion
+      where available through scene-input texture bindings outside the world
+      texture batch range; final water and water-haze shaders still need water
+      plane uniforms, above/below-water policy, and dedicated render graph
+      ownership.
+      The water-exclusion command path now avoids double-emitting the same
+      water-plane mask draw, and water-haze commands use the same explicit
+      identity fallback matrix policy as water-exclusion.
+- [x] Active Vulkan water draws have a dedicated shader/pipeline owner.
+      The shader is still an approximation, but water no longer shares the
+      generic textured-world fragment path and can consume deferred depth plus
+      scene color and water-exclusion inputs for early visual parity. The
+      active water approximation now also consumes the shared EEP scene-lighting
+      push constants so its tint and fresnel term follow the selected sun/moon
+      lighting instead of staying fully fixed.
+- [x] Active Vulkan alpha draws have a dedicated shader/pipeline owner.
+      Alpha-blended world commands route through `LLRenderWorldShaderClass::Alpha`
+      and `active/alpha.frag` instead of the generic textured-world fragment.
+      This gives transparency its own runtime owner before the final sorted
+      alpha/depth-prepass/emissive subpass work.
+- [x] Active Vulkan glow draws have a dedicated shader/pipeline owner.
+      Glow world commands route through `LLRenderWorldShaderClass::Glow` and
+      `active/glow.frag` instead of the generic textured-world fragment. This
+      is still a visible active-path glow approximation, not the final
+      extraction/blur/combine render graph.
+      The glow pool now requests the legacy emissive vertex stream and texture
+      index attributes for Vulkan commands, matching the OpenGL emissive shader
+      input path instead of treating glow draws as plain textured geometry.
+      The active glow fragment shader now preserves the OpenGL glow alpha rule:
+      legacy glow writes `diffuse.a * emissive.a`, while GLTF/PBR glow writes
+      luminance from the material emissive color/map after the alpha cutoff
+      test. It no longer forces glow alpha to opaque through the generic
+      material alpha policy.
+      GLTF/PBR glow commands now also request the GLTF emissive vertex stream
+      instead of the diffuse color stream, matching `pbrglowV.glsl` and keeping
+      material emissive intensity available to the active Vulkan glow shader.
+- [x] Active Vulkan alpha-mask and fullbright draws have dedicated shader/
+      pipeline owners.
+      Alpha-mask/grass/tree/GLTF alpha-mask fallback commands can route through
+      `LLRenderWorldShaderClass::AlphaMask`; fullbright/fullbright alpha-mask/
+      fullbright-shiny commands can route through `LLRenderWorldShaderClass::Fullbright`.
+      This still does not replace the final deferred alpha-mask G-buffer
+      variants or full post-deferred shader family, but it reduces runtime
+      dependence on the generic textured-world shader.
+- [ ] True deferred lighting is not a Vulkan render graph yet. The active
+      Vulkan composite now has sun/ambient/cloud-shadow lighting and a
+      read-only aggregate of nearby local lights plus a first depth-based SSAO
+      approximation, but it still does not replace the OpenGL sun/SSAO soften
+      pass, point-light volumes, spot projectors, reflection-probe lighting, or
+      fullscreen multi-light batches.
+      The local-light aggregate is now contribution-weighted: color is averaged
+      from visible nearby lights and strength follows total visible
+      contribution, which keeps the active approximation stable until a real
+      Vulkan light-list/pass owns local lights.
+- [ ] Shadow map rendering is not Vulkan-native. `generateSunShadow()` still
+      owns the OpenGL-era shadow render targets, shadow cameras, and
+      `renderShadow()` flow. Vulkan needs explicit shadow render passes and
+      shadow shader pipeline families.
+- [ ] Final post-processing is not fully Vulkan-native. The active final
+      composite now owns exposure/gamma/tonemap settings and a bounded
+      CAS-like sharpen, bounded HDR glow approximation, and edge-aware
+      AA approximation. It can also visualize the active Vulkan G-buffer
+      attachments and apply a first depth-driven DoF approximation. Active
+      alpha now contributes a matching depth-only alpha pass for DoF where the
+      OpenGL path does, but
+      `renderFinalize()` still describes the OpenGL-era exposure-map feedback,
+      glow extraction/blur/combine, DoF, FXAA, SMAA, RLV sphere, buffer
+      visualization, and final screen-triangle composition chain. The active
+      final composite now has a render-target output stage before swapchain
+      copy when `mPostPingMap` is available, giving the next real post-process
+      passes a target-owned insertion point.
+- [x] The final Vulkan shader inventory is source-ported, packaged, and mapped
+      to named runtime owners. The Vulkan backend now logs the expected final
+      pipeline owners for sky, terrain, PBR, avatar, water, water haze, lights,
+      glow, and post-process, and reports whether each shader module is ready.
+      Real VkPipeline creation for those owners still belongs to the deferred
+      render graph work.
+- [ ] Reflection probes, hero probes, HDRI environment rendering, cubemap
+      sampling, irradiance/radiance passes, and screen-space reflections are
+      still OpenGL-era pipeline concepts.
+- [x] True avatar impostor billboard rendering has a first Vulkan runtime path.
+      Complete `mImpostor` targets now draw as camera-facing billboard commands
+      in Vulkan and suppress the later real-geometry fallback passes. Incomplete
+      impostor targets still fall back to real geometry to avoid visibility
+      loss. The active avatar shader path now preserves pre-rendered billboard
+      color for impostors, and active avatar G-buffer variants consume the
+      legacy impostor normal/specular attachments from `tex1`/`tex2`. Remaining
+      parity work: Vulkan-native impostor target generation and dedicated final
+      impostor pipeline ownership.
+- [ ] PBR is not visually 1:1 yet. GLTF material data reaches the active Vulkan
+      shader, but final Vulkan PBR still needs the real deferred/PBR lighting
+      path, full alpha ordering/integration, final normal/ORM lighting,
+      emissive, reflections, shadows, and post-process integration.
+      GLTF/PBR deferred command emission now requests tangents for static and
+      rigged draws, matching the active PBR/direct and PBR/G-buffer shaders
+      that consume tangent-space normal maps. This fixes a command-interface
+      mismatch, but final PBR parity still needs the full lighting/reflection/
+      shadow/post graph.
+- [x] Align legacy material Vulkan command attributes with active material
+      shaders.
+      `LLDrawPoolMaterials` already declares tangents in its legacy material
+      vertex-data mask, and both the OpenGL material vertex shader and the
+      active Vulkan material/direct and material/G-buffer shaders consume
+      tangent-space normal data. Vulkan deferred material command emission now
+      requests `MAP_TANGENT` for static and rigged legacy material draws.
+- [x] Carry legacy material secondary UVs through the active Vulkan world
+      shader interface.
+      The active world vertex input now exposes `MAP_TEXCOORD2` alongside the
+      existing `MAP_TEXCOORD1` binding, forwards both secondary material UVs,
+      applies the same texture matrix used for UV0, and legacy material/alpha
+      fragments sample normal maps from texcoord1 and specular maps from
+      texcoord2. GLTF/PBR texture transforms still use the existing base
+      material UV path.
+- [x] Bind legacy specular-only material textures through the Vulkan material
+      texture path.
+      `HasSpecularMap` could be set while `has_world_material_texture_bindings`
+      still returned false when no normal/ORM/emissive texture was present,
+      leaving active material shaders to sample `tex2` without the specular map
+      explicitly bound. Specular maps now activate the material texture binding
+      path and bind through texture unit 2.
+- [ ] Terrain is not visually 1:1 yet. The active Vulkan G-buffer path now
+      carries complete encoded terrain vertex normals through the normal
+      attachment, and the active terrain shaders now apply the four GLTF
+      base-color, roughness, metallic, emissive-color, and minimum-alpha
+      factors before or alongside terrain layer blending. PBR terrain base-color
+      texture selection, ORM/emissive/normal texture sampling, per-material
+      texture transforms, paint-map composition, and triplanar color/ORM/
+      emissive/normal sampling are active, but final terrain shader/render graph
+      ownership remains open.
+- [x] Align active Vulkan terrain vertex input with the active terrain shader.
+      `active/terrain.vert` consumes `tangent` at location 8 for normal-map and
+      terrain material tangent-space work, so both swapchain and offscreen
+      terrain pipeline vertex descriptors now declare the same tangent binding
+      and attribute as the generic world pipeline. This fixes the MoltenVK
+      `Vertex attribute tangent(8) is missing from the vertex descriptor`
+      pipeline creation failure. A targeted arm64 Release `llrender` build
+      passed after the fix, and the incremental arm64 Release `mare-viewer`
+      build reached `BUILD SUCCEEDED` on 2026-05-29.
+- [x] Restore UI submission after the active Vulkan world frame without
+      re-entering legacy OpenGL finalization.
+      The Vulkan world display path now calls the normal UI renderer after
+      `render_vulkan_world_frame()` and before `swap()`, but routes it through
+      an internal `finalize_scene=false` helper so `gPipeline.renderFinalize()`
+      is not invoked a second time by the Vulkan main world path. The public
+      two-argument `render_ui()` symbol remains intact for snapshots and other
+      legacy callers. Follow-up runtime fix: `render_vulkan_world_frame()` no
+      longer draws `gViewerWindow` directly, and `render_ui_2d()` explicitly
+      binds `gUIProgram` before immediate 2D/UI draws. This avoids
+      `LLRender::flush()` asserting on a null `LLGLSLShader::sCurBoundShaderPtr`
+      in the Vulkan world path. Follow-up runtime fix: Vulkan deferred/final
+      composite and render-target copy quads now bind `gUIProgram` and flush
+      explicitly before texture `unbind()` can force an implicit flush. The
+      incremental arm64 Release `mare-viewer` build reached `BUILD SUCCEEDED`
+      after the fix on 2026-05-29.
+- [ ] UI and overlay coverage is not fully audited beyond the tested login and
+      normal UI paths. Selection outlines, manipulators, beacons, HUD effects,
+      physics/debug rendering, scene/texture monitors, and other `gGL` overlay
+      paths may still need backend-neutral command coverage.
+- [x] Extend `mare-vulkan-smoke --ui` toward the real viewer link/render path.
+      The smoke executable now links the same core viewer libraries as the real
+      viewer target and its synthetic UI overlay uses the `LLRender`/`gGL`
+      immediate path plus `gl_rect_2d()` for common UI rectangles. Local
+      `viewer-immediate-direct --ui` and `viewer-render-target-direct --ui`
+      runs remained non-black, so this does not yet reproduce the real viewer
+      black-world regression.
+- [x] Add a stronger local UI repro case for the Vulkan black-world issue.
+      `mare-vulkan-smoke --ui-viewer-sequence` now exercises a viewer-style
+      post-world UI sequence instead of only synthetic rectangles/textured
+      probes: normal 2D setup, `LLGLSUIDefault`, color mask/scissor/blend
+      transitions, `gl_rect_2d()` UI chrome, a zero-alpha fullscreen probe, and
+      an opaque CEF/login-like textured surface. Local
+      `viewer-render-target-direct --ui-viewer-sequence` testing stayed
+      non-black, so the remaining black-world trigger is likely in the real
+      viewer UI traversal or one of the real overlays around `gViewerWindow`.
+- [ ] Isolate the real viewer UI traversal that can cover the Vulkan world.
+      Add targeted runtime switches/logging around `render_ui_internal()` and
+      `render_ui_2d()` stages: HUD elements, HUD attachments, UI 3D,
+      `LLHUDObject::renderAll()`, `gViewerWindow->draw()`, and debug text. The
+      goal is to identify the first stage that turns a visible Vulkan world into
+      a black swapchain image without relying on full login repro cycles.
+      Runtime controls added for Vulkan-only isolation:
+      `MARE_VULKAN_DEBUG_UI_STAGE_LOGS=1`,
+      `MARE_VULKAN_DEBUG_SKIP_UI_HUD_ELEMENTS=1`,
+      `MARE_VULKAN_DEBUG_SKIP_UI_HUD_ATTACHMENTS=1`,
+      `MARE_VULKAN_DEBUG_SKIP_UI_3D=1`,
+      `MARE_VULKAN_DEBUG_SKIP_UI_HUD_OBJECTS=1`,
+      `MARE_VULKAN_DEBUG_SKIP_UI_2D=1`,
+      `MARE_VULKAN_DEBUG_SKIP_UI_HUD_OUTLINE=1`,
+      `MARE_VULKAN_DEBUG_SKIP_UI_VIEWER_WINDOW_DRAW=1`, and
+      `MARE_VULKAN_DEBUG_SKIP_UI_DEBUG_TEXT=1`.
+      Runtime testing isolated the black-world trigger to
+      `render_hud_attachments()`. The Vulkan path now skips the legacy HUD
+      attachment geometry by default because it uses the old post-deferred HUD
+      pipeline and can cover the Vulkan world frame. For diagnosis, set
+      `MARE_VULKAN_DEBUG_RENDER_LEGACY_HUD_ATTACHMENTS=1` to re-enable that
+      legacy path.
+- [ ] Add a native Vulkan HUD attachment path.
+      Current Vulkan behavior intentionally skips legacy HUD attachment geometry
+      to preserve world visibility. Final parity needs HUD attachment rendering
+      through explicit Vulkan world/HUD command emission instead of the legacy
+      OpenGL-era `renderGeomPostDeferred(hud_cam)` path.
+
+Near-term parity order:
+
+- [x] Add a Vulkan skipped-feature warning for deferred and post-deferred draw
+      pools that still have no command emitter.
+      `pipeline.cpp` now logs the pool name, pool id, pass, and deferred stage
+      once per pool/pass when the Vulkan path would otherwise skip it silently.
+- [x] Add a broader skipped-feature counter/log for non-draw-pool pipeline
+      stages that are still skipped or only approximated in Vulkan, such as
+      water exclusion, atmospheric haze, water haze, shadows, probes, and
+      post-processing.
+      `pipeline.cpp` now separates true skips from visible approximations:
+      water-exclusion, atmospherics, and water-haze log as approximated legacy
+      stages, while deferred lighting, selected-face highlights, and debug
+      overlays still log as skipped legacy stages.
+- [x] Add `LLDrawPoolWLSky` Vulkan command emission, starting with sky dome/haze
+      before sun, moon, stars, and clouds.
+      `LLDrawPoolWLSky::emitDeferredCommands()` now queues the WL sky dome
+      through `LLWorldRenderCommandBuffer`; `LLVOSky` sun/moon faces and
+      `LLVOWLSky` stars/clouds now emit basic textured commands too. It logs
+      that this is still a dome/haze plus basic body/cloud fallback, not the
+      final sky pipeline.
+- [x] Add Vulkan equivalents for atmospheric haze and water haze instead of
+      skipping those stages in the post-deferred loop.
+      Water exclusion now has Vulkan command emission into its mask target.
+      Atmospheric haze and water haze now have visible command-path
+      approximations with active-path scene-color, depth, and exclusion-mask
+      sampling; final water/water-haze shader ownership remains part of the
+      deferred render graph work.
+- [x] Define the Vulkan G-buffer/deferred-lighting render graph before wiring
+      the class1/class2/class3 deferred shader families.
+      The backend now logs the deferred graph contract in order: G-buffer, sky,
+      shadows, sun/SSAO, local lights, reflection probes, water exclusion, water
+      haze, alpha pre/post water, glow, post-process, and composite. This is the
+      ownership contract; the real render-pass implementation is still tracked
+      below.
+- [x] Map final Vulkan shader families to named future pipeline owners: sky,
+      G-buffer, PBR, avatar, terrain, water, alpha, shadows, probes, glow,
+      post-process, and final composite.
+      The owner map is now explicit at backend startup, including legacy/PBR
+      alpha, shadow caster variants, reflection probes, screen-space
+      reflections, glow, post-process, and final composite. Missing shader
+      modules are reported per owner and summarized. The legacy alpha-mask
+      owner now maps to the shared final diffuse vertex shader, matching the
+      OpenGL shader family rather than requiring a non-existent alpha-mask
+      vertex variant. This is an ownership map, not real final render-graph
+      binding yet.
+- [x] Add final avatar-impostor shader ownership to the Vulkan owner map.
+      The source-ported final impostor fragment shader now consumes the legacy
+      impostor diffuse, normal, and specular render-target textures instead of
+      synthesizing G-buffer normal/specular data from the billboard vertex
+      stream. The active Vulkan path now also has a first billboard command
+      path for complete impostor targets, with active avatar G-buffer variants
+      consuming the legacy normal/specular attachments through `tex1`/`tex2`;
+      the remaining final work is replacing legacy impostor target generation
+      and adding dedicated final impostor pipeline ownership.
+- [ ] Treat the next visual milestone as "feature-visible parity checkpoint",
+      not "1:1 complete": sky visible, atmospheric haze visible, water haze
+      visible, lighting visibly different from the active approximation, and no
+      regression in login/UI/world load.
+      The code now has a candidate feature-visible checkpoint for sky,
+      atmosphere, and water haze. Manual Vulkan-vs-OpenGL testing is still
+      required, and lighting needs the deferred graph before this can be
+      promoted from checkpoint to visual parity.
+
+## OpenGL Legacy Inventory
+
+Generated from a focused scan on 2026-05-28. This is an inventory, not a delete
+list: keep the OpenGL backend available as the comparison path until Vulkan has
+passed the dedicated parity smoke test.
+
+Scan notes:
+
+- Direct real `gl*` calls are now concentrated in `indra/llrender/llglcontainment.cpp`.
+  The raw `gl[A-Z](` scan still finds non-render false positives such as
+  `glPointToScreen`, `glRectToScreen`, `glReady`, and `GLTF_FILTER`.
+- OpenGL/GL header includes are still concentrated in `indra/llrender/`:
+  `llglheaders.h`, `llgl.h`, `llgl.cpp`, `llglcontainment.cpp`,
+  `llimagegl.cpp`, `llrender.cpp`, `llrenderbackendopengl.cpp`,
+  `llvertexbuffer.cpp`, `llrendertarget.cpp`, `llglslshader.cpp`,
+  `llshadermgr.cpp`, `llcubemap*.cpp`, and `llpostprocess.cpp`.
+- `gGL` remains in about 135 source/header files. Highest-density users are
+  `indra/llrender/llrender2dutils.cpp`, `indra/newview/pipeline.cpp`,
+  `indra/newview/llspatialpartition.cpp`, manipulator tools, terrain draw
+  pools, `llviewerdisplay.cpp`, `llglsandbox.cpp`, avatar/debug paths, map UI,
+  preview dialogs, and font/UI rendering.
+  Architectural intent: `gGL` is an OpenGL-era immediate-mode facade, not a
+  backend-neutral renderer API. Keep it temporarily as a legacy UI compatibility
+  adapter, but do not let the Vulkan world/deferred path depend on it for render
+  pass composition, fullscreen quads, matrices, or high-level pipeline state.
+  Migration strategy: reduce `gGL` by ownership boundaries, not by a broad
+  repository-wide rewrite. First remove it from Vulkan world/deferred/
+  render-target composition, then leave UI 2D on the compatibility bridge until
+  world parity is stable, then migrate UI drawing to backend-neutral commands in
+  smaller packets.
+- `LLRenderTarget` remains in about 41 files. Highest-risk users are
+  `indra/newview/pipeline.*`, `indra/llrender/llrendertarget.*`,
+  `indra/llappearance/lltexlayer.*`, dynamic textures, scene monitor,
+  reflection/hero probe managers, material preview, upscalers, and viewer
+  window/display composition.
+- `LLVertexBuffer` remains in about 85 files. Highest-risk users are
+  `indra/llrender/llvertexbuffer.*`, `indra/newview/llvovolume.cpp`,
+  `pipeline.cpp`, draw pools, `llspatialpartition.cpp`, `llface.*`, GLTF
+  primitives, avatar mesh/joint code, terrain/water/sky objects, and preview
+  renderers.
+- `LLGLSLShader` remains in about 70 files. Highest-risk users are
+  `indra/newview/llviewershadermgr.*`, `indra/llrender/llglslshader.*`,
+  `pipeline.cpp`, draw pools, GLTF scene/material code, environment/reflection
+  code, and shader reload/configuration paths.
+- Non-GLTF `LLGL*` vocabulary remains in about 179 files. Most of it is either
+  low-level backend debt, state wrappers (`LLGLState`, `LLGLEnable`,
+  `LLGLDisable`, `LLGLDepthTest`, `LLGLSUIDefault`), texture naming
+  (`LLImageGL`, `LLGLTexture`), or shader naming (`LLGLSLShader`).
+
+Legacy categories:
+
+- [ ] Backend-only OpenGL implementation:
+      `llglcontainment.*`, `llrenderbackendopengl.*`, `llglheaders.h`,
+      `llgl.*`, `llopenglplatform.h`. Keep direct OpenGL calls here only.
+      This can remain until the OpenGL backend is intentionally retired.
+- [ ] Backend-neutral resource names still carrying OpenGL vocabulary:
+      `LLImageGL`, `LLGLTexture`, `LLVertexBuffer`, `LLRenderTarget`,
+      `LLGLSLShader`, and `LLRender`. These are the main architectural debt
+      because high-level code still talks in OpenGL-era resource concepts even
+      when Vulkan is selected.
+- [ ] Frame orchestration and render pass ownership:
+      `pipeline.*`, `llviewerdisplay.cpp`, render target fields in
+      `LLPipeline`, deferred/shadow/post-process passes, and final swapchain
+      composition. This is the biggest 1:1 parity blocker.
+- [ ] Draw pool state vocabulary:
+      `lldrawpool*.cpp`, `llspatialpartition.*`, `llface.*`, terrain, water,
+      sky, alpha, bump/material/PBR, avatar, and GLTF draw paths. These still
+      encode OpenGL ordering and state assumptions that Vulkan must make
+      explicit as pipelines, descriptors, render passes, and draw ordering.
+- [ ] Shader ownership:
+      `llviewershadermgr.*`, `llglslshader.*`, `llshadermgr.*`, draw pools,
+      `pipeline.*`, and GLTF/environment code. The OpenGL-derived Vulkan
+      shaders are source-ported, but the runtime still needs final Vulkan
+      pipeline ownership instead of shader-manager compatibility assumptions.
+- [ ] UI and immediate-mode rendering:
+      `llrender2dutils.*`, `llui/*`, text/font paths, `llfloater*preview*`,
+      `llmodelpreview.*`, `llsnapshotlivepreview.*`, maps/minimap/netmap,
+      tool/manipulator overlays, HUD/effects, and debug overlays. These should
+      eventually use a backend-neutral UI command path rather than direct
+      `gGL`/matrix/state calls.
+- [ ] Texture upload and residency:
+      `llimagegl.*`, `llgltexture.*`, `llviewertexture.*`,
+      `llviewertexturelist.*`, media/CEF texture paths, bake/composite paths,
+      and GLTF material texture slots. Vulkan now has budget and recovery
+      handling, but the high-level ownership still uses OpenGL-era texture
+      object semantics.
+- [ ] Render targets, dynamic textures, and upscalers:
+      `llrendertarget.*`, `lldynamictexture.*`, `lltexlayer.*`,
+      `llvisualeffect.*`, `marenisupscaler.*`, `maretaaupscaler.*`,
+      `marefsr2upscaler.*`, scene monitor, probes, and pipeline-owned
+      post-process targets. These need explicit backend render graph/pass
+      ownership before the Vulkan path is truly 1:1.
+- [ ] Debug/test/diagnostic OpenGL debt:
+      `llglsandbox.cpp`, `lltextureview.cpp`, `llfasttimerview.cpp`,
+      `llsceneview.cpp`, `llscenemonitor.cpp`, avatar collision/debug drawing,
+      selection/manipulator overlays, and old GL state check paths. These are
+      lower priority than world/avatar/render-target parity unless they hide
+      runtime correctness issues.
+
+Near-term cleanup order:
+
+- [ ] Keep adding guardrails so new source cannot introduce direct OpenGL calls
+      outside the backend/containment layer.
+- [ ] Finish render-target and G-buffer parity before renaming or deleting
+      OpenGL-era abstractions.
+- [ ] Replace high-level `LLRenderTarget` assumptions with backend-neutral
+      render-target/render-pass contracts.
+- [ ] Replace high-level `LLGLSLShader` assumptions with backend-owned Vulkan
+      pipeline descriptors and shader modules.
+- [ ] Move UI `gGL` usage behind the same backend-neutral UI command path used
+      by Vulkan text, rectangles, icons, CEF, and floater rendering.
+- [ ] Isolate and remove `gGL` from Vulkan world/deferred rendering.
+      `gGL` may remain as a temporary UI bridge, but fullscreen composites,
+      G-buffer/deferred passes, render-target copies, and swapchain presentation
+      should emit explicit backend commands with stable vertex buffers and
+      explicit matrices/state. The 2026-05-30 black-world smoke reproduction was
+      caused by a Vulkan composite quad going through `gGL` immediate-mode
+      caching and matrix state, so this is correctness debt rather than only
+      cleanup.
+- [ ] Avoid a broad `gGL` rewrite.
+      Treat the high call count as legacy surface area to contain. Do not try to
+      remove every `gGL` call at once. Keep UI compatibility working, and retire
+      `gGL` only after each owner has a backend-neutral replacement path and a
+      small smoke/visual check.
+- [ ] Reduce `gGL` by explicit migration steps.
+      1. Audit every remaining `gGL` use in `llviewerdisplay.cpp`,
+         `pipeline.cpp`, render-target composition, and Vulkan draw-pool entry
+         points; classify each call as world/deferred, render-target copy,
+         debug overlay, or UI compatibility.
+      2. Remove `gGL` from Vulkan world/deferred/render-target composition
+         first. Fullscreen quads, G-buffer composites, render-target copies,
+         swapchain presentation, matrices, depth/blend/cull state, and texture
+         bindings should be expressed as explicit backend commands.
+      3. Add guardrails/logging so Vulkan world/deferred paths do not
+         accidentally re-enter `gGL` immediate-mode helpers except through
+         documented UI compatibility calls.
+      4. Keep 2D UI, fonts, CEF, floaters, and legacy overlays on the temporary
+         `gGL` bridge while world parity is still moving. Do not migrate UI and
+         world in the same packet.
+      5. After world/deferred parity is visually stable, introduce a
+         backend-neutral UI command path for rectangles, textured quads, text,
+         icons, and CEF surfaces.
+      6. Move UI owners to that command path in small packets: login/CEF first,
+         common widgets second, floaters/previews third, debug overlays last.
+      7. Once both world and UI owners no longer need `gGL`, either keep it only
+         inside the OpenGL backend compatibility layer or remove it behind a
+         dedicated legacy-build flag.
+- [ ] Only after Vulkan parity smoke tests pass, decide whether to keep OpenGL
+      as a legacy backend, hide it behind build flags, or remove it.
 
 ## Done
 
@@ -2484,6 +3609,12 @@ No open items in this section right now.
       requiring session-scoped replacements for current globals.
 - [ ] Evaluate multi-login tabs only after deciding between in-process
       multi-session and multi-process session isolation.
+- [ ] Evaluate DLSS as a very long-term optional upscaling backend after the
+      renderer has a stable backend-neutral upscaler interface and platform/
+      vendor capability detection.
+- [ ] Evaluate raytracing as a very long-term rendering goal only after the
+      modern backend path owns scene acceleration data, materials, lighting,
+      and fallback paths cleanly.
 
 ## Non-Goals For Now
 

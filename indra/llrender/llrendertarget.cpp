@@ -87,6 +87,22 @@ LLRenderFramebufferAttachment to_render_color_attachment(U32 index)
     }
 }
 
+LLRenderTextureFormat infer_render_target_color_format(const LLImageGL& image)
+{
+    switch (image.getComponents())
+    {
+    case 1:
+        return LLRenderTextureFormat::R8;
+    case 2:
+        return LLRenderTextureFormat::RG8;
+    case 3:
+        return LLRenderTextureFormat::RGB8;
+    case 4:
+    default:
+        return LLRenderTextureFormat::RGBA;
+    }
+}
+
 void check_current_draw_framebuffer_status()
 {
     if (gDebugGL)
@@ -160,6 +176,22 @@ void set_framebuffer_texture_attachment(
         0);
 }
 
+void set_framebuffer_texture_attachment(
+    LLRenderFramebufferAttachment attachment,
+    LLTexUnit::eTextureType usage,
+    LLRenderTextureHandle texture,
+    LLRenderTextureFormat format,
+    U32 width,
+    U32 height)
+{
+    getRenderBackend().noteTextureAllocation(
+        texture,
+        format,
+        width,
+        height);
+    set_framebuffer_texture_attachment(attachment, usage, texture);
+}
+
 void clear_framebuffer_texture_attachment(
     LLRenderFramebufferAttachment attachment,
     LLTexUnit::eTextureType usage)
@@ -196,9 +228,7 @@ void generate_bound_render_target_mipmaps()
 
 void clear_render_target_buffers(LLRenderClearMask mask)
 {
-    LLRenderPassDesc desc;
-    desc.mClearMask = mask;
-    getRenderBackend().clear(desc);
+    getRenderBackend().clear(mask);
 }
 
 void set_render_target_scissor(U32 width, U32 height)
@@ -213,6 +243,34 @@ void set_render_target_scissor(U32 width, U32 height)
 bool render_target_texture_allocation_failed()
 {
     return getRenderBackend().hasError();
+}
+
+U32 get_render_target_max_texture_size()
+{
+    S32 max_texture_size = gGLManager.mGLMaxTextureSize;
+    if (max_texture_size <= 0)
+    {
+        getRenderBackend().getLegacyInteger(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+        if (max_texture_size > 0)
+        {
+            gGLManager.mGLMaxTextureSize = max_texture_size;
+            LL_INFOS_ONCE("RenderBackend")
+                << "Render target max texture size initialized from render backend: "
+                << max_texture_size
+                << "."
+                << LL_ENDL;
+        }
+    }
+
+    if (max_texture_size <= 0)
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Render target max texture size is unavailable; refusing zero-sized render target allocation."
+            << LL_ENDL;
+        return 0;
+    }
+
+    return static_cast<U32>(max_texture_size);
 }
 }
 
@@ -242,6 +300,11 @@ void LLRenderTarget::resize(U32 resx, U32 resy)
     for (U32 i = 0; i < mTex.size(); ++i)
     { //resize color attachments
         gGL.getTexUnit(0)->bindManual(mUsage, mTex[i]);
+        getRenderBackend().noteTextureAllocation(
+            mTex[i],
+            mInternalFormat[i],
+            mResX,
+            mResY);
         LLImageGL::setManualImage(
             to_render_texture_target(mUsage),
             0,
@@ -258,6 +321,11 @@ void LLRenderTarget::resize(U32 resx, U32 resy)
     if (mDepth)
     {
         gGL.getTexUnit(0)->bindManual(mUsage, mDepth);
+        getRenderBackend().noteTextureAllocation(
+            mDepth,
+            LLRenderTextureFormat::DepthComponent24,
+            mResX,
+            mResY);
         LLImageGL::setManualImage(
             to_render_texture_target(mUsage),
             0,
@@ -286,8 +354,14 @@ bool LLRenderTarget::allocate(
     llassert(usage == LLTexUnit::TT_TEXTURE);
     llassert(!isBoundInStack());
 
-    resx = llmin(resx, (U32) gGLManager.mGLMaxTextureSize);
-    resy = llmin(resy, (U32) gGLManager.mGLMaxTextureSize);
+    const U32 max_texture_size = get_render_target_max_texture_size();
+    if (!max_texture_size)
+    {
+        return false;
+    }
+
+    resx = llmin(resx, max_texture_size);
+    resy = llmin(resy, max_texture_size);
 
     release();
 
@@ -319,7 +393,13 @@ bool LLRenderTarget::allocate(
     {
         bind_attachment_fbo(mFBO);
 
-        set_framebuffer_texture_attachment(LLRenderFramebufferAttachment::Depth, mUsage, mDepth);
+        set_framebuffer_texture_attachment(
+            LLRenderFramebufferAttachment::Depth,
+            mUsage,
+            mDepth,
+            LLRenderTextureFormat::DepthComponent24,
+            mResX,
+            mResY);
 
         restore_tracked_fbo_binding();
     }
@@ -350,13 +430,23 @@ void LLRenderTarget::setColorAttachment(LLImageGL* img, U32 use_name)
         use_name = img->getTexName();
     }
 
+    const LLRenderTextureFormat color_format = infer_render_target_color_format(*img);
+    getRenderBackend().noteTextureAllocation(
+        LLRenderTextureHandle(use_name),
+        color_format,
+        mResX,
+        mResY);
+
     mTex.push_back(LLRenderTextureHandle(use_name));
 
     bind_attachment_fbo(mFBO);
         set_framebuffer_texture_attachment(
             LLRenderFramebufferAttachment::Color0,
             mUsage,
-            LLRenderTextureHandle(use_name));
+            LLRenderTextureHandle(use_name),
+            color_format,
+            mResX,
+            mResY);
     stop_glerror();
 
     check_current_draw_framebuffer_status();
@@ -406,6 +496,11 @@ bool LLRenderTarget::addColorAttachment(LLRenderTextureFormat color_fmt)
     LLImageGL::generateTextures(1, &texture_name);
     LLRenderTextureHandle texture(texture_name);
     gGL.getTexUnit(0)->bindManual(mUsage, texture);
+    getRenderBackend().noteTextureAllocation(
+        texture,
+        color_fmt,
+        mResX,
+        mResY);
 
     stop_glerror();
 
@@ -463,7 +558,10 @@ bool LLRenderTarget::addColorAttachment(LLRenderTextureFormat color_fmt)
         set_framebuffer_texture_attachment(
             to_render_color_attachment(offset),
             mUsage,
-            texture);
+            texture,
+            color_fmt,
+            mResX,
+            mResY);
 
         check_current_draw_framebuffer_status();
 
@@ -488,6 +586,11 @@ bool LLRenderTarget::allocateDepth()
     LLImageGL::generateTextures(1, &depth_name);
     mDepth = LLRenderTextureHandle(depth_name);
     gGL.getTexUnit(0)->bindManual(mUsage, mDepth);
+    getRenderBackend().noteTextureAllocation(
+        mDepth,
+        LLRenderTextureFormat::DepthComponent24,
+        mResX,
+        mResY);
 
     stop_glerror();
     clear_glerror();
@@ -537,7 +640,13 @@ void LLRenderTarget::shareDepthBuffer(LLRenderTarget& target)
     {
         bind_attachment_fbo(target.mFBO);
 
-        set_framebuffer_texture_attachment(LLRenderFramebufferAttachment::Depth, mUsage, mDepth);
+        set_framebuffer_texture_attachment(
+            LLRenderFramebufferAttachment::Depth,
+            mUsage,
+            mDepth,
+            LLRenderTextureFormat::DepthComponent24,
+            mResX,
+            mResY);
 
         check_current_draw_framebuffer_status();
 
@@ -681,7 +790,8 @@ void LLRenderTarget::bindTexture(U32 index, S32 channel, LLTexUnit::eTextureFilt
     gGL.getTexUnit(channel)->bindManual(
         mUsage,
         getTextureHandle(index),
-        filter_options == LLTexUnit::TFO_TRILINEAR || filter_options == LLTexUnit::TFO_ANISOTROPIC);
+        filter_options == LLTexUnit::TFO_TRILINEAR || filter_options == LLTexUnit::TFO_ANISOTROPIC,
+        true);
     gGL.getTexUnit(channel)->setTextureFilteringOption(filter_options);
 }
 

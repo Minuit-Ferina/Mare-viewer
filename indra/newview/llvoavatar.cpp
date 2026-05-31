@@ -95,6 +95,7 @@
 #include "llviewerwearable.h"
 #include "llvoavatarself.h"
 #include "llvovolume.h"
+#include "llworldrendercommand.h"
 #include "llworld.h"
 #include "pipeline.h"
 #include "llviewershadermgr.h"
@@ -6117,6 +6118,108 @@ U32 LLVOAvatar::emitRigidWorldCommands(LLWorldRenderCommandBuffer& commands)
     }
 
     return num_indices;
+}
+
+U32 LLVOAvatar::emitImpostorWorldCommand(LLWorldRenderCommandBuffer& commands, LLColor4U color)
+{
+    if (!mImpostor.isComplete())
+    {
+        return 0;
+    }
+
+    LLVector3 pos(getRenderPosition() + mImpostorOffset);
+    LLVector3 at = pos - LLViewerCamera::getInstance()->getOrigin();
+    at.normalize();
+    LLVector3 left = LLViewerCamera::getInstance()->getUpAxis() % at;
+    LLVector3 up = at % left;
+    LLVector3 normal = at * -1.f;
+
+    left *= mImpostorDim.mV[0];
+    up *= mImpostorDim.mV[1];
+
+    constexpr U32 impostor_vertex_data_mask =
+        LLVertexBuffer::MAP_VERTEX |
+        LLVertexBuffer::MAP_NORMAL |
+        LLVertexBuffer::MAP_TEXCOORD0 |
+        LLVertexBuffer::MAP_COLOR;
+    LLPointer<LLVertexBuffer> vertex_buffer = new LLVertexBuffer(impostor_vertex_data_mask);
+    if (!vertex_buffer->allocateBuffer(4, 6))
+    {
+        return 0;
+    }
+
+    LLStrider<LLVector3> vertices;
+    LLStrider<LLVector3> normals;
+    LLStrider<LLVector2> texcoords;
+    LLStrider<LLColor4U> colors;
+    LLStrider<U16> indices;
+    bool success =
+        vertex_buffer->getVertexStrider(vertices) &&
+        vertex_buffer->getNormalStrider(normals) &&
+        vertex_buffer->getTexCoord0Strider(texcoords) &&
+        vertex_buffer->getColorStrider(colors) &&
+        vertex_buffer->getIndexStrider(indices);
+    if (!success)
+    {
+        return 0;
+    }
+
+    const LLVector3 corners[4] =
+    {
+        pos + left - up,
+        pos - left - up,
+        pos - left + up,
+        pos + left + up,
+    };
+    const LLVector2 uvs[4] =
+    {
+        LLVector2(0.f, 0.f),
+        LLVector2(1.f, 0.f),
+        LLVector2(1.f, 1.f),
+        LLVector2(0.f, 1.f),
+    };
+    for (U32 i = 0; i < 4; ++i)
+    {
+        *vertices++ = corners[i];
+        *normals++ = normal;
+        *texcoords++ = uvs[i];
+        *colors++ = color;
+    }
+
+    *indices++ = 0;
+    *indices++ = 1;
+    *indices++ = 2;
+    *indices++ = 0;
+    *indices++ = 2;
+    *indices++ = 3;
+    vertex_buffer->unmapBuffer();
+
+    LLMatrix4 model_matrix;
+    model_matrix.setIdentity();
+    LLWorldRenderCommand* command = commands.appendOwnedDrawRange(
+        vertex_buffer,
+        nullptr,
+        LLWorldRenderMaterialClass::AvatarImpostor,
+        LLDrawPool::POOL_AVATAR,
+        model_matrix,
+        0,
+        3,
+        6,
+        0,
+        true,
+        false,
+        impostor_vertex_data_mask);
+    if (!command)
+    {
+        return 0;
+    }
+
+    command->mAvatar = this;
+    command->mAlphaMaskCutoff = 0.01f;
+    command->mBaseColor = LLColor4::white;
+    command->mFullbright = true;
+
+    return 6;
 }
 
 U32 LLVOAvatar::renderImpostor(LLColor4U color, S32 diffuse_channel)

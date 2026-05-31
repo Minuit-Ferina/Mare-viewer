@@ -32,7 +32,7 @@
 #include "llgltypes.h"
 #include "llpointer.h"
 #include "llrender.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 #include "llunits.h"
 
 class LLImageGL;

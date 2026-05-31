@@ -28,6 +28,11 @@
 #define LL_VOWLSKY_H
 
 #include "llviewerobject.h"
+#include "v4color.h"
+
+class LLMatrix4;
+class LLViewerTexture;
+class LLWorldRenderCommandBuffer;
 
 class LLVOWLSky : public LLStaticViewerObject {
 private:
@@ -49,6 +54,9 @@ public:
     void drawStars(void);
     void drawDome(void);
     void drawFsSky(void); // fullscreen sky for advanced atmo
+    void appendDomeDrawCommands(LLWorldRenderCommandBuffer& commands, const LLMatrix4& model_matrix, const LLColor4& color) const;
+    void appendCloudDrawCommands(LLWorldRenderCommandBuffer& commands, const LLMatrix4& model_matrix, LLViewerTexture* texture, const LLColor4& color) const;
+    void appendStarsDrawCommands(LLWorldRenderCommandBuffer& commands, const LLMatrix4& model_matrix, LLViewerTexture* texture, const LLColor4& color) const;
     void resetVertexBuffers(void);
 
     void cleanupGL();

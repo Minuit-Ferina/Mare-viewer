@@ -29,7 +29,7 @@
 
 #include "llgltypes.h"
 #include "llrender.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 #include "llstaticstringtable.h"
 #include <boost/json.hpp>
 #include <map>

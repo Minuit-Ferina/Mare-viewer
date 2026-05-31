@@ -40,6 +40,7 @@ class LLVOAvatar;
 
 enum class LLWorldRenderMaterialClass : U8
 {
+    Sky,
     Terrain,
     SimpleOpaque,
     AlphaMask,
@@ -52,9 +53,13 @@ enum class LLWorldRenderMaterialClass : U8
     GLTFPBR,
     GLTFPBRAlphaMask,
     Avatar,
+    AvatarImpostor,
     Alpha,
     Glow,
     Water,
+    WaterExclusionMask,
+    AtmosphericHaze,
+    WaterHaze,
     FullbrightShiny,
     PostBump,
 };
@@ -102,6 +107,9 @@ struct LLWorldRenderCommand
     LLWorldRenderBlendMode mBlendMode = LLWorldRenderBlendMode::None;
     LLWorldRenderDepthMode mDepthMode = LLWorldRenderDepthMode::ReadWrite;
     LLWorldRenderCullMode mCullMode = LLWorldRenderCullMode::Back;
+    bool mWriteColor = true;
+    bool mWriteAlpha = true;
+    bool mDepthOnlyAlphaPass = false;
     U32 mSourcePass = 0;
     U32 mAttributeMask = 0;
 
@@ -128,6 +136,7 @@ struct LLWorldRenderCommand
     U32 mEnd = 0;
     U32 mCount = 0;
     U32 mOffset = 0;
+    U32 mFirst = 0;
 
     LLColor4 mBaseColor = LLColor4(1.f, 1.f, 1.f, 1.f);
     LLColor3 mEmissiveColor = LLColor3(0.f, 0.f, 0.f);
@@ -143,6 +152,39 @@ struct LLWorldRenderCommand
     F32 mTerrainDetailScale = 1.f;
     F32 mTerrainOffsetX = 0.f;
     F32 mTerrainOffsetY = 0.f;
+    F32 mTerrainRegionScale = 256.f;
+    U32 mTerrainPaintType = 0;
+    U32 mTerrainPlanarSampleCount = 1;
+    F32 mTerrainTriplanarBlendFactor = 8.f;
+    LLColor4 mTerrainBaseColorFactors[4] =
+    {
+        LLColor4(1.f, 1.f, 1.f, 1.f),
+        LLColor4(1.f, 1.f, 1.f, 1.f),
+        LLColor4(1.f, 1.f, 1.f, 1.f),
+        LLColor4(1.f, 1.f, 1.f, 1.f),
+    };
+    F32 mTerrainMetallicFactors[4] =
+    {
+        0.f, 0.f, 0.f, 0.f,
+    };
+    F32 mTerrainRoughnessFactors[4] =
+    {
+        1.f, 1.f, 1.f, 1.f,
+    };
+    LLColor4 mTerrainEmissiveMinimumAlphas[4] =
+    {
+        LLColor4(0.f, 0.f, 0.f, 0.f),
+        LLColor4(0.f, 0.f, 0.f, 0.f),
+        LLColor4(0.f, 0.f, 0.f, 0.f),
+        LLColor4(0.f, 0.f, 0.f, 0.f),
+    };
+    F32 mTerrainTextureTransforms[20] =
+    {
+        1.f, 1.f, 0.f, 0.f, 0.f,
+        1.f, 1.f, 0.f, 0.f, 0.f,
+        1.f, 1.f, 0.f, 0.f, 0.f,
+        1.f, 1.f, 0.f, 0.f, 0.f,
+    };
     LLRender::eBlendFactor mBlendFuncSrc = LLRender::BF_SOURCE_ALPHA;
     LLRender::eBlendFactor mBlendFuncDst = LLRender::BF_ONE_MINUS_SOURCE_ALPHA;
     U8 mDiffuseAlphaMode = 0;
@@ -155,6 +197,8 @@ struct LLWorldRenderCommand
     bool mDoubleSided = false;
     bool mFullbright = false;
     bool mHasGlow = false;
+    U32 mMode = LLRender::TRIANGLES;
+    bool mDrawArrays = false;
 };
 
 class LLWorldRenderCommandBuffer
@@ -172,7 +216,9 @@ public:
         U32 source_pass,
         bool texture,
         bool batch_textures,
-        U32 attribute_mask);
+        U32 attribute_mask,
+        bool depth_only_alpha_pass = false,
+        bool alpha_depth_write_pass = false);
 
     void appendFace(
         const LLFace& face,
@@ -186,6 +232,18 @@ public:
         LLViewerTexture* detail_texture2,
         LLViewerTexture* detail_texture3,
         LLViewerTexture* alpha_ramp,
+        LLViewerTexture* const* orm_textures,
+        LLViewerTexture* const* emissive_textures,
+        LLViewerTexture* const* normal_textures,
+        const LLColor4* base_color_factors,
+        const F32* metallic_factors,
+        const F32* roughness_factors,
+        const LLColor4* emissive_minimum_alphas,
+        const F32* texture_transforms,
+        F32 region_scale,
+        U32 paint_type,
+        U32 planar_sample_count,
+        F32 triplanar_blend_factor,
         F32 detail_scale,
         F32 offset_x,
         F32 offset_y);
@@ -202,7 +260,36 @@ public:
         U32 offset,
         bool use_texture,
         bool batch_textures,
-        U32 attribute_mask);
+        U32 attribute_mask,
+        U32 mode = LLRender::TRIANGLES);
+
+    LLWorldRenderCommand* appendOwnedDrawRange(
+        LLVertexBuffer* vertex_buffer,
+        LLViewerTexture* texture,
+        LLWorldRenderMaterialClass material_class,
+        U32 source_pass,
+        const LLMatrix4& model_matrix,
+        U32 start,
+        U32 end,
+        U32 count,
+        U32 offset,
+        bool use_texture,
+        bool batch_textures,
+        U32 attribute_mask,
+        U32 mode = LLRender::TRIANGLES);
+
+    LLWorldRenderCommand* appendDrawArrays(
+        LLVertexBuffer* vertex_buffer,
+        LLViewerTexture* texture,
+        LLWorldRenderMaterialClass material_class,
+        U32 source_pass,
+        const LLMatrix4* model_matrix,
+        U32 first,
+        U32 count,
+        bool use_texture,
+        bool batch_textures,
+        U32 attribute_mask,
+        U32 mode = LLRender::TRIANGLES);
 
     void appendAvatarDrawRange(
         LLVertexBuffer* vertex_buffer,
@@ -235,6 +322,15 @@ public:
         bool texture,
         bool batch_textures,
         U32 attribute_mask);
+
+    void appendRenderMapWithColor(
+        U32 source_pass,
+        LLWorldRenderMaterialClass material_class,
+        bool texture,
+        bool batch_textures,
+        U32 attribute_mask,
+        const LLColor4& base_color,
+        bool fullbright);
 
     const command_list_t& commands() const { return mCommands; }
 

@@ -319,12 +319,9 @@ bool LLDrawPoolAvatar::emitDeferredCommands(LLWorldRenderCommandBuffer& commands
         ++pass;
     }
 
-    if (pass != 1 && pass != 2)
+    if (pass != 0 && pass != 1 && pass != 2)
     {
-        if (pass == 0)
-        {
-            log_avatar_command_state("non-skinned pass");
-        }
+        log_avatar_command_state("unsupported deferred pass");
         return false;
     }
 
@@ -366,17 +363,29 @@ bool LLDrawPoolAvatar::emitDeferredCommands(LLWorldRenderCommandBuffer& commands
     }
 
     const bool impostor = !LLPipeline::sImpostorRender && avatarp->isImpostor();
-    if (should_skip_vulkan_avatar_real_geometry_fallback(avatarp))
+    const bool impostor_billboard =
+        !LLPipeline::sImpostorRender &&
+        (avatarp->isImpostor() ||
+         (LLVOAvatar::AOA_NORMAL != avatarp->getOverallAppearance() &&
+          !avatarp->needsImpostorUpdate()));
+    if (should_skip_vulkan_avatar_real_geometry_fallback(avatarp) &&
+        !impostor_billboard)
     {
         log_avatar_command_state("avatar render filter", avatarp);
         return true;
     }
 
-    if (impostor)
+    if (pass == 0)
     {
-        // The Vulkan world path does not render avatar impostor billboards yet.
-        // Keep the real skinned avatar visible instead of distance-clipping it.
-        log_avatar_command_state("impostor skinned fallback", avatarp);
+        if (impostor_billboard &&
+            avatarp->emitImpostorWorldCommand(commands, avatarp->getMutedAVColor()) > 0)
+        {
+            log_avatar_command_state("emitting impostor billboard", avatarp);
+            return true;
+        }
+
+        log_avatar_command_state("non-impostor pass", avatarp);
+        return false;
     }
 
     LLVOAvatar* attached_av = avatarp->getAttachedAvatar();
@@ -384,6 +393,17 @@ bool LLDrawPoolAvatar::emitDeferredCommands(LLWorldRenderCommandBuffer& commands
     {
         log_avatar_command_state("attached avatar render filter", avatarp);
         return true;
+    }
+
+    if (impostor_billboard && avatarp->mImpostor.isComplete())
+    {
+        log_avatar_command_state("skipping real geometry for impostor billboard", avatarp);
+        return true;
+    }
+
+    if (impostor)
+    {
+        log_avatar_command_state("impostor skinned fallback", avatarp);
     }
 
     if (pass == 1)
@@ -560,7 +580,13 @@ bool LLDrawPoolAvatar::emitPostDeferredCommands(
     }
 
     const bool impostor = !LLPipeline::sImpostorRender && avatarp->isImpostor();
-    if (should_skip_vulkan_avatar_real_geometry_fallback(avatarp))
+    const bool impostor_billboard =
+        !LLPipeline::sImpostorRender &&
+        (avatarp->isImpostor() ||
+         (LLVOAvatar::AOA_NORMAL != avatarp->getOverallAppearance() &&
+          !avatarp->needsImpostorUpdate()));
+    if (should_skip_vulkan_avatar_real_geometry_fallback(avatarp) &&
+        !impostor_billboard)
     {
         log_avatar_command_state("avatar render filter", avatarp);
         return true;
@@ -575,6 +601,12 @@ bool LLDrawPoolAvatar::emitPostDeferredCommands(
     if (should_skip_vulkan_attached_avatar_real_geometry_fallback(attached_av))
     {
         log_avatar_command_state("attached avatar render filter", avatarp);
+        return true;
+    }
+
+    if (impostor_billboard && avatarp->mImpostor.isComplete())
+    {
+        log_avatar_command_state("skipping transparent real geometry for impostor billboard", avatarp);
         return true;
     }
 

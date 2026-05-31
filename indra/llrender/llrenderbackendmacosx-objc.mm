@@ -131,7 +131,8 @@ static LLRenderMacOSXContextAttachment* get_context_attachment(void* view)
 
 void* ll_render_macosx_create_native_view(void* window)
 {
-    LLNativeView* native_view = [[LLNativeView alloc] initWithFrame:[(LLNSWindow*)window frame]
+    NSRect native_frame = [[(LLNSWindow*)window contentView] bounds];
+    LLNativeView* native_view = [[LLNativeView alloc] initWithFrame:native_frame
                                                    withSamples:0
                                                      andVsync:false];
     [(LLNSWindow*)window setContentView:native_view];
@@ -208,7 +209,8 @@ void ll_render_macosx_destroy_native_view(void* view)
 
 void* ll_render_macosx_create_metal_native_view(void* window)
 {
-    LLNativeView* native_view = [[LLNativeView alloc] initWithFrame:[(LLNSWindow*)window frame]
+    NSRect native_frame = [[(LLNSWindow*)window contentView] bounds];
+    LLNativeView* native_view = [[LLNativeView alloc] initWithFrame:native_frame
                                                        withSamples:0
                                                          andVsync:false];
     if (native_view == nil)

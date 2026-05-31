@@ -36,6 +36,7 @@
 #include "llenvironment.h"
 #include "llsettingssky.h"
 #include "llrenderstate.h"
+#include "llworldrendercommand.h"
 
 constexpr U32 MIN_SKY_DETAIL = 8;
 constexpr U32 MAX_SKY_DETAIL = 180;
@@ -334,6 +335,127 @@ void LLVOWLSky::drawDome(void)
     }
 
     LLVertexBuffer::unbind();
+}
+
+void LLVOWLSky::appendDomeDrawCommands(LLWorldRenderCommandBuffer& commands, const LLMatrix4& model_matrix, const LLColor4& color) const
+{
+    if (mStripsVerts.empty())
+    {
+        const_cast<LLVOWLSky*>(this)->updateGeometry(mDrawable);
+    }
+
+    for (const LLPointer<LLVertexBuffer>& strips_segment : mStripsVerts)
+    {
+        LLVertexBuffer* vertex_buffer = strips_segment.get();
+        if (!vertex_buffer || !vertex_buffer->getNumVerts() || !vertex_buffer->getNumIndices())
+        {
+            continue;
+        }
+
+        LLWorldRenderCommand* command = commands.appendOwnedDrawRange(
+            vertex_buffer,
+            nullptr,
+            LLWorldRenderMaterialClass::Sky,
+            LLDrawPool::POOL_WL_SKY,
+            model_matrix,
+            0,
+            vertex_buffer->getNumVerts() - 1,
+            vertex_buffer->getNumIndices(),
+            0,
+            false,
+            false,
+            LLDrawPoolWLSky::SKY_VERTEX_DATA_MASK,
+            LLRender::TRIANGLE_STRIP);
+        if (command)
+        {
+            command->mBaseColor = color;
+            command->mFullbright = true;
+        }
+    }
+}
+
+void LLVOWLSky::appendCloudDrawCommands(
+    LLWorldRenderCommandBuffer& commands,
+    const LLMatrix4& model_matrix,
+    LLViewerTexture* texture,
+    const LLColor4& color) const
+{
+    if (mStripsVerts.empty())
+    {
+        const_cast<LLVOWLSky*>(this)->updateGeometry(mDrawable);
+    }
+
+    if (!texture)
+    {
+        return;
+    }
+
+    for (const LLPointer<LLVertexBuffer>& strips_segment : mStripsVerts)
+    {
+        LLVertexBuffer* vertex_buffer = strips_segment.get();
+        if (!vertex_buffer || !vertex_buffer->getNumVerts() || !vertex_buffer->getNumIndices())
+        {
+            continue;
+        }
+
+        LLWorldRenderCommand* command = commands.appendOwnedDrawRange(
+            vertex_buffer,
+            texture,
+            LLWorldRenderMaterialClass::AtmosphericHaze,
+            LLDrawPool::POOL_WL_SKY,
+            model_matrix,
+            0,
+            vertex_buffer->getNumVerts() - 1,
+            vertex_buffer->getNumIndices(),
+            0,
+            true,
+            false,
+            LLDrawPoolWLSky::SKY_VERTEX_DATA_MASK,
+            LLRender::TRIANGLE_STRIP);
+        if (command)
+        {
+            command->mBaseColor = color;
+            command->mFullbright = true;
+        }
+    }
+}
+
+void LLVOWLSky::appendStarsDrawCommands(
+    LLWorldRenderCommandBuffer& commands,
+    const LLMatrix4& model_matrix,
+    LLViewerTexture* texture,
+    const LLColor4& color) const
+{
+    if (mStarsVerts.isNull())
+    {
+        const_cast<LLVOWLSky*>(this)->updateGeometry(mDrawable);
+    }
+
+    if (mStarsVerts.isNull() || !mStarsVerts->getNumVerts())
+    {
+        return;
+    }
+
+    const U32 count = llmin(mStarsVerts->getNumVerts(), getStarsNumVerts() * 4);
+    LLWorldRenderCommand* command = commands.appendDrawArrays(
+        mStarsVerts,
+        texture,
+        LLWorldRenderMaterialClass::Glow,
+        LLDrawPool::POOL_WL_SKY,
+        nullptr,
+        0,
+        count,
+        texture != nullptr,
+        false,
+        LLDrawPoolWLSky::STAR_VERTEX_DATA_MASK,
+        LLRender::TRIANGLES);
+    if (command)
+    {
+        command->mOwnedModelMatrix = model_matrix;
+        command->mHasOwnedModelMatrix = true;
+        command->mBaseColor = color;
+        command->mFullbright = true;
+    }
 }
 
 void LLVOWLSky::initStars()

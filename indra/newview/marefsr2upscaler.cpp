@@ -10,6 +10,7 @@
 #include "llrendertarget.h"
 
 #include "llglslshader.h"       // LLGLSLShader
+#include "llrenderbackend.h"
 #include "llviewershadermgr.h"  // gDeferredTAACopyProgram (copy-back helper)
 #include "llrender.h"       // gGL
 #include "llviewercontrol.h"

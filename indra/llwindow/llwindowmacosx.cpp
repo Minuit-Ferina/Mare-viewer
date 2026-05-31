@@ -217,8 +217,7 @@ LLWindowMacOSX::LLWindowMacOSX(LLWindowCallbacks* callbacks,
                 "Mare Viewer stopped during the experimental Vulkan backend bootstrap.\n"
                 "Vulkan reached native context, swapchain, render pass, framebuffers,\n"
                 "triangle pipeline, and command buffers, then presented one triangle frame probe.\n"
-                "Real scene rendering is not implemented yet.\n"
-                "Set MARE_VULKAN_CONTINUE_AFTER_PROBE=1 only to probe the next startup blocker.\n"
+                "Set MARE_VULKAN_STOP_AFTER_PROBE=1 only to stop after this bootstrap probe.\n"
                 "Unset MARE_RENDER_BACKEND to run with the default OpenGL backend.",
                 "Vulkan backend incomplete",
                 OSMB_OK);

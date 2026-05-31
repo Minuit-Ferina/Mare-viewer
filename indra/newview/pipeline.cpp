@@ -126,6 +126,7 @@
 // [/RLVa:KB]
 
 #include "llenvironment.h"
+#include "llsettingswater.h"
 #include "llsettingsvo.h"
 #include "kokuarlvmode.h" // for RLV_ALWAYS_ON
 
@@ -300,6 +301,180 @@ static LLStaticHashedString sDistFactor("dist_factor");
 static LLStaticHashedString sKern("kern");
 static LLStaticHashedString sKernScale("kern_scale");
 static LLStaticHashedString sSmaaRTMetrics("SMAA_RT_METRICS");
+
+namespace
+{
+enum class LLVulkanLegacyStage : U8
+{
+    WaterExclusion,
+    Atmospherics,
+    WaterHaze,
+    DeferredLighting,
+    DebugHighlights,
+    DebugDisplays,
+    Count
+};
+
+const char* get_draw_pool_name_for_vulkan_warning(U32 pool_type)
+{
+    switch (pool_type)
+    {
+    case LLDrawPool::POOL_SKY: return "POOL_SKY";
+    case LLDrawPool::POOL_WATEREXCLUSION: return "POOL_WATEREXCLUSION";
+    case LLDrawPool::POOL_WL_SKY: return "POOL_WL_SKY";
+    case LLDrawPool::POOL_SIMPLE: return "POOL_SIMPLE";
+    case LLDrawPool::POOL_FULLBRIGHT: return "POOL_FULLBRIGHT";
+    case LLDrawPool::POOL_BUMP: return "POOL_BUMP";
+    case LLDrawPool::POOL_MATERIALS: return "POOL_MATERIALS";
+    case LLDrawPool::POOL_GLTF_PBR: return "POOL_GLTF_PBR";
+    case LLDrawPool::POOL_TERRAIN: return "POOL_TERRAIN";
+    case LLDrawPool::POOL_GRASS: return "POOL_GRASS";
+    case LLDrawPool::POOL_GLTF_PBR_ALPHA_MASK: return "POOL_GLTF_PBR_ALPHA_MASK";
+    case LLDrawPool::POOL_TREE: return "POOL_TREE";
+    case LLDrawPool::POOL_ALPHA_MASK: return "POOL_ALPHA_MASK";
+    case LLDrawPool::POOL_FULLBRIGHT_ALPHA_MASK: return "POOL_FULLBRIGHT_ALPHA_MASK";
+    case LLDrawPool::POOL_AVATAR: return "POOL_AVATAR";
+    case LLDrawPool::POOL_CONTROL_AV: return "POOL_CONTROL_AV";
+    case LLDrawPool::POOL_GLOW: return "POOL_GLOW";
+    case LLDrawPool::POOL_ALPHA_PRE_WATER: return "POOL_ALPHA_PRE_WATER";
+    case LLDrawPool::POOL_VOIDWATER: return "POOL_VOIDWATER";
+    case LLDrawPool::POOL_WATER: return "POOL_WATER";
+    case LLDrawPool::POOL_ALPHA_POST_WATER: return "POOL_ALPHA_POST_WATER";
+    case LLDrawPool::POOL_ALPHA: return "POOL_ALPHA";
+    default: return "UNKNOWN_POOL";
+    }
+}
+
+void warn_vulkan_skipped_legacy_stage(
+    LLVulkanLegacyStage stage,
+    const char* stage_name,
+    const char* reason)
+{
+    static bool sWarnings[static_cast<U8>(LLVulkanLegacyStage::Count)] = {};
+    const U8 index = static_cast<U8>(stage);
+    if (index >= static_cast<U8>(LLVulkanLegacyStage::Count) ||
+        sWarnings[index])
+    {
+        return;
+    }
+
+    sWarnings[index] = true;
+    LL_WARNS("RenderBackend")
+        << "Vulkan skipped legacy OpenGL stage: "
+        << stage_name
+        << ". "
+        << reason
+        << LL_ENDL;
+}
+
+void warn_vulkan_approximated_legacy_stage(
+    LLVulkanLegacyStage stage,
+    const char* stage_name,
+    const char* reason)
+{
+    static bool sWarnings[static_cast<U8>(LLVulkanLegacyStage::Count)] = {};
+    const U8 index = static_cast<U8>(stage);
+    if (index >= static_cast<U8>(LLVulkanLegacyStage::Count) ||
+        sWarnings[index])
+    {
+        return;
+    }
+
+    sWarnings[index] = true;
+    LL_WARNS("RenderBackend")
+        << "Vulkan approximated legacy OpenGL stage: "
+        << stage_name
+        << ". "
+        << reason
+        << LL_ENDL;
+}
+
+void warn_vulkan_missing_draw_pool_emitter(U32 pool_type, S32 pass, bool post_deferred)
+{
+    constexpr S32 MAX_TRACKED_PASSES = 16;
+    static bool sDeferredWarnings[LLDrawPool::NUM_POOL_TYPES][MAX_TRACKED_PASSES] = {};
+    static bool sPostDeferredWarnings[LLDrawPool::NUM_POOL_TYPES][MAX_TRACKED_PASSES] = {};
+
+    const bool tracked_pool = pool_type < LLDrawPool::NUM_POOL_TYPES;
+    const bool tracked_pass = pass >= 0 && pass < MAX_TRACKED_PASSES;
+    if (tracked_pool && tracked_pass)
+    {
+        bool& warned = post_deferred ?
+            sPostDeferredWarnings[pool_type][pass] :
+            sDeferredWarnings[pool_type][pass];
+        if (warned)
+        {
+            return;
+        }
+        warned = true;
+    }
+
+    LL_WARNS("RenderBackend")
+        << "Vulkan skipped "
+        << (post_deferred ? "post-deferred" : "deferred")
+        << " draw pool "
+        << get_draw_pool_name_for_vulkan_warning(pool_type)
+        << " (" << pool_type << ") pass " << pass
+        << ": no command emitter implemented."
+        << LL_ENDL;
+}
+
+class LLScopedVulkanScreenSpaceMatrices
+{
+public:
+    LLScopedVulkanScreenSpaceMatrices()
+    :   mSavedProjection(gGL.getProjectionMatrix()),
+        mSavedModelview(gGL.getModelviewMatrix())
+    {
+        const glm::mat4 identity(1.f);
+        set_current_projection(identity);
+        set_current_modelview(identity);
+        gGL.matrixMode(LLRender::MM_PROJECTION);
+        gGL.loadMatrix(glm::value_ptr(identity));
+        gGL.matrixMode(LLRender::MM_MODELVIEW);
+        gGL.loadMatrix(glm::value_ptr(identity));
+    }
+
+    ~LLScopedVulkanScreenSpaceMatrices()
+    {
+        set_current_projection(mSavedProjection);
+        set_current_modelview(mSavedModelview);
+        gGL.matrixMode(LLRender::MM_PROJECTION);
+        gGL.loadMatrix(glm::value_ptr(mSavedProjection));
+        gGL.matrixMode(LLRender::MM_MODELVIEW);
+        gGL.loadMatrix(glm::value_ptr(mSavedModelview));
+    }
+
+private:
+    glm::mat4 mSavedProjection;
+    glm::mat4 mSavedModelview;
+};
+
+void append_vulkan_fullscreen_tint_command(
+    LLWorldRenderCommandBuffer& commands,
+    LLVertexBuffer* screen_triangle,
+    LLWorldRenderMaterialClass material_class,
+    U32 source_pass,
+    const LLColor4& color)
+{
+    LLWorldRenderCommand* command = commands.appendDrawArrays(
+        screen_triangle,
+        nullptr,
+        material_class,
+        source_pass,
+        nullptr,
+        0,
+        3,
+        false,
+        false,
+        LLVertexBuffer::MAP_VERTEX);
+    if (command)
+    {
+        command->mBaseColor = color;
+        command->mFullbright = true;
+    }
+}
+}
 
 //----------------------------------------
 
@@ -892,6 +1067,7 @@ bool LLPipeline::allocateScreenBufferInternal(U32 resX, U32 resY)
 
     S32 shadow_detail = RenderShadowDetail;
     bool ssao = RenderDeferredSSAO;
+    const bool vulkan_world_path = use_vulkan_world_command_path();
 
     //allocate deferred rendering color buffers
     if (!mRT->deferredScreen.allocate(resX, resY, LLRenderTextureFormat::RGBA, true)) return false;
@@ -903,8 +1079,8 @@ bool LLPipeline::allocateScreenBufferInternal(U32 resX, U32 resY)
 
     mRT->deferredScreen.shareDepthBuffer(mRT->screen);
 
-    if (hdr || shadow_detail > 0 || ssao || RenderDepthOfField)
-    { //only need mRT->deferredLight for hdr OR shadows OR ssao OR dof
+    if (hdr || shadow_detail > 0 || ssao || RenderDepthOfField || vulkan_world_path)
+    { //Vulkan uses deferredLight as the post-compose insertion target.
         if (!mRT->deferredLight.allocate(resX, resY, screenFormat)) return false;
     }
     else
@@ -3029,7 +3205,10 @@ void LLPipeline::markVisible(LLDrawable *drawablep, LLCamera& camera)
                         const bool vulkan_impostor_attachment_fallback =
                             use_vulkan_world_command_path() &&
                             !LLPipeline::sRenderingHUDs &&
-                            !LLPipeline::sImpostorRender;
+                            !LLPipeline::sImpostorRender &&
+                            av &&
+                            av->isImpostor() &&
+                            !av->mImpostor.isComplete();
                         const bool skip_for_impostor =
                             !sImpostorRender &&
                             av &&
@@ -3042,13 +3221,13 @@ void LLPipeline::markVisible(LLDrawable *drawablep, LLCamera& camera)
                         {
                             return;
                         }
-                        if (av && vulkan_impostor_attachment_fallback && av->isImpostor())
+                        if (vulkan_impostor_attachment_fallback)
                         {
                             static bool logged_vulkan_impostor_attachment_fallback = false;
                             if (!logged_vulkan_impostor_attachment_fallback)
                             {
                                 LL_INFOS("RenderBackend")
-                                    << "Vulkan world path is keeping impostor avatar attachments visible because impostor billboard rendering is not implemented yet."
+                                    << "Vulkan world path is keeping impostor avatar attachments visible until an impostor billboard target is complete."
                                     << LL_ENDL;
                                 logged_vulkan_impostor_attachment_fallback = true;
                             }
@@ -4260,7 +4439,10 @@ void LLPipeline::renderGeomDeferred(LLCamera& camera, bool do_occlusion)
 
                             if (!p->getSkipRenderFlag())
                             {
-                                p->emitDeferredCommands(vulkan_commands, i);
+                                if (!p->emitDeferredCommands(vulkan_commands, i))
+                                {
+                                    warn_vulkan_missing_draw_pool_emitter(p->getType(), i, false);
+                                }
                             }
                         }
                     }
@@ -4383,21 +4565,54 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
 
         cur_type = poolp->getType();
 
-        if (!use_vulkan_commands && cur_type >= water_exclusion_pass && !done_water_exclusion)
+        if (cur_type >= water_exclusion_pass && !done_water_exclusion)
         { // do water exclusion against depth buffer before rendering alpha
-            doWaterExclusionMask();
+            if (use_vulkan_commands)
+            {
+                warn_vulkan_approximated_legacy_stage(
+                    LLVulkanLegacyStage::WaterExclusion,
+                    "water exclusion mask",
+                    "The Vulkan path now records the water exclusion mask, but final water/water-haze shaders still need to consume it.");
+                doWaterExclusionMask();
+            }
+            else
+            {
+                doWaterExclusionMask();
+            }
             done_water_exclusion = true;
         }
 
-        if (!use_vulkan_commands && cur_type >= atmospherics_pass && !done_atmospherics)
+        if (cur_type >= atmospherics_pass && !done_atmospherics)
         { // do atmospherics against depth buffer before rendering alpha
-            doAtmospherics();
+            if (use_vulkan_commands)
+            {
+                warn_vulkan_approximated_legacy_stage(
+                    LLVulkanLegacyStage::Atmospherics,
+                    "post-deferred atmospherics",
+                    "The Vulkan path records a visible fullscreen approximation; final depth-aware haze is not owned by the Vulkan render graph yet.");
+                doAtmospherics();
+            }
+            else
+            {
+                doAtmospherics();
+            }
             done_atmospherics = true;
         }
 
-        if (!use_vulkan_commands && cur_type >= water_haze_pass && !done_water_haze)
+        if (cur_type >= water_haze_pass && !done_water_haze)
         { // do water haze against depth buffer before rendering alpha
-            doWaterHaze();
+            if (use_vulkan_commands)
+            {
+                warn_vulkan_approximated_legacy_stage(
+                    LLVulkanLegacyStage::WaterHaze,
+                    "water haze",
+                    "The Vulkan path records a visible water-fog approximation; final depth-aware water haze is not owned by the Vulkan render graph yet.");
+                doWaterHaze();
+            }
+            else
+            {
+                doWaterHaze();
+            }
             done_water_haze = true;
         }
 
@@ -4424,7 +4639,10 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
 
                         if (!p->getSkipRenderFlag())
                         {
-                            p->emitPostDeferredCommands(vulkan_commands, i);
+                            if (!p->emitPostDeferredCommands(vulkan_commands, i))
+                            {
+                                warn_vulkan_missing_draw_pool_emitter(p->getType(), i, true);
+                            }
                         }
                     }
                 }
@@ -4479,13 +4697,35 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
     gGL.matrixMode(LLRender::MM_MODELVIEW);
     gGL.loadMatrix(gGLModelView);
 
-    if (!use_vulkan_commands && !gCubeSnapshot)
+    if (!gCubeSnapshot)
     {
-        // debug displays
-        renderHighlights();
-        mHighlightFaces.clear();
+        if (use_vulkan_commands)
+        {
+            if (hasRenderDebugFeatureMask(RENDER_DEBUG_FEATURE_SELECTED) && !mHighlightFaces.empty())
+            {
+                warn_vulkan_skipped_legacy_stage(
+                    LLVulkanLegacyStage::DebugHighlights,
+                    "selected-face highlights",
+                    "The highlight renderer still uses the legacy OpenGL overlay path.");
+            }
 
-        renderDebug();
+            if (mRenderDebugMask != 0 || !mDebugBlips.empty())
+            {
+                warn_vulkan_skipped_legacy_stage(
+                    LLVulkanLegacyStage::DebugDisplays,
+                    "debug overlays",
+                    "The debug overlay renderer still uses the legacy OpenGL overlay path.");
+            }
+            mHighlightFaces.clear();
+        }
+        else
+        {
+            // debug displays
+            renderHighlights();
+            mHighlightFaces.clear();
+
+            renderDebug();
+        }
     }
 
     if (gUseWireframe)
@@ -5950,6 +6190,132 @@ void LLPipeline::calcNearbyLights(LLCamera& camera)
             const Light* light = &(*iter);
             ((LLViewerOctreeEntryData*) light->drawable)->setVisible();
         }
+    }
+}
+
+void LLPipeline::getVulkanDeferredLightSummary(
+    LLCamera& camera,
+    LLColor3& light_color,
+    F32& light_strength,
+    U32& visible_light_count,
+    LLVector3& dominant_light_screen) const
+{
+    light_color = LLColor3::black;
+    light_strength = 0.f;
+    visible_light_count = 0;
+    dominant_light_screen.setVec(-1.f, -1.f, 0.f);
+
+    static LLCachedControl<S32> local_light_count(gSavedSettings, "RenderLocalLightCount", 256);
+    static LLCachedControl<S32> probe_level(gSavedSettings, "RenderReflectionProbeLevel", 0);
+
+    if (local_light_count <= 0 || (gCubeSnapshot && probe_level <= 0))
+    {
+        return;
+    }
+
+    const F32 light_scale = gCubeSnapshot ? mReflectionMapManager.mLightScale : 1.f;
+    const LLVector3 camera_origin = camera.getOrigin();
+    S32 candidate_count = 0;
+    F32 dominant_score = 0.f;
+    F32 total_light_contribution = 0.f;
+
+    for (light_set_t::const_iterator iter = mNearbyLights.begin();
+         iter != mNearbyLights.end();
+         ++iter)
+    {
+        if (++candidate_count > local_light_count)
+        {
+            break;
+        }
+
+        LLDrawable* drawablep = iter->drawable;
+        if (!drawablep)
+        {
+            continue;
+        }
+
+        LLVOVolume* volume = drawablep->getVOVolume();
+        if (!volume)
+        {
+            continue;
+        }
+
+        if (volume->isAttachment() && !sRenderAttachedLights)
+        {
+            continue;
+        }
+
+        const F32 radius = volume->getLightRadius() * 1.5f;
+        if (radius <= 0.001f)
+        {
+            continue;
+        }
+
+        LLColor3 color = volume->getLightLinearColor() * light_scale;
+        if (color.magVecSquared() < 0.001f)
+        {
+            continue;
+        }
+
+        LLVector4a center;
+        center.load3(drawablep->getPositionAgent().mV);
+        LLVector4a light_radius;
+        light_radius.splat(radius);
+        if (camera.AABBInFrustumNoFarClip(center, light_radius) == 0)
+        {
+            continue;
+        }
+
+        const F32 distance = (drawablep->getPositionAgent() - camera_origin).magVec();
+        const F32 distance_weight = llclamp(1.f - distance / llmax(radius, 0.001f), 0.f, 1.f);
+        const F32 fade_weight = llclamp(iter->fade / LIGHT_FADE_TIME, 0.f, 1.f);
+        const F32 falloff_weight =
+            1.f / (1.f + llclamp(volume->getLightFalloff(DEFERRED_LIGHT_FALLOFF), 0.f, 4.f));
+        const F32 contribution =
+            fade_weight * falloff_weight * (0.2f + 0.8f * distance_weight);
+
+        light_color += color * contribution;
+        total_light_contribution += contribution;
+        ++visible_light_count;
+
+        const F32 dominance_score = contribution * color.magVec();
+        if (dominance_score > dominant_score &&
+            gViewerWindow &&
+            gViewerWindow->getWindowWidthScaled() > 0 &&
+            gViewerWindow->getWindowHeightScaled() > 0)
+        {
+            LLCoordGL screen_point;
+            if (LLViewerCamera::getInstance()->projectPosAgentToScreen(
+                    drawablep->getPositionAgent(),
+                    screen_point,
+                    false))
+            {
+                const F32 screen_width = static_cast<F32>(gViewerWindow->getWindowWidthScaled());
+                const F32 screen_height = static_cast<F32>(gViewerWindow->getWindowHeightScaled());
+                const F32 pixels_per_meter =
+                    LLViewerCamera::getInstance()->getPixelMeterRatio() /
+                    llmax(distance, 0.001f);
+                const F32 radius_uv =
+                    llclamp((radius * pixels_per_meter) / llmax(llmin(screen_width, screen_height), 1.f),
+                            0.03f,
+                            0.65f);
+
+                dominant_score = dominance_score;
+                dominant_light_screen.setVec(
+                    llclamp(static_cast<F32>(screen_point.mX) / screen_width, 0.f, 1.f),
+                    llclamp(static_cast<F32>(screen_point.mY) / screen_height, 0.f, 1.f),
+                    radius_uv);
+            }
+        }
+    }
+
+    if (visible_light_count > 0 && total_light_contribution > 0.001f)
+    {
+        light_color *= 1.f / total_light_contribution;
+        light_color.mV[VRED] = llclamp(light_color.mV[VRED], 0.f, 2.f);
+        light_color.mV[VGREEN] = llclamp(light_color.mV[VGREEN], 0.f, 2.f);
+        light_color.mV[VBLUE] = llclamp(light_color.mV[VBLUE], 0.f, 2.f);
+        light_strength = llclamp(total_light_contribution, 0.f, 1.f);
     }
 }
 
@@ -8256,6 +8622,13 @@ void LLPipeline::renderDoF(LLRenderTarget* src, LLRenderTarget* dst)
 
 void LLPipeline::renderFinalize()
 {
+    if (use_vulkan_world_command_path())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan is using the legacy finalization flow; tonemap/exposure/glow/DoF/AA/composite are not owned by a Vulkan render graph yet."
+            << LL_ENDL;
+    }
+
     llassert(!gCubeSnapshot);
     LLVertexBuffer::unbind();
     LLGLState::checkStates();
@@ -8720,6 +9093,14 @@ void LLPipeline::renderDeferredLighting()
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_PIPELINE;
     LL_PROFILE_GPU_ZONE("renderDeferredLighting");
+    if (use_vulkan_world_command_path())
+    {
+        warn_vulkan_skipped_legacy_stage(
+            LLVulkanLegacyStage::DeferredLighting,
+            "deferred lighting",
+            "The Vulkan world path currently uses active shader lighting; sun/SSAO/local lights/projectors/fullscreen light passes are not Vulkan-native yet.");
+    }
+
     if (!sCull)
     {
         return;
@@ -9487,6 +9868,32 @@ void LLPipeline::doAtmospherics()
 
     if (RenderDeferredAtmospheric)
     {
+        if (use_vulkan_world_command_path())
+        {
+            LLColor4 haze_color(0.45f, 0.58f, 0.76f, 0.16f);
+            LLSettingsSky::ptr_t sky = LLEnvironment::instance().getCurrentSky();
+            if (sky)
+            {
+                haze_color = sky->getHazeColor();
+                haze_color.mV[VALPHA] = 0.16f;
+            }
+
+            LLWorldRenderCommandBuffer commands;
+            append_vulkan_fullscreen_tint_command(
+                commands,
+                mScreenTriangleVB,
+                LLWorldRenderMaterialClass::AtmosphericHaze,
+                LLDrawPool::POOL_ALPHA,
+                haze_color);
+            LLScopedVulkanScreenSpaceMatrices screen_space;
+            submit_vulkan_world_commands(commands);
+
+            LL_WARNS_ONCE("RenderBackend")
+                << "Vulkan atmospheric haze uses a visible fullscreen haze approximation; final depth-aware haze shader ownership is still tracked by the deferred render graph."
+                << LL_ENDL;
+            return;
+        }
+
         {
             // copy depth buffer for use in haze shader (use water displacement map as temp storage)
             LLGLDepthTest depth(true, true, LLRenderDepthFunction::Always);
@@ -9551,6 +9958,39 @@ void LLPipeline::doWaterHaze()
 
     if (RenderDeferredAtmospheric)
     {
+        if (use_vulkan_world_command_path())
+        {
+            LLColor4 water_haze_color(0.08f, 0.32f, 0.42f, 0.22f);
+            LLSettingsWater::ptr_t water = LLEnvironment::instance().getCurrentWater();
+            if (water)
+            {
+                water_haze_color = LLColor4(water->getWaterFogColor(), 0.22f);
+            }
+
+            LLWorldRenderCommandBuffer commands;
+            if (LLPipeline::sUnderWaterRender)
+            {
+                append_vulkan_fullscreen_tint_command(
+                    commands,
+                    mScreenTriangleVB,
+                    LLWorldRenderMaterialClass::WaterHaze,
+                    LLDrawPool::POOL_WATER,
+                    water_haze_color);
+                LLScopedVulkanScreenSpaceMatrices screen_space;
+                submit_vulkan_world_commands(commands);
+            }
+            else if (mWaterPool)
+            {
+                static_cast<LLDrawPoolWater*>(mWaterPool)->emitWaterHazeCommands(commands, water_haze_color);
+                submit_vulkan_world_commands(commands);
+            }
+
+            LL_WARNS_ONCE("RenderBackend")
+                << "Vulkan water haze uses a visible water-fog approximation; final depth-aware water haze and water-exclusion sampling remain tracked by the deferred render graph."
+                << LL_ENDL;
+            return;
+        }
+
         // copy depth buffer for use in haze shader (use water displacement map as temp storage)
         {
             LLGLDepthTest depth(true, true, LLRenderDepthFunction::Always);
@@ -9629,7 +10069,16 @@ void LLPipeline::doWaterExclusionMask()
     mWaterExclusionMask.bindTarget();
     getRenderBackend().setClearColor(1, 1, 1, 1);
     mWaterExclusionMask.clear();
-    mWaterExclusionPool->render();
+    if (use_vulkan_world_command_path() && mWaterExclusionPool)
+    {
+        LLWorldRenderCommandBuffer commands;
+        mWaterExclusionPool->emitPostDeferredCommands(commands, 0);
+        submit_vulkan_world_commands(commands);
+    }
+    else if (mWaterExclusionPool)
+    {
+        mWaterExclusionPool->render();
+    }
 
     mWaterExclusionMask.flush();
     getRenderBackend().setClearColor(0, 0, 0, 0);

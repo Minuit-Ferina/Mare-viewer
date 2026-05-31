@@ -35,7 +35,7 @@
 #include "v4coloru.h"
 #include "llstrider.h"
 #include "llrender.h"
-#include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 #include "lltrace.h"
 #include <set>
 #include <vector>

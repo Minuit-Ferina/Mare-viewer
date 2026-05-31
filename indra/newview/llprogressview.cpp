@@ -32,6 +32,7 @@
 #include "llmath.h"
 
 #include "llrender.h"
+#include "llrenderbackend.h"
 #include "llui.h"
 #include "llfontgl.h"
 #include "lltimer.h"
@@ -206,7 +207,18 @@ void LLProgressView::setStartupComplete()
     // if we are not showing a video, fade into world
     if (!mMediaCtrl->getVisible())
     {
-        mFadeFromLoginTimer.stop();
+        if (mFadeFromLoginTimer.getStarted())
+        {
+            mFadeFromLoginTimer.stop();
+        }
+        LLPanelLogin::closePanel();
+        gIdleCallbacks.deleteFunction(onIdle, this);
+        if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+        {
+            LL_INFOS("RenderBackend")
+                << "Vulkan closed the login panel during startup completion before fading the progress view to the world."
+                << LL_ENDL;
+        }
         mFadeToWorldTimer.start();
     }
 }
@@ -588,6 +600,22 @@ void LLProgressView::initTextures(S32 location_id, bool is_in_production)
 
 void LLProgressView::releaseTextures()
 {
+    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+    {
+        constexpr U64 bytes_per_megabyte = 1024ULL * 1024ULL;
+        LL_INFOS("RenderBackend")
+            << "Progress view releasing startup textures after fade-out. Vulkan texture memory "
+            << (getRenderBackend().getTextureMemoryAllocatedBytes() / bytes_per_megabyte)
+            << "MB/"
+            << (getRenderBackend().getTextureMemoryBudgetBytes() / bytes_per_megabyte)
+            << "MB, buffer memory "
+            << (getRenderBackend().getBufferMemoryAllocatedBytes() / bytes_per_megabyte)
+            << "MB/"
+            << (getRenderBackend().getBufferMemoryBudgetBytes() / bytes_per_megabyte)
+            << "MB."
+            << LL_ENDL;
+    }
+
     gStartTexture = NULL;
     mLogosList.clear();
 

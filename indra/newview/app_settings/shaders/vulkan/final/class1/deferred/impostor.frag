@@ -6,8 +6,8 @@
 #version 450
 
 layout(set = 0, binding = 0) uniform sampler2D diffuseMap;
-layout(set = 0, binding = 1) uniform sampler2D tex1;
-layout(set = 0, binding = 2) uniform sampler2D tex2;
+layout(set = 0, binding = 1) uniform sampler2D normalMap;
+layout(set = 0, binding = 2) uniform sampler2D specularMap;
 layout(set = 0, binding = 3) uniform sampler2D tex3;
 layout(set = 0, binding = 4) uniform sampler2D tex4;
 layout(set = 0, binding = 5) uniform sampler2D tex5;
@@ -34,43 +34,20 @@ layout(location = 8) in vec4 vertex_position;
 
 layout(location = 0) out vec4 frag_data[4];
 
-vec4 encode_normal(vec3 n, float env, float gbuffer_flag)
-{
-    vec3 encoded = normalize(n) * 0.5 + 0.5;
-    return vec4(encoded.xy, env, gbuffer_flag);
-}
-
-vec4 sample_indexed_texture(vec2 texcoord)
-{
-    switch (vary_texture_index)
-    {
-        case 1u: return texture(tex1, texcoord);
-        case 2u: return texture(tex2, texcoord);
-        case 3u: return texture(tex3, texcoord);
-        case 4u: return texture(tex4, texcoord);
-        case 5u: return texture(tex5, texcoord);
-        case 6u: return texture(tex6, texcoord);
-        case 7u: return texture(tex7, texcoord);
-        default: return texture(diffuseMap, texcoord);
-    }
-}
-
 void main()
 {
     vec4 color = texture(diffuseMap, vary_texcoord0.xy) * vertex_color * max(pc.color, vec4(1.0));
-    vec3 normal = normalize(vary_normal);
-    float lambert = max(dot(normal, normalize(vec3(0.35, 0.45, 0.82))), 0.0);
-    vec3 specular = vec3(vertex_color.a);
-    vec3 emissive = vec3(0.0);
 
     if (color.a < pc.minimum_alpha)
     {
         discard;
     }
 
-    color.rgb *= 0.35 + lambert * 0.65;
+    vec4 normal = texture(normalMap, vary_texcoord0.xy);
+    vec4 specular = texture(specularMap, vary_texcoord0.xy);
+
     frag_data[0] = vec4(color.rgb, 0.0);
-    frag_data[1] = vec4(specular, color.a);
-    frag_data[2] = encode_normal(vary_normal, color.a, 1.0);
-    frag_data[3] = vec4(emissive, 0.0);
+    frag_data[1] = specular;
+    frag_data[2] = vec4(normal.xyz, 1.0);
+    frag_data[3] = vec4(0.0);
 }
