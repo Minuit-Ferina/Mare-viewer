@@ -186,13 +186,6 @@ static bool use_vulkan_debug_skip_ui_after_world()
     return enabled;
 }
 
-static bool use_vulkan_debug_skip_rlv_render_limit()
-{
-    static const bool enabled =
-        get_vulkan_boolean_env("MARE_VULKAN_DEBUG_SKIP_RLV_RENDER_LIMIT");
-    return enabled;
-}
-
 static bool use_vulkan_debug_ui_stage_logs()
 {
     static const bool enabled =
@@ -2953,63 +2946,9 @@ static void render_ui_internal(F32 zoom_factor, int subfield, bool finalize_scen
         // Draw a big black sphere around our avatar if the camera render is limited by RLV
         // This call happens only while the avatar is a cloud. This is a crutch while we wait
         // for the real call in lldrawpoolavatar.cpp to be possible.
-        const bool avatar_render_limit_pending =
-            !gAgentAvatarp ||
-            !gAgentAvatarp->isFullyLoaded() ||
-            !gAgent.mRRInterface.sRenderLimitRenderedThisFrame;
-        const bool vulkan_world_path = use_vulkan_world_path() && !gDisconnected;
-        const bool draw_rlv_render_limit =
-            gRRenabled &&
-            avatar_render_limit_pending &&
-            (!vulkan_world_path || gAgent.mRRInterface.mVisionRestricted);
-
-        if (draw_rlv_render_limit)
+        if (gRRenabled && (!gAgentAvatarp || !gAgentAvatarp->isFullyLoaded() || !gAgent.mRRInterface.sRenderLimitRenderedThisFrame))
         {
-            if (vulkan_world_path && use_vulkan_debug_skip_rlv_render_limit())
-            {
-                LL_WARNS_ONCE("RenderBackend")
-                    << "Vulkan debug is skipping only the RLV render-limit overlay; normal UI still renders. "
-                    << "This isolates RLV startup/camera masking from the Vulkan world image."
-                    << LL_ENDL;
-            }
-            else
-            {
-                if (vulkan_world_path)
-                {
-                    LL_WARNS_ONCE("RenderBackend")
-                        << "Vulkan is drawing the RLV render-limit overlay in the UI phase; this may intentionally cover the world while camera restrictions are active. "
-                        << "First garbage collection complete "
-                        << gAgent.mRRInterface.mGarbageCollectorCalledOnce
-                        << ", camdraw min/max "
-                        << gAgent.mRRInterface.mCamDistDrawMin
-                        << "/"
-                        << gAgent.mRRInterface.mCamDistDrawMax
-                        << ", camtextures "
-                        << gAgent.mRRInterface.mContainsCamTextures
-                        << "."
-                        << LL_ENDL;
-                }
-                gAgent.mRRInterface.drawRenderLimit (TRUE); // force opaque because in this degraded case, it is possible to cheat if the outer sphere is not fully opaque because it will be rendered differently (probably the OpenGL engine is not configured for this at this stage)
-            }
-        }
-        else if (vulkan_world_path && gRRenabled && avatar_render_limit_pending && !gAgent.mRRInterface.mVisionRestricted)
-        {
-            static bool sLoggedInactiveVulkanRlvRenderLimit = false;
-            if (!sLoggedInactiveVulkanRlvRenderLimit)
-            {
-                LL_INFOS("RenderBackend")
-                    << "Vulkan skipped inactive RLV render-limit UI draw: avatar exists "
-                    << (gAgentAvatarp != nullptr)
-                    << ", avatar fully loaded "
-                    << (gAgentAvatarp && gAgentAvatarp->isFullyLoaded())
-                    << ", render limit rendered this frame "
-                    << gAgent.mRRInterface.sRenderLimitRenderedThisFrame
-                    << ", first garbage collection complete "
-                    << gAgent.mRRInterface.mGarbageCollectorCalledOnce
-                    << "."
-                    << LL_ENDL;
-                sLoggedInactiveVulkanRlvRenderLimit = true;
-            }
+            gAgent.mRRInterface.drawRenderLimit (TRUE); // force opaque because in this degraded case, it is possible to cheat if the outer sphere is not fully opaque because it will be rendered differently (probably the OpenGL engine is not configured for this at this stage)
         }
 //mk
     {
