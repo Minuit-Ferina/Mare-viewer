@@ -763,11 +763,19 @@ static LLRect get_vulkan_world_view_rect()
         LLRect(0, 0, 0, 0);
 }
 
-static void set_vulkan_composite_viewport(const LLRect& rect)
+static void set_vulkan_composite_viewport(
+    const LLRect& rect,
+    bool swapchain_viewport = false)
 {
+    S32 viewport_y = rect.mBottom;
+    if (swapchain_viewport && gViewerWindow)
+    {
+        viewport_y = gViewerWindow->getWindowRectRaw().getHeight() - rect.mTop;
+    }
+
     getRenderBackend().setViewport(
         rect.mLeft,
-        rect.mBottom,
+        viewport_y,
         rect.getWidth(),
         rect.getHeight());
     getRenderBackend().setScissor(
@@ -777,7 +785,9 @@ static void set_vulkan_composite_viewport(const LLRect& rect)
         rect.getHeight());
 }
 
-static void render_vulkan_deferred_screen_composite_quad(const LLRect& viewport_rect)
+static void render_vulkan_deferred_screen_composite_quad(
+    const LLRect& viewport_rect,
+    bool swapchain_viewport = false)
 {
     LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan deferredScreen composite");
     LLVulkanCompositeMatrixScope matrix_scope;
@@ -843,7 +853,9 @@ static void render_vulkan_deferred_screen_composite_quad(const LLRect& viewport_
                 getRenderBackend().setWorldTextureTransform({});
                 getRenderBackend().setWorldTerrainParameters({});
                 getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
-                set_vulkan_composite_viewport(viewport_rect);
+                set_vulkan_composite_viewport(
+                    viewport_rect,
+                    swapchain_viewport);
                 getRenderBackend().setCapability(LLRenderCapability::DepthTest, false);
                 getRenderBackend().setDepthWriteEnabled(false);
                 getRenderBackend().setCapability(LLRenderCapability::Blend, false);
@@ -907,7 +919,9 @@ static void render_vulkan_deferred_screen_composite_quad(const LLRect& viewport_
                     << LL_ENDL;
             }
 
-            set_vulkan_composite_viewport(viewport_rect);
+            set_vulkan_composite_viewport(
+                viewport_rect,
+                swapchain_viewport);
             getRenderBackend().setCapability(LLRenderCapability::DepthTest, false);
             getRenderBackend().setDepthWriteEnabled(false);
             getRenderBackend().setCapability(LLRenderCapability::Blend, false);
@@ -935,7 +949,8 @@ static void render_vulkan_deferred_screen_composite_quad(const LLRect& viewport_
 
 static void render_vulkan_final_composite_quad(
     LLRenderTarget& source,
-    const LLRect& viewport_rect)
+    const LLRect& viewport_rect,
+    bool swapchain_viewport = false)
 {
     LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan final composite quad");
     LLVulkanCompositeMatrixScope matrix_scope;
@@ -980,7 +995,9 @@ static void render_vulkan_final_composite_quad(
         getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
         getRenderBackend().setWorldMaterialParameters(
             get_vulkan_final_composite_parameters(deferred_attachment_count, deferred_depth_bound));
-        set_vulkan_composite_viewport(viewport_rect);
+        set_vulkan_composite_viewport(
+            viewport_rect,
+            swapchain_viewport);
         getRenderBackend().setCapability(LLRenderCapability::DepthTest, false);
         getRenderBackend().setDepthWriteEnabled(false);
         getRenderBackend().setCapability(LLRenderCapability::Blend, false);
@@ -1018,7 +1035,8 @@ static void render_vulkan_screen_target_to_swapchain(
 
     render_vulkan_final_composite_quad(
         target,
-        get_vulkan_world_view_rect());
+        get_vulkan_world_view_rect(),
+        true);
 }
 
 static void render_vulkan_copy_target_to_target(
@@ -1111,7 +1129,9 @@ static void render_vulkan_copy_target_to_swapchain(
         getRenderBackend().setWorldTerrainParameters({});
         getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
         getRenderBackend().setWorldMaterialParameters({});
-        set_vulkan_composite_viewport(get_vulkan_world_view_rect());
+        set_vulkan_composite_viewport(
+            get_vulkan_world_view_rect(),
+            true);
         getRenderBackend().setCapability(LLRenderCapability::DepthTest, false);
         getRenderBackend().setDepthWriteEnabled(false);
         getRenderBackend().setCapability(LLRenderCapability::Blend, false);
@@ -1273,7 +1293,8 @@ static void render_vulkan_deferred_screen_to_swapchain(const LLColor4& clear_col
     getRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
 
     render_vulkan_deferred_screen_composite_quad(
-        get_vulkan_world_view_rect());
+        get_vulkan_world_view_rect(),
+        true);
 }
 
 static bool use_vulkan_staged_post_targets()
