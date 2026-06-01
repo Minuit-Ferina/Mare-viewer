@@ -29,6 +29,9 @@
 
 #include "llviewertexture.h"
 
+#include <cstdlib>
+#include <cstring>
+
 // Library includes
 #include "llmath.h"
 #include "llerror.h"
@@ -104,7 +107,7 @@ F32 LLViewerTexture::sCurrentTime = 0.0f;
 
 constexpr F32 MEMORY_CHECK_WAIT_TIME = 1.0f;
 constexpr F32 MIN_VRAM_BUDGET = 768.f;
-constexpr U32 VULKAN_PROTOTYPE_MAX_TEXTURE_RESOLUTION = 512;
+constexpr U32 VULKAN_PROTOTYPE_MAX_TEXTURE_RESOLUTION = 2048;
 F32 LLViewerTexture::sFreeVRAMMegabytes = MIN_VRAM_BUDGET;
 
 LLViewerTexture::EDebugTexels LLViewerTexture::sDebugTexelsMode = LLViewerTexture::DEBUG_TEXELS_OFF;
@@ -116,6 +119,39 @@ namespace
 bool use_vulkan_prototype_texture_limits()
 {
     return getRenderBackend().getType() == LLRenderBackendType::Vulkan;
+}
+
+bool texture_pipeline_telemetry_enabled()
+{
+    static const bool env_enabled = []()
+    {
+        const char* value = std::getenv("MARE_TEXTURE_PIPELINE_TELEMETRY");
+        if (!value)
+        {
+            value = std::getenv("MARE_VULKAN_TEXTURE_TELEMETRY");
+        }
+        return value &&
+            value[0] != '\0' &&
+            std::strcmp(value, "0") != 0 &&
+            std::strcmp(value, "false") != 0 &&
+            std::strcmp(value, "FALSE") != 0 &&
+            std::strcmp(value, "off") != 0 &&
+            std::strcmp(value, "OFF") != 0;
+    }();
+    return env_enabled && use_vulkan_prototype_texture_limits();
+}
+
+bool should_log_texture_pipeline_telemetry(F64 elapsed_seconds = 0.0)
+{
+    static U32 sLoggedPipelineTelemetry = 0;
+    constexpr U32 MAX_DETAILED_PIPELINE_TELEMETRY = 256;
+    if (sLoggedPipelineTelemetry < MAX_DETAILED_PIPELINE_TELEMETRY ||
+        elapsed_seconds > 0.010)
+    {
+        ++sLoggedPipelineTelemetry;
+        return true;
+    }
+    return false;
 }
 
 bool should_load_full_resolution_textures()
@@ -1642,7 +1678,39 @@ bool LLViewerFetchedTexture::createTexture(S32 usename/*= 0*/)
         return false;
     }
 
+    const bool telemetry_enabled = texture_pipeline_telemetry_enabled();
+    LLTimer telemetry_timer;
+    const U32 texture_handle_before =
+        mGLTexturep.notNull() ? mGLTexturep->getTexName() : 0;
     bool res = mGLTexturep->createGLTexture(mRawDiscardLevel, mRawImage, usename, true, mBoostLevel);
+    const F64 elapsed_seconds = telemetry_timer.getElapsedTimeF64();
+
+    if (telemetry_enabled && should_log_texture_pipeline_telemetry(elapsed_seconds))
+    {
+        LL_INFOS("Texture")
+            << "Texture pipeline telemetry: create-texture id "
+            << mID
+            << ", result "
+            << res
+            << ", handle "
+            << texture_handle_before
+            << "->"
+            << (mGLTexturep.notNull() ? mGLTexturep->getTexName() : 0)
+            << ", raw "
+            << (mRawImage.notNull() ? mRawImage->getWidth() : 0)
+            << "x"
+            << (mRawImage.notNull() ? mRawImage->getHeight() : 0)
+            << "x"
+            << (mRawImage.notNull() ? mRawImage->getComponents() : 0)
+            << ", raw bytes "
+            << (mRawImage.notNull() ? mRawImage->getDataSize() : 0)
+            << ", discard "
+            << mRawDiscardLevel
+            << ", elapsed "
+            << (elapsed_seconds * 1000.0)
+            << "ms."
+            << LL_ENDL;
+    }
 
     return res;
 }
@@ -1753,6 +1821,26 @@ void LLViewerFetchedTexture::postCreateTexture()
     destroyRawImage(); // will save raw image if needed
 
     mNeedsCreateTexture = false;
+
+    if (texture_pipeline_telemetry_enabled() &&
+        should_log_texture_pipeline_telemetry())
+    {
+        LL_INFOS("Texture")
+            << "Texture pipeline telemetry: post-create id "
+            << mID
+            << ", handle "
+            << (mGLTexturep.notNull() ? mGLTexturep->getTexName() : 0)
+            << ", has texture "
+            << hasGLTexture()
+            << ", discard "
+            << getDiscardLevel()
+            << ", desired discard "
+            << getDesiredDiscardLevel()
+            << ", fully loaded "
+            << mFullyLoaded
+            << "."
+            << LL_ENDL;
+    }
 }
 
 void LLViewerFetchedTexture::scheduleCreateTexture()
@@ -1779,6 +1867,27 @@ void LLViewerFetchedTexture::scheduleCreateTexture()
             auto mainq = LLImageGLThread::sEnabledTextures ? mMainQueue.lock() : nullptr;
             if (mainq)
             {
+                if (texture_pipeline_telemetry_enabled() &&
+                    should_log_texture_pipeline_telemetry())
+                {
+                    LL_INFOS("Texture")
+                        << "Texture pipeline telemetry: queue-create id "
+                        << mID
+                        << ", queue imagegl-worker, handle "
+                        << (mGLTexturep.notNull() ? mGLTexturep->getTexName() : 0)
+                        << ", raw "
+                        << (mRawImage.notNull() ? mRawImage->getWidth() : 0)
+                        << "x"
+                        << (mRawImage.notNull() ? mRawImage->getHeight() : 0)
+                        << "x"
+                        << (mRawImage.notNull() ? mRawImage->getComponents() : 0)
+                        << ", raw bytes "
+                        << (mRawImage.notNull() ? mRawImage->getDataSize() : 0)
+                        << ", discard "
+                        << mRawDiscardLevel
+                        << "."
+                        << LL_ENDL;
+                }
                 ref();
                 mainq->postTo(
                     mImageQueue,
@@ -1829,6 +1938,29 @@ void LLViewerFetchedTexture::scheduleCreateTexture()
                 {
                     mCreatePending = true;
                     gTextureList.mCreateTextureList.push(this);
+                    if (texture_pipeline_telemetry_enabled() &&
+                        should_log_texture_pipeline_telemetry())
+                    {
+                        LL_INFOS("Texture")
+                            << "Texture pipeline telemetry: queue-create id "
+                            << mID
+                            << ", queue main-create-list, handle "
+                            << (mGLTexturep.notNull() ? mGLTexturep->getTexName() : 0)
+                            << ", raw "
+                            << (mRawImage.notNull() ? mRawImage->getWidth() : 0)
+                            << "x"
+                            << (mRawImage.notNull() ? mRawImage->getHeight() : 0)
+                            << "x"
+                            << (mRawImage.notNull() ? mRawImage->getComponents() : 0)
+                            << ", raw bytes "
+                            << (mRawImage.notNull() ? mRawImage->getDataSize() : 0)
+                            << ", discard "
+                            << mRawDiscardLevel
+                            << ", queue depth "
+                            << gTextureList.mCreateTextureList.size()
+                            << "."
+                            << LL_ENDL;
+                    }
                 }
             }
         }

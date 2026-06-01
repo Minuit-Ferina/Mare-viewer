@@ -1179,7 +1179,7 @@ constexpr U64 MARE_VULKAN_DEFAULT_SKINNED_POSITION_FRAME_BUDGET_MB = 64;
 constexpr U32 MARE_VULKAN_FALLBACK_MAX_TEXTURE_SIZE = 16384;
 constexpr U64 MARE_VULKAN_SKINNING_PALETTE_BUFFER_GROWTH_BYTES =
     4 * MARE_VULKAN_BYTES_PER_MEGABYTE;
-constexpr U64 MARE_VULKAN_DEFAULT_TEXTURE_UPLOAD_FRAME_BUDGET_MB = 32;
+constexpr U64 MARE_VULKAN_DEFAULT_TEXTURE_UPLOAD_FRAME_BUDGET_MB = 0;
 constexpr U32 MARE_VULKAN_DEFAULT_TEXTURE_UPLOAD_FRAME_COUNT_BUDGET = 0;
 constexpr S32 MARE_VULKAN_DEFAULT_MAX_TEXTURE_DIMENSION = 2048;
 constexpr U32 MARE_VULKAN_MAX_SKINNING_MATRICES = 110;
@@ -1728,6 +1728,16 @@ struct LLVulkanTextureResource
     U64 mLastBoundFrame = 0;
 };
 
+struct LLVulkanQueuedTextureUpload
+{
+    U32 mHandle = 0;
+    LLVulkanTextureResource mResource;
+    LLVulkanBufferResource mStaging;
+    S32 mWidth = 0;
+    S32 mHeight = 0;
+    U64 mUploadBytes = 0;
+};
+
 struct LLVulkanTextureAllocationDesc
 {
     S32 mWidth = 0;
@@ -1823,6 +1833,19 @@ struct LLVulkanPipelineSet
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mCopyPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredCompositePipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mFinalCompositePipelines = {};
+};
+
+using LLVulkanTelemetryClock = std::chrono::steady_clock;
+
+struct LLVulkanTextureUploadTimings
+{
+    F64 mImageCreateMs = 0.0;
+    F64 mMemoryMs = 0.0;
+    F64 mStagingMs = 0.0;
+    F64 mCopySubmitMs = 0.0;
+    F64 mViewSamplerMs = 0.0;
+    F64 mPublishMs = 0.0;
+    F64 mResourceTotalMs = 0.0;
 };
 
 struct LLVulkanNativeContext
@@ -2001,6 +2024,25 @@ struct LLVulkanNativeContext
     U64 mTextureUploadBytesThisFrame = 0;
     U64 mLastBufferLifetimeTelemetryFrame = 0;
     U32 mTextureUploadsThisFrame = 0;
+    U64 mTextureUploadTelemetryCount = 0;
+    U64 mTextureUploadTelemetryFailureCount = 0;
+    U64 mTextureUploadTelemetryBytes = 0;
+    U64 mQueuedTextureUploadCount = 0;
+    U64 mQueuedTextureUploadBytes = 0;
+    U64 mSubmittedTextureUploadBatchCount = 0;
+    U64 mSubmittedTextureUploadBatchBytes = 0;
+    F64 mTextureUploadTelemetryTotalMs = 0.0;
+    F64 mTextureUploadTelemetryConvertMs = 0.0;
+    F64 mTextureUploadTelemetryImageCreateMs = 0.0;
+    F64 mTextureUploadTelemetryMemoryMs = 0.0;
+    F64 mTextureUploadTelemetryStagingMs = 0.0;
+    F64 mTextureUploadTelemetryCopySubmitMs = 0.0;
+    F64 mTextureUploadTelemetryViewSamplerMs = 0.0;
+    F64 mTextureUploadTelemetryPublishMs = 0.0;
+    F64 mTextureUploadTelemetryMaxTotalMs = 0.0;
+    U32 mTextureUploadTelemetryMaxHandle = 0;
+    S32 mTextureUploadTelemetryMaxWidth = 0;
+    S32 mTextureUploadTelemetryMaxHeight = 0;
     U64 mSkippedTextureSubImageMissingResourceCount = 0;
     U64 mSkippedTextureSubImageOutOfBoundsCount = 0;
     U64 mSkippedTextureUnsupportedUploadCount = 0;
@@ -2046,6 +2088,8 @@ struct LLVulkanNativeContext
     std::vector<LLVkFramebuffer> mSwapchainFramebuffers;
     std::vector<LLVkCommandBuffer> mCommandBuffers;
     std::vector<LLVulkanFrameSync> mFrameSync;
+    std::vector<LLVulkanQueuedTextureUpload> mQueuedTextureUploads;
+    std::vector<LLVulkanBufferResource> mSubmittedTextureUploadStagingBuffers;
     LLVulkanDepthAttachment mDepthAttachment;
 #if LL_DARWIN
     void* mNativeView = nullptr;
@@ -3637,6 +3681,15 @@ void destroy_vulkan_buffer_average_readbacks(LLVulkanNativeContext& context)
     context.mPendingBufferAverageReadbacks.clear();
 }
 
+void destroy_vulkan_submitted_texture_upload_staging_buffers(LLVulkanNativeContext& context)
+{
+    for (LLVulkanBufferResource& staging : context.mSubmittedTextureUploadStagingBuffers)
+    {
+        destroy_vulkan_buffer_resource(context, staging);
+    }
+    context.mSubmittedTextureUploadStagingBuffers.clear();
+}
+
 U64 get_vulkan_pending_buffer_cpu_cache_budget_bytes();
 U64 get_vulkan_buffer_cpu_cache_bytes(U32 excluded_resident_handle = 0);
 
@@ -3713,6 +3766,7 @@ void destroy_all_vulkan_buffer_resources(LLVulkanNativeContext& context)
 {
     destroy_vulkan_buffer_average_readbacks(context);
     destroy_vulkan_transient_frame_buffers(context);
+    destroy_vulkan_submitted_texture_upload_staging_buffers(context);
     destroy_vulkan_buffer_resource(context, context.mDefaultTexCoordBuffer);
     destroy_vulkan_buffer_resource(context, context.mDefaultColorBuffer);
     destroy_vulkan_buffer_resource(context, context.mDefaultNormalBuffer);
@@ -4867,6 +4921,196 @@ S32 get_vulkan_max_texture_dimension()
     return max_dimension;
 }
 
+bool vulkan_texture_upload_telemetry_enabled()
+{
+    static const bool enabled = []()
+    {
+        const char* value = std::getenv("MARE_VULKAN_TEXTURE_TELEMETRY");
+        if (!value)
+        {
+            value = std::getenv("MARE_TEXTURE_PIPELINE_TELEMETRY");
+        }
+        return value &&
+            value[0] != '\0' &&
+            std::strcmp(value, "0") != 0 &&
+            std::strcmp(value, "false") != 0 &&
+            std::strcmp(value, "FALSE") != 0 &&
+            std::strcmp(value, "off") != 0 &&
+            std::strcmp(value, "OFF") != 0;
+    }();
+
+    return enabled;
+}
+
+U32 get_vulkan_texture_upload_telemetry_interval()
+{
+    static const U32 interval = []()
+    {
+        U64 value = 256;
+        if (const char* interval_override = std::getenv("MARE_VULKAN_TEXTURE_TELEMETRY_INTERVAL"))
+        {
+            const U64 parsed_value = std::strtoull(interval_override, nullptr, 10);
+            if (parsed_value > 0)
+            {
+                value = parsed_value;
+            }
+        }
+        return static_cast<U32>(std::min<U64>(value, std::numeric_limits<U32>::max()));
+    }();
+
+    return interval;
+}
+
+F64 get_vulkan_texture_upload_telemetry_slow_ms()
+{
+    static const F64 slow_ms = []()
+    {
+        F64 value = 10.0;
+        if (const char* slow_override = std::getenv("MARE_VULKAN_TEXTURE_TELEMETRY_SLOW_MS"))
+        {
+            const F64 parsed_value = std::strtod(slow_override, nullptr);
+            if (parsed_value > 0.0)
+            {
+                value = parsed_value;
+            }
+        }
+        return value;
+    }();
+
+    return slow_ms;
+}
+
+F64 elapsed_vulkan_telemetry_ms(LLVulkanTelemetryClock::time_point start)
+{
+    return std::chrono::duration<F64, std::milli>(
+        LLVulkanTelemetryClock::now() - start).count();
+}
+
+void record_vulkan_texture_upload_telemetry(
+    LLVulkanNativeContext& context,
+    U32 handle,
+    S32 width,
+    S32 height,
+    U64 upload_bytes,
+    bool sub_image,
+    bool success,
+    bool deferred,
+    F64 convert_ms,
+    const LLVulkanTextureUploadTimings& timings,
+    F64 total_ms)
+{
+    if (!vulkan_texture_upload_telemetry_enabled())
+    {
+        return;
+    }
+
+    ++context.mTextureUploadTelemetryCount;
+    if (!success)
+    {
+        ++context.mTextureUploadTelemetryFailureCount;
+    }
+    context.mTextureUploadTelemetryBytes += upload_bytes;
+    context.mTextureUploadTelemetryTotalMs += total_ms;
+    context.mTextureUploadTelemetryConvertMs += convert_ms;
+    context.mTextureUploadTelemetryImageCreateMs += timings.mImageCreateMs;
+    context.mTextureUploadTelemetryMemoryMs += timings.mMemoryMs;
+    context.mTextureUploadTelemetryStagingMs += timings.mStagingMs;
+    context.mTextureUploadTelemetryCopySubmitMs += timings.mCopySubmitMs;
+    context.mTextureUploadTelemetryViewSamplerMs += timings.mViewSamplerMs;
+    context.mTextureUploadTelemetryPublishMs += timings.mPublishMs;
+
+    if (total_ms > context.mTextureUploadTelemetryMaxTotalMs)
+    {
+        context.mTextureUploadTelemetryMaxTotalMs = total_ms;
+        context.mTextureUploadTelemetryMaxHandle = handle;
+        context.mTextureUploadTelemetryMaxWidth = width;
+        context.mTextureUploadTelemetryMaxHeight = height;
+    }
+
+    const U64 count = context.mTextureUploadTelemetryCount;
+    const bool detailed =
+        count <= 128 ||
+        !success ||
+        total_ms >= get_vulkan_texture_upload_telemetry_slow_ms();
+    if (detailed)
+    {
+        LL_INFOS("RenderBackend")
+            << "Vulkan texture upload telemetry: "
+            << (sub_image ? "subimage" : "image")
+            << " handle "
+            << handle
+            << " "
+            << width
+            << "x"
+            << height
+            << ", bytes "
+            << upload_bytes
+            << ", success "
+            << success
+            << ", deferred "
+            << deferred
+            << ", total "
+            << total_ms
+            << "ms, convert "
+            << convert_ms
+            << "ms, image "
+            << timings.mImageCreateMs
+            << "ms, memory "
+            << timings.mMemoryMs
+            << "ms, staging "
+            << timings.mStagingMs
+            << "ms, copy/submit "
+            << timings.mCopySubmitMs
+            << "ms, view/sampler "
+            << timings.mViewSamplerMs
+            << "ms, publish "
+            << timings.mPublishMs
+            << "ms."
+            << LL_ENDL;
+    }
+
+    const U32 interval = get_vulkan_texture_upload_telemetry_interval();
+    if (interval > 0 && (count % interval) == 0)
+    {
+        const F64 inv_count = 1.0 / static_cast<F64>(count);
+        LL_INFOS("RenderBackend")
+            << "Vulkan texture upload telemetry summary: uploads "
+            << count
+            << ", failures "
+            << context.mTextureUploadTelemetryFailureCount
+            << ", bytes "
+            << context.mTextureUploadTelemetryBytes
+            << " ("
+            << (context.mTextureUploadTelemetryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+            << "MB), avg total "
+            << (context.mTextureUploadTelemetryTotalMs * inv_count)
+            << "ms, convert "
+            << (context.mTextureUploadTelemetryConvertMs * inv_count)
+            << "ms, image "
+            << (context.mTextureUploadTelemetryImageCreateMs * inv_count)
+            << "ms, memory "
+            << (context.mTextureUploadTelemetryMemoryMs * inv_count)
+            << "ms, staging "
+            << (context.mTextureUploadTelemetryStagingMs * inv_count)
+            << "ms, copy/submit "
+            << (context.mTextureUploadTelemetryCopySubmitMs * inv_count)
+            << "ms, view/sampler "
+            << (context.mTextureUploadTelemetryViewSamplerMs * inv_count)
+            << "ms, publish "
+            << (context.mTextureUploadTelemetryPublishMs * inv_count)
+            << "ms, slowest handle "
+            << context.mTextureUploadTelemetryMaxHandle
+            << " "
+            << context.mTextureUploadTelemetryMaxWidth
+            << "x"
+            << context.mTextureUploadTelemetryMaxHeight
+            << " at "
+            << context.mTextureUploadTelemetryMaxTotalMs
+            << "ms."
+            << LL_ENDL;
+    }
+}
+
 void reset_vulkan_texture_upload_frame_budget(LLVulkanNativeContext& context)
 {
     if (context.mTextureUploadBudgetFrame == context.mPresentedFrameCount)
@@ -5095,6 +5339,54 @@ void destroy_vulkan_texture_resource(
     resource = {};
 }
 
+bool is_vulkan_texture_upload_pending(
+    const LLVulkanNativeContext& context,
+    U32 texture)
+{
+    if (!texture)
+    {
+        return false;
+    }
+
+    for (const LLVulkanQueuedTextureUpload& upload : context.mQueuedTextureUploads)
+    {
+        if (upload.mHandle == texture)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void remove_queued_vulkan_texture_uploads(
+    LLVulkanNativeContext& context,
+    U32 texture)
+{
+    auto upload_iter = context.mQueuedTextureUploads.begin();
+    while (upload_iter != context.mQueuedTextureUploads.end())
+    {
+        if (upload_iter->mHandle != texture)
+        {
+            ++upload_iter;
+            continue;
+        }
+
+        destroy_vulkan_buffer_resource(context, upload_iter->mStaging);
+        destroy_vulkan_texture_resource(context, upload_iter->mResource);
+        upload_iter = context.mQueuedTextureUploads.erase(upload_iter);
+    }
+}
+
+void destroy_queued_vulkan_texture_uploads(LLVulkanNativeContext& context)
+{
+    for (LLVulkanQueuedTextureUpload& upload : context.mQueuedTextureUploads)
+    {
+        destroy_vulkan_buffer_resource(context, upload.mStaging);
+        destroy_vulkan_texture_resource(context, upload.mResource);
+    }
+    context.mQueuedTextureUploads.clear();
+}
+
 bool is_vulkan_texture_attached_to_framebuffer(U32 texture)
 {
     if (!texture)
@@ -5132,6 +5424,10 @@ void delete_vulkan_texture_handle_resources(
     U32 texture)
 {
     gVulkanDeletedAttachedTextures.erase(texture);
+    if (context)
+    {
+        remove_queued_vulkan_texture_uploads(*context, texture);
+    }
     auto desc_iter = gVulkanTextureAllocationDescs.find(texture);
     if (desc_iter != gVulkanTextureAllocationDescs.end() &&
         !desc_iter->second.mPreserveAfterDelete)
@@ -5278,6 +5574,7 @@ bool evict_vulkan_texture_resources_for_upload(
 
 void destroy_all_vulkan_texture_resources(LLVulkanNativeContext& context)
 {
+    destroy_queued_vulkan_texture_uploads(context);
     destroy_all_vulkan_framebuffer_resources(context);
     destroy_vulkan_texture_descriptor_set_cache(context);
 
@@ -5844,6 +6141,61 @@ void transition_vulkan_texture_layout(
         nullptr,
         1,
         &barrier);
+}
+
+void record_vulkan_texture_copy_commands(
+    LLVulkanNativeContext& context,
+    LLVkCommandBuffer command_buffer,
+    LLVulkanTextureResource& resource,
+    LLVkBuffer staging_buffer,
+    S32 xoffset,
+    S32 yoffset,
+    S32 width,
+    S32 height,
+    S32 old_layout)
+{
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        resource.mImage,
+        old_layout,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    LLVkBufferImageCopy copy_region =
+    {
+        0,
+        0,
+        0,
+        LLVkImageSubresourceLayers
+        {
+            LL_VK_IMAGE_ASPECT_COLOR_BIT,
+            0,
+            0,
+            1
+        },
+        { xoffset, yoffset, 0 },
+        LLVkExtent3D
+        {
+            static_cast<U32>(width),
+            static_cast<U32>(height),
+            1
+        }
+    };
+
+    context.mCmdCopyBufferToImage(
+        command_buffer,
+        staging_buffer,
+        resource.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &copy_region);
+
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        resource.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 U32 get_vulkan_buffer_average_frame_limit()
@@ -7480,7 +7832,8 @@ bool upload_vulkan_texture_pixels_to_image(
     S32 yoffset,
     S32 width,
     S32 height,
-    S32 old_layout)
+    S32 old_layout,
+    LLVulkanTextureUploadTimings* timings = nullptr)
 {
     if (width <= 0 ||
         height <= 0 ||
@@ -7497,6 +7850,9 @@ bool upload_vulkan_texture_pixels_to_image(
     }
 
     LLVulkanBufferResource staging;
+    const auto staging_start = timings ?
+        LLVulkanTelemetryClock::now() :
+        LLVulkanTelemetryClock::time_point();
     if (!create_vulkan_buffer_resource(
             context,
             pixels.size(),
@@ -7506,60 +7862,47 @@ bool upload_vulkan_texture_pixels_to_image(
             0,
             false))
     {
+        if (timings)
+        {
+            timings->mStagingMs += elapsed_vulkan_telemetry_ms(staging_start);
+        }
         return false;
+    }
+    if (timings)
+    {
+        timings->mStagingMs += elapsed_vulkan_telemetry_ms(staging_start);
     }
 
     LLVkCommandBuffer command_buffer = nullptr;
+    const auto copy_start = timings ?
+        LLVulkanTelemetryClock::now() :
+        LLVulkanTelemetryClock::time_point();
     if (!begin_vulkan_one_time_commands(context, command_buffer))
     {
+        if (timings)
+        {
+            timings->mCopySubmitMs += elapsed_vulkan_telemetry_ms(copy_start);
+        }
         destroy_vulkan_buffer_resource(context, staging);
         return false;
     }
 
-    transition_vulkan_texture_layout(
+    record_vulkan_texture_copy_commands(
         context,
         command_buffer,
-        resource.mImage,
-        old_layout,
-        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-    LLVkBufferImageCopy copy_region =
-    {
-        0,
-        0,
-        0,
-        LLVkImageSubresourceLayers
-        {
-            LL_VK_IMAGE_ASPECT_COLOR_BIT,
-            0,
-            0,
-            1
-        },
-        { xoffset, yoffset, 0 },
-        LLVkExtent3D
-        {
-            static_cast<U32>(width),
-            static_cast<U32>(height),
-            1
-        }
-    };
-
-    context.mCmdCopyBufferToImage(
-        command_buffer,
+        resource,
         staging.mBuffer,
-        resource.mImage,
-        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &copy_region);
-
-    transition_vulkan_texture_layout(
-        context,
-        command_buffer,
-        resource.mImage,
-        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        xoffset,
+        yoffset,
+        width,
+        height,
+        old_layout);
 
     const bool upload_ok = end_vulkan_one_time_commands(context, command_buffer);
+    if (timings)
+    {
+        timings->mCopySubmitMs += elapsed_vulkan_telemetry_ms(copy_start);
+    }
     destroy_vulkan_buffer_resource(context, staging);
     return upload_ok;
 }
@@ -7593,13 +7936,78 @@ bool update_vulkan_texture_sampler(
     return true;
 }
 
+bool queue_vulkan_texture_upload(
+    LLVulkanNativeContext& context,
+    U32 handle,
+    LLVulkanTextureResource& resource,
+    S32 width,
+    S32 height,
+    const std::vector<U8>& pixels,
+    LLVulkanTextureUploadTimings* timings = nullptr)
+{
+    if (!ensure_vulkan_texture_entry_points(context) ||
+        !ensure_vulkan_command_entry_points(context))
+    {
+        return false;
+    }
+
+    LLVulkanQueuedTextureUpload upload;
+    upload.mHandle = handle;
+    upload.mWidth = width;
+    upload.mHeight = height;
+    upload.mUploadBytes = static_cast<U64>(pixels.size());
+
+    const auto staging_start = timings ?
+        LLVulkanTelemetryClock::now() :
+        LLVulkanTelemetryClock::time_point();
+    if (!create_vulkan_buffer_resource(
+            context,
+            pixels.size(),
+            LL_VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            pixels.data(),
+            upload.mStaging,
+            0,
+            false))
+    {
+        if (timings)
+        {
+            timings->mStagingMs += elapsed_vulkan_telemetry_ms(staging_start);
+        }
+        context.mLastTextureUploadDeferred = true;
+        return false;
+    }
+    if (timings)
+    {
+        timings->mStagingMs += elapsed_vulkan_telemetry_ms(staging_start);
+    }
+
+    if (!resource.mMemoryAccounted)
+    {
+        resource.mMemoryAccounted = true;
+        context.mTextureMemoryAllocatedBytes += resource.mMemorySize;
+    }
+    upload.mResource = resource;
+    resource = {};
+
+    context.mQueuedTextureUploadBytes += upload.mUploadBytes;
+    ++context.mQueuedTextureUploadCount;
+    context.mQueuedTextureUploads.push_back(upload);
+    return true;
+}
+
 bool upload_vulkan_texture_resource(
     LLVulkanNativeContext& context,
     U32 handle,
     S32 width,
     S32 height,
-    const std::vector<U8>& pixels)
+    const std::vector<U8>& pixels,
+    LLVulkanTextureUploadTimings* timings = nullptr,
+    bool queue_with_frame = false)
 {
+    const auto resource_start = timings ?
+        LLVulkanTelemetryClock::now() :
+        LLVulkanTelemetryClock::time_point();
+
     if (width <= 0 || height <= 0 || pixels.size() != static_cast<size_t>(width * height * 4))
     {
         return false;
@@ -7656,11 +8064,18 @@ bool upload_vulkan_texture_resource(
         LL_VK_IMAGE_LAYOUT_UNDEFINED
     };
 
+    const auto image_start = timings ?
+        LLVulkanTelemetryClock::now() :
+        LLVulkanTelemetryClock::time_point();
     S32 result = context.mCreateImage(
         context.mDevice,
         &image_create_info,
         nullptr,
         &new_resource.mImage);
+    if (timings)
+    {
+        timings->mImageCreateMs += elapsed_vulkan_telemetry_ms(image_start);
+    }
     if (result != LL_VK_SUCCESS || !new_resource.mImage)
     {
         LL_WARNS("RenderBackend") << "vkCreateImage(texture) failed with result " << result << LL_ENDL;
@@ -7668,6 +8083,9 @@ bool upload_vulkan_texture_resource(
         return false;
     }
 
+    const auto memory_start = timings ?
+        LLVulkanTelemetryClock::now() :
+        LLVulkanTelemetryClock::time_point();
     LLVkMemoryRequirements memory_requirements = {};
     context.mGetImageMemoryRequirements(context.mDevice, new_resource.mImage, &memory_requirements);
     new_resource.mMemorySize = memory_requirements.size;
@@ -7679,6 +8097,10 @@ bool upload_vulkan_texture_resource(
             LL_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             memory_type_index))
     {
+        if (timings)
+        {
+            timings->mMemoryMs += elapsed_vulkan_telemetry_ms(memory_start);
+        }
         LL_WARNS("RenderBackend") << "No device-local Vulkan memory type for texture." << LL_ENDL;
         destroy_vulkan_texture_resource(context, new_resource);
         return false;
@@ -7700,6 +8122,10 @@ bool upload_vulkan_texture_resource(
             width,
             height))
     {
+        if (timings)
+        {
+            timings->mMemoryMs += elapsed_vulkan_telemetry_ms(memory_start);
+        }
         destroy_vulkan_texture_resource(context, new_resource);
         return false;
     }
@@ -7715,6 +8141,10 @@ bool upload_vulkan_texture_resource(
     result = context.mAllocateMemory(context.mDevice, &allocate_info, nullptr, &new_resource.mMemory);
     if (result != LL_VK_SUCCESS || !new_resource.mMemory)
     {
+        if (timings)
+        {
+            timings->mMemoryMs += elapsed_vulkan_telemetry_ms(memory_start);
+        }
         LL_WARNS("RenderBackend") << "vkAllocateMemory(texture) failed with result " << result << LL_ENDL;
         destroy_vulkan_texture_resource(context, new_resource);
         return false;
@@ -7723,20 +8153,30 @@ bool upload_vulkan_texture_resource(
     result = context.mBindImageMemory(context.mDevice, new_resource.mImage, new_resource.mMemory, 0);
     if (result != LL_VK_SUCCESS)
     {
+        if (timings)
+        {
+            timings->mMemoryMs += elapsed_vulkan_telemetry_ms(memory_start);
+        }
         LL_WARNS("RenderBackend") << "vkBindImageMemory(texture) failed with result " << result << LL_ENDL;
         destroy_vulkan_texture_resource(context, new_resource);
         return false;
     }
+    if (timings)
+    {
+        timings->mMemoryMs += elapsed_vulkan_telemetry_ms(memory_start);
+    }
 
-    if (!upload_vulkan_texture_pixels_to_image(
-            context,
-            new_resource,
-            pixels,
-            0,
-            0,
-            width,
-            height,
-            LL_VK_IMAGE_LAYOUT_UNDEFINED))
+    if (!queue_with_frame &&
+        !upload_vulkan_texture_pixels_to_image(
+                context,
+                new_resource,
+                pixels,
+                0,
+                0,
+                width,
+                height,
+                LL_VK_IMAGE_LAYOUT_UNDEFINED,
+                timings))
     {
         destroy_vulkan_texture_resource(context, new_resource);
         return false;
@@ -7767,6 +8207,9 @@ bool upload_vulkan_texture_resource(
         }
     };
 
+    const auto view_sampler_start = timings ?
+        LLVulkanTelemetryClock::now() :
+        LLVulkanTelemetryClock::time_point();
     result = context.mCreateImageView(
         context.mDevice,
         &image_view_create_info,
@@ -7774,6 +8217,10 @@ bool upload_vulkan_texture_resource(
         &new_resource.mImageView);
     if (result != LL_VK_SUCCESS || !new_resource.mImageView)
     {
+        if (timings)
+        {
+            timings->mViewSamplerMs += elapsed_vulkan_telemetry_ms(view_sampler_start);
+        }
         LL_WARNS("RenderBackend") << "vkCreateImageView(texture) failed with result " << result << LL_ENDL;
         destroy_vulkan_texture_resource(context, new_resource);
         return false;
@@ -7784,21 +8231,58 @@ bool upload_vulkan_texture_resource(
             get_vulkan_texture_sampler_state(handle),
             new_resource.mSampler))
     {
+        if (timings)
+        {
+            timings->mViewSamplerMs += elapsed_vulkan_telemetry_ms(view_sampler_start);
+        }
         destroy_vulkan_texture_resource(context, new_resource);
         return false;
     }
-
-    new_resource.mMemoryAccounted = true;
-    context.mTextureMemoryAllocatedBytes += new_resource.mMemorySize;
-    if (existing_iter != gVulkanTextures.end())
+    if (timings)
     {
-        destroy_vulkan_texture_descriptor_set_cache(context);
-        destroy_vulkan_texture_resource(context, existing_iter->second);
-        existing_iter->second = new_resource;
+        timings->mViewSamplerMs += elapsed_vulkan_telemetry_ms(view_sampler_start);
+    }
+
+    if (queue_with_frame)
+    {
+        if (!queue_vulkan_texture_upload(
+                context,
+                handle,
+                new_resource,
+                width,
+                height,
+                pixels,
+                timings))
+        {
+            destroy_vulkan_texture_resource(context, new_resource);
+            return false;
+        }
     }
     else
     {
-        gVulkanTextures.emplace(handle, new_resource);
+        const auto publish_start = timings ?
+            LLVulkanTelemetryClock::now() :
+            LLVulkanTelemetryClock::time_point();
+        new_resource.mMemoryAccounted = true;
+        context.mTextureMemoryAllocatedBytes += new_resource.mMemorySize;
+        if (existing_iter != gVulkanTextures.end())
+        {
+            destroy_vulkan_texture_descriptor_set_cache(context);
+            destroy_vulkan_texture_resource(context, existing_iter->second);
+            existing_iter->second = new_resource;
+        }
+        else
+        {
+            gVulkanTextures.emplace(handle, new_resource);
+        }
+        if (timings)
+        {
+            timings->mPublishMs += elapsed_vulkan_telemetry_ms(publish_start);
+        }
+    }
+    if (timings)
+    {
+        timings->mResourceTotalMs += elapsed_vulkan_telemetry_ms(resource_start);
     }
 
     ++context.mTextureUploadCount;
@@ -7834,6 +8318,95 @@ bool upload_vulkan_texture_resource(
             << ")."
             << LL_ENDL;
         logged_first_texture = true;
+    }
+
+    return true;
+}
+
+bool record_queued_vulkan_texture_uploads(
+    LLVulkanNativeContext& context,
+    LLVkCommandBuffer command_buffer)
+{
+    if (context.mQueuedTextureUploads.empty())
+    {
+        return true;
+    }
+
+    if (!ensure_vulkan_texture_entry_points(context) ||
+        !ensure_vulkan_command_entry_points(context))
+    {
+        return false;
+    }
+
+    U32 upload_count = 0;
+    U64 upload_bytes = 0;
+    destroy_vulkan_texture_descriptor_set_cache(context);
+
+    for (LLVulkanQueuedTextureUpload& upload : context.mQueuedTextureUploads)
+    {
+        if (!upload.mHandle ||
+            !upload.mResource.mImage ||
+            !upload.mResource.mImageView ||
+            !upload.mResource.mSampler ||
+            !upload.mStaging.mBuffer)
+        {
+            destroy_vulkan_buffer_resource(context, upload.mStaging);
+            destroy_vulkan_texture_resource(context, upload.mResource);
+            continue;
+        }
+
+        record_vulkan_texture_copy_commands(
+            context,
+            command_buffer,
+            upload.mResource,
+            upload.mStaging.mBuffer,
+            0,
+            0,
+            upload.mWidth,
+            upload.mHeight,
+            LL_VK_IMAGE_LAYOUT_UNDEFINED);
+
+        auto existing_iter = gVulkanTextures.find(upload.mHandle);
+        if (existing_iter != gVulkanTextures.end())
+        {
+            destroy_vulkan_texture_resource(context, existing_iter->second);
+            existing_iter->second = upload.mResource;
+        }
+        else
+        {
+            gVulkanTextures.emplace(upload.mHandle, upload.mResource);
+        }
+        upload.mResource = {};
+
+        context.mSubmittedTextureUploadStagingBuffers.push_back(upload.mStaging);
+        upload.mStaging = {};
+        ++upload_count;
+        upload_bytes += upload.mUploadBytes;
+    }
+
+    context.mQueuedTextureUploads.clear();
+    if (upload_count > 0)
+    {
+        ++context.mSubmittedTextureUploadBatchCount;
+        context.mSubmittedTextureUploadBatchBytes += upload_bytes;
+        if (vulkan_texture_upload_telemetry_enabled())
+        {
+            LL_INFOS("RenderBackend")
+                << "Vulkan texture upload batch telemetry: recorded "
+                << upload_count
+                << " upload(s), "
+                << (upload_bytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+                << "MB in one frame command buffer; lifetime queued uploads "
+                << context.mQueuedTextureUploadCount
+                << " ("
+                << (context.mQueuedTextureUploadBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+                << "MB), submitted batches "
+                << context.mSubmittedTextureUploadBatchCount
+                << " ("
+                << (context.mSubmittedTextureUploadBatchBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+                << "MB)."
+                << LL_ENDL;
+        }
     }
 
     return true;
@@ -15323,6 +15896,11 @@ bool record_vulkan_frame_command_buffer(
         return false;
     }
 
+    if (!record_queued_vulkan_texture_uploads(context, command_buffer))
+    {
+        return false;
+    }
+
     LLVulkanActiveRenderPassState active_pass;
     U32 ui_draw_count = 0;
     U32 missing_buffer_count = 0;
@@ -17445,6 +18023,7 @@ bool present_vulkan_frame(
         destroy_vulkan_buffer_average_readbacks(context);
         return false;
     }
+    destroy_vulkan_submitted_texture_upload_staging_buffers(context);
     log_and_destroy_vulkan_buffer_average_readbacks(context);
     reset_vulkan_texture_descriptor_set_cache_after_frame(context);
 
@@ -18141,6 +18720,12 @@ public:
             return true;
         }
 
+        if (gCurrentVulkanContext &&
+            is_vulkan_texture_upload_pending(*gCurrentVulkanContext, texture))
+        {
+            return true;
+        }
+
         auto iter = gVulkanTextures.find(texture);
         return iter != gVulkanTextures.end() &&
             iter->second.mImage &&
@@ -18328,6 +18913,12 @@ public:
         gCurrentVulkanContext->mLastTextureUploadSucceeded = false;
         gCurrentVulkanContext->mLastTextureUploadDeferred = false;
 
+        if (is_vulkan_texture_upload_pending(*gCurrentVulkanContext, texture))
+        {
+            gCurrentVulkanContext->mLastTextureUploadDeferred = true;
+            return;
+        }
+
         auto existing_texture = gVulkanTextures.find(texture);
         if (data == nullptr &&
             existing_texture != gVulkanTextures.end() &&
@@ -18355,6 +18946,10 @@ public:
 
         const U64 upload_bytes = static_cast<U64>(width) * static_cast<U64>(height) * 4;
         const bool is_glyph_texture = is_vulkan_glyph_texture_format(format);
+        const bool telemetry_enabled = vulkan_texture_upload_telemetry_enabled();
+        const auto upload_start = telemetry_enabled ?
+            LLVulkanTelemetryClock::now() :
+            LLVulkanTelemetryClock::time_point();
         if (!can_accept_vulkan_texture_upload_request(
                 *gCurrentVulkanContext,
                 texture,
@@ -18365,12 +18960,33 @@ public:
                 data != nullptr && !is_glyph_texture,
                 data != nullptr && !is_glyph_texture))
         {
+            if (telemetry_enabled)
+            {
+                record_vulkan_texture_upload_telemetry(
+                    *gCurrentVulkanContext,
+                    texture,
+                    width,
+                    height,
+                    upload_bytes,
+                    false,
+                    false,
+                    gCurrentVulkanContext->mLastTextureUploadDeferred,
+                    0.0,
+                    LLVulkanTextureUploadTimings(),
+                    elapsed_vulkan_telemetry_ms(upload_start));
+            }
             return;
         }
 
         std::vector<U8> pixels;
+        const auto convert_start = telemetry_enabled ?
+            LLVulkanTelemetryClock::now() :
+            LLVulkanTelemetryClock::time_point();
         if (!convert_texture_pixels_to_rgba8(width, height, width, format, type, data, pixels))
         {
+            const F64 convert_ms = telemetry_enabled ?
+                elapsed_vulkan_telemetry_ms(convert_start) :
+                0.0;
             ++gCurrentVulkanContext->mSkippedTextureUnsupportedUploadCount;
             LL_WARNS_ONCE("RenderBackend")
                 << "Vulkan UI texture bridge skipped unsupported legacy texture upload format "
@@ -18379,11 +18995,52 @@ public:
                 << type
                 << "."
                 << LL_ENDL;
+            if (telemetry_enabled)
+            {
+                record_vulkan_texture_upload_telemetry(
+                    *gCurrentVulkanContext,
+                    texture,
+                    width,
+                    height,
+                    upload_bytes,
+                    false,
+                    false,
+                    false,
+                    convert_ms,
+                    LLVulkanTextureUploadTimings(),
+                    elapsed_vulkan_telemetry_ms(upload_start));
+            }
             return;
         }
+        const F64 convert_ms = telemetry_enabled ?
+            elapsed_vulkan_telemetry_ms(convert_start) :
+            0.0;
 
+        LLVulkanTextureUploadTimings timings;
         gCurrentVulkanContext->mLastTextureUploadSucceeded =
-            upload_vulkan_texture_resource(*gCurrentVulkanContext, texture, width, height, pixels);
+            upload_vulkan_texture_resource(
+                *gCurrentVulkanContext,
+                texture,
+                width,
+                height,
+                pixels,
+                telemetry_enabled ? &timings : nullptr,
+                true);
+        if (telemetry_enabled)
+        {
+            record_vulkan_texture_upload_telemetry(
+                *gCurrentVulkanContext,
+                texture,
+                width,
+                height,
+                upload_bytes,
+                false,
+                gCurrentVulkanContext->mLastTextureUploadSucceeded,
+                gCurrentVulkanContext->mLastTextureUploadDeferred,
+                convert_ms,
+                timings,
+                elapsed_vulkan_telemetry_ms(upload_start));
+        }
     }
 
     void setTextureImage2D(
@@ -18580,6 +19237,12 @@ public:
         gCurrentVulkanContext->mLastTextureUploadDeferred = false;
 
         U32 texture = gBoundVulkanTextures[gActiveVulkanTextureUnit];
+        if (is_vulkan_texture_upload_pending(*gCurrentVulkanContext, texture))
+        {
+            gCurrentVulkanContext->mLastTextureUploadDeferred = true;
+            return;
+        }
+
         auto iter = gVulkanTextures.find(texture);
         if (iter == gVulkanTextures.end())
         {
@@ -18601,6 +19264,10 @@ public:
 
         const U64 upload_bytes = static_cast<U64>(width) * static_cast<U64>(height) * 4;
         const bool is_glyph_texture = is_vulkan_glyph_texture_format(format);
+        const bool telemetry_enabled = vulkan_texture_upload_telemetry_enabled();
+        const auto upload_start = telemetry_enabled ?
+            LLVulkanTelemetryClock::now() :
+            LLVulkanTelemetryClock::time_point();
         if (!can_accept_vulkan_texture_upload_request(
                 *gCurrentVulkanContext,
                 texture,
@@ -18611,17 +19278,57 @@ public:
                 false,
                 !is_glyph_texture))
         {
+            if (telemetry_enabled)
+            {
+                record_vulkan_texture_upload_telemetry(
+                    *gCurrentVulkanContext,
+                    texture,
+                    width,
+                    height,
+                    upload_bytes,
+                    true,
+                    false,
+                    gCurrentVulkanContext->mLastTextureUploadDeferred,
+                    0.0,
+                    LLVulkanTextureUploadTimings(),
+                    elapsed_vulkan_telemetry_ms(upload_start));
+            }
             return;
         }
 
         std::vector<U8> converted;
         const S32 source_row_length = gVulkanUnpackRowLength > 0 ? gVulkanUnpackRowLength : width;
+        const auto convert_start = telemetry_enabled ?
+            LLVulkanTelemetryClock::now() :
+            LLVulkanTelemetryClock::time_point();
         if (!convert_texture_pixels_to_rgba8(width, height, source_row_length, format, type, pixels, converted))
         {
+            const F64 convert_ms = telemetry_enabled ?
+                elapsed_vulkan_telemetry_ms(convert_start) :
+                0.0;
             ++gCurrentVulkanContext->mSkippedTextureUnsupportedUploadCount;
+            if (telemetry_enabled)
+            {
+                record_vulkan_texture_upload_telemetry(
+                    *gCurrentVulkanContext,
+                    texture,
+                    width,
+                    height,
+                    upload_bytes,
+                    true,
+                    false,
+                    false,
+                    convert_ms,
+                    LLVulkanTextureUploadTimings(),
+                    elapsed_vulkan_telemetry_ms(upload_start));
+            }
             return;
         }
+        const F64 convert_ms = telemetry_enabled ?
+            elapsed_vulkan_telemetry_ms(convert_start) :
+            0.0;
 
+        LLVulkanTextureUploadTimings timings;
         gCurrentVulkanContext->mLastTextureUploadSucceeded =
             upload_vulkan_texture_pixels_to_image(
                 *gCurrentVulkanContext,
@@ -18631,7 +19338,23 @@ public:
                 yoffset,
                 width,
                 height,
-                LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                telemetry_enabled ? &timings : nullptr);
+        if (telemetry_enabled)
+        {
+            record_vulkan_texture_upload_telemetry(
+                *gCurrentVulkanContext,
+                texture,
+                width,
+                height,
+                upload_bytes,
+                true,
+                gCurrentVulkanContext->mLastTextureUploadSucceeded,
+                gCurrentVulkanContext->mLastTextureUploadDeferred,
+                convert_ms,
+                timings,
+                elapsed_vulkan_telemetry_ms(upload_start));
+        }
     }
 
     void copyImageSubData(

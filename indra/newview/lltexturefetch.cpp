@@ -30,6 +30,8 @@
 #include <map>
 #include <algorithm>
 #include <atomic>
+#include <cstdlib>
+#include <cstring>
 
 #include "lltexturefetch.h"
 
@@ -76,6 +78,37 @@ LLTrace::SampleStatHandle<F32Seconds> LLTextureFetch::sTexFetchLatency("texture_
 
 LLTextureFetchTester* LLTextureFetch::sTesterp = NULL ;
 const std::string sTesterName("TextureFetchTester");
+
+namespace
+{
+bool texture_pipeline_telemetry_enabled()
+{
+    const char* value = std::getenv("MARE_TEXTURE_PIPELINE_TELEMETRY");
+    if (!value)
+    {
+        value = std::getenv("MARE_VULKAN_TEXTURE_TELEMETRY");
+    }
+    return value &&
+        value[0] != '\0' &&
+        std::strcmp(value, "0") != 0 &&
+        std::strcmp(value, "false") != 0 &&
+        std::strcmp(value, "FALSE") != 0 &&
+        std::strcmp(value, "off") != 0 &&
+        std::strcmp(value, "OFF") != 0;
+}
+
+bool should_log_texture_fetch_telemetry(F32 fetch_time)
+{
+    static U32 sLoggedFetchTelemetry = 0;
+    constexpr U32 MAX_DETAILED_FETCH_TELEMETRY = 256;
+    if (sLoggedFetchTelemetry < MAX_DETAILED_FETCH_TELEMETRY || fetch_time > 2.f)
+    {
+        ++sLoggedFetchTelemetry;
+        return true;
+    }
+    return false;
+}
+}
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -2820,6 +2853,38 @@ bool LLTextureFetch::getRequestFinished(const LLUUID& id, S32& discard_level, S3
             sample(sCacheReadLatency, cache_read_time);
             sample(sCacheWriteLatency, cache_write_time);
 
+            if (texture_pipeline_telemetry_enabled() &&
+                should_log_texture_fetch_telemetry(fetch_time))
+            {
+                LL_INFOS("Texture")
+                    << "Texture pipeline telemetry: fetch-finished id "
+                    << id
+                    << ", state "
+                    << worker_state
+                    << ", discard "
+                    << discard_level
+                    << ", raw "
+                    << (raw.notNull() ? raw->getWidth() : 0)
+                    << "x"
+                    << (raw.notNull() ? raw->getHeight() : 0)
+                    << "x"
+                    << (raw.notNull() ? raw->getComponents() : 0)
+                    << ", raw bytes "
+                    << (raw.notNull() ? raw->getDataSize() : 0)
+                    << ", file bytes "
+                    << file_size
+                    << ", fetch "
+                    << (fetch_time * 1000.f)
+                    << "ms, decode "
+                    << (decode_time * 1000.f)
+                    << "ms, cache read "
+                    << (cache_read_time * 1000.f)
+                    << "ms, cache write "
+                    << (cache_write_time * 1000.f)
+                    << "ms."
+                    << LL_ENDL;
+            }
+
             static LLCachedControl<F32> min_time_to_log(gSavedSettings, "TextureFetchMinTimeToLog", 2.f);
             if (fetch_time > min_time_to_log)
             {
@@ -3715,4 +3780,3 @@ void LLTextureFetchTester::updateStats(const std::map<S32, F32> state_timers, co
     mSkippedStatesTime = skipped_states_time;
     outputTestResults();
 }
-
