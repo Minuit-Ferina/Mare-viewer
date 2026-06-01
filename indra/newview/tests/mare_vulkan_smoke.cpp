@@ -51,6 +51,8 @@ enum class SmokeMode
     ViewerStagedPostOverlays,
     ViewerStagedPostCopy,
     ViewerStagedPostTargets,
+    CopyChain,
+    CopyMRTChain,
     WorldPipelines,
 };
 
@@ -66,6 +68,7 @@ enum class SmokeScene
 {
     Basic,
     PostOverlaysStress,
+    TwoPrims,
     ReplayCapture,
 };
 
@@ -198,6 +201,16 @@ bool parse_smoke_mode_value(const char* value, SmokeMode& mode)
         mode = SmokeMode::ViewerStagedPostTargets;
         return true;
     }
+    if (std::strcmp(value, "copy-chain") == 0)
+    {
+        mode = SmokeMode::CopyChain;
+        return true;
+    }
+    if (std::strcmp(value, "copy-mrt-chain") == 0)
+    {
+        mode = SmokeMode::CopyMRTChain;
+        return true;
+    }
     if (std::strcmp(value, "world-pipelines") == 0)
     {
         mode = SmokeMode::WorldPipelines;
@@ -220,6 +233,11 @@ bool parse_smoke_scene_value(const char* value, SmokeScene& scene)
     if (std::strcmp(value, "post-overlays-stress") == 0)
     {
         scene = SmokeScene::PostOverlaysStress;
+        return true;
+    }
+    if (std::strcmp(value, "two-prims") == 0)
+    {
+        scene = SmokeScene::TwoPrims;
         return true;
     }
     if (std::strcmp(value, "replay-capture") == 0)
@@ -260,6 +278,10 @@ const char* get_smoke_mode_name(SmokeMode mode)
         return "viewer-staged-post-copy";
     case SmokeMode::ViewerStagedPostTargets:
         return "viewer-staged-post-targets";
+    case SmokeMode::CopyChain:
+        return "copy-chain";
+    case SmokeMode::CopyMRTChain:
+        return "copy-mrt-chain";
     case SmokeMode::DeferredComposite:
         return "deferred-composite";
     case SmokeMode::OffscreenCopy:
@@ -276,6 +298,8 @@ const char* get_smoke_scene_name(SmokeScene scene)
     {
     case SmokeScene::ReplayCapture:
         return "replay-capture";
+    case SmokeScene::TwoPrims:
+        return "two-prims";
     case SmokeScene::PostOverlaysStress:
         return "post-overlays-stress";
     case SmokeScene::Basic:
@@ -290,6 +314,8 @@ const char* get_smoke_scene_description(SmokeScene scene)
     {
     case SmokeScene::ReplayCapture:
         return "captured command-shape summary, not live scene geometry/textures";
+    case SmokeScene::TwoPrims:
+        return "two overlapping prim-like world quads: opaque deferred depth plus post-deferred alpha";
     case SmokeScene::PostOverlaysStress:
         return "stress G-buffer and post-deferred overlay draws";
     case SmokeScene::Basic:
@@ -330,6 +356,10 @@ const char* get_smoke_mode_description(SmokeMode mode)
         return " produced through the viewer-style staged graph with post-deferred overlays, then copied through the post target without final composite. ";
     case SmokeMode::ViewerStagedPostTargets:
         return " produced through the viewer-style staged post target graph. ";
+    case SmokeMode::CopyChain:
+        return " rendered as a single-color world target, copied through multiple LLRenderTarget hops with the real Copy shader, then copied to the swapchain. ";
+    case SmokeMode::CopyMRTChain:
+        return " rendered as a multi-attachment world target, then attachment 0 is copied through multiple LLRenderTarget hops with the real Copy shader. ";
     case SmokeMode::WorldPipelines:
         return " replaced by a grid of real Vulkan world shader pipelines. ";
     case SmokeMode::DirectClear:
@@ -354,6 +384,8 @@ bool smoke_mode_uses_scene(SmokeMode mode)
     case SmokeMode::ViewerStagedPostOverlays:
     case SmokeMode::ViewerStagedPostCopy:
     case SmokeMode::ViewerStagedPostTargets:
+    case SmokeMode::CopyChain:
+    case SmokeMode::CopyMRTChain:
     case SmokeMode::WorldPipelines:
         return true;
     case SmokeMode::DirectClear:
@@ -380,6 +412,8 @@ bool smoke_mode_replays_capture(SmokeMode mode)
     case SmokeMode::ViewerStagedPostOverlays:
     case SmokeMode::ViewerStagedPostCopy:
     case SmokeMode::ViewerStagedPostTargets:
+    case SmokeMode::CopyChain:
+    case SmokeMode::CopyMRTChain:
         return true;
     case SmokeMode::DirectClear:
     case SmokeMode::OffscreenCopy:
@@ -408,8 +442,11 @@ void print_smoke_usage(const char* executable)
         << "                             viewer-staged-post-overlays,\n"
         << "                             viewer-staged-post-copy,\n"
         << "                             viewer-staged-post-targets,\n"
+        << "                             copy-chain,\n"
+        << "                             copy-mrt-chain,\n"
         << "                             world-pipelines\n"
-        << "  --scene <name>             basic, post-overlays-stress, replay-capture\n"
+        << "  --scene <name>             basic, post-overlays-stress, two-prims,\n"
+        << "                             replay-capture\n"
         << "  --capture <path>           Capture file for --scene replay-capture\n"
         << "  --frames <count>           Number of frames to render; 0 means run until closed\n"
         << "  --log-every <count>        Frame logging interval\n"
@@ -1126,6 +1163,7 @@ struct SmokeDeferredTextures
     LLRenderTextureHandle mNormal;
     LLRenderTextureHandle mEmissive;
     LLRenderTextureHandle mDepth;
+    LLRenderTextureHandle mWhite;
 };
 
 std::vector<U8> make_solid_rgba_pixels(
@@ -1245,6 +1283,7 @@ void release_smoke_deferred_textures(
         &textures.mNormal,
         &textures.mEmissive,
         &textures.mDepth,
+        &textures.mWhite,
     };
     for (LLRenderTextureHandle* handle : handles)
     {
@@ -1264,7 +1303,8 @@ bool ensure_smoke_deferred_textures(
         textures.mSpecular &&
         textures.mNormal &&
         textures.mEmissive &&
-        textures.mDepth)
+        textures.mDepth &&
+        textures.mWhite)
     {
         return true;
     }
@@ -1301,7 +1341,13 @@ bool ensure_smoke_deferred_textures(
             textures.mDepth,
             texture_width,
             texture_height,
-            make_solid_rgba_pixels(texture_width, texture_height, 255, 255, 255, 255)))
+            make_solid_rgba_pixels(texture_width, texture_height, 255, 255, 255, 255)) ||
+        !create_smoke_texture(
+            backend,
+            textures.mWhite,
+            1,
+            1,
+            make_solid_rgba_pixels(1, 1, 255, 255, 255, 255)))
     {
         release_smoke_deferred_textures(backend, textures);
         return false;
@@ -2392,6 +2438,17 @@ struct SmokeViewerRenderTargetGraph
     bool mStagedPostTargets = false;
 };
 
+struct SmokeCopyChainGraph
+{
+    LLRenderTarget mSource;
+    LLRenderTarget mCopyA;
+    LLRenderTarget mCopyB;
+    LLRenderTarget mCopyC;
+    U32 mWidth = 0;
+    U32 mHeight = 0;
+    U32 mSourceColorAttachmentCount = 0;
+};
+
 void release_smoke_deferred_graph(
     LLRenderBackend& backend,
     SmokeDeferredGraph& graph)
@@ -2441,6 +2498,17 @@ void release_smoke_viewer_render_target_graph(
     graph.mHeight = 0;
     graph.mColorAttachmentCount = 0;
     graph.mStagedPostTargets = false;
+}
+
+void release_smoke_copy_chain_graph(SmokeCopyChainGraph& graph)
+{
+    graph.mCopyC.release();
+    graph.mCopyB.release();
+    graph.mCopyA.release();
+    graph.mSource.release();
+    graph.mWidth = 0;
+    graph.mHeight = 0;
+    graph.mSourceColorAttachmentCount = 0;
 }
 
 bool ensure_smoke_viewer_render_target_graph(
@@ -2519,6 +2587,61 @@ bool ensure_smoke_viewer_render_target_graph(
             (graph.mDeferredLight.isComplete() &&
              graph.mScreen.isComplete() &&
              graph.mPostPing.isComplete()));
+}
+
+bool ensure_smoke_copy_chain_graph(
+    SmokeCopyChainGraph& graph,
+    U32 width,
+    U32 height,
+    bool multi_attachment_source)
+{
+    const U32 source_color_attachment_count =
+        multi_attachment_source ? 3U : 1U;
+    if (graph.mSource.isComplete() &&
+        graph.mCopyA.isComplete() &&
+        graph.mCopyB.isComplete() &&
+        graph.mCopyC.isComplete() &&
+        graph.mWidth == width &&
+        graph.mHeight == height &&
+        graph.mSourceColorAttachmentCount == source_color_attachment_count &&
+        graph.mSource.getNumTextures() == source_color_attachment_count &&
+        graph.mSource.getWidth() == width &&
+        graph.mSource.getHeight() == height &&
+        graph.mCopyA.getWidth() == width &&
+        graph.mCopyA.getHeight() == height &&
+        graph.mCopyB.getWidth() == width &&
+        graph.mCopyB.getHeight() == height &&
+        graph.mCopyC.getWidth() == width &&
+        graph.mCopyC.getHeight() == height)
+    {
+        return true;
+    }
+
+    release_smoke_copy_chain_graph(graph);
+    graph.mWidth = width;
+    graph.mHeight = height;
+    graph.mSourceColorAttachmentCount = source_color_attachment_count;
+
+    if (!graph.mSource.allocate(
+            width,
+            height,
+            multi_attachment_source ? LLRenderTextureFormat::RGBA : LLRenderTextureFormat::RGBA16F,
+            true) ||
+        (multi_attachment_source &&
+            (!graph.mSource.addColorAttachment(LLRenderTextureFormat::RGBA) ||
+             !graph.mSource.addColorAttachment(LLRenderTextureFormat::RGBA16))) ||
+        !graph.mCopyA.allocate(width, height, LLRenderTextureFormat::RGBA16F) ||
+        !graph.mCopyB.allocate(width, height, LLRenderTextureFormat::RGBA16F) ||
+        !graph.mCopyC.allocate(width, height, LLRenderTextureFormat::RGBA16F))
+    {
+        release_smoke_copy_chain_graph(graph);
+        return false;
+    }
+
+    return graph.mSource.isComplete() &&
+        graph.mCopyA.isComplete() &&
+        graph.mCopyB.isComplete() &&
+        graph.mCopyC.isComplete();
 }
 
 bool ensure_smoke_deferred_graph(
@@ -2779,13 +2902,194 @@ LLRenderWorldMaterialParameters make_deferred_graph_final_parameters(
     return make_vulkan_final_composite_material_parameters(settings);
 }
 
+void bind_two_prim_material_textures(
+    LLRenderBackend& backend,
+    const SmokeDeferredTextures& textures)
+{
+    const LLRenderTextureHandle bindings[] =
+    {
+        textures.mWhite,
+        textures.mNormal,
+        textures.mSpecular,
+        textures.mEmissive,
+    };
+    const S32 binding_count =
+        static_cast<S32>(sizeof(bindings) / sizeof(bindings[0]));
+    for (S32 unit = 0; unit < binding_count; ++unit)
+    {
+        backend.setActiveTextureUnit(unit);
+        backend.bindTexture(LLRenderTextureTarget::Texture2D, bindings[unit]);
+    }
+    backend.setActiveTextureUnit(0);
+}
+
+void set_two_prim_world_matrix(
+    F32 center_x,
+    F32 center_y,
+    F32 depth,
+    F32 half_width,
+    F32 half_height)
+{
+    const glm::mat4 projection(1.f);
+    glm::mat4 modelview(1.f);
+    modelview = glm::translate(modelview, glm::vec3(center_x, center_y, depth));
+    modelview = glm::scale(modelview, glm::vec3(half_width, half_height, 1.f));
+
+    set_current_projection(projection);
+    set_current_modelview(modelview);
+    gGL.matrixMode(LLRender::MM_PROJECTION);
+    gGL.loadMatrix(glm::value_ptr(projection));
+    gGL.matrixMode(LLRender::MM_MODELVIEW);
+    gGL.loadMatrix(glm::value_ptr(modelview));
+}
+
+void draw_two_prim_deferred_gbuffer_scene(
+    LLRenderBackend& backend,
+    const SmokeDeferredTextures& textures,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    static bool logged_scene = false;
+    if (!logged_scene)
+    {
+        std::cout
+            << "Mare Vulkan smoke two-prims scene: opaque deferred prim writes "
+            << "G-buffer/depth; translucent post-deferred prim overlaps it."
+            << std::endl;
+        logged_scene = true;
+    }
+
+    SmokeMatrixScope matrix_scope;
+    bind_two_prim_material_textures(backend, textures);
+    bind_world_smoke_quad(backend, quad);
+    backend.setWorldDrawEnabled(true);
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+    backend.setWorldTextureTransform({});
+    backend.setWorldTerrainParameters({});
+    backend.setWorldSkinningMatrixPalette(0, nullptr);
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::DepthTest, true);
+    backend.setDepthFunction(LLRenderDepthFunction::LessEqual);
+    backend.setDepthWriteEnabled(true);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setWorldMaterialParameters(
+        make_world_pipeline_material(
+            0.18f,
+            0.68f,
+            0.36f,
+            1.f,
+            0));
+    set_two_prim_world_matrix(-0.10f, 0.02f, 0.42f, 0.48f, 0.46f);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    backend.setWorldDrawEnabled(false);
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+    backend.setWorldMaterialParameters({});
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+}
+
+void draw_two_prim_post_alpha_scene(
+    LLRenderBackend& backend,
+    const SmokeDeferredTextures& textures,
+    const SmokeQuad& quad,
+    LLRenderTarget* deferred_screen,
+    U32 width,
+    U32 height)
+{
+    SmokeMatrixScope matrix_scope;
+    bind_two_prim_material_textures(backend, textures);
+
+    bool scene_depth_bound = false;
+    if (deferred_screen && deferred_screen->getDepthHandle())
+    {
+        scene_depth_bound =
+            gGL.getTexUnit(8)->bind(deferred_screen, true);
+        if (scene_depth_bound)
+        {
+            gGL.getTexUnit(8)->setTextureFilteringOption(LLTexUnit::TFO_POINT);
+        }
+    }
+
+    bind_world_smoke_quad(backend, quad);
+    backend.setWorldDrawEnabled(true);
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Alpha);
+    backend.setWorldTextureTransform({});
+    backend.setWorldTerrainParameters({});
+    backend.setWorldSkinningMatrixPalette(0, nullptr);
+    backend.setCapability(LLRenderCapability::Blend, true);
+    backend.setBlendState(
+        {
+            LLRenderBlendFactor::SourceAlpha,
+            LLRenderBlendFactor::OneMinusSourceAlpha,
+            LLRenderBlendFactor::Zero,
+            LLRenderBlendFactor::OneMinusSourceAlpha,
+        });
+    backend.setCapability(LLRenderCapability::DepthTest, true);
+    backend.setDepthFunction(LLRenderDepthFunction::LessEqual);
+    backend.setDepthWriteEnabled(false);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+
+    U32 alpha_flags =
+        LLRenderWorldMaterialParameters::AlphaBlend |
+        LLRenderWorldMaterialParameters::PostDeferred;
+    if (scene_depth_bound)
+    {
+        alpha_flags |= LLRenderWorldMaterialParameters::SceneDepth;
+    }
+    LLRenderWorldMaterialParameters alpha_parameters =
+        make_world_pipeline_material(
+            0.96f,
+            0.18f,
+            0.76f,
+            0.58f,
+            alpha_flags);
+    alpha_parameters.mDiffuseAlphaMode = 1.f;
+    backend.setWorldMaterialParameters(alpha_parameters);
+    set_two_prim_world_matrix(0.10f, -0.02f, 0.64f, 0.56f, 0.52f);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    backend.setWorldDrawEnabled(false);
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+    backend.setWorldMaterialParameters({});
+    backend.setWorldTerrainParameters({});
+    backend.setWorldTextureTransform({});
+    backend.setWorldSkinningMatrixPalette(0, nullptr);
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    if (scene_depth_bound)
+    {
+        gGL.getTexUnit(8)->unbind(LLTexUnit::TT_TEXTURE);
+    }
+    backend.setActiveTextureUnit(0);
+}
+
 void draw_deferred_graph_gbuffer_tiles(
     LLRenderBackend& backend,
+    const SmokeDeferredTextures& textures,
     const SmokeQuad& quad,
     SmokeScene scene,
     U32 width,
     U32 height)
 {
+    if (scene == SmokeScene::TwoPrims)
+    {
+        draw_two_prim_deferred_gbuffer_scene(
+            backend,
+            textures,
+            quad,
+            width,
+            height);
+        return;
+    }
+
     const std::array<SmokeWorldPipelineEntry, 6> entries =
     {{
         { LLRenderWorldShaderClass::Textured, "Textured", 0.32f, 0.62f, 0.94f, 0 },
@@ -2863,10 +3167,23 @@ void draw_deferred_graph_post_overlay_tiles(
     LLRenderBackend& backend,
     SmokeDeferredTextures& textures,
     const SmokeQuad& quad,
+    LLRenderTarget* deferred_screen,
     SmokeScene scene,
     U32 width,
     U32 height)
 {
+    if (scene == SmokeScene::TwoPrims)
+    {
+        draw_two_prim_post_alpha_scene(
+            backend,
+            textures,
+            quad,
+            deferred_screen,
+            width,
+            height);
+        return;
+    }
+
     constexpr U32 fullbright =
         LLRenderWorldMaterialParameters::Fullbright |
         LLRenderWorldMaterialParameters::PostDeferred;
@@ -3037,7 +3354,7 @@ bool render_deferred_graph_frame(
     }
     else
     {
-        draw_deferred_graph_gbuffer_tiles(backend, quad, scene, graph_width, graph_height);
+        draw_deferred_graph_gbuffer_tiles(backend, material_textures, quad, scene, graph_width, graph_height);
     }
 
     backend.bindReadWriteFramebuffer(graph.mDeferredFramebuffer);
@@ -3141,7 +3458,7 @@ bool render_viewer_deferred_direct_frame(
     }
     else
     {
-        draw_deferred_graph_gbuffer_tiles(backend, quad, scene, graph_width, graph_height);
+        draw_deferred_graph_gbuffer_tiles(backend, material_textures, quad, scene, graph_width, graph_height);
     }
 
     backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
@@ -3231,7 +3548,7 @@ bool render_viewer_render_target_direct_frame(
     }
     else
     {
-        draw_deferred_graph_gbuffer_tiles(backend, quad, scene, graph_width, graph_height);
+        draw_deferred_graph_gbuffer_tiles(backend, material_textures, quad, scene, graph_width, graph_height);
     }
     graph.mDeferredScreen.flush();
 
@@ -3410,7 +3727,7 @@ bool render_viewer_immediate_direct_frame(
     }
     else
     {
-        draw_deferred_graph_gbuffer_tiles(backend, quad, scene, graph_width, graph_height);
+        draw_deferred_graph_gbuffer_tiles(backend, material_textures, quad, scene, graph_width, graph_height);
     }
     graph.mDeferredScreen.flush();
 
@@ -3520,6 +3837,108 @@ void copy_smoke_target_to_swapchain(
         width,
         height);
     backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+}
+
+bool render_copy_chain_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& material_textures,
+    SmokeCopyChainGraph& graph,
+    const SmokeQuad& quad,
+    SmokeScene scene,
+    U32 width,
+    U32 height,
+    bool multi_attachment_source)
+{
+    if (!ensure_smoke_deferred_textures(backend, material_textures))
+    {
+        return false;
+    }
+
+    const U32 graph_width = llmax(64U, llmin(width, 960U));
+    const U32 graph_height = llmax(
+        64U,
+        llmin(
+            height,
+            static_cast<U32>(
+                static_cast<double>(graph_width) *
+                static_cast<double>(height) /
+                static_cast<double>(llmax(1U, width)))));
+    if (!ensure_smoke_copy_chain_graph(
+            graph,
+            graph_width,
+            graph_height,
+            multi_attachment_source))
+    {
+        return false;
+    }
+
+    graph.mSource.bindTarget();
+    backend.setViewport(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setScissor(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setClearColor(0.015f, 0.018f, 0.028f, 1.f);
+    graph.mSource.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    bind_deferred_graph_material_textures(backend, material_textures);
+    if (scene == SmokeScene::ReplayCapture)
+    {
+        if (!draw_capture_commands_for_pass(
+                backend,
+                material_textures,
+                quad,
+                LLWorldRenderPassClass::Deferred,
+                graph_width,
+                graph_height))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        draw_deferred_graph_gbuffer_tiles(
+            backend,
+            material_textures,
+            quad,
+            scene,
+            graph_width,
+            graph_height);
+    }
+    graph.mSource.flush();
+
+    copy_smoke_target_to_target(
+        backend,
+        graph.mSource,
+        graph.mCopyA,
+        quad,
+        graph_width,
+        graph_height);
+    copy_smoke_target_to_target(
+        backend,
+        graph.mCopyA,
+        graph.mCopyB,
+        quad,
+        graph_width,
+        graph_height);
+    copy_smoke_target_to_target(
+        backend,
+        graph.mCopyB,
+        graph.mCopyC,
+        quad,
+        graph_width,
+        graph_height);
+    copy_smoke_target_to_swapchain(
+        backend,
+        graph.mCopyC,
+        quad,
+        width,
+        height);
+    return true;
 }
 
 void draw_smoke_deferred_screen_composite_quad(
@@ -3678,7 +4097,7 @@ bool render_viewer_staged_post_targets_frame(
     }
     else
     {
-        draw_deferred_graph_gbuffer_tiles(backend, quad, scene, graph_width, graph_height);
+        draw_deferred_graph_gbuffer_tiles(backend, material_textures, quad, scene, graph_width, graph_height);
     }
     graph.mDeferredScreen.flush();
 
@@ -3730,6 +4149,7 @@ bool render_viewer_staged_post_targets_frame(
                 backend,
                 material_textures,
                 quad,
+                &graph.mDeferredScreen,
                 scene,
                 graph_width,
                 graph_height);
@@ -4061,6 +4481,11 @@ bool render_smoke_scene_marker(
         primary = LLColor4(0.94f, 0.20f, 0.70f, 0.92f);
         secondary = LLColor4(1.00f, 0.52f, 0.12f, 0.92f);
         tertiary = LLColor4(0.34f, 0.88f, 0.96f, 0.92f);
+        break;
+    case SmokeScene::TwoPrims:
+        primary = LLColor4(0.18f, 0.68f, 0.36f, 0.92f);
+        secondary = LLColor4(0.96f, 0.18f, 0.76f, 0.92f);
+        tertiary = LLColor4(0.08f, 0.10f, 0.16f, 0.92f);
         break;
     case SmokeScene::Basic:
     default:
@@ -4535,6 +4960,8 @@ int main(int argc, char** argv)
         smoke_mode == SmokeMode::ViewerStagedPostOverlays ||
         smoke_mode == SmokeMode::ViewerStagedPostCopy ||
         smoke_mode == SmokeMode::ViewerStagedPostTargets ||
+        smoke_mode == SmokeMode::CopyChain ||
+        smoke_mode == SmokeMode::CopyMRTChain ||
         options.mRenderUI ||
         options.mRenderSceneMarker)
     {
@@ -4562,6 +4989,7 @@ int main(int argc, char** argv)
     SmokeDeferredTextures smoke_deferred_textures;
     SmokeDeferredGraph smoke_deferred_graph;
     SmokeViewerRenderTargetGraph smoke_viewer_render_target_graph;
+    SmokeCopyChainGraph smoke_copy_chain_graph;
     SmokeUIOverlay smoke_ui_overlay;
     if ((smoke_mode == SmokeMode::OffscreenCopy ||
             smoke_mode == SmokeMode::DeferredComposite ||
@@ -4577,6 +5005,8 @@ int main(int argc, char** argv)
             smoke_mode == SmokeMode::ViewerStagedPostOverlays ||
             smoke_mode == SmokeMode::ViewerStagedPostCopy ||
             smoke_mode == SmokeMode::ViewerStagedPostTargets ||
+            smoke_mode == SmokeMode::CopyChain ||
+            smoke_mode == SmokeMode::CopyMRTChain ||
             smoke_mode == SmokeMode::WorldPipelines) &&
         !create_smoke_quad(backend, smoke_quad))
     {
@@ -4639,6 +5069,13 @@ int main(int argc, char** argv)
                 << "Omit --ui-viewer-sequence to inspect only the replay grid."
                 << std::endl;
         }
+    }
+    else if (smoke_scene == SmokeScene::TwoPrims)
+    {
+        std::cout
+            << "Mare Vulkan two-prims note: expected image is a green opaque deferred prim "
+            << "with a magenta translucent post-deferred prim visible only where depth permits it."
+            << std::endl;
     }
 
     while (mare_vulkan_smoke_pump_events(window) &&
@@ -4794,6 +5231,25 @@ int main(int argc, char** argv)
                 break;
             }
         }
+        else if (smoke_mode == SmokeMode::CopyChain ||
+            smoke_mode == SmokeMode::CopyMRTChain)
+        {
+            if (!render_copy_chain_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_copy_chain_graph,
+                    smoke_quad,
+                    smoke_scene,
+                    width,
+                    height,
+                    smoke_mode == SmokeMode::CopyMRTChain))
+            {
+                std::cerr << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
         else if (smoke_mode == SmokeMode::ViewerStagedLightTarget ||
             smoke_mode == SmokeMode::ViewerStagedScreenTarget ||
             smoke_mode == SmokeMode::ViewerStagedScreenOverlays ||
@@ -4919,6 +5375,7 @@ int main(int argc, char** argv)
 
     flushVulkanSmokeFrameDiffSummaries();
 
+    release_smoke_copy_chain_graph(smoke_copy_chain_graph);
     release_smoke_viewer_render_target_graph(smoke_viewer_render_target_graph);
     release_smoke_deferred_graph(backend, smoke_deferred_graph);
     release_smoke_deferred_textures(backend, smoke_deferred_textures);

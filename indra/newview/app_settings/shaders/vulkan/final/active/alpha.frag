@@ -49,6 +49,8 @@ const uint MATERIAL_LEGACY_BUMP = 512u;
 const uint MATERIAL_LEGACY_SHINY = 1024u;
 const uint MATERIAL_GLTF_PBR = 2048u;
 const uint MATERIAL_HAS_SCENE_DEPTH = 131072u;
+const uint MATERIAL_SCENE_DEPTH_FLIP_Y = 524288u;
+const uint MATERIAL_SCENE_DEPTH_REVERSED = 1048576u;
 
 bool has_material_flag(uint flag)
 {
@@ -286,8 +288,19 @@ void clip_against_scene_depth()
 
     vec2 depth_size = max(vec2(textureSize(sceneDepthMap, 0)), vec2(1.0));
     vec2 screen_texcoord = clamp(gl_FragCoord.xy / depth_size, vec2(0.0), vec2(1.0));
+    if (has_material_flag(MATERIAL_SCENE_DEPTH_FLIP_Y))
+    {
+        screen_texcoord.y = 1.0 - screen_texcoord.y;
+    }
     float scene_depth = texture(sceneDepthMap, screen_texcoord).r;
-    if (scene_depth < 0.99999 && gl_FragCoord.z > scene_depth + 0.00001)
+    if (has_material_flag(MATERIAL_SCENE_DEPTH_REVERSED))
+    {
+        if (scene_depth > 0.00001 && gl_FragCoord.z < scene_depth - 0.00001)
+        {
+            discard;
+        }
+    }
+    else if (scene_depth < 0.99999 && gl_FragCoord.z > scene_depth + 0.00001)
     {
         discard;
     }

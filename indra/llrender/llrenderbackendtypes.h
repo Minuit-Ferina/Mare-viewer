@@ -552,6 +552,8 @@ struct LLRenderWorldMaterialParameters
         AvatarImpostor = 1u << 16,
         SceneDepth = 1u << 17,
         SceneColor = 1u << 18,
+        SceneDepthFlipY = 1u << 19,
+        SceneDepthReversed = 1u << 20,
     };
 
     F32 mBaseColorRed = 1.f;

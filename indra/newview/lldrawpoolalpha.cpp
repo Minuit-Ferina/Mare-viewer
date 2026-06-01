@@ -32,6 +32,7 @@
 #include "llcriticaldamp.h"
 #include "llfasttimer.h"
 #include "llrender.h"
+#include "llstring.h"
 
 #include "llcubemap.h"
 #include "llsky.h"
@@ -52,6 +53,9 @@
 #include "llworldrendercommand.h"
 
 #include "llenvironment.h"
+#include "llmaterial.h"
+
+#include <set>
 
 //MK
 #include "llagent.h"
@@ -164,6 +168,128 @@ static bool should_queue_alpha_emissive(U32 pool_type, const LLDrawInfo& params)
 static bool is_alpha_highlight_rigged_pass(S32 pass)
 {
     return pass != 0;
+}
+
+static bool get_vulkan_alpha_boolean_env(const char* name)
+{
+    std::string value = LLStringUtil::getenv(name);
+    LLStringUtil::toLower(value);
+    return value == "1" || value == "true" || value == "yes" || value == "on";
+}
+
+static bool should_skip_alpha_post_water_stage(const char* env_name, const char* stage)
+{
+    if (!use_vulkan_world_command_path() ||
+        !get_vulkan_alpha_boolean_env(env_name))
+    {
+        return false;
+    }
+
+    static std::set<std::string> logged;
+    if (logged.insert(env_name).second)
+    {
+        LL_WARNS("RenderBackend")
+            << "Skipping Vulkan alpha post-water "
+            << stage
+            << " via "
+            << env_name
+            << LL_ENDL;
+    }
+
+    return true;
+}
+
+static bool should_enable_alpha_post_water_filter(const char* env_name, const char* stage)
+{
+    if (!use_vulkan_world_command_path() ||
+        !get_vulkan_alpha_boolean_env(env_name))
+    {
+        return false;
+    }
+
+    static std::set<std::string> logged;
+    if (logged.insert(env_name).second)
+    {
+        LL_WARNS("RenderBackend")
+            << "Applying Vulkan alpha post-water filter "
+            << stage
+            << " via "
+            << env_name
+            << LL_ENDL;
+    }
+
+    return true;
+}
+
+static bool is_legacy_alpha_material_draw(const LLDrawInfo& params)
+{
+    return params.mMaterial.notNull() ||
+        params.mNormalMap.notNull() ||
+        params.mSpecularMap.notNull() ||
+        params.mBump != 0 ||
+        params.mShiny != 0 ||
+        params.mEnvIntensity > 0.f;
+}
+
+struct AlphaPostWaterLegacyCounts
+{
+    U32 total = 0;
+    U32 simple = 0;
+    U32 material = 0;
+    U32 fullbright = 0;
+    U32 glow = 0;
+    U32 alpha_none = 0;
+    U32 alpha_blend = 0;
+    U32 alpha_mask = 0;
+    U32 alpha_emissive = 0;
+    U32 particles = 0;
+    U32 batched = 0;
+    U32 texture_matrix = 0;
+    U32 custom_blend = 0;
+};
+
+static void log_alpha_post_water_legacy_counts(const AlphaPostWaterLegacyCounts& counts)
+{
+    if (!get_vulkan_alpha_boolean_env("MARE_VULKAN_DEBUG_ALPHA_POST_WATER_STATIC_LEGACY_COUNTS"))
+    {
+        return;
+    }
+
+    static U32 logged_count = 0;
+    if (logged_count >= 12)
+    {
+        return;
+    }
+
+    LL_INFOS("RenderBackend")
+        << "Vulkan alpha post-water static legacy counts: total "
+        << counts.total
+        << ", simple "
+        << counts.simple
+        << ", material "
+        << counts.material
+        << ", fullbright "
+        << counts.fullbright
+        << ", glow "
+        << counts.glow
+        << ", alpha_none "
+        << counts.alpha_none
+        << ", alpha_blend "
+        << counts.alpha_blend
+        << ", alpha_mask "
+        << counts.alpha_mask
+        << ", alpha_emissive "
+        << counts.alpha_emissive
+        << ", particles "
+        << counts.particles
+        << ", batched "
+        << counts.batched
+        << ", texture_matrix "
+        << counts.texture_matrix
+        << ", custom_blend "
+        << counts.custom_blend
+        << LL_ENDL;
+    ++logged_count;
 }
 
 static LLCullResult::sg_iterator begin_alpha_highlight_groups(bool rigged)
@@ -742,17 +868,194 @@ bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
     }
 
     LLEnvironment& env = LLEnvironment::instance();
+    const bool alpha_post_water = getType() == LLDrawPool::POOL_ALPHA_POST_WATER;
+    const bool skip_post_water_rigged =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_RIGGED",
+            "rigged draws");
+    const bool skip_post_water_static =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC",
+            "static draws");
+    const bool skip_post_water_static_legacy =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_LEGACY",
+            "static legacy draws");
+    const bool skip_post_water_static_legacy_simple =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_LEGACY_SIMPLE",
+            "static simple legacy draws");
+    const bool skip_post_water_static_legacy_material =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_LEGACY_MATERIAL",
+            "static material legacy draws");
+    const bool skip_post_water_static_legacy_fullbright =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_LEGACY_FULLBRIGHT",
+            "static fullbright legacy draws");
+    const bool skip_post_water_static_legacy_glow =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_LEGACY_GLOW",
+            "static glow legacy draws");
+    const bool skip_post_water_static_legacy_alpha_none =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_LEGACY_ALPHA_NONE",
+            "static legacy alpha-mode none draws");
+    const bool skip_post_water_static_legacy_alpha_blend =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_LEGACY_ALPHA_BLEND",
+            "static legacy alpha-mode blend draws");
+    const bool skip_post_water_static_legacy_alpha_mask =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_LEGACY_ALPHA_MASK",
+            "static legacy alpha-mode mask draws");
+    const bool skip_post_water_static_legacy_alpha_emissive =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_LEGACY_ALPHA_EMISSIVE",
+            "static legacy alpha-mode emissive draws");
+    const bool only_post_water_static_legacy_simple =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_SIMPLE",
+            "only static simple legacy draws");
+    const bool only_post_water_static_legacy_material =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_MATERIAL",
+            "only static material legacy draws");
+    const bool only_post_water_static_legacy_fullbright =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_FULLBRIGHT",
+            "only static fullbright legacy draws");
+    const bool only_post_water_static_legacy_glow =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_GLOW",
+            "only static glow legacy draws");
+    const bool only_post_water_static_legacy_alpha_none =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_ALPHA_NONE",
+            "only static legacy alpha-mode none draws");
+    const bool only_post_water_static_legacy_alpha_blend =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_ALPHA_BLEND",
+            "only static legacy alpha-mode blend draws");
+    const bool only_post_water_static_legacy_alpha_mask =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_ALPHA_MASK",
+            "only static legacy alpha-mode mask draws");
+    const bool only_post_water_static_legacy_alpha_emissive =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_ALPHA_EMISSIVE",
+            "only static legacy alpha-mode emissive draws");
+    const bool only_post_water_static_legacy_particles =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_PARTICLES",
+            "only static legacy particle draws");
+    const bool only_post_water_static_legacy_batched =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_BATCHED",
+            "only static legacy batched-texture draws");
+    const bool only_post_water_static_legacy_texture_matrix =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_TEXTURE_MATRIX",
+            "only static legacy texture-matrix draws");
+    const bool only_post_water_static_legacy_custom_blend =
+        alpha_post_water &&
+        should_enable_alpha_post_water_filter(
+            "MARE_VULKAN_DEBUG_ONLY_ALPHA_POST_WATER_STATIC_LEGACY_CUSTOM_BLEND",
+            "only static legacy custom-blend draws");
+    const bool use_post_water_static_legacy_only_filter =
+        only_post_water_static_legacy_simple ||
+        only_post_water_static_legacy_material ||
+        only_post_water_static_legacy_fullbright ||
+        only_post_water_static_legacy_glow ||
+        only_post_water_static_legacy_alpha_none ||
+        only_post_water_static_legacy_alpha_blend ||
+        only_post_water_static_legacy_alpha_mask ||
+        only_post_water_static_legacy_alpha_emissive ||
+        only_post_water_static_legacy_particles ||
+        only_post_water_static_legacy_batched ||
+        only_post_water_static_legacy_texture_matrix ||
+        only_post_water_static_legacy_custom_blend;
+    const bool skip_post_water_static_pbr =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_PBR",
+            "static PBR draws");
+    const bool skip_post_water_static_particles =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_PARTICLES",
+            "static particle draws");
+    const bool skip_post_water_static_batched =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_BATCHED",
+            "static batched-texture draws");
+    const bool skip_post_water_static_texture_matrix =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_TEXTURE_MATRIX",
+            "static texture-matrix draws");
+    const bool skip_post_water_static_custom_blend =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_STATIC_CUSTOM_BLEND",
+            "static custom-blend draws");
+    const bool skip_post_water_emissive =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_EMISSIVE",
+            "emissive subpass");
+    const bool skip_post_water_depth_write =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_DEPTH_WRITE",
+            "depth writes");
+    const bool skip_post_water_dof =
+        alpha_post_water &&
+        should_skip_alpha_post_water_stage(
+            "MARE_VULKAN_DEBUG_SKIP_ALPHA_POST_WATER_DOF",
+            "depth-of-field depth pass");
+    AlphaPostWaterLegacyCounts legacy_counts;
+
     for (bool rigged : { true, false })
     {
         if (LLPipeline::sRenderingHUDs && rigged)
         {
             continue;
         }
+        if ((rigged && skip_post_water_rigged) ||
+            (rigged && use_post_water_static_legacy_only_filter) ||
+            (!rigged && skip_post_water_static))
+        {
+            continue;
+        }
 
         const AlphaPassContext context =
         {
-            false,
             rigged,
+            false,
             is_above_water_alpha_pool(getType()),
             env.getWaterHeight()
         };
@@ -783,6 +1086,77 @@ bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
                 {
                     continue;
                 }
+                if (!rigged)
+                {
+                    const bool is_pbr = params.mGLTFMaterial.notNull();
+                    const bool is_particle_group = is_particle_or_hud_particle_group(group);
+                    const bool is_batched = params.mTextureList.size() > 1;
+                    const bool has_texture_matrix = params.mTextureMatrix != nullptr;
+                    const bool is_legacy = !is_pbr;
+                    const bool is_legacy_material =
+                        is_legacy && is_legacy_alpha_material_draw(params);
+                    const bool has_custom_blend =
+                        params.mBlendFuncSrc != LLRender::BF_SOURCE_ALPHA ||
+                        params.mBlendFuncDst != LLRender::BF_ONE_MINUS_SOURCE_ALPHA;
+                    const bool is_simple_legacy =
+                        is_legacy &&
+                        !is_legacy_material &&
+                        !is_particle_group &&
+                        !is_batched &&
+                        !has_texture_matrix &&
+                        !has_custom_blend &&
+                        !params.mFullbright &&
+                        !params.mHasGlow;
+                    if (is_legacy)
+                    {
+                        ++legacy_counts.total;
+                        legacy_counts.simple += is_simple_legacy ? 1 : 0;
+                        legacy_counts.material += is_legacy_material ? 1 : 0;
+                        legacy_counts.fullbright += params.mFullbright ? 1 : 0;
+                        legacy_counts.glow += params.mHasGlow ? 1 : 0;
+                        legacy_counts.alpha_none += params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_NONE ? 1 : 0;
+                        legacy_counts.alpha_blend += params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_BLEND ? 1 : 0;
+                        legacy_counts.alpha_mask += params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_MASK ? 1 : 0;
+                        legacy_counts.alpha_emissive += params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_EMISSIVE ? 1 : 0;
+                        legacy_counts.particles += is_particle_group ? 1 : 0;
+                        legacy_counts.batched += is_batched ? 1 : 0;
+                        legacy_counts.texture_matrix += has_texture_matrix ? 1 : 0;
+                        legacy_counts.custom_blend += has_custom_blend ? 1 : 0;
+                    }
+                    const bool matches_only_filter =
+                        !use_post_water_static_legacy_only_filter ||
+                        (is_legacy &&
+                            ((only_post_water_static_legacy_simple && is_simple_legacy) ||
+                             (only_post_water_static_legacy_material && is_legacy_material) ||
+                             (only_post_water_static_legacy_fullbright && params.mFullbright) ||
+                             (only_post_water_static_legacy_glow && params.mHasGlow) ||
+                             (only_post_water_static_legacy_alpha_none && params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_NONE) ||
+                             (only_post_water_static_legacy_alpha_blend && params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_BLEND) ||
+                             (only_post_water_static_legacy_alpha_mask && params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_MASK) ||
+                             (only_post_water_static_legacy_alpha_emissive && params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_EMISSIVE) ||
+                             (only_post_water_static_legacy_particles && is_particle_group) ||
+                             (only_post_water_static_legacy_batched && is_batched) ||
+                             (only_post_water_static_legacy_texture_matrix && has_texture_matrix) ||
+                             (only_post_water_static_legacy_custom_blend && has_custom_blend)));
+                    if ((skip_post_water_static_legacy && !is_pbr) ||
+                        !matches_only_filter ||
+                        (skip_post_water_static_legacy_simple && is_simple_legacy) ||
+                        (skip_post_water_static_legacy_material && is_legacy_material) ||
+                        (skip_post_water_static_legacy_fullbright && is_legacy && params.mFullbright) ||
+                        (skip_post_water_static_legacy_glow && is_legacy && params.mHasGlow) ||
+                        (skip_post_water_static_legacy_alpha_none && is_legacy && params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_NONE) ||
+                        (skip_post_water_static_legacy_alpha_blend && is_legacy && params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_BLEND) ||
+                        (skip_post_water_static_legacy_alpha_mask && is_legacy && params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_MASK) ||
+                        (skip_post_water_static_legacy_alpha_emissive && is_legacy && params.mDiffuseAlphaMode == LLMaterial::DIFFUSE_ALPHA_MODE_EMISSIVE) ||
+                        (skip_post_water_static_pbr && is_pbr) ||
+                        (skip_post_water_static_particles && is_particle_group) ||
+                        (skip_post_water_static_batched && is_batched) ||
+                        (skip_post_water_static_texture_matrix && has_texture_matrix) ||
+                        (skip_post_water_static_custom_blend && has_custom_blend))
+                    {
+                        continue;
+                    }
+                }
 
                 commands.appendDrawInfo(
                     params,
@@ -792,9 +1166,10 @@ bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
                     true,
                     rigged ? with_weight4_attribute(get_alpha_vertex_data_mask()) : get_alpha_vertex_data_mask(),
                     false,
-                    should_write_alpha_depth(rigged, getType()));
+                    skip_post_water_depth_write ? false : should_write_alpha_depth(rigged, getType()));
 
-                if (should_queue_alpha_emissive(getType(), params))
+                if (!skip_post_water_emissive &&
+                    should_queue_alpha_emissive(getType(), params))
                 {
                     if (params.mGLTFMaterial.isNull())
                     {
@@ -819,7 +1194,8 @@ bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
         }
     }
 
-    if (should_render_alpha_depth_of_field_pass(getType()))
+    if (!skip_post_water_dof &&
+        should_render_alpha_depth_of_field_pass(getType()))
     {
         const AlphaPassContext context =
         {
@@ -863,6 +1239,11 @@ bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
                     true);
             }
         }
+    }
+
+    if (alpha_post_water)
+    {
+        log_alpha_post_water_legacy_counts(legacy_counts);
     }
 
     return true;

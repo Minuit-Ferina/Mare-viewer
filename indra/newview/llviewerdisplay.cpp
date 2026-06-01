@@ -46,6 +46,7 @@
 #include "llfeaturemanager.h"
 #include "llfloatertools.h"
 #include "llfocusmgr.h"
+#include "llframetimer.h"
 
 #include "llrenderbackend.h"
 #include "llvulkancompositeparams.h"
@@ -201,6 +202,31 @@ static bool use_vulkan_debug_render_legacy_hud_attachments()
     return enabled;
 }
 
+static bool use_vulkan_debug_copy_stage_logs()
+{
+    static const bool enabled =
+        get_vulkan_boolean_env("MARE_VULKAN_DEBUG_COPY_STAGE_LOGS");
+    return enabled;
+}
+
+static const std::string& get_vulkan_debug_show_copy_stage()
+{
+    static const std::string stage = []()
+    {
+        std::string value =
+            LLStringUtil::getenv("MARE_VULKAN_DEBUG_SHOW_COPY_STAGE");
+        LLStringUtil::toLower(value);
+        return value;
+    }();
+    return stage;
+}
+
+static bool use_vulkan_debug_show_copy_stage(const char* stage)
+{
+    const std::string& selected_stage = get_vulkan_debug_show_copy_stage();
+    return !selected_stage.empty() && selected_stage == stage;
+}
+
 static void log_vulkan_ui_stage_once(
     const char* prefix,
     const char* stage,
@@ -256,6 +282,30 @@ static bool should_skip_vulkan_ui_stage(
     }
 
     log_vulkan_ui_stage_once("Skipping", stage, env_name);
+    return true;
+}
+
+static bool should_skip_vulkan_post_render_family(
+    const char* env_name,
+    const char* family)
+{
+    if (!use_vulkan_world_path() ||
+        !get_vulkan_boolean_env(env_name))
+    {
+        return false;
+    }
+
+    static std::set<std::string> logged;
+    if (logged.insert(env_name).second)
+    {
+        LL_WARNS("RenderBackend")
+            << "Skipping Vulkan post-deferred render family "
+            << family
+            << " via "
+            << env_name
+            << LL_ENDL;
+    }
+
     return true;
 }
 
@@ -330,6 +380,130 @@ static void render_vulkan_existing_world_post_geometry()
         LLPipeline::RENDER_TYPE_WATEREXCLUSION,
         LLPipeline::RENDER_TYPE_VOIDWATER,
         LLPipeline::END_RENDER_TYPES);
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_ALPHA", "alpha"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_ALPHA,
+            LLPipeline::RENDER_TYPE_ALPHA_PRE_WATER,
+            LLPipeline::RENDER_TYPE_ALPHA_POST_WATER,
+            LLPipeline::RENDER_TYPE_PASS_ALPHA,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_ALPHA_POOL", "alpha pool"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_ALPHA,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_ALPHA_PRE_WATER", "alpha pre-water"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_ALPHA_PRE_WATER,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_ALPHA_POST_WATER", "alpha post-water"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_ALPHA_POST_WATER,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_PASS_ALPHA", "pass alpha"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_PASS_ALPHA,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_ALPHA_MASK", "alpha-mask"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_ALPHA_MASK,
+            LLPipeline::RENDER_TYPE_FULLBRIGHT_ALPHA_MASK,
+            LLPipeline::RENDER_TYPE_GLTF_PBR_ALPHA_MASK,
+            LLPipeline::RENDER_TYPE_PASS_ALPHA_MASK,
+            LLPipeline::RENDER_TYPE_PASS_FULLBRIGHT_ALPHA_MASK,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_FULLBRIGHT", "fullbright"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_FULLBRIGHT,
+            LLPipeline::RENDER_TYPE_FULLBRIGHT_ALPHA_MASK,
+            LLPipeline::RENDER_TYPE_PASS_FULLBRIGHT,
+            LLPipeline::RENDER_TYPE_PASS_FULLBRIGHT_ALPHA_MASK,
+            LLPipeline::RENDER_TYPE_PASS_FULLBRIGHT_SHINY,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_GLOW", "glow"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_GLOW,
+            LLPipeline::RENDER_TYPE_PASS_GLOW,
+            LLPipeline::RENDER_TYPE_PASS_GLTF_GLOW,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_BUMP", "bump"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_BUMP,
+            LLPipeline::RENDER_TYPE_PASS_BUMP,
+            LLPipeline::RENDER_TYPE_PASS_POST_BUMP,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_PBR", "PBR"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_GLTF_PBR,
+            LLPipeline::RENDER_TYPE_GLTF_PBR_ALPHA_MASK,
+            LLPipeline::RENDER_TYPE_PASS_GLTF_GLOW,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_AVATAR", "avatar"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_AVATAR,
+            LLPipeline::RENDER_TYPE_CONTROL_AV,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_WATER", "water"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_WATER,
+            LLPipeline::RENDER_TYPE_WATEREXCLUSION,
+            LLPipeline::RENDER_TYPE_VOIDWATER,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_TERRAIN", "terrain"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_TERRAIN,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
+    if (should_skip_vulkan_post_render_family("MARE_VULKAN_DEBUG_SKIP_POST_VOLUME", "volume/simple"))
+    {
+        gPipeline.clearRenderTypeMask(
+            LLPipeline::RENDER_TYPE_VOLUME,
+            LLPipeline::RENDER_TYPE_PASS_SIMPLE,
+            LLPipeline::RENDER_TYPE_PASS_GRASS,
+            LLPipeline::RENDER_TYPE_PASS_SHINY,
+            LLPipeline::RENDER_TYPE_PASS_INVISIBLE,
+            LLPipeline::RENDER_TYPE_PASS_INVISI_SHINY,
+            LLPipeline::END_RENDER_TYPES);
+    }
+
     gPipeline.renderGeomPostDeferred(*LLViewerCamera::getInstance());
     gPipeline.popRenderTypeMask();
     gGL.setColorMask(true, true);
@@ -804,6 +978,73 @@ static void set_vulkan_composite_viewport(
         rect.getHeight());
 }
 
+static void log_vulkan_copy_stage(
+    const char* operation,
+    const char* stage,
+    const LLRenderTarget& target,
+    const LLRect& viewport_rect,
+    bool swapchain_viewport)
+{
+    if (!use_vulkan_debug_copy_stage_logs())
+    {
+        return;
+    }
+
+    static U32 sLogCount = 0;
+    const U32 frame = static_cast<U32>(LLFrameTimer::getFrameCount());
+    if (sLogCount >= 160 && (frame % 60U) != 0U)
+    {
+        return;
+    }
+    ++sLogCount;
+
+    const LLVector2 display_scale =
+        gViewerWindow ? gViewerWindow->getDisplayScale() : LLVector2(1.f, 1.f);
+    const LLRect world_rect = get_vulkan_world_view_rect();
+
+    LL_INFOS("RenderBackend")
+        << "Vulkan copy stage "
+        << operation
+        << " stage "
+        << (stage ? stage : "unnamed")
+        << ": frame "
+        << frame
+        << ", target complete "
+        << target.isComplete()
+        << ", size "
+        << target.getWidth()
+        << "x"
+        << target.getHeight()
+        << ", color attachments "
+        << target.getNumTextures()
+        << ", depth "
+        << target.getDepth()
+        << ", viewport "
+        << viewport_rect.mLeft
+        << ","
+        << viewport_rect.mBottom
+        << " "
+        << viewport_rect.getWidth()
+        << "x"
+        << viewport_rect.getHeight()
+        << ", swapchain viewport "
+        << swapchain_viewport
+        << ", display scale "
+        << display_scale.mV[VX]
+        << "x"
+        << display_scale.mV[VY]
+        << ", world rect "
+        << world_rect.mLeft
+        << ","
+        << world_rect.mBottom
+        << " "
+        << world_rect.getWidth()
+        << "x"
+        << world_rect.getHeight()
+        << "."
+        << LL_ENDL;
+}
+
 static void render_vulkan_deferred_screen_composite_quad(
     const LLRect& viewport_rect,
     bool swapchain_viewport = false)
@@ -1042,10 +1283,17 @@ static void render_vulkan_final_composite_quad(
 static void render_vulkan_copy_quad(
     LLRenderTarget& source,
     const LLRect& viewport_rect,
-    bool swapchain_viewport = false)
+    bool swapchain_viewport = false,
+    const char* stage = "copy")
 {
     LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan copy quad");
     LLVulkanCompositeMatrixScope matrix_scope;
+    log_vulkan_copy_stage(
+        "quad",
+        stage,
+        source,
+        viewport_rect,
+        swapchain_viewport);
 
     LLGLSUIDefault gls_ui;
     LLGLDepthTest depth(false);
@@ -1108,10 +1356,23 @@ static void render_vulkan_screen_target_to_swapchain(
 static void render_vulkan_copy_target_to_target(
     LLRenderTarget& source,
     LLRenderTarget& destination,
-    const LLColor4& clear_color)
+    const LLColor4& clear_color,
+    const char* stage = "target-to-target")
 {
     LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan render target copy");
     LLVulkanCompositeMatrixScope matrix_scope;
+    log_vulkan_copy_stage(
+        "target-to-target-source",
+        stage,
+        source,
+        make_vulkan_target_rect(destination.getWidth(), destination.getHeight()),
+        false);
+    log_vulkan_copy_stage(
+        "target-to-target-destination",
+        stage,
+        destination,
+        make_vulkan_target_rect(destination.getWidth(), destination.getHeight()),
+        false);
 
     destination.bindTarget();
     getRenderBackend().setClearColor(
@@ -1123,17 +1384,26 @@ static void render_vulkan_copy_target_to_target(
 
     render_vulkan_copy_quad(
         source,
-        make_vulkan_target_rect(destination.getWidth(), destination.getHeight()));
+        make_vulkan_target_rect(destination.getWidth(), destination.getHeight()),
+        false,
+        stage);
 
     destination.flush();
 }
 
 static void render_vulkan_copy_target_to_swapchain(
     LLRenderTarget& source,
-    const LLColor4& clear_color)
+    const LLColor4& clear_color,
+    const char* stage = "target-to-swapchain")
 {
     LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan render target copy to swapchain");
     LLVulkanCompositeMatrixScope matrix_scope;
+    log_vulkan_copy_stage(
+        "target-to-swapchain-source",
+        stage,
+        source,
+        get_vulkan_world_view_rect(),
+        true);
 
     getRenderBackend().setClearColor(
         clear_color.mV[VRED],
@@ -1145,7 +1415,8 @@ static void render_vulkan_copy_target_to_swapchain(
     render_vulkan_copy_quad(
         source,
         get_vulkan_world_view_rect(),
-        true);
+        true,
+        stage);
 }
 
 static void render_vulkan_final_composite_target_to_target(
@@ -1229,7 +1500,9 @@ static bool render_vulkan_lit_world_to_screen_target(
     {
         render_vulkan_copy_quad(
             *lit_world_target,
-            make_vulkan_target_rect(screen_target.getWidth(), screen_target.getHeight()));
+            make_vulkan_target_rect(screen_target.getWidth(), screen_target.getHeight()),
+            false,
+            "deferred-light-to-screen");
     }
     else
     {
@@ -1270,7 +1543,11 @@ static LLRenderTarget& render_vulkan_screen_target_to_post_target(
     LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan screen target post-compose");
 
     LLRenderTarget& post_target = gPipeline.mRT->deferredLight;
-    render_vulkan_copy_target_to_target(screen_target, post_target, clear_color);
+    render_vulkan_copy_target_to_target(
+        screen_target,
+        post_target,
+        clear_color,
+        "screen-to-post");
     return post_target;
 }
 
@@ -1685,14 +1962,25 @@ static void render_vulkan_world_frame()
 
     if (rendered_deferred_screen)
     {
-        if (use_vulkan_smoke_sky_scene())
+        if (use_vulkan_debug_show_copy_stage("deferred-screen"))
+        {
+            LL_INFOS_ONCE("RenderBackend")
+                << "Vulkan debug is displaying deferred-screen before deferred lighting/post targets."
+                << LL_ENDL;
+            render_vulkan_copy_target_to_swapchain(
+                gPipeline.mRT->deferredScreen,
+                clear_color,
+                "debug-deferred-screen");
+        }
+        else if (use_vulkan_smoke_sky_scene())
         {
             LL_WARNS_ONCE("RenderBackend")
                 << "Vulkan smoke scene is copying the synthetic deferredScreen color target directly to the swapchain; deferred lighting/composite is bypassed for this test."
                 << LL_ENDL;
             render_vulkan_copy_target_to_swapchain(
                 gPipeline.mRT->deferredScreen,
-                clear_color);
+                clear_color,
+                "smoke-deferred-screen");
         }
         else if (use_vulkan_debug_copy_deferred_color_to_swapchain())
         {
@@ -1701,25 +1989,74 @@ static void render_vulkan_world_frame()
                 << LL_ENDL;
             render_vulkan_copy_target_to_swapchain(
                 gPipeline.mRT->deferredScreen,
-                clear_color);
+                clear_color,
+                "debug-deferred-screen");
         }
         else if (use_vulkan_staged_post_targets())
         {
             LLRenderTarget* lit_world_target =
                 render_vulkan_deferred_screen_to_light_target(clear_color);
+            if (lit_world_target &&
+                use_vulkan_debug_show_copy_stage("deferred-light"))
+            {
+                LL_INFOS_ONCE("RenderBackend")
+                    << "Vulkan debug is displaying deferred-light before screen/post targets."
+                    << LL_ENDL;
+                render_vulkan_copy_target_to_swapchain(
+                    *lit_world_target,
+                    clear_color,
+                    "debug-deferred-light");
+                return;
+            }
             if (render_vulkan_lit_world_to_screen_target(lit_world_target, clear_color))
             {
+                if (use_vulkan_debug_show_copy_stage("screen"))
+                {
+                    LL_INFOS_ONCE("RenderBackend")
+                        << "Vulkan debug is displaying screen target before post target reuse."
+                        << LL_ENDL;
+                    render_vulkan_copy_target_to_swapchain(
+                        gPipeline.mRT->screen,
+                        clear_color,
+                        "debug-screen");
+                    return;
+                }
                 LLRenderTarget& post_target =
                     render_vulkan_screen_target_to_post_target(gPipeline.mRT->screen, clear_color);
+                if (use_vulkan_debug_show_copy_stage("post"))
+                {
+                    LL_INFOS_ONCE("RenderBackend")
+                        << "Vulkan debug is displaying post target before final composite."
+                        << LL_ENDL;
+                    render_vulkan_copy_target_to_swapchain(
+                        post_target,
+                        clear_color,
+                        "debug-post");
+                    return;
+                }
                 bool final_composite_applied = false;
                 LLRenderTarget& final_world_target =
                     render_vulkan_post_target_to_final_target(
                         post_target,
                         clear_color,
                         final_composite_applied);
+                if (use_vulkan_debug_show_copy_stage("final"))
+                {
+                    LL_INFOS_ONCE("RenderBackend")
+                        << "Vulkan debug is displaying final target before normal swapchain presentation."
+                        << LL_ENDL;
+                    render_vulkan_copy_target_to_swapchain(
+                        final_world_target,
+                        clear_color,
+                        "debug-final");
+                    return;
+                }
                 if (final_composite_applied)
                 {
-                    render_vulkan_copy_target_to_swapchain(final_world_target, clear_color);
+                    render_vulkan_copy_target_to_swapchain(
+                        final_world_target,
+                        clear_color,
+                        "final-to-swapchain");
                 }
                 else
                 {

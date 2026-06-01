@@ -28,11 +28,13 @@
 #include "llface.h"
 #include "llfetchedgltfmaterial.h"
 #include "llenvironment.h"
+#include "llmaterial.h"
 #include "m4math.h"
 #include "llrenderbackend.h"
 #include "llrenderstate.h"
 #include "llsettingssky.h"
 #include "llspatialpartition.h"
+#include "llstring.h"
 #include "llvoavatar.h"
 #include "llviewerregion.h"
 #include "llviewershadermgr.h"
@@ -41,6 +43,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
+#include <string>
 
 namespace
 {
@@ -295,6 +298,19 @@ U32 get_vulkan_world_command_capture_u32(
         return default_value;
     }
     return static_cast<U32>(parsed);
+}
+
+bool get_vulkan_world_command_boolean_env(const char* name)
+{
+    const char* value = std::getenv(name);
+    if (!value || !value[0])
+    {
+        return false;
+    }
+
+    std::string text(value);
+    LLStringUtil::toLower(text);
+    return text == "1" || text == "true" || text == "yes" || text == "on";
 }
 
 bool is_vulkan_world_command_capture_trigger_ready()
@@ -898,9 +914,23 @@ F32 get_world_material_flags(const LLWorldRenderCommand& command)
     {
         flags |= LLRenderWorldMaterialParameters::AvatarImpostor;
     }
-    if (uses_world_deferred_screen_depth(command))
+    const bool uses_scene_depth =
+        uses_world_deferred_screen_depth(command) &&
+        !(command.mMaterialClass == LLWorldRenderMaterialClass::Alpha &&
+          get_vulkan_world_command_boolean_env("MARE_VULKAN_DEBUG_ALPHA_DISABLE_SCENE_DEPTH_CLIP"));
+    if (uses_scene_depth)
     {
         flags |= LLRenderWorldMaterialParameters::SceneDepth;
+        if (command.mMaterialClass == LLWorldRenderMaterialClass::Alpha &&
+            get_vulkan_world_command_boolean_env("MARE_VULKAN_DEBUG_ALPHA_SCENE_DEPTH_FLIP_Y"))
+        {
+            flags |= LLRenderWorldMaterialParameters::SceneDepthFlipY;
+        }
+        if (command.mMaterialClass == LLWorldRenderMaterialClass::Alpha &&
+            get_vulkan_world_command_boolean_env("MARE_VULKAN_DEBUG_ALPHA_SCENE_DEPTH_REVERSED"))
+        {
+            flags |= LLRenderWorldMaterialParameters::SceneDepthReversed;
+        }
     }
     if (uses_world_deferred_scene_color(command))
     {
@@ -1060,6 +1090,15 @@ void LLWorldRenderCommandBuffer::appendDrawInfo(
     command.mBlendFuncSrc = params.mBlendFuncSrc;
     command.mBlendFuncDst = params.mBlendFuncDst;
     command.mDiffuseAlphaMode = params.mDiffuseAlphaMode;
+    if (command.mMaterialClass == LLWorldRenderMaterialClass::Alpha &&
+        params.mGLTFMaterial.isNull())
+    {
+        // The legacy OpenGL alpha pass always preserves texture/vertex alpha.
+        // Some alpha-pool draw infos carry DIFFUSE_ALPHA_MODE_NONE because
+        // they are not material-alpha draws; forcing blend here keeps the
+        // backend-neutral command equivalent to alphaF.glsl.
+        command.mDiffuseAlphaMode = LLMaterial::DIFFUSE_ALPHA_MODE_BLEND;
+    }
     command.mBump = params.mBump;
     command.mShiny = params.mShiny;
     command.mFullbright = params.mFullbright;

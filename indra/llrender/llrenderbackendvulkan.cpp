@@ -10232,7 +10232,7 @@ LLVkRenderPass get_vulkan_offscreen_render_pass(
             depth_format,
             LL_VK_SAMPLE_COUNT_1_BIT,
             depth_load_op,
-            LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            LL_VK_ATTACHMENT_STORE_OP_STORE,
             LL_VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
             LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -11159,7 +11159,9 @@ LLVkPipelineColorBlendAttachmentState make_vulkan_world_color_blend_attachment(
         attachment.blendEnable = 1;
         attachment.srcColorBlendFactor = LL_VK_BLEND_FACTOR_SRC_ALPHA;
         attachment.dstColorBlendFactor = LL_VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        attachment.srcAlphaBlendFactor = LL_VK_BLEND_FACTOR_ONE;
+        // Match LLDrawPoolAlpha::setupForwardAlphaRenderState(): legacy alpha
+        // blends color normally but attenuates destination alpha for glow.
+        attachment.srcAlphaBlendFactor = LL_VK_BLEND_FACTOR_ZERO;
         attachment.dstAlphaBlendFactor = LL_VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     }
     else if (blend_pipeline == LLVulkanWorldBlendPipeline::Add)
