@@ -38,12 +38,18 @@
 #include "llviewershadermgr.h"
 #include "pipeline.h"
 
+#include <cstdlib>
+#include <fstream>
+#include <iomanip>
+
 namespace
 {
 constexpr F32 WORLD_RENDER_MINIMUM_ALPHA = 0.004f;
 constexpr F32 AVATAR_RENDER_MINIMUM_ALPHA = 0.2f;
 constexpr U32 WORLD_RENDER_SCENE_DEPTH_TEXTURE_UNIT = 8;
 constexpr U32 WORLD_RENDER_SCENE_COLOR_TEXTURE_UNIT = 9;
+
+LLRenderWorldTextureTransform get_world_texture_transform(const LLMatrix4* matrix);
 
 LLWorldRenderPassClass get_world_render_pass_class(LLWorldRenderMaterialClass material_class)
 {
@@ -271,6 +277,346 @@ void log_vulkan_world_command_summary(const LLWorldRenderCommandBuffer& command_
     ++sLoggedCommandBuffers;
 }
 
+U32 get_vulkan_world_command_capture_u32(
+    const char* name,
+    U32 default_value,
+    U32 maximum_value)
+{
+    const char* value = std::getenv(name);
+    if (!value || !value[0])
+    {
+        return default_value;
+    }
+
+    char* end = nullptr;
+    const unsigned long parsed = std::strtoul(value, &end, 10);
+    if (*end != '\0' || parsed > maximum_value)
+    {
+        return default_value;
+    }
+    return static_cast<U32>(parsed);
+}
+
+bool is_vulkan_world_command_capture_trigger_ready()
+{
+    const char* trigger_path =
+        std::getenv("MARE_VULKAN_WORLD_COMMAND_CAPTURE_TRIGGER");
+    if (!trigger_path || !trigger_path[0])
+    {
+        return true;
+    }
+
+    std::ifstream input(trigger_path);
+    return input.good();
+}
+
+S32 get_vulkan_world_command_capture_raw_level(const LLViewerTexture* texture)
+{
+    if (!texture || texture->getType() != LLViewerTexture::FETCHED_TEXTURE)
+    {
+        return -1;
+    }
+
+    return static_cast<const LLViewerFetchedTexture*>(texture)->getRawImageLevel();
+}
+
+void write_vulkan_world_command_capture_texture(
+    std::ostream& output,
+    const char* name,
+    const LLViewerTexture* texture)
+{
+    output
+        << " " << name << " "
+        << (texture ? 1 : 0) << " "
+        << (texture ? texture->getTexName() : 0) << " "
+        << (texture ? texture->getWidth() : 0) << " "
+        << (texture ? texture->getHeight() : 0) << " "
+        << (texture ? texture->getFullWidth() : 0) << " "
+        << (texture ? texture->getFullHeight() : 0) << " "
+        << (texture ? texture->getDiscardLevel() : -1) << " "
+        << get_vulkan_world_command_capture_raw_level(texture);
+}
+
+void write_vulkan_world_command_capture_material_transform(
+    std::ostream& output,
+    const char* name,
+    const LLWorldRenderTextureTransform2D& transform)
+{
+    output
+        << " " << name << " "
+        << (transform.mValid ? 1 : 0) << " "
+        << transform.mScaleS << " "
+        << transform.mScaleT << " "
+        << transform.mRotation << " "
+        << transform.mOffsetS << " "
+        << transform.mOffsetT;
+}
+
+void write_vulkan_world_command_capture_texture_matrix(
+    std::ostream& output,
+    const LLMatrix4* matrix)
+{
+    const LLRenderWorldTextureTransform transform =
+        get_world_texture_transform(matrix);
+    output
+        << " texture_matrix "
+        << (matrix ? 1 : 0) << " "
+        << transform.mS[0] << " "
+        << transform.mS[1] << " "
+        << transform.mS[2] << " "
+        << transform.mS[3] << " "
+        << transform.mT[0] << " "
+        << transform.mT[1] << " "
+        << transform.mT[2] << " "
+        << transform.mT[3];
+}
+
+U32 get_vulkan_world_command_capture_texture_list_count(
+    const LLWorldRenderCommand& command)
+{
+    U32 count = 0;
+    for (const LLPointer<LLViewerTexture>& texture : command.mTextureList)
+    {
+        if (texture.notNull())
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+void write_vulkan_world_command_capture(const LLWorldRenderCommandBuffer& command_buffer)
+{
+    const char* path = std::getenv("MARE_VULKAN_WORLD_COMMAND_CAPTURE");
+    if (!path || !path[0])
+    {
+        return;
+    }
+
+    static U32 sCapturedBuffers = 0;
+    static U32 sEligibleBuffers = 0;
+    static bool sLoggedWaitingForTrigger = false;
+    static bool sLoggedWaitingForMinimumCommands = false;
+    static bool sLoggedCaptureStarted = false;
+
+    const U32 capture_buffer_limit =
+        get_vulkan_world_command_capture_u32(
+            "MARE_VULKAN_WORLD_COMMAND_CAPTURE_BUFFERS",
+            4,
+            1024);
+    if (sCapturedBuffers >= capture_buffer_limit)
+    {
+        return;
+    }
+
+    if (!is_vulkan_world_command_capture_trigger_ready())
+    {
+        if (!sLoggedWaitingForTrigger)
+        {
+            LL_INFOS("RenderBackend")
+                << "Vulkan world command capture is armed and waiting for trigger file "
+                << std::getenv("MARE_VULKAN_WORLD_COMMAND_CAPTURE_TRIGGER")
+                << "."
+                << LL_ENDL;
+            sLoggedWaitingForTrigger = true;
+        }
+        return;
+    }
+
+    const U32 minimum_command_count =
+        get_vulkan_world_command_capture_u32(
+            "MARE_VULKAN_WORLD_COMMAND_CAPTURE_MIN_COMMANDS",
+            0,
+            1000000);
+    if (minimum_command_count != 0 &&
+        command_buffer.commands().size() < minimum_command_count)
+    {
+        if (!sLoggedWaitingForMinimumCommands)
+        {
+            LL_INFOS("RenderBackend")
+                << "Vulkan world command capture is waiting for at least "
+                << minimum_command_count
+                << " command(s) in a submitted buffer."
+                << LL_ENDL;
+            sLoggedWaitingForMinimumCommands = true;
+        }
+        return;
+    }
+
+    const U32 skipped_buffer_count =
+        get_vulkan_world_command_capture_u32(
+            "MARE_VULKAN_WORLD_COMMAND_CAPTURE_SKIP_BUFFERS",
+            0,
+            1000000);
+    if (sEligibleBuffers < skipped_buffer_count)
+    {
+        ++sEligibleBuffers;
+        return;
+    }
+
+    if (!sLoggedCaptureStarted)
+    {
+        LL_INFOS("RenderBackend")
+            << "Vulkan world command capture started: writing up to "
+            << capture_buffer_limit
+            << " eligible buffer(s) to "
+            << path
+            << "."
+            << LL_ENDL;
+        sLoggedCaptureStarted = true;
+    }
+
+    std::ofstream output;
+    output.open(
+        path,
+        sCapturedBuffers == 0 ?
+            std::ios::out | std::ios::trunc :
+            std::ios::out | std::ios::app);
+    if (!output.is_open())
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Unable to open Vulkan world command capture file: "
+            << path
+            << LL_ENDL;
+        return;
+    }
+
+    if (sCapturedBuffers == 0)
+    {
+        output << "MareVulkanWorldCommandCaptureV1\n";
+        output
+            << "capture_options buffers "
+            << capture_buffer_limit
+            << " skip_buffers "
+            << skipped_buffer_count
+            << " min_commands "
+            << minimum_command_count
+            << "\n";
+    }
+
+    output
+        << "buffer "
+        << sCapturedBuffers
+        << " commands "
+        << command_buffer.commands().size()
+        << "\n";
+
+    output << std::fixed << std::setprecision(6);
+    for (const LLWorldRenderCommand& command : command_buffer.commands())
+    {
+        if (!command.mVertexBuffer || !command.mCount)
+        {
+            continue;
+        }
+
+        output
+            << "cmd"
+            << " material " << static_cast<U32>(command.mMaterialClass)
+            << " pass " << static_cast<U32>(command.mPassClass)
+            << " blend " << static_cast<U32>(command.mBlendMode)
+            << " depth " << static_cast<U32>(command.mDepthMode)
+            << " cull " << static_cast<U32>(command.mCullMode)
+            << " write_color " << (command.mWriteColor ? 1 : 0)
+            << " write_alpha " << (command.mWriteAlpha ? 1 : 0)
+            << " source_pass " << command.mSourcePass
+            << " attributes " << command.mAttributeMask
+            << " count " << command.mCount
+            << " mode " << command.mMode
+            << " draw_arrays " << (command.mDrawArrays ? 1 : 0)
+            << " use_texture " << (command.mUseTexture ? 1 : 0)
+            << " batch_textures " << (command.mBatchTextures ? 1 : 0)
+            << " rigged " << (command.mRigged || command.mSkinningMatrixCount > 0 ? 1 : 0)
+            << " fullbright " << (command.mFullbright ? 1 : 0)
+            << " glow " << (command.mHasGlow ? 1 : 0)
+            << " double_sided " << (command.mDoubleSided ? 1 : 0)
+            << " base "
+            << command.mBaseColor.mV[VRED] << " "
+            << command.mBaseColor.mV[VGREEN] << " "
+            << command.mBaseColor.mV[VBLUE] << " "
+            << command.mBaseColor.mV[VALPHA]
+            << " emissive "
+            << command.mEmissiveColor.mV[VRED] << " "
+            << command.mEmissiveColor.mV[VGREEN] << " "
+            << command.mEmissiveColor.mV[VBLUE]
+            << " spec "
+            << command.mSpecColor.mV[VX] << " "
+            << command.mSpecColor.mV[VY] << " "
+            << command.mSpecColor.mV[VZ] << " "
+            << command.mSpecColor.mV[VW]
+            << " factors "
+            << command.mMetallicFactor << " "
+            << command.mRoughnessFactor << " "
+            << command.mEnvIntensity << " "
+            << command.mAlphaMaskCutoff
+            << " alpha_modes "
+            << static_cast<U32>(command.mDiffuseAlphaMode) << " "
+            << static_cast<U32>(command.mGLTFAlphaMode)
+            << " material_modes "
+            << static_cast<U32>(command.mBump) << " "
+            << static_cast<U32>(command.mShiny)
+            << " terrain "
+            << command.mTerrainPaintType << " "
+            << command.mTerrainPlanarSampleCount;
+
+        write_vulkan_world_command_capture_texture(
+            output,
+            "primary_texture",
+            command.mTexture);
+        write_vulkan_world_command_capture_texture(
+            output,
+            "normal_texture",
+            command.mNormalMap);
+        write_vulkan_world_command_capture_texture(
+            output,
+            "specular_texture",
+            command.mSpecularMap);
+        write_vulkan_world_command_capture_texture(
+            output,
+            "orm_texture",
+            command.mORMMap);
+        write_vulkan_world_command_capture_texture(
+            output,
+            "emissive_texture",
+            command.mEmissiveMap);
+        output
+            << " texture_list "
+            << command.mTextureList.size()
+            << " "
+            << get_vulkan_world_command_capture_texture_list_count(command);
+        write_vulkan_world_command_capture_material_transform(
+            output,
+            "base_transform",
+            command.mBaseColorTextureTransform);
+        write_vulkan_world_command_capture_material_transform(
+            output,
+            "normal_transform",
+            command.mNormalTextureTransform);
+        write_vulkan_world_command_capture_material_transform(
+            output,
+            "orm_transform",
+            command.mORMTextureTransform);
+        write_vulkan_world_command_capture_material_transform(
+            output,
+            "emissive_transform",
+            command.mEmissiveTextureTransform);
+        write_vulkan_world_command_capture_texture_matrix(
+            output,
+            command.mTextureMatrix);
+        output << "\n";
+    }
+
+    LL_INFOS("RenderBackend")
+        << "Captured Vulkan world command buffer "
+        << (sCapturedBuffers + 1)
+        << "/"
+        << capture_buffer_limit
+        << " to "
+        << path
+        << "."
+        << LL_ENDL;
+    ++sCapturedBuffers;
+}
+
 bool is_material_alpha_mask_source_pass(U32 source_pass)
 {
     switch (source_pass)
@@ -441,6 +787,11 @@ bool has_world_deferred_scene_color()
 
 bool uses_world_deferred_screen_depth(const LLWorldRenderCommand& command)
 {
+    if (command.mDepthMode == LLWorldRenderDepthMode::Disabled)
+    {
+        return false;
+    }
+
     switch (command.mMaterialClass)
     {
         case LLWorldRenderMaterialClass::Water:
@@ -765,6 +1116,13 @@ void LLWorldRenderCommandBuffer::appendDrawInfo(
             command.mTexture = params.mGLTFMaterial->mBaseColorTexture;
         }
         command.mAlphaMaskCutoff = params.mGLTFMaterial->mAlphaCutoff;
+    }
+    if (LLPipeline::sRenderingHUDs)
+    {
+        // HUD attachments are composited over the world. They must not be
+        // rejected by the world depth buffer or culled with world-facing state.
+        command.mDepthMode = LLWorldRenderDepthMode::Disabled;
+        command.mCullMode = LLWorldRenderCullMode::Disabled;
     }
     if (batch_textures && command.mTextureList.size() > 1)
     {
@@ -1168,6 +1526,7 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
     }
 
     log_vulkan_world_command_summary(command_buffer);
+    write_vulkan_world_command_capture(command_buffer);
 
     struct LLScopedWorldDraw
     {

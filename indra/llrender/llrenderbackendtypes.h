@@ -351,6 +351,7 @@ enum class LLRenderWorldShaderClass : U8
     PBR,
     Avatar,
     Terrain,
+    Copy,
     DeferredComposite,
     FinalComposite,
 };

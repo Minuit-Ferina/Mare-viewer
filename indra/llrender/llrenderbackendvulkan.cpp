@@ -47,6 +47,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <ios>
 #include <iostream>
@@ -1638,6 +1639,26 @@ struct LLVulkanWorldPushConstants
     glm::vec4 mSceneLightDirection = glm::vec4(0.35f, 0.45f, 0.82f, 0.f);
 };
 
+bool is_vulkan_default_world_overlay_draw(const LLVulkanPendingDraw& draw)
+{
+    return draw.mUseWorldVertexShader &&
+        draw.mFramebuffer == 0 &&
+        draw.mWorldDepthPipeline == LLVulkanWorldDepthPipeline::Disabled &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite;
+}
+
+glm::mat4 convert_opengl_clip_depth_to_vulkan(glm::mat4 matrix)
+{
+    // Legacy HUD attachment matrices are built for OpenGL clip depth
+    // (-w..w). Vulkan clips to 0..w even when depth testing is disabled.
+    glm::mat4 depth_range(1.f);
+    depth_range[2][2] = 0.5f;
+    depth_range[3][2] = 0.5f;
+    return depth_range * matrix;
+}
+
 struct LLVulkanDrawBounds
 {
     bool mValid = false;
@@ -1747,6 +1768,8 @@ struct LLVulkanBufferAverageReadback
     LLVulkanBufferResource mBuffer;
     U32 mTextureHandle = 0;
     U32 mTextureSlot = 0;
+    U32 mSwapchainImageIndex = std::numeric_limits<U32>::max();
+    U64 mPresentedFrame = 0;
     S32 mWidth = 0;
     S32 mHeight = 0;
     S32 mFormat = LL_VK_FORMAT_UNDEFINED;
@@ -1797,6 +1820,7 @@ struct LLVulkanPipelineSet
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mPBRGBufferPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mAvatarGBufferPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mTerrainGBufferPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mCopyPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredCompositePipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mFinalCompositePipelines = {};
 };
@@ -1845,6 +1869,7 @@ struct LLVulkanNativeContext
     LLVkShaderModule mPBRGBufferEmissiveFragmentShader = nullptr;
     LLVkShaderModule mAvatarGBufferFragmentShader = nullptr;
     LLVkShaderModule mAvatarGBufferEmissiveFragmentShader = nullptr;
+    LLVkShaderModule mCopyFragmentShader = nullptr;
     LLVkShaderModule mDeferredCompositeFragmentShader = nullptr;
     LLVkShaderModule mFinalCompositeFragmentShader = nullptr;
     LLVkShaderModule mTerrainVertexShader = nullptr;
@@ -1871,6 +1896,7 @@ struct LLVulkanNativeContext
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mPBRPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mAvatarPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mTerrainPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mCopyPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredCompositePipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mFinalCompositePipelines = {};
     std::unordered_map<U64, LLVulkanPipelineSet> mOffscreenPipelineSets;
@@ -1986,6 +2012,10 @@ struct LLVulkanNativeContext
     U64 mEvictedBufferCount = 0;
     U64 mEvictedBufferMemoryBytes = 0;
     U64 mSkippedBufferMemoryBudgetCount = 0;
+    U64 mSkippedCurrentFrameBufferEvictionCount = 0;
+    U64 mSkippedCurrentFrameTextureEvictionCount = 0;
+    U64 mTextureDescriptorCacheFrameResetCount = 0;
+    U64 mTextureDescriptorCacheFrameResetSetCount = 0;
     U32 mLargestTextureHandle = 0;
     S32 mLargestTextureWidth = 0;
     S32 mLargestTextureHeight = 0;
@@ -1998,6 +2028,7 @@ struct LLVulkanNativeContext
     bool mLoggedUIDrawTelemetry = false;
     bool mLoggedWorldOffscreenTelemetry = false;
     bool mLoggedTextureDescriptorCacheFull = false;
+    bool mLoggedTextureDescriptorCacheFrameReset = false;
     bool mLoggedTextureMemoryBudget = false;
     bool mLoggedTextureMemoryBudgetExceeded = false;
     bool mLoggedTextureUploadThrottle = false;
@@ -2067,6 +2098,86 @@ std::unordered_set<U32> gVulkanDeletedAttachedTextures;
 std::map<LLVulkanPendingDraw::texture_bindings_t, LLVkDescriptorSet> gVulkanTextureDescriptorSetCache;
 std::array<LLVulkanVertexAttributeState, 16> gCurrentVulkanVertexAttributes = {};
 std::vector<LLVulkanPendingDraw> gPendingVulkanDraws;
+std::unordered_set<U32> gCurrentFrameVulkanBufferReferences;
+std::unordered_set<U32> gCurrentFrameVulkanTextureReferences;
+
+void clear_vulkan_pending_frame_commands()
+{
+    gPendingVulkanDraws.clear();
+    gCurrentFrameVulkanBufferReferences.clear();
+    gCurrentFrameVulkanTextureReferences.clear();
+}
+
+bool is_vulkan_buffer_referenced_by_current_frame(U32 handle)
+{
+    return handle != 0 &&
+        (handle == gBoundVulkanVertexBuffer ||
+            handle == gBoundVulkanIndexBuffer ||
+            gCurrentFrameVulkanBufferReferences.find(handle) !=
+                gCurrentFrameVulkanBufferReferences.end());
+}
+
+bool is_vulkan_texture_referenced_by_current_frame(U32 handle)
+{
+    if (!handle)
+    {
+        return false;
+    }
+
+    if (gCurrentFrameVulkanTextureReferences.find(handle) !=
+        gCurrentFrameVulkanTextureReferences.end())
+    {
+        return true;
+    }
+
+    for (U32 bound_texture : gBoundVulkanTextures)
+    {
+        if (bound_texture == handle)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void remember_vulkan_draw_resources_for_current_frame(
+    LLVulkanNativeContext& context,
+    const LLVulkanPendingDraw& draw)
+{
+    auto mark_buffer = [&](U32 handle)
+    {
+        if (!handle)
+        {
+            return;
+        }
+
+        gCurrentFrameVulkanBufferReferences.insert(handle);
+        auto buffer_iter = gVulkanBuffers.find(handle);
+        if (buffer_iter != gVulkanBuffers.end())
+        {
+            buffer_iter->second.mLastUsedFrame = context.mPresentedFrameCount;
+        }
+    };
+
+    mark_buffer(draw.mBuffer);
+    mark_buffer(draw.mIndexBuffer);
+
+    for (U32 texture : draw.mTextures)
+    {
+        if (!texture)
+        {
+            continue;
+        }
+
+        gCurrentFrameVulkanTextureReferences.insert(texture);
+        auto texture_iter = gVulkanTextures.find(texture);
+        if (texture_iter != gVulkanTextures.end())
+        {
+            texture_iter->second.mLastBoundFrame = context.mPresentedFrameCount;
+        }
+    }
+}
 
 void destroy_vulkan_framebuffer_resource(
     LLVulkanNativeContext& context,
@@ -2363,6 +2474,31 @@ void destroy_vulkan_texture_descriptor_set_cache(LLVulkanNativeContext& context)
     }
 
     gVulkanTextureDescriptorSetCache.clear();
+}
+
+void reset_vulkan_texture_descriptor_set_cache_after_frame(
+    LLVulkanNativeContext& context)
+{
+    const U64 descriptor_set_count =
+        static_cast<U64>(gVulkanTextureDescriptorSetCache.size());
+    if (descriptor_set_count == 0)
+    {
+        return;
+    }
+
+    destroy_vulkan_texture_descriptor_set_cache(context);
+    ++context.mTextureDescriptorCacheFrameResetCount;
+    context.mTextureDescriptorCacheFrameResetSetCount += descriptor_set_count;
+    context.mLoggedTextureDescriptorCacheFull = false;
+
+    if (!context.mLoggedTextureDescriptorCacheFrameReset)
+    {
+        LL_INFOS("RenderBackend")
+            << "Vulkan texture descriptor bindings are reset after each submitted frame. "
+            << "This prevents the experimental world path from exhausting the descriptor pool while camera movement discovers many unique texture combinations."
+            << LL_ENDL;
+        context.mLoggedTextureDescriptorCacheFrameReset = true;
+    }
 }
 
 const LLVulkanLoader& get_vulkan_loader()
@@ -3590,7 +3726,7 @@ void destroy_all_vulkan_buffer_resources(LLVulkanNativeContext& context)
 
     gVulkanBuffers.clear();
     gPendingVulkanBufferAllocations.clear();
-    gPendingVulkanDraws.clear();
+    clear_vulkan_pending_frame_commands();
     gCurrentVulkanVertexAttributes = {};
     gCurrentVulkanMaterialParameters = {};
     gCurrentVulkanSkinningMatrixPalette.clear();
@@ -3893,11 +4029,17 @@ U64 evict_vulkan_stale_shadowed_buffer_resources(
         const U32 handle = entry.first;
         const LLVulkanBufferResource& resource = entry.second;
         if (handle == excluded_handle ||
+            is_vulkan_buffer_referenced_by_current_frame(handle) ||
             !resource.mBuffer ||
             !resource.mMemoryAccounted ||
             !can_evict_vulkan_resident_buffer(resource.mUsage) ||
             resource.mShadowData.empty())
         {
+            if (is_vulkan_buffer_referenced_by_current_frame(handle) &&
+                handle != excluded_handle)
+            {
+                ++context.mSkippedCurrentFrameBufferEvictionCount;
+            }
             continue;
         }
 
@@ -5066,10 +5208,17 @@ bool evict_vulkan_texture_resources_for_upload(
             const LLVulkanTextureResource& resource = iter->second;
             if (handle == 0 ||
                 handle == protected_handle ||
+                is_vulkan_texture_referenced_by_current_frame(handle) ||
                 is_vulkan_texture_attached_to_framebuffer(handle) ||
                 !resource.mMemoryAccounted ||
                 resource.mMemorySize == 0)
             {
+                if (handle != 0 &&
+                    handle != protected_handle &&
+                    is_vulkan_texture_referenced_by_current_frame(handle))
+                {
+                    ++context.mSkippedCurrentFrameTextureEvictionCount;
+                }
                 continue;
             }
 
@@ -5728,6 +5877,16 @@ bool is_vulkan_swapchain_average_debug_enabled()
         get_vulkan_boolean_env("MARE_VULKAN_DEBUG_SWAPCHAIN_AVERAGE");
 }
 
+bool is_vulkan_smoke_frame_diff_enabled()
+{
+    return get_vulkan_boolean_env("MARE_VULKAN_SMOKE_FRAME_DIFF");
+}
+
+bool is_vulkan_smoke_frame_diff_summary_only_enabled()
+{
+    return get_vulkan_boolean_env("MARE_VULKAN_SMOKE_FRAME_DIFF_SUMMARY_ONLY");
+}
+
 U32 get_vulkan_format_byte_size(S32 format)
 {
     switch (format)
@@ -5930,6 +6089,195 @@ struct LLVulkanBufferAverageStats
     F32 mMaxA = std::numeric_limits<F32>::lowest();
 };
 
+struct LLVulkanFrameDiffStats
+{
+    bool mSupported = false;
+    bool mHasPrevious = false;
+    bool mReset = false;
+    U64 mSampleCount = 0;
+    U64 mChangedPixelCount = 0;
+    U64 mMajorChangedPixelCount = 0;
+    U64 mMaxDeltaPixel = 0;
+    double mSumRGBDelta = 0.0;
+    F32 mMaxRGBDelta = 0.f;
+};
+
+struct LLVulkanFrameDiffState
+{
+    bool mValid = false;
+    S32 mWidth = 0;
+    S32 mHeight = 0;
+    S32 mFormat = LL_VK_FORMAT_UNDEFINED;
+    U64 mPresentedFrame = 0;
+    std::vector<U8> mBytes;
+};
+
+struct LLVulkanFrameDiffSummary
+{
+    U64 mUnsupportedFrames = 0;
+    U64 mBaselineFrames = 0;
+    U64 mResetFrames = 0;
+    U64 mComparedFrames = 0;
+    U64 mChangedFrames = 0;
+    U64 mMajorChangedFrames = 0;
+    S32 mLastWidth = 0;
+    S32 mLastHeight = 0;
+    S32 mLastFormat = LL_VK_FORMAT_UNDEFINED;
+    U64 mWorstFrame = 0;
+    S32 mWorstWidth = 0;
+    S32 mWorstHeight = 0;
+    U64 mWorstMaxDeltaPixel = 0;
+    double mMaxChangedPercent = 0.0;
+    double mMaxMajorChangedPercent = 0.0;
+    double mWorstAverageRGBDelta = 0.0;
+    F32 mWorstMaxRGBDelta = 0.f;
+};
+
+std::unordered_map<std::string, LLVulkanFrameDiffSummary>&
+get_vulkan_smoke_frame_diff_summaries()
+{
+    static std::unordered_map<std::string, LLVulkanFrameDiffSummary> sSummaries;
+    return sSummaries;
+}
+
+void flush_vulkan_smoke_frame_diff_summaries()
+{
+    std::unordered_map<std::string, LLVulkanFrameDiffSummary>& summaries =
+        get_vulkan_smoke_frame_diff_summaries();
+    if (summaries.empty())
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan frame diff summary: "
+        << summaries.size()
+        << " buffer(s)."
+        << std::endl;
+
+    for (const auto& entry : summaries)
+    {
+        const std::string& label = entry.first;
+        const LLVulkanFrameDiffSummary& summary = entry.second;
+        const U64 worst_x =
+            summary.mWorstMaxDeltaPixel %
+            static_cast<U64>(llmax(1, summary.mWorstWidth));
+        const U64 worst_y =
+            summary.mWorstMaxDeltaPixel /
+            static_cast<U64>(llmax(1, summary.mWorstWidth));
+
+        std::cout
+            << "Mare Vulkan frame diff summary "
+            << label
+            << ": baseline "
+            << summary.mBaselineFrames
+            << ", reset "
+            << summary.mResetFrames
+            << ", compared "
+            << summary.mComparedFrames
+            << ", changed frames "
+            << summary.mChangedFrames
+            << ", major changed frames "
+            << summary.mMajorChangedFrames
+            << ", unsupported "
+            << summary.mUnsupportedFrames
+            << ", last size "
+            << summary.mLastWidth
+            << "x"
+            << summary.mLastHeight
+            << ", last format "
+            << summary.mLastFormat
+            << ", max changed "
+            << std::fixed
+            << std::setprecision(4)
+            << summary.mMaxChangedPercent
+            << "%, max major "
+            << summary.mMaxMajorChangedPercent
+            << "%, worst frame "
+            << summary.mWorstFrame
+            << ", worst max rgb delta "
+            << summary.mWorstMaxRGBDelta
+            << " at "
+            << worst_x
+            << ","
+            << worst_y
+            << ", worst avg rgb delta "
+            << summary.mWorstAverageRGBDelta
+            << "."
+            << std::endl;
+    }
+
+    summaries.clear();
+}
+
+void update_vulkan_smoke_frame_diff_summary(
+    const LLVulkanBufferAverageReadback& readback,
+    const LLVulkanFrameDiffStats& stats)
+{
+    LLVulkanFrameDiffSummary& summary =
+        get_vulkan_smoke_frame_diff_summaries()[readback.mLabel];
+    summary.mLastWidth = readback.mWidth;
+    summary.mLastHeight = readback.mHeight;
+    summary.mLastFormat = readback.mFormat;
+
+    if (!stats.mSupported || stats.mSampleCount == 0)
+    {
+        ++summary.mUnsupportedFrames;
+        return;
+    }
+
+    if (!stats.mHasPrevious)
+    {
+        ++summary.mBaselineFrames;
+        if (stats.mReset)
+        {
+            ++summary.mResetFrames;
+        }
+        return;
+    }
+
+    const bool first_comparison = summary.mComparedFrames == 0;
+    ++summary.mComparedFrames;
+
+    const double sample_count = static_cast<double>(stats.mSampleCount);
+    const double changed_percent =
+        100.0 *
+        static_cast<double>(stats.mChangedPixelCount) /
+        sample_count;
+    const double major_changed_percent =
+        100.0 *
+        static_cast<double>(stats.mMajorChangedPixelCount) /
+        sample_count;
+    const double average_rgb_delta = stats.mSumRGBDelta / sample_count;
+
+    if (stats.mChangedPixelCount > 0)
+    {
+        ++summary.mChangedFrames;
+    }
+    if (stats.mMajorChangedPixelCount > 0)
+    {
+        ++summary.mMajorChangedFrames;
+    }
+
+    if (first_comparison ||
+        stats.mMaxRGBDelta > summary.mWorstMaxRGBDelta ||
+        (stats.mMaxRGBDelta == summary.mWorstMaxRGBDelta &&
+            changed_percent > summary.mMaxChangedPercent))
+    {
+        summary.mWorstFrame = readback.mPresentedFrame;
+        summary.mWorstWidth = readback.mWidth;
+        summary.mWorstHeight = readback.mHeight;
+        summary.mWorstMaxDeltaPixel = stats.mMaxDeltaPixel;
+        summary.mWorstAverageRGBDelta = average_rgb_delta;
+        summary.mWorstMaxRGBDelta = stats.mMaxRGBDelta;
+    }
+
+    summary.mMaxChangedPercent =
+        llmax(summary.mMaxChangedPercent, changed_percent);
+    summary.mMaxMajorChangedPercent =
+        llmax(summary.mMaxMajorChangedPercent, major_changed_percent);
+}
+
 LLVulkanBufferAverageStats compute_vulkan_buffer_average_stats(
     const LLVulkanBufferAverageReadback& readback)
 {
@@ -6001,8 +6349,336 @@ LLVulkanBufferAverageStats compute_vulkan_buffer_average_stats(
     return stats;
 }
 
+LLVulkanFrameDiffStats compute_and_update_vulkan_frame_diff(
+    const LLVulkanBufferAverageReadback& readback,
+    LLVulkanFrameDiffState& previous)
+{
+    LLVulkanFrameDiffStats stats;
+    const U32 bytes_per_pixel = get_vulkan_format_byte_size(readback.mFormat);
+    if (!bytes_per_pixel ||
+        readback.mWidth <= 0 ||
+        readback.mHeight <= 0 ||
+        !readback.mBuffer.mMappedData)
+    {
+        previous.mValid = false;
+        return stats;
+    }
+
+    const U64 pixel_count =
+        static_cast<U64>(readback.mWidth) *
+        static_cast<U64>(readback.mHeight);
+    const U64 required_bytes = pixel_count * bytes_per_pixel;
+    if (required_bytes == 0 ||
+        required_bytes > readback.mBuffer.mSize)
+    {
+        previous.mValid = false;
+        return stats;
+    }
+
+    const U8* bytes = static_cast<const U8*>(readback.mBuffer.mMappedData);
+    const bool compatible_previous =
+        previous.mValid &&
+        previous.mWidth == readback.mWidth &&
+        previous.mHeight == readback.mHeight &&
+        previous.mFormat == readback.mFormat &&
+        previous.mBytes.size() >= required_bytes;
+
+    stats.mSupported = true;
+    stats.mSampleCount = pixel_count;
+    stats.mHasPrevious = compatible_previous;
+    stats.mReset = previous.mValid && !compatible_previous;
+
+    if (compatible_previous)
+    {
+        constexpr F32 changed_threshold = 1.f / 255.f;
+        constexpr F32 major_changed_threshold = 16.f / 255.f;
+        const U8* previous_bytes = previous.mBytes.data();
+        for (U64 i = 0; i < pixel_count; ++i)
+        {
+            F32 red = 0.f;
+            F32 green = 0.f;
+            F32 blue = 0.f;
+            F32 alpha = 1.f;
+            F32 previous_red = 0.f;
+            F32 previous_green = 0.f;
+            F32 previous_blue = 0.f;
+            F32 previous_alpha = 1.f;
+            if (!decode_vulkan_color_sample(
+                    bytes + i * bytes_per_pixel,
+                    readback.mFormat,
+                    red,
+                    green,
+                    blue,
+                    alpha) ||
+                !decode_vulkan_color_sample(
+                    previous_bytes + i * bytes_per_pixel,
+                    readback.mFormat,
+                    previous_red,
+                    previous_green,
+                    previous_blue,
+                    previous_alpha))
+            {
+                stats = {};
+                previous.mValid = false;
+                return stats;
+            }
+
+            const F32 delta_red = std::fabs(red - previous_red);
+            const F32 delta_green = std::fabs(green - previous_green);
+            const F32 delta_blue = std::fabs(blue - previous_blue);
+            const F32 max_delta = llmax(delta_red, llmax(delta_green, delta_blue));
+            const F32 avg_delta = (delta_red + delta_green + delta_blue) / 3.f;
+            stats.mSumRGBDelta += avg_delta;
+            if (max_delta > changed_threshold)
+            {
+                ++stats.mChangedPixelCount;
+            }
+            if (max_delta > major_changed_threshold)
+            {
+                ++stats.mMajorChangedPixelCount;
+            }
+            if (max_delta > stats.mMaxRGBDelta)
+            {
+                stats.mMaxRGBDelta = max_delta;
+                stats.mMaxDeltaPixel = i;
+            }
+        }
+    }
+
+    previous.mValid = true;
+    previous.mWidth = readback.mWidth;
+    previous.mHeight = readback.mHeight;
+    previous.mFormat = readback.mFormat;
+    previous.mPresentedFrame = readback.mPresentedFrame;
+    previous.mBytes.assign(bytes, bytes + required_bytes);
+    return stats;
+}
+
+void log_vulkan_smoke_frame_diff(
+    const LLVulkanBufferAverageReadback& readback)
+{
+    static std::unordered_map<std::string, LLVulkanFrameDiffState> sPreviousFrames;
+    LLVulkanFrameDiffState& previous_frame = sPreviousFrames[readback.mLabel];
+
+    LLVulkanFrameDiffStats stats =
+        compute_and_update_vulkan_frame_diff(readback, previous_frame);
+    const bool summary_only =
+        is_vulkan_smoke_frame_diff_summary_only_enabled();
+    if (summary_only)
+    {
+        update_vulkan_smoke_frame_diff_summary(readback, stats);
+        return;
+    }
+
+    if (!stats.mSupported || stats.mSampleCount == 0)
+    {
+        std::cout
+            << "Mare Vulkan frame diff "
+            << readback.mLabel
+            << ": frame "
+            << readback.mPresentedFrame
+            << " unsupported."
+            << std::endl;
+        return;
+    }
+
+    if (!stats.mHasPrevious)
+    {
+        std::cout
+            << "Mare Vulkan frame diff "
+            << readback.mLabel
+            << ": frame "
+            << readback.mPresentedFrame
+            << " baseline"
+            << (stats.mReset ? " after format/size reset" : "")
+            << ", size "
+            << readback.mWidth
+            << "x"
+            << readback.mHeight
+            << ", format "
+            << readback.mFormat
+            << "."
+            << std::endl;
+        return;
+    }
+
+    const double sample_count = static_cast<double>(stats.mSampleCount);
+    const double changed_percent =
+        100.0 *
+        static_cast<double>(stats.mChangedPixelCount) /
+        sample_count;
+    const double major_changed_percent =
+        100.0 *
+        static_cast<double>(stats.mMajorChangedPixelCount) /
+        sample_count;
+    const U64 max_x =
+        stats.mMaxDeltaPixel %
+        static_cast<U64>(llmax(1, readback.mWidth));
+    const U64 max_y =
+        stats.mMaxDeltaPixel /
+        static_cast<U64>(llmax(1, readback.mWidth));
+
+    std::cout
+        << "Mare Vulkan frame diff "
+        << readback.mLabel
+        << ": frame "
+        << readback.mPresentedFrame
+        << " vs previous, changed "
+        << std::fixed
+        << std::setprecision(4)
+        << changed_percent
+        << "%, major "
+        << major_changed_percent
+        << "%, avg rgb delta "
+        << (stats.mSumRGBDelta / sample_count)
+        << ", max rgb delta "
+        << stats.mMaxRGBDelta
+        << " at "
+        << max_x
+        << ","
+        << max_y
+        << "."
+        << std::endl;
+}
+
+bool should_log_vulkan_smoke_frame_diff(
+    const LLVulkanBufferAverageReadback& readback)
+{
+    if (!is_vulkan_smoke_frame_diff_enabled())
+    {
+        return false;
+    }
+
+    return readback.mLabel == "smoke final swapchain" ||
+        readback.mLabel.find("deferred composite output color") == 0 ||
+        readback.mLabel.find("copy output color") == 0 ||
+        readback.mLabel.find("final composite output color") == 0;
+}
+
+U8 encode_vulkan_ppm_channel(F32 value)
+{
+    if (!std::isfinite(value))
+    {
+        return 0;
+    }
+    value = llclamp(value, 0.f, 1.f);
+    return static_cast<U8>(std::lround(value * 255.f));
+}
+
+bool write_vulkan_readback_ppm(
+    const LLVulkanBufferAverageReadback& readback,
+    const char* path)
+{
+    if (!path || !path[0])
+    {
+        return false;
+    }
+
+    const U32 bytes_per_pixel = get_vulkan_format_byte_size(readback.mFormat);
+    if (!bytes_per_pixel ||
+        readback.mWidth <= 0 ||
+        readback.mHeight <= 0 ||
+        !readback.mBuffer.mMappedData)
+    {
+        return false;
+    }
+
+    const U64 pixel_count =
+        static_cast<U64>(readback.mWidth) *
+        static_cast<U64>(readback.mHeight);
+    const U64 required_bytes = pixel_count * bytes_per_pixel;
+    if (required_bytes > readback.mBuffer.mSize)
+    {
+        return false;
+    }
+
+    std::ofstream output(path, std::ios::binary | std::ios::out | std::ios::trunc);
+    if (!output.is_open())
+    {
+        LL_WARNS("RenderBackend")
+            << "Unable to open Vulkan smoke screenshot file: "
+            << path
+            << LL_ENDL;
+        return false;
+    }
+
+    output
+        << "P6\n"
+        << readback.mWidth
+        << " "
+        << readback.mHeight
+        << "\n255\n";
+
+    const U8* bytes = static_cast<const U8*>(readback.mBuffer.mMappedData);
+    for (S32 y = 0; y < readback.mHeight; ++y)
+    {
+        for (S32 x = 0; x < readback.mWidth; ++x)
+        {
+            const U64 pixel_index =
+                static_cast<U64>(y) *
+                    static_cast<U64>(readback.mWidth) +
+                static_cast<U64>(x);
+            F32 red = 0.f;
+            F32 green = 0.f;
+            F32 blue = 0.f;
+            F32 alpha = 1.f;
+            if (!decode_vulkan_color_sample(
+                    bytes + pixel_index * bytes_per_pixel,
+                    readback.mFormat,
+                    red,
+                    green,
+                    blue,
+                    alpha))
+            {
+                return false;
+            }
+
+            const U8 rgb[3] =
+            {
+                encode_vulkan_ppm_channel(red),
+                encode_vulkan_ppm_channel(green),
+                encode_vulkan_ppm_channel(blue),
+            };
+            output.write(reinterpret_cast<const char*>(rgb), sizeof(rgb));
+        }
+    }
+
+    if (!output.good())
+    {
+        LL_WARNS("RenderBackend")
+            << "Failed while writing Vulkan smoke screenshot file: "
+            << path
+            << LL_ENDL;
+        return false;
+    }
+
+    LL_INFOS("RenderBackend")
+        << "Wrote Vulkan smoke screenshot to "
+        << path
+        << "."
+        << LL_ENDL;
+    return true;
+}
+
+U64 get_vulkan_smoke_screenshot_min_frame()
+{
+    if (const char* frame_override =
+            std::getenv("MARE_VULKAN_SMOKE_SCREENSHOT_MIN_FRAME"))
+    {
+        char* end = nullptr;
+        const U64 frame =
+            std::strtoull(frame_override, &end, 10);
+        if (end && *end == '\0')
+        {
+            return frame;
+        }
+    }
+    return 0;
+}
+
 void log_and_destroy_vulkan_buffer_average_readbacks(LLVulkanNativeContext& context)
 {
+    static bool sWroteSmokeScreenshot = false;
     for (LLVulkanBufferAverageReadback& readback : context.mPendingBufferAverageReadbacks)
     {
         const LLVulkanBufferAverageStats stats =
@@ -6082,6 +6758,15 @@ void log_and_destroy_vulkan_buffer_average_readbacks(LLVulkanNativeContext& cont
             std::cout
                 << "Mare Vulkan readback "
                 << readback.mLabel
+                << ": frame "
+                << readback.mPresentedFrame;
+            if (readback.mSwapchainImageIndex != std::numeric_limits<U32>::max())
+            {
+                std::cout
+                    << ", swapchain image "
+                    << readback.mSwapchainImageIndex;
+            }
+            std::cout
                 << ": avg rgba "
                 << std::fixed
                 << std::setprecision(4)
@@ -6102,8 +6787,28 @@ void log_and_destroy_vulkan_buffer_average_readbacks(LLVulkanNativeContext& cont
                 << std::endl;
         }
 
+        if (should_log_vulkan_smoke_frame_diff(readback))
+        {
+            log_vulkan_smoke_frame_diff(readback);
+        }
+
         if (readback.mLabel == "smoke final swapchain")
         {
+            if (!sWroteSmokeScreenshot)
+            {
+                if (const char* screenshot_path =
+                        std::getenv("MARE_VULKAN_SMOKE_SCREENSHOT_PPM"))
+                {
+                    const U64 min_frame =
+                        get_vulkan_smoke_screenshot_min_frame();
+                    if (readback.mPresentedFrame >= min_frame)
+                    {
+                        sWroteSmokeScreenshot =
+                            write_vulkan_readback_ppm(readback, screenshot_path);
+                    }
+                }
+            }
+
             const double avg_r = stats.mSumR / sample_count;
             const double avg_g = stats.mSumG / sample_count;
             const double avg_b = stats.mSumB / sample_count;
@@ -6249,6 +6954,7 @@ bool schedule_vulkan_buffer_average_readback(
 
     readback.mTextureHandle = texture_handle;
     readback.mTextureSlot = texture_slot;
+    readback.mPresentedFrame = context.mPresentedFrameCount;
     readback.mWidth = texture.mWidth;
     readback.mHeight = texture.mHeight;
     readback.mFormat = texture.mFormat;
@@ -6505,6 +7211,8 @@ bool schedule_vulkan_swapchain_average_readback(
 
     readback.mTextureHandle = 0;
     readback.mTextureSlot = 0;
+    readback.mSwapchainImageIndex = image_index;
+    readback.mPresentedFrame = context.mPresentedFrameCount;
     readback.mWidth = static_cast<S32>(context.mSwapchainExtent.width);
     readback.mHeight = static_cast<S32>(context.mSwapchainExtent.height);
     readback.mFormat = context.mSwapchainImageFormat;
@@ -9288,6 +9996,37 @@ bool create_vulkan_render_pass(LLVulkanNativeContext& context)
     auto create_single_color_depth_render_pass =
         [&](S32 color_final_layout, LLVkRenderPass& render_pass) -> bool
     {
+        const bool presents_to_swapchain =
+            color_final_layout == LL_VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        const U32 depth_stage =
+            LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+            LL_VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        const U32 outgoing_destination_stage =
+            presents_to_swapchain ?
+                LL_VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT :
+                LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        const U32 outgoing_destination_access =
+            presents_to_swapchain ? 0 : LL_VK_ACCESS_SHADER_READ_BIT;
+
+        const S32 offscreen_initial_layout =
+            presents_to_swapchain ?
+            LL_VK_IMAGE_LAYOUT_UNDEFINED :
+            LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        const S32 offscreen_depth_final_layout =
+            presents_to_swapchain ?
+            LL_VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL :
+            LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        const U32 incoming_source_stage =
+            LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+            depth_stage |
+            (presents_to_swapchain ? 0 : LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        const U32 incoming_source_access =
+            presents_to_swapchain ?
+            0 :
+            LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                LL_VK_ACCESS_SHADER_READ_BIT;
+
         LLVkAttachmentDescription color_attachment =
         {
             0,
@@ -9297,7 +10036,7 @@ bool create_vulkan_render_pass(LLVulkanNativeContext& context)
             LL_VK_ATTACHMENT_STORE_OP_STORE,
             LL_VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            LL_VK_IMAGE_LAYOUT_UNDEFINED,
+            offscreen_initial_layout,
             color_final_layout
         };
         LLVkAttachmentDescription depth_attachment =
@@ -9309,8 +10048,8 @@ bool create_vulkan_render_pass(LLVulkanNativeContext& context)
             LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
             LL_VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            LL_VK_IMAGE_LAYOUT_UNDEFINED,
-            LL_VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            offscreen_initial_layout,
+            offscreen_depth_final_layout
         };
         LLVkAttachmentDescription attachments[2] =
         {
@@ -9349,11 +10088,10 @@ bool create_vulkan_render_pass(LLVulkanNativeContext& context)
             {
                 LL_VK_SUBPASS_EXTERNAL,
                 0,
+                incoming_source_stage,
                 LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                    LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                    LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                0,
+                    depth_stage,
+                incoming_source_access,
                 LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
                     LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                 0
@@ -9363,11 +10101,11 @@ bool create_vulkan_render_pass(LLVulkanNativeContext& context)
                 0,
                 LL_VK_SUBPASS_EXTERNAL,
                 LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                    LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    depth_stage,
+                outgoing_destination_stage,
                 LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
                     LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                LL_VK_ACCESS_SHADER_READ_BIT,
+                outgoing_destination_access,
                 0
             }
         };
@@ -9475,9 +10213,7 @@ LLVkRenderPass get_vulkan_offscreen_render_pass(
             LL_VK_ATTACHMENT_STORE_OP_STORE,
             LL_VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            color_load_op == LL_VK_ATTACHMENT_LOAD_OP_LOAD ?
-                LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL :
-                LL_VK_IMAGE_LAYOUT_UNDEFINED,
+            LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         };
         color_attachment_references[i] =
@@ -9499,9 +10235,7 @@ LLVkRenderPass get_vulkan_offscreen_render_pass(
             LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
             LL_VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             LL_VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            depth_load_op == LL_VK_ATTACHMENT_LOAD_OP_LOAD ?
-                LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL :
-                LL_VK_IMAGE_LAYOUT_UNDEFINED,
+            LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         };
         depth_attachment_reference =
@@ -9526,18 +10260,20 @@ LLVkRenderPass get_vulkan_offscreen_render_pass(
     const bool loads_color_attachments = color_load_op == LL_VK_ATTACHMENT_LOAD_OP_LOAD;
     const bool loads_depth_attachment = has_depth_attachment &&
         depth_load_op == LL_VK_ATTACHMENT_LOAD_OP_LOAD;
+    // Offscreen targets are often sampled and then reused as render targets in
+    // the same frame, for example deferredLight in the viewer staged post graph.
+    // Even when the next pass clears the image, the render-pass transition must
+    // wait for prior fragment reads before writing the image again.
     U32 initial_source_stage =
         LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+        LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
         (has_depth_attachment ?
             LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
                 LL_VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT :
             0);
-    U32 initial_source_access = 0;
-    if (loads_color_attachments)
-    {
-        initial_source_stage |= LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        initial_source_access |= LL_VK_ACCESS_SHADER_READ_BIT;
-    }
+    U32 initial_source_access =
+        LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+        LL_VK_ACCESS_SHADER_READ_BIT;
     if (loads_depth_attachment)
     {
         initial_source_access |= LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
@@ -9575,10 +10311,21 @@ LLVkRenderPass get_vulkan_offscreen_render_pass(
                     LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
                         LL_VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT :
                     0),
-            LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                (has_depth_attachment ?
+                    LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                        LL_VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT :
+                    0),
             LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
                 (has_depth_attachment ? LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : 0),
-            LL_VK_ACCESS_SHADER_READ_BIT,
+            LL_VK_ACCESS_SHADER_READ_BIT |
+                LL_VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                (has_depth_attachment ?
+                    LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                        LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT :
+                    0),
             0
         }
     };
@@ -9976,7 +10723,8 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"post-process", "class1/deferred/post_deferred.vert.spv", "class1/deferred/post_deferred.frag.spv", "final deferred composite"},
         {"post-process-tonemap", "class1/deferred/post_deferred.vert.spv", "class1/deferred/post_deferred_tonemap.frag.spv", "tone-mapped deferred composite"},
         {"post-process-gamma", "class1/deferred/post_deferred.vert.spv", "class1/deferred/post_deferred_gamma.frag.spv", "gamma deferred composite"},
-        {"final-composite", "class1/interface/copy.vert.spv", "class1/interface/copy.frag.spv", "swapchain composite copy"},
+        {"copy", "active/world_textured.vert.spv", "active/copy.frag.spv", "render target copy"},
+        {"final-composite", "active/world_textured.vert.spv", "active/final_composite.frag.spv", "swapchain final composite"},
     };
 
     size_t missing_owner_count = 0;
@@ -10112,6 +10860,7 @@ void destroy_vulkan_pipeline_set(
     destroy_vulkan_pipeline_array(context, pipeline_set.mPBRGBufferPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mAvatarGBufferPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mTerrainGBufferPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mCopyPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mDeferredCompositePipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mFinalCompositePipelines);
 }
@@ -10136,6 +10885,7 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     destroy_vulkan_pipeline_array(context, context.mPBRPipelines);
     destroy_vulkan_pipeline_array(context, context.mAvatarPipelines);
     destroy_vulkan_pipeline_array(context, context.mTerrainPipelines);
+    destroy_vulkan_pipeline_array(context, context.mCopyPipelines);
     destroy_vulkan_pipeline_array(context, context.mDeferredCompositePipelines);
     destroy_vulkan_pipeline_array(context, context.mFinalCompositePipelines);
     for (auto& entry : context.mOffscreenPipelineSets)
@@ -10292,6 +11042,10 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         {
             destroy_shader_module_once(context.mAvatarGBufferEmissiveFragmentShader);
         }
+        if (context.mCopyFragmentShader)
+        {
+            destroy_shader_module_once(context.mCopyFragmentShader);
+        }
         if (context.mDeferredCompositeFragmentShader)
         {
             destroy_shader_module_once(context.mDeferredCompositeFragmentShader);
@@ -10350,6 +11104,7 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mPBRGBufferEmissiveFragmentShader = nullptr;
     context.mAvatarGBufferFragmentShader = nullptr;
     context.mAvatarGBufferEmissiveFragmentShader = nullptr;
+    context.mCopyFragmentShader = nullptr;
     context.mDeferredCompositeFragmentShader = nullptr;
     context.mFinalCompositeFragmentShader = nullptr;
     context.mTerrainVertexShader = nullptr;
@@ -10670,6 +11425,20 @@ bool create_vulkan_offscreen_pipeline_set(
             0,
             LL_VK_SHADER_STAGE_FRAGMENT_BIT,
             context.mDeferredCompositeFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo copy_shader_stages[2] =
+    {
+        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mCopyFragmentShader,
             "main",
             nullptr
         }
@@ -11501,6 +12270,35 @@ bool create_vulkan_offscreen_pipeline_set(
                             return false;
                         }
 
+                        LLVkGraphicsPipelineCreateInfo copy_pipeline_create_info = world_pipeline_create_info;
+                        copy_pipeline_create_info.pStages = copy_shader_stages;
+                        S32 copy_result = create_graphics_pipelines(
+                            context.mDevice,
+                            nullptr,
+                            1,
+                            &copy_pipeline_create_info,
+                            nullptr,
+                            &pipeline_set.mCopyPipelines[world_pipeline_index]);
+                        if (copy_result != LL_VK_SUCCESS ||
+                            !pipeline_set.mCopyPipelines[world_pipeline_index])
+                        {
+                            LL_WARNS("RenderBackend")
+                                << "vkCreateGraphicsPipelines(offscreen copy mode "
+                                << i
+                                << ", blend "
+                                << blend_index
+                                << ", depth "
+                                << depth_index
+                                << ", cull "
+                                << cull_index
+                                << ", color "
+                                << color_index
+                                << ") failed with result "
+                                << copy_result
+                                << LL_ENDL;
+                            return false;
+                        }
+
                         LLVkGraphicsPipelineCreateInfo final_composite_pipeline_create_info = world_pipeline_create_info;
                         final_composite_pipeline_create_info.pStages = final_composite_shader_stages;
                         S32 final_composite_result = create_graphics_pipelines(
@@ -11866,6 +12664,8 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         get_vulkan_final_shader_module(context, "active/avatar_gbuffer.frag.spv", "avatar G-buffer fragment");
     context.mAvatarGBufferEmissiveFragmentShader =
         get_vulkan_final_shader_module(context, "active/avatar_gbuffer_emissive.frag.spv", "avatar G-buffer emissive fragment");
+    context.mCopyFragmentShader =
+        get_vulkan_final_shader_module(context, "active/copy.frag.spv", "copy fragment");
     context.mDeferredCompositeFragmentShader =
         get_vulkan_final_shader_module(context, "active/deferred_composite.frag.spv", "deferred composite fragment");
     context.mFinalCompositeFragmentShader =
@@ -11904,6 +12704,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         !context.mPBRGBufferEmissiveFragmentShader ||
         !context.mAvatarGBufferFragmentShader ||
         !context.mAvatarGBufferEmissiveFragmentShader ||
+        !context.mCopyFragmentShader ||
         !context.mDeferredCompositeFragmentShader ||
         !context.mFinalCompositeFragmentShader ||
         !context.mTerrainVertexShader ||
@@ -12509,6 +13310,20 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
             nullptr
         }
     };
+    LLVkPipelineShaderStageCreateInfo copy_shader_stages[2] =
+    {
+        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mCopyFragmentShader,
+            "main",
+            nullptr
+        }
+    };
     LLVkPipelineShaderStageCreateInfo final_composite_shader_stages[2] =
     {
         world_shader_stages[0],
@@ -13099,6 +13914,35 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
                             return false;
                         }
 
+                        LLVkGraphicsPipelineCreateInfo copy_pipeline_create_info = world_pipeline_create_info;
+                        copy_pipeline_create_info.pStages = copy_shader_stages;
+                        result = create_graphics_pipelines(
+                            context.mDevice,
+                            nullptr,
+                            1,
+                            &copy_pipeline_create_info,
+                            nullptr,
+                            &context.mCopyPipelines[world_pipeline_index]);
+                        if (result != LL_VK_SUCCESS || !context.mCopyPipelines[world_pipeline_index])
+                        {
+                            LL_WARNS("RenderBackend")
+                                << "vkCreateGraphicsPipelines(copy mode "
+                                << i
+                                << ", blend "
+                                << blend_index
+                                << ", depth "
+                                << depth_index
+                                << ", cull "
+                                << cull_index
+                                << ", color "
+                                << color_index
+                                << ") failed with result "
+                                << result
+                                << LL_ENDL;
+                            destroy_vulkan_graphics_pipelines(context);
+                            return false;
+                        }
+
                         LLVkGraphicsPipelineCreateInfo final_composite_pipeline_create_info = world_pipeline_create_info;
                         final_composite_pipeline_create_info.pStages = final_composite_shader_stages;
                         result = create_graphics_pipelines(
@@ -13637,6 +14481,7 @@ struct LLVulkanActiveRenderPassState
     bool mScaleToDrawable = true;
     const LLVulkanPipelineSet* mPipelineSet = nullptr;
     bool mSawGBufferDraw = false;
+    bool mSawCopyDraw = false;
     bool mSawDeferredCompositeDraw = false;
     bool mSawFinalCompositeDraw = false;
 };
@@ -13707,6 +14552,7 @@ const char* get_vulkan_world_shader_class_name(LLRenderWorldShaderClass shader_c
         case LLRenderWorldShaderClass::PBR: return "PBR";
         case LLRenderWorldShaderClass::Avatar: return "Avatar";
         case LLRenderWorldShaderClass::Terrain: return "Terrain";
+        case LLRenderWorldShaderClass::Copy: return "Copy";
         case LLRenderWorldShaderClass::DeferredComposite: return "DeferredComposite";
         case LLRenderWorldShaderClass::FinalComposite: return "FinalComposite";
     }
@@ -13797,6 +14643,13 @@ bool should_use_vulkan_gbuffer_pipeline(
         active_pass.mColorAttachmentCount <= 1 ||
         !draw.mUseWorldVertexShader ||
         draw.mWorldBlendPipeline != LLVulkanWorldBlendPipeline::Opaque)
+    {
+        return false;
+    }
+
+    if (draw.mWorldShaderClass == LLRenderWorldShaderClass::Copy ||
+        draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite ||
+        draw.mWorldShaderClass == LLRenderWorldShaderClass::FinalComposite)
     {
         return false;
     }
@@ -13902,16 +14755,100 @@ void schedule_vulkan_deferred_output_attachment_average(
         return;
     }
 
+    std::ostringstream label;
+    label
+        << "deferred composite output color texture "
+        << framebuffer.mColorTextures[0];
     if (schedule_vulkan_buffer_average_readback(
             context,
             command_buffer,
             framebuffer.mColorTextures[0],
             0,
-            "deferred composite output color"))
+            label.str().c_str()))
     {
         ++sScheduledReadbackFrameCount;
         LL_INFOS("RenderBackend")
             << "Vulkan scheduled deferred composite output average readback for diagnostic frame "
+            << sScheduledReadbackFrameCount
+            << "/"
+            << get_vulkan_buffer_average_frame_limit()
+            << "."
+            << LL_ENDL;
+    }
+}
+
+void schedule_vulkan_copy_output_attachment_average(
+    LLVulkanNativeContext& context,
+    LLVkCommandBuffer command_buffer,
+    const LLVulkanFramebufferResource& framebuffer)
+{
+    static U32 sScheduledReadbackFrameCount = 0;
+    if (!is_vulkan_buffer_average_debug_enabled() ||
+        sScheduledReadbackFrameCount >= get_vulkan_buffer_average_frame_limit())
+    {
+        return;
+    }
+
+    if (framebuffer.mColorTextures.empty() ||
+        !framebuffer.mColorTextures[0])
+    {
+        return;
+    }
+
+    std::ostringstream label;
+    label
+        << "copy output color texture "
+        << framebuffer.mColorTextures[0];
+    if (schedule_vulkan_buffer_average_readback(
+            context,
+            command_buffer,
+            framebuffer.mColorTextures[0],
+            0,
+            label.str().c_str()))
+    {
+        ++sScheduledReadbackFrameCount;
+        LL_INFOS("RenderBackend")
+            << "Vulkan scheduled copy output average readback for diagnostic frame "
+            << sScheduledReadbackFrameCount
+            << "/"
+            << get_vulkan_buffer_average_frame_limit()
+            << "."
+            << LL_ENDL;
+    }
+}
+
+void schedule_vulkan_final_output_attachment_average(
+    LLVulkanNativeContext& context,
+    LLVkCommandBuffer command_buffer,
+    const LLVulkanFramebufferResource& framebuffer)
+{
+    static U32 sScheduledReadbackFrameCount = 0;
+    if (!is_vulkan_buffer_average_debug_enabled() ||
+        sScheduledReadbackFrameCount >= get_vulkan_buffer_average_frame_limit())
+    {
+        return;
+    }
+
+    if (framebuffer.mColorTextures.empty() ||
+        !framebuffer.mColorTextures[0])
+    {
+        return;
+    }
+
+    std::ostringstream label;
+    label
+        << "final composite output color texture "
+        << framebuffer.mColorTextures[0];
+    if (schedule_vulkan_buffer_average_readback(
+            context,
+            command_buffer,
+            framebuffer.mColorTextures[0],
+            0,
+            label.str().c_str()))
+    {
+        ++sScheduledReadbackFrameCount;
+        LL_INFOS("RenderBackend")
+            << "Vulkan scheduled final composite output average readback for diagnostic frame "
             << sScheduledReadbackFrameCount
             << "/"
             << get_vulkan_buffer_average_frame_limit()
@@ -13953,6 +14890,118 @@ void schedule_vulkan_offscreen_pass_attachment_averages(
             command_buffer,
             framebuffer);
     }
+    if (active_pass.mSawCopyDraw)
+    {
+        schedule_vulkan_copy_output_attachment_average(
+            context,
+            command_buffer,
+            framebuffer);
+    }
+    if (active_pass.mSawFinalCompositeDraw)
+    {
+        schedule_vulkan_final_output_attachment_average(
+            context,
+            command_buffer,
+            framebuffer);
+    }
+}
+
+void barrier_vulkan_offscreen_pass_attachments_for_shader_read(
+    LLVulkanNativeContext& context,
+    LLVkCommandBuffer command_buffer,
+    const LLVulkanActiveRenderPassState& active_pass)
+{
+    if (active_pass.mFramebuffer == 0 ||
+        active_pass.mFramebuffer == std::numeric_limits<U32>::max())
+    {
+        return;
+    }
+
+    auto framebuffer_iter = gVulkanFramebuffers.find(active_pass.mFramebuffer);
+    if (framebuffer_iter == gVulkanFramebuffers.end())
+    {
+        return;
+    }
+
+    const LLVulkanFramebufferResource& framebuffer = framebuffer_iter->second;
+    std::array<LLVkImageMemoryBarrier, 5> barriers = {};
+    U32 barrier_count = 0;
+
+    auto add_barrier = [&](U32 texture_handle)
+    {
+        if (!texture_handle || barrier_count >= barriers.size())
+        {
+            return;
+        }
+
+        auto texture_iter = gVulkanTextures.find(texture_handle);
+        if (texture_iter == gVulkanTextures.end())
+        {
+            return;
+        }
+
+        const LLVulkanTextureResource& texture = texture_iter->second;
+        if (!texture.mImage)
+        {
+            return;
+        }
+
+        barriers[barrier_count++] =
+            LLVkImageMemoryBarrier
+            {
+                LL_VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                nullptr,
+                texture.mAspectMask == LL_VK_IMAGE_ASPECT_DEPTH_BIT ?
+                    LL_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT :
+                    LL_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                LL_VK_ACCESS_SHADER_READ_BIT,
+                LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                LL_VK_QUEUE_FAMILY_IGNORED,
+                LL_VK_QUEUE_FAMILY_IGNORED,
+                texture.mImage,
+                LLVkImageSubresourceRange
+                {
+                    texture.mAspectMask,
+                    0,
+                    1,
+                    0,
+                    1
+                }
+            };
+    };
+
+    const U32 color_attachment_count = llclamp(
+        active_pass.mColorAttachmentCount,
+        0U,
+        static_cast<U32>(framebuffer.mColorTextures.size()));
+    for (U32 i = 0; i < color_attachment_count; ++i)
+    {
+        add_barrier(framebuffer.mColorTextures[i]);
+    }
+    if (framebuffer.mHasDepthAttachment)
+    {
+        add_barrier(framebuffer.mDepthTexture);
+    }
+
+    if (barrier_count == 0)
+    {
+        return;
+    }
+
+    context.mCmdPipelineBarrier(
+        command_buffer,
+        LL_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+            LL_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+            LL_VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+        LL_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        barrier_count,
+        barriers.data());
 }
 
 void end_vulkan_record_render_pass(
@@ -13966,6 +15015,10 @@ void end_vulkan_record_render_pass(
     }
 
     context.mCmdEndRenderPass(command_buffer);
+    barrier_vulkan_offscreen_pass_attachments_for_shader_read(
+        context,
+        command_buffer,
+        active_pass);
     schedule_vulkan_offscreen_pass_attachment_averages(
         context,
         command_buffer,
@@ -14060,11 +15113,11 @@ bool begin_vulkan_offscreen_record_render_pass(
         llclamp(framebuffer.mColorAttachmentCount, 1U, static_cast<U32>(framebuffer.mColorTextures.size()));
     const bool has_initial_clear = initial_clear_mask != LL_RENDER_CLEAR_NONE;
     const S32 color_load_op =
-        (!has_initial_clear || (initial_clear_mask & LL_RENDER_CLEAR_COLOR)) ?
+        has_initial_clear && (initial_clear_mask & LL_RENDER_CLEAR_COLOR) ?
         LL_VK_ATTACHMENT_LOAD_OP_CLEAR :
         LL_VK_ATTACHMENT_LOAD_OP_LOAD;
     const S32 depth_load_op =
-        (!has_initial_clear || (framebuffer.mHasDepthAttachment && (initial_clear_mask & LL_RENDER_CLEAR_DEPTH))) ?
+        has_initial_clear && framebuffer.mHasDepthAttachment && (initial_clear_mask & LL_RENDER_CLEAR_DEPTH) ?
         LL_VK_ATTACHMENT_LOAD_OP_CLEAR :
         LL_VK_ATTACHMENT_LOAD_OP_LOAD;
     LLVkRenderPass render_pass =
@@ -14532,6 +15585,10 @@ bool record_vulkan_frame_command_buffer(
             active_pass.mPipelineSet ?
             active_pass.mPipelineSet->mTerrainPipelines :
             context.mTerrainPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& copy_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mCopyPipelines :
+            context.mCopyPipelines;
         const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& deferred_composite_pipelines =
             active_pass.mPipelineSet ?
             active_pass.mPipelineSet->mDeferredCompositePipelines :
@@ -14603,6 +15660,7 @@ bool record_vulkan_frame_command_buffer(
             if (draw.mFramebuffer != 0 &&
                 can_be_gbuffer_draw &&
                 !use_gbuffer_pipeline &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite)
             {
@@ -14617,10 +15675,16 @@ bool record_vulkan_frame_command_buffer(
                 log_vulkan_gbuffer_rejection_once(draw, active_pass);
             }
         }
+        const bool use_copy_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::Copy;
         const bool use_deferred_composite_pipeline =
             draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite;
         const bool use_final_composite_pipeline =
             draw.mWorldShaderClass == LLRenderWorldShaderClass::FinalComposite;
+        if (use_copy_pipeline)
+        {
+            active_pass.mSawCopyDraw = true;
+        }
         if (use_gbuffer_pipeline)
         {
             ++offscreen_gbuffer_draw_count;
@@ -14667,6 +15731,7 @@ bool record_vulkan_frame_command_buffer(
             draw.mWorldShaderClass != LLRenderWorldShaderClass::Terrain &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::Sky &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::Water &&
+            draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite &&
             draw.mSkinningMatrixCount > 0 &&
@@ -14676,6 +15741,7 @@ bool record_vulkan_frame_command_buffer(
             draw.mWorldShaderClass != LLRenderWorldShaderClass::Terrain &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::Sky &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::Water &&
+            draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite &&
             draw.mSkinningMatrixCount > 0 &&
@@ -14705,7 +15771,11 @@ bool record_vulkan_frame_command_buffer(
                     draw.mWorldColorPipeline);
             if (world_pipeline_index < world_pipelines.size())
             {
-                if (use_deferred_composite_pipeline)
+                if (use_copy_pipeline)
+                {
+                    pipeline = copy_pipelines[world_pipeline_index];
+                }
+                else if (use_deferred_composite_pipeline)
                 {
                     pipeline = deferred_composite_pipelines[world_pipeline_index];
                 }
@@ -14782,7 +15852,11 @@ bool record_vulkan_frame_command_buffer(
                     draw.mWorldColorPipeline);
                 if (world_pipeline_index < world_pipelines.size())
                 {
-                    if (use_deferred_composite_pipeline)
+                    if (use_copy_pipeline)
+                    {
+                        pipeline = copy_pipelines[world_pipeline_index];
+                    }
+                    else if (use_deferred_composite_pipeline)
                     {
                         pipeline = deferred_composite_pipelines[world_pipeline_index];
                     }
@@ -16020,6 +17094,15 @@ bool record_vulkan_frame_command_buffer(
             << " ("
             << (context.mEvictedBufferMemoryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
             << "MB)"
+            << ", current-frame buffer evictions skipped "
+            << context.mSkippedCurrentFrameBufferEvictionCount
+            << ", current-frame texture evictions skipped "
+            << context.mSkippedCurrentFrameTextureEvictionCount
+            << ", descriptor cache frame resets "
+            << context.mTextureDescriptorCacheFrameResetCount
+            << " ("
+            << context.mTextureDescriptorCacheFrameResetSetCount
+            << " set(s))"
             << ", texture uploads "
             << context.mTextureUploadCount
             << ", largest texture "
@@ -16307,7 +17390,7 @@ bool present_vulkan_frame(
     {
         if (is_vulkan_swapchain_stale_result(result))
         {
-            gPendingVulkanDraws.clear();
+            clear_vulkan_pending_frame_commands();
             return recreate_vulkan_swapchain_resources(context);
         }
 
@@ -16361,6 +17444,7 @@ bool present_vulkan_frame(
         return false;
     }
     log_and_destroy_vulkan_buffer_average_readbacks(context);
+    reset_vulkan_texture_descriptor_set_cache_after_frame(context);
 
     LLVkPresentInfoKHR present_info =
     {
@@ -16379,7 +17463,7 @@ bool present_vulkan_frame(
     {
         if (is_vulkan_swapchain_stale_result(result))
         {
-            gPendingVulkanDraws.clear();
+            clear_vulkan_pending_frame_commands();
             return recreate_vulkan_swapchain_resources(context);
         }
 
@@ -16390,7 +17474,7 @@ bool present_vulkan_frame(
         return false;
     }
 
-    gPendingVulkanDraws.clear();
+    clear_vulkan_pending_frame_commands();
 
     ++context.mPresentedFrameCount;
     if (log_success)
@@ -17990,6 +19074,27 @@ public:
         draw.mWorldCullPipeline = to_vulkan_world_cull_pipeline();
         draw.mWorldColorPipeline = to_vulkan_world_color_pipeline();
         draw.mWorldShaderClass = gCurrentVulkanWorldShaderClass;
+        if (is_vulkan_default_world_overlay_draw(draw))
+        {
+            draw.mModelviewProjection =
+                convert_opengl_clip_depth_to_vulkan(draw.mModelviewProjection);
+            static U32 sLoggedOverlayDepthConversion = 0;
+            if (sLoggedOverlayDepthConversion < 8)
+            {
+                LL_INFOS("RenderBackend")
+                    << "Vulkan converted OpenGL clip depth for default-framebuffer world overlay draw "
+                    << sLoggedOverlayDepthConversion
+                    << ": shader "
+                    << get_vulkan_world_shader_class_name(draw.mWorldShaderClass)
+                    << ", count "
+                    << draw.mCount
+                    << ", texture "
+                    << draw.mTexture
+                    << "."
+                    << LL_ENDL;
+                ++sLoggedOverlayDepthConversion;
+            }
+        }
         draw.mTerrainParameters = gCurrentVulkanTerrainParameters;
         draw.mMaterialParameters = gCurrentVulkanMaterialParameters;
         draw.mTextureTransform = gCurrentVulkanTextureTransform;
@@ -18065,6 +19170,9 @@ public:
                 ++sLoggedQueuedWorldDraws;
             }
         }
+        remember_vulkan_draw_resources_for_current_frame(
+            *gCurrentVulkanContext,
+            draw);
         gPendingVulkanDraws.push_back(draw);
 
         if (gCurrentVulkanContext)
@@ -18462,6 +19570,11 @@ public:
     }
 };
 
+}
+
+void flushVulkanSmokeFrameDiffSummaries()
+{
+    flush_vulkan_smoke_frame_diff_summaries();
 }
 
 LLRenderBackend& getVulkanRenderBackend()

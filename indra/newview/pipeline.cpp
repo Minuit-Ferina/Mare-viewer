@@ -1315,10 +1315,19 @@ void LLPipeline::refreshCachedSettings()
     LLVOAvatar::sMaxNonImpostors = gSavedSettings.getU32("RenderAvatarMaxNonImpostors");
     LLVOAvatar::updateImpostorRendering(LLVOAvatar::sMaxNonImpostors);
 
+    const bool backend_supports_occlusion_queries =
+        getRenderBackend().getType() != LLRenderBackendType::Vulkan;
     LLPipeline::sUseOcclusion =
-            (!gUseWireframe
+            (backend_supports_occlusion_queries
+            && !gUseWireframe
             && LLFeatureManager::getInstance()->isFeatureAvailable("UseOcclusion")
             && gSavedSettings.getBOOL("UseOcclusion")) ? 2 : 0;
+    if (!backend_supports_occlusion_queries)
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan disabled pipeline occlusion culling because render queries are not implemented yet."
+            << LL_ENDL;
+    }
 
     WindLightUseAtmosShaders = true; // DEPRECATED -- gSavedSettings.getBOOL("WindLightUseAtmosShaders");
     RenderDeferred = true; // DEPRECATED -- gSavedSettings.getBOOL("RenderDeferred");
@@ -4522,8 +4531,14 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
 
     bool done_atmospherics = LLPipeline::sRenderingHUDs; //skip atmospherics on huds
     bool done_water_haze = done_atmospherics;
-    bool done_water_exclusion = false;
-    const bool use_vulkan_commands = use_vulkan_world_command_path() && !LLPipeline::sRenderingHUDs;
+    bool done_water_exclusion = LLPipeline::sRenderingHUDs;
+    const bool use_vulkan_commands = use_vulkan_world_command_path();
+    if (use_vulkan_commands && LLPipeline::sRenderingHUDs)
+    {
+        LL_INFOS_ONCE("RenderBackend")
+            << "Vulkan HUD attachment command path is active."
+            << LL_ENDL;
+    }
 
     // do water exclusion just before water pass.
     U32 water_exclusion_pass = LLDrawPool::POOL_WATEREXCLUSION;

@@ -163,8 +163,20 @@ void LLDrawPoolGLTFPBR::renderPostDeferred(S32 pass)
 
 bool LLDrawPoolGLTFPBR::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
 {
-    if (LLPipeline::sRenderingHUDs ||
-        mRenderType != LLPipeline::RENDER_TYPE_PASS_GLTF_PBR)
+    if (LLPipeline::sRenderingHUDs)
+    {
+        commands.appendRenderMap(
+            mRenderType,
+            mRenderType == LLPipeline::RENDER_TYPE_PASS_GLTF_PBR_ALPHA_MASK ?
+                LLWorldRenderMaterialClass::GLTFPBRAlphaMask :
+                LLWorldRenderMaterialClass::GLTFPBR,
+            true,
+            false,
+            get_gltf_pbr_vertex_data_mask(false));
+        return true;
+    }
+
+    if (mRenderType != LLPipeline::RENDER_TYPE_PASS_GLTF_PBR)
     {
         return false;
     }

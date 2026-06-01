@@ -734,8 +734,9 @@ void LLDrawPoolAlpha::renderPostDeferred(S32 pass)
 
 bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
 {
-    if (LLPipeline::sRenderingHUDs ||
-        (LLPipeline::isWaterClip() && getType() == LLDrawPool::POOL_ALPHA_PRE_WATER))
+    if (!LLPipeline::sRenderingHUDs &&
+        LLPipeline::isWaterClip() &&
+        getType() == LLDrawPool::POOL_ALPHA_PRE_WATER)
     {
         return false;
     }
@@ -743,6 +744,11 @@ bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
     LLEnvironment& env = LLEnvironment::instance();
     for (bool rigged : { true, false })
     {
+        if (LLPipeline::sRenderingHUDs && rigged)
+        {
+            continue;
+        }
+
         const AlphaPassContext context =
         {
             false,
@@ -758,7 +764,8 @@ bool LLDrawPoolAlpha::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
         {
             LLSpatialGroup* group = *group_iter;
             if (!is_renderable_alpha_group(group) ||
-                !is_alpha_group_on_rendered_side_of_water(group, context.above_water, context.water_height))
+                (!LLPipeline::sRenderingHUDs &&
+                    !is_alpha_group_on_rendered_side_of_water(group, context.above_water, context.water_height)))
             {
                 continue;
             }

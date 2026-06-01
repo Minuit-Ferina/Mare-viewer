@@ -284,7 +284,11 @@ LLRenderTarget::LLRenderTarget() :
 
 LLRenderTarget::~LLRenderTarget()
 {
-    release();
+    // Render targets are explicitly released by their owners while the render
+    // context and LLImageGL deletion queues are still alive.  During process
+    // shutdown, global/static LLRenderTarget destruction can run after those
+    // systems have already been torn down, so doing backend work here is not
+    // safe.
 }
 
 void LLRenderTarget::resize(U32 resx, U32 resy)

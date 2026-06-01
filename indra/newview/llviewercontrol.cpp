@@ -41,6 +41,7 @@
 #include "lldrawpoolterrain.h"
 #include "llflexibleobject.h"
 #include "llfeaturemanager.h"
+#include "llrenderbackend.h"
 #include "llviewershadermgr.h"
 
 #include "llsky.h"
@@ -507,8 +508,17 @@ static bool handleJoystickChanged(const LLSD& newvalue)
 
 static bool handleUseOcclusionChanged(const LLSD& newvalue)
 {
-    LLPipeline::sUseOcclusion = (newvalue.asBoolean()
+    const bool backend_supports_occlusion_queries =
+        getRenderBackend().getType() != LLRenderBackendType::Vulkan;
+    LLPipeline::sUseOcclusion = (backend_supports_occlusion_queries
+        && newvalue.asBoolean()
         && LLFeatureManager::getInstance()->isFeatureAvailable("UseOcclusion") && !gUseWireframe) ? 2 : 0;
+    if (!backend_supports_occlusion_queries)
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan ignored UseOcclusion because render queries are not implemented yet."
+            << LL_ENDL;
+    }
     return true;
 }
 
@@ -1267,4 +1277,3 @@ void test_cached_control()
 //There's no LLSD comparsion for LLCC yet. TEST_LLCC(LLSD, test_llsd);
 }
 #endif // TEST_CACHED_CONTROL
-

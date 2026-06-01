@@ -121,6 +121,18 @@ filled in.
       load, resize, and shutdown have already been tested during phase 17; this
       item should be repeated before a branch checkpoint if new high-risk
       renderer changes land.
+- [ ] Revalidate the Vulkan staged/deferred present path without diagnostic
+      readbacks.
+      The `viewer-staged-post-overlays` smoke path is stable with final
+      swapchain readbacks on both the synthetic scene and a captured viewer
+      command stream. Because readback inserts an explicit swapchain
+      transition/copy before present, remaining live-viewer flicker is being
+      treated as a synchronization/present issue rather than a UI or RLV issue.
+      Current containment changes keep post-deferred overlays in the same
+      screen-target pass and give the swapchain render pass a present-specific
+      outgoing dependency instead of the offscreen shader-read dependency.
+      Next validation should use the real viewer without debug readbacks, then
+      remove this item only after the live glitches are gone.
 
 ## OpenGL Shader Inventory
 
@@ -683,9 +695,9 @@ Validation status:
       with a depth-load render pass, record post-deferred world overlays into
       the same target, then copy the screen target to the swapchain before UI.
       This moves the available code path closer to the OpenGL render graph
-      without enabling the full post-process stack yet, but the staged path is
-      currently not the runtime default while the black-frame regression below
-      is isolated.
+      without enabling the full post-process stack yet. The staged path is now
+      the runtime default again after local smoke coverage reproduced the
+      viewer-style target reuse pattern.
       Offscreen render passes that load existing color attachments now use the
       previous shader-readable final layout as their initial layout, and their
       external dependency includes the shader-read/color-attachment transition
@@ -696,8 +708,8 @@ Validation status:
       `mRT->screen` before post-deferred water, haze, alpha, glow, and overlay
       commands are recorded. If `deferredLight` is unavailable, the previous
       direct `deferredScreen -> screen` composite remains as fallback. This is
-      still not the final OpenGL-equivalent light graph, and it is temporarily
-      disabled at runtime until each target hop is revalidated.
+      still not the final OpenGL-equivalent light graph, but the target hop is
+      now covered by the local staged post-target smoke path.
 - [x] Add a Vulkan post-compose target hop through `deferredLight` when it is
       allocated.
       The staged Vulkan world path can copy the completed `screen` target into
@@ -716,13 +728,12 @@ Validation status:
       target matching the legacy post-finalize ping/pong chain where native
       tonemap, glow, CAS/AA, DoF, and final combine passes can be inserted
       incrementally.
-- [ ] Revalidate the staged Vulkan offscreen hops before making them nominal.
+- [x] Revalidate the staged Vulkan offscreen hops before making them nominal.
       Runtime testing showed a black world with only UI visible after the
       `deferredScreen -> deferredLight -> screen -> deferredLight ->
-      mPostPingMap -> swapchain` chain was enabled. The runtime path is
-      temporarily back to `deferredScreen -> swapchain` plus post-deferred
-      overlays so world visibility is preserved while each offscreen hop is
-      reintroduced and checked independently.
+      mPostPingMap -> swapchain` chain was enabled. The runtime path was
+      temporarily backed down to `deferredScreen -> swapchain` while each
+      offscreen hop was reintroduced and checked independently.
       The latest black-world log showed `deferredScreen` passing the high-level
       viewer completeness check while Vulkan framebuffer 4 had missing native
       color/depth textures. The Vulkan world frame now checks backend
@@ -744,6 +755,95 @@ Validation status:
       incomplete `deferredScreen` attachments; resolve that by fixing Vulkan
       render-target allocation/attachment ownership before re-enabling the
       staged deferred/offscreen hops.
+      Follow-up fix: `mare-vulkan-smoke --mode viewer-staged-post-targets`
+      now exercises the same no-login target chain and specifically samples
+      `deferredLight` before reusing it as a color target. Vulkan offscreen
+      render-pass dependencies now wait for prior fragment-shader reads before
+      rewriting cleared render targets, which covers the staged target reuse
+      hazard. The staged path is active by default again; set
+      `MARE_VULKAN_DISABLE_STAGED_POST_TARGETS=1` only for diagnosis.
+      Follow-up runtime check: the default path must stay the intended final
+      renderer, so staged post targets and post-deferred overlays are active by
+      default. `MARE_VULKAN_DISABLE_STAGED_POST_TARGETS=1` and
+      `MARE_VULKAN_DISABLE_POST_DEFERRED_OVERLAYS=1` are diagnosis-only
+      isolation tools, not fallback behavior to keep.
+- [ ] Rebuild the Vulkan deferred graph step by step with no-login smoke modes.
+      Default viewer behavior stays on the intended final staged graph. The
+      local smoke executable now exposes explicit stop points for diagnosis:
+      `viewer-staged-light-target`, `viewer-staged-screen-target`,
+      `viewer-staged-reused-light-target`, `viewer-staged-post-overlays`, and
+      `viewer-staged-post-targets`.
+      Use those in order to validate `deferredScreen -> deferredLight`,
+      `deferredLight -> screen`, `screen -> deferredLight` reuse, and
+      `screen` with post-deferred overlays before validating
+      `deferredLight -> postPing -> swapchain` and changing the live viewer
+      graph again.
+      Local smoke status: the four base staged modes pass with nonzero final
+      swapchain readbacks, `viewer-staged-post-targets --ui-viewer-sequence`
+      stays non-black, and `viewer-staged-post-overlays` also passes with and
+      without `--ui-viewer-sequence`. The old black-frame/UI interaction is not
+      the active issue anymore; the current active defect is that the Vulkan
+      deferred graph renders incorrectly compared with OpenGL.
+      Scene support: `mare-vulkan-smoke` now accepts `--scene basic` and
+      `--scene post-overlays-stress`. The stress scene keeps the same synthetic
+      shader families but repeats G-buffer and post-deferred overlay draws, so
+      staged deferred bugs can be pushed closer to live-region command volume
+      without login/network dependencies.
+      Validation: `viewer-staged-post-overlays --scene post-overlays-stress`
+      passes with and without `--ui-viewer-sequence`, and
+      `viewer-staged-post-targets --scene post-overlays-stress` keeps nonzero
+      G-buffer, deferred composite, final composite input, and final swapchain
+      readbacks.
+- [x] Add live command-shape capture/replay for deferred smoke development.
+      `MARE_VULKAN_WORLD_COMMAND_CAPTURE=/path/capture.txt` writes the first
+      Vulkan world command buffers submitted by the viewer. Increase the
+      default four-buffer limit with `MARE_VULKAN_WORLD_COMMAND_CAPTURE_BUFFERS`
+      when a longer startup/login window is needed. `mare-vulkan-smoke` can
+      replay the captured command shape with
+      `--scene replay-capture --capture /path/capture.txt`, using synthetic
+      geometry/textures but the captured command ordering, material classes,
+      deferred/post-deferred split, blend/depth/cull state, material factors,
+      and flags. This is not full mesh/texture capture yet; it is intended to
+      reproduce live-scene renderer state pressure without login/network
+      dependencies.
+      Scene-loaded capture: use
+      `MARE_VULKAN_WORLD_COMMAND_CAPTURE_TRIGGER=/tmp/mare_capture_go` to arm
+      capture at startup and start it only after the trigger file exists. Use
+      `MARE_VULKAN_WORLD_COMMAND_CAPTURE_SKIP_BUFFERS` to skip a few eligible
+      submitted buffers after triggering, and
+      `MARE_VULKAN_WORLD_COMMAND_CAPTURE_MIN_COMMANDS` to ignore sparse loading
+      buffers. Captures now also record texture dimensions/discard metadata,
+      texture-list counts, GLTF texture transforms, and the legacy texture
+      matrix transform; replay consumes the captured transforms while still
+      using synthetic geometry/textures.
+      Smoke scenes can draw an opt-in top-left scene marker with
+      `--scene-marker`, and `replay-capture` uses a diagnostic palette keyed by captured material/pass
+      so it is visually distinguishable from the synthetic `basic` and
+      `post-overlays-stress` scenes even though real mesh/texture payloads are
+      still not serialized. Capture replay also groups commands visually by
+      material/state so the smoke output is a readable command-shape summary
+      instead of a random-looking replay-order mosaic.
+      The smoke CLI now rejects `--scene replay-capture` on modes such as
+      `direct-clear` that cannot consume captured world commands, so diagnostic
+      runs do not silently display an unrelated clear/UI test while appearing to
+      use the capture. Startup logs now also state explicitly that
+      `replay-capture` is not a captured-scene renderer and that
+      `--ui-viewer-sequence` overlays synthetic UI over the command summary.
+      Validation: the `mare-vulkan-smoke` target builds, and the checked-in
+      `indra/newview/tests/fixtures/mare_vulkan_world_capture_basic.txt` replay
+      passes in `viewer-staged-post-overlays` with and without
+      `--ui-viewer-sequence`, keeping nonzero G-buffer, deferred composite, and
+      final swapchain readbacks.
+      Live-capture validation: replaying the 331-command, 8-buffer capture from
+      `mare_world_capture.txt` through `viewer-staged-post-overlays` and
+      `viewer-staged-post-targets` with `--ui-viewer-sequence` kept all final
+      swapchain readbacks nonzero. That confirms the current work should target
+      deferred correctness, not black-frame reproduction.
+- [ ] Extend capture/replay from command shape to real geometry/texture samples.
+      The first capture path intentionally does not serialize live mesh payloads
+      or real texture contents. Add that only if command-shape replay cannot
+      reproduce the next deferred/staged graph defect, because it will create
+      much larger fixtures and more churn around asset ownership.
 - [ ] Re-test Vulkan render-target attachment ownership.
       Vulkan now treats textures still attached to offscreen framebuffers as
       framebuffer-owned resources: delayed `LLImageGL::deleteTextures()` calls
@@ -1316,7 +1416,7 @@ Known missing runtime coverage:
       `viewer-render-target-direct --ui-viewer-sequence` testing stayed
       non-black, so the remaining black-world trigger is likely in the real
       viewer UI traversal or one of the real overlays around `gViewerWindow`.
-- [ ] Isolate the real viewer UI traversal that can cover the Vulkan world.
+- [x] Isolate the real viewer UI traversal that can cover the Vulkan world.
       Add targeted runtime switches/logging around `render_ui_internal()` and
       `render_ui_2d()` stages: HUD elements, HUD attachments, UI 3D,
       `LLHUDObject::renderAll()`, `gViewerWindow->draw()`, and debug text. The
@@ -1332,17 +1432,53 @@ Known missing runtime coverage:
       `MARE_VULKAN_DEBUG_SKIP_UI_HUD_OUTLINE=1`,
       `MARE_VULKAN_DEBUG_SKIP_UI_VIEWER_WINDOW_DRAW=1`, and
       `MARE_VULKAN_DEBUG_SKIP_UI_DEBUG_TEXT=1`.
-      Runtime testing isolated the black-world trigger to
-      `render_hud_attachments()`. The Vulkan path now skips the legacy HUD
-      attachment geometry by default because it uses the old post-deferred HUD
-      pipeline and can cover the Vulkan world frame. For diagnosis, set
-      `MARE_VULKAN_DEBUG_RENDER_LEGACY_HUD_ATTACHMENTS=1` to re-enable that
-      legacy path.
-- [ ] Add a native Vulkan HUD attachment path.
-      Current Vulkan behavior intentionally skips legacy HUD attachment geometry
-      to preserve world visibility. Final parity needs HUD attachment rendering
-      through explicit Vulkan world/HUD command emission instead of the legacy
-      OpenGL-era `renderGeomPostDeferred(hud_cam)` path.
+      Runtime testing isolated the black-world trigger to the legacy
+      `render_hud_attachments()` draw path. The Vulkan path now keeps HUD
+      matrices/culling/state sort, but routes HUD attachment geometry through
+      explicit world/HUD command emission instead of the OpenGL-era draw path.
+      Follow-up runtime validation moved the active investigation away from the
+      old black-frame/UI interaction. The current issue is incorrect Vulkan
+      deferred output: glitches, unstable composition, missing or wrong material
+      contribution, and parity gaps versus the OpenGL deferred path.
+- [x] Add a native Vulkan HUD attachment path.
+      HUD attachments now render through the Vulkan command path while
+      `LLPipeline::sRenderingHUDs` is active. The first pass covers the common
+      HUD material families: alpha, fullbright, fullbright alpha-mask, bump/shiny,
+      and GLTF PBR HUD draws.
+- [ ] Fix the active Vulkan deferred graph until it matches OpenGL semantics.
+      Current runtime issue: the viewer no longer fails as a simple black-frame
+      case, but deferred composition is visually wrong. Treat this as a render
+      graph/parity bug. Audit the G-buffer attachments, depth ownership, light
+      target reuse, post-deferred overlays, final composite inputs, viewport
+      scale, and descriptor/texture lifetime in the real viewer path and in
+      `mare-vulkan-smoke` replay modes.
+      First containment fix: offscreen Vulkan render passes now preserve target
+      contents when a render target is rebound without an explicit `clear()`.
+      Previously, a no-clear offscreen pass used `LOAD_OP_CLEAR`, which does not
+      match `LLRenderTarget::bindTarget()` semantics and can erase staged
+      deferred/light/screen target contents during target reuse.
+      Second containment fix: the Vulkan post-deferred geometry render-type mask
+      now mirrors the OpenGL `renderDeferredLighting()` post-deferred mask instead
+      of using a reduced subset. Missing post-deferred pass families should be
+      treated as parity bugs, not silently excluded draw types.
+      Third containment fix: staged screen composition now draws post-deferred
+      overlays into `screen` before flushing that target. This keeps the lit
+      world copy/deferred composite and overlays in one offscreen render pass,
+      avoiding a fragile `screen` reopen with attachment LOAD just to add
+      overlays. The smoke `viewer-staged-post-overlays` path mirrors this
+      same-pass ordering.
+      Fourth containment fix: offscreen render-pass external dependencies now
+      make color/depth writes visible not only to future shader reads, but also
+      to immediate reuse as color/depth attachments. This is still a guardrail
+      for target reuse cases that must reopen an offscreen target later.
+      Fifth containment fix: cleared offscreen render targets now enter render
+      passes from `SHADER_READ_ONLY_OPTIMAL` instead of `UNDEFINED`. The
+      `deferredLight` target is sampled, then reused as a color target in the
+      staged deferred graph; declaring that reuse as `UNDEFINED` could skip the
+      sampled-read to color-write synchronization and produce frame-to-frame
+      corruption in a static scene. `mare-vulkan-smoke --mode
+      viewer-staged-reused-light-overlays --scene basic --frames 300
+      --frame-diff` is now stable at `0.0000%` changed pixels through frame 300.
 
 Near-term parity order:
 

@@ -314,23 +314,22 @@ LLDrawPoolFullbright::LLDrawPoolFullbright() :
 
 bool LLDrawPoolFullbright::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
 {
-    if (LLPipeline::sRenderingHUDs)
-    {
-        return false;
-    }
-
     commands.appendRenderMap(
         LLRenderPass::PASS_FULLBRIGHT,
         LLWorldRenderMaterialClass::Fullbright,
         true,
         true,
         VERTEX_DATA_MASK);
-    commands.appendRenderMap(
-        LLRenderPass::PASS_FULLBRIGHT_RIGGED,
-        LLWorldRenderMaterialClass::Fullbright,
-        true,
-        true,
-        with_weight4_attribute(VERTEX_DATA_MASK));
+
+    if (!LLPipeline::sRenderingHUDs)
+    {
+        commands.appendRenderMap(
+            LLRenderPass::PASS_FULLBRIGHT_RIGGED,
+            LLWorldRenderMaterialClass::Fullbright,
+            true,
+            true,
+            with_weight4_attribute(VERTEX_DATA_MASK));
+    }
     return true;
 }
 
@@ -372,23 +371,22 @@ void LLDrawPoolFullbright::renderPostDeferred(S32 pass)
 
 bool LLDrawPoolFullbrightAlphaMask::emitPostDeferredCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
 {
-    if (LLPipeline::sRenderingHUDs)
-    {
-        return false;
-    }
-
     commands.appendRenderMap(
         LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK,
         LLWorldRenderMaterialClass::FullbrightAlphaMask,
         true,
         true,
         VERTEX_DATA_MASK);
-    commands.appendRenderMap(
-        LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK_RIGGED,
-        LLWorldRenderMaterialClass::FullbrightAlphaMask,
-        true,
-        true,
-        with_weight4_attribute(VERTEX_DATA_MASK));
+
+    if (!LLPipeline::sRenderingHUDs)
+    {
+        commands.appendRenderMap(
+            LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK_RIGGED,
+            LLWorldRenderMaterialClass::FullbrightAlphaMask,
+            true,
+            true,
+            with_weight4_attribute(VERTEX_DATA_MASK));
+    }
     return true;
 }
 

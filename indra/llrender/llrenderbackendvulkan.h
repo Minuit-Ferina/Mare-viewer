@@ -25,5 +25,6 @@
 #include "llrenderbackend.h"
 
 LLRenderBackend& getVulkanRenderBackend();
+void flushVulkanSmokeFrameDiffSummaries();
 
 #endif
