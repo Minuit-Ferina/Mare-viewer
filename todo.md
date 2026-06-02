@@ -370,6 +370,22 @@ Validation status:
       `active/glow.frag`, and related active G-buffer shaders are bootstrap
       adapters. The final Vulkan path should bind class-tier shaders matching
       the OpenGL families and selected viewer settings.
+      First safe runtime replacement: UI textured now binds
+      `class1/interface/ui.frag` instead of `active/ui.frag`. The UI vertex
+      remains `active/ui.vert` because the class1 interface vertex expects
+      matrix push constants while the current Vulkan UI bridge submits
+      pre-transformed clip-space positions.
+      Second safe runtime replacement: non-indexed direct `Textured` draws now
+      use `class1/objects/simple.frag` through a dedicated Vulkan simple
+      pipeline. Texture-indexed/batched draws and simple G-buffer draws still
+      use the active adapters until an indexed final simple path and matching
+      G-buffer owner are wired.
+      Do not replace the remaining active modules by path substitution alone:
+      `sky`, `terrain`, deferred soften/composite, post/final composite,
+      water, material/PBR/avatar G-buffer, and broad world textured adapters
+      currently have different descriptor, push-constant, varying, or color
+      attachment contracts from their OpenGL-derived class-tier sources. Each
+      replacement needs the matching final pipeline owner wired first.
 
 ### Vulkan Class-Tier Shader Parity Targets
 

@@ -1832,6 +1832,7 @@ struct LLVulkanPipelineSet
 {
     std::array<LLVkPipeline, MARE_VULKAN_PRIMITIVE_PIPELINE_COUNT> mUIPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mWorldPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mSimplePipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mSkyPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mWaterPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mHazePipelines = {};
@@ -1899,6 +1900,7 @@ struct LLVulkanNativeContext
     LLVkShaderModule mUIFragmentShader = nullptr;
     LLVkShaderModule mWorldVertexShader = nullptr;
     LLVkShaderModule mWorldFragmentShader = nullptr;
+    LLVkShaderModule mSimpleFragmentShader = nullptr;
     LLVkShaderModule mSkyFragmentShader = nullptr;
     LLVkShaderModule mWaterFragmentShader = nullptr;
     LLVkShaderModule mHazeFragmentShader = nullptr;
@@ -1945,6 +1947,7 @@ struct LLVulkanNativeContext
     LLVkPipeline mBootstrapPipeline = nullptr;
     std::array<LLVkPipeline, MARE_VULKAN_PRIMITIVE_PIPELINE_COUNT> mUIPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mWorldPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mSimplePipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mSkyPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mWaterPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mHazePipelines = {};
@@ -11366,6 +11369,8 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
 
     static constexpr LLVulkanFinalPipelineOwnerBinding OWNER_BINDINGS[] =
     {
+        {"ui-textured", "active/ui.vert.spv", "class1/interface/ui.frag.spv", "UI textured quads and font atlas draws", "runtime UI clip-space vertex adapter plus final class1 UI fragment", "UI blend/depth state from LLGLSUIDefault", "fragment bound to final class1 owner; vertex pending interface push-constant contract"},
+        {"simple-object", "active/world_textured.vert.spv", "class1/objects/simple.frag.spv", "non-indexed simple textured objects", "runtime world vertex adapter plus final class1 simple fragment", "direct Textured owner only when texture-index attribute is absent; G-buffer still uses active indexed adapter", "bound for non-indexed direct Textured draws"},
         {"sky-class1", "class1/deferred/sky.vert.spv", "class1/deferred/sky.frag.spv", "WindLight/EEP sky dome and haze", "pending final sky uniforms/varyings", "OpenGL sky owner depth/blend/cull state", "inventory-only"},
         {"terrain", "class1/deferred/terrain.vert.spv", "class1/deferred/terrain.frag.spv", "legacy terrain G-buffer", "pending terrain splat/G-buffer uniforms", "opaque depth write, owner cull state", "inventory-only"},
         {"pbr-terrain", "class1/deferred/pbrterrain.vert.spv", "class1/deferred/pbrterrain.frag.spv", "PBR terrain G-buffer", "pending PBR terrain material ABI", "opaque G-buffer terrain pass", "inventory-only"},
@@ -11527,6 +11532,7 @@ void destroy_vulkan_pipeline_set(
 {
     destroy_vulkan_pipeline_array(context, pipeline_set.mUIPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mWorldPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mSimplePipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mSkyPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mWaterPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mHazePipelines);
@@ -11568,6 +11574,7 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
 
     destroy_vulkan_pipeline_array(context, context.mUIPipelines);
     destroy_vulkan_pipeline_array(context, context.mWorldPipelines);
+    destroy_vulkan_pipeline_array(context, context.mSimplePipelines);
     destroy_vulkan_pipeline_array(context, context.mSkyPipelines);
     destroy_vulkan_pipeline_array(context, context.mWaterPipelines);
     destroy_vulkan_pipeline_array(context, context.mHazePipelines);
@@ -11670,6 +11677,10 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         if (context.mWorldFragmentShader)
         {
             destroy_shader_module_once(context.mWorldFragmentShader);
+        }
+        if (context.mSimpleFragmentShader)
+        {
+            destroy_shader_module_once(context.mSimpleFragmentShader);
         }
         if (context.mSkyFragmentShader)
         {
@@ -11830,6 +11841,7 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mUIFragmentShader = nullptr;
     context.mWorldVertexShader = nullptr;
     context.mWorldFragmentShader = nullptr;
+    context.mSimpleFragmentShader = nullptr;
     context.mSkyFragmentShader = nullptr;
     context.mWaterFragmentShader = nullptr;
     context.mHazeFragmentShader = nullptr;
@@ -12080,6 +12092,20 @@ bool create_vulkan_offscreen_pipeline_set(
             0,
             LL_VK_SHADER_STAGE_FRAGMENT_BIT,
             context.mSkyFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo simple_shader_stages[2] =
+    {
+        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mSimpleFragmentShader,
             "main",
             nullptr
         }
@@ -12853,6 +12879,34 @@ bool create_vulkan_offscreen_pipeline_set(
                                 << color_index
                                 << ") failed with result "
                                 << world_result
+                                << LL_ENDL;
+                            return false;
+                        }
+
+                        LLVkGraphicsPipelineCreateInfo simple_pipeline_create_info = world_pipeline_create_info;
+                        simple_pipeline_create_info.pStages = simple_shader_stages;
+                        S32 simple_result = create_graphics_pipelines(
+                            context.mDevice,
+                            nullptr,
+                            1,
+                            &simple_pipeline_create_info,
+                            nullptr,
+                            &pipeline_set.mSimplePipelines[world_pipeline_index]);
+                        if (simple_result != LL_VK_SUCCESS || !pipeline_set.mSimplePipelines[world_pipeline_index])
+                        {
+                            LL_WARNS("RenderBackend")
+                                << "vkCreateGraphicsPipelines(offscreen simple mode "
+                                << i
+                                << ", blend "
+                                << blend_index
+                                << ", depth "
+                                << depth_index
+                                << ", cull "
+                                << cull_index
+                                << ", color "
+                                << color_index
+                                << ") failed with result "
+                                << simple_result
                                 << LL_ENDL;
                             return false;
                         }
@@ -13634,11 +13688,13 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mUIVertexShader =
         get_vulkan_final_shader_module(context, "active/ui.vert.spv", "UI vertex");
     context.mUIFragmentShader =
-        get_vulkan_final_shader_module(context, "active/ui.frag.spv", "UI fragment");
+        get_vulkan_final_shader_module(context, "class1/interface/ui.frag.spv", "class1 UI fragment");
     context.mWorldVertexShader =
         get_vulkan_final_shader_module(context, "active/world_textured.vert.spv", "world vertex");
     context.mWorldFragmentShader =
         get_vulkan_final_shader_module(context, "active/world_textured.frag.spv", "world fragment");
+    context.mSimpleFragmentShader =
+        get_vulkan_final_shader_module(context, "class1/objects/simple.frag.spv", "class1 simple object fragment");
     context.mSkyFragmentShader =
         get_vulkan_final_shader_module(context, "active/sky.frag.spv", "sky fragment");
     context.mWaterFragmentShader =
@@ -13723,6 +13779,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         !context.mUIFragmentShader ||
         !context.mWorldVertexShader ||
         !context.mWorldFragmentShader ||
+        !context.mSimpleFragmentShader ||
         !context.mSkyFragmentShader ||
         !context.mWaterFragmentShader ||
         !context.mHazeFragmentShader ||
@@ -14261,6 +14318,20 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
             nullptr
         }
     };
+    LLVkPipelineShaderStageCreateInfo simple_shader_stages[2] =
+    {
+        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mSimpleFragmentShader,
+            "main",
+            nullptr
+        }
+    };
     LLVkPipelineShaderStageCreateInfo water_shader_stages[2] =
     {
         world_shader_stages[0],
@@ -14793,6 +14864,35 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
                         {
                             LL_WARNS("RenderBackend")
                                 << "vkCreateGraphicsPipelines(world mode "
+                                << i
+                                << ", blend "
+                                << blend_index
+                                << ", depth "
+                                << depth_index
+                                << ", cull "
+                                << cull_index
+                                << ", color "
+                                << color_index
+                                << ") failed with result "
+                                << result
+                                << LL_ENDL;
+                            destroy_vulkan_graphics_pipelines(context);
+                            return false;
+                        }
+
+                        LLVkGraphicsPipelineCreateInfo simple_pipeline_create_info = world_pipeline_create_info;
+                        simple_pipeline_create_info.pStages = simple_shader_stages;
+                        result = create_graphics_pipelines(
+                            context.mDevice,
+                            nullptr,
+                            1,
+                            &simple_pipeline_create_info,
+                            nullptr,
+                            &context.mSimplePipelines[world_pipeline_index]);
+                        if (result != LL_VK_SUCCESS || !context.mSimplePipelines[world_pipeline_index])
+                        {
+                            LL_WARNS("RenderBackend")
+                                << "vkCreateGraphicsPipelines(simple mode "
                                 << i
                                 << ", blend "
                                 << blend_index
@@ -16883,6 +16983,10 @@ bool record_vulkan_frame_command_buffer(
             active_pass.mPipelineSet ?
             active_pass.mPipelineSet->mWorldPipelines :
             context.mWorldPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& simple_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mSimplePipelines :
+            context.mSimplePipelines;
         const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& sky_pipelines =
             active_pass.mPipelineSet ?
             active_pass.mPipelineSet->mSkyPipelines :
@@ -16991,6 +17095,10 @@ bool record_vulkan_frame_command_buffer(
         };
         const bool use_gbuffer_pipeline =
             should_use_vulkan_gbuffer_pipeline(draw, active_pass);
+        const bool use_simple_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::Textured &&
+            !draw.mAttributes[13].mEnabled &&
+            !use_gbuffer_pipeline;
         if (draw.mUseWorldVertexShader)
         {
             ++world_draw_count;
@@ -17177,6 +17285,10 @@ bool record_vulkan_frame_command_buffer(
                 {
                     pipeline = multi_spot_light_pipelines[world_pipeline_index];
                 }
+                else if (use_simple_pipeline)
+                {
+                    pipeline = simple_pipelines[world_pipeline_index];
+                }
                 else if (use_gbuffer_pipeline)
                 {
                     const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>* gbuffer_pipelines =
@@ -17280,6 +17392,10 @@ bool record_vulkan_frame_command_buffer(
                     else if (use_multi_spot_light_pipeline)
                     {
                         pipeline = multi_spot_light_pipelines[world_pipeline_index];
+                    }
+                    else if (use_simple_pipeline)
+                    {
+                        pipeline = simple_pipelines[world_pipeline_index];
                     }
                     else if (use_gbuffer_pipeline)
                     {
