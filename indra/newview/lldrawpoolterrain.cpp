@@ -394,6 +394,7 @@ bool LLDrawPoolTerrain::emitDeferredCommands(LLWorldRenderCommandBuffer& command
                 terrain_paint_type,
                 terrain_planar_sample_count,
                 terrain_triplanar_blend_factor,
+                terrain_materials != nullptr,
                 sDetailScale,
                 offset_x,
                 offset_y);

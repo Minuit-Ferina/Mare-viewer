@@ -16,6 +16,7 @@ layout(set = 0, binding = 16) uniform sampler2D normal3;
 
 layout(push_constant) uniform MareWorldPushConstants
 {
+    layout(offset = 64) vec4 params;
     layout(offset = 80) vec4 terrain_params;
     layout(offset = 96) vec4 terrain_metallic;
     layout(offset = 112) vec4 terrain_roughness;
@@ -55,6 +56,19 @@ layout(location = 1) out vec4 frag_specular_or_orm;
 layout(location = 2) out vec4 frag_normal;
 
 const float TERRAIN_TRIPLANAR_MIX_THRESHOLD = 0.01;
+
+bool terrain_uses_pbr_materials()
+{
+    return pc.params.y > 0.5;
+}
+
+vec3 srgb_to_linear(vec3 color)
+{
+    bvec3 cutoff = lessThanEqual(color, vec3(0.04045));
+    vec3 low = color / 12.92;
+    vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
+    return mix(high, low, cutoff);
+}
 
 vec4 encode_normal(vec3 n, float gbuffer_flag)
 {
@@ -164,6 +178,16 @@ vec4 terrain_sample_rgba(sampler2D tex, int material, vec2 planar_texcoord)
         texture(tex, terrain_axis_texcoord(material, 0)) * weights.x +
         texture(tex, terrain_axis_texcoord(material, 1)) * weights.y +
         texture(tex, terrain_axis_texcoord(material, 2)) * weights.z;
+}
+
+vec4 terrain_sample_base_color(sampler2D tex, int material, vec2 planar_texcoord)
+{
+    vec4 color = terrain_sample_rgba(tex, material, planar_texcoord);
+    if (terrain_uses_pbr_materials())
+    {
+        color.rgb = srgb_to_linear(max(color.rgb, vec3(0.0)));
+    }
+    return color;
 }
 
 vec3 terrain_base_normal()
@@ -336,10 +360,10 @@ float terrain_minimum_alpha(vec4 weights)
 
 void main()
 {
-    vec4 color0 = terrain_sample_rgba(detail0, 0, vary_detail_texcoord0) * pc.terrain_base_color0;
-    vec4 color1 = terrain_sample_rgba(detail1, 1, vary_detail_texcoord1) * pc.terrain_base_color1;
-    vec4 color2 = terrain_sample_rgba(detail2, 2, vary_detail_texcoord2) * pc.terrain_base_color2;
-    vec4 color3 = terrain_sample_rgba(detail3, 3, vary_detail_texcoord3) * pc.terrain_base_color3;
+    vec4 color0 = terrain_sample_base_color(detail0, 0, vary_detail_texcoord0) * pc.terrain_base_color0;
+    vec4 color1 = terrain_sample_base_color(detail1, 1, vary_detail_texcoord1) * pc.terrain_base_color1;
+    vec4 color2 = terrain_sample_base_color(detail2, 2, vary_detail_texcoord2) * pc.terrain_base_color2;
+    vec4 color3 = terrain_sample_base_color(detail3, 3, vary_detail_texcoord3) * pc.terrain_base_color3;
 
     vec4 weights = terrain_weights();
 
@@ -354,30 +378,37 @@ void main()
         discard;
     }
 
-    vec4 orm_sample0 = terrain_sample_rgba(orm0, 0, vary_detail_texcoord0);
-    vec4 orm_sample1 = terrain_sample_rgba(orm1, 1, vary_detail_texcoord1);
-    vec4 orm_sample2 = terrain_sample_rgba(orm2, 2, vary_detail_texcoord2);
-    vec4 orm_sample3 = terrain_sample_rgba(orm3, 3, vary_detail_texcoord3);
-    float occlusion =
-        orm_sample0.r * weights.x +
-        orm_sample1.r * weights.y +
-        orm_sample2.r * weights.z +
-        orm_sample3.r * weights.w;
-    float roughness = dot(
-        pc.terrain_roughness *
-            vec4(orm_sample0.g, orm_sample1.g, orm_sample2.g, orm_sample3.g),
-        weights);
-    float metallic = dot(
-        pc.terrain_metallic *
-            vec4(orm_sample0.b, orm_sample1.b, orm_sample2.b, orm_sample3.b),
-        weights);
-
     frag_diffuse = vec4(max(color.rgb, vec3(0.0)), 0.0);
-    frag_specular_or_orm =
-        vec4(
-            clamp(occlusion, 0.0, 1.0),
-            clamp(roughness, 0.04, 1.0),
-            clamp(metallic, 0.0, 1.0),
-            1.0);
-    frag_normal = encode_normal(terrain_normal(weights), 1.0);
+    if (terrain_uses_pbr_materials())
+    {
+        vec4 orm_sample0 = terrain_sample_rgba(orm0, 0, vary_detail_texcoord0);
+        vec4 orm_sample1 = terrain_sample_rgba(orm1, 1, vary_detail_texcoord1);
+        vec4 orm_sample2 = terrain_sample_rgba(orm2, 2, vary_detail_texcoord2);
+        vec4 orm_sample3 = terrain_sample_rgba(orm3, 3, vary_detail_texcoord3);
+        float occlusion =
+            orm_sample0.r * weights.x +
+            orm_sample1.r * weights.y +
+            orm_sample2.r * weights.z +
+            orm_sample3.r * weights.w;
+        float roughness = dot(
+            pc.terrain_roughness *
+                vec4(orm_sample0.g, orm_sample1.g, orm_sample2.g, orm_sample3.g),
+            weights);
+        float metallic = dot(
+            pc.terrain_metallic *
+                vec4(orm_sample0.b, orm_sample1.b, orm_sample2.b, orm_sample3.b),
+            weights);
+        frag_specular_or_orm =
+            vec4(
+                clamp(occlusion, 0.0, 1.0),
+                clamp(roughness, 0.04, 1.0),
+                clamp(metallic, 0.0, 1.0),
+                1.0);
+        frag_normal = encode_normal(terrain_normal(weights), 1.0);
+    }
+    else
+    {
+        frag_specular_or_orm = vec4(0.0, 0.0, 0.0, -1.0);
+        frag_normal = encode_normal(terrain_base_normal(), 1.0);
+    }
 }

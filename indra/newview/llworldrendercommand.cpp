@@ -1250,6 +1250,8 @@ const char* get_world_render_shader_class_name(LLRenderWorldShaderClass shader_c
         case LLRenderWorldShaderClass::SpotLight: return "SpotLight";
         case LLRenderWorldShaderClass::MultiSpotLight: return "MultiSpotLight";
         case LLRenderWorldShaderClass::Copy: return "Copy";
+        case LLRenderWorldShaderClass::DeferredLightMap: return "DeferredLightMap";
+        case LLRenderWorldShaderClass::DeferredSoften: return "DeferredSoften";
         case LLRenderWorldShaderClass::DeferredComposite: return "DeferredComposite";
         case LLRenderWorldShaderClass::FinalComposite: return "FinalComposite";
     }
@@ -1442,6 +1444,7 @@ void LLWorldRenderCommandBuffer::appendTerrainFace(
     U32 paint_type,
     U32 planar_sample_count,
     F32 triplanar_blend_factor,
+    bool uses_pbr_materials,
     F32 detail_scale,
     F32 offset_x,
     F32 offset_y)
@@ -1487,6 +1490,7 @@ void LLWorldRenderCommandBuffer::appendTerrainFace(
     command.mTerrainPaintType = paint_type;
     command.mTerrainPlanarSampleCount = planar_sample_count;
     command.mTerrainTriplanarBlendFactor = triplanar_blend_factor;
+    command.mTerrainUsesPBRMaterials = uses_pbr_materials;
     if (base_color_factors)
     {
         for (U32 i = 0; i < 4; ++i)
@@ -1869,6 +1873,8 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
                 static_cast<F32>(command.mTerrainPlanarSampleCount);
             terrain_parameters.mTriplanarBlendFactor =
                 command.mTerrainTriplanarBlendFactor;
+            terrain_parameters.mUsesPBRMaterials =
+                command.mTerrainUsesPBRMaterials ? 1.f : 0.f;
             for (U32 i = 0; i < 4; ++i)
             {
                 terrain_parameters.mBaseColorFactors[i * 4 + 0] =

@@ -1158,6 +1158,7 @@ constexpr U32 LL_VK_IMAGE_USAGE_TRANSFER_DST_BIT = 0x00000002;
 constexpr U32 LL_VK_IMAGE_USAGE_SAMPLED_BIT = 0x00000004;
 constexpr U32 LL_VK_BUFFER_USAGE_TRANSFER_SRC_BIT = 0x00000001;
 constexpr U32 LL_VK_BUFFER_USAGE_TRANSFER_DST_BIT = 0x00000002;
+constexpr U32 LL_VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT = 0x00000010;
 constexpr U32 LL_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT = 0x00000020;
 constexpr U32 LL_VK_BUFFER_USAGE_INDEX_BUFFER_BIT = 0x00000040;
 constexpr U32 LL_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT = 0x00000080;
@@ -1655,6 +1656,95 @@ struct LLVulkanWorldPushConstants
     glm::vec4 mCompositeExtra = glm::vec4(0.f, 0.f, 0.f, 0.f);
 };
 
+struct LLVulkanPointLightUniforms
+{
+    glm::mat4 mModelviewProjection = glm::mat4(1.f);
+    glm::mat4 mModelview = glm::mat4(1.f);
+    glm::vec4 mCenterSize = glm::vec4(0.f, 0.f, 0.f, 1.f);
+    glm::mat4 mInverseProjection = glm::mat4(1.f);
+    glm::vec4 mColorFalloff = glm::vec4(1.f, 1.f, 1.f, 0.f);
+    glm::vec4 mSizeClassic = glm::vec4(1.f, 0.f, 0.f, 0.f);
+    glm::vec4 mScreenResolutionSunWash = glm::vec4(1.f, 1.f, 0.f, 0.f);
+    glm::vec4 mViewport = glm::vec4(0.f, 0.f, 1.f, 1.f);
+    glm::vec4 mEnvironmentMatrix0 = glm::vec4(1.f, 0.f, 0.f, 0.f);
+    glm::vec4 mEnvironmentMatrix1 = glm::vec4(0.f, 1.f, 0.f, 0.f);
+    glm::vec4 mEnvironmentMatrix2 = glm::vec4(0.f, 0.f, 1.f, 0.f);
+};
+
+struct LLVulkanMultiPointLightUniforms
+{
+    glm::mat4 mInverseProjection = glm::mat4(1.f);
+    glm::vec4 mLight[LLRenderWorldMaterialParameters::MaxDeferredMultiLightCount] = {};
+    glm::vec4 mLightColor[LLRenderWorldMaterialParameters::MaxDeferredMultiLightCount] = {};
+    glm::vec4 mScreenResolutionFarZ = glm::vec4(1.f, 1.f, 0.f, 0.f);
+    glm::vec4 mEnvironmentMatrix0 = glm::vec4(1.f, 0.f, 0.f, 0.f);
+    glm::vec4 mEnvironmentMatrix1 = glm::vec4(0.f, 1.f, 0.f, 0.f);
+    glm::vec4 mEnvironmentMatrix2 = glm::vec4(0.f, 0.f, 1.f, 0.f);
+    glm::vec4 mSunWashLightCount = glm::vec4(0.f, 0.f, 0.f, 0.f);
+};
+
+struct LLVulkanSpotLightClass1Uniforms
+{
+    glm::mat4 mModelviewProjection = glm::mat4(1.f);
+    glm::mat4 mModelview = glm::mat4(1.f);
+    glm::vec4 mCenterSize = glm::vec4(0.f, 0.f, 0.f, 1.f);
+    glm::mat4 mInverseProjection = glm::mat4(1.f);
+    glm::mat4 mProjectionMatrix = glm::mat4(1.f);
+    glm::vec4 mProjectionPAndNear = glm::vec4(0.f, 0.f, 0.f, 0.f);
+    glm::vec4 mProjectionNAndFocus = glm::vec4(0.f, 0.f, -1.f, 0.f);
+    glm::vec4 mProjectionLodRangeAmbiance = glm::vec4(0.f, 1.f, 0.f, 0.f);
+    glm::vec4 mNearFarSunWash = glm::vec4(0.f, 1.f, 0.f, 0.f);
+    glm::vec4 mProjectionOriginSize = glm::vec4(0.f, 0.f, 0.f, 1.f);
+    glm::vec4 mColorFalloff = glm::vec4(1.f, 1.f, 1.f, 0.f);
+    glm::vec4 mScreenResolutionClassic = glm::vec4(1.f, 1.f, 0.f, 0.f);
+};
+
+struct LLVulkanSpotLightClass3Uniforms
+{
+    glm::mat4 mModelviewProjection = glm::mat4(1.f);
+    glm::mat4 mModelview = glm::mat4(1.f);
+    glm::vec4 mCenterSize = glm::vec4(0.f, 0.f, 0.f, 1.f);
+    glm::mat4 mInverseProjection = glm::mat4(1.f);
+    glm::mat4 mProjectionMatrix = glm::mat4(1.f);
+    glm::vec4 mProjectionPAndNear = glm::vec4(0.f, 0.f, 0.f, 0.f);
+    glm::vec4 mProjectionNAndFocus = glm::vec4(0.f, 0.f, -1.f, 0.f);
+    glm::vec4 mProjectionLodRangeAmbiance = glm::vec4(0.f, 1.f, 0.f, 0.f);
+    glm::vec4 mNearFarSunShadow = glm::vec4(0.f, 1.f, 0.f, 1.f);
+    glm::ivec4 mShadowIndices = glm::ivec4(-1, -1, 0, 0);
+    glm::vec4 mProjectionOriginSize = glm::vec4(0.f, 0.f, 0.f, 1.f);
+    glm::vec4 mColorFalloff = glm::vec4(1.f, 1.f, 1.f, 0.f);
+    glm::vec4 mScreenResolutionClassic = glm::vec4(1.f, 1.f, 0.f, 0.f);
+};
+
+struct LLVulkanMultiSpotLightClass1Uniforms
+{
+    glm::mat4 mInverseProjection = glm::mat4(1.f);
+    glm::mat4 mProjectionMatrix = glm::mat4(1.f);
+    glm::vec4 mProjectionPAndNear = glm::vec4(0.f, 0.f, 0.f, 0.f);
+    glm::vec4 mProjectionNAndFocus = glm::vec4(0.f, 0.f, -1.f, 0.f);
+    glm::vec4 mProjectionLodRangeAmbiance = glm::vec4(0.f, 1.f, 0.f, 0.f);
+    glm::vec4 mNearFarSunWash = glm::vec4(0.f, 1.f, 0.f, 0.f);
+    glm::vec4 mProjectionOriginSize = glm::vec4(0.f, 0.f, 0.f, 1.f);
+    glm::vec4 mCenterFalloff = glm::vec4(0.f, 0.f, 0.f, 0.f);
+    glm::vec4 mColorScreenX = glm::vec4(1.f, 1.f, 1.f, 1.f);
+    glm::vec4 mScreenYPad = glm::vec4(1.f, 0.f, 0.f, 0.f);
+};
+
+struct LLVulkanMultiSpotLightClass2Uniforms
+{
+    glm::mat4 mInverseProjection = glm::mat4(1.f);
+    glm::mat4 mProjectionMatrix = glm::mat4(1.f);
+    glm::vec4 mProjectionPAndNear = glm::vec4(0.f, 0.f, 0.f, 0.f);
+    glm::vec4 mProjectionNAndFocus = glm::vec4(0.f, 0.f, -1.f, 0.f);
+    glm::vec4 mProjectionLodRangeAmbiance = glm::vec4(0.f, 1.f, 0.f, 0.f);
+    glm::vec4 mNearFarSunShadow = glm::vec4(0.f, 1.f, 0.f, 1.f);
+    glm::ivec4 mShadowIndices = glm::ivec4(-1, -1, 0, 0);
+    glm::vec4 mProjectionOriginSize = glm::vec4(0.f, 0.f, 0.f, 1.f);
+    glm::vec4 mCenterFalloff = glm::vec4(0.f, 0.f, 0.f, 0.f);
+    glm::vec4 mColorScreenX = glm::vec4(1.f, 1.f, 1.f, 1.f);
+    glm::vec4 mScreenYPad = glm::vec4(1.f, 0.f, 0.f, 0.f);
+};
+
 bool is_vulkan_default_world_overlay_draw(const LLVulkanPendingDraw& draw)
 {
     return draw.mUseWorldVertexShader &&
@@ -1665,6 +1755,8 @@ bool is_vulkan_default_world_overlay_draw(const LLVulkanPendingDraw& draw)
         draw.mWorldShaderClass != LLRenderWorldShaderClass::SpotLight &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::MultiSpotLight &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredLightMap &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredSoften &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite;
 }
@@ -1861,6 +1953,8 @@ struct LLVulkanPipelineSet
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mAvatarGBufferPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mTerrainGBufferPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mCopyPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredLightMapPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredSoftenPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredCompositePipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mFinalCompositePipelines = {};
 };
@@ -1929,6 +2023,8 @@ struct LLVulkanNativeContext
     LLVkShaderModule mAvatarGBufferEmissiveFragmentShader = nullptr;
     LLVkShaderModule mCopyVertexShader = nullptr;
     LLVkShaderModule mCopyFragmentShader = nullptr;
+    LLVkShaderModule mDeferredLightMapFragmentShader = nullptr;
+    LLVkShaderModule mDeferredSoftenFragmentShader = nullptr;
     LLVkShaderModule mDeferredCompositeFragmentShader = nullptr;
     LLVkShaderModule mFinalCompositeFragmentShader = nullptr;
     LLVkShaderModule mPointLightVertexShader = nullptr;
@@ -1973,6 +2069,8 @@ struct LLVulkanNativeContext
         std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>,
         MARE_VULKAN_DEFERRED_SHADER_CLASS_COUNT> mMultiSpotLightPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mCopyPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredLightMapPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredSoftenPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredCompositePipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mFinalCompositePipelines = {};
     std::unordered_map<U64, LLVulkanPipelineSet> mOffscreenPipelineSets;
@@ -1982,6 +2080,7 @@ struct LLVulkanNativeContext
     LLVulkanBufferResource mDefaultTangentBuffer;
     LLVulkanBufferResource mSkinningMatrixPaletteBuffer;
     std::vector<LLVulkanBufferResource> mTransientFrameBuffers;
+    std::vector<LLVkDescriptorSet> mTransientWorldUniformDescriptorSets;
     std::vector<LLVulkanBufferAverageReadback> mPendingBufferAverageReadbacks;
     U64 mTransientFrameBufferBytes = 0;
     U32 mGraphicsQueueFamilyIndex = LL_VK_QUEUE_FAMILY_IGNORED;
@@ -3756,6 +3855,26 @@ void destroy_vulkan_buffer_resource(
 
 void destroy_vulkan_transient_frame_buffers(LLVulkanNativeContext& context)
 {
+    if (!context.mTransientWorldUniformDescriptorSets.empty() &&
+        context.mFreeDescriptorSets &&
+        context.mUIDescriptorPool &&
+        context.mDevice)
+    {
+        const S32 result = context.mFreeDescriptorSets(
+            context.mDevice,
+            context.mUIDescriptorPool,
+            static_cast<U32>(context.mTransientWorldUniformDescriptorSets.size()),
+            context.mTransientWorldUniformDescriptorSets.data());
+        if (result != LL_VK_SUCCESS)
+        {
+            LL_WARNS("RenderBackend")
+                << "vkFreeDescriptorSets(transient world uniforms) failed with result "
+                << result
+                << LL_ENDL;
+        }
+    }
+    context.mTransientWorldUniformDescriptorSets.clear();
+
     for (LLVulkanBufferResource& resource : context.mTransientFrameBuffers)
     {
         destroy_vulkan_buffer_resource(context, resource);
@@ -7916,6 +8035,308 @@ LLVkDescriptorSet get_vulkan_texture_descriptor_set(
     return descriptor_set;
 }
 
+LLVkDescriptorSet create_vulkan_world_uniform_descriptor_set(
+    LLVulkanNativeContext& context,
+    const void* data,
+    U64 size)
+{
+    if (!data ||
+        size == 0 ||
+        !context.mAllocateDescriptorSets ||
+        !context.mUpdateDescriptorSets ||
+        !context.mUIDescriptorPool ||
+        !context.mWorldUniformDescriptorSetLayout)
+    {
+        return nullptr;
+    }
+
+    LLVulkanBufferResource uniform_buffer;
+    if (!create_vulkan_buffer_resource(
+            context,
+            size,
+            LL_VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            data,
+            uniform_buffer,
+            0,
+            false))
+    {
+        return nullptr;
+    }
+
+    LLVkDescriptorSet descriptor_set = nullptr;
+    LLVkDescriptorSetAllocateInfo descriptor_allocate_info =
+    {
+        LL_VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        nullptr,
+        context.mUIDescriptorPool,
+        1,
+        &context.mWorldUniformDescriptorSetLayout
+    };
+
+    S32 result = context.mAllocateDescriptorSets(
+        context.mDevice,
+        &descriptor_allocate_info,
+        &descriptor_set);
+    if (result != LL_VK_SUCCESS || !descriptor_set)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkAllocateDescriptorSets(world uniform) failed with result "
+            << result
+            << LL_ENDL;
+        destroy_vulkan_buffer_resource(context, uniform_buffer);
+        return nullptr;
+    }
+
+    LLVkDescriptorBufferInfo buffer_info =
+    {
+        uniform_buffer.mBuffer,
+        0,
+        uniform_buffer.mSize
+    };
+    LLVkWriteDescriptorSet write_descriptor =
+    {
+        LL_VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        nullptr,
+        descriptor_set,
+        0,
+        0,
+        1,
+        LL_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        nullptr,
+        &buffer_info,
+        nullptr
+    };
+    context.mUpdateDescriptorSets(
+        context.mDevice,
+        1,
+        &write_descriptor,
+        0,
+        nullptr);
+
+    context.mTransientFrameBufferBytes += uniform_buffer.mMemorySize;
+    context.mTransientFrameBuffers.push_back(uniform_buffer);
+    context.mTransientWorldUniformDescriptorSets.push_back(descriptor_set);
+    return descriptor_set;
+}
+
+glm::vec4 make_vulkan_local_light_vec4(const F32* values)
+{
+    return glm::vec4(values[0], values[1], values[2], values[3]);
+}
+
+glm::vec4 make_vulkan_local_light_env_row(
+    const LLRenderWorldMaterialParameters& parameters,
+    U32 row)
+{
+    const U32 offset = row * 3;
+    return glm::vec4(
+        parameters.mCompositeEnvironmentMatrix[offset],
+        parameters.mCompositeEnvironmentMatrix[offset + 1],
+        parameters.mCompositeEnvironmentMatrix[offset + 2],
+        0.f);
+}
+
+LLVulkanPointLightUniforms make_vulkan_point_light_uniforms(
+    const LLVulkanPendingDraw& draw)
+{
+    const LLRenderWorldMaterialParameters& parameters = draw.mMaterialParameters;
+    LLVulkanPointLightUniforms uniforms;
+    uniforms.mModelviewProjection = glm::make_mat4(parameters.mLocalLightModelviewProjection);
+    uniforms.mModelview = glm::make_mat4(parameters.mLocalLightModelview);
+    uniforms.mCenterSize = make_vulkan_local_light_vec4(parameters.mLocalLightCenterSize);
+    uniforms.mInverseProjection = glm::make_mat4(parameters.mCompositeInverseProjection);
+    uniforms.mColorFalloff = make_vulkan_local_light_vec4(parameters.mLocalLightColor);
+    uniforms.mSizeClassic = glm::vec4(
+        parameters.mLocalLightCenterSize[3],
+        parameters.mLocalLightScreenSettings[3],
+        0.f,
+        0.f);
+    uniforms.mScreenResolutionSunWash = glm::vec4(
+        parameters.mLocalLightScreenSettings[0],
+        parameters.mLocalLightScreenSettings[1],
+        parameters.mLocalLightSunWashAndCount[0],
+        0.f);
+    uniforms.mViewport = make_vulkan_local_light_vec4(parameters.mLocalLightViewport);
+    uniforms.mEnvironmentMatrix0 = make_vulkan_local_light_env_row(parameters, 0);
+    uniforms.mEnvironmentMatrix1 = make_vulkan_local_light_env_row(parameters, 1);
+    uniforms.mEnvironmentMatrix2 = make_vulkan_local_light_env_row(parameters, 2);
+    return uniforms;
+}
+
+LLVulkanMultiPointLightUniforms make_vulkan_multi_point_light_uniforms(
+    const LLVulkanPendingDraw& draw)
+{
+    LLVulkanMultiPointLightUniforms uniforms;
+    uniforms.mInverseProjection =
+        glm::make_mat4(draw.mMaterialParameters.mCompositeInverseProjection);
+    for (U32 i = 0; i < LLRenderWorldMaterialParameters::MaxDeferredMultiLightCount; ++i)
+    {
+        const U32 offset = i * 4;
+        uniforms.mLight[i] = glm::vec4(
+            draw.mMaterialParameters.mLocalLight[offset],
+            draw.mMaterialParameters.mLocalLight[offset + 1],
+            draw.mMaterialParameters.mLocalLight[offset + 2],
+            draw.mMaterialParameters.mLocalLight[offset + 3]);
+        uniforms.mLightColor[i] = glm::vec4(
+            draw.mMaterialParameters.mLocalLightColor[offset],
+            draw.mMaterialParameters.mLocalLightColor[offset + 1],
+            draw.mMaterialParameters.mLocalLightColor[offset + 2],
+            draw.mMaterialParameters.mLocalLightColor[offset + 3]);
+    }
+    uniforms.mScreenResolutionFarZ = glm::vec4(
+        draw.mMaterialParameters.mLocalLightScreenSettings[0],
+        draw.mMaterialParameters.mLocalLightScreenSettings[1],
+        draw.mMaterialParameters.mLocalLightScreenSettings[2],
+        draw.mMaterialParameters.mLocalLightScreenSettings[3]);
+    uniforms.mEnvironmentMatrix0 = glm::vec4(
+        draw.mMaterialParameters.mCompositeEnvironmentMatrix[0],
+        draw.mMaterialParameters.mCompositeEnvironmentMatrix[1],
+        draw.mMaterialParameters.mCompositeEnvironmentMatrix[2],
+        0.f);
+    uniforms.mEnvironmentMatrix1 = glm::vec4(
+        draw.mMaterialParameters.mCompositeEnvironmentMatrix[3],
+        draw.mMaterialParameters.mCompositeEnvironmentMatrix[4],
+        draw.mMaterialParameters.mCompositeEnvironmentMatrix[5],
+        0.f);
+    uniforms.mEnvironmentMatrix2 = glm::vec4(
+        draw.mMaterialParameters.mCompositeEnvironmentMatrix[6],
+        draw.mMaterialParameters.mCompositeEnvironmentMatrix[7],
+        draw.mMaterialParameters.mCompositeEnvironmentMatrix[8],
+        0.f);
+    uniforms.mSunWashLightCount = glm::vec4(
+        draw.mMaterialParameters.mLocalLightSunWashAndCount[0],
+        draw.mMaterialParameters.mLocalLightSunWashAndCount[1],
+        draw.mMaterialParameters.mLocalLightSunWashAndCount[2],
+        draw.mMaterialParameters.mLocalLightSunWashAndCount[3]);
+    return uniforms;
+}
+
+LLVulkanSpotLightClass1Uniforms make_vulkan_spot_light_class1_uniforms(
+    const LLVulkanPendingDraw& draw)
+{
+    const LLRenderWorldMaterialParameters& parameters = draw.mMaterialParameters;
+    LLVulkanSpotLightClass1Uniforms uniforms;
+    uniforms.mModelviewProjection = glm::make_mat4(parameters.mLocalLightModelviewProjection);
+    uniforms.mModelview = glm::make_mat4(parameters.mLocalLightModelview);
+    uniforms.mCenterSize = make_vulkan_local_light_vec4(parameters.mLocalLightCenterSize);
+    uniforms.mInverseProjection = glm::make_mat4(parameters.mCompositeInverseProjection);
+    uniforms.mProjectionMatrix = glm::make_mat4(parameters.mLocalLightProjectionMatrix);
+    uniforms.mProjectionPAndNear = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionPAndNear);
+    uniforms.mProjectionNAndFocus = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionNAndFocus);
+    uniforms.mProjectionLodRangeAmbiance = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionLodRangeAmbiance);
+    uniforms.mNearFarSunWash = glm::vec4(
+        parameters.mLocalLightNearFarSunShadow[0],
+        parameters.mLocalLightNearFarSunShadow[1],
+        parameters.mLocalLightSunWashAndCount[0],
+        0.f);
+    uniforms.mProjectionOriginSize = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionOriginSize);
+    uniforms.mColorFalloff = make_vulkan_local_light_vec4(parameters.mLocalLightColor);
+    uniforms.mScreenResolutionClassic = glm::vec4(
+        parameters.mLocalLightScreenSettings[0],
+        parameters.mLocalLightScreenSettings[1],
+        parameters.mLocalLightScreenSettings[3],
+        0.f);
+    return uniforms;
+}
+
+LLVulkanSpotLightClass3Uniforms make_vulkan_spot_light_class3_uniforms(
+    const LLVulkanPendingDraw& draw)
+{
+    const LLRenderWorldMaterialParameters& parameters = draw.mMaterialParameters;
+    LLVulkanSpotLightClass3Uniforms uniforms;
+    uniforms.mModelviewProjection = glm::make_mat4(parameters.mLocalLightModelviewProjection);
+    uniforms.mModelview = glm::make_mat4(parameters.mLocalLightModelview);
+    uniforms.mCenterSize = make_vulkan_local_light_vec4(parameters.mLocalLightCenterSize);
+    uniforms.mInverseProjection = glm::make_mat4(parameters.mCompositeInverseProjection);
+    uniforms.mProjectionMatrix = glm::make_mat4(parameters.mLocalLightProjectionMatrix);
+    uniforms.mProjectionPAndNear = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionPAndNear);
+    uniforms.mProjectionNAndFocus = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionNAndFocus);
+    uniforms.mProjectionLodRangeAmbiance = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionLodRangeAmbiance);
+    uniforms.mNearFarSunShadow = make_vulkan_local_light_vec4(parameters.mLocalLightNearFarSunShadow);
+    uniforms.mShadowIndices = glm::ivec4(
+        static_cast<S32>(parameters.mLocalLightShadowIndices[0]),
+        static_cast<S32>(parameters.mLocalLightShadowIndices[1]),
+        static_cast<S32>(parameters.mLocalLightShadowIndices[2]),
+        static_cast<S32>(parameters.mLocalLightShadowIndices[3]));
+    uniforms.mProjectionOriginSize = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionOriginSize);
+    uniforms.mColorFalloff = make_vulkan_local_light_vec4(parameters.mLocalLightColor);
+    uniforms.mScreenResolutionClassic = glm::vec4(
+        parameters.mLocalLightScreenSettings[0],
+        parameters.mLocalLightScreenSettings[1],
+        parameters.mLocalLightScreenSettings[3],
+        0.f);
+    return uniforms;
+}
+
+LLVulkanMultiSpotLightClass1Uniforms make_vulkan_multi_spot_light_class1_uniforms(
+    const LLVulkanPendingDraw& draw)
+{
+    const LLRenderWorldMaterialParameters& parameters = draw.mMaterialParameters;
+    LLVulkanMultiSpotLightClass1Uniforms uniforms;
+    uniforms.mInverseProjection = glm::make_mat4(parameters.mCompositeInverseProjection);
+    uniforms.mProjectionMatrix = glm::make_mat4(parameters.mLocalLightProjectionMatrix);
+    uniforms.mProjectionPAndNear = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionPAndNear);
+    uniforms.mProjectionNAndFocus = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionNAndFocus);
+    uniforms.mProjectionLodRangeAmbiance = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionLodRangeAmbiance);
+    uniforms.mNearFarSunWash = glm::vec4(
+        parameters.mLocalLightNearFarSunShadow[0],
+        parameters.mLocalLightNearFarSunShadow[1],
+        parameters.mLocalLightSunWashAndCount[0],
+        0.f);
+    uniforms.mProjectionOriginSize = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionOriginSize);
+    uniforms.mCenterFalloff = glm::vec4(
+        parameters.mLocalLight[0],
+        parameters.mLocalLight[1],
+        parameters.mLocalLight[2],
+        parameters.mLocalLightColor[3]);
+    uniforms.mColorScreenX = glm::vec4(
+        parameters.mLocalLightColor[0],
+        parameters.mLocalLightColor[1],
+        parameters.mLocalLightColor[2],
+        parameters.mLocalLightScreenSettings[0]);
+    uniforms.mScreenYPad = glm::vec4(
+        parameters.mLocalLightScreenSettings[1],
+        0.f,
+        0.f,
+        0.f);
+    return uniforms;
+}
+
+LLVulkanMultiSpotLightClass2Uniforms make_vulkan_multi_spot_light_class2_uniforms(
+    const LLVulkanPendingDraw& draw)
+{
+    const LLRenderWorldMaterialParameters& parameters = draw.mMaterialParameters;
+    LLVulkanMultiSpotLightClass2Uniforms uniforms;
+    uniforms.mInverseProjection = glm::make_mat4(parameters.mCompositeInverseProjection);
+    uniforms.mProjectionMatrix = glm::make_mat4(parameters.mLocalLightProjectionMatrix);
+    uniforms.mProjectionPAndNear = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionPAndNear);
+    uniforms.mProjectionNAndFocus = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionNAndFocus);
+    uniforms.mProjectionLodRangeAmbiance = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionLodRangeAmbiance);
+    uniforms.mNearFarSunShadow = make_vulkan_local_light_vec4(parameters.mLocalLightNearFarSunShadow);
+    uniforms.mShadowIndices = glm::ivec4(
+        static_cast<S32>(parameters.mLocalLightShadowIndices[0]),
+        static_cast<S32>(parameters.mLocalLightShadowIndices[1]),
+        static_cast<S32>(parameters.mLocalLightShadowIndices[2]),
+        static_cast<S32>(parameters.mLocalLightShadowIndices[3]));
+    uniforms.mProjectionOriginSize = make_vulkan_local_light_vec4(parameters.mLocalLightProjectionOriginSize);
+    uniforms.mCenterFalloff = glm::vec4(
+        parameters.mLocalLight[0],
+        parameters.mLocalLight[1],
+        parameters.mLocalLight[2],
+        parameters.mLocalLightColor[3]);
+    uniforms.mColorScreenX = glm::vec4(
+        parameters.mLocalLightColor[0],
+        parameters.mLocalLightColor[1],
+        parameters.mLocalLightColor[2],
+        parameters.mLocalLightScreenSettings[0]);
+    uniforms.mScreenYPad = glm::vec4(
+        parameters.mLocalLightScreenSettings[1],
+        0.f,
+        0.f,
+        0.f);
+    return uniforms;
+}
+
 bool upload_vulkan_texture_pixels_to_image(
     LLVulkanNativeContext& context,
     LLVulkanTextureResource& resource,
@@ -11380,9 +11801,9 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"simple-indexed-object", "active/world_textured.vert.spv", "class1/objects/simple_indexed.frag.spv", "indexed/batched simple textured objects", "runtime world vertex adapter plus final class1 simple indexed fragment", "direct Textured owner only when texture-index attribute is present; G-buffer uses the final diffuse-indexed owner", "bound for indexed direct Textured draws"},
         {"simple-gbuffer", "class1/deferred/diffuse_indexed.vert.spv", "class1/deferred/diffuse_indexed_gbuffer.frag.spv", "simple indexed Textured G-buffer geometry", "runtime-world push constants, set0 texture array, texture index, optional skinning", "OpenGL class1 deferred diffuse indexed G-buffer writes", "bound runtime owner; emissive attachment uses diffuse_indexed_gbuffer_emissive.frag"},
         {"sky-class1", "active/world_textured.vert.spv", "class1/deferred/sky_runtime.frag.spv", "WindLight/EEP sky dome runtime path", "runtime-world push constants and sky color until the final sky UBO/varying contract is connected", "OpenGL sky owner depth/blend/cull state approximation", "bound runtime owner; final sky.vert/sky.frag remain inventory-only"},
-        {"terrain-runtime", "active/terrain.vert.spv", "class1/deferred/terrain_runtime.frag.spv", "terrain direct/swapchain fallback geometry", "runtime terrain vertex adapter, detail textures, paint/PBR factors", "temporary terrain direct-color adapter; G-buffer terrain uses terrain_gbuffer*.frag", "bound runtime owner; final terrain vertex ABI still pending"},
-        {"terrain", "active/terrain.vert.spv", "class1/deferred/terrain_gbuffer.frag.spv", "terrain G-buffer geometry", "runtime terrain push constants, detail/paint/ORM/emissive/normal textures", "OpenGL terrain and PBR terrain G-buffer writes adapted to the current Vulkan terrain ABI", "bound runtime owner; emissive attachment uses terrain_gbuffer_emissive.frag"},
-        {"pbr-terrain", "active/terrain.vert.spv", "class1/deferred/terrain_gbuffer.frag.spv", "PBR terrain G-buffer geometry", "runtime terrain push constants, GLTF terrain factors, paint maps, texture transforms, triplanar normals", "OpenGL PBR terrain G-buffer writes adapted to the current Vulkan terrain ABI", "bound through shared terrain runtime owner; final terrain vertex ABI still pending"},
+        {"terrain-runtime", "active/terrain.vert.spv", "class1/deferred/terrain_runtime.frag.spv", "terrain direct/swapchain fallback geometry", "runtime terrain vertex adapter, detail textures, paint/PBR factors", "terrain direct-color owner with explicit legacy-vs-PBR material mode", "bound runtime owner; final terrain vertex UBO ABI remains inventory-only"},
+        {"terrain", "active/terrain.vert.spv", "class1/deferred/terrain_gbuffer.frag.spv", "terrain G-buffer geometry", "runtime terrain push constants, detail/paint/ORM/emissive/normal textures", "OpenGL legacy terrain and PBR terrain G-buffer writes adapted to the current Vulkan terrain ABI", "bound runtime owner; emissive attachment uses terrain_gbuffer_emissive.frag"},
+        {"pbr-terrain", "active/terrain.vert.spv", "class1/deferred/terrain_gbuffer.frag.spv", "PBR terrain G-buffer geometry", "runtime terrain push constants, GLTF terrain factors, paint maps, texture transforms, triplanar normals", "OpenGL PBR terrain G-buffer writes with material-mode sRGB/linear handling", "bound through shared terrain runtime owner; final terrain vertex UBO ABI remains inventory-only"},
         {"pbr-runtime", "active/world_textured.vert.spv", "class1/deferred/pbr_runtime.frag.spv", "GLTF/PBR direct/post-deferred geometry", "runtime-world push constants, GLTF factors, texture transforms, normal/ORM/emissive maps", "OpenGL PBR direct color output adapted to the current Vulkan world ABI", "bound runtime owner"},
         {"pbr-opaque", "active/world_textured.vert.spv", "class1/deferred/pbropaque_gbuffer.frag.spv", "opaque GLTF/PBR G-buffer geometry", "runtime-world push constants, GLTF texture transforms, normal/ORM/emissive maps", "OpenGL class1 PBR opaque G-buffer writes adapted to the Vulkan G-buffer layout", "bound runtime owner; emissive attachment uses pbropaque_gbuffer_emissive.frag"},
         {"legacy-material-runtime", "active/world_textured.vert.spv", "class3/deferred/material_runtime.frag.spv", "legacy material direct/post-deferred geometry", "runtime-world push constants, material texture transforms, normal/specular maps", "OpenGL legacy material direct color output adapted to the current Vulkan world ABI", "bound runtime owner"},
@@ -11410,7 +11831,8 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"pbr-alpha-shadow", "class1/deferred/pbr_shadow_alpha_mask.vert.spv", "class1/deferred/pbr_shadow_alpha_mask.frag.spv", "PBR alpha-mask shadow caster"},
         {"sun-light", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light.frag.spv", "sunlight and soften pass"},
         {"sun-light-ssao", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light_ssao.frag.spv", "sunlight with SSAO"},
-        {"deferred-soften-class3", "class2/deferred/soften_light.vert.spv", "class3/deferred/soften_light.frag.spv", "deferred soften/composite pass"},
+        {"deferred-light-map-runtime", "active/world_textured.vert.spv", "class2/deferred/sun_light_map_runtime.frag.spv", "sun/SSAO lightMap pass", "fullscreen runtime lightMap ABI with G-buffer normal/depth inputs", "OpenGL sunLight/sunLightSSAO role isolated behind DeferredLightMap owner", "bound runtime owner; directional and spot shadow channels stay neutral until Vulkan shadow maps exist"},
+        {"deferred-soften-class3", "active/world_textured.vert.spv", "class3/deferred/soften_light.frag.spv", "deferred soften/composite pass", "fullscreen runtime composite ABI with G-buffer, depth, and lightMap inputs", "OpenGL softenLight role isolated behind DeferredSoften owner", "bound runtime owner; lightMap is produced by DeferredLightMap but shadow channels are neutral until Vulkan shadow maps exist"},
         {"deferred-composite-runtime", "active/world_textured.vert.spv", "class3/deferred/deferred_composite_runtime.frag.spv", "runtime deferred composite/lighting approximation", "active fullscreen adapter plus current G-buffer/depth/light inputs", "bootstrap deferred composite adapter isolated from final class3 soften_light.frag", "bound runtime owner; not strict OpenGL parity"},
         {"point-light", "class3/deferred/point_light.vert.spv", "class3/deferred/point_light.frag.spv", "local point lights"},
         {"multi-point-light", "class3/deferred/multi_point_light.vert.spv", "class3/deferred/multi_point_light.frag.spv", "fullscreen local lights"},
@@ -11582,6 +12004,8 @@ void destroy_vulkan_pipeline_set(
     destroy_vulkan_pipeline_array(context, pipeline_set.mAvatarGBufferPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mTerrainGBufferPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mCopyPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mDeferredLightMapPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mDeferredSoftenPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mDeferredCompositePipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mFinalCompositePipelines);
 }
@@ -11619,6 +12043,8 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         destroy_vulkan_pipeline_array(context, pipelines);
     }
     destroy_vulkan_pipeline_array(context, context.mCopyPipelines);
+    destroy_vulkan_pipeline_array(context, context.mDeferredLightMapPipelines);
+    destroy_vulkan_pipeline_array(context, context.mDeferredSoftenPipelines);
     destroy_vulkan_pipeline_array(context, context.mDeferredCompositePipelines);
     destroy_vulkan_pipeline_array(context, context.mFinalCompositePipelines);
     for (auto& entry : context.mOffscreenPipelineSets)
@@ -11808,6 +12234,14 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         {
             destroy_shader_module_once(context.mCopyFragmentShader);
         }
+        if (context.mDeferredLightMapFragmentShader)
+        {
+            destroy_shader_module_once(context.mDeferredLightMapFragmentShader);
+        }
+        if (context.mDeferredSoftenFragmentShader)
+        {
+            destroy_shader_module_once(context.mDeferredSoftenFragmentShader);
+        }
         if (context.mDeferredCompositeFragmentShader)
         {
             destroy_shader_module_once(context.mDeferredCompositeFragmentShader);
@@ -11898,6 +12332,8 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mAvatarGBufferEmissiveFragmentShader = nullptr;
     context.mCopyVertexShader = nullptr;
     context.mCopyFragmentShader = nullptr;
+    context.mDeferredLightMapFragmentShader = nullptr;
+    context.mDeferredSoftenFragmentShader = nullptr;
     context.mDeferredCompositeFragmentShader = nullptr;
     context.mFinalCompositeFragmentShader = nullptr;
     context.mPointLightVertexShader = nullptr;
@@ -12291,6 +12727,20 @@ bool create_vulkan_offscreen_pipeline_set(
             nullptr
         }
     };
+    LLVkPipelineShaderStageCreateInfo deferred_light_map_shader_stages[2] =
+    {
+        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mDeferredLightMapFragmentShader,
+            "main",
+            nullptr
+        }
+    };
     LLVkPipelineShaderStageCreateInfo deferred_composite_shader_stages[2] =
     {
         world_shader_stages[0],
@@ -12301,6 +12751,20 @@ bool create_vulkan_offscreen_pipeline_set(
             0,
             LL_VK_SHADER_STAGE_FRAGMENT_BIT,
             context.mDeferredCompositeFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo deferred_soften_shader_stages[2] =
+    {
+        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mDeferredSoftenFragmentShader,
             "main",
             nullptr
         }
@@ -13305,6 +13769,35 @@ bool create_vulkan_offscreen_pipeline_set(
                             return false;
                         }
 
+                        LLVkGraphicsPipelineCreateInfo deferred_light_map_pipeline_create_info = world_pipeline_create_info;
+                        deferred_light_map_pipeline_create_info.pStages = deferred_light_map_shader_stages;
+                        S32 deferred_light_map_result = create_graphics_pipelines(
+                            context.mDevice,
+                            nullptr,
+                            1,
+                            &deferred_light_map_pipeline_create_info,
+                            nullptr,
+                            &pipeline_set.mDeferredLightMapPipelines[world_pipeline_index]);
+                        if (deferred_light_map_result != LL_VK_SUCCESS ||
+                            !pipeline_set.mDeferredLightMapPipelines[world_pipeline_index])
+                        {
+                            LL_WARNS("RenderBackend")
+                                << "vkCreateGraphicsPipelines(offscreen deferred lightMap mode "
+                                << i
+                                << ", blend "
+                                << blend_index
+                                << ", depth "
+                                << depth_index
+                                << ", cull "
+                                << cull_index
+                                << ", color "
+                                << color_index
+                                << ") failed with result "
+                                << deferred_light_map_result
+                                << LL_ENDL;
+                            return false;
+                        }
+
                         LLVkGraphicsPipelineCreateInfo deferred_composite_pipeline_create_info = world_pipeline_create_info;
                         deferred_composite_pipeline_create_info.pStages = deferred_composite_shader_stages;
                         S32 deferred_composite_result = create_graphics_pipelines(
@@ -13330,6 +13823,35 @@ bool create_vulkan_offscreen_pipeline_set(
                                 << color_index
                                 << ") failed with result "
                                 << deferred_composite_result
+                                << LL_ENDL;
+                            return false;
+                        }
+
+                        LLVkGraphicsPipelineCreateInfo deferred_soften_pipeline_create_info = world_pipeline_create_info;
+                        deferred_soften_pipeline_create_info.pStages = deferred_soften_shader_stages;
+                        S32 deferred_soften_result = create_graphics_pipelines(
+                            context.mDevice,
+                            nullptr,
+                            1,
+                            &deferred_soften_pipeline_create_info,
+                            nullptr,
+                            &pipeline_set.mDeferredSoftenPipelines[world_pipeline_index]);
+                        if (deferred_soften_result != LL_VK_SUCCESS ||
+                            !pipeline_set.mDeferredSoftenPipelines[world_pipeline_index])
+                        {
+                            LL_WARNS("RenderBackend")
+                                << "vkCreateGraphicsPipelines(offscreen deferred soften mode "
+                                << i
+                                << ", blend "
+                                << blend_index
+                                << ", depth "
+                                << depth_index
+                                << ", cull "
+                                << cull_index
+                                << ", color "
+                                << color_index
+                                << ") failed with result "
+                                << deferred_soften_result
                                 << LL_ENDL;
                             return false;
                         }
@@ -13831,6 +14353,10 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         get_vulkan_final_shader_module(context, "class1/interface/copy.vert.spv", "copy vertex");
     context.mCopyFragmentShader =
         get_vulkan_final_shader_module(context, "class1/interface/copy.frag.spv", "copy fragment");
+    context.mDeferredLightMapFragmentShader =
+        get_vulkan_final_shader_module(context, "class2/deferred/sun_light_map_runtime.frag.spv", "class2 deferred lightMap runtime fragment");
+    context.mDeferredSoftenFragmentShader =
+        get_vulkan_final_shader_module(context, "class3/deferred/soften_light.frag.spv", "class3 deferred soften fragment");
     context.mDeferredCompositeFragmentShader =
         get_vulkan_final_shader_module(context, "class3/deferred/deferred_composite_runtime.frag.spv", "class3 deferred composite runtime fragment");
     context.mFinalCompositeFragmentShader =
@@ -13894,6 +14420,8 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         !context.mAvatarGBufferEmissiveFragmentShader ||
         !context.mCopyVertexShader ||
         !context.mCopyFragmentShader ||
+        !context.mDeferredLightMapFragmentShader ||
+        !context.mDeferredSoftenFragmentShader ||
         !context.mDeferredCompositeFragmentShader ||
         !context.mFinalCompositeFragmentShader ||
         !context.mPointLightVertexShader ||
@@ -14572,6 +15100,20 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         }
     };
 
+    LLVkPipelineShaderStageCreateInfo deferred_light_map_shader_stages[2] =
+    {
+        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mDeferredLightMapFragmentShader,
+            "main",
+            nullptr
+        }
+    };
     LLVkPipelineShaderStageCreateInfo deferred_composite_shader_stages[2] =
     {
         world_shader_stages[0],
@@ -14582,6 +15124,20 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
             0,
             LL_VK_SHADER_STAGE_FRAGMENT_BIT,
             context.mDeferredCompositeFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo deferred_soften_shader_stages[2] =
+    {
+        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mDeferredSoftenFragmentShader,
             "main",
             nullptr
         }
@@ -15332,6 +15888,35 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
                                 return false;
                             }
 
+                            LLVkGraphicsPipelineCreateInfo deferred_light_map_pipeline_create_info = world_pipeline_create_info;
+                            deferred_light_map_pipeline_create_info.pStages = deferred_light_map_shader_stages;
+                            result = create_graphics_pipelines(
+                                context.mDevice,
+                                nullptr,
+                                1,
+                                &deferred_light_map_pipeline_create_info,
+                                nullptr,
+                                &context.mDeferredLightMapPipelines[world_pipeline_index]);
+                            if (result != LL_VK_SUCCESS || !context.mDeferredLightMapPipelines[world_pipeline_index])
+                            {
+                                LL_WARNS("RenderBackend")
+                                    << "vkCreateGraphicsPipelines(deferred lightMap mode "
+                                    << i
+                                    << ", blend "
+                                    << blend_index
+                                    << ", depth "
+                                    << depth_index
+                                    << ", cull "
+                                    << cull_index
+                                    << ", color "
+                                    << color_index
+                                    << ") failed with result "
+                                    << result
+                                    << LL_ENDL;
+                                destroy_vulkan_graphics_pipelines(context);
+                                return false;
+                            }
+
                             LLVkGraphicsPipelineCreateInfo composite_pipeline_create_info = world_pipeline_create_info;
                             composite_pipeline_create_info.pStages = deferred_composite_shader_stages;
                         result = create_graphics_pipelines(
@@ -15345,6 +15930,35 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
                         {
                             LL_WARNS("RenderBackend")
                                 << "vkCreateGraphicsPipelines(deferred composite mode "
+                                << i
+                                << ", blend "
+                                << blend_index
+                                << ", depth "
+                                << depth_index
+                                << ", cull "
+                                << cull_index
+                                << ", color "
+                                << color_index
+                                << ") failed with result "
+                                << result
+                                << LL_ENDL;
+                            destroy_vulkan_graphics_pipelines(context);
+                            return false;
+                        }
+
+                        LLVkGraphicsPipelineCreateInfo deferred_soften_pipeline_create_info = world_pipeline_create_info;
+                        deferred_soften_pipeline_create_info.pStages = deferred_soften_shader_stages;
+                        result = create_graphics_pipelines(
+                            context.mDevice,
+                            nullptr,
+                            1,
+                            &deferred_soften_pipeline_create_info,
+                            nullptr,
+                            &context.mDeferredSoftenPipelines[world_pipeline_index]);
+                        if (result != LL_VK_SUCCESS || !context.mDeferredSoftenPipelines[world_pipeline_index])
+                        {
+                            LL_WARNS("RenderBackend")
+                                << "vkCreateGraphicsPipelines(deferred soften mode "
                                 << i
                                 << ", blend "
                                 << blend_index
@@ -16090,6 +16704,8 @@ const char* get_vulkan_world_shader_class_name(LLRenderWorldShaderClass shader_c
         case LLRenderWorldShaderClass::SpotLight: return "SpotLight";
         case LLRenderWorldShaderClass::MultiSpotLight: return "MultiSpotLight";
         case LLRenderWorldShaderClass::Copy: return "Copy";
+        case LLRenderWorldShaderClass::DeferredLightMap: return "DeferredLightMap";
+        case LLRenderWorldShaderClass::DeferredSoften: return "DeferredSoften";
         case LLRenderWorldShaderClass::DeferredComposite: return "DeferredComposite";
         case LLRenderWorldShaderClass::FinalComposite: return "FinalComposite";
     }
@@ -16213,6 +16829,8 @@ bool should_use_vulkan_gbuffer_pipeline(
     }
 
     if (draw.mWorldShaderClass == LLRenderWorldShaderClass::Copy ||
+        draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
+        draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
         draw.mWorldShaderClass == LLRenderWorldShaderClass::PointLight ||
         draw.mWorldShaderClass == LLRenderWorldShaderClass::MultiPointLight ||
         draw.mWorldShaderClass == LLRenderWorldShaderClass::SpotLight ||
@@ -17192,6 +17810,14 @@ bool record_vulkan_frame_command_buffer(
             active_pass.mPipelineSet ?
             active_pass.mPipelineSet->mCopyPipelines :
             context.mCopyPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& deferred_light_map_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mDeferredLightMapPipelines :
+            context.mDeferredLightMapPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& deferred_soften_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mDeferredSoftenPipelines :
+            context.mDeferredSoftenPipelines;
         const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& deferred_composite_pipelines =
             active_pass.mPipelineSet ?
             active_pass.mPipelineSet->mDeferredCompositePipelines :
@@ -17272,6 +17898,8 @@ bool record_vulkan_frame_command_buffer(
                 can_be_gbuffer_draw &&
                 !use_gbuffer_pipeline &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredLightMap &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredSoften &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite)
             {
@@ -17288,6 +17916,10 @@ bool record_vulkan_frame_command_buffer(
         }
         const bool use_copy_pipeline =
             draw.mWorldShaderClass == LLRenderWorldShaderClass::Copy;
+        const bool use_deferred_light_map_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap;
+        const bool use_deferred_soften_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften;
         const bool use_deferred_composite_pipeline =
             draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite;
         const bool use_final_composite_pipeline =
@@ -17314,7 +17946,7 @@ bool record_vulkan_frame_command_buffer(
                 ++world_shader_gbuffer_counts[shader_index];
             }
         }
-        if (use_deferred_composite_pipeline)
+        if (use_deferred_composite_pipeline || use_deferred_soften_pipeline)
         {
             if (!has_deferred_composite_average_textures)
             {
@@ -17330,7 +17962,7 @@ bool record_vulkan_frame_command_buffer(
                 has_final_composite_average_textures = true;
             }
         }
-        if (use_deferred_composite_pipeline)
+        if (use_deferred_composite_pipeline || use_deferred_soften_pipeline)
         {
             ++deferred_composite_draw_count;
             active_pass.mSawDeferredCompositeDraw = true;
@@ -17353,10 +17985,12 @@ bool record_vulkan_frame_command_buffer(
             draw.mWorldShaderClass != LLRenderWorldShaderClass::PointLight &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::MultiPointLight &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::SpotLight &&
-            draw.mWorldShaderClass != LLRenderWorldShaderClass::MultiSpotLight &&
-            draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
-            draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
-            draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::MultiSpotLight &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredLightMap &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredSoften &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite &&
             draw.mSkinningMatrixCount > 0 &&
             draw.mAttributes[10].mEnabled;
         const bool draw_has_classic_avatar_skinning =
@@ -17367,10 +18001,12 @@ bool record_vulkan_frame_command_buffer(
             draw.mWorldShaderClass != LLRenderWorldShaderClass::PointLight &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::MultiPointLight &&
             draw.mWorldShaderClass != LLRenderWorldShaderClass::SpotLight &&
-            draw.mWorldShaderClass != LLRenderWorldShaderClass::MultiSpotLight &&
-            draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
-            draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
-            draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::MultiSpotLight &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredLightMap &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredSoften &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite &&
             draw.mSkinningMatrixCount > 0 &&
             draw.mAttributes[9].mEnabled;
         const bool draw_has_skinning =
@@ -17401,6 +18037,14 @@ bool record_vulkan_frame_command_buffer(
                 if (use_copy_pipeline)
                 {
                     pipeline = copy_pipelines[world_pipeline_index];
+                }
+                else if (use_deferred_light_map_pipeline)
+                {
+                    pipeline = deferred_light_map_pipelines[world_pipeline_index];
+                }
+                else if (use_deferred_soften_pipeline)
+                {
+                    pipeline = deferred_soften_pipelines[world_pipeline_index];
                 }
                 else if (use_deferred_composite_pipeline)
                 {
@@ -17513,6 +18157,14 @@ bool record_vulkan_frame_command_buffer(
                     if (use_copy_pipeline)
                     {
                         pipeline = copy_pipelines[world_pipeline_index];
+                    }
+                    else if (use_deferred_light_map_pipeline)
+                    {
+                        pipeline = deferred_light_map_pipelines[world_pipeline_index];
+                    }
+                    else if (use_deferred_soften_pipeline)
+                    {
+                        pipeline = deferred_soften_pipelines[world_pipeline_index];
                     }
                     else if (use_deferred_composite_pipeline)
                     {
@@ -18290,11 +18942,112 @@ bool record_vulkan_frame_command_buffer(
             &descriptor_set,
             0,
             nullptr);
+        LLVkDescriptorSet world_uniform_descriptor_set = nullptr;
+        if (use_point_light_pipeline)
+        {
+            const LLVulkanPointLightUniforms uniforms =
+                make_vulkan_point_light_uniforms(draw);
+            world_uniform_descriptor_set =
+                create_vulkan_world_uniform_descriptor_set(
+                    context,
+                    &uniforms,
+                    sizeof(uniforms));
+            if (!world_uniform_descriptor_set)
+            {
+                ++missing_buffer_count;
+                continue;
+            }
+        }
+        else if (use_multi_point_light_pipeline)
+        {
+            const LLVulkanMultiPointLightUniforms uniforms =
+                make_vulkan_multi_point_light_uniforms(draw);
+            world_uniform_descriptor_set =
+                create_vulkan_world_uniform_descriptor_set(
+                    context,
+                    &uniforms,
+                    sizeof(uniforms));
+            if (!world_uniform_descriptor_set)
+            {
+                ++missing_buffer_count;
+                continue;
+            }
+        }
+        else if (use_spot_light_pipeline)
+        {
+            if (spot_light_shader_level >= 3)
+            {
+                const LLVulkanSpotLightClass3Uniforms uniforms =
+                    make_vulkan_spot_light_class3_uniforms(draw);
+                world_uniform_descriptor_set =
+                    create_vulkan_world_uniform_descriptor_set(
+                        context,
+                        &uniforms,
+                        sizeof(uniforms));
+            }
+            else
+            {
+                const LLVulkanSpotLightClass1Uniforms uniforms =
+                    make_vulkan_spot_light_class1_uniforms(draw);
+                world_uniform_descriptor_set =
+                    create_vulkan_world_uniform_descriptor_set(
+                        context,
+                        &uniforms,
+                        sizeof(uniforms));
+            }
+            if (!world_uniform_descriptor_set)
+            {
+                ++missing_buffer_count;
+                continue;
+            }
+        }
+        else if (use_multi_spot_light_pipeline)
+        {
+            if (multi_spot_light_shader_level >= 2)
+            {
+                const LLVulkanMultiSpotLightClass2Uniforms uniforms =
+                    make_vulkan_multi_spot_light_class2_uniforms(draw);
+                world_uniform_descriptor_set =
+                    create_vulkan_world_uniform_descriptor_set(
+                        context,
+                        &uniforms,
+                        sizeof(uniforms));
+            }
+            else
+            {
+                const LLVulkanMultiSpotLightClass1Uniforms uniforms =
+                    make_vulkan_multi_spot_light_class1_uniforms(draw);
+                world_uniform_descriptor_set =
+                    create_vulkan_world_uniform_descriptor_set(
+                        context,
+                        &uniforms,
+                        sizeof(uniforms));
+            }
+            if (!world_uniform_descriptor_set)
+            {
+                ++missing_buffer_count;
+                continue;
+            }
+        }
+        if (world_uniform_descriptor_set)
+        {
+            context.mCmdBindDescriptorSets(
+                command_buffer,
+                LL_VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline_layout,
+                1,
+                1,
+                &world_uniform_descriptor_set,
+                0,
+                nullptr);
+        }
         if (draw.mUseWorldVertexShader)
         {
             LLVulkanWorldPushConstants push_constants;
             push_constants.mModelviewProjection = draw.mModelviewProjection;
-            if (draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite)
+            if (draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
+                draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
+                draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite)
             {
                 push_constants.mNormalMatrix =
                     glm::make_mat4(draw.mMaterialParameters.mCompositeInverseProjection);
@@ -18311,6 +19064,8 @@ bool record_vulkan_frame_command_buffer(
                 use_gpu_skinning ? static_cast<F32>(draw.mSkinningMatrixCount) : 0.f);
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::Terrain)
             {
+                push_constants.mParams.y =
+                    draw.mTerrainParameters.mUsesPBRMaterials > 0.5f ? 1.f : 0.f;
                 push_constants.mTerrainParameters = glm::vec4(
                     draw.mTerrainParameters.mRegionScale,
                     draw.mTerrainParameters.mPlanarSampleCount,
@@ -18320,6 +19075,8 @@ bool record_vulkan_frame_command_buffer(
             else
             {
                 const bool uses_screen_composite_alpha =
+                    draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
+                    draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite ||
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::FinalComposite;
                 push_constants.mTerrainParameters = glm::vec4(
@@ -18395,7 +19152,9 @@ bool record_vulkan_frame_command_buffer(
                 draw.mMaterialParameters.mSceneDirectGreen,
                 draw.mMaterialParameters.mSceneDirectBlue,
                 draw.mMaterialParameters.mSceneLightingValid);
-            if (draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite)
+            if (draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
+                draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
+                draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite)
             {
                 push_constants.mSceneLightDirection = glm::vec4(
                     draw.mMaterialParameters.mSceneLightDirectionX,

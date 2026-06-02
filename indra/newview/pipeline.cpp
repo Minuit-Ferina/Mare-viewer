@@ -47,6 +47,7 @@
 #include "llui.h"
 
 #include "llrenderbackend.h"
+#include "llrenderbackendtypes.h"
 #include "llrender.h"
 #include "llstartup.h"
 #include "llwindow.h"   // swapBuffers()
@@ -92,6 +93,7 @@
 #include "llviewerparcelmgr.h"
 #include "llviewerregion.h" // for audio debugging.
 #include "llviewerwindow.h" // For getSpinAxis
+#include "llvieweroctree.h"
 #include "llvoavatarself.h"
 #include "llvocache.h"
 #include "llvosky.h"
@@ -6334,6 +6336,410 @@ void LLPipeline::getVulkanDeferredLightSummary(
         light_color.mV[VBLUE] = llclamp(light_color.mV[VBLUE], 0.f, 2.f);
         light_strength = llclamp(total_light_contribution, 0.f, 1.f);
     }
+}
+
+void LLPipeline::getVulkanDeferredLocalLightBatches(
+    LLCamera& camera,
+    const F32* modelview_values,
+    const F32* projection_values,
+    const LLRenderWorldMaterialParameters& base_parameters,
+    std::vector<LLRenderWorldMaterialParameters>& point_light_volumes,
+    std::vector<U32>& point_light_volume_fan_indices,
+    std::vector<LLRenderWorldMaterialParameters>& multi_point_light_batches,
+    std::vector<LLRenderWorldMaterialParameters>& spot_light_volumes,
+    std::vector<U32>& spot_light_volume_fan_indices,
+    std::vector<U32>& spot_light_projection_textures,
+    std::vector<LLRenderWorldMaterialParameters>& multi_spot_lights,
+    std::vector<U32>& multi_spot_projection_textures)
+{
+    point_light_volumes.clear();
+    point_light_volume_fan_indices.clear();
+    multi_point_light_batches.clear();
+    spot_light_volumes.clear();
+    spot_light_volume_fan_indices.clear();
+    spot_light_projection_textures.clear();
+    multi_spot_lights.clear();
+    multi_spot_projection_textures.clear();
+
+    static LLCachedControl<S32> local_light_count(gSavedSettings, "RenderLocalLightCount", 256);
+    static LLCachedControl<S32> probe_level(gSavedSettings, "RenderReflectionProbeLevel", 0);
+
+    if (local_light_count <= 0 ||
+        (gCubeSnapshot && probe_level <= 0) ||
+        !modelview_values ||
+        !projection_values)
+    {
+        return;
+    }
+
+    const F32 light_scale = gCubeSnapshot ? mReflectionMapManager.mLightScale : 1.f;
+    const glm::mat4 modelview = glm::make_mat4(modelview_values);
+    const glm::mat4 projection = glm::make_mat4(projection_values);
+    const glm::mat4 modelview_projection = projection * modelview;
+    constexpr U32 max_batch_count =
+        LLRenderWorldMaterialParameters::MaxDeferredMultiLightCount;
+    const LLSettingsSky::ptr_t psky = LLEnvironment::instance().getCurrentSky();
+    const bool classic_mode = psky && psky->canAutoAdjust();
+
+    auto copy_matrix = [](const glm::mat4& matrix, F32* destination)
+    {
+        const F32* values = glm::value_ptr(matrix);
+        std::copy(values, values + 16, destination);
+    };
+
+    auto fill_common_volume_parameters = [&](LLRenderWorldMaterialParameters& parameters,
+                                             LLVOVolume* volume,
+                                             const LLVector4a& center,
+                                             F32 radius,
+                                             const LLColor3& color)
+    {
+        const F32* c = center.getF32ptr();
+        parameters.mLocalLightCenterSize[0] = c[0];
+        parameters.mLocalLightCenterSize[1] = c[1];
+        parameters.mLocalLightCenterSize[2] = c[2];
+        parameters.mLocalLightCenterSize[3] = radius;
+        parameters.mLocalLightColor[0] = color.mV[VRED];
+        parameters.mLocalLightColor[1] = color.mV[VGREEN];
+        parameters.mLocalLightColor[2] = color.mV[VBLUE];
+        parameters.mLocalLightColor[3] =
+            volume->getLightFalloff(DEFERRED_LIGHT_FALLOFF);
+        parameters.mLocalLightScreenSettings[3] = classic_mode ? 1.f : 0.f;
+        copy_matrix(modelview_projection, parameters.mLocalLightModelviewProjection);
+        copy_matrix(modelview, parameters.mLocalLightModelview);
+    };
+
+    auto fill_spot_projection_parameters = [&](LLRenderWorldMaterialParameters& parameters,
+                                               LLDrawable* drawablep,
+                                               LLVOVolume* volume,
+                                               F32 radius,
+                                               U32& projection_texture) -> bool
+    {
+        if (!drawablep || !volume)
+        {
+            return false;
+        }
+
+        LLVector3 spot_params = volume->getSpotLightParams();
+        const F32 fov = spot_params.mV[0];
+        const F32 focus = spot_params.mV[1];
+        const F32 ambiance = spot_params.mV[2];
+
+        LLVector3 pos = drawablep->getPositionAgent();
+        LLQuaternion quat = volume->getRenderRotation();
+        LLVector3 scale = volume->getScale();
+        if (fov <= 0.f ||
+            scale.mV[VY] <= 0.f ||
+            scale.mV[VZ] <= 0.f)
+        {
+            return false;
+        }
+
+        LLVector3 at_axis(0, 0, -scale.mV[VZ] * 0.5f);
+        at_axis *= quat;
+
+        LLVector3 np = pos + at_axis;
+        at_axis.normVec();
+
+        const F32 dist = (scale.mV[VY] * 0.5f) / tanf(fov * 0.5f);
+        LLVector3 origin = np - at_axis * dist;
+
+        LLMatrix4 light_mat(quat, LLVector4(origin, 1.f));
+        glm::mat4 light_to_agent(glm::make_mat4((F32*) light_mat.mMatrix));
+        glm::mat4 light_to_screen = modelview * light_to_agent;
+
+        const F32 near_clip = dist;
+        const F32 far_clip = radius + dist - scale.mV[VZ];
+        if (near_clip <= 0.f || far_clip <= near_clip)
+        {
+            return false;
+        }
+
+        const F32 aspect = scale.mV[VX] / scale.mV[VY];
+        if (aspect <= 0.f)
+        {
+            return false;
+        }
+
+        glm::mat4 trans(0.5f, 0.0f, 0.0f, 0.0f,
+                        0.0f, 0.5f, 0.0f, 0.0f,
+                        0.0f, 0.0f, 0.5f, 0.0f,
+                        0.5f, 0.5f, 0.5f, 1.0f);
+
+        glm::vec3 p1(0, 0, -(near_clip + 0.01f));
+        glm::vec3 p2(0, 0, -(near_clip + 1.f));
+        glm::vec3 screen_origin(0, 0, 0);
+
+        p1 = mul_mat4_vec3(light_to_screen, p1);
+        p2 = mul_mat4_vec3(light_to_screen, p2);
+        screen_origin = mul_mat4_vec3(light_to_screen, screen_origin);
+
+        glm::vec3 projection_normal = glm::normalize(p2 - p1);
+        const F32 projection_range = far_clip - near_clip;
+        glm::mat4 light_projection = glm::perspective(fov, aspect, near_clip, far_clip);
+        glm::mat4 screen_to_light = trans * light_projection * glm::inverse(light_to_screen);
+        copy_matrix(screen_to_light, parameters.mLocalLightProjectionMatrix);
+
+        parameters.mLocalLightProjectionPAndNear[0] = p1.x;
+        parameters.mLocalLightProjectionPAndNear[1] = p1.y;
+        parameters.mLocalLightProjectionPAndNear[2] = p1.z;
+        parameters.mLocalLightProjectionPAndNear[3] = near_clip;
+        parameters.mLocalLightProjectionNAndFocus[0] = projection_normal.x;
+        parameters.mLocalLightProjectionNAndFocus[1] = projection_normal.y;
+        parameters.mLocalLightProjectionNAndFocus[2] = projection_normal.z;
+        parameters.mLocalLightProjectionNAndFocus[3] = focus;
+        parameters.mLocalLightNearFarSunShadow[0] = near_clip;
+        parameters.mLocalLightNearFarSunShadow[1] = far_clip;
+        parameters.mLocalLightNearFarSunShadow[2] = parameters.mLocalLightSunWashAndCount[0];
+        parameters.mLocalLightProjectionOriginSize[0] = screen_origin.x;
+        parameters.mLocalLightProjectionOriginSize[1] = screen_origin.y;
+        parameters.mLocalLightProjectionOriginSize[2] = screen_origin.z;
+        parameters.mLocalLightProjectionOriginSize[3] = radius;
+
+        S32 shadow_index = -1;
+        if (RenderShadowDetail > 1)
+        {
+            for (U32 i = 0; i < 2; ++i)
+            {
+                if (mShadowSpotLight[i] == drawablep)
+                {
+                    shadow_index = static_cast<S32>(i);
+                    break;
+                }
+            }
+        }
+
+        parameters.mLocalLightShadowIndices[0] = static_cast<F32>(shadow_index);
+        parameters.mLocalLightNearFarSunShadow[3] =
+            shadow_index >= 0 ? 1.f - mSpotLightFade[shadow_index] : 1.f;
+
+        if (!gCubeSnapshot &&
+            RenderShadowDetail > 1)
+        {
+            LLDrawable* potential = drawablep;
+            F32 priority = volume->getSpotLightPriority();
+
+            for (U32 i = 0; i < 2; ++i)
+            {
+                F32 current_priority = 0.f;
+                if (mTargetShadowSpotLight[i].notNull())
+                {
+                    current_priority =
+                        mTargetShadowSpotLight[i]->getVOVolume()->getSpotLightPriority();
+                }
+
+                if (priority > current_priority)
+                {
+                    LLDrawable* displaced = mTargetShadowSpotLight[i];
+                    mTargetShadowSpotLight[i] = potential;
+                    potential = displaced;
+                    priority = current_priority;
+                }
+            }
+        }
+
+        LLViewerTexture* img = volume->getLightTexture();
+        if (!img)
+        {
+            img = LLViewerFetchedTexture::sWhiteImagep;
+        }
+
+        projection_texture = img ? img->getTexName() : 0;
+        const F32 texture_width = img ? static_cast<F32>(llmax(1, img->getWidth())) : 1.f;
+        const F32 lod_range = logf(texture_width) / logf(2.f);
+        parameters.mLocalLightProjectionLodRangeAmbiance[0] = lod_range;
+        parameters.mLocalLightProjectionLodRangeAmbiance[1] = projection_range;
+        parameters.mLocalLightProjectionLodRangeAmbiance[2] =
+            llclamp((projection_range - focus) / projection_range * lod_range, 0.f, 1.f);
+        parameters.mLocalLightProjectionLodRangeAmbiance[3] = ambiance;
+        return true;
+    };
+
+    LLRenderWorldMaterialParameters parameters = base_parameters;
+    U32 batch_count = 0;
+    F32 far_z = 0.f;
+
+    auto reset_light_arrays = [&parameters]()
+    {
+        std::fill(
+            std::begin(parameters.mLocalLight),
+            std::end(parameters.mLocalLight),
+            0.f);
+        std::fill(
+            std::begin(parameters.mLocalLightColor),
+            std::end(parameters.mLocalLightColor),
+            0.f);
+    };
+
+    auto flush_batch = [&]()
+    {
+        if (batch_count == 0)
+        {
+            return;
+        }
+
+        parameters.mLocalLightScreenSettings[2] = far_z;
+        parameters.mLocalLightSunWashAndCount[1] =
+            static_cast<F32>(batch_count);
+        multi_point_light_batches.push_back(parameters);
+
+        parameters = base_parameters;
+        reset_light_arrays();
+        batch_count = 0;
+        far_z = 0.f;
+    };
+
+    reset_light_arrays();
+
+    if (!gCubeSnapshot)
+    {
+        for (U32 i = 0; i < 2; ++i)
+        {
+            mTargetShadowSpotLight[i] = nullptr;
+        }
+    }
+
+    S32 candidate_count = 0;
+    for (light_set_t::const_iterator iter = mNearbyLights.begin();
+         iter != mNearbyLights.end();
+         ++iter)
+    {
+        if (++candidate_count > local_light_count)
+        {
+            break;
+        }
+
+        LLDrawable* drawablep = iter->drawable;
+        if (!drawablep)
+        {
+            continue;
+        }
+
+        LLVOVolume* volume = drawablep->getVOVolume();
+        if (!volume)
+        {
+            continue;
+        }
+
+        if (volume->isAttachment() && !sRenderAttachedLights)
+        {
+            continue;
+        }
+
+        LLVector4a center;
+        center.load3(drawablep->getPositionAgent().mV);
+        const F32 radius = volume->getLightRadius() * 1.5f;
+        if (radius <= 0.001f)
+        {
+            continue;
+        }
+
+        LLVector4a radius_vector;
+        radius_vector.splat(radius);
+        if (camera.AABBInFrustumNoFarClip(center, radius_vector) == 0)
+        {
+            continue;
+        }
+
+        LLColor3 color = volume->getLightLinearColor() * light_scale;
+        if (color.magVecSquared() < 0.001f)
+        {
+            continue;
+        }
+
+        const glm::vec4 transformed_center =
+            modelview *
+            glm::vec4(
+                drawablep->getPositionAgent().mV[VX],
+                drawablep->getPositionAgent().mV[VY],
+                drawablep->getPositionAgent().mV[VZ],
+                1.f);
+
+        const F32* c = center.getF32ptr();
+        const bool camera_outside_box =
+            camera.getOrigin().mV[VX] > c[VX] + radius + 0.2f ||
+            camera.getOrigin().mV[VX] < c[VX] - radius - 0.2f ||
+            camera.getOrigin().mV[VY] > c[VY] + radius + 0.2f ||
+            camera.getOrigin().mV[VY] < c[VY] - radius - 0.2f ||
+            camera.getOrigin().mV[VZ] > c[VZ] + radius + 0.2f ||
+            camera.getOrigin().mV[VZ] < c[VZ] - radius - 0.2f;
+
+        if (volume->isLightSpotlight())
+        {
+            drawablep->getVOVolume()->updateSpotLightPriority();
+            LLRenderWorldMaterialParameters spot_parameters = base_parameters;
+            fill_common_volume_parameters(
+                spot_parameters,
+                volume,
+                center,
+                radius,
+                color);
+
+            U32 projection_texture = 0;
+            if (!fill_spot_projection_parameters(
+                    spot_parameters,
+                    drawablep,
+                    volume,
+                    radius,
+                    projection_texture))
+            {
+                continue;
+            }
+
+            if (camera_outside_box)
+            {
+                spot_light_volumes.push_back(spot_parameters);
+                spot_light_volume_fan_indices.push_back(
+                    get_box_fan_indices(&camera, center));
+                spot_light_projection_textures.push_back(projection_texture);
+            }
+            else
+            {
+                spot_parameters.mLocalLight[0] = transformed_center.x;
+                spot_parameters.mLocalLight[1] = transformed_center.y;
+                spot_parameters.mLocalLight[2] = transformed_center.z;
+                spot_parameters.mLocalLight[3] = radius;
+                multi_spot_lights.push_back(spot_parameters);
+                multi_spot_projection_textures.push_back(projection_texture);
+            }
+            continue;
+        }
+
+        if (camera_outside_box)
+        {
+            LLRenderWorldMaterialParameters volume_parameters = base_parameters;
+            fill_common_volume_parameters(
+                volume_parameters,
+                volume,
+                center,
+                radius,
+                color);
+            point_light_volumes.push_back(volume_parameters);
+            point_light_volume_fan_indices.push_back(
+                get_box_fan_indices(&camera, center));
+        }
+        else
+        {
+            const U32 offset = batch_count * 4;
+            parameters.mLocalLight[offset] = transformed_center.x;
+            parameters.mLocalLight[offset + 1] = transformed_center.y;
+            parameters.mLocalLight[offset + 2] = transformed_center.z;
+            parameters.mLocalLight[offset + 3] = radius;
+            parameters.mLocalLightColor[offset] = color.mV[VRED];
+            parameters.mLocalLightColor[offset + 1] = color.mV[VGREEN];
+            parameters.mLocalLightColor[offset + 2] = color.mV[VBLUE];
+            parameters.mLocalLightColor[offset + 3] =
+                volume->getLightFalloff(DEFERRED_LIGHT_FALLOFF);
+            far_z = llmin(transformed_center.z - radius, far_z);
+            ++batch_count;
+
+            if (batch_count == max_batch_count)
+            {
+                flush_batch();
+            }
+        }
+    }
+
+    flush_batch();
 }
 
 void LLPipeline::setupHWLights()

@@ -42,6 +42,7 @@
 
 #include <memory>
 #include <stack>
+#include <vector>
 #include "llrenderstate.h"
 
 class IUpscaler; // MARE: Phase 3 — forward-declared to avoid pulling in mareupscaler.h
@@ -57,6 +58,7 @@ class LLGLUpdate;
 class LLGLSLShader;
 class LLDrawPoolAlpha;
 class LLSettingsSky;
+struct LLRenderWorldMaterialParameters;
 
 typedef enum e_avatar_skinning_method
 {
@@ -370,6 +372,19 @@ public:
         F32& light_strength,
         U32& visible_light_count,
         LLVector3& dominant_light_screen) const;
+    void getVulkanDeferredLocalLightBatches(
+        LLCamera& camera,
+        const F32* modelview,
+        const F32* projection,
+        const LLRenderWorldMaterialParameters& base_parameters,
+        std::vector<LLRenderWorldMaterialParameters>& point_light_volumes,
+        std::vector<U32>& point_light_volume_fan_indices,
+        std::vector<LLRenderWorldMaterialParameters>& multi_point_light_batches,
+        std::vector<LLRenderWorldMaterialParameters>& spot_light_volumes,
+        std::vector<U32>& spot_light_volume_fan_indices,
+        std::vector<U32>& spot_light_projection_textures,
+        std::vector<LLRenderWorldMaterialParameters>& multi_spot_lights,
+        std::vector<U32>& multi_spot_projection_textures);
     void setupHWLights();
     void setupAvatarLights(bool for_edit = false);
     void enableLights(U32 mask);

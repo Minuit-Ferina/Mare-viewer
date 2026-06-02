@@ -164,6 +164,7 @@ struct LLWorldRenderCommand
     U32 mTerrainPaintType = 0;
     U32 mTerrainPlanarSampleCount = 1;
     F32 mTerrainTriplanarBlendFactor = 8.f;
+    bool mTerrainUsesPBRMaterials = false;
     LLColor4 mTerrainBaseColorFactors[4] =
     {
         LLColor4(1.f, 1.f, 1.f, 1.f),
@@ -267,6 +268,7 @@ public:
         U32 paint_type,
         U32 planar_sample_count,
         F32 triplanar_blend_factor,
+        bool uses_pbr_materials,
         F32 detail_scale,
         F32 offset_x,
         F32 offset_y);

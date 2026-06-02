@@ -408,6 +408,36 @@ Validation status:
       logic and requires real G-buffer inputs, lightMap/SSAO, shadow state,
       water plane, reflection probe data, and the same atmospherics path as
       OpenGL.
+      Runtime note: do not make the live
+      `class3/deferred/deferred_composite_runtime.frag` consume the richer
+      `softenLight` state as an approximation. A first attempt made the live
+      world rendering fragile; keep the current stable runtime composite until
+      the faithful `soften_light.frag` owner and its inputs are validated.
+      Smoke progress: `mare-vulkan-smoke --mode
+      viewer-deferred-soften-state-probe` reuses the viewer-style synthetic
+      G-buffer/deferred/final graph with non-neutral softenLight state so
+      future shader changes can be tested without logging into a region.
+      Runtime progress: the active/runtime Vulkan deferred composite now
+      consumes the transported OpenGL soften state for selected sun/moon light
+      direction, classic-mode light shaping, and sky HDR fallback scale. It is
+      still not the faithful `softenLightF.glsl` pass; local lights,
+      reflection probes, shadow/lightMap, and atmospheric helper parity remain
+      separate work.
+      Owner progress: `LLRenderWorldShaderClass::DeferredSoften` now has a
+      dedicated Vulkan pipeline owner and `class3/deferred/soften_light.frag`
+      is wired as a fullscreen G-buffer/depth/lightMap consumer. The viewer
+      composite path selects it by default and can be reverted for comparison
+      with `MARE_VULKAN_DISABLE_DEFERRED_SOFTEN=1`.
+      LightMap progress: `LLRenderWorldShaderClass::DeferredLightMap` now
+      renders `class2/deferred/sun_light_map_runtime.frag` into `mPostPongMap`
+      before `DeferredSoften`. Its SSAO channel is generated from
+      deferredScreen depth/normal. Directional and spot shadow channels remain
+      neutral until Vulkan shadow maps/projector shadow ownership exists.
+      Environment/emissive progress: the live `DeferredSoften` pass samples
+      the fourth G-buffer emissive attachment when present and now binds the
+      sky environment cube-map as a read-only composite input. This is still
+      not full reflection-probe parity: probe cubemap arrays, irradiance maps,
+      parallax selection, and SSR scene/depth bindings remain separate work.
 - [ ] Local lights:
       port and wire the class-tier deferred point, multi-point, spot, and
       multi-spot light shaders as separate passes instead of folding local
@@ -433,11 +463,35 @@ Validation status:
       `RenderQualityPerformance` directly in the Vulkan backend; if quality
       presets start changing class tiers, make that change in the
       `LLViewerShaderMgr`/feature-table flow first and let Vulkan follow the
-      resulting `SHADER_DEFERRED` level. Runtime work remains:
-      populate the Vulkan uniform buffers from `LLPipeline`, bind the projected
-      light, light function, G-buffer, depth, shadow/lightMap, and optional
-      emissive inputs, and submit these as separate additive deferred light
-      passes.
+      resulting `SHADER_DEFERRED` level.
+      Runtime progress: `LLPipeline` now emits the OpenGL-style deferred local
+      light split for Vulkan: point lights outside the camera volume use the
+      `PointLight` cube-volume path, nearby point lights use fullscreen
+      `MultiPointLight` batches, outside spot/projector lights use
+      `SpotLight` cube volumes, and nearby projectors use fullscreen
+      `MultiSpotLight` draws. The backend now allocates and binds transient
+      `set=1` uniform buffers for `PointLight`, `MultiPointLight`,
+      `SpotLight`, and `MultiSpotLight`, including projector matrices,
+      projector texture handles, attenuation/falloff, classic-mode state, and
+      the G-buffer/depth/lightFunc input bindings.
+      Runtime work remains: Vulkan now produces a read-only `DeferredLightMap`
+      SSAO target before local lights and projector passes bind that target.
+      The projector collection also mirrors OpenGL's two-light candidate
+      selection by updating `mTargetShadowSpotLight` and transports any current
+      `mShadowSpotLight` index/fade into the Vulkan spot uniforms. The target's
+      spot shadow channels are intentionally neutral until Vulkan-owned spot
+      shadow-map render passes exist. Reflection-probe cubemap-array
+      selection/parallax remains a separate probe-manager integration task; the
+      active composite now has the scalar reflection ambiance and sky cube-map
+      fallback, but not the real probe arrays.
+      Composite/lighting six-point status: point and spot/projector light
+      owners exist, the first read-only lightMap/SSAO target exists,
+      projector shadow index/fade ownership is transported, emissive is sampled
+      by `DeferredSoften`, and the sky cube-map is bound as an environment
+      input. Vulkan still needs Vulkan-owned sun/spot shadow-map render passes,
+      non-neutral shadow channels in `DeferredLightMap`, full reflection-probe
+      cubemap/parallax bindings, and final post/composite parity before this
+      item can be closed.
 - [ ] Final post-processing:
       port and wire the OpenGL post chain as separate class-tier passes:
       glow extraction/blur/combine, gamma/tonemap, FXAA/SMAA/CAS, DoF/cof, and
@@ -552,6 +606,7 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/environment/water_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/interface/copy_depth.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class2/deferred/sun_light_map_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/haze_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/deferred_composite_runtime.frag
@@ -928,7 +983,7 @@ Validation status:
       `active/terrain.vert` ABI because the specialized terrain/PBR-terrain
       vertex UBO interface is not connected yet, but the fragment owner is now
       separated from the active direct-swapchain terrain adapter. Direct
-      terrain rendering still uses the active runtime fragment.
+      terrain rendering uses `class1/deferred/terrain_runtime.frag`.
 - [x] Feed real terrain normals into the active Vulkan terrain G-buffer path.
       Terrain command emission now includes `MAP_NORMAL`, terrain pipelines use
       a vertex input layout that exposes the normal attribute, and both
@@ -1694,16 +1749,31 @@ Known missing runtime coverage:
       `class1/avatar/avatar_runtime.frag`. Avatar G-buffer draws still use the
       separate active G-buffer adapters until the deferred avatar ABI is
       replaced.
-- [ ] True deferred lighting is not a Vulkan render graph yet. The active
-      Vulkan composite now has sun/ambient/cloud-shadow lighting and a
-      read-only aggregate of nearby local lights plus a first depth-based SSAO
-      approximation, but it still does not replace the OpenGL sun/SSAO soften
-      pass, point-light volumes, spot projectors, reflection-probe lighting, or
-      fullscreen multi-light batches.
-      The local-light aggregate is now contribution-weighted: color is averaged
-      from visible nearby lights and strength follows total visible
-      contribution, which keeps the active approximation stable until a real
-      Vulkan light-list/pass owns local lights.
+- [ ] True deferred lighting is not a complete Vulkan render graph yet. The
+      active Vulkan composite now has sun/ambient/cloud-shadow lighting, first
+      depth-based SSAO approximation, and real local-light draw ownership for
+      point cube volumes, fullscreen multi-point batches, spot/projector cube
+      volumes, and fullscreen multi-spot draws. It still does not replace the
+      OpenGL sun/SSAO soften pass or the separate shadow/lightMap target that
+      spot shadows sample.
+      Composite progress: the runtime composite now uses the already-transported
+      sun/moon/classic/HDR state instead of ignoring it. Local-light progress
+      is now separate passes rather than an inline aggregate. Remaining graph
+      work is to produce read-only deferred lightMap/SSAO/shadow inputs before
+      the local-light pass and to connect reflection-probe cubemap arrays and
+      parallax/probe selection through the Vulkan backend.
+      DeferredSoften progress: Vulkan now has a dedicated
+      `LLRenderWorldShaderClass::DeferredSoften` owner and the viewer composite
+      path can execute `class3/deferred/soften_light.frag` as a fullscreen
+      G-buffer/depth/lightMap pass. This is the intended owner for the
+      OpenGL-style soften-light role. `DeferredLightMap` now provides a
+      read-only SSAO lightMap target from depth/normal, and projector
+      candidate/index/fade ownership is transported into Vulkan spot uniforms,
+      but its directional and spot shadow channels are still neutral. Emissive
+      and the sky environment cube-map now feed the live soften pass. Close
+      this only after the remaining graph inputs are real: Vulkan shadow maps,
+      non-neutral shadow channels, reflection-probe cubemap/parallax bindings,
+      and final composite/post parity.
 - [ ] Shadow map rendering is not Vulkan-native. `generateSunShadow()` still
       owns the OpenGL-era shadow render targets, shadow cameras, and
       `renderShadow()` flow. Vulkan needs explicit shadow render passes and
@@ -1770,15 +1840,25 @@ Known missing runtime coverage:
       leaving active material shaders to sample `tex2` without the specular map
       explicitly bound. Specular maps now activate the material texture binding
       path and bind through texture unit 2.
-- [ ] Terrain is not visually 1:1 yet. The active Vulkan G-buffer path now
+- [x] Finish the terrain-specific Vulkan final path.
+      Terrain commands now carry whether the region is using GLTF/PBR terrain
+      materials, and the Vulkan terrain direct/G-buffer shaders use that flag
+      to keep legacy texture terrain in the legacy G-buffer family while
+      applying OpenGL-style sRGB-to-linear conversion only to PBR terrain
+      base-color/emissive texture samples. `mare-vulkan-smoke --mode
+      terrain-final-probe` isolates a terrain-only viewer deferred graph with
+      full terrain texture bindings so this path can be tested without login.
+      The active Vulkan G-buffer path now
       carries complete encoded terrain vertex normals through the normal
       attachment, and the active terrain shaders now apply the four GLTF
       base-color, roughness, metallic, emissive-color, and minimum-alpha
       factors before or alongside terrain layer blending. PBR terrain base-color
       texture selection, ORM/emissive/normal texture sampling, per-material
       texture transforms, paint-map composition, and triplanar color/ORM/
-      emissive/normal sampling are active, but final terrain shader/render graph
-      ownership remains open.
+      emissive/normal sampling are active. Remaining terrain visual differences
+      should now be handled in the global deferred composite/lighting, sky,
+      water, shadows, and reflection-probe tasks rather than as terrain input
+      ownership.
 - [x] Align active Vulkan terrain vertex input with the active terrain shader.
       `active/terrain.vert` consumes `tangent` at location 8 for normal-map and
       terrain material tangent-space work, so both swapchain and offscreen

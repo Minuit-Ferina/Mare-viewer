@@ -14,7 +14,10 @@ layout(location = 0) out vec4 frag_color;
 layout(push_constant) uniform MareWorldPushConstants
 {
     layout(offset = 80) vec4 composite_ambient;
+    layout(offset = 112) vec4 composite_sun_direction;
     layout(offset = 128) vec4 composite_light;
+    layout(offset = 144) vec4 composite_moon_direction;
+    layout(offset = 160) vec4 composite_sky_settings;
     layout(offset = 224) vec4 composite_ssao;
     layout(offset = 176) vec4 composite_features;
     layout(offset = 192) vec4 composite_light_direction;
@@ -37,9 +40,13 @@ vec3 fallback_sky_color(vec2 texcoord)
     float horizon = smoothstep(0.0, 1.0, texcoord.y);
     vec3 ambient_color = max(pc.composite_ambient.rgb, vec3(0.0));
     vec3 direct_color = max(pc.composite_light.rgb, vec3(0.0));
+    float sky_hdr_scale =
+        pc.scene_reflection.w > 0.5 ?
+            max(pc.composite_sky_settings.y, 1.0) :
+            1.0;
     vec3 horizon_color = ambient_color * 1.15 + direct_color * 0.08;
     vec3 zenith_color = ambient_color * 0.72 + direct_color * 0.24;
-    return max(mix(horizon_color, zenith_color, horizon), vec3(0.0));
+    return max(mix(horizon_color, zenith_color, horizon) * sky_hdr_scale, vec3(0.0));
 }
 
 vec3 srgb_to_linear(vec3 color)
@@ -115,6 +122,23 @@ float compute_ssao(vec2 texcoord, float enabled)
     return clamp(1.0 - occlusion * 0.25 * strength, 0.25, 1.0);
 }
 
+vec3 select_composite_light_direction()
+{
+    vec3 selected_light_dir =
+        pc.composite_sun_direction.w > 0.5 ?
+            pc.composite_sun_direction.xyz :
+            pc.composite_moon_direction.xyz;
+    if (dot(selected_light_dir, selected_light_dir) <= 0.0001)
+    {
+        selected_light_dir = pc.composite_light_direction.xyz;
+    }
+    if (dot(selected_light_dir, selected_light_dir) <= 0.0001)
+    {
+        selected_light_dir = vec3(0.32, 0.48, 0.82);
+    }
+    return normalize(selected_light_dir);
+}
+
 void main()
 {
     vec4 diffuse = texture(diffuseMap, vary_texcoord0.xy);
@@ -141,13 +165,13 @@ void main()
     }
 
     vec3 normal = decode_gbuffer_normal(encoded_normal);
-    vec3 light_dir = pc.composite_light_direction.xyz;
-    if (dot(light_dir, light_dir) <= 0.0001)
-    {
-        light_dir = vec3(0.32, 0.48, 0.82);
-    }
-    light_dir = normalize(light_dir);
+    vec3 light_dir = select_composite_light_direction();
     float ndotl = max(dot(normal, light_dir), 0.0);
+    bool classic_mode = pc.composite_moon_direction.w > 0.5;
+    if (classic_mode)
+    {
+        ndotl = pow(ndotl, 1.2);
+    }
 
     float env = clamp(diffuse.a, 0.0, 1.0);
     bool pbr = specular_or_orm.a > 0.5;
@@ -175,6 +199,10 @@ void main()
         probe_ambiance);
     vec3 direct_color = max(pc.composite_light.rgb, vec3(0.0));
     float direct_scale = max(pc.composite_light_direction.a, 0.0);
+    if (classic_mode)
+    {
+        direct_scale *= 1.35;
+    }
     float ssao = compute_ssao(vary_texcoord0.xy, pc.composite_features.y);
     float environment_scale = mix(1.0, 1.75, probe_ambiance);
     vec3 environment =

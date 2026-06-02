@@ -12,6 +12,7 @@ layout(set = 0, binding = 12) uniform sampler2D emissive3;
 
 layout(push_constant) uniform MareWorldPushConstants
 {
+    layout(offset = 64) vec4 params;
     layout(offset = 80) vec4 terrain_params;
     layout(offset = 128) vec4 terrain_base_color0;
     layout(offset = 144) vec4 terrain_base_color1;
@@ -45,6 +46,19 @@ layout(location = 9) in vec2 vary_paint_texcoord;
 layout(location = 0) out vec4 frag_color;
 
 const float TERRAIN_TRIPLANAR_MIX_THRESHOLD = 0.01;
+
+bool terrain_uses_pbr_materials()
+{
+    return pc.params.y > 0.5;
+}
+
+vec3 srgb_to_linear(vec3 color)
+{
+    bvec3 cutoff = lessThanEqual(color, vec3(0.04045));
+    vec3 low = color / 12.92;
+    vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
+    return mix(high, low, cutoff);
+}
 
 vec3 get_scene_ambient_color()
 {
@@ -180,6 +194,16 @@ vec4 terrain_sample_rgba(sampler2D tex, int material, vec2 planar_texcoord)
         texture(tex, terrain_axis_texcoord(material, 2)) * weights.z;
 }
 
+vec4 terrain_sample_base_color(sampler2D tex, int material, vec2 planar_texcoord)
+{
+    vec4 color = terrain_sample_rgba(tex, material, planar_texcoord);
+    if (terrain_uses_pbr_materials())
+    {
+        color.rgb = srgb_to_linear(max(color.rgb, vec3(0.0)));
+    }
+    return color;
+}
+
 vec4 terrain_weights(float alpha1, float alpha2, float alphaFinal)
 {
     return vec4(
@@ -224,16 +248,16 @@ vec3 terrain_emissive(vec4 weights)
 {
     return
         pc.terrain_emissive_min_alpha0.rgb *
-            terrain_sample_rgba(emissive0, 0, vary_detail_texcoord0).rgb *
+            terrain_sample_base_color(emissive0, 0, vary_detail_texcoord0).rgb *
             weights.x +
         pc.terrain_emissive_min_alpha1.rgb *
-            terrain_sample_rgba(emissive1, 1, vary_detail_texcoord1).rgb *
+            terrain_sample_base_color(emissive1, 1, vary_detail_texcoord1).rgb *
             weights.y +
         pc.terrain_emissive_min_alpha2.rgb *
-            terrain_sample_rgba(emissive2, 2, vary_detail_texcoord2).rgb *
+            terrain_sample_base_color(emissive2, 2, vary_detail_texcoord2).rgb *
             weights.z +
         pc.terrain_emissive_min_alpha3.rgb *
-            terrain_sample_rgba(emissive3, 3, vary_detail_texcoord3).rgb *
+            terrain_sample_base_color(emissive3, 3, vary_detail_texcoord3).rgb *
             weights.w;
 }
 
@@ -254,10 +278,10 @@ vec3 terrain_direct_lighting(vec3 base_color)
 
 void main()
 {
-    vec4 color0 = terrain_sample_rgba(detail0, 0, vary_detail_texcoord0) * pc.terrain_base_color0;
-    vec4 color1 = terrain_sample_rgba(detail1, 1, vary_detail_texcoord1) * pc.terrain_base_color1;
-    vec4 color2 = terrain_sample_rgba(detail2, 2, vary_detail_texcoord2) * pc.terrain_base_color2;
-    vec4 color3 = terrain_sample_rgba(detail3, 3, vary_detail_texcoord3) * pc.terrain_base_color3;
+    vec4 color0 = terrain_sample_base_color(detail0, 0, vary_detail_texcoord0) * pc.terrain_base_color0;
+    vec4 color1 = terrain_sample_base_color(detail1, 1, vary_detail_texcoord1) * pc.terrain_base_color1;
+    vec4 color2 = terrain_sample_base_color(detail2, 2, vary_detail_texcoord2) * pc.terrain_base_color2;
+    vec4 color3 = terrain_sample_base_color(detail3, 3, vary_detail_texcoord3) * pc.terrain_base_color3;
 
     vec4 weights = terrain_weights();
 

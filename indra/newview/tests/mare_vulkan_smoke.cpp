@@ -58,8 +58,10 @@ enum class SmokeMode
     ShaderProbe,
     ShaderSuite,
     Class1GBufferColorProbe,
+    TerrainFinalProbe,
     FinalColorCompare,
     ViewerDeferredColorCompare,
+    ViewerDeferredSoftenStateProbe,
 };
 
 enum class SmokeViewerStagedStop
@@ -244,6 +246,11 @@ bool parse_smoke_mode_value(const char* value, SmokeMode& mode)
         mode = SmokeMode::Class1GBufferColorProbe;
         return true;
     }
+    if (std::strcmp(value, "terrain-final-probe") == 0)
+    {
+        mode = SmokeMode::TerrainFinalProbe;
+        return true;
+    }
     if (std::strcmp(value, "final-color-compare") == 0)
     {
         mode = SmokeMode::FinalColorCompare;
@@ -252,6 +259,11 @@ bool parse_smoke_mode_value(const char* value, SmokeMode& mode)
     if (std::strcmp(value, "viewer-deferred-color-compare") == 0)
     {
         mode = SmokeMode::ViewerDeferredColorCompare;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-soften-state-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredSoftenStateProbe;
         return true;
     }
     return false;
@@ -292,6 +304,8 @@ const char* get_smoke_mode_name(SmokeMode mode)
     {
     case SmokeMode::Class1GBufferColorProbe:
         return "class1-gbuffer-color-probe";
+    case SmokeMode::TerrainFinalProbe:
+        return "terrain-final-probe";
     case SmokeMode::WorldPipelines:
         return "world-pipelines";
     case SmokeMode::ShaderProbe:
@@ -302,6 +316,8 @@ const char* get_smoke_mode_name(SmokeMode mode)
         return "final-color-compare";
     case SmokeMode::ViewerDeferredColorCompare:
         return "viewer-deferred-color-compare";
+    case SmokeMode::ViewerDeferredSoftenStateProbe:
+        return "viewer-deferred-soften-state-probe";
     case SmokeMode::DeferredGraph:
         return "deferred-graph";
     case SmokeMode::ViewerDeferredDirect:
@@ -416,10 +432,14 @@ const char* get_smoke_mode_description(SmokeMode mode)
         return " rendered as one fullscreen Vulkan shader-probe case per frame. ";
     case SmokeMode::Class1GBufferColorProbe:
         return " rendered as a class1-style G-buffer color grid, then copied from deferredScreen color attachment 0 to the swapchain. ";
+    case SmokeMode::TerrainFinalProbe:
+        return " rendered as a terrain-only viewer deferred graph with full terrain texture bindings, G-buffer, deferred composite, and final composite. ";
     case SmokeMode::FinalColorCompare:
         return " rendered through the real Vulkan final composite shader and compared against an OpenGL-style CPU color reference. ";
     case SmokeMode::ViewerDeferredColorCompare:
         return " rendered through a viewer-style legacy G-buffer, deferred composite, final composite, and compared against an OpenGL-style CPU color reference. ";
+    case SmokeMode::ViewerDeferredSoftenStateProbe:
+        return " rendered through the viewer-style deferred graph with non-neutral softenLight state for sun/moon/classic/SSAO parameter probing. ";
     case SmokeMode::DirectClear:
     default:
         return ". ";
@@ -446,8 +466,10 @@ bool smoke_mode_uses_scene(SmokeMode mode)
     case SmokeMode::CopyMRTChain:
     case SmokeMode::WorldPipelines:
     case SmokeMode::Class1GBufferColorProbe:
+    case SmokeMode::TerrainFinalProbe:
     case SmokeMode::FinalColorCompare:
     case SmokeMode::ViewerDeferredColorCompare:
+    case SmokeMode::ViewerDeferredSoftenStateProbe:
         return true;
     case SmokeMode::DirectClear:
     case SmokeMode::OffscreenCopy:
@@ -511,8 +533,10 @@ void print_smoke_usage(const char* executable)
         << "                             shader-probe,\n"
         << "                             shader-suite,\n"
         << "                             class1-gbuffer-color-probe,\n"
+        << "                             terrain-final-probe,\n"
         << "                             final-color-compare,\n"
-        << "                             viewer-deferred-color-compare\n"
+        << "                             viewer-deferred-color-compare,\n"
+        << "                             viewer-deferred-soften-state-probe\n"
         << "  --scene <name>             basic, post-overlays-stress, two-prims,\n"
         << "                             replay-capture\n"
         << "  --capture <path>           Capture file for --scene replay-capture\n"
@@ -1597,6 +1621,40 @@ void bind_world_pipeline_smoke_textures(
     backend.setActiveTextureUnit(0);
 }
 
+void bind_terrain_final_probe_textures(
+    LLRenderBackend& backend,
+    const SmokeDeferredTextures& textures)
+{
+    const LLRenderTextureHandle bindings[] =
+    {
+        textures.mDiffuse,
+        textures.mSpecular,
+        textures.mEmissive,
+        textures.mWhite,
+        textures.mWhite,
+        textures.mWhite,
+        textures.mWhite,
+        textures.mWhite,
+        textures.mWhite,
+        textures.mEmissive,
+        textures.mEmissive,
+        textures.mEmissive,
+        textures.mEmissive,
+        textures.mNormal,
+        textures.mNormal,
+        textures.mNormal,
+        textures.mNormal,
+    };
+    const S32 binding_count =
+        static_cast<S32>(sizeof(bindings) / sizeof(bindings[0]));
+    for (S32 unit = 0; unit < binding_count; ++unit)
+    {
+        backend.setActiveTextureUnit(unit);
+        backend.bindTexture(LLRenderTextureTarget::Texture2D, bindings[unit]);
+    }
+    backend.setActiveTextureUnit(0);
+}
+
 LLRenderWorldMaterialParameters make_world_pipeline_material(
     F32 red,
     F32 green,
@@ -1641,6 +1699,7 @@ LLRenderWorldMaterialParameters make_world_pipeline_material(
 LLRenderWorldTerrainParameters make_world_pipeline_terrain_parameters()
 {
     LLRenderWorldTerrainParameters parameters;
+    parameters.mUsesPBRMaterials = 1.f;
     parameters.mPlanarSampleCount = 1.f;
     parameters.mPaintType = 0.f;
     parameters.mBaseColorFactors[0] = 0.26f;
@@ -4367,6 +4426,45 @@ void log_deferred_color_compare_reference()
     logged_reference = true;
 }
 
+void log_deferred_soften_state_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-soften-state-probe: using the same "
+        << "three-band synthetic G-buffer as viewer-deferred-color-compare, "
+        << "but with non-neutral deferred soften state: moon-selected light, "
+        << "classic mode enabled, direct light enabled, sky HDR scale > 1, "
+        << "and non-identity environment/SSAO matrices. This is a guardrail "
+        << "for future deferred composite work; the current live shader still "
+        << "uses the stable runtime approximation until the faithful "
+        << "softenLight port is validated."
+        << std::endl;
+    logged_reference = true;
+}
+
+void log_terrain_final_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan terrain-final-probe: rendering a terrain-only "
+        << "viewer-style deferred graph. Texture slots are bound like the "
+        << "runtime terrain path: base-color 0..3, composition 4, ORM 5..8, "
+        << "emissive 9..12, and normal 13..16. This isolates terrain G-buffer "
+        << "and final-composite behavior from other world draw pools."
+        << std::endl;
+    logged_reference = true;
+}
+
 LLRenderWorldMaterialParameters make_deferred_color_compare_gbuffer_material()
 {
     const SmokeRGB srgb_input = get_deferred_color_compare_srgb_input();
@@ -4478,6 +4576,70 @@ LLRenderWorldMaterialParameters make_deferred_color_compare_composite_parameters
     return make_vulkan_deferred_composite_material_parameters(settings);
 }
 
+LLRenderWorldMaterialParameters make_deferred_soften_state_probe_parameters(
+    U32 width,
+    U32 height)
+{
+    LLVulkanDeferredCompositeSettings settings;
+    settings.mAmbientRed = 0.32f;
+    settings.mAmbientGreen = 0.34f;
+    settings.mAmbientBlue = 0.38f;
+    settings.mDirectLightRed = 0.88f;
+    settings.mDirectLightGreen = 0.78f;
+    settings.mDirectLightBlue = 0.58f;
+    settings.mLightDirectionX = 0.f;
+    settings.mLightDirectionY = 0.f;
+    settings.mLightDirectionZ = 1.f;
+    settings.mDirectLightScale = 1.f;
+    settings.mDeferredAttachmentCount = 4;
+    settings.mSSAOEnabled = true;
+    settings.mSSAOScale = 3.f;
+    settings.mSSAOMaxScale = 8.f;
+    settings.mSSAOFactor = 1.5f;
+    settings.mSSAOEffect = 1.f;
+    settings.mDominantLightScreenX = -1.f;
+    settings.mDominantLightScreenY = 1.f;
+    settings.mDominantLightRadius = 0.f;
+    settings.mReflectionProbeAmbiance = 0.35f;
+    settings.mTonemapMix = 0.25f;
+    settings.mSkyLightingValid = 1.f;
+    settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
+    settings.mScreenHeight = static_cast<F32>(llmax(1U, height));
+    settings.mSunDirectionX = -0.75f;
+    settings.mSunDirectionY = 0.10f;
+    settings.mSunDirectionZ = 0.35f;
+    settings.mSunUpFactor = 0.f;
+    settings.mMoonDirectionX = 0.f;
+    settings.mMoonDirectionY = 0.f;
+    settings.mMoonDirectionZ = 1.f;
+    settings.mClassicMode = 1.f;
+    settings.mCubeSnapshot = 0.f;
+    settings.mSkyHDRScale = 1.45f;
+    settings.mBlurSize = 2.25f;
+    settings.mBlurFidelity = 6.f;
+    settings.mSSAOIrradianceScale = 0.45f;
+    settings.mSSAOIrradianceMax = 0.22f;
+    settings.mEnvironmentMatrix[0] = 1.f;
+    settings.mEnvironmentMatrix[1] = 0.f;
+    settings.mEnvironmentMatrix[2] = 0.f;
+    settings.mEnvironmentMatrix[3] = 0.f;
+    settings.mEnvironmentMatrix[4] = 0.72f;
+    settings.mEnvironmentMatrix[5] = 0.69f;
+    settings.mEnvironmentMatrix[6] = 0.f;
+    settings.mEnvironmentMatrix[7] = -0.69f;
+    settings.mEnvironmentMatrix[8] = 0.72f;
+    settings.mSSAOEffectMatrix[0] = 0.72f;
+    settings.mSSAOEffectMatrix[1] = 0.08f;
+    settings.mSSAOEffectMatrix[2] = 0.05f;
+    settings.mSSAOEffectMatrix[3] = 0.08f;
+    settings.mSSAOEffectMatrix[4] = 0.64f;
+    settings.mSSAOEffectMatrix[5] = 0.05f;
+    settings.mSSAOEffectMatrix[6] = 0.05f;
+    settings.mSSAOEffectMatrix[7] = 0.05f;
+    settings.mSSAOEffectMatrix[8] = 0.58f;
+    return make_vulkan_deferred_composite_material_parameters(settings);
+}
+
 void bind_deferred_color_compare_material_textures(
     LLRenderBackend& backend,
     const SmokeDeferredTextures& textures)
@@ -4585,6 +4747,51 @@ void draw_deferred_color_compare_gbuffer_scene(
     backend.setWorldDrawEnabled(false);
     backend.setWorldShaderClass(LLRenderWorldShaderClass::Textured);
     backend.setWorldMaterialParameters({});
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+}
+
+void draw_terrain_final_probe_gbuffer_scene(
+    LLRenderBackend& backend,
+    const SmokeDeferredTextures& textures,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    log_terrain_final_probe_reference();
+
+    SmokeMatrixScope matrix_scope;
+    bind_terrain_final_probe_textures(backend, textures);
+    bind_world_smoke_quad(backend, quad);
+    backend.setWorldDrawEnabled(true);
+    backend.setWorldTextureTransform({});
+    backend.setWorldTerrainParameters(make_world_pipeline_terrain_parameters());
+    backend.setWorldSkinningMatrixPalette(0, nullptr);
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::DepthTest, true);
+    backend.setDepthFunction(LLRenderDepthFunction::LessEqual);
+    backend.setDepthWriteEnabled(true);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Terrain);
+    backend.setWorldMaterialParameters(
+        make_world_pipeline_material(
+            0.34f,
+            0.58f,
+            0.28f,
+            1.f,
+            0));
+    set_two_prim_world_matrix(0.f, 0.f, 0.f, 1.f, 1.f);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    backend.setWorldDrawEnabled(false);
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+    backend.setWorldMaterialParameters({});
+    backend.setWorldTerrainParameters({});
+    backend.setWorldTextureTransform({});
+    backend.setWorldSkinningMatrixPalette(0, nullptr);
     backend.setCapability(LLRenderCapability::DepthTest, false);
     backend.setDepthWriteEnabled(false);
     backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
@@ -6879,7 +7086,8 @@ bool render_viewer_deferred_color_compare_frame(
     SmokeViewerRenderTargetGraph& graph,
     const SmokeQuad& quad,
     U32 width,
-    U32 height)
+    U32 height,
+    bool soften_state_probe = false)
 {
     if (!ensure_smoke_deferred_textures(backend, material_textures))
     {
@@ -6920,6 +7128,123 @@ bool render_viewer_deferred_color_compare_frame(
     backend.setClearColor(0.f, 0.f, 0.f, 0.f);
     graph.mDeferredScreen.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
     draw_deferred_color_compare_gbuffer_scene(
+        backend,
+        material_textures,
+        quad,
+        graph_width,
+        graph_height);
+    if (soften_state_probe)
+    {
+        log_deferred_soften_state_probe_reference();
+    }
+    graph.mDeferredScreen.flush();
+
+    graph.mDeferredLight.bindTarget();
+    backend.setClearColor(0.f, 0.f, 0.f, 1.f);
+    graph.mDeferredLight.clear(LL_RENDER_CLEAR_COLOR);
+    LLRenderWorldMaterialParameters deferred_parameters =
+        soften_state_probe ?
+            make_deferred_soften_state_probe_parameters(
+                graph_width,
+                graph_height) :
+            make_deferred_color_compare_composite_parameters(
+                graph_width,
+                graph_height);
+    draw_smoke_deferred_screen_composite_quad(
+        backend,
+        graph.mDeferredScreen,
+        quad,
+        graph_width,
+        graph_height,
+        &deferred_parameters);
+    graph.mDeferredLight.flush();
+
+    copy_smoke_target_to_target(
+        backend,
+        graph.mDeferredLight,
+        graph.mScreen,
+        quad,
+        graph_width,
+        graph_height);
+    copy_smoke_target_to_target(
+        backend,
+        graph.mScreen,
+        graph.mDeferredLight,
+        quad,
+        graph_width,
+        graph_height);
+
+    graph.mPostPing.bindTarget();
+    backend.setClearColor(0.f, 0.f, 0.f, 1.f);
+    graph.mPostPing.clear(LL_RENDER_CLEAR_COLOR);
+    LLRenderWorldMaterialParameters final_parameters =
+        make_final_color_compare_parameters();
+    draw_smoke_final_composite_quad(
+        backend,
+        graph.mDeferredLight,
+        graph.mDeferredScreen,
+        quad,
+        graph_width,
+        graph_height,
+        &final_parameters);
+    graph.mPostPing.flush();
+
+    copy_smoke_target_to_swapchain(
+        backend,
+        graph.mPostPing,
+        quad,
+        width,
+        height);
+    return true;
+}
+
+bool render_terrain_final_probe_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& material_textures,
+    SmokeViewerRenderTargetGraph& graph,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    if (!ensure_smoke_deferred_textures(backend, material_textures))
+    {
+        return false;
+    }
+
+    const U32 graph_width = llmax(64U, llmin(width, 960U));
+    const U32 graph_height = llmax(
+        64U,
+        llmin(
+            height,
+            static_cast<U32>(
+                static_cast<double>(graph_width) *
+                static_cast<double>(height) /
+                static_cast<double>(llmax(1U, width)))));
+
+    if (!ensure_smoke_viewer_render_target_graph(
+            graph,
+            graph_width,
+            graph_height,
+            4,
+            true))
+    {
+        return false;
+    }
+
+    graph.mDeferredScreen.bindTarget();
+    backend.setViewport(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setScissor(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setClearColor(0.f, 0.f, 0.f, 0.f);
+    graph.mDeferredScreen.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    draw_terrain_final_probe_gbuffer_scene(
         backend,
         material_textures,
         quad,
@@ -8057,8 +8382,10 @@ int main(int argc, char** argv)
         smoke_mode == SmokeMode::CopyChain ||
         smoke_mode == SmokeMode::CopyMRTChain ||
         smoke_mode == SmokeMode::Class1GBufferColorProbe ||
+        smoke_mode == SmokeMode::TerrainFinalProbe ||
         smoke_mode == SmokeMode::FinalColorCompare ||
         smoke_mode == SmokeMode::ViewerDeferredColorCompare ||
+        smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe ||
         options.mRenderUI ||
         options.mRenderSceneMarker)
     {
@@ -8108,8 +8435,10 @@ int main(int argc, char** argv)
             smoke_mode == SmokeMode::ShaderProbe ||
             smoke_mode == SmokeMode::ShaderSuite ||
             smoke_mode == SmokeMode::Class1GBufferColorProbe ||
+            smoke_mode == SmokeMode::TerrainFinalProbe ||
             smoke_mode == SmokeMode::FinalColorCompare ||
-            smoke_mode == SmokeMode::ViewerDeferredColorCompare) &&
+            smoke_mode == SmokeMode::ViewerDeferredColorCompare ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe) &&
         !create_smoke_quad(backend, smoke_quad))
     {
         std::cerr << "Failed to create Vulkan smoke quad.\n";
@@ -8376,9 +8705,9 @@ int main(int argc, char** argv)
                 break;
             }
         }
-        else if (smoke_mode == SmokeMode::ViewerDeferredColorCompare)
+        else if (smoke_mode == SmokeMode::TerrainFinalProbe)
         {
-            if (!render_viewer_deferred_color_compare_frame(
+            if (!render_terrain_final_probe_frame(
                     backend,
                     smoke_deferred_textures,
                     smoke_viewer_render_target_graph,
@@ -8386,7 +8715,26 @@ int main(int argc, char** argv)
                     width,
                     height))
             {
-                std::cerr << "Failed to render Vulkan smoke viewer-deferred-color-compare frame.\n";
+                std::cerr << "Failed to render Vulkan smoke terrain-final-probe frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredColorCompare ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe)
+        {
+            if (!render_viewer_deferred_color_compare_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_viewer_render_target_graph,
+                    smoke_quad,
+                    width,
+                    height,
+                    smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
                 break;
             }
         }

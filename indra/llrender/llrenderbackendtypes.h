@@ -356,6 +356,8 @@ enum class LLRenderWorldShaderClass : U8
     SpotLight,
     MultiSpotLight,
     Copy,
+    DeferredLightMap,
+    DeferredSoften,
     DeferredComposite,
     FinalComposite,
 };
@@ -502,6 +504,7 @@ struct LLRenderWorldTerrainParameters
     F32 mPaintType = 0.f;
     F32 mPlanarSampleCount = 1.f;
     F32 mTriplanarBlendFactor = 8.f;
+    F32 mUsesPBRMaterials = 0.f;
     F32 mBaseColorFactors[16] =
     {
         1.f, 1.f, 1.f, 1.f,
@@ -535,6 +538,11 @@ struct LLRenderWorldTerrainParameters
 
 struct LLRenderWorldMaterialParameters
 {
+    enum : U32
+    {
+        MaxDeferredMultiLightCount = 8,
+    };
+
     enum MaterialFlag : U32
     {
         HasNormalMap = 1u << 0,
@@ -646,6 +654,69 @@ struct LLRenderWorldMaterialParameters
         0.f, 1.f, 0.f, 0.f,
         0.f, 0.f, 1.f, 0.f,
         0.f, 0.f, 0.f, 1.f,
+    };
+    F32 mLocalLight[MaxDeferredMultiLightCount * 4] = {};
+    F32 mLocalLightColor[MaxDeferredMultiLightCount * 4] = {};
+    F32 mLocalLightScreenSettings[4] =
+    {
+        1.f, 1.f, 0.f, 0.f,
+    };
+    F32 mLocalLightSunWashAndCount[4] =
+    {
+        0.f, 0.f, 0.f, 0.f,
+    };
+    F32 mLocalLightModelviewProjection[16] =
+    {
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+    };
+    F32 mLocalLightModelview[16] =
+    {
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+    };
+    F32 mLocalLightCenterSize[4] =
+    {
+        0.f, 0.f, 0.f, 1.f,
+    };
+    F32 mLocalLightProjectionMatrix[16] =
+    {
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+    };
+    F32 mLocalLightProjectionPAndNear[4] =
+    {
+        0.f, 0.f, 0.f, 0.f,
+    };
+    F32 mLocalLightProjectionNAndFocus[4] =
+    {
+        0.f, 0.f, -1.f, 0.f,
+    };
+    F32 mLocalLightProjectionLodRangeAmbiance[4] =
+    {
+        0.f, 1.f, 0.f, 0.f,
+    };
+    F32 mLocalLightNearFarSunShadow[4] =
+    {
+        0.f, 1.f, 0.f, 1.f,
+    };
+    F32 mLocalLightShadowIndices[4] =
+    {
+        -1.f, -1.f, 0.f, 0.f,
+    };
+    F32 mLocalLightProjectionOriginSize[4] =
+    {
+        0.f, 0.f, 0.f, 1.f,
+    };
+    F32 mLocalLightViewport[4] =
+    {
+        0.f, 0.f, 1.f, 1.f,
     };
 };
 
