@@ -54,6 +54,13 @@ struct LLVulkanDeferredCompositeSettings
     F32 mReflectionProbeAmbiance = 0.f;
     F32 mTonemapMix = 0.f;
     F32 mSkyLightingValid = 0.f;
+    F32 mInverseProjection[16] =
+    {
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+    };
 };
 
 inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_parameters(
@@ -95,6 +102,11 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
     parameters.mSceneAmbientGreen = settings.mTonemapMix;
     parameters.mSceneAmbientBlue = settings.mDirectLightScale;
     parameters.mSceneDirectScale = settings.mSkyLightingValid;
+    for (U32 i = 0; i < 16; ++i)
+    {
+        parameters.mCompositeInverseProjection[i] =
+            settings.mInverseProjection[i];
+    }
 
     return parameters;
 }

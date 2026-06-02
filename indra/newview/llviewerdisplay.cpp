@@ -660,6 +660,14 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     settings.mReflectionProbeAmbiance = reflection_probe_ambiance;
     settings.mTonemapMix = tonemap_mix;
     settings.mSkyLightingValid = sky ? 1.f : 0.f;
+    const glm::mat4 inverse_projection =
+        glm::inverse(get_current_projection());
+    const F32* inverse_projection_values =
+        glm::value_ptr(inverse_projection);
+    for (U32 i = 0; i < 16; ++i)
+    {
+        settings.mInverseProjection[i] = inverse_projection_values[i];
+    }
 
     return make_vulkan_deferred_composite_material_parameters(settings);
 }

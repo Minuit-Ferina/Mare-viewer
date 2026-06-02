@@ -18293,8 +18293,16 @@ bool record_vulkan_frame_command_buffer(
         {
             LLVulkanWorldPushConstants push_constants;
             push_constants.mModelviewProjection = draw.mModelviewProjection;
-            push_constants.mNormalMatrix =
-                glm::mat4(glm::transpose(glm::inverse(glm::mat3(draw.mModelview))));
+            if (draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite)
+            {
+                push_constants.mNormalMatrix =
+                    glm::make_mat4(draw.mMaterialParameters.mCompositeInverseProjection);
+            }
+            else
+            {
+                push_constants.mNormalMatrix =
+                    glm::mat4(glm::transpose(glm::inverse(glm::mat3(draw.mModelview))));
+            }
             push_constants.mParams = glm::vec4(
                 draw.mAlphaMaskCutoff,
                 draw.mAttributes[13].mEnabled ? 1.f : 0.f,
