@@ -366,10 +366,12 @@ Validation status:
 - [ ] Replace active-path shader approximations with class-tier owners instead
       of treating `active/*.frag` as the final shader family.
       `active/deferred_composite.frag`, `active/final_composite.frag`,
-      `active/water.frag`, `active/sky.frag`, `active/alpha.frag`,
-      `active/glow.frag`, and related active G-buffer shaders are bootstrap
-      adapters. The final Vulkan path should bind class-tier shaders matching
-      the OpenGL families and selected viewer settings.
+      `active/water.frag`, `active/alpha.frag`, `active/glow.frag`, and
+      related active G-buffer shaders are bootstrap adapters. Sky has moved to
+      the explicit `class1/deferred/sky_runtime.frag` runtime owner, but still
+      needs the faithful `sky.vert`/`sky.frag` UBO pipeline before it is
+      parity-complete. The final Vulkan path should bind class-tier shaders
+      matching the OpenGL families and selected viewer settings.
       First safe runtime replacement: UI textured now binds
       `class1/interface/ui.frag` instead of `active/ui.frag`. The UI vertex
       remains `active/ui.vert` because the class1 interface vertex expects
@@ -457,10 +459,13 @@ Validation status:
       it with a procedural sky gradient.
       Source parity progress: `vulkan/final/class1/deferred/sky.vert` and
       `sky.frag` now carry the OpenGL haze/rainbow/halo/HDRI source logic.
+      Runtime owner progress: Vulkan sky now binds
+      `vulkan/final/class1/deferred/sky_runtime.frag` so the current runtime
+      path is no longer loaded from `active/sky.frag`.
       Runtime work remains: populate the sky uniform blocks from
       `LLDrawPoolWLSky`, bind rainbow/halo/HDRI textures, compile the HDRI and
-      emissive permutations, and route Vulkan sky away from
-      `active/sky.frag`.
+      emissive permutations, and route Vulkan sky from the runtime fragment to
+      the faithful `sky.vert`/`sky.frag` pair.
 - [x] Local light source stages:
       `class3/deferred/point_light.vert` and `multi_point_light.vert` now match
       the OpenGL point-light/fullscreen vertex roles instead of generated mesh
@@ -523,6 +528,7 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/exposure_history.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/pbropaque_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/pbropaque_gbuffer_emissive.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/sky_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/interface/copy_depth.frag
@@ -1327,8 +1333,9 @@ Validation status:
       water plane uniforms, above/below-water policy, and final render graph
       ownership still need Vulkan-native passes.
 - [x] Give active Vulkan sky dome draws a dedicated runtime shader/pipeline.
-      `LLRenderWorldShaderClass::Sky` now owns `active/sky.frag`, and both the
-      swapchain and offscreen Vulkan pipeline sets create sky pipeline variants.
+      `LLRenderWorldShaderClass::Sky` now owns
+      `class1/deferred/sky_runtime.frag`, and both the swapchain and offscreen
+      Vulkan pipeline sets create sky pipeline variants.
       Sky dome commands route through this shader instead of the generic
       textured-world fragment path. This is still not final EEP sky parity:
       HDRI sky, halos, rainbows, clouds, stars, sun/moon blending, and the
@@ -1337,9 +1344,10 @@ Validation status:
 - [x] Make the active Vulkan sky gradient use dome direction instead of planar
       sky UVs.
       The shared active world vertex shader now forwards object-space position
-      to the active sky fragment shader, and `active/sky.frag` derives
+      to the sky runtime fragment shader, and
+      `class1/deferred/sky_runtime.frag` derives
       horizon/zenith/rim color from the sky dome direction. This keeps the
-      current lightweight active sky path but removes the east/west planar-UV
+      current lightweight runtime sky path but removes the east/west planar-UV
       gradient artifact while the final EEP/HDRI sky shader family is still
       pending.
 - [x] Give active Vulkan water draws a dedicated runtime shader/pipeline.
