@@ -7,6 +7,28 @@ layout(set = 0, binding = 3) uniform sampler2D emissiveMap;
 layout(set = 0, binding = 4) uniform sampler2D depthMap;
 layout(set = 0, binding = 5) uniform sampler2D lightMap;
 layout(set = 0, binding = 6) uniform samplerCube environmentMap;
+layout(set = 0, binding = 7) uniform samplerCubeArray reflectionProbes;
+layout(set = 0, binding = 8) uniform samplerCubeArray irradianceProbes;
+layout(set = 0, binding = 9) uniform samplerCubeArray heroProbes;
+
+#define MAX_REFMAP_COUNT 256
+#define REF_SAMPLE_COUNT 32
+
+layout(std140, set = 2, binding = 0) uniform ReflectionProbes
+{
+    mat4 refBox[MAX_REFMAP_COUNT];
+    mat4 heroBox;
+    vec4 refSphere[MAX_REFMAP_COUNT];
+    vec4 refParams[MAX_REFMAP_COUNT];
+    vec4 heroSphere;
+    ivec4 refIndex[MAX_REFMAP_COUNT];
+    ivec4 refNeighbor[1024];
+    ivec4 refBucket[256];
+    int refmapCount;
+    int heroShape;
+    int heroMipCount;
+    int heroProbeCount;
+} probes;
 
 layout(location = 0) in vec4 vertex_color;
 layout(location = 1) in vec2 vary_texcoord0;
@@ -16,6 +38,7 @@ layout(location = 0) out vec4 frag_color;
 layout(push_constant) uniform MareWorldPushConstants
 {
     layout(offset = 80) vec4 composite_ambient;
+    layout(offset = 96) vec4 composite_clip_plane;
     layout(offset = 112) vec4 composite_sun_direction;
     layout(offset = 128) vec4 composite_light;
     layout(offset = 144) vec4 composite_moon_direction;
@@ -27,6 +50,7 @@ layout(push_constant) uniform MareWorldPushConstants
     layout(offset = 272) vec4 composite_environment0;
     layout(offset = 288) vec4 composite_environment1;
     layout(offset = 304) vec4 composite_environment2;
+    layout(offset = 352) mat4 inverse_projection;
     layout(offset = 416) vec4 scene_reflection;
 } pc;
 
@@ -96,6 +120,484 @@ vec3 sample_environment(vec3 normal, vec3 view_dir, float roughness, float probe
     return max(cube_color, vec3(0.0)) * max(probe_ambiance, 0.0);
 }
 
+int probeIndex[REF_SAMPLE_COUNT];
+int probeInfluences = 0;
+bool sampleAutomaticProbes = true;
+
+vec3 safe_normalize(vec3 value)
+{
+    float len2 = dot(value, value);
+    if (len2 <= 0.000001)
+    {
+        return vec3(0.0, 0.0, 1.0);
+    }
+    return value * inversesqrt(len2);
+}
+
+bool has_reflection_probe_inputs()
+{
+    return pc.scene_reflection.y > 0.5 &&
+        probes.refmapCount > 0 &&
+        textureSize(reflectionProbes, 0).z > 0 &&
+        textureSize(irradianceProbes, 0).z > 0;
+}
+
+bool should_sample_probe(int i, vec3 pos)
+{
+    if (i < 0 || i >= probes.refmapCount || i >= MAX_REFMAP_COUNT)
+    {
+        return false;
+    }
+
+    if (probes.refIndex[i].w < 0)
+    {
+        vec4 v = probes.refBox[i] * vec4(pos, 1.0);
+        if (abs(v.x) > 1.0 ||
+            abs(v.y) > 1.0 ||
+            abs(v.z) > 1.0)
+        {
+            return false;
+        }
+
+        sampleAutomaticProbes = false;
+    }
+    else
+    {
+        if (probes.refIndex[i].w == 0 && !sampleAutomaticProbes)
+        {
+            return false;
+        }
+
+        vec3 delta = pos - probes.refSphere[i].xyz;
+        float radius = probes.refSphere[i].w;
+        if (dot(delta, delta) > radius * radius)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+int get_probe_start_index(vec3 pos)
+{
+    int bucket = clamp(int(floor(-pos.z)), 0, 255);
+    return clamp(probes.refBucket[bucket].x, 1, probes.refmapCount + 1);
+}
+
+void append_probe_index(int index)
+{
+    if (probeInfluences < REF_SAMPLE_COUNT)
+    {
+        probeIndex[probeInfluences] = index;
+        ++probeInfluences;
+    }
+}
+
+void pre_probe_sample(vec3 pos)
+{
+    probeInfluences = 0;
+    sampleAutomaticProbes = true;
+
+    int start = get_probe_start_index(pos);
+    for (int i = start; i < probes.refmapCount && probeInfluences < REF_SAMPLE_COUNT; ++i)
+    {
+        if (!should_sample_probe(i, pos))
+        {
+            continue;
+        }
+
+        append_probe_index(i);
+
+        int neighbor_idx = probes.refIndex[i].y;
+        if (neighbor_idx == -1)
+        {
+            continue;
+        }
+
+        int neighbor_count = probes.refIndex[i].z;
+        int count = 0;
+        while (count < neighbor_count &&
+               neighbor_idx >= 0 &&
+               neighbor_idx < 1024 &&
+               probeInfluences < REF_SAMPLE_COUNT)
+        {
+            ivec4 neighbors = probes.refNeighbor[neighbor_idx];
+            for (int component = 0;
+                 component < 4 &&
+                    count < neighbor_count &&
+                    probeInfluences < REF_SAMPLE_COUNT;
+                 ++component)
+            {
+                int idx = component == 0 ? neighbors.x :
+                    (component == 1 ? neighbors.y :
+                    (component == 2 ? neighbors.z : neighbors.w));
+                if (should_sample_probe(idx, pos))
+                {
+                    append_probe_index(idx);
+                }
+                ++count;
+            }
+            ++neighbor_idx;
+        }
+
+        break;
+    }
+
+    if (sampleAutomaticProbes)
+    {
+        append_probe_index(0);
+    }
+}
+
+vec3 sphere_intersect(vec3 origin, vec3 dir, vec3 center, float radius2)
+{
+    vec3 l = center - origin;
+    float tca = dot(l, dir);
+    float d2 = max(dot(l, l) - tca * tca, 0.0);
+    float thc = sqrt(max(radius2 - d2, 0.0));
+    return origin + dir * (tca + thc);
+}
+
+vec3 box_intersect(vec3 origin, vec3 dir, mat4 clip_to_local, out float d, float scale)
+{
+    vec3 ray_ls = mat3(clip_to_local) * dir;
+    vec3 position_ls = (clip_to_local * vec4(origin, 1.0)).xyz;
+
+    d = 1.0 - max(max(abs(position_ls.x), abs(position_ls.y)), abs(position_ls.z));
+
+    vec3 unitary = vec3(scale);
+    vec3 safe_ray = vec3(
+        abs(ray_ls.x) > 0.000001 ? ray_ls.x : (ray_ls.x < 0.0 ? -0.000001 : 0.000001),
+        abs(ray_ls.y) > 0.000001 ? ray_ls.y : (ray_ls.y < 0.0 ? -0.000001 : 0.000001),
+        abs(ray_ls.z) > 0.000001 ? ray_ls.z : (ray_ls.z < 0.0 ? -0.000001 : 0.000001));
+    vec3 first_plane_intersect = (unitary - position_ls) / safe_ray;
+    vec3 second_plane_intersect = (-unitary - position_ls) / safe_ray;
+    vec3 furthest_plane = max(first_plane_intersect, second_plane_intersect);
+    float distance_to_box =
+        min(furthest_plane.x, min(furthest_plane.y, furthest_plane.z));
+
+    return origin + dir * distance_to_box;
+}
+
+float sphere_weight(vec3 pos, vec3 dir, vec3 origin, float radius, vec4 params, out float dw)
+{
+    float inner_radius = radius * 0.5;
+    vec3 delta = pos - origin;
+    float distance_to_probe = max(length(delta), 0.001);
+
+    float attenuation =
+        1.0 - max(distance_to_probe - inner_radius, 0.0) /
+            max(radius - inner_radius, 0.001);
+    float w = 1.0 / distance_to_probe;
+
+    w *= params.z;
+    dw = w * attenuation * max(radius, 1.0) * 4.0;
+    return w * attenuation;
+}
+
+int reflection_probe_layer(int i)
+{
+    int layer_count = textureSize(reflectionProbes, 0).z;
+    if (layer_count <= 0)
+    {
+        return -1;
+    }
+    return clamp(probes.refIndex[i].x, 0, layer_count - 1);
+}
+
+int irradiance_probe_layer(int i)
+{
+    int layer_count = textureSize(irradianceProbes, 0).z;
+    if (layer_count <= 0)
+    {
+        return -1;
+    }
+    return clamp(probes.refIndex[i].x, 0, layer_count - 1);
+}
+
+vec3 tap_reflection_map(
+    vec3 pos,
+    vec3 dir,
+    out float w,
+    out float dw,
+    float lod,
+    int i)
+{
+    w = 0.0;
+    dw = 0.0;
+
+    int layer = reflection_probe_layer(i);
+    if (layer < 0)
+    {
+        return vec3(0.0);
+    }
+
+    vec3 v;
+    if (probes.refIndex[i].w < 0)
+    {
+        float distance_to_box = 0.0;
+        v = box_intersect(pos, dir, probes.refBox[i], distance_to_box, 1.0);
+        w = max(distance_to_box, 0.001);
+        dw = w;
+    }
+    else
+    {
+        float radius = probes.refSphere[i].w;
+        float radius2 =
+            probes.refIndex[i].w < 1 ?
+                4096.0 * 4096.0 :
+                radius * radius;
+        v = sphere_intersect(pos, dir, probes.refSphere[i].xyz, radius2);
+        w = sphere_weight(pos, dir, probes.refSphere[i].xyz, radius, probes.refParams[i], dw);
+    }
+
+    vec3 sample_dir = mat3(
+        pc.composite_environment0.xyz,
+        pc.composite_environment1.xyz,
+        pc.composite_environment2.xyz) *
+        (v - probes.refSphere[i].xyz);
+    return textureLod(
+        reflectionProbes,
+        vec4(safe_normalize(sample_dir), layer),
+        lod).rgb * max(probes.refParams[i].y, 0.0);
+}
+
+vec3 tap_irradiance_map(
+    vec3 pos,
+    vec3 dir,
+    out float w,
+    out float dw,
+    int i,
+    vec3 fallback_ambient)
+{
+    w = 0.0;
+    dw = 0.0;
+
+    int layer = irradiance_probe_layer(i);
+    if (layer < 0)
+    {
+        return fallback_ambient;
+    }
+
+    vec3 v;
+    if (probes.refIndex[i].w < 0)
+    {
+        float distance_to_box = 0.0;
+        v = box_intersect(pos, dir, probes.refBox[i], distance_to_box, 3.0);
+        w = max(distance_to_box, 0.001);
+        dw = w;
+    }
+    else
+    {
+        float radius = probes.refSphere[i].w;
+        float radius2 =
+            probes.refIndex[i].w < 1 ?
+                4096.0 * 4096.0 :
+                radius * radius;
+        v = sphere_intersect(pos, dir, probes.refSphere[i].xyz, radius2);
+        w = sphere_weight(pos, dir, probes.refSphere[i].xyz, radius, probes.refParams[i], dw);
+    }
+
+    vec3 sample_dir = mat3(
+        pc.composite_environment0.xyz,
+        pc.composite_environment1.xyz,
+        pc.composite_environment2.xyz) *
+        (v - probes.refSphere[i].xyz);
+    vec3 col =
+        textureLod(irradianceProbes, vec4(safe_normalize(sample_dir), layer), 0.0).rgb *
+        max(probes.refParams[i].x, 0.0);
+
+    return mix(fallback_ambient, col, min(max(probes.refParams[i].x, 0.0), 1.0));
+}
+
+vec3 sample_probe_radiance(vec3 pos, vec3 dir, float lod)
+{
+    float weight_auto = 0.0;
+    float weight_manual = 0.0;
+    float distance_weight_auto = 0.0;
+    float distance_weight_manual = 0.0;
+    vec3 color_auto = vec3(0.0);
+    vec3 color_manual = vec3(0.0);
+
+    for (int idx = 0; idx < probeInfluences; ++idx)
+    {
+        int i = probeIndex[idx];
+        int probe_type = clamp(abs(probes.refIndex[i].w), 0, 1);
+        if (probe_type == 0 && !sampleAutomaticProbes)
+        {
+            continue;
+        }
+
+        float w = 0.0;
+        float dw = 0.0;
+        vec3 probe_color = tap_reflection_map(pos, dir, w, dw, lod, i);
+        if (probe_type == 0)
+        {
+            color_auto += probe_color * w;
+            weight_auto += w;
+            distance_weight_auto += dw;
+        }
+        else
+        {
+            color_manual += probe_color * w;
+            weight_manual += w;
+            distance_weight_manual += dw;
+        }
+    }
+
+    if (sampleAutomaticProbes && weight_auto > 0.0)
+    {
+        color_auto /= weight_auto;
+        if (weight_manual > 0.0)
+        {
+            color_manual /= weight_manual;
+            color_manual =
+                mix(color_auto, color_manual, min(distance_weight_manual, 1.0));
+            color_auto = vec3(0.0);
+        }
+    }
+    else if (weight_manual > 0.0)
+    {
+        color_manual /= weight_manual;
+        color_auto = vec3(0.0);
+    }
+
+    return color_manual + color_auto;
+}
+
+vec3 sample_probe_ambient(vec3 pos, vec3 dir, vec3 fallback_ambient)
+{
+    float weight_auto = 0.0;
+    float weight_manual = 0.0;
+    float distance_weight_auto = 0.0;
+    float distance_weight_manual = 0.0;
+    vec3 color_auto = vec3(0.0);
+    vec3 color_manual = vec3(0.0);
+
+    for (int idx = 0; idx < probeInfluences; ++idx)
+    {
+        int i = probeIndex[idx];
+        int probe_type = clamp(abs(probes.refIndex[i].w), 0, 1);
+        if (probe_type == 0 && !sampleAutomaticProbes)
+        {
+            continue;
+        }
+
+        float w = 0.0;
+        float dw = 0.0;
+        vec3 probe_color =
+            tap_irradiance_map(pos, dir, w, dw, i, fallback_ambient);
+        if (probe_type == 0)
+        {
+            color_auto += probe_color * w;
+            weight_auto += w;
+            distance_weight_auto += dw;
+        }
+        else
+        {
+            color_manual += probe_color * w;
+            weight_manual += w;
+            distance_weight_manual += dw;
+        }
+    }
+
+    if (sampleAutomaticProbes && weight_auto > 0.0)
+    {
+        color_auto /= weight_auto;
+        if (weight_manual > 0.0)
+        {
+            color_manual /= weight_manual;
+            color_manual =
+                mix(color_auto, color_manual, min(distance_weight_manual, 1.0));
+            color_auto = vec3(0.0);
+        }
+    }
+    else if (weight_manual > 0.0)
+    {
+        color_manual /= weight_manual;
+        color_auto = vec3(0.0);
+    }
+
+    vec3 result = color_manual + color_auto;
+    return max(result, fallback_ambient);
+}
+
+void tap_hero_probe(inout vec3 glossenv, vec3 pos, vec3 norm, float glossiness)
+{
+    if (probes.heroProbeCount <= 0 || textureSize(heroProbes, 0).z <= 0)
+    {
+        return;
+    }
+
+    float clip_dist = dot(pos, pc.composite_clip_plane.xyz) + pc.composite_clip_plane.w;
+    float w = 0.0;
+    float dw = 0.0;
+    const float falloff_mult = 10.0;
+    vec3 reflected = reflect(pos, norm);
+    if (probes.heroShape < 1)
+    {
+        float distance_to_box = 0.0;
+        box_intersect(pos, norm, probes.heroBox, distance_to_box, 1.0);
+        w = max(distance_to_box, 0.0);
+    }
+    else
+    {
+        w = sphere_weight(
+            pos,
+            reflected,
+            probes.heroSphere.xyz,
+            probes.heroSphere.w,
+            vec4(1.0),
+            dw);
+    }
+
+    clip_dist = clip_dist * 0.95 + 0.05;
+    clip_dist = clamp(clip_dist * falloff_mult, 0.0, 1.0);
+    w = clamp(w * falloff_mult * clip_dist, 0.0, 1.0);
+    w = mix(0.0, w, clamp(glossiness - 0.75, 0.0, 1.0) * 4.0);
+
+    float hero_lod =
+        (1.0 - glossiness) * max(float(probes.heroMipCount), 0.0);
+    vec3 hero_dir = mat3(
+        pc.composite_environment0.xyz,
+        pc.composite_environment1.xyz,
+        pc.composite_environment2.xyz) * reflected;
+    glossenv = mix(
+        glossenv,
+        textureLod(heroProbes, vec4(safe_normalize(hero_dir), 0), hero_lod).rgb,
+        w);
+}
+
+void sample_reflection_probes(
+    inout vec3 irradiance,
+    inout vec3 radiance,
+    vec2 tc,
+    vec3 pos,
+    vec3 norm,
+    float glossiness,
+    vec3 fallback_ambient,
+    bool classic_mode)
+{
+    if (!has_reflection_probe_inputs())
+    {
+        return;
+    }
+
+    pre_probe_sample(pos);
+
+    if (!classic_mode)
+    {
+        irradiance = sample_probe_ambient(pos, norm, fallback_ambient);
+    }
+
+    float max_probe_lod = max(pc.scene_reflection.z, 0.0);
+    float lod = (1.0 - glossiness) * max_probe_lod;
+    radiance = sample_probe_radiance(pos, safe_normalize(reflect(pos, norm)), lod);
+    tap_hero_probe(radiance, pos, norm, glossiness);
+    radiance = clamp(radiance, vec3(0.0), vec3(10.0));
+}
+
 vec3 select_composite_light_direction()
 {
     vec3 selected_light_dir =
@@ -158,6 +660,15 @@ float local_light_screen_weight(vec2 texcoord, vec2 light_center, float light_ra
     return smoothstep(light_radius, light_radius * 0.25, distance_from_light);
 }
 
+vec3 reconstruct_view_position(vec2 texcoord, float depth)
+{
+    vec2 ndc_xy = texcoord * 2.0 - 1.0;
+    vec4 ndc = vec4(ndc_xy, depth * 2.0 - 1.0, 1.0);
+    vec4 position = pc.inverse_projection * ndc;
+    position.xyz /= max(abs(position.w), 0.000001);
+    return position.xyz;
+}
+
 void main()
 {
     vec2 tc = vary_texcoord0.xy;
@@ -195,6 +706,7 @@ void main()
     }
 
     vec3 normal = decode_gbuffer_normal(encoded_normal);
+    vec3 view_position = reconstruct_view_position(tc, scene_depth);
     vec3 light_dir = select_composite_light_direction();
     float ndotl = max(dot(normal, light_dir), 0.0);
     bool classic_mode = pc.composite_moon_direction.w > 0.5;
@@ -233,9 +745,22 @@ void main()
         direct_scale *= 1.35;
     }
 
-    vec3 view_dir = approximate_view_direction(tc);
-    vec3 sampled_environment =
-        sample_environment(normal, view_dir, roughness, probe_ambiance);
+    vec3 view_dir = -safe_normalize(view_position);
+    vec3 sampled_environment = vec3(0.0);
+    sample_reflection_probes(
+        ambient_color,
+        sampled_environment,
+        tc,
+        view_position,
+        normal,
+        1.0 - roughness,
+        ambient_color,
+        classic_mode);
+    if (max(max(sampled_environment.r, sampled_environment.g), sampled_environment.b) <= 0.0001)
+    {
+        sampled_environment =
+            sample_environment(normal, view_dir, roughness, probe_ambiance);
+    }
     float environment_scale = mix(1.0, 1.75, probe_ambiance);
     vec3 fallback_environment =
         base_color * env * environment_scale * mix(0.08, 0.18, 1.0 - roughness);

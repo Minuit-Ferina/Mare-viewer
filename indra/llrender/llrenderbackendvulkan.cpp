@@ -25,6 +25,7 @@
 
 #include "lldir.h"
 #include "llfile.h"
+#include "llglslshader.h"
 #include "llrender.h"
 #include "llrenderbackendnull.h"
 #include "llstring.h"
@@ -1587,6 +1588,7 @@ enum class LLVulkanWorldColorPipeline : U8
 struct LLVulkanPendingDraw
 {
     using texture_bindings_t = std::array<U32, MARE_VULKAN_MAX_TEXTURE_BINDINGS>;
+    using uniform_bindings_t = std::array<U32, LLGLSLShader::NUM_UNIFORM_BLOCKS>;
 
     bool mClearOnly = false;
     LLRenderClearMask mClearMask = LL_RENDER_CLEAR_NONE;
@@ -1598,6 +1600,7 @@ struct LLVulkanPendingDraw
     U32 mIndexBuffer = 0;
     U32 mTexture = 0;
     texture_bindings_t mTextures = {};
+    uniform_bindings_t mUniformBuffers = {};
     LLRenderPrimitiveType mMode = LLRenderPrimitiveType::Triangles;
     S32 mFirst = 0;
     S32 mCount = 0;
@@ -2347,8 +2350,11 @@ thread_local S32 gVulkanUnpackRowLength = 0;
 U32 gNextVulkanBufferHandle = 1;
 U32 gNextVulkanTextureHandle = 1;
 U32 gNextVulkanFramebufferHandle = 1;
+U32 gVulkanFallbackCubeArrayTextureHandle = 0;
 thread_local S32 gActiveVulkanTextureUnit = 0;
 thread_local std::array<U32, MARE_VULKAN_MAX_TEXTURE_BINDINGS> gBoundVulkanTextures = {};
+thread_local U32 gBoundVulkanUniformBuffer = 0;
+thread_local LLVulkanPendingDraw::uniform_bindings_t gBoundVulkanUniformBuffers = {};
 thread_local U32 gBoundVulkanReadFramebuffer = 0;
 thread_local U32 gBoundVulkanDrawFramebuffer = 0;
 thread_local U32 gVulkanFramebufferColorAttachmentCount = 1;
@@ -2366,6 +2372,18 @@ std::array<LLVulkanVertexAttributeState, 16> gCurrentVulkanVertexAttributes = {}
 std::vector<LLVulkanPendingDraw> gPendingVulkanDraws;
 std::unordered_set<U32> gCurrentFrameVulkanBufferReferences;
 std::unordered_set<U32> gCurrentFrameVulkanTextureReferences;
+
+bool create_empty_vulkan_cube_texture_resource(
+    LLVulkanNativeContext& context,
+    U32 handle,
+    S32 width,
+    S32 height,
+    S32 layers,
+    U32 mip_levels,
+    LLRenderTextureFormat render_format,
+    S32 image_view_type);
+
+bool ensure_vulkan_fallback_cube_array_texture(LLVulkanNativeContext& context);
 
 void clear_vulkan_pending_frame_commands()
 {
@@ -2428,6 +2446,10 @@ void remember_vulkan_draw_resources_for_current_frame(
 
     mark_buffer(draw.mBuffer);
     mark_buffer(draw.mIndexBuffer);
+    for (U32 uniform_buffer : draw.mUniformBuffers)
+    {
+        mark_buffer(uniform_buffer);
+    }
 
     for (U32 texture : draw.mTextures)
     {
@@ -2964,6 +2986,8 @@ U32 to_vulkan_buffer_usage(LLRenderBufferTarget target)
     {
     case LLRenderBufferTarget::Index:
         return LL_VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    case LLRenderBufferTarget::Uniform:
+        return LL_VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     case LLRenderBufferTarget::Vertex:
     default:
         return LL_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -4064,6 +4088,8 @@ void destroy_all_vulkan_buffer_resources(LLVulkanNativeContext& context)
     gCurrentVulkanSkinningMatrixCount = 0;
     gBoundVulkanVertexBuffer = 0;
     gBoundVulkanIndexBuffer = 0;
+    gBoundVulkanUniformBuffer = 0;
+    gBoundVulkanUniformBuffers = {};
     gCurrentVulkanViewport = {};
     gCurrentVulkanScissor = {};
     gCurrentVulkanColorMask = {};
@@ -7990,7 +8016,8 @@ LLVulkanTextureResource* get_vulkan_texture_resource_or_fallback(
 
 LLVkDescriptorSet get_vulkan_texture_descriptor_set(
     LLVulkanNativeContext& context,
-    const LLVulkanPendingDraw::texture_bindings_t& textures)
+    const LLVulkanPendingDraw::texture_bindings_t& textures,
+    const LLVulkanPendingDraw* draw)
 {
     if (!context.mAllocateDescriptorSets ||
         !context.mUpdateDescriptorSets ||
@@ -8004,7 +8031,16 @@ LLVkDescriptorSet get_vulkan_texture_descriptor_set(
     std::array<LLVkDescriptorImageInfo, MARE_VULKAN_MAX_TEXTURE_BINDINGS> image_infos = {};
     for (U32 i = 0; i < MARE_VULKAN_MAX_TEXTURE_BINDINGS; ++i)
     {
-        const U32 requested_handle = textures[i];
+        U32 requested_handle = textures[i];
+        if (!requested_handle &&
+            draw &&
+            draw->mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften &&
+            (i == 7 || i == 8 || i == 9) &&
+            ensure_vulkan_fallback_cube_array_texture(context))
+        {
+            requested_handle = gVulkanFallbackCubeArrayTextureHandle;
+        }
+
         U32 resolved_handle = 0;
         LLVulkanTextureResource* resource =
             get_vulkan_texture_resource_or_fallback(requested_handle, resolved_handle);
@@ -8205,6 +8241,123 @@ LLVkDescriptorSet create_vulkan_world_uniform_descriptor_set(
     context.mTransientFrameBuffers.push_back(uniform_buffer);
     context.mTransientWorldUniformDescriptorSets.push_back(descriptor_set);
     return descriptor_set;
+}
+
+LLVkDescriptorSet create_vulkan_world_uniform_descriptor_set_from_buffer(
+    LLVulkanNativeContext& context,
+    U32 buffer_handle)
+{
+    if (!buffer_handle ||
+        !context.mAllocateDescriptorSets ||
+        !context.mUpdateDescriptorSets ||
+        !context.mUIDescriptorPool ||
+        !context.mWorldUniformDescriptorSetLayout)
+    {
+        return nullptr;
+    }
+
+    auto buffer_iter = gVulkanBuffers.find(buffer_handle);
+    if (buffer_iter == gVulkanBuffers.end() ||
+        !buffer_iter->second.mBuffer ||
+        buffer_iter->second.mSize == 0)
+    {
+        if (!retry_vulkan_pending_buffer_allocation(
+                context,
+                buffer_handle,
+                0))
+        {
+            return nullptr;
+        }
+
+        buffer_iter = gVulkanBuffers.find(buffer_handle);
+        if (buffer_iter == gVulkanBuffers.end() ||
+            !buffer_iter->second.mBuffer ||
+            buffer_iter->second.mSize == 0)
+        {
+            return nullptr;
+        }
+    }
+
+    LLVkDescriptorSet descriptor_set = nullptr;
+    LLVkDescriptorSetAllocateInfo descriptor_allocate_info =
+    {
+        LL_VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        nullptr,
+        context.mUIDescriptorPool,
+        1,
+        &context.mWorldUniformDescriptorSetLayout
+    };
+
+    S32 result = context.mAllocateDescriptorSets(
+        context.mDevice,
+        &descriptor_allocate_info,
+        &descriptor_set);
+    if (result != LL_VK_SUCCESS || !descriptor_set)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkAllocateDescriptorSets(existing world uniform) failed with result "
+            << result
+            << LL_ENDL;
+        return nullptr;
+    }
+
+    LLVkDescriptorBufferInfo buffer_info =
+    {
+        buffer_iter->second.mBuffer,
+        0,
+        buffer_iter->second.mSize
+    };
+    LLVkWriteDescriptorSet write_descriptor =
+    {
+        LL_VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        nullptr,
+        descriptor_set,
+        0,
+        0,
+        1,
+        LL_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        nullptr,
+        &buffer_info,
+        nullptr
+    };
+    context.mUpdateDescriptorSets(
+        context.mDevice,
+        1,
+        &write_descriptor,
+        0,
+        nullptr);
+
+    context.mTransientWorldUniformDescriptorSets.push_back(descriptor_set);
+    buffer_iter->second.mLastUsedFrame = context.mPresentedFrameCount;
+    return descriptor_set;
+}
+
+LLVkDescriptorSet create_vulkan_reflection_probe_uniform_descriptor_set(
+    LLVulkanNativeContext& context,
+    const LLVulkanPendingDraw& draw)
+{
+    const U32 reflection_probe_buffer =
+        draw.mUniformBuffers[LLGLSLShader::UB_REFLECTION_PROBES];
+    if (reflection_probe_buffer)
+    {
+        LLVkDescriptorSet descriptor_set =
+            create_vulkan_world_uniform_descriptor_set_from_buffer(
+                context,
+                reflection_probe_buffer);
+        if (descriptor_set)
+        {
+            return descriptor_set;
+        }
+    }
+
+    // Matches LLReflectionMapManager::ReflectionProbeData/std140 layout size:
+    // mat4[256], mat4, vec4[256], vec4[256], vec4, ivec4[256],
+    // ivec4[1024], ivec4[256], and four trailing ints.
+    static const std::vector<U8> sNeutralReflectionProbeData(49248, 0);
+    return create_vulkan_world_uniform_descriptor_set(
+        context,
+        sNeutralReflectionProbeData.data(),
+        sNeutralReflectionProbeData.size());
 }
 
 glm::vec4 make_vulkan_local_light_vec4(const F32* values)
@@ -9157,6 +9310,36 @@ bool create_vulkan_fallback_texture(LLVulkanNativeContext& context)
 {
     const std::vector<U8> white_pixel = { 255, 255, 255, 255 };
     return upload_vulkan_texture_resource(context, 0, 1, 1, white_pixel);
+}
+
+bool ensure_vulkan_fallback_cube_array_texture(LLVulkanNativeContext& context)
+{
+    if (gVulkanFallbackCubeArrayTextureHandle)
+    {
+        auto iter = gVulkanTextures.find(gVulkanFallbackCubeArrayTextureHandle);
+        if (iter != gVulkanTextures.end() &&
+            iter->second.mImageViewType == LL_VK_IMAGE_VIEW_TYPE_CUBE_ARRAY &&
+            iter->second.mImageView &&
+            iter->second.mSampler)
+        {
+            return true;
+        }
+    }
+
+    if (!gVulkanFallbackCubeArrayTextureHandle)
+    {
+        gVulkanFallbackCubeArrayTextureHandle = gNextVulkanTextureHandle++;
+    }
+
+    return create_empty_vulkan_cube_texture_resource(
+        context,
+        gVulkanFallbackCubeArrayTextureHandle,
+        1,
+        1,
+        6,
+        1,
+        LLRenderTextureFormat::RGBA8,
+        LL_VK_IMAGE_VIEW_TYPE_CUBE_ARRAY);
 }
 
 constexpr U32 LL_LEGACY_GL_ALPHA = 0x1906;
@@ -15539,7 +15722,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         LLVkDescriptorPoolSize
         {
             LL_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY
+            MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY * 2
         }
     };
     LLVkDescriptorPoolCreateInfo descriptor_pool_create_info =
@@ -15547,7 +15730,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         LL_VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         nullptr,
         LL_VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-        MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY * 2,
+        MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY * 3,
         static_cast<U32>(descriptor_pool_sizes.size()),
         descriptor_pool_sizes.data()
     };
@@ -15578,9 +15761,10 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         nullptr
     };
     LLVkDescriptorSetLayout ui_descriptor_set_layout = context.mUIDescriptorSetLayout;
-    std::array<LLVkDescriptorSetLayout, 2> world_descriptor_set_layouts =
+    std::array<LLVkDescriptorSetLayout, 3> world_descriptor_set_layouts =
     {
         context.mUIDescriptorSetLayout,
+        context.mWorldUniformDescriptorSetLayout,
         context.mWorldUniformDescriptorSetLayout
     };
     LLVkPipelineLayoutCreateInfo ui_layout_create_info =
@@ -19760,7 +19944,7 @@ bool record_vulkan_frame_command_buffer(
         };
 
         LLVkDescriptorSet descriptor_set =
-            get_vulkan_texture_descriptor_set(context, draw.mTextures);
+            get_vulkan_texture_descriptor_set(context, draw.mTextures, &draw);
         if (saw_default_world_draw &&
             !draw.mUseWorldVertexShader &&
             draw.mFramebuffer == 0 &&
@@ -20423,6 +20607,28 @@ bool record_vulkan_frame_command_buffer(
                 1,
                 1,
                 &world_uniform_descriptor_set,
+                0,
+                nullptr);
+        }
+        if (use_deferred_soften_pipeline)
+        {
+            LLVkDescriptorSet reflection_probe_descriptor_set =
+                create_vulkan_reflection_probe_uniform_descriptor_set(
+                    context,
+                    draw);
+            if (!reflection_probe_descriptor_set)
+            {
+                ++missing_buffer_count;
+                continue;
+            }
+
+            context.mCmdBindDescriptorSets(
+                command_buffer,
+                LL_VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipeline_layout,
+                2,
+                1,
+                &reflection_probe_descriptor_set,
                 0,
                 nullptr);
         }
@@ -23108,6 +23314,25 @@ public:
                 destroy_vulkan_buffer_resource(*gCurrentVulkanContext, iter->second);
                 gVulkanBuffers.erase(iter);
             }
+            if (gBoundVulkanVertexBuffer == buffers[i])
+            {
+                gBoundVulkanVertexBuffer = 0;
+            }
+            if (gBoundVulkanIndexBuffer == buffers[i])
+            {
+                gBoundVulkanIndexBuffer = 0;
+            }
+            if (gBoundVulkanUniformBuffer == buffers[i])
+            {
+                gBoundVulkanUniformBuffer = 0;
+            }
+            for (U32& uniform_buffer : gBoundVulkanUniformBuffers)
+            {
+                if (uniform_buffer == buffers[i])
+                {
+                    uniform_buffer = 0;
+                }
+            }
         }
     }
 
@@ -23121,6 +23346,21 @@ public:
         {
             gBoundVulkanVertexBuffer = buffer;
         }
+        else if (target == LLRenderBufferTarget::Uniform)
+        {
+            gBoundVulkanUniformBuffer = buffer;
+        }
+    }
+
+    void bindBufferBase(LLRenderBufferTarget target, U32 index, U32 buffer) override
+    {
+        if (target != LLRenderBufferTarget::Uniform ||
+            index >= gBoundVulkanUniformBuffers.size())
+        {
+            return;
+        }
+
+        gBoundVulkanUniformBuffers[index] = buffer;
     }
 
     void allocateBufferStorage(
@@ -23134,9 +23374,21 @@ public:
             return;
         }
 
-        U32 handle = target == LLRenderBufferTarget::Index ?
-            gBoundVulkanIndexBuffer :
-            gBoundVulkanVertexBuffer;
+        U32 handle = 0;
+        switch (target)
+        {
+        case LLRenderBufferTarget::Index:
+            handle = gBoundVulkanIndexBuffer;
+            break;
+        case LLRenderBufferTarget::Vertex:
+            handle = gBoundVulkanVertexBuffer;
+            break;
+        case LLRenderBufferTarget::Uniform:
+            handle = gBoundVulkanUniformBuffer;
+            break;
+        default:
+            break;
+        }
         if (!handle)
         {
             return;
@@ -23189,9 +23441,21 @@ public:
         U32 size,
         const void* data) override
     {
-        U32 handle = target == LLRenderBufferTarget::Index ?
-            gBoundVulkanIndexBuffer :
-            gBoundVulkanVertexBuffer;
+        U32 handle = 0;
+        switch (target)
+        {
+        case LLRenderBufferTarget::Index:
+            handle = gBoundVulkanIndexBuffer;
+            break;
+        case LLRenderBufferTarget::Vertex:
+            handle = gBoundVulkanVertexBuffer;
+            break;
+        case LLRenderBufferTarget::Uniform:
+            handle = gBoundVulkanUniformBuffer;
+            break;
+        default:
+            break;
+        }
         if (!gCurrentVulkanContext || !handle || !data || size == 0)
         {
             return;
@@ -23373,6 +23637,7 @@ public:
         {
             draw.mTextures[i] = gBoundVulkanTextures[i];
         }
+        draw.mUniformBuffers = gBoundVulkanUniformBuffers;
         draw.mTexture = draw.mTextures[0];
         draw.mMode = mode;
         draw.mFirst = indexed ? first_index : first;

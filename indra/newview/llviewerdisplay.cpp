@@ -36,6 +36,7 @@
 #include "llcoord.h"
 #include "llcriticaldamp.h"
 #include "llcubemap.h"
+#include "llcubemaparray.h"
 #include "lldir.h"
 #include "lldrawpoolalpha.h"
 #include "lldrawpoolbump.h"
@@ -1288,6 +1289,9 @@ static void render_vulkan_deferred_screen_composite_quad(
         bool deferred_depth_bound = false;
         bool deferred_light_map_bound = false;
         bool deferred_environment_bound = false;
+        bool deferred_reflection_probes_bound = false;
+        bool deferred_irradiance_probes_bound = false;
+        bool deferred_hero_probes_bound = false;
         if (!debug_attachment_rendered)
         {
             for (U32 attachment = 0; attachment < deferred_attachment_count; ++attachment)
@@ -1328,8 +1332,35 @@ static void render_vulkan_deferred_screen_composite_quad(
                         gSky.mVOSkyp ? gSky.mVOSkyp->getCubeMap() : nullptr;
                     deferred_environment_bound =
                         cube_map && gGL.getTexUnit(6)->bind(cube_map);
+                    if (LLPipeline::sReflectionProbesEnabled)
+                    {
+                        if (gPipeline.mReflectionMapManager.mTexture.notNull())
+                        {
+                            gPipeline.mReflectionMapManager.mTexture->bind(7);
+                            deferred_reflection_probes_bound = true;
+                        }
+                        if (gPipeline.mReflectionMapManager.mIrradianceMaps.notNull())
+                        {
+                            gPipeline.mReflectionMapManager.mIrradianceMaps->bind(8);
+                            deferred_irradiance_probes_bound = true;
+                        }
+                        if (LLPipeline::RenderMirrors &&
+                            gPipeline.mHeroProbeManager.mTexture.notNull())
+                        {
+                            gPipeline.mHeroProbeManager.mTexture->bind(9);
+                            deferred_hero_probes_bound = true;
+                        }
+                        if (deferred_reflection_probes_bound ||
+                            deferred_irradiance_probes_bound ||
+                            deferred_hero_probes_bound)
+                        {
+                            gPipeline.mReflectionMapManager.setUniforms();
+                        }
+                    }
                     deferred_composite_parameters.mSceneAmbientGreen =
-                        deferred_environment_bound ? 1.f : 0.f;
+                        (deferred_environment_bound ||
+                         deferred_reflection_probes_bound ||
+                         deferred_irradiance_probes_bound) ? 1.f : 0.f;
                 }
                 if (use_deferred_soften_pass)
                 {
@@ -1338,7 +1369,11 @@ static void render_vulkan_deferred_screen_composite_quad(
                         << (light_map_target ? "the DeferredLightMap target" : "a neutral lightMap")
                         << "; real shadow channels are still pending; environment cube "
                         << (deferred_environment_bound ? "is bound" : "is unavailable")
-                        << " until reflection-probe cubemap arrays are owned by Vulkan."
+                        << ", reflection probes "
+                        << (deferred_reflection_probes_bound ? "are bound" : "are unavailable")
+                        << ", irradiance probes "
+                        << (deferred_irradiance_probes_bound ? "are bound" : "are unavailable")
+                        << "."
                         << LL_ENDL;
                 }
                 getRenderBackend().setWorldDrawEnabled(true);
@@ -1389,6 +1424,18 @@ static void render_vulkan_deferred_screen_composite_quad(
             if (deferred_environment_bound)
             {
                 gGL.getTexUnit(6)->unbind(LLTexUnit::TT_CUBE_MAP);
+            }
+            if (deferred_reflection_probes_bound)
+            {
+                gPipeline.mReflectionMapManager.mTexture->unbind();
+            }
+            if (deferred_irradiance_probes_bound)
+            {
+                gPipeline.mReflectionMapManager.mIrradianceMaps->unbind();
+            }
+            if (deferred_hero_probes_bound)
+            {
+                gPipeline.mHeroProbeManager.mTexture->unbind();
             }
         }
     }
