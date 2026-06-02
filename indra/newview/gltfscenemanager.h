@@ -63,7 +63,7 @@ namespace LL
         void bindTexture(LL::GLTF::Asset& asset, LL::GLTF::TextureType texture_type, LL::GLTF::TextureInfo& info, LLViewerTexture* fallback);
         void renderOpaque();
         void renderAlpha();
-        bool emitStaticShadowCommands(
+        bool emitShadowCommands(
             LLWorldRenderCommandBuffer& commands,
             bool write_color,
             bool write_alpha);

@@ -11116,7 +11116,7 @@ void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCa
     if (vulkan_shadow_path)
     {
         LL_INFOS_ONCE("RenderBackend")
-            << "Vulkan shadow map render is emitting render-map caster commands. Terrain, avatar, and GLTFSceneManager static opaque/alpha-mask shadow casters are emitted separately; GLTFSceneManager rigged standalone scene shadow casters remain separate shadow-parity work."
+            << "Vulkan shadow map render is emitting render-map caster commands. Terrain, avatar, and GLTFSceneManager static/rigged standalone shadow casters are emitted separately."
             << LL_ENDL;
 
         LLWorldRenderCommandBuffer commands;
@@ -11128,7 +11128,7 @@ void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCa
         U32 avatar_shadow_command_count = 0;
         U32 terrain_shadow_command_count = 0;
         const U32 gltf_scene_shadow_before_count = commands.size();
-        LL::GLTFSceneManager::instance().emitStaticShadowCommands(
+        LL::GLTFSceneManager::instance().emitShadowCommands(
             commands,
             write_shadow_color,
             write_shadow_alpha);
@@ -11215,7 +11215,7 @@ void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCa
             << " terrain shadow command(s) in this first shadow pass."
             << LL_ENDL;
         LL_INFOS_ONCE("RenderBackend")
-            << "Vulkan GLTFSceneManager static opaque/alpha-mask shadow command emission is active; emitted "
+            << "Vulkan GLTFSceneManager static/rigged standalone shadow command emission is active; emitted "
             << gltf_scene_shadow_command_count
             << " standalone glTF shadow command(s) in this first shadow pass."
             << LL_ENDL;

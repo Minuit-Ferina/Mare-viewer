@@ -5,12 +5,9 @@
 
 layout(set = 0, binding = 0) uniform sampler2D diffuseMap;
 
-layout(push_constant) uniform MareGeneratedFragmentConstants
+layout(push_constant) uniform MareWorldPushConstants
 {
-    float minimum_alpha;
-    vec3 _pad0;
-    vec4 color;
-    vec4 params;
+    layout(offset = 64) vec4 params;
 } pc;
 
 layout(location = 1) in vec2 vary_texcoord0;
@@ -21,7 +18,7 @@ void main()
 {
     float alpha = texture(diffuseMap, vary_texcoord0.xy).a;
 
-    if (alpha < pc.minimum_alpha)
+    if (alpha < pc.params.x)
     {
         discard;
     }

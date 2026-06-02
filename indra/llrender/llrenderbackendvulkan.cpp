@@ -1129,6 +1129,7 @@ constexpr S32 LL_VK_FORMAT_R16_UNORM = 70;
 constexpr S32 LL_VK_FORMAT_R16_SFLOAT = 76;
 constexpr S32 LL_VK_FORMAT_R16G16_SFLOAT = 83;
 constexpr S32 LL_VK_FORMAT_R16G16B16A16_UNORM = 91;
+constexpr S32 LL_VK_FORMAT_R16G16B16A16_UINT = 92;
 constexpr S32 LL_VK_FORMAT_R16G16B16A16_SFLOAT = 97;
 constexpr S32 LL_VK_FORMAT_R32_UINT = 98;
 constexpr S32 LL_VK_FORMAT_R32_SFLOAT = 100;
@@ -2134,6 +2135,7 @@ struct LLVulkanNativeContext
     LLVulkanBufferResource mDefaultColorBuffer;
     LLVulkanBufferResource mDefaultNormalBuffer;
     LLVulkanBufferResource mDefaultTangentBuffer;
+    LLVulkanBufferResource mDefaultJointBuffer;
     LLVulkanBufferResource mSkinningMatrixPaletteBuffer;
     std::vector<LLVulkanBufferResource> mTransientFrameBuffers;
     std::vector<LLVkDescriptorSet> mTransientWorldUniformDescriptorSets;
@@ -4038,6 +4040,7 @@ void destroy_all_vulkan_buffer_resources(LLVulkanNativeContext& context)
     destroy_vulkan_buffer_resource(context, context.mDefaultColorBuffer);
     destroy_vulkan_buffer_resource(context, context.mDefaultNormalBuffer);
     destroy_vulkan_buffer_resource(context, context.mDefaultTangentBuffer);
+    destroy_vulkan_buffer_resource(context, context.mDefaultJointBuffer);
     destroy_vulkan_buffer_resource(context, context.mSkinningMatrixPaletteBuffer);
 
     for (auto& entry : gVulkanBuffers)
@@ -4078,6 +4081,7 @@ bool create_vulkan_default_ui_attribute_buffers(LLVulkanNativeContext& context)
     std::vector<U8> default_colors(MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES * 4, 255);
     std::vector<F32> default_normals(MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES * 4, 0.f);
     std::vector<F32> default_tangents(MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES * 4, 0.f);
+    std::vector<U16> default_joints(MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES * 4, 0);
     std::array<F32, 12> default_skinning_palette = {};
 
     for (U32 i = 0; i < MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES; ++i)
@@ -4143,6 +4147,22 @@ bool create_vulkan_default_ui_attribute_buffers(LLVulkanNativeContext& context)
 
     if (!create_vulkan_buffer_resource(
             context,
+            default_joints.size() * sizeof(U16),
+            LL_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            default_joints.data(),
+            context.mDefaultJointBuffer,
+            0,
+            true))
+    {
+        destroy_vulkan_buffer_resource(context, context.mDefaultTexCoordBuffer);
+        destroy_vulkan_buffer_resource(context, context.mDefaultColorBuffer);
+        destroy_vulkan_buffer_resource(context, context.mDefaultNormalBuffer);
+        destroy_vulkan_buffer_resource(context, context.mDefaultTangentBuffer);
+        return false;
+    }
+
+    if (!create_vulkan_buffer_resource(
+            context,
             default_skinning_palette.size() * sizeof(F32),
             LL_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
             default_skinning_palette.data(),
@@ -4154,6 +4174,7 @@ bool create_vulkan_default_ui_attribute_buffers(LLVulkanNativeContext& context)
         destroy_vulkan_buffer_resource(context, context.mDefaultColorBuffer);
         destroy_vulkan_buffer_resource(context, context.mDefaultNormalBuffer);
         destroy_vulkan_buffer_resource(context, context.mDefaultTangentBuffer);
+        destroy_vulkan_buffer_resource(context, context.mDefaultJointBuffer);
         return false;
     }
 
@@ -13410,7 +13431,7 @@ bool create_vulkan_offscreen_pipeline_set(
         ui_attributes
     };
 
-    LLVkVertexInputBindingDescription world_bindings[10] =
+    LLVkVertexInputBindingDescription world_bindings[11] =
     {
         { 0, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
         { 1, 8, LL_VK_VERTEX_INPUT_RATE_VERTEX },
@@ -13422,9 +13443,10 @@ bool create_vulkan_offscreen_pipeline_set(
         { 7, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
         { 8, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
         { 9, 8, LL_VK_VERTEX_INPUT_RATE_VERTEX },
+        { 10, 8, LL_VK_VERTEX_INPUT_RATE_VERTEX },
     };
 
-    LLVkVertexInputAttributeDescription world_attributes[10] =
+    LLVkVertexInputAttributeDescription world_attributes[11] =
     {
         { 0, 0, LL_VK_FORMAT_R32G32B32_SFLOAT, 0 },
         { 2, 1, LL_VK_FORMAT_R32G32_SFLOAT, 0 },
@@ -13436,6 +13458,7 @@ bool create_vulkan_offscreen_pipeline_set(
         { 1, 7, LL_VK_FORMAT_R32G32B32_SFLOAT, 0 },
         { 8, 8, LL_VK_FORMAT_R32G32B32A32_SFLOAT, 0 },
         { 4, 9, LL_VK_FORMAT_R32G32_SFLOAT, 0 },
+        { 12, 10, LL_VK_FORMAT_R16G16B16A16_UINT, 0 },
     };
 
     LLVkPipelineVertexInputStateCreateInfo world_vertex_input =
@@ -13443,9 +13466,9 @@ bool create_vulkan_offscreen_pipeline_set(
         LL_VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         nullptr,
         0,
-        10,
+        11,
         world_bindings,
-        10,
+        11,
         world_attributes
     };
 
@@ -15885,7 +15908,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         ui_attributes
     };
 
-    LLVkVertexInputBindingDescription world_bindings[10] =
+    LLVkVertexInputBindingDescription world_bindings[11] =
     {
         { 0, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
         { 1, 8, LL_VK_VERTEX_INPUT_RATE_VERTEX },
@@ -15897,9 +15920,10 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         { 7, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
         { 8, 16, LL_VK_VERTEX_INPUT_RATE_VERTEX },
         { 9, 8, LL_VK_VERTEX_INPUT_RATE_VERTEX },
+        { 10, 8, LL_VK_VERTEX_INPUT_RATE_VERTEX },
     };
 
-    LLVkVertexInputAttributeDescription world_attributes[10] =
+    LLVkVertexInputAttributeDescription world_attributes[11] =
     {
         { 0, 0, LL_VK_FORMAT_R32G32B32_SFLOAT, 0 },
         { 2, 1, LL_VK_FORMAT_R32G32_SFLOAT, 0 },
@@ -15911,6 +15935,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         { 1, 7, LL_VK_FORMAT_R32G32B32_SFLOAT, 0 },
         { 8, 8, LL_VK_FORMAT_R32G32B32A32_SFLOAT, 0 },
         { 4, 9, LL_VK_FORMAT_R32G32_SFLOAT, 0 },
+        { 12, 10, LL_VK_FORMAT_R16G16B16A16_UINT, 0 },
     };
 
     LLVkPipelineVertexInputStateCreateInfo world_vertex_input =
@@ -15918,9 +15943,9 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         LL_VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         nullptr,
         0,
-        10,
+        11,
         world_bindings,
-        10,
+        11,
         world_attributes
     };
 
@@ -19089,13 +19114,17 @@ bool record_vulkan_frame_command_buffer(
         LLVkBuffer tangent_buffer = draw.mAttributes[8].mEnabled ?
             buffer_iter->second.mBuffer :
             context.mDefaultTangentBuffer.mBuffer;
+        LLVkBuffer joint_buffer = draw.mAttributes[12].mEnabled ?
+            buffer_iter->second.mBuffer :
+            context.mDefaultJointBuffer.mBuffer;
 
         if (!texcoord_buffer ||
             !color_buffer ||
             !texcoord1_buffer ||
             !texcoord2_buffer ||
             !normal_buffer ||
-            !tangent_buffer)
+            !tangent_buffer ||
+            !joint_buffer)
         {
             ++missing_attribute_count;
             continue;
@@ -19140,7 +19169,7 @@ bool record_vulkan_frame_command_buffer(
             continue;
         }
 
-        LLVkBuffer vertex_buffers[10] =
+        LLVkBuffer vertex_buffers[11] =
         {
             position_buffer,
             texcoord_buffer,
@@ -19151,9 +19180,10 @@ bool record_vulkan_frame_command_buffer(
             weight_buffer,
             normal_buffer,
             tangent_buffer,
-            texcoord2_buffer
+            texcoord2_buffer,
+            joint_buffer
         };
-        U64 offsets[10] =
+        U64 offsets[11] =
         {
             position_offset,
             draw.mAttributes[2].mEnabled ? draw.mAttributes[2].mOffset : 0,
@@ -19170,7 +19200,8 @@ bool record_vulkan_frame_command_buffer(
                 0,
             draw.mAttributes[1].mEnabled ? draw.mAttributes[1].mOffset : 0,
             draw.mAttributes[8].mEnabled ? draw.mAttributes[8].mOffset : 0,
-            draw.mAttributes[4].mEnabled ? draw.mAttributes[4].mOffset : 0
+            draw.mAttributes[4].mEnabled ? draw.mAttributes[4].mOffset : 0,
+            draw.mAttributes[12].mEnabled ? draw.mAttributes[12].mOffset : 0
         };
 
         LLVkDescriptorSet descriptor_set =
@@ -20102,7 +20133,7 @@ bool record_vulkan_frame_command_buffer(
         }
         const U32 vertex_buffer_count =
             draw.mUseWorldVertexShader ?
-            10U :
+            11U :
             5U;
         context.mCmdBindVertexBuffers(
             command_buffer,

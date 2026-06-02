@@ -15,6 +15,7 @@ layout(push_constant) uniform MareWorldPushConstants
     vec4 material_extra;
     vec4 base_texture_transform0;
     vec4 base_texture_transform1;
+    layout(offset = 176) vec4 material_pbr;
     layout(offset = 352) mat4 normal_matrix;
 } pc;
 
@@ -22,14 +23,23 @@ layout(location = 0) in vec3 position;
 layout(location = 2) in vec2 texcoord0;
 layout(location = 6) in vec4 diffuse_color;
 layout(location = 10) in vec4 weight4;
+layout(location = 12) in uvec4 joint;
 
 layout(location = 0) out vec4 vertex_color;
 layout(location = 1) out vec2 vary_texcoord0;
+layout(location = 8) out vec4 vertex_position;
 
 layout(std430, set = 0, binding = 17) readonly buffer MareSkinningPalette
 {
     vec4 matrix_palette[];
 } skinning;
+
+const uint MATERIAL_GLTF_PBR = 2048u;
+
+bool has_material_flag(uint flag)
+{
+    return (uint(pc.material_pbr.z + 0.5) & flag) != 0u;
+}
 
 vec3 skin_position(vec3 source_position)
 {
@@ -40,8 +50,9 @@ vec3 skin_position(vec3 source_position)
     }
 
     uint matrix_offset = uint(pc.params.z + 0.5);
-    vec4 indices = floor(weight4);
-    vec4 weights = fract(weight4);
+    bool gltf_skinning = has_material_flag(MATERIAL_GLTF_PBR);
+    vec4 indices = gltf_skinning ? vec4(joint) : floor(weight4);
+    vec4 weights = gltf_skinning ? weight4 : fract(weight4);
     float weight_sum = weights.x + weights.y + weights.z + weights.w;
     if (weight_sum <= 0.0)
     {
@@ -113,5 +124,6 @@ void main()
     gl_Position.y = -gl_Position.y;
 
     vary_texcoord0 = base_color_texture_transform(texcoord0);
+    vertex_position = clip_position;
     vertex_color = diffuse_color;
 }

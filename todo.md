@@ -526,16 +526,18 @@ Validation status:
       shadow commands for its terrain faces with `MAP_VERTEX` only, preserving
       the OpenGL terrain shadow draw loop's minimal attribute contract at the
       command boundary.
-      GLTFSceneManager progress: standalone static opaque and alpha-mask glTF
-      assets now emit Vulkan shadow commands directly from their asset render
-      batches, with asset-to-agent and node-to-asset transforms precomposed
-      into owned backend model matrices. The Vulkan PBR alpha-mask shadow
+      GLTFSceneManager progress: standalone static and rigged glTF assets now
+      emit Vulkan shadow commands directly from their asset render batches for
+      opaque, alpha-mask, and alpha-blend material modes. Static commands use
+      precomposed asset-to-agent plus node-to-asset model matrices; rigged
+      commands keep the asset-to-agent model matrix and transport the glTF
+      joint palette through the backend skinning buffer so the shader can use
+      the source `joint + weight4` contract. The Vulkan PBR alpha-mask shadow
       vertex shader now follows the OpenGL `pbrShadowAlphaMaskV.glsl`
       base-color texture transform contract for KHR texture transforms plus
       texture animation rows.
-      Remaining shadow work: `GLTFSceneManager` rigged standalone scene shadow
-      casters and visual parity tuning of the manual Vulkan shadow compare/PCF
-      path are still open. Shadow target validation progress:
+      Remaining shadow work: visual parity tuning of the manual Vulkan shadow
+      compare/PCF path is still open. Shadow target validation progress:
       `DeferredLightMap` now logs the first few sun/spot shadow target
       validation summaries, including target presence, completeness, depth
       handle, dimensions, and whether each target was actually bound as a
@@ -1820,9 +1822,9 @@ Known missing runtime coverage:
       Its directional and spot shadow channels now sample the shadow depth
       targets using transported OpenGL matrices/clip/bias/resolution state.
       Emissive and the sky environment cube-map now feed the live soften pass.
-      Close this only after the remaining graph inputs are real: complete
-      shadow caster coverage/target validation, reflection-probe
-      cubemap/parallax bindings, and final composite/post parity.
+      Close this only after the remaining graph inputs are real: shadow target
+      validation plus PCF/parity tuning, reflection-probe cubemap/parallax
+      bindings, and final composite/post parity.
 - [ ] Shadow map rendering is not Vulkan-native. `generateSunShadow()` still
       owns the OpenGL-era shadow render targets, shadow cameras, and
       `renderShadow()` flow. Vulkan now has explicit shadow shader classes,
@@ -1830,13 +1832,12 @@ Known missing runtime coverage:
       pipeline arrays for generic, alpha-mask, avatar, avatar alpha,
       avatar alpha-mask, tree, PBR alpha-mask, and PBR alpha-blend casters.
       Vulkan now emits backend world commands from the OpenGL `renderShadow()`
-      render-map batches plus terrain, avatar, and GLTFSceneManager static
-      opaque/alpha-mask shadow pools, and `generateSunShadow()` is active on
-      the Vulkan world path. Remaining work is `GLTFSceneManager` rigged
-      standalone scene shadow casters and visual parity tuning of the manual
-      Vulkan shadow compare/PCF path. `DeferredLightMap` now logs bounded
-      sun/spot shadow target validation for presence, completeness, depth
-      ownership, dimensions, and bind success.
+      render-map batches plus terrain, avatar, and GLTFSceneManager static and
+      rigged standalone shadow pools, and `generateSunShadow()` is active on
+      the Vulkan world path. Remaining work is visual parity tuning of the
+      manual Vulkan shadow compare/PCF path. `DeferredLightMap` now logs
+      bounded sun/spot shadow target validation for presence, completeness,
+      depth ownership, dimensions, and bind success.
 - [ ] Final post-processing is not fully Vulkan-native. The active final
       composite now owns exposure/gamma/tonemap settings and a bounded
       CAS-like sharpen, bounded HDR glow approximation, and edge-aware
