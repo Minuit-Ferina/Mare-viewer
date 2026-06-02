@@ -522,6 +522,8 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed.vert
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/exposure_history.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/interface/copy_depth.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer_emissive.frag
 
 ### OpenGL Source Coverage
 
@@ -868,6 +870,14 @@ Validation status:
       `diffuse_indexed_gbuffer*.frag` variants for 3-attachment and
       4-attachment render passes. Material, PBR, avatar, and terrain G-buffer
       families remain on their separate owners.
+- [x] Replace the legacy Material Vulkan G-buffer adapter with final class3
+      material owners.
+      The material offscreen G-buffer pipeline now binds
+      `class3/deferred/material_gbuffer*.frag` for 3-attachment and
+      4-attachment render passes. The vertex side keeps the current runtime
+      `active/world_textured.vert` contract until the final material vertex UBO
+      interface is connected. Direct Material rendering still uses the active
+      runtime fragment.
 - [x] Feed real terrain normals into the active Vulkan terrain G-buffer path.
       Terrain command emission now includes `MAP_NORMAL`, terrain pipelines use
       a vertex input layout that exposes the normal attribute, and both
