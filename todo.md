@@ -367,11 +367,12 @@ Validation status:
       of treating `active/*.frag` as the final shader family.
       `active/deferred_composite.frag`, `active/final_composite.frag`,
       `active/alpha.frag`, and related active G-buffer shaders are bootstrap
-      adapters. Sky, water, world glow, fullbright, direct alpha-mask, and
-      direct legacy material have moved to explicit runtime owners, but still
-      need their faithful final UBO/texture/render-graph pipelines before they
-      are parity-complete. The final Vulkan path should bind class-tier shaders
-      matching the OpenGL families and selected viewer settings.
+      adapters. Sky, water, world glow, fullbright, direct alpha-mask, direct
+      legacy material, and direct PBR have moved to explicit runtime owners,
+      but still need their faithful final UBO/texture/render-graph pipelines
+      before they are parity-complete. The final Vulkan path should bind
+      class-tier shaders matching the OpenGL families and selected viewer
+      settings.
       First safe runtime replacement: UI textured now binds
       `class1/interface/ui.frag` instead of `active/ui.frag`. The UI vertex
       remains `active/ui.vert` because the class1 interface vertex expects
@@ -384,11 +385,12 @@ Validation status:
       dedicated Vulkan simple-indexed pipeline. Simple G-buffer draws still use
       the active adapter until a matching G-buffer owner is wired.
       Do not replace the remaining active modules by path substitution alone:
-      `terrain`, deferred soften/composite, post/final composite, PBR/avatar
-      direct and G-buffer adapters, and broad world textured adapters currently
-      have different descriptor, push-constant, varying, or color attachment
-      contracts from their OpenGL-derived class-tier sources. Each replacement
-      needs the matching final pipeline owner wired first.
+      `terrain`, deferred soften/composite, post/final composite,
+      PBR/avatar G-buffer adapters, avatar direct adapters, and broad world
+      textured adapters currently have different descriptor, push-constant,
+      varying, or color attachment contracts from their OpenGL-derived
+      class-tier sources. Each replacement needs the matching final pipeline
+      owner wired first.
 
 ### Vulkan Class-Tier Shader Parity Targets
 
@@ -531,6 +533,7 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/exposure_history.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/pbropaque_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/pbropaque_gbuffer_emissive.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/pbr_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/sky_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_gbuffer_emissive.frag
@@ -1402,9 +1405,10 @@ Validation status:
 	      `LLRenderWorldShaderClass::Material` now owns
 	      `class3/deferred/material_runtime.frag` for legacy material, bump,
 	      and post-bump fallback draws.
-	      `LLRenderWorldShaderClass::PBR` now owns `active/pbr.frag` for GLTF
-	      PBR fallback draws, and `LLRenderWorldShaderClass::Avatar` owns
-	      `active/avatar.frag` for classic avatar fallback draws. Deferred opaque
+	      `LLRenderWorldShaderClass::PBR` now owns
+	      `class1/deferred/pbr_runtime.frag` for GLTF PBR fallback draws, and
+	      `LLRenderWorldShaderClass::Avatar` owns `active/avatar.frag` for
+	      classic avatar fallback draws. Deferred opaque
 	      draws may still take the current G-buffer pipeline first, but direct
 	      and post-deferred fallback draws no longer share the generic
 	      textured-world fragment path.
@@ -1662,6 +1666,11 @@ Known missing runtime coverage:
       `LLRenderWorldShaderClass::Material` and
       `class3/deferred/material_runtime.frag`. Material G-buffer draws still
       use the separate `class3/deferred/material_gbuffer*.frag` owners.
+- [x] Active Vulkan PBR draws have a dedicated runtime shader owner.
+      GLTF/PBR fallback commands can route through
+      `LLRenderWorldShaderClass::PBR` and `class1/deferred/pbr_runtime.frag`.
+      Opaque PBR G-buffer draws still use the separate
+      `class1/deferred/pbropaque_gbuffer*.frag` owners.
 - [ ] True deferred lighting is not a Vulkan render graph yet. The active
       Vulkan composite now has sun/ambient/cloud-shadow lighting and a
       read-only aggregate of nearby local lights plus a first depth-based SSAO
