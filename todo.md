@@ -365,14 +365,14 @@ Validation status:
       completed haze parity.
 - [ ] Replace active-path shader approximations with class-tier owners instead
       of treating `active/*.frag` as the final shader family.
-      `active/deferred_composite.frag`, `active/final_composite.frag`,
-      `active/alpha.frag`, and related active G-buffer shaders are bootstrap
-      adapters. Sky, water, haze, world glow, fullbright, direct alpha-mask,
-      direct legacy material, direct PBR, and direct avatar have moved to
-      explicit runtime owners, but still need their faithful final
-      UBO/texture/render-graph pipelines before they are parity-complete. The
-      final Vulkan path should bind class-tier shaders matching the OpenGL
-      families and selected viewer settings.
+      `active/*.frag` files are now inventory/history entries, not runtime
+      backend loads. Sky, water, haze, world glow, fullbright, direct
+      alpha-mask, direct legacy material, direct PBR, direct avatar, broad
+      world-textured fallback, terrain direct fallback, avatar G-buffer,
+      deferred composite, and final composite have explicit runtime owners, but
+      still need their faithful final UBO/texture/render-graph pipelines before
+      they are parity-complete. The final Vulkan path should bind class-tier
+      shaders matching the OpenGL families and selected viewer settings.
       First safe runtime replacement: UI textured now binds
       `class1/interface/ui.frag` instead of `active/ui.frag`. The UI vertex
       remains `active/ui.vert` because the class1 interface vertex expects
@@ -384,12 +384,11 @@ Validation status:
       `Textured` draws now use `class1/objects/simple_indexed.frag` through a
       dedicated Vulkan simple-indexed pipeline. Simple G-buffer draws still use
       the active adapter until a matching G-buffer owner is wired.
-      Do not replace the remaining active modules by path substitution alone:
-      `terrain`, deferred soften/composite, post/final composite,
-      PBR/avatar G-buffer adapters, and broad world textured adapters currently
-      have different descriptor, push-constant, varying, or color attachment
-      contracts from their OpenGL-derived class-tier sources. Each replacement
-      needs the matching final pipeline owner wired first.
+      Do not replace the remaining active vertex modules by path substitution
+      alone: `active/ui.vert`, `active/world_textured.vert`, and
+      `active/terrain.vert` still carry runtime clip/world/terrain ABI details
+      that differ from their OpenGL-derived class-tier sources. Each
+      replacement needs the matching final pipeline owner wired first.
 
 ### Vulkan Class-Tier Shader Parity Targets
 
@@ -524,8 +523,11 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.vert
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/effects/glow_runtime.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/objects/world_textured_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/fullbright_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_alpha_mask_runtime.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/avatar_gbuffer_runtime.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/avatar_gbuffer_emissive_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed.vert
@@ -534,13 +536,16 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/pbropaque_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/pbr_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/avatar/avatar_runtime.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/final_composite_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/sky_runtime.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/environment/water_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/interface/copy_depth.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/haze_runtime.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/deferred_composite_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer_emissive.frag
 

@@ -11374,10 +11374,12 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
     static constexpr LLVulkanFinalPipelineOwnerBinding OWNER_BINDINGS[] =
     {
         {"ui-textured", "active/ui.vert.spv", "class1/interface/ui.frag.spv", "UI textured quads and font atlas draws", "runtime UI clip-space vertex adapter plus final class1 UI fragment", "UI blend/depth state from LLGLSUIDefault", "fragment bound to final class1 owner; vertex pending interface push-constant contract"},
+        {"world-textured-runtime", "active/world_textured.vert.spv", "class1/objects/world_textured_runtime.frag.spv", "generic direct world textured fallback", "runtime world vertex adapter, texture array, material flags, scene lighting, texture transforms", "temporary generic runtime adapter used only when a specialized owner is not selected", "bound runtime owner; replace callsites with narrower owners before removing"},
         {"simple-object", "active/world_textured.vert.spv", "class1/objects/simple.frag.spv", "non-indexed simple textured objects", "runtime world vertex adapter plus final class1 simple fragment", "direct Textured owner only when texture-index attribute is absent; G-buffer uses the final diffuse-indexed owner", "bound for non-indexed direct Textured draws"},
         {"simple-indexed-object", "active/world_textured.vert.spv", "class1/objects/simple_indexed.frag.spv", "indexed/batched simple textured objects", "runtime world vertex adapter plus final class1 simple indexed fragment", "direct Textured owner only when texture-index attribute is present; G-buffer uses the final diffuse-indexed owner", "bound for indexed direct Textured draws"},
         {"simple-gbuffer", "class1/deferred/diffuse_indexed.vert.spv", "class1/deferred/diffuse_indexed_gbuffer.frag.spv", "simple indexed Textured G-buffer geometry", "runtime-world push constants, set0 texture array, texture index, optional skinning", "OpenGL class1 deferred diffuse indexed G-buffer writes", "bound runtime owner; emissive attachment uses diffuse_indexed_gbuffer_emissive.frag"},
         {"sky-class1", "active/world_textured.vert.spv", "class1/deferred/sky_runtime.frag.spv", "WindLight/EEP sky dome runtime path", "runtime-world push constants and sky color until the final sky UBO/varying contract is connected", "OpenGL sky owner depth/blend/cull state approximation", "bound runtime owner; final sky.vert/sky.frag remain inventory-only"},
+        {"terrain-runtime", "active/terrain.vert.spv", "class1/deferred/terrain_runtime.frag.spv", "terrain direct/swapchain fallback geometry", "runtime terrain vertex adapter, detail textures, paint/PBR factors", "temporary terrain direct-color adapter; G-buffer terrain uses terrain_gbuffer*.frag", "bound runtime owner; final terrain vertex ABI still pending"},
         {"terrain", "active/terrain.vert.spv", "class1/deferred/terrain_gbuffer.frag.spv", "terrain G-buffer geometry", "runtime terrain push constants, detail/paint/ORM/emissive/normal textures", "OpenGL terrain and PBR terrain G-buffer writes adapted to the current Vulkan terrain ABI", "bound runtime owner; emissive attachment uses terrain_gbuffer_emissive.frag"},
         {"pbr-terrain", "active/terrain.vert.spv", "class1/deferred/terrain_gbuffer.frag.spv", "PBR terrain G-buffer geometry", "runtime terrain push constants, GLTF terrain factors, paint maps, texture transforms, triplanar normals", "OpenGL PBR terrain G-buffer writes adapted to the current Vulkan terrain ABI", "bound through shared terrain runtime owner; final terrain vertex ABI still pending"},
         {"pbr-runtime", "active/world_textured.vert.spv", "class1/deferred/pbr_runtime.frag.spv", "GLTF/PBR direct/post-deferred geometry", "runtime-world push constants, GLTF factors, texture transforms, normal/ORM/emissive maps", "OpenGL PBR direct color output adapted to the current Vulkan world ABI", "bound runtime owner"},
@@ -11385,6 +11387,7 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"legacy-material-runtime", "active/world_textured.vert.spv", "class3/deferred/material_runtime.frag.spv", "legacy material direct/post-deferred geometry", "runtime-world push constants, material texture transforms, normal/specular maps", "OpenGL legacy material direct color output adapted to the current Vulkan world ABI", "bound runtime owner"},
         {"legacy-material-gbuffer", "active/world_textured.vert.spv", "class3/deferred/material_gbuffer.frag.spv", "legacy material G-buffer geometry", "runtime-world push constants, material texture transforms, normal/specular maps", "OpenGL class3 deferred material G-buffer writes adapted to the Vulkan G-buffer layout", "bound runtime owner; emissive attachment uses material_gbuffer_emissive.frag"},
         {"avatar-runtime", "active/world_textured.vert.spv", "class1/avatar/avatar_runtime.frag.spv", "classic avatar direct/post-deferred geometry", "runtime-world push constants, baked texture, vertex color, optional skinning", "OpenGL classic avatar direct color output adapted to the current Vulkan world ABI", "bound runtime owner"},
+        {"avatar-gbuffer-runtime", "class1/deferred/diffuse_indexed.vert.spv", "class1/deferred/avatar_gbuffer_runtime.frag.spv", "classic avatar G-buffer runtime geometry", "runtime-world push constants, baked texture, vertex color, optional skinning", "temporary avatar G-buffer adapter isolated from final class1 avatar inventory shaders", "bound runtime owner; emissive attachment uses avatar_gbuffer_emissive_runtime.frag"},
         {"pbr-alpha-class1", "class1/deferred/pbralpha.vert.spv", "class1/deferred/pbralpha.frag.spv", "alpha GLTF/PBR geometry fallback", "pending GLTF/PBR alpha ABI", "OpenGL PBR alpha state", "inventory-only"},
         {"pbr-alpha-class2", "class1/deferred/pbralpha.vert.spv", "class2/deferred/pbralpha.frag.spv", "alpha GLTF/PBR geometry", "pending GLTF/PBR alpha class2 ABI", "OpenGL PBR alpha state", "inventory-only"},
         {"fullbright-runtime", "active/world_textured.vert.spv", "class1/deferred/fullbright_runtime.frag.spv", "fullbright and fullbright-shiny runtime surface", "runtime-world push constants, alpha policy, diffuse/emissive texture selection", "OpenGL fullbright owner blend/depth/color state approximation", "bound runtime owner; final class1/class3 fullbright shaders remain inventory-only"},
@@ -11407,6 +11410,7 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"sun-light", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light.frag.spv", "sunlight and soften pass"},
         {"sun-light-ssao", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light_ssao.frag.spv", "sunlight with SSAO"},
         {"deferred-soften-class3", "class2/deferred/soften_light.vert.spv", "class3/deferred/soften_light.frag.spv", "deferred soften/composite pass"},
+        {"deferred-composite-runtime", "active/world_textured.vert.spv", "class3/deferred/deferred_composite_runtime.frag.spv", "runtime deferred composite/lighting approximation", "active fullscreen adapter plus current G-buffer/depth/light inputs", "bootstrap deferred composite adapter isolated from final class3 soften_light.frag", "bound runtime owner; not strict OpenGL parity"},
         {"point-light", "class3/deferred/point_light.vert.spv", "class3/deferred/point_light.frag.spv", "local point lights"},
         {"multi-point-light", "class3/deferred/multi_point_light.vert.spv", "class3/deferred/multi_point_light.frag.spv", "fullscreen local lights"},
         {"spot-light-class1", "class3/deferred/point_light.vert.spv", "class1/deferred/spot_light.frag.spv", "projector spot lights fallback"},
@@ -11421,7 +11425,7 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"post-process-tonemap", "class1/deferred/post_deferred.vert.spv", "class1/deferred/post_deferred_tonemap.frag.spv", "tone-mapped deferred composite"},
         {"post-process-gamma", "class1/deferred/post_deferred.vert.spv", "class1/deferred/post_deferred_gamma.frag.spv", "gamma deferred composite"},
         {"copy", "class1/interface/copy.vert.spv", "class1/interface/copy.frag.spv", "render target copy", "runtime-copy position-only fullscreen vertex, generated UV, set0 diffuseMap", "no blend, depth disabled, cull disabled", "bound runtime owner"},
-        {"final-composite", "active/world_textured.vert.spv", "active/final_composite.frag.spv", "swapchain final composite", "active post adapter, not final postDeferred ABI", "fullscreen post pass selected by viewer settings", "bootstrap runtime owner"},
+        {"final-composite-runtime", "active/world_textured.vert.spv", "class1/deferred/final_composite_runtime.frag.spv", "swapchain final composite", "active post adapter, not final postDeferred ABI", "fullscreen post pass selected by viewer settings", "bootstrap runtime owner isolated from active shader inventory"},
     };
 
     size_t missing_owner_count = 0;
@@ -13771,7 +13775,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mWorldVertexShader =
         get_vulkan_final_shader_module(context, "active/world_textured.vert.spv", "world vertex");
     context.mWorldFragmentShader =
-        get_vulkan_final_shader_module(context, "active/world_textured.frag.spv", "world fragment");
+        get_vulkan_final_shader_module(context, "class1/objects/world_textured_runtime.frag.spv", "class1 world textured runtime fragment");
     context.mSimpleFragmentShader =
         get_vulkan_final_shader_module(context, "class1/objects/simple.frag.spv", "class1 simple object fragment");
     context.mSimpleIndexedFragmentShader =
@@ -13819,17 +13823,17 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mPBRGBufferEmissiveFragmentShader =
         get_vulkan_final_shader_module(context, "class1/deferred/pbropaque_gbuffer_emissive.frag.spv", "class1 PBR opaque G-buffer emissive fragment");
     context.mAvatarGBufferFragmentShader =
-        get_vulkan_final_shader_module(context, "active/avatar_gbuffer.frag.spv", "avatar G-buffer fragment");
+        get_vulkan_final_shader_module(context, "class1/deferred/avatar_gbuffer_runtime.frag.spv", "class1 avatar G-buffer runtime fragment");
     context.mAvatarGBufferEmissiveFragmentShader =
-        get_vulkan_final_shader_module(context, "active/avatar_gbuffer_emissive.frag.spv", "avatar G-buffer emissive fragment");
+        get_vulkan_final_shader_module(context, "class1/deferred/avatar_gbuffer_emissive_runtime.frag.spv", "class1 avatar G-buffer emissive runtime fragment");
     context.mCopyVertexShader =
         get_vulkan_final_shader_module(context, "class1/interface/copy.vert.spv", "copy vertex");
     context.mCopyFragmentShader =
         get_vulkan_final_shader_module(context, "class1/interface/copy.frag.spv", "copy fragment");
     context.mDeferredCompositeFragmentShader =
-        get_vulkan_final_shader_module(context, "active/deferred_composite.frag.spv", "deferred composite fragment");
+        get_vulkan_final_shader_module(context, "class3/deferred/deferred_composite_runtime.frag.spv", "class3 deferred composite runtime fragment");
     context.mFinalCompositeFragmentShader =
-        get_vulkan_final_shader_module(context, "active/final_composite.frag.spv", "final composite fragment");
+        get_vulkan_final_shader_module(context, "class1/deferred/final_composite_runtime.frag.spv", "class1 final composite runtime fragment");
     context.mPointLightVertexShader =
         get_vulkan_final_shader_module(context, "class3/deferred/point_light.vert.spv", "point light vertex");
     context.mPointLightFragmentShader =
@@ -13851,7 +13855,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mTerrainVertexShader =
         get_vulkan_final_shader_module(context, "active/terrain.vert.spv", "terrain vertex");
     context.mTerrainFragmentShader =
-        get_vulkan_final_shader_module(context, "active/terrain.frag.spv", "terrain fragment");
+        get_vulkan_final_shader_module(context, "class1/deferred/terrain_runtime.frag.spv", "class1 terrain runtime fragment");
     context.mTerrainGBufferFragmentShader =
         get_vulkan_final_shader_module(context, "class1/deferred/terrain_gbuffer.frag.spv", "class1 terrain G-buffer fragment");
     context.mTerrainGBufferEmissiveFragmentShader =
