@@ -49,6 +49,7 @@ namespace
 {
 constexpr F32 WORLD_RENDER_MINIMUM_ALPHA = 0.004f;
 constexpr F32 AVATAR_RENDER_MINIMUM_ALPHA = 0.2f;
+constexpr F32 WORLD_RENDER_SHADOW_ALPHA_BLEND_CUTOFF = 0.598f;
 constexpr U32 WORLD_RENDER_SCENE_DEPTH_TEXTURE_UNIT = 8;
 constexpr U32 WORLD_RENDER_SCENE_COLOR_TEXTURE_UNIT = 9;
 
@@ -96,6 +97,14 @@ const char* get_world_render_material_class_log_name(LLWorldRenderMaterialClass 
         case LLWorldRenderMaterialClass::WaterHaze: return "WaterHaze";
         case LLWorldRenderMaterialClass::FullbrightShiny: return "FullbrightShiny";
         case LLWorldRenderMaterialClass::PostBump: return "PostBump";
+        case LLWorldRenderMaterialClass::Shadow: return "Shadow";
+        case LLWorldRenderMaterialClass::ShadowAlphaMask: return "ShadowAlphaMask";
+        case LLWorldRenderMaterialClass::AvatarShadow: return "AvatarShadow";
+        case LLWorldRenderMaterialClass::AvatarAlphaShadow: return "AvatarAlphaShadow";
+        case LLWorldRenderMaterialClass::AvatarAlphaMaskShadow: return "AvatarAlphaMaskShadow";
+        case LLWorldRenderMaterialClass::TreeShadow: return "TreeShadow";
+        case LLWorldRenderMaterialClass::PBRAlphaMaskShadow: return "PBRAlphaMaskShadow";
+        case LLWorldRenderMaterialClass::PBRAlphaBlendShadow: return "PBRAlphaBlendShadow";
     }
     return "Unknown";
 }
@@ -109,7 +118,7 @@ void log_vulkan_world_command_summary(const LLWorldRenderCommandBuffer& command_
     }
 
     constexpr U32 material_class_count =
-        static_cast<U32>(LLWorldRenderMaterialClass::PostBump) + 1;
+        static_cast<U32>(LLWorldRenderMaterialClass::PBRAlphaBlendShadow) + 1;
     U32 material_counts[material_class_count] = {};
     U32 deferred_count = 0;
     U32 post_deferred_count = 0;
@@ -595,6 +604,12 @@ F32 get_world_render_alpha_mask_cutoff(const LLWorldRenderCommand& command)
         case LLWorldRenderMaterialClass::Tree:
         case LLWorldRenderMaterialClass::FullbrightAlphaMask:
         case LLWorldRenderMaterialClass::GLTFPBRAlphaMask:
+        case LLWorldRenderMaterialClass::ShadowAlphaMask:
+        case LLWorldRenderMaterialClass::AvatarAlphaShadow:
+        case LLWorldRenderMaterialClass::AvatarAlphaMaskShadow:
+        case LLWorldRenderMaterialClass::TreeShadow:
+        case LLWorldRenderMaterialClass::PBRAlphaMaskShadow:
+        case LLWorldRenderMaterialClass::PBRAlphaBlendShadow:
         case LLWorldRenderMaterialClass::Avatar:
         case LLWorldRenderMaterialClass::AvatarImpostor:
             return command.mAlphaMaskCutoff;
@@ -832,7 +847,9 @@ F32 get_world_material_flags(const LLWorldRenderCommand& command)
         flags |= LLRenderWorldMaterialParameters::LegacyShiny;
     }
     if (command.mMaterialClass == LLWorldRenderMaterialClass::GLTFPBR ||
-        command.mMaterialClass == LLWorldRenderMaterialClass::GLTFPBRAlphaMask)
+        command.mMaterialClass == LLWorldRenderMaterialClass::GLTFPBRAlphaMask ||
+        command.mMaterialClass == LLWorldRenderMaterialClass::PBRAlphaMaskShadow ||
+        command.mMaterialClass == LLWorldRenderMaterialClass::PBRAlphaBlendShadow)
     {
         flags |= LLRenderWorldMaterialParameters::GLTFPBR;
     }
@@ -1132,6 +1149,30 @@ LLWorldRenderPipelineContract get_world_render_pipeline_contract(
         case LLWorldRenderMaterialClass::AvatarImpostor:
             contract.mShaderClass = LLRenderWorldShaderClass::Avatar;
             break;
+        case LLWorldRenderMaterialClass::Shadow:
+            contract.mShaderClass = LLRenderWorldShaderClass::Shadow;
+            break;
+        case LLWorldRenderMaterialClass::ShadowAlphaMask:
+            contract.mShaderClass = LLRenderWorldShaderClass::ShadowAlphaMask;
+            break;
+        case LLWorldRenderMaterialClass::AvatarShadow:
+            contract.mShaderClass = LLRenderWorldShaderClass::AvatarShadow;
+            break;
+        case LLWorldRenderMaterialClass::AvatarAlphaShadow:
+            contract.mShaderClass = LLRenderWorldShaderClass::AvatarAlphaShadow;
+            break;
+        case LLWorldRenderMaterialClass::AvatarAlphaMaskShadow:
+            contract.mShaderClass = LLRenderWorldShaderClass::AvatarAlphaMaskShadow;
+            break;
+        case LLWorldRenderMaterialClass::TreeShadow:
+            contract.mShaderClass = LLRenderWorldShaderClass::TreeShadow;
+            break;
+        case LLWorldRenderMaterialClass::PBRAlphaMaskShadow:
+            contract.mShaderClass = LLRenderWorldShaderClass::PBRAlphaMaskShadow;
+            break;
+        case LLWorldRenderMaterialClass::PBRAlphaBlendShadow:
+            contract.mShaderClass = LLRenderWorldShaderClass::PBRAlphaBlendShadow;
+            break;
         default:
             contract.mShaderClass = LLRenderWorldShaderClass::Textured;
             break;
@@ -1180,6 +1221,14 @@ const char* get_world_render_material_class_name(LLWorldRenderMaterialClass mate
         case LLWorldRenderMaterialClass::WaterHaze: return "WaterHaze";
         case LLWorldRenderMaterialClass::FullbrightShiny: return "FullbrightShiny";
         case LLWorldRenderMaterialClass::PostBump: return "PostBump";
+        case LLWorldRenderMaterialClass::Shadow: return "Shadow";
+        case LLWorldRenderMaterialClass::ShadowAlphaMask: return "ShadowAlphaMask";
+        case LLWorldRenderMaterialClass::AvatarShadow: return "AvatarShadow";
+        case LLWorldRenderMaterialClass::AvatarAlphaShadow: return "AvatarAlphaShadow";
+        case LLWorldRenderMaterialClass::AvatarAlphaMaskShadow: return "AvatarAlphaMaskShadow";
+        case LLWorldRenderMaterialClass::TreeShadow: return "TreeShadow";
+        case LLWorldRenderMaterialClass::PBRAlphaMaskShadow: return "PBRAlphaMaskShadow";
+        case LLWorldRenderMaterialClass::PBRAlphaBlendShadow: return "PBRAlphaBlendShadow";
     }
     return "Unknown";
 }
@@ -1752,6 +1801,97 @@ void LLWorldRenderCommandBuffer::appendRenderMap(
                 batch_textures,
                 attribute_mask);
         }
+    }
+}
+
+void LLWorldRenderCommandBuffer::appendShadowRenderMap(
+    U32 source_pass,
+    LLWorldRenderMaterialClass material_class,
+    bool texture,
+    bool batch_textures,
+    U32 attribute_mask,
+    bool write_color,
+    bool write_alpha,
+    F32 alpha_mask_cutoff)
+{
+    auto* begin = gPipeline.beginRenderMap(source_pass);
+    auto* end = gPipeline.endRenderMap(source_pass);
+    for (LLCullResult::drawinfo_iterator iter = begin; iter != end; )
+    {
+        LLDrawInfo* params = *iter;
+        LLCullResult::increment_iterator(iter, end);
+        if (!params)
+        {
+            continue;
+        }
+
+        const size_t command_count = mCommands.size();
+        appendDrawInfo(
+            *params,
+            material_class,
+            source_pass,
+            texture,
+            batch_textures,
+            attribute_mask);
+        if (mCommands.size() == command_count)
+        {
+            continue;
+        }
+
+        LLWorldRenderCommand& command = mCommands.back();
+        command.mPassClass = LLWorldRenderPassClass::Deferred;
+        command.mBlendMode = LLWorldRenderBlendMode::None;
+        command.mDepthMode = LLWorldRenderDepthMode::ReadWrite;
+        command.mWriteColor = write_color;
+        command.mWriteAlpha = write_alpha;
+        if (alpha_mask_cutoff >= 0.f)
+        {
+            command.mAlphaMaskCutoff = alpha_mask_cutoff;
+        }
+    }
+}
+
+void LLWorldRenderCommandBuffer::appendShadowAlphaRenderMap(
+    bool rigged,
+    U32 attribute_mask,
+    bool write_color,
+    bool write_alpha)
+{
+    auto* begin = gPipeline.beginRenderMap(LLRenderPass::PASS_ALPHA);
+    auto* end = gPipeline.endRenderMap(LLRenderPass::PASS_ALPHA);
+    for (LLCullResult::drawinfo_iterator iter = begin; iter != end; )
+    {
+        LLDrawInfo* params = *iter;
+        LLCullResult::increment_iterator(iter, end);
+        if (!params || rigged != (params->mAvatar != nullptr))
+        {
+            continue;
+        }
+
+        const LLWorldRenderMaterialClass material_class =
+            params->mGLTFMaterial.notNull() ?
+                LLWorldRenderMaterialClass::PBRAlphaBlendShadow :
+                LLWorldRenderMaterialClass::ShadowAlphaMask;
+        const size_t command_count = mCommands.size();
+        appendDrawInfo(
+            *params,
+            material_class,
+            LLRenderPass::PASS_ALPHA,
+            true,
+            true,
+            attribute_mask);
+        if (mCommands.size() == command_count)
+        {
+            continue;
+        }
+
+        LLWorldRenderCommand& command = mCommands.back();
+        command.mPassClass = LLWorldRenderPassClass::Deferred;
+        command.mBlendMode = LLWorldRenderBlendMode::None;
+        command.mDepthMode = LLWorldRenderDepthMode::ReadWrite;
+        command.mWriteColor = write_color;
+        command.mWriteAlpha = write_alpha;
+        command.mAlphaMaskCutoff = WORLD_RENDER_SHADOW_ALPHA_BLEND_CUTOFF;
     }
 }
 

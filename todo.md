@@ -497,9 +497,20 @@ Validation status:
       alpha-mask, and PBR alpha-blend shadow casters. The matching Vulkan
       shadow fragments now expose a single white output with OpenGL-style alpha
       discard/dither instead of the earlier accidental G-buffer output shape.
-      These pipelines are not yet fed by `generateSunShadow()`; the real
-      Vulkan shadow-map render passes and shadow-map texture bindings remain
-      open.
+      Command-emission progress: `renderShadow()` now has a Vulkan branch that
+      captures the existing render maps for simple/fullbright/shiny/bump,
+      legacy material, alpha-mask, alpha-blend, grass/material-mask, GLTF PBR,
+      GLTF alpha-mask, and GLTF alpha-blend shadow casters, then submits them
+      to the backend shadow shader classes with the same RenderShadowDetail
+      color-mask policy as OpenGL. `generateSunShadow()` is no longer skipped
+      for the Vulkan world path. The shadow vertex shaders now use the active
+      world backend push-constant ABI and GPU skinning palette instead of the
+      stale generated `set=1` uniform block.
+      Remaining shadow work: classic avatar shadow pool commands,
+      `GLTFSceneManager` standalone scene shadow casters, `renderGeomShadow()`,
+      explicit validation of the shadow render-target formats/depth ownership,
+      shadow-map sampling bindings in the lightMap/spot passes, and non-neutral
+      shadow channels in `DeferredLightMap` are still open.
 - [ ] Final post-processing:
       port and wire the OpenGL post chain as separate class-tier passes:
       glow extraction/blur/combine, gamma/tonemap, FXAA/SMAA/CAS, DoF/cof, and
@@ -1788,9 +1799,13 @@ Known missing runtime coverage:
       final shadow fragments with one color output, and per-render-pass
       pipeline arrays for generic, alpha-mask, avatar, avatar alpha,
       avatar alpha-mask, tree, PBR alpha-mask, and PBR alpha-blend casters.
-      Vulkan still needs explicit shadow render passes, command emission from
-      the OpenGL `renderShadow()` batches, real depth/color shadow target
-      ownership, and non-neutral shadow channels in `DeferredLightMap`.
+      Vulkan now emits backend world commands from the OpenGL `renderShadow()`
+      render-map batches and `generateSunShadow()` is active on the Vulkan
+      world path. Remaining work is classic avatar shadow-pool commands,
+      `GLTFSceneManager` standalone scene shadow casters, `renderGeomShadow()`,
+      explicit shadow target ownership validation, shadow-map texture bindings
+      in `DeferredLightMap`/spot lighting, and non-neutral shadow channels in
+      `DeferredLightMap`.
 - [ ] Final post-processing is not fully Vulkan-native. The active final
       composite now owns exposure/gamma/tonemap settings and a bounded
       CAS-like sharpen, bounded HDR glow approximation, and edge-aware

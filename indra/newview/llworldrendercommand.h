@@ -64,6 +64,14 @@ enum class LLWorldRenderMaterialClass : U8
     WaterHaze,
     FullbrightShiny,
     PostBump,
+    Shadow,
+    ShadowAlphaMask,
+    AvatarShadow,
+    AvatarAlphaShadow,
+    AvatarAlphaMaskShadow,
+    TreeShadow,
+    PBRAlphaMaskShadow,
+    PBRAlphaBlendShadow,
 };
 
 enum class LLWorldRenderPassClass : U8
@@ -347,6 +355,22 @@ public:
         bool texture,
         bool batch_textures,
         U32 attribute_mask);
+
+    void appendShadowRenderMap(
+        U32 source_pass,
+        LLWorldRenderMaterialClass material_class,
+        bool texture,
+        bool batch_textures,
+        U32 attribute_mask,
+        bool write_color,
+        bool write_alpha,
+        F32 alpha_mask_cutoff = -1.f);
+
+    void appendShadowAlphaRenderMap(
+        bool rigged,
+        U32 attribute_mask,
+        bool write_color,
+        bool write_alpha);
 
     void appendRenderMapWithColor(
         U32 source_pass,

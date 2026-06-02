@@ -10881,6 +10881,178 @@ static LLTrace::BlockTimerStatHandle FTM_SHADOW_ALPHA_TREE("Alpha Tree");
 static LLTrace::BlockTimerStatHandle FTM_SHADOW_ALPHA_GRASS("Alpha Grass");
 static LLTrace::BlockTimerStatHandle FTM_SHADOW_FULLBRIGHT_ALPHA_MASKED("Fullbright Alpha Masked");
 
+namespace
+{
+U32 get_vulkan_shadow_vertex_data_mask(bool rigged)
+{
+    U32 mask =
+        LLVertexBuffer::MAP_VERTEX |
+        LLVertexBuffer::MAP_NORMAL |
+        LLVertexBuffer::MAP_TEXCOORD0 |
+        LLVertexBuffer::MAP_COLOR |
+        LLVertexBuffer::MAP_TEXTURE_INDEX;
+
+    return rigged ? mask | static_cast<U32>(LLVertexBuffer::MAP_WEIGHT4) : mask;
+}
+
+U32 get_vulkan_shadow_material_vertex_data_mask(bool rigged)
+{
+    return get_vulkan_shadow_vertex_data_mask(rigged) |
+        LLVertexBuffer::MAP_TANGENT |
+        LLVertexBuffer::MAP_TEXCOORD1 |
+        LLVertexBuffer::MAP_TEXCOORD2;
+}
+
+void append_vulkan_shadow_render_map(
+    LLWorldRenderCommandBuffer& commands,
+    U32 source_pass,
+    LLWorldRenderMaterialClass material_class,
+    bool texture,
+    bool batch_textures,
+    U32 attribute_mask,
+    bool write_color,
+    bool write_alpha,
+    F32 alpha_mask_cutoff = -1.f)
+{
+    commands.appendShadowRenderMap(
+        source_pass,
+        material_class,
+        texture,
+        batch_textures,
+        attribute_mask,
+        write_color,
+        write_alpha,
+        alpha_mask_cutoff);
+}
+
+void append_vulkan_shadow_caster_commands(
+    LLWorldRenderCommandBuffer& commands,
+    bool write_color,
+    bool write_alpha)
+{
+    static const U32 opaque_types[] =
+    {
+        LLRenderPass::PASS_SIMPLE,
+        LLRenderPass::PASS_FULLBRIGHT,
+        LLRenderPass::PASS_SHINY,
+        LLRenderPass::PASS_BUMP,
+        LLRenderPass::PASS_FULLBRIGHT_SHINY,
+        LLRenderPass::PASS_MATERIAL,
+        LLRenderPass::PASS_MATERIAL_ALPHA_EMISSIVE,
+        LLRenderPass::PASS_SPECMAP,
+        LLRenderPass::PASS_SPECMAP_EMISSIVE,
+        LLRenderPass::PASS_NORMMAP,
+        LLRenderPass::PASS_NORMMAP_EMISSIVE,
+        LLRenderPass::PASS_NORMSPEC,
+        LLRenderPass::PASS_NORMSPEC_EMISSIVE
+    };
+
+    static const U32 material_mask_types[] =
+    {
+        LLRenderPass::PASS_NORMSPEC_MASK,
+        LLRenderPass::PASS_MATERIAL_ALPHA_MASK,
+        LLRenderPass::PASS_SPECMAP_MASK,
+        LLRenderPass::PASS_NORMMAP_MASK
+    };
+
+    for (int rigged_index = 0; rigged_index < 2; ++rigged_index)
+    {
+        const bool rigged = rigged_index == 1;
+        const U32 rigged_offset = rigged ? 1 : 0;
+        const U32 shadow_mask = get_vulkan_shadow_vertex_data_mask(rigged);
+        const U32 material_shadow_mask =
+            get_vulkan_shadow_material_vertex_data_mask(rigged);
+
+        for (U32 type : opaque_types)
+        {
+            append_vulkan_shadow_render_map(
+                commands,
+                type + rigged_offset,
+                LLWorldRenderMaterialClass::Shadow,
+                false,
+                false,
+                shadow_mask,
+                write_color,
+                write_alpha);
+        }
+
+        append_vulkan_shadow_render_map(
+            commands,
+            LLRenderPass::PASS_GLTF_PBR + rigged_offset,
+            LLWorldRenderMaterialClass::Shadow,
+            false,
+            false,
+            material_shadow_mask,
+            write_color,
+            write_alpha);
+
+        append_vulkan_shadow_render_map(
+            commands,
+            LLRenderPass::PASS_ALPHA_MASK + rigged_offset,
+            LLWorldRenderMaterialClass::ShadowAlphaMask,
+            true,
+            true,
+            shadow_mask,
+            write_color,
+            write_alpha);
+
+        commands.appendShadowAlphaRenderMap(
+            rigged,
+            material_shadow_mask,
+            write_color,
+            write_alpha);
+
+        append_vulkan_shadow_render_map(
+            commands,
+            LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK + rigged_offset,
+            LLWorldRenderMaterialClass::ShadowAlphaMask,
+            true,
+            true,
+            shadow_mask,
+            write_color,
+            write_alpha);
+
+        if (!rigged)
+        {
+            append_vulkan_shadow_render_map(
+                commands,
+                LLRenderPass::PASS_GRASS,
+                LLWorldRenderMaterialClass::TreeShadow,
+                true,
+                false,
+                shadow_mask,
+                write_color,
+                write_alpha,
+                ALPHA_BLEND_CUTOFF);
+        }
+
+        for (U32 type : material_mask_types)
+        {
+            append_vulkan_shadow_render_map(
+                commands,
+                type + rigged_offset,
+                LLWorldRenderMaterialClass::TreeShadow,
+                true,
+                false,
+                material_shadow_mask,
+                write_color,
+                write_alpha,
+                ALPHA_BLEND_CUTOFF);
+        }
+
+        append_vulkan_shadow_render_map(
+            commands,
+            LLRenderPass::PASS_GLTF_PBR_ALPHA_MASK + rigged_offset,
+            LLWorldRenderMaterialClass::PBRAlphaMaskShadow,
+            true,
+            false,
+            material_shadow_mask,
+            write_color,
+            write_alpha);
+    }
+}
+}
+
 void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCamera& shadow_cam, LLCullResult& result, bool depth_clamp)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_PIPELINE; //LL_RECORD_BLOCK_TIME(FTM_SHADOW_RENDER);
@@ -10921,6 +11093,10 @@ void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCa
 
     stateSort(shadow_cam, result);
 
+    const bool vulkan_shadow_path = use_vulkan_world_command_path();
+    const bool write_shadow_color = RenderShadowDetail > 2;
+    const bool write_shadow_alpha = write_shadow_color;
+
     //generate shadow map
     gGL.matrixMode(LLRender::MM_PROJECTION);
     gGL.pushMatrix();
@@ -10935,6 +11111,32 @@ void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCa
     gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
 
     stop_glerror();
+
+    if (vulkan_shadow_path)
+    {
+        LL_INFOS_ONCE("RenderBackend")
+            << "Vulkan shadow map render is emitting render-map caster commands. Classic avatar shadow pools, GLTFSceneManager scene shadow casters, and renderGeomShadow remain separate shadow-parity work."
+            << LL_ENDL;
+
+        LLWorldRenderCommandBuffer commands;
+        append_vulkan_shadow_caster_commands(
+            commands,
+            write_shadow_color,
+            write_shadow_alpha);
+        submit_vulkan_world_commands(commands);
+
+        gGL.setColorMask(true, true);
+
+        gGL.matrixMode(LLRender::MM_PROJECTION);
+        gGL.popMatrix();
+        gGL.matrixMode(LLRender::MM_MODELVIEW);
+        gGL.popMatrix();
+        gGLLastMatrix = NULL;
+
+        sUseOcclusion = saved_occlusion;
+        LLPipeline::sShadowRender = false;
+        return;
+    }
 
     struct CompareVertexBuffer
     {

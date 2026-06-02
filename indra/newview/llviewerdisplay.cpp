@@ -3132,8 +3132,12 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
             }
             else if (vulkan_world_path && !for_snapshot)
             {
-                LL_WARNS_ONCE("RenderBackend")
-                    << "Vulkan skipped legacy OpenGL stage: sun shadow generation. Shadow maps still need Vulkan render-pass and shadow pipeline ownership."
+                if (gFrameCount > 1)
+                {
+                    gPipeline.generateSunShadow(*LLViewerCamera::getInstance());
+                }
+                LL_INFOS_ONCE("RenderBackend")
+                    << "Vulkan sun/spot shadow generation is active through backend world shadow commands. Classic avatar shadow pools, GLTFSceneManager scene shadow casters, and renderGeomShadow remain separate parity work."
                     << LL_ENDL;
             }
             getRenderBackend().clear(LL_RENDER_CLEAR_DEPTH);
