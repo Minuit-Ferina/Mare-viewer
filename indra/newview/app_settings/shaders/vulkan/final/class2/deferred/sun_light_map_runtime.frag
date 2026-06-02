@@ -3,6 +3,7 @@
 layout(set = 0, binding = 0) uniform sampler2D diffuseMap;
 layout(set = 0, binding = 2) uniform sampler2D normalMap;
 layout(set = 0, binding = 4) uniform sampler2D depthMap;
+layout(set = 0, binding = 6) uniform sampler2D noiseMap;
 layout(set = 0, binding = 9) uniform sampler2D shadowMap0;
 layout(set = 0, binding = 10) uniform sampler2D shadowMap1;
 layout(set = 0, binding = 11) uniform sampler2D shadowMap2;
@@ -252,37 +253,58 @@ float compute_depth_normal_ssao(vec2 texcoord, vec3 normal, float center_depth)
         return 1.0;
     }
 
-    vec2 texel = 1.0 / max(vec2(textureSize(depthMap, 0)), vec2(1.0));
-    float radius = clamp(pc.composite_ssao.x, 0.5, max(pc.composite_ssao.y, 1.0));
-    float factor = clamp(pc.composite_ssao.z, 0.1, 8.0);
-    float strength = clamp(pc.composite_ssao.w, 0.0, 2.0);
-    vec2 sample_step = texel * radius;
+    vec4 position = reconstruct_view_position(texcoord, center_depth);
+    vec3 pos_world = position.xyz;
+    vec2 screen_res = max(vec2(textureSize(depthMap, 0)), vec2(1.0));
+    float radius = max(pc.composite_ssao.x, 0.0);
+    float max_radius = max(pc.composite_ssao.y, 0.0);
+    float factor = max(pc.composite_ssao.z, 0.000001);
+    float factor_inv = 1.0 / factor;
 
-    vec2 offsets[8] = vec2[](
-        vec2(1.0, 0.0),
-        vec2(-1.0, 0.0),
-        vec2(0.0, 1.0),
-        vec2(0.0, -1.0),
-        vec2(0.707, 0.707),
-        vec2(-0.707, 0.707),
-        vec2(0.707, -0.707),
-        vec2(-0.707, -0.707));
+    vec2 kernel[8] = vec2[](
+        vec2(-1.0, 0.0) * 0.125 * 0.125,
+        vec2( 1.0, 0.0) * 0.250 * 0.250,
+        vec2( 0.0, 1.0) * 0.375 * 0.375,
+        vec2( 0.0,-1.0) * 0.500 * 0.500,
+        vec2( 0.7071, 0.7071) * 0.625 * 0.625,
+        vec2(-0.7071,-0.7071) * 0.750 * 0.750,
+        vec2(-0.7071, 0.7071) * 0.875 * 0.875,
+        vec2( 0.7071,-0.7071) * 1.000 * 1.000);
 
-    float occlusion = 0.0;
+    vec2 noise_reflect = texture(noiseMap, texcoord * (screen_res / 128.0)).xy;
+
+    float angle_hidden = 0.0;
+    float points = 0.0;
+    float scale = min(radius / max(-pos_world.z, 0.000001), max_radius);
+
     for (int i = 0; i < 8; ++i)
     {
-        vec2 sample_coord = texcoord + offsets[i] * sample_step;
-        float sample_z = sample_depth(sample_coord);
-        vec4 encoded_sample_normal = texture(normalMap, clamp(sample_coord, vec2(0.0), vec2(1.0)));
-        vec3 sample_normal = decode_gbuffer_normal(encoded_sample_normal);
+        vec2 sample_coord =
+            texcoord + scale * reflect(kernel[i] / screen_res, noise_reflect);
+        vec3 sample_world =
+            reconstruct_view_position(
+                clamp(sample_coord, vec2(0.0), vec2(1.0)),
+                sample_depth(sample_coord)).xyz;
 
-        float depth_delta = max(center_depth - sample_z, 0.0);
-        float normal_weight = clamp(1.0 - dot(normal, sample_normal), 0.0, 1.0);
-        float depth_weight = clamp(depth_delta * factor * 64.0, 0.0, 1.0);
-        occlusion += depth_weight * mix(0.65, 1.0, normal_weight);
+        vec3 diff = pos_world - sample_world;
+        float dist2 = max(dot(diff, diff), 0.000001);
+        float hidden =
+            dot((sample_world - 0.05 * normal - pos_world), normal) > 0.0 ?
+                1.0 :
+                0.0;
+        angle_hidden += hidden * min(1.0 / dist2, factor_inv);
+
+        float valid_sample = diff.z > -1.0 ? 1.0 : 0.0;
+        points += valid_sample;
     }
 
-    return clamp(1.0 - (occlusion / 8.0) * strength, 0.2, 1.0);
+    if (points <= 0.0)
+    {
+        return 1.0;
+    }
+
+    angle_hidden = min(factor * angle_hidden / points, 1.0);
+    return clamp(1.0 - angle_hidden, 0.0, 1.0);
 }
 
 void main()

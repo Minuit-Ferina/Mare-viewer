@@ -1308,6 +1308,7 @@ const char* get_world_render_shader_class_name(LLRenderWorldShaderClass shader_c
         case LLRenderWorldShaderClass::MultiSpotLight: return "MultiSpotLight";
         case LLRenderWorldShaderClass::Copy: return "Copy";
         case LLRenderWorldShaderClass::DeferredLightMap: return "DeferredLightMap";
+        case LLRenderWorldShaderClass::DeferredBlurLight: return "DeferredBlurLight";
         case LLRenderWorldShaderClass::DeferredSoften: return "DeferredSoften";
         case LLRenderWorldShaderClass::DeferredComposite: return "DeferredComposite";
         case LLRenderWorldShaderClass::FinalComposite: return "FinalComposite";

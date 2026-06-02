@@ -560,7 +560,12 @@ Validation status:
       LightMap sampling progress: `DeferredLightMap` now binds sun shadow
       targets 0..3 and spot shadow targets 0..1 as depth inputs and writes
       OpenGL-style directional shadow, SSAO, and spot shadow terms into
-      `R/G/B/A`.
+      `R/G/B/A`. Its SSAO channel now follows the OpenGL `aoUtil.glsl`
+      kernel shape, view-space depth reconstruction, radius/max-radius scale,
+      `ssao_factor`/inverse-factor weighting, and blocked-sample rejection
+      instead of the earlier Vulkan-only depth-normal approximation, and the
+      pass now binds the same pipeline `mNoiseMap` texture that OpenGL exposes
+      as `noiseMap`.
       Avatar shadow progress: `LLDrawPoolAvatar` now emits Vulkan backend
       shadow commands for opaque, alpha-blend, and alpha-mask avatar shadow
       passes, and avatar joint meshes select the matching avatar shadow
@@ -593,16 +598,20 @@ Validation status:
       view-space shadow sample position (`spos.xy`) to `pcfSpotShadow()`
       instead of framebuffer coordinates. Remaining PCF work is visual
       validation/tuning against OpenGL shadow softness and acne bias.
-      LightMap blur gap: OpenGL runs `sunLightF`/`sunLightSSAOF` into
+      LightMap blur progress: OpenGL runs `sunLightF`/`sunLightSSAOF` into
       `deferredLight`, then applies the two-pass `blurLightF` graph
       (`deferredLight -> screen -> deferredLight`) before `softenLightF`
-      consumes the lightMap. Vulkan currently consumes the raw
-      `DeferredLightMap` target directly. The existing
+      consumes the lightMap. Vulkan now has a dedicated
+      `LLRenderWorldShaderClass::DeferredBlurLight` owner using
+      `class1/deferred/blur_light_runtime.frag`, and the viewer graph runs
+      the same horizontal/vertical lightMap blur (`postPong -> screen ->
+      postPong`) before `DeferredSoften` when `RenderDeferredSSAO` is active.
+      The existing
       `vulkan/final/class1/deferred/blur_light.frag` file is still an
       inventory/source-port placeholder, not the live runtime blur owner.
-      The next graph-parity packet should add a dedicated Vulkan
-      `DeferredBlurLight` owner and wire the same two-pass lightMap blur
-      before `DeferredSoften`.
+      Remaining work is visual parity validation/tuning of blur softness,
+      depth/normal edge rejection, and shadow/SSAO lightMap energy against
+      OpenGL scenes.
 - [ ] Final post-processing:
       port and wire the OpenGL post chain as separate class-tier passes:
       glow extraction/blur/combine, gamma/tonemap, FXAA/SMAA/CAS, DoF/cof, and
@@ -1886,9 +1895,9 @@ Known missing runtime coverage:
       targets using transported OpenGL matrices/clip/bias/resolution state,
       with per-target availability masks derived from actual shadow depth
       bindings.
-      The remaining major graph mismatch is the missing OpenGL-equivalent
-      two-pass `blurLightF` lightMap blur before `DeferredSoften`; the shader
-      source file exists but is not a live runtime owner yet.
+      The OpenGL-equivalent two-pass `blurLightF` lightMap blur is now a live
+      Vulkan `DeferredBlurLight` runtime owner and runs before
+      `DeferredSoften`; remaining work is visual parity validation/tuning.
       Emissive, the sky environment cube-map, BRDF LUT, `lightFunc`,
       reflection-probe cubemap arrays, probe parallax/selection state, and
       OpenGL-derived glossy sceneMap/depth SSR sampling with camera-delta

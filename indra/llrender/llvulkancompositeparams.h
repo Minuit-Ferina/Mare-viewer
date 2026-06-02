@@ -156,6 +156,21 @@ struct LLVulkanDeferredCompositeSettings
     {
         0.f, 0.f, 0.f, 0.f,
     };
+    F32 mBlurSettings[4] =
+    {
+        1.f, 0.f, 1.f, 1.5f,
+    };
+    F32 mBlurScreen[4] =
+    {
+        1.f, 1.f, 1.4f, 4.f,
+    };
+    F32 mBlurKernel[4 * 4] =
+    {
+        1.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 2.f, 0.f,
+        0.f, 0.f, 3.f, 0.f,
+    };
     F32 mAtmosBlueHorizonHaze[4] =
     {
         0.4954f, 0.4954f, 0.6399f, 0.19f,
@@ -289,6 +304,10 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
             settings.mShadowResolution[i];
         parameters.mCompositeShadowRuntime[i] =
             settings.mShadowRuntime[i];
+        parameters.mCompositeBlurSettings[i] =
+            settings.mBlurSettings[i];
+        parameters.mCompositeBlurScreen[i] =
+            settings.mBlurScreen[i];
         parameters.mCompositeAtmosBlueHorizonHaze[i] =
             settings.mAtmosBlueHorizonHaze[i];
         parameters.mCompositeAtmosBlueDensityHaze[i] =
@@ -305,6 +324,11 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
             settings.mAtmosAmbient[i];
         parameters.mCompositeAtmosLightNorm[i] =
             settings.mAtmosLightNorm[i];
+    }
+    for (U32 i = 0; i < 4 * 4; ++i)
+    {
+        parameters.mCompositeBlurKernel[i] =
+            settings.mBlurKernel[i];
     }
 
     return parameters;

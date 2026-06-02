@@ -1679,6 +1679,15 @@ struct LLVulkanDeferredLightMapUniforms
     glm::vec4 mShadowSettings = glm::vec4(0.f, 0.f, 0.f, 0.f);
     glm::vec4 mShadowResolution = glm::vec4(1.f, 1.f, 1.f, 1.f);
     glm::vec4 mShadowRuntime = glm::vec4(0.f, 0.f, 0.f, 0.f);
+    glm::vec4 mBlurSettings = glm::vec4(1.f, 0.f, 1.f, 1.5f);
+    glm::vec4 mBlurScreen = glm::vec4(1.f, 1.f, 1.4f, 4.f);
+    glm::vec4 mBlurKernel[4] =
+    {
+        glm::vec4(1.f, 1.f, 0.f, 0.f),
+        glm::vec4(0.f, 0.f, 1.f, 0.f),
+        glm::vec4(0.f, 0.f, 2.f, 0.f),
+        glm::vec4(0.f, 0.f, 3.f, 0.f),
+    };
 };
 
 struct LLVulkanDeferredSoftenUniforms
@@ -1802,6 +1811,7 @@ bool is_vulkan_default_world_overlay_draw(const LLVulkanPendingDraw& draw)
         draw.mWorldShaderClass != LLRenderWorldShaderClass::PBRAlphaBlendShadow &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredLightMap &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredBlurLight &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredSoften &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite;
@@ -2012,6 +2022,7 @@ struct LLVulkanPipelineSet
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mTerrainGBufferPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mCopyPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredLightMapPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredBlurLightPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredSoftenPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredCompositePipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mFinalCompositePipelines = {};
@@ -2096,6 +2107,7 @@ struct LLVulkanNativeContext
     LLVkShaderModule mCopyVertexShader = nullptr;
     LLVkShaderModule mCopyFragmentShader = nullptr;
     LLVkShaderModule mDeferredLightMapFragmentShader = nullptr;
+    LLVkShaderModule mDeferredBlurLightFragmentShader = nullptr;
     LLVkShaderModule mDeferredSoftenFragmentShader = nullptr;
     LLVkShaderModule mDeferredCompositeFragmentShader = nullptr;
     LLVkShaderModule mFinalCompositeFragmentShader = nullptr;
@@ -2150,6 +2162,7 @@ struct LLVulkanNativeContext
         MARE_VULKAN_DEFERRED_SHADER_CLASS_COUNT> mMultiSpotLightPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mCopyPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredLightMapPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredBlurLightPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredSoftenPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mDeferredCompositePipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mFinalCompositePipelines = {};
@@ -8411,6 +8424,15 @@ LLVulkanDeferredLightMapUniforms make_vulkan_deferred_light_map_uniforms(
         glm::make_vec4(parameters.mCompositeShadowResolution);
     uniforms.mShadowRuntime =
         glm::make_vec4(parameters.mCompositeShadowRuntime);
+    uniforms.mBlurSettings =
+        glm::make_vec4(parameters.mCompositeBlurSettings);
+    uniforms.mBlurScreen =
+        glm::make_vec4(parameters.mCompositeBlurScreen);
+    for (U32 i = 0; i < 4; ++i)
+    {
+        uniforms.mBlurKernel[i] =
+            glm::make_vec4(&parameters.mCompositeBlurKernel[i * 4]);
+    }
     return uniforms;
 }
 
@@ -12721,6 +12743,7 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"sun-light", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light.frag.spv", "sunlight and soften pass"},
         {"sun-light-ssao", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light_ssao.frag.spv", "sunlight with SSAO"},
         {"deferred-light-map-runtime", "active/world_textured.vert.spv", "class2/deferred/sun_light_map_runtime.frag.spv", "sun/SSAO/shadow lightMap pass", "fullscreen runtime lightMap ABI with G-buffer normal/depth and shadow-map inputs", "OpenGL sunLight/sunLightSSAO role isolated behind DeferredLightMap owner", "bound runtime owner; directional and spot shadow channels sample Vulkan shadow depth inputs"},
+        {"deferred-blur-light-runtime", "active/world_textured.vert.spv", "class1/deferred/blur_light_runtime.frag.spv", "deferred lightMap blur pass", "fullscreen runtime blur ABI with lightMap plus G-buffer normal/depth inputs", "OpenGL blurLight role isolated behind DeferredBlurLight owner", "bound runtime owner; two-pass lightMap blur before DeferredSoften"},
         {"deferred-soften-class3", "active/world_textured.vert.spv", "class3/deferred/soften_light.frag.spv", "deferred soften/composite pass", "fullscreen runtime composite ABI with G-buffer, depth, and lightMap inputs", "OpenGL softenLight role isolated behind DeferredSoften owner", "bound runtime owner; lightMap is produced by DeferredLightMap with SSAO/shadow channels"},
         {"deferred-composite-runtime", "active/world_textured.vert.spv", "class3/deferred/deferred_composite_runtime.frag.spv", "runtime deferred composite/lighting approximation", "active fullscreen adapter plus current G-buffer/depth/light inputs", "bootstrap deferred composite adapter isolated from final class3 soften_light.frag", "bound runtime owner; not strict OpenGL parity"},
         {"point-light", "class3/deferred/point_light.vert.spv", "class3/deferred/point_light.frag.spv", "local point lights"},
@@ -12902,6 +12925,7 @@ void destroy_vulkan_pipeline_set(
     destroy_vulkan_pipeline_array(context, pipeline_set.mTerrainGBufferPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mCopyPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mDeferredLightMapPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mDeferredBlurLightPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mDeferredSoftenPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mDeferredCompositePipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mFinalCompositePipelines);
@@ -12949,6 +12973,7 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     }
     destroy_vulkan_pipeline_array(context, context.mCopyPipelines);
     destroy_vulkan_pipeline_array(context, context.mDeferredLightMapPipelines);
+    destroy_vulkan_pipeline_array(context, context.mDeferredBlurLightPipelines);
     destroy_vulkan_pipeline_array(context, context.mDeferredSoftenPipelines);
     destroy_vulkan_pipeline_array(context, context.mDeferredCompositePipelines);
     destroy_vulkan_pipeline_array(context, context.mFinalCompositePipelines);
@@ -13199,6 +13224,10 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         {
             destroy_shader_module_once(context.mDeferredLightMapFragmentShader);
         }
+        if (context.mDeferredBlurLightFragmentShader)
+        {
+            destroy_shader_module_once(context.mDeferredBlurLightFragmentShader);
+        }
         if (context.mDeferredSoftenFragmentShader)
         {
             destroy_shader_module_once(context.mDeferredSoftenFragmentShader);
@@ -13308,6 +13337,7 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mCopyVertexShader = nullptr;
     context.mCopyFragmentShader = nullptr;
     context.mDeferredLightMapFragmentShader = nullptr;
+    context.mDeferredBlurLightFragmentShader = nullptr;
     context.mDeferredSoftenFragmentShader = nullptr;
     context.mDeferredCompositeFragmentShader = nullptr;
     context.mFinalCompositeFragmentShader = nullptr;
@@ -13878,6 +13908,20 @@ bool create_vulkan_offscreen_pipeline_set(
             0,
             LL_VK_SHADER_STAGE_FRAGMENT_BIT,
             context.mDeferredLightMapFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo deferred_blur_light_shader_stages[2] =
+    {
+        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mDeferredBlurLightFragmentShader,
             "main",
             nullptr
         }
@@ -14990,6 +15034,35 @@ bool create_vulkan_offscreen_pipeline_set(
                             return false;
                         }
 
+                        LLVkGraphicsPipelineCreateInfo deferred_blur_light_pipeline_create_info = world_pipeline_create_info;
+                        deferred_blur_light_pipeline_create_info.pStages = deferred_blur_light_shader_stages;
+                        S32 deferred_blur_light_result = create_graphics_pipelines(
+                            context.mDevice,
+                            nullptr,
+                            1,
+                            &deferred_blur_light_pipeline_create_info,
+                            nullptr,
+                            &pipeline_set.mDeferredBlurLightPipelines[world_pipeline_index]);
+                        if (deferred_blur_light_result != LL_VK_SUCCESS ||
+                            !pipeline_set.mDeferredBlurLightPipelines[world_pipeline_index])
+                        {
+                            LL_WARNS("RenderBackend")
+                                << "vkCreateGraphicsPipelines(offscreen deferred blur light mode "
+                                << i
+                                << ", blend "
+                                << blend_index
+                                << ", depth "
+                                << depth_index
+                                << ", cull "
+                                << cull_index
+                                << ", color "
+                                << color_index
+                                << ") failed with result "
+                                << deferred_blur_light_result
+                                << LL_ENDL;
+                            return false;
+                        }
+
                         LLVkGraphicsPipelineCreateInfo deferred_composite_pipeline_create_info = world_pipeline_create_info;
                         deferred_composite_pipeline_create_info.pStages = deferred_composite_shader_stages;
                         S32 deferred_composite_result = create_graphics_pipelines(
@@ -15575,6 +15648,8 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         get_vulkan_final_shader_module(context, "class1/interface/copy.frag.spv", "copy fragment");
     context.mDeferredLightMapFragmentShader =
         get_vulkan_final_shader_module(context, "class2/deferred/sun_light_map_runtime.frag.spv", "class2 deferred lightMap runtime fragment");
+    context.mDeferredBlurLightFragmentShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/blur_light_runtime.frag.spv", "class1 deferred blur light runtime fragment");
     context.mDeferredSoftenFragmentShader =
         get_vulkan_final_shader_module(context, "class3/deferred/soften_light.frag.spv", "class3 deferred soften fragment");
     context.mDeferredCompositeFragmentShader =
@@ -15655,6 +15730,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         !context.mCopyVertexShader ||
         !context.mCopyFragmentShader ||
         !context.mDeferredLightMapFragmentShader ||
+        !context.mDeferredBlurLightFragmentShader ||
         !context.mDeferredSoftenFragmentShader ||
         !context.mDeferredCompositeFragmentShader ||
         !context.mFinalCompositeFragmentShader ||
@@ -16515,6 +16591,20 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
             nullptr
         }
     };
+    LLVkPipelineShaderStageCreateInfo deferred_blur_light_shader_stages[2] =
+    {
+        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mDeferredBlurLightFragmentShader,
+            "main",
+            nullptr
+        }
+    };
     LLVkPipelineShaderStageCreateInfo deferred_composite_shader_stages[2] =
     {
         world_shader_stages[0],
@@ -17370,6 +17460,35 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
                                 return false;
                             }
 
+                            LLVkGraphicsPipelineCreateInfo deferred_blur_light_pipeline_create_info = world_pipeline_create_info;
+                            deferred_blur_light_pipeline_create_info.pStages = deferred_blur_light_shader_stages;
+                            result = create_graphics_pipelines(
+                                context.mDevice,
+                                nullptr,
+                                1,
+                                &deferred_blur_light_pipeline_create_info,
+                                nullptr,
+                                &context.mDeferredBlurLightPipelines[world_pipeline_index]);
+                            if (result != LL_VK_SUCCESS || !context.mDeferredBlurLightPipelines[world_pipeline_index])
+                            {
+                                LL_WARNS("RenderBackend")
+                                    << "vkCreateGraphicsPipelines(deferred blur light mode "
+                                    << i
+                                    << ", blend "
+                                    << blend_index
+                                    << ", depth "
+                                    << depth_index
+                                    << ", cull "
+                                    << cull_index
+                                    << ", color "
+                                    << color_index
+                                    << ") failed with result "
+                                    << result
+                                    << LL_ENDL;
+                                destroy_vulkan_graphics_pipelines(context);
+                                return false;
+                            }
+
                             LLVkGraphicsPipelineCreateInfo composite_pipeline_create_info = world_pipeline_create_info;
                             composite_pipeline_create_info.pStages = deferred_composite_shader_stages;
                         result = create_graphics_pipelines(
@@ -18166,6 +18285,7 @@ const char* get_vulkan_world_shader_class_name(LLRenderWorldShaderClass shader_c
         case LLRenderWorldShaderClass::MultiSpotLight: return "MultiSpotLight";
         case LLRenderWorldShaderClass::Copy: return "Copy";
         case LLRenderWorldShaderClass::DeferredLightMap: return "DeferredLightMap";
+        case LLRenderWorldShaderClass::DeferredBlurLight: return "DeferredBlurLight";
         case LLRenderWorldShaderClass::DeferredSoften: return "DeferredSoften";
         case LLRenderWorldShaderClass::DeferredComposite: return "DeferredComposite";
         case LLRenderWorldShaderClass::FinalComposite: return "FinalComposite";
@@ -18310,6 +18430,7 @@ bool should_use_vulkan_gbuffer_pipeline(
     if (is_vulkan_shadow_shader_class(draw.mWorldShaderClass) ||
         draw.mWorldShaderClass == LLRenderWorldShaderClass::Copy ||
         draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
+        draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredBlurLight ||
         draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
         draw.mWorldShaderClass == LLRenderWorldShaderClass::PointLight ||
         draw.mWorldShaderClass == LLRenderWorldShaderClass::MultiPointLight ||
@@ -19326,6 +19447,10 @@ bool record_vulkan_frame_command_buffer(
             active_pass.mPipelineSet ?
             active_pass.mPipelineSet->mDeferredLightMapPipelines :
             context.mDeferredLightMapPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& deferred_blur_light_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mDeferredBlurLightPipelines :
+            context.mDeferredBlurLightPipelines;
         const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& deferred_soften_pipelines =
             active_pass.mPipelineSet ?
             active_pass.mPipelineSet->mDeferredSoftenPipelines :
@@ -19412,6 +19537,7 @@ bool record_vulkan_frame_command_buffer(
                 !is_vulkan_shadow_shader_class(draw.mWorldShaderClass) &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredLightMap &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredBlurLight &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredSoften &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite)
@@ -19431,6 +19557,8 @@ bool record_vulkan_frame_command_buffer(
             draw.mWorldShaderClass == LLRenderWorldShaderClass::Copy;
         const bool use_deferred_light_map_pipeline =
             draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap;
+        const bool use_deferred_blur_light_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredBlurLight;
         const bool use_deferred_soften_pipeline =
             draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften;
         const bool use_deferred_composite_pipeline =
@@ -19517,6 +19645,7 @@ bool record_vulkan_frame_command_buffer(
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::MultiSpotLight &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredLightMap &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredBlurLight &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredSoften &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite &&
@@ -19533,6 +19662,7 @@ bool record_vulkan_frame_command_buffer(
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::MultiSpotLight &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredLightMap &&
+                draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredBlurLight &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredSoften &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredComposite &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::FinalComposite &&
@@ -19570,6 +19700,10 @@ bool record_vulkan_frame_command_buffer(
                 else if (use_deferred_light_map_pipeline)
                 {
                     pipeline = deferred_light_map_pipelines[world_pipeline_index];
+                }
+                else if (use_deferred_blur_light_pipeline)
+                {
+                    pipeline = deferred_blur_light_pipelines[world_pipeline_index];
                 }
                 else if (use_deferred_soften_pipeline)
                 {
@@ -20544,7 +20678,7 @@ bool record_vulkan_frame_command_buffer(
             0,
             nullptr);
         LLVkDescriptorSet world_uniform_descriptor_set = nullptr;
-        if (use_deferred_light_map_pipeline)
+        if (use_deferred_light_map_pipeline || use_deferred_blur_light_pipeline)
         {
             const LLVulkanDeferredLightMapUniforms uniforms =
                 make_vulkan_deferred_light_map_uniforms(draw);
@@ -20699,6 +20833,7 @@ bool record_vulkan_frame_command_buffer(
             LLVulkanWorldPushConstants push_constants;
             push_constants.mModelviewProjection = draw.mModelviewProjection;
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
+                draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredBlurLight ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite)
             {
@@ -20730,6 +20865,7 @@ bool record_vulkan_frame_command_buffer(
                 const bool uses_screen_composite_alpha =
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
+                    draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredBlurLight ||
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite ||
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::FinalComposite;
                 push_constants.mTerrainParameters = glm::vec4(
@@ -20806,6 +20942,7 @@ bool record_vulkan_frame_command_buffer(
                 draw.mMaterialParameters.mSceneDirectBlue,
                 draw.mMaterialParameters.mSceneLightingValid);
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
+                draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredBlurLight ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite)
             {

@@ -2125,6 +2125,118 @@ static void render_vulkan_copy_target_to_swapchain(
         stage);
 }
 
+static void set_vulkan_deferred_blur_parameters(
+    LLRenderWorldMaterialParameters& parameters,
+    const LLVector2& delta,
+    LLRenderTarget& destination)
+{
+    constexpr U32 kern_length = 4;
+    const LLVector3 go = LLPipeline::RenderShadowGaussian;
+    F32 x = 0.f;
+
+    parameters.mCompositeBlurSettings[0] = delta.mV[VX];
+    parameters.mCompositeBlurSettings[1] = delta.mV[VY];
+    parameters.mCompositeBlurSettings[2] = LLPipeline::RenderShadowBlurDistFactor;
+    parameters.mCompositeBlurSettings[3] =
+        LLPipeline::RenderShadowBlurSize * (kern_length / 2.f - 0.5f);
+    parameters.mCompositeBlurScreen[0] =
+        static_cast<F32>(llmax(1, destination.getWidth()));
+    parameters.mCompositeBlurScreen[1] =
+        static_cast<F32>(llmax(1, destination.getHeight()));
+    parameters.mCompositeBlurScreen[2] = LLPipeline::RenderShadowBlurSize;
+    parameters.mCompositeBlurScreen[3] = static_cast<F32>(kern_length);
+
+    for (U32 i = 0; i < kern_length; ++i)
+    {
+        parameters.mCompositeBlurKernel[i * 4 + 0] = llgaussian(x, go.mV[VX]);
+        parameters.mCompositeBlurKernel[i * 4 + 1] = llgaussian(x, go.mV[VY]);
+        parameters.mCompositeBlurKernel[i * 4 + 2] = x;
+        parameters.mCompositeBlurKernel[i * 4 + 3] = 0.f;
+        x += 1.f;
+    }
+}
+
+static bool render_vulkan_deferred_light_map_blur_pass(
+    LLRenderTarget& source,
+    LLRenderTarget& destination,
+    const LLVector2& delta,
+    const LLRenderWorldMaterialParameters& base_parameters,
+    U32 deferred_attachment_count)
+{
+    if (!gPipeline.mRT ||
+        !gPipeline.mRT->deferredScreen.isComplete() ||
+        !source.isComplete() ||
+        !destination.isComplete() ||
+        source.getTexture(0) == destination.getTexture(0))
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan DeferredBlurLight pass is not available; DeferredSoften will consume the unblurred lightMap."
+            << LL_ENDL;
+        return false;
+    }
+
+    LLRenderWorldMaterialParameters blur_parameters = base_parameters;
+    set_vulkan_deferred_blur_parameters(blur_parameters, delta, destination);
+
+    destination.bindTarget();
+    getRenderBackend().setClearColor(1.f, 1.f, 1.f, 1.f);
+    destination.clear(LL_RENDER_CLEAR_COLOR);
+    getRenderBackend().setClearColor(0.f, 0.f, 0.f, 0.f);
+
+    LLVulkanCompositeMatrixScope matrix_scope;
+    LLGLSUIDefault gls_ui;
+    LLGLDepthTest depth(false);
+    LLGLDisable blend(LLRenderCapability::Blend);
+    LLGLDisable cull(LLRenderCapability::CullFace);
+
+    gViewerWindow->setup2DRender();
+    gGL.pushMatrix();
+    {
+        const LLVector2& display_scale = gViewerWindow->getDisplayScale();
+        gGL.scalef(display_scale.mV[VX], display_scale.mV[VY], 1.f);
+
+        source.bindTexture(0, 0, LLTexUnit::TFO_BILINEAR);
+        if (deferred_attachment_count > 2)
+        {
+            gPipeline.mRT->deferredScreen.bindTexture(2, 2, LLTexUnit::TFO_BILINEAR);
+        }
+        const bool deferred_depth_bound =
+            gPipeline.mRT->deferredScreen.getDepth() != 0 &&
+            gGL.getTexUnit(4)->bind(&gPipeline.mRT->deferredScreen, true);
+
+        getRenderBackend().setWorldDrawEnabled(true);
+        getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::DeferredBlurLight);
+        getRenderBackend().setWorldTextureTransform({});
+        getRenderBackend().setWorldTerrainParameters({});
+        getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
+        getRenderBackend().setWorldMaterialParameters(blur_parameters);
+        set_vulkan_composite_viewport(
+            make_vulkan_target_rect(
+                destination.getWidth(),
+                destination.getHeight()));
+        getRenderBackend().setCapability(LLRenderCapability::DepthTest, false);
+        getRenderBackend().setDepthWriteEnabled(false);
+        getRenderBackend().setCapability(LLRenderCapability::Blend, false);
+        getRenderBackend().setCapability(LLRenderCapability::CullFace, false);
+        getRenderBackend().setColorMask({ true, true, true, true });
+        draw_vulkan_fullscreen_quad();
+        getRenderBackend().setWorldDrawEnabled(false);
+        getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+        getRenderBackend().setWorldMaterialParameters({});
+
+        gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+        gGL.getTexUnit(2)->unbind(LLTexUnit::TT_TEXTURE);
+        if (deferred_depth_bound)
+        {
+            gGL.getTexUnit(4)->unbind(LLTexUnit::TT_TEXTURE);
+        }
+    }
+    gGL.popMatrix();
+
+    destination.flush();
+    return true;
+}
+
 static LLRenderTarget* render_vulkan_deferred_light_map_target()
 {
     if (!gPipeline.mRT ||
@@ -2173,6 +2285,19 @@ static LLRenderTarget* render_vulkan_deferred_light_map_target()
     }
     const bool deferred_depth_bound =
         gGL.getTexUnit(4)->bind(&gPipeline.mRT->deferredScreen, true);
+    bool noise_bound = false;
+    if (gPipeline.mNoiseMap != 0)
+    {
+        noise_bound = true;
+        gGL.getTexUnit(6)->bindManual(LLTexUnit::TT_TEXTURE, gPipeline.mNoiseMap);
+        gGL.getTexUnit(6)->setTextureFilteringOption(LLTexUnit::TFO_POINT);
+    }
+    else if (!LLViewerFetchedTexture::sWhiteImagep.isNull())
+    {
+        noise_bound = true;
+        gGL.getTexUnit(6)->bind(LLViewerFetchedTexture::sWhiteImagep);
+        gGL.getTexUnit(6)->setTextureFilteringOption(LLTexUnit::TFO_POINT);
+    }
     constexpr S32 VULKAN_DEFERRED_LIGHT_MAP_SHADOW_UNIT0 = 9;
     auto bind_shadow_depth_or_white = [](LLRenderTarget* shadow_target, S32 unit)
     {
@@ -2320,6 +2445,10 @@ static LLRenderTarget* render_vulkan_deferred_light_map_target()
     {
         gGL.getTexUnit(4)->unbind(LLTexUnit::TT_TEXTURE);
     }
+    if (noise_bound)
+    {
+        gGL.getTexUnit(6)->unbind(LLTexUnit::TT_TEXTURE);
+    }
     for (U32 shadow_index = 0; shadow_index < 6; ++shadow_index)
     {
         gGL.getTexUnit(
@@ -2333,6 +2462,37 @@ static LLRenderTarget* render_vulkan_deferred_light_map_target()
         << bound_shadow_count
         << " shadow depth input(s) are bound for directional/spot shadow channels."
         << LL_ENDL;
+
+    if (LLPipeline::RenderDeferredSSAO &&
+        !gCubeSnapshot &&
+        gPipeline.mRT->screen.isComplete())
+    {
+        LL_PROFILE_ZONE_NAMED_CATEGORY_DISPLAY("Vulkan deferred lightMap blur");
+        LLRenderTarget& blur_target = gPipeline.mRT->screen;
+        if (render_vulkan_deferred_light_map_blur_pass(
+                light_map_target,
+                blur_target,
+                LLVector2(1.f, 0.f),
+                light_map_parameters,
+                deferred_attachment_count) &&
+            render_vulkan_deferred_light_map_blur_pass(
+                blur_target,
+                light_map_target,
+                LLVector2(0.f, 1.f),
+                light_map_parameters,
+                deferred_attachment_count))
+        {
+            LL_INFOS_ONCE("RenderBackend")
+                << "Vulkan DeferredBlurLight target is active. DeferredSoften consumes the two-pass blurred lightMap."
+                << LL_ENDL;
+        }
+    }
+    else
+    {
+        LL_INFOS_ONCE("RenderBackend")
+            << "Vulkan DeferredBlurLight skipped because SSAO is disabled, cube snapshot is active, or the screen scratch target is unavailable."
+            << LL_ENDL;
+    }
     return &light_map_target;
 }
 

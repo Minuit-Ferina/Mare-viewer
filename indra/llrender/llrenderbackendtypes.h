@@ -365,6 +365,7 @@ enum class LLRenderWorldShaderClass : U8
     MultiSpotLight,
     Copy,
     DeferredLightMap,
+    DeferredBlurLight,
     DeferredSoften,
     DeferredComposite,
     FinalComposite,
@@ -720,6 +721,21 @@ struct LLRenderWorldMaterialParameters
     F32 mCompositeShadowRuntime[4] =
     {
         0.f, 0.f, 0.f, 0.f,
+    };
+    F32 mCompositeBlurSettings[4] =
+    {
+        1.f, 0.f, 1.f, 1.5f,
+    };
+    F32 mCompositeBlurScreen[4] =
+    {
+        1.f, 1.f, 1.4f, 4.f,
+    };
+    F32 mCompositeBlurKernel[4 * 4] =
+    {
+        1.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 2.f, 0.f,
+        0.f, 0.f, 3.f, 0.f,
     };
     F32 mCompositeAtmosBlueHorizonHaze[4] =
     {
