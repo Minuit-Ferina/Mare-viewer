@@ -2335,6 +2335,15 @@ const char* get_smoke_world_render_material_class_name(
         case LLWorldRenderMaterialClass::WaterHaze: return "WaterHaze";
         case LLWorldRenderMaterialClass::FullbrightShiny: return "FullbrightShiny";
         case LLWorldRenderMaterialClass::PostBump: return "PostBump";
+        case LLWorldRenderMaterialClass::Shadow: return "Shadow";
+        case LLWorldRenderMaterialClass::ShadowAlphaMask: return "ShadowAlphaMask";
+        case LLWorldRenderMaterialClass::AvatarShadow: return "AvatarShadow";
+        case LLWorldRenderMaterialClass::AvatarAlphaShadow: return "AvatarAlphaShadow";
+        case LLWorldRenderMaterialClass::AvatarAlphaMaskShadow: return "AvatarAlphaMaskShadow";
+        case LLWorldRenderMaterialClass::TreeShadow: return "TreeShadow";
+        case LLWorldRenderMaterialClass::PBRAlphaMaskShadow: return "PBRAlphaMaskShadow";
+        case LLWorldRenderMaterialClass::PBRAlphaBlendShadow: return "PBRAlphaBlendShadow";
+        case LLWorldRenderMaterialClass::Copy: return "Copy";
     }
     return "Unknown";
 }
@@ -2400,6 +2409,14 @@ const char* get_smoke_world_render_shader_class_name(LLRenderWorldShaderClass sh
         case LLRenderWorldShaderClass::PBR: return "PBR";
         case LLRenderWorldShaderClass::Avatar: return "Avatar";
         case LLRenderWorldShaderClass::Terrain: return "Terrain";
+        case LLRenderWorldShaderClass::Shadow: return "Shadow";
+        case LLRenderWorldShaderClass::ShadowAlphaMask: return "ShadowAlphaMask";
+        case LLRenderWorldShaderClass::AvatarShadow: return "AvatarShadow";
+        case LLRenderWorldShaderClass::AvatarAlphaShadow: return "AvatarAlphaShadow";
+        case LLRenderWorldShaderClass::AvatarAlphaMaskShadow: return "AvatarAlphaMaskShadow";
+        case LLRenderWorldShaderClass::TreeShadow: return "TreeShadow";
+        case LLRenderWorldShaderClass::PBRAlphaMaskShadow: return "PBRAlphaMaskShadow";
+        case LLRenderWorldShaderClass::PBRAlphaBlendShadow: return "PBRAlphaBlendShadow";
         case LLRenderWorldShaderClass::PointLight: return "PointLight";
         case LLRenderWorldShaderClass::MultiPointLight: return "MultiPointLight";
         case LLRenderWorldShaderClass::SpotLight: return "SpotLight";
@@ -3743,6 +3760,7 @@ struct SmokeDeferredGraph
     LLRenderTextureHandle mGBufferEmissive;
     LLRenderTextureHandle mGBufferDepth;
     LLRenderTextureHandle mDeferredColor;
+    LLRenderTextureHandle mExposureMap;
     LLRenderFramebufferHandle mGBufferFramebuffer;
     LLRenderFramebufferHandle mDeferredFramebuffer;
     U32 mWidth = 0;
@@ -3757,6 +3775,7 @@ struct SmokeViewerRenderTargetGraph
     LLRenderTarget mDeferredLight;
     LLRenderTarget mScreen;
     LLRenderTarget mPostPing;
+    LLRenderTarget mExposureMap;
     U32 mWidth = 0;
     U32 mHeight = 0;
     U32 mColorAttachmentCount = 0;
@@ -3797,6 +3816,7 @@ void release_smoke_deferred_graph(
         &graph.mGBufferEmissive,
         &graph.mGBufferDepth,
         &graph.mDeferredColor,
+        &graph.mExposureMap,
     };
     for (LLRenderTextureHandle* texture : textures)
     {
@@ -3815,6 +3835,7 @@ void release_smoke_deferred_graph(
 void release_smoke_viewer_render_target_graph(
     SmokeViewerRenderTargetGraph& graph)
 {
+    graph.mExposureMap.release();
     graph.mPostPing.release();
     graph.mDeferredLight.release();
     graph.mScreen.release();
@@ -3837,6 +3858,7 @@ void release_smoke_copy_chain_graph(SmokeCopyChainGraph& graph)
 }
 
 bool ensure_smoke_viewer_render_target_graph(
+    LLRenderBackend& backend,
     SmokeViewerRenderTargetGraph& graph,
     U32 width,
     U32 height,
@@ -3850,6 +3872,7 @@ bool ensure_smoke_viewer_render_target_graph(
         graph.mDeferredScreen.getNumTextures() == color_attachment_count &&
         graph.mColorAttachmentCount == color_attachment_count &&
         graph.mStagedPostTargets == staged_post_targets &&
+        graph.mExposureMap.isComplete() &&
         (!staged_post_targets ||
             (graph.mDeferredLight.isComplete() &&
              graph.mScreen.isComplete() &&
@@ -3907,7 +3930,20 @@ bool ensure_smoke_viewer_render_target_graph(
         graph.mDeferredScreen.shareDepthBuffer(graph.mScreen);
     }
 
+    if (!graph.mExposureMap.allocate(1, 1, LLRenderTextureFormat::RGBA))
+    {
+        release_smoke_viewer_render_target_graph(graph);
+        return false;
+    }
+    graph.mExposureMap.bindTarget();
+    backend.setViewport(0, 0, 1, 1);
+    backend.setScissor(0, 0, 1, 1);
+    backend.setClearColor(1.f, 1.f, 1.f, 1.f);
+    graph.mExposureMap.clear(LL_RENDER_CLEAR_COLOR);
+    graph.mExposureMap.flush();
+
     return graph.mDeferredScreen.isComplete() &&
+        graph.mExposureMap.isComplete() &&
         (!staged_post_targets ||
             (graph.mDeferredLight.isComplete() &&
              graph.mScreen.isComplete() &&
@@ -3986,6 +4022,7 @@ bool ensure_smoke_deferred_graph(
         (color_attachment_count < 4U || graph.mGBufferEmissive) &&
         graph.mGBufferDepth &&
         graph.mDeferredColor &&
+        graph.mExposureMap &&
         graph.mWidth == width &&
         graph.mHeight == height &&
         graph.mColorAttachmentCount == color_attachment_count &&
@@ -4056,7 +4093,13 @@ bool ensure_smoke_deferred_graph(
             height,
             LLRenderTextureFormat::RGBA16F,
             LLRenderPixelFormat::RGBA,
-            LLRenderPixelType::Float32))
+            LLRenderPixelType::Float32) ||
+        !create_smoke_texture(
+            backend,
+            graph.mExposureMap,
+            1,
+            1,
+            make_solid_rgba_pixels(1, 1, 255, 255, 255, 255)))
     {
         release_smoke_deferred_graph(backend, graph);
         return false;
@@ -4179,6 +4222,7 @@ void bind_deferred_graph_final_textures(
         graph.mGBufferNormal,
         graph.mGBufferEmissive,
         graph.mGBufferDepth,
+        graph.mExposureMap,
     };
     const S32 binding_count =
         static_cast<S32>(sizeof(bindings) / sizeof(bindings[0]));
@@ -5384,6 +5428,7 @@ bool render_viewer_render_target_direct_frame(
                 static_cast<double>(llmax(1U, width)))));
 
     if (!ensure_smoke_viewer_render_target_graph(
+            backend,
             graph,
             graph_width,
             graph_height,
@@ -5563,6 +5608,7 @@ bool render_viewer_immediate_direct_frame(
                 static_cast<double>(llmax(1U, width)))));
 
     if (!ensure_smoke_viewer_render_target_graph(
+            backend,
             graph,
             graph_width,
             graph_height,
@@ -6749,6 +6795,7 @@ bool render_class1_gbuffer_color_probe_frame(
                 static_cast<double>(llmax(1U, width)))));
 
     if (!ensure_smoke_viewer_render_target_graph(
+            backend,
             graph,
             graph_width,
             graph_height,
@@ -6968,7 +7015,8 @@ void draw_smoke_final_composite_quad(
     const SmokeQuad& quad,
     U32 width,
     U32 height,
-    const LLRenderWorldMaterialParameters* override_parameters = nullptr)
+    const LLRenderWorldMaterialParameters* override_parameters = nullptr,
+    LLRenderTarget* exposure_map = nullptr)
 {
     source.bindTexture(0, 0, LLTexUnit::TFO_BILINEAR);
 
@@ -6988,6 +7036,10 @@ void draw_smoke_final_composite_quad(
         depth_bound =
             gGL.getTexUnit(5)->bind(&deferred_screen, true);
     }
+    const bool exposure_bound =
+        exposure_map &&
+        exposure_map->isComplete() &&
+        (exposure_map->bindTexture(0, 6, LLTexUnit::TFO_POINT), true);
 
     LLRenderWorldMaterialParameters parameters =
         override_parameters ?
@@ -7012,6 +7064,10 @@ void draw_smoke_final_composite_quad(
     {
         gGL.getTexUnit(5)->unbind(LLTexUnit::TT_TEXTURE);
     }
+    if (exposure_bound)
+    {
+        gGL.getTexUnit(6)->unbind(LLTexUnit::TT_TEXTURE);
+    }
 }
 
 bool render_final_color_compare_frame(
@@ -7032,6 +7088,7 @@ bool render_final_color_compare_frame(
                 static_cast<double>(llmax(1U, width)))));
 
     if (!ensure_smoke_viewer_render_target_graph(
+            backend,
             graph,
             graph_width,
             graph_height,
@@ -7079,7 +7136,8 @@ bool render_final_color_compare_frame(
         quad,
         width,
         height,
-        &final_parameters);
+        &final_parameters,
+        &graph.mExposureMap);
     return true;
 }
 
@@ -7108,6 +7166,7 @@ bool render_viewer_deferred_color_compare_frame(
                 static_cast<double>(llmax(1U, width)))));
 
     if (!ensure_smoke_viewer_render_target_graph(
+            backend,
             graph,
             graph_width,
             graph_height,
@@ -7189,7 +7248,8 @@ bool render_viewer_deferred_color_compare_frame(
         quad,
         graph_width,
         graph_height,
-        &final_parameters);
+        &final_parameters,
+        &graph.mExposureMap);
     graph.mPostPing.flush();
 
     copy_smoke_target_to_swapchain(
@@ -7225,6 +7285,7 @@ bool render_terrain_final_probe_frame(
                 static_cast<double>(llmax(1U, width)))));
 
     if (!ensure_smoke_viewer_render_target_graph(
+            backend,
             graph,
             graph_width,
             graph_height,
@@ -7298,7 +7359,8 @@ bool render_terrain_final_probe_frame(
         quad,
         graph_width,
         graph_height,
-        &final_parameters);
+        &final_parameters,
+        &graph.mExposureMap);
     graph.mPostPing.flush();
 
     copy_smoke_target_to_swapchain(
@@ -7338,6 +7400,7 @@ bool render_viewer_staged_post_targets_frame(
                 static_cast<double>(llmax(1U, width)))));
 
     if (!ensure_smoke_viewer_render_target_graph(
+            backend,
             graph,
             graph_width,
             graph_height,
@@ -7468,7 +7531,9 @@ bool render_viewer_staged_post_targets_frame(
             graph.mDeferredScreen,
             quad,
             graph_width,
-            graph_height);
+            graph_height,
+            nullptr,
+            &graph.mExposureMap);
     }
     else
     {

@@ -681,10 +681,15 @@ Validation status:
       gamma algorithms closely enough for final pipeline wiring.
       `cof.frag`, `dof_combine.frag`, and
       `post_deferred_visualize_buffers.frag` now cover the OpenGL CoF,
-      DoF-combine, and buffer-visualization source roles. Runtime work
-      remains: bind exposureMap/depthMap, compile the needed NO_POST,
-      GAMMA_CORRECT, LEGACY_GAMMA, and HAS_NOISE permutations, and replace the
-      inline logic still present in `active/final_composite.frag`.
+      DoF-combine, and buffer-visualization source roles. Runtime progress:
+      the live `FinalComposite` pass now binds the viewer `mExposureMap` and
+      multiplies `RenderExposure` by `exposureMap.r` like the OpenGL tonemap
+      shader; smoke graphs bind a neutral 1x1 exposure texture for deterministic
+      tests. Runtime work remains: split the current inline final-composite
+      approximation into the separate source-level post passes, bind the full
+      depth/exposure/glow/CoF chain, compile the needed NO_POST, GAMMA_CORRECT,
+      LEGACY_GAMMA, and HAS_NOISE permutations, and replace the inline logic
+      still present in `active/final_composite.frag`.
 - [ ] Water:
       keep both OpenGL source tiers: `class1/environment/waterF.glsl` as the
       magenta error/fallback shader and `class3/environment/waterF.glsl` as

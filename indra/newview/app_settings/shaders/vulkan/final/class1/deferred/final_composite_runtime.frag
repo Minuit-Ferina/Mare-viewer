@@ -6,6 +6,7 @@ layout(set = 0, binding = 2) uniform sampler2D gbufferSpecularOrOrmMap;
 layout(set = 0, binding = 3) uniform sampler2D gbufferNormalMap;
 layout(set = 0, binding = 4) uniform sampler2D gbufferEmissiveMap;
 layout(set = 0, binding = 5) uniform sampler2D depthMap;
+layout(set = 0, binding = 6) uniform sampler2D exposureMap;
 
 layout(location = 0) in vec4 vertex_color;
 layout(location = 1) in vec2 vary_texcoord0;
@@ -98,7 +99,8 @@ vec3 legacy_gamma(vec3 color, float gamma)
 
 vec3 apply_final_transform(vec3 color, float exposure, float legacy_gamma_exponent, float gamma_mode, float tonemap_mix, float tonemap_type)
 {
-    vec3 rgb = max(color * exposure, vec3(0.0));
+    float exposure_scale = max(texture(exposureMap, vec2(0.5, 0.5)).r, 0.0);
+    vec3 rgb = max(color * exposure * exposure_scale, vec3(0.0));
     rgb = mix(rgb, tonemap_final(rgb, tonemap_type), tonemap_mix);
     if (gamma_mode > 0.5)
     {
@@ -184,7 +186,7 @@ void main()
     float tonemap_mix = clamp(pc.final_post_params.x, 0.0, 1.0);
     float tonemap_type = pc.final_post_params.y;
     float glow_warmth_amount = clamp(pc.final_post_params.z, 0.0, 1.0);
-    float cas_sharpness = clamp(pc.final_post_params.w, 0.0, 1.0);
+    float cas_sharpness = clamp(pc.final_params.w, 0.0, 1.0);
     float fsaa_type = pc.final_legacy_params.x;
     float buffer_visualization = pc.final_legacy_params.y;
     float gbuffer_attachment_count = pc.final_legacy_params.z;

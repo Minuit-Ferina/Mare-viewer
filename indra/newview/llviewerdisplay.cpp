@@ -121,6 +121,7 @@ bool         gTeleportDisplay = false;
 LLFrameTimer gTeleportDisplayTimer;
 LLFrameTimer gTeleportArrivalTimer;
 constexpr F32 RESTORE_GL_TIME = 5.f;  // Wait this long while reloading textures before we raise the curtain
+constexpr S32 VULKAN_FINAL_COMPOSITE_EXPOSURE_UNIT = 6;
 // <FS:Ansariel> FIRE-12004: Attachments getting lost on TP
 LLFrameTimer gPostTeleportFinishKillObjectDelayTimer;
 
@@ -979,6 +980,18 @@ static LLRenderWorldMaterialParameters get_vulkan_final_composite_parameters(
     return make_vulkan_final_composite_material_parameters(settings);
 }
 
+static bool bind_vulkan_final_composite_exposure_map()
+{
+    if (gPipeline.mExposureMap.isComplete() &&
+        gGL.getTexUnit(VULKAN_FINAL_COMPOSITE_EXPOSURE_UNIT)->bind(&gPipeline.mExposureMap))
+    {
+        return true;
+    }
+
+    return LLViewerFetchedTexture::sWhiteImagep &&
+        gGL.getTexUnit(VULKAN_FINAL_COMPOSITE_EXPOSURE_UNIT)->bind(LLViewerFetchedTexture::sWhiteImagep);
+}
+
 static S32 get_vulkan_debug_deferred_attachment()
 {
     static bool initialized = false;
@@ -1353,6 +1366,8 @@ static void render_vulkan_deferred_screen_composite_quad(
                     deferred_debug_depth_bound =
                         gGL.getTexUnit(5)->bind(&gPipeline.mRT->deferredScreen, true);
                 }
+                const bool deferred_debug_exposure_bound =
+                    bind_vulkan_final_composite_exposure_map();
 
                 LLRenderWorldMaterialParameters debug_composite_parameters =
                     get_vulkan_final_composite_parameters(
@@ -1389,6 +1404,10 @@ static void render_vulkan_deferred_screen_composite_quad(
                 if (deferred_debug_depth_bound)
                 {
                     gGL.getTexUnit(5)->unbind(LLTexUnit::TT_TEXTURE);
+                }
+                if (deferred_debug_exposure_bound)
+                {
+                    gGL.getTexUnit(VULKAN_FINAL_COMPOSITE_EXPOSURE_UNIT)->unbind(LLTexUnit::TT_TEXTURE);
                 }
                 debug_attachment_rendered = true;
             }
@@ -1935,6 +1954,7 @@ static void render_vulkan_final_composite_quad(
         source.bindTexture(0, 0, LLTexUnit::TFO_BILINEAR);
         U32 deferred_attachment_count = 0;
         bool deferred_depth_bound = false;
+        bool exposure_bound = false;
         if (gPipeline.mRT &&
             gPipeline.mRT->deferredScreen.isComplete())
         {
@@ -1953,6 +1973,7 @@ static void render_vulkan_final_composite_quad(
                     gGL.getTexUnit(5)->bind(&gPipeline.mRT->deferredScreen, true);
             }
         }
+        exposure_bound = bind_vulkan_final_composite_exposure_map();
 
         getRenderBackend().setWorldDrawEnabled(true);
         getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::FinalComposite);
@@ -1981,6 +2002,10 @@ static void render_vulkan_final_composite_quad(
         if (deferred_depth_bound)
         {
             gGL.getTexUnit(5)->unbind(LLTexUnit::TT_TEXTURE);
+        }
+        if (exposure_bound)
+        {
+            gGL.getTexUnit(VULKAN_FINAL_COMPOSITE_EXPOSURE_UNIT)->unbind(LLTexUnit::TT_TEXTURE);
         }
     }
     gGL.popMatrix();

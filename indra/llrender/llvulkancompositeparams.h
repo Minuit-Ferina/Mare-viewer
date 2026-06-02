@@ -340,8 +340,7 @@ inline LLRenderWorldMaterialParameters make_vulkan_final_composite_material_para
     LLRenderWorldMaterialParameters parameters;
 
     const F32 gamma = llclamp(settings.mGamma, 0.1f, 8.f);
-    parameters.mBaseColorRed =
-        settings.mNoPost ? 1.f : llclamp(settings.mExposure, 0.5f, 4.f);
+    parameters.mBaseColorRed = llclamp(settings.mExposure, 0.5f, 4.f);
     parameters.mBaseColorGreen = gamma;
     parameters.mBaseColorBlue = settings.mLegacyGamma ? 2.f : 1.f;
     parameters.mBaseColorAlpha =

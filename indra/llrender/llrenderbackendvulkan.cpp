@@ -1130,7 +1130,7 @@ constexpr S32 LL_VK_FORMAT_R16_UNORM = 70;
 constexpr S32 LL_VK_FORMAT_R16_SFLOAT = 76;
 constexpr S32 LL_VK_FORMAT_R16G16_SFLOAT = 83;
 constexpr S32 LL_VK_FORMAT_R16G16B16A16_UNORM = 91;
-constexpr S32 LL_VK_FORMAT_R16G16B16A16_UINT = 92;
+constexpr S32 LL_VK_FORMAT_R16G16B16A16_UINT = 95;
 constexpr S32 LL_VK_FORMAT_R16G16B16A16_SFLOAT = 97;
 constexpr S32 LL_VK_FORMAT_R32_UINT = 98;
 constexpr S32 LL_VK_FORMAT_R32_SFLOAT = 100;
@@ -7708,6 +7708,8 @@ const char* get_vulkan_final_composite_input_label(U32 texture_slot)
         return "final composite input emissive";
     case 5:
         return "final composite input depth";
+    case 6:
+        return "final composite input exposure";
     default:
         return "final composite input";
     }
