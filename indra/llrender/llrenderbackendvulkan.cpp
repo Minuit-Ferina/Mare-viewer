@@ -11380,7 +11380,7 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"sky-class1", "class1/deferred/sky.vert.spv", "class1/deferred/sky.frag.spv", "WindLight/EEP sky dome and haze", "pending final sky uniforms/varyings", "OpenGL sky owner depth/blend/cull state", "inventory-only"},
         {"terrain", "class1/deferred/terrain.vert.spv", "class1/deferred/terrain.frag.spv", "legacy terrain G-buffer", "pending terrain splat/G-buffer uniforms", "opaque depth write, owner cull state", "inventory-only"},
         {"pbr-terrain", "class1/deferred/pbrterrain.vert.spv", "class1/deferred/pbrterrain.frag.spv", "PBR terrain G-buffer", "pending PBR terrain material ABI", "opaque G-buffer terrain pass", "inventory-only"},
-        {"pbr-opaque", "class1/deferred/pbropaque.vert.spv", "class1/deferred/pbropaque.frag.spv", "opaque GLTF/PBR geometry", "pending GLTF/PBR material ABI", "opaque G-buffer PBR pass", "inventory-only"},
+        {"pbr-opaque", "active/world_textured.vert.spv", "class1/deferred/pbropaque_gbuffer.frag.spv", "opaque GLTF/PBR G-buffer geometry", "runtime-world push constants, GLTF texture transforms, normal/ORM/emissive maps", "OpenGL class1 PBR opaque G-buffer writes adapted to the Vulkan G-buffer layout", "bound runtime owner; emissive attachment uses pbropaque_gbuffer_emissive.frag"},
         {"legacy-material-gbuffer", "active/world_textured.vert.spv", "class3/deferred/material_gbuffer.frag.spv", "legacy material G-buffer geometry", "runtime-world push constants, material texture transforms, normal/specular maps", "OpenGL class3 deferred material G-buffer writes adapted to the Vulkan G-buffer layout", "bound runtime owner; emissive attachment uses material_gbuffer_emissive.frag"},
         {"pbr-alpha-class1", "class1/deferred/pbralpha.vert.spv", "class1/deferred/pbralpha.frag.spv", "alpha GLTF/PBR geometry fallback", "pending GLTF/PBR alpha ABI", "OpenGL PBR alpha state", "inventory-only"},
         {"pbr-alpha-class2", "class1/deferred/pbralpha.vert.spv", "class2/deferred/pbralpha.frag.spv", "alpha GLTF/PBR geometry", "pending GLTF/PBR alpha class2 ABI", "OpenGL PBR alpha state", "inventory-only"},
@@ -13807,9 +13807,9 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mMaterialGBufferEmissiveFragmentShader =
         get_vulkan_final_shader_module(context, "class3/deferred/material_gbuffer_emissive.frag.spv", "class3 material G-buffer emissive fragment");
     context.mPBRGBufferFragmentShader =
-        get_vulkan_final_shader_module(context, "active/pbr_gbuffer.frag.spv", "PBR G-buffer fragment");
+        get_vulkan_final_shader_module(context, "class1/deferred/pbropaque_gbuffer.frag.spv", "class1 PBR opaque G-buffer fragment");
     context.mPBRGBufferEmissiveFragmentShader =
-        get_vulkan_final_shader_module(context, "active/pbr_gbuffer_emissive.frag.spv", "PBR G-buffer emissive fragment");
+        get_vulkan_final_shader_module(context, "class1/deferred/pbropaque_gbuffer_emissive.frag.spv", "class1 PBR opaque G-buffer emissive fragment");
     context.mAvatarGBufferFragmentShader =
         get_vulkan_final_shader_module(context, "active/avatar_gbuffer.frag.spv", "avatar G-buffer fragment");
     context.mAvatarGBufferEmissiveFragmentShader =

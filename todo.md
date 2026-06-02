@@ -521,6 +521,8 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed.vert
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/exposure_history.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/pbropaque_gbuffer.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/pbropaque_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/interface/copy_depth.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer_emissive.frag
@@ -878,6 +880,15 @@ Validation status:
       `active/world_textured.vert` contract until the final material vertex UBO
       interface is connected. Direct Material rendering still uses the active
       runtime fragment.
+- [x] Replace the PBR opaque Vulkan G-buffer adapter with final class1
+      `pbropaque` owners.
+      The PBR offscreen G-buffer pipeline now binds
+      `class1/deferred/pbropaque_gbuffer*.frag` for 3-attachment and
+      4-attachment render passes. These fragments keep the current runtime
+      `active/world_textured.vert` ABI, convert base-color/emissive inputs to
+      linear like the OpenGL `pbropaqueF.glsl` path, and preserve ORM plus
+      normal-map output for the deferred composite. Direct PBR rendering still
+      uses the active runtime fragment.
 - [x] Feed real terrain normals into the active Vulkan terrain G-buffer path.
       Terrain command emission now includes `MAP_NORMAL`, terrain pipelines use
       a vertex input layout that exposes the normal attribute, and both
