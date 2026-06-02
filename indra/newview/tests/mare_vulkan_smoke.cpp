@@ -4437,7 +4437,9 @@ LLRenderWorldMaterialParameters make_deferred_color_compare_pbr_material()
     return parameters;
 }
 
-LLRenderWorldMaterialParameters make_deferred_color_compare_composite_parameters()
+LLRenderWorldMaterialParameters make_deferred_color_compare_composite_parameters(
+    U32 width,
+    U32 height)
 {
     LLVulkanDeferredCompositeSettings settings;
     settings.mAmbientRed = 1.f;
@@ -4457,6 +4459,8 @@ LLRenderWorldMaterialParameters make_deferred_color_compare_composite_parameters
     settings.mReflectionProbeAmbiance = 0.f;
     settings.mTonemapMix = 0.f;
     settings.mSkyLightingValid = 0.f;
+    settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
+    settings.mScreenHeight = static_cast<F32>(llmax(1U, height));
     return make_vulkan_deferred_composite_material_parameters(settings);
 }
 
@@ -6913,7 +6917,9 @@ bool render_viewer_deferred_color_compare_frame(
     backend.setClearColor(0.f, 0.f, 0.f, 1.f);
     graph.mDeferredLight.clear(LL_RENDER_CLEAR_COLOR);
     LLRenderWorldMaterialParameters deferred_parameters =
-        make_deferred_color_compare_composite_parameters();
+        make_deferred_color_compare_composite_parameters(
+            graph_width,
+            graph_height);
     draw_smoke_deferred_screen_composite_quad(
         backend,
         graph.mDeferredScreen,

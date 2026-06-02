@@ -572,7 +572,8 @@ static bool render_vulkan_world_to_deferred_screen(const LLColor4& clear_color)
 
 static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     U32 attachment_count,
-    bool deferred_depth_bound)
+    bool deferred_depth_bound,
+    const LLRect& viewport_rect)
 {
     LLVulkanDeferredCompositeSettings settings;
 
@@ -660,6 +661,8 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     settings.mReflectionProbeAmbiance = reflection_probe_ambiance;
     settings.mTonemapMix = tonemap_mix;
     settings.mSkyLightingValid = sky ? 1.f : 0.f;
+    settings.mScreenWidth = static_cast<F32>(llmax(1, viewport_rect.getWidth()));
+    settings.mScreenHeight = static_cast<F32>(llmax(1, viewport_rect.getHeight()));
     const glm::mat4 inverse_projection =
         glm::inverse(get_current_projection());
     const F32* inverse_projection_values =
@@ -1067,7 +1070,8 @@ static void render_vulkan_deferred_screen_composite_quad(
         deferred_composite_parameters =
             get_vulkan_deferred_composite_parameters(
                 deferred_attachment_count,
-                has_deferred_depth);
+                has_deferred_depth,
+                viewport_rect);
     }
 
     LLGLSUIDefault gls_ui;
