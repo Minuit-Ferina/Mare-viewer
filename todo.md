@@ -300,10 +300,10 @@ Validation status:
       `diffuse_alpha_mask_indexed.frag` now uses the runtime world contract:
       `MareWorldPushConstants`, set0 texture descriptors, texture index,
       runtime alpha cutoff, and optional skinning. Vulkan G-buffer AlphaMask
-      pipelines now bind this indexed final pair. The direct swapchain
-      AlphaMask pipeline intentionally remains on the active adapter until the
-      direct object/simple AlphaMask path has its own OpenGL-faithful contract
-      and probe.
+      pipelines now bind this indexed final pair. The direct/post-deferred
+      AlphaMask pipeline now has its own runtime owner,
+      `diffuse_alpha_mask_runtime.frag`, while final source-level AlphaMask
+      parity probes remain pending.
 - [x] Add the first true OpenGL-rendered shader reference path.
       `mare-vulkan-smoke --opengl-reference-ppm <path> --shader-case copy`
       starts the OpenGL backend, compiles the real
@@ -367,11 +367,11 @@ Validation status:
       of treating `active/*.frag` as the final shader family.
       `active/deferred_composite.frag`, `active/final_composite.frag`,
       `active/alpha.frag`, and related active G-buffer shaders are bootstrap
-      adapters. Sky, water, world glow, and fullbright have moved to explicit
-      runtime owners, but still need their faithful final UBO/texture/render-
-      graph pipelines before they are parity-complete. The final Vulkan path
-      should bind class-tier shaders matching the OpenGL families and selected
-      viewer settings.
+      adapters. Sky, water, world glow, fullbright, and direct alpha-mask have
+      moved to explicit runtime owners, but still need their faithful final
+      UBO/texture/render-graph pipelines before they are parity-complete. The
+      final Vulkan path should bind class-tier shaders matching the OpenGL
+      families and selected viewer settings.
       First safe runtime replacement: UI textured now binds
       `class1/interface/ui.frag` instead of `active/ui.frag`. The UI vertex
       remains `active/ui.vert` because the class1 interface vertex expects
@@ -524,6 +524,7 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.vert
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/effects/glow_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/fullbright_runtime.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_alpha_mask_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed.vert
@@ -1386,8 +1387,9 @@ Validation status:
       pending.
 	- [x] Give active Vulkan alpha-mask/fullbright draws dedicated runtime
 	      shader/pipeline owners.
-	      `LLRenderWorldShaderClass::AlphaMask` now owns `active/alpha_mask.frag`
-	      for alpha-mask, grass, tree, and GLTF alpha-mask fallback draws.
+	      `LLRenderWorldShaderClass::AlphaMask` now owns
+	      `class1/deferred/diffuse_alpha_mask_runtime.frag` for alpha-mask,
+	      grass, tree, and GLTF alpha-mask fallback draws.
       `LLRenderWorldShaderClass::Fullbright` now owns
       `class1/deferred/fullbright_runtime.frag` for fullbright, fullbright
       alpha-mask, and fullbright-shiny fallback
@@ -1644,9 +1646,10 @@ Known missing runtime coverage:
       material emissive intensity available to the active Vulkan glow shader.
 - [x] Active Vulkan alpha-mask and fullbright draws have dedicated shader/
       pipeline owners.
-      Alpha-mask/grass/tree/GLTF alpha-mask fallback commands can route through
-      `LLRenderWorldShaderClass::AlphaMask`; fullbright/fullbright alpha-mask/
-      fullbright-shiny commands can route through
+	      Alpha-mask/grass/tree/GLTF alpha-mask fallback commands can route through
+	      `LLRenderWorldShaderClass::AlphaMask` and
+	      `class1/deferred/diffuse_alpha_mask_runtime.frag`;
+	      fullbright/fullbright alpha-mask/fullbright-shiny commands can route through
       `LLRenderWorldShaderClass::Fullbright` and
       `class1/deferred/fullbright_runtime.frag`.
       This still does not replace the final deferred alpha-mask G-buffer
