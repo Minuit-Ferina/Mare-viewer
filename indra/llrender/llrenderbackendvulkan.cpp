@@ -18394,18 +18394,29 @@ bool record_vulkan_frame_command_buffer(
                 draw.mMaterialParameters.mSceneDirectGreen,
                 draw.mMaterialParameters.mSceneDirectBlue,
                 draw.mMaterialParameters.mSceneLightingValid);
-            glm::vec4 scene_light_direction =
-                draw.mModelview *
-                glm::vec4(
+            if (draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite)
+            {
+                push_constants.mSceneLightDirection = glm::vec4(
                     draw.mMaterialParameters.mSceneLightDirectionX,
                     draw.mMaterialParameters.mSceneLightDirectionY,
                     draw.mMaterialParameters.mSceneLightDirectionZ,
-                    0.f);
-            push_constants.mSceneLightDirection = glm::vec4(
-                scene_light_direction.x,
-                scene_light_direction.y,
-                scene_light_direction.z,
-                draw.mMaterialParameters.mSceneLightDirectionValid);
+                    draw.mMaterialParameters.mSceneLightDirectionValid);
+            }
+            else
+            {
+                glm::vec4 scene_light_direction =
+                    draw.mModelview *
+                    glm::vec4(
+                        draw.mMaterialParameters.mSceneLightDirectionX,
+                        draw.mMaterialParameters.mSceneLightDirectionY,
+                        draw.mMaterialParameters.mSceneLightDirectionZ,
+                        0.f);
+                push_constants.mSceneLightDirection = glm::vec4(
+                    scene_light_direction.x,
+                    scene_light_direction.y,
+                    scene_light_direction.z,
+                    draw.mMaterialParameters.mSceneLightDirectionValid);
+            }
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::Terrain)
             {
                 push_constants.mTextureTransformS = glm::vec4(

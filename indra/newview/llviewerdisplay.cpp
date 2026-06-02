@@ -663,6 +663,10 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     settings.mSkyLightingValid = sky ? 1.f : 0.f;
     settings.mScreenWidth = static_cast<F32>(llmax(1, viewport_rect.getWidth()));
     settings.mScreenHeight = static_cast<F32>(llmax(1, viewport_rect.getHeight()));
+    settings.mWaterPlaneX = LLDrawPoolAlpha::sWaterPlane.mV[VX];
+    settings.mWaterPlaneY = LLDrawPoolAlpha::sWaterPlane.mV[VY];
+    settings.mWaterPlaneZ = LLDrawPoolAlpha::sWaterPlane.mV[VZ];
+    settings.mWaterPlaneW = LLDrawPoolAlpha::sWaterPlane.mV[VW];
     const glm::mat4 inverse_projection =
         glm::inverse(get_current_projection());
     const F32* inverse_projection_values =
