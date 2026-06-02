@@ -19,6 +19,7 @@ layout(set = 0, binding = 13) uniform sampler2D sceneDepthMap;
 #define REF_SAMPLE_COUNT 32
 
 const float M_PI = 3.14159265;
+const float GBUFFER_FLAG_HAS_PBR = 0.67;
 
 layout(std140, set = 2, binding = 0) uniform ReflectionProbes
 {
@@ -100,6 +101,11 @@ vec3 decode_gbuffer_normal(vec4 encoded)
         return vec3(0.0, 0.0, 1.0);
     }
     return normal;
+}
+
+bool get_gbuffer_flag(float data, float flag)
+{
+    return abs(data - flag) < 0.1;
 }
 
 vec3 fallback_sky_color(vec2 texcoord)
@@ -1340,7 +1346,7 @@ void main()
         vec3(0.0);
     float scene_depth = texture(depthMap, tc).r;
 
-    if (encoded_normal.a < 0.5 || scene_depth >= 0.99999)
+    if (scene_depth >= 0.99999)
     {
         vec3 sky_or_color = max(diffuse.rgb, vec3(0.0));
         vec3 sky_fallback = fallback_sky_color(tc);
@@ -1371,7 +1377,7 @@ void main()
     bool classic_mode = pc.composite_moon_direction.w > 0.5;
     vec3 view_dir = -safe_normalize(view_position);
 
-    bool pbr = specular_or_orm.a > 0.5;
+    bool pbr = get_gbuffer_flag(encoded_normal.a, GBUFFER_FLAG_HAS_PBR);
     vec3 base_color = max(diffuse.rgb, vec3(0.0));
 
     float probe_ambiance = clamp(pc.scene_reflection.x, 0.0, 1.0);

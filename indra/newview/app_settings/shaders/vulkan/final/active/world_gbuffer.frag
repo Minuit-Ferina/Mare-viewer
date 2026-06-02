@@ -47,6 +47,8 @@ const uint MATERIAL_ALPHA_MASK = 128u;
 const uint MATERIAL_DOUBLE_SIDED = 256u;
 const uint MATERIAL_LEGACY_BUMP = 512u;
 const uint MATERIAL_GLTF_PBR = 2048u;
+const float GBUFFER_FLAG_HAS_ATMOS = 0.34;
+const float GBUFFER_FLAG_HAS_PBR = 0.67;
 
 bool has_material_flag(uint flag)
 {
@@ -249,5 +251,7 @@ void main()
         vec4(max(specular.rgb, vec3(0.0)), legacy_shiny);
     frag_normal = encode_normal(
         material_normal(vary_material_texcoord0.xy),
-        1.0);
+        has_material_flag(MATERIAL_GLTF_PBR) ?
+            GBUFFER_FLAG_HAS_PBR :
+            GBUFFER_FLAG_HAS_ATMOS);
 }

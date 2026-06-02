@@ -110,7 +110,7 @@ GBufferInfo getGBuffer(vec2 screenpos)
     ret.albedo = texture(diffuseRect, screenpos.xy);
     ret.normal = decodeNormal(normInfo).xyz;
     ret.specular = texture(specularRect, screenpos.xy);
-    ret.envIntensity = normInfo.b;
+    ret.envIntensity = ret.albedo.a;
     ret.gbufferFlag = normInfo.w;
     ret.emissive = vec4(0.0);
     return ret;
@@ -263,7 +263,7 @@ void main()
     float dist_atten = calcLegacyDistanceAttenuation(dist, falloff);
     vec3 light_color = u.color_falloff.rgb;
 
-    if (spec.a > 0.5 || get_gbuffer_flag(gb.gbufferFlag, GBUFFER_FLAG_HAS_PBR))
+    if (get_gbuffer_flag(gb.gbufferFlag, GBUFFER_FLAG_HAS_PBR))
     {
         vec3 orm = spec.rgb;
         float perceptualRoughness = orm.g;

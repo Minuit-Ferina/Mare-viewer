@@ -44,6 +44,8 @@ const uint MATERIAL_HAS_SPECULAR_MAP = 32u;
 const uint MATERIAL_DOUBLE_SIDED = 256u;
 const uint MATERIAL_LEGACY_BUMP = 512u;
 const uint MATERIAL_GLTF_PBR = 2048u;
+const float GBUFFER_FLAG_HAS_ATMOS = 0.34;
+const float GBUFFER_FLAG_HAS_PBR = 0.67;
 
 bool has_material_flag(uint flag)
 {
@@ -228,6 +230,10 @@ void main()
     frag_specular_or_orm = has_material_flag(MATERIAL_GLTF_PBR) ?
         vec4(max(orm, vec3(0.0)), 1.0) :
         vec4(max(specular.rgb, vec3(0.0)), legacy_shiny);
-    frag_normal = encode_normal(material_normal(vary_material_texcoord0.xy), 1.0);
+    frag_normal = encode_normal(
+        material_normal(vary_material_texcoord0.xy),
+        has_material_flag(MATERIAL_GLTF_PBR) ?
+            GBUFFER_FLAG_HAS_PBR :
+            GBUFFER_FLAG_HAS_ATMOS);
     frag_emissive = vec4(max(emissive, vec3(0.0)), 0.0);
 }

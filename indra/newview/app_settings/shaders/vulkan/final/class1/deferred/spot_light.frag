@@ -139,8 +139,6 @@ void main()
         discard;
     }
 
-    vec4 norm_raw = texture(normalMap, tc);
-    float envIntensity = norm_raw.z;
     vec3 norm = getNorm(tc);
     float l_dist = -dot(lv, u.proj_n_focus.xyz);
 
@@ -165,7 +163,9 @@ void main()
     lv = normalize(lv);
     float da = dot(norm, lv);
 
-    vec3 diff_tex = texture(diffuseRect, tc).rgb;
+    vec4 diffuse_sample = texture(diffuseRect, tc);
+    vec3 diff_tex = diffuse_sample.rgb;
+    float envIntensity = diffuse_sample.a;
     vec4 spec = texture(specularRect, tc);
     float noise = texture(noiseMap, tc * u.screen_res.xy / 128.0).b;
     vec3 dlit = vec3(0.0);

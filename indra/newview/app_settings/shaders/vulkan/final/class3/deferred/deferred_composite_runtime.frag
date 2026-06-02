@@ -25,6 +25,8 @@ layout(push_constant) uniform MareWorldPushConstants
     layout(offset = 416) vec4 scene_reflection;
 } pc;
 
+const float GBUFFER_FLAG_HAS_PBR = 0.67;
+
 vec3 decode_gbuffer_normal(vec4 encoded)
 {
     vec3 normal = normalize(encoded.xyz * 2.0 - 1.0);
@@ -33,6 +35,11 @@ vec3 decode_gbuffer_normal(vec4 encoded)
         return vec3(0.0, 0.0, 1.0);
     }
     return normal;
+}
+
+bool get_gbuffer_flag(float data, float flag)
+{
+    return abs(data - flag) < 0.1;
 }
 
 vec3 fallback_sky_color(vec2 texcoord)
@@ -148,7 +155,7 @@ void main()
         max(texture(emissiveMap, vary_texcoord0.xy).rgb, vec3(0.0)) :
         vec3(0.0);
     float scene_depth = texture(depthMap, vary_texcoord0.xy).r;
-    if (encoded_normal.a < 0.5 || scene_depth >= 0.99999)
+    if (scene_depth >= 0.99999)
     {
         vec3 sky_or_color = max(diffuse.rgb, vec3(0.0));
         vec3 sky_fallback = fallback_sky_color(vary_texcoord0.xy);
@@ -174,7 +181,7 @@ void main()
     }
 
     float env = clamp(diffuse.a, 0.0, 1.0);
-    bool pbr = specular_or_orm.a > 0.5;
+    bool pbr = get_gbuffer_flag(encoded_normal.a, GBUFFER_FLAG_HAS_PBR);
     float occlusion = pbr ? clamp(specular_or_orm.r, 0.0, 1.0) : 1.0;
     float legacy_shiny = legacy_specular_weight(specular_or_orm);
     float roughness = pbr ?

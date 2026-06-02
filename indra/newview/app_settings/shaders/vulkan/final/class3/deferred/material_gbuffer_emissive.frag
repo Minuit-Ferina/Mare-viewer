@@ -42,6 +42,7 @@ const uint MATERIAL_HAS_NORMAL_MAP = 1u;
 const uint MATERIAL_HAS_SPECULAR_MAP = 32u;
 const uint MATERIAL_DOUBLE_SIDED = 256u;
 const uint MATERIAL_LEGACY_BUMP = 512u;
+const float GBUFFER_FLAG_HAS_ATMOS = 0.34;
 
 bool has_material_flag(uint flag)
 {
@@ -187,6 +188,6 @@ void main()
     vec3 encoded_normal = normalize(material_normal(vary_material_texcoord0.xy)) * 0.5 + 0.5;
     frag_diffuse = vec4(max(color.rgb, vec3(0.0)), pc.material_legacy.a);
     frag_specular = vec4(max(specular.rgb, vec3(0.0)), legacy_shiny);
-    frag_normal = vec4(encoded_normal.xyz, 1.0);
+    frag_normal = vec4(encoded_normal.xyz, GBUFFER_FLAG_HAS_ATMOS);
     frag_emissive = vec4(max(emissive, vec3(0.0)), 0.0);
 }

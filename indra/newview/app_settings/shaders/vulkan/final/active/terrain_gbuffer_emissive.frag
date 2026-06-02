@@ -81,6 +81,9 @@ vec4 encode_normal(vec3 n, float gbuffer_flag)
     return vec4(encoded.xyz, gbuffer_flag);
 }
 
+const float GBUFFER_FLAG_HAS_ATMOS = 0.34;
+const float GBUFFER_FLAG_HAS_PBR = 0.67;
+
 bool terrain_use_triplanar()
 {
     return pc.terrain_params.y > 2.5;
@@ -436,13 +439,13 @@ void main()
                 clamp(roughness, 0.04, 1.0),
                 clamp(metallic, 0.0, 1.0),
                 1.0);
-        frag_normal = encode_normal(terrain_normal(weights), 1.0);
+        frag_normal = encode_normal(terrain_normal(weights), GBUFFER_FLAG_HAS_PBR);
         frag_emissive = vec4(max(terrain_emissive(weights), vec3(0.0)), 0.0);
     }
     else
     {
         frag_specular_or_orm = vec4(0.0, 0.0, 0.0, -1.0);
-        frag_normal = encode_normal(terrain_base_normal(), 1.0);
+        frag_normal = encode_normal(terrain_base_normal(), GBUFFER_FLAG_HAS_ATMOS);
         frag_emissive = vec4(0.0);
     }
 }

@@ -34,6 +34,7 @@ layout(location = 1) out vec4 frag_specular;
 layout(location = 2) out vec4 frag_normal;
 
 const uint MATERIAL_AVATAR_IMPOSTOR = 65536u;
+const float GBUFFER_FLAG_HAS_ATMOS = 0.34;
 
 bool has_material_flag(uint flag)
 {
@@ -85,11 +86,11 @@ void main()
     {
         vec4 impostor_normal = texture(tex1, vary_texcoord0.xy);
         frag_specular = texture(tex2, vary_texcoord0.xy);
-        frag_normal = vec4(clamp(impostor_normal.xyz, vec3(0.0), vec3(1.0)), 1.0);
+        frag_normal = vec4(clamp(impostor_normal.xyz, vec3(0.0), vec3(1.0)), GBUFFER_FLAG_HAS_ATMOS);
     }
     else
     {
         frag_specular = vec4(0.04, 0.04, 0.04, 0.0);
-        frag_normal = vec4(encoded_normal.xyz, 1.0);
+        frag_normal = vec4(encoded_normal.xyz, GBUFFER_FLAG_HAS_ATMOS);
     }
 }

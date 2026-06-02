@@ -268,7 +268,7 @@ void main()
     vec4 encoded_normal = texture(normalMap, tc);
     float scene_depth = texture(depthMap, tc).r;
 
-    if (encoded_normal.a < 0.5 || scene_depth >= 0.99999)
+    if (scene_depth >= 0.99999)
     {
         frag_color = vec4(1.0);
         return;

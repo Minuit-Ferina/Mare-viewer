@@ -506,8 +506,8 @@ Validation status:
       single-summary local-light approximation, so local light energy now
       belongs to the separate point/spot passes like OpenGL. The local-light
       shaders also decode the current Vulkan G-buffer normal ABI and recognize
-      Vulkan PBR surfaces from the ORM/specular alpha marker in addition to the
-      older OpenGL-style G-buffer flag.
+      Vulkan PBR surfaces from the OpenGL-style G-buffer flag instead of
+      inferring PBR from ORM/specular alpha.
       The projector collection also mirrors OpenGL's two-light candidate
       selection by updating `mTargetShadowSpotLight` and transports any current
       `mShadowSpotLight` index/fade into the Vulkan spot uniforms. The target's
@@ -525,7 +525,12 @@ Validation status:
       split with OpenGL-derived glossy sceneMap/depth SSR sampling. Vulkan
       also matches the OpenGL soften legacy `baseColor.a` lighting mix and
       writes zero alpha from the soften pass so final glow extraction does not
-      treat every lit pixel as emissive.
+      treat every lit pixel as emissive. The active/runtime Vulkan G-buffer
+      producers now use the OpenGL flag values in `normal.a`
+      (`HAS_ATMOS=0.34`, `HAS_PBR=0.67`, sky/HDRI remains `1.0`) while keeping
+      full encoded normals in `normal.xyz`; `DeferredLightMap`, local lights,
+      and `DeferredSoften` no longer treat `normal.a < 0.5` as an invalid
+      world pixel.
       Vulkan still needs Vulkan-owned sun/spot shadow-map render passes, water/debug
       reflection variants, atmospheric helper parity, and final visual
       validation before this item can be closed. Shadow pipeline
@@ -1011,12 +1016,12 @@ Validation status:
       composite from diffuse, specular-or-ORM, and normal attachments. This is
       still a minimal sun/ambient composite, not full OpenGL deferred parity
       with SSAO, shadows, projectors, probes, glow, exposure, or tone mapping.
-      The G-buffer normal attachment uses alpha as a valid-G-buffer-pixel flag:
-      sky/background/color-only pixels keep `normal.a == 0`, while world and
-      terrain G-buffer fragments write `normal.a == 1`. The specular/ORM
-      attachment uses alpha `0` for legacy specular and `> 0.5` for GLTF/PBR
-      ORM, keeping the convention compatible with normalized render-target
-      formats.
+      The G-buffer normal attachment now preserves the OpenGL-style material
+      flag in alpha: regular world/terrain pixels write
+      `GBUFFER_FLAG_HAS_ATMOS` (`0.34`), GLTF/PBR pixels write
+      `GBUFFER_FLAG_HAS_PBR` (`0.67`), and sky/HDRI remains `1.0`.
+      Pixel validity is derived from scene depth in the deferred lighting
+      passes, not from `normal.a > 0.5`, so `HAS_ATMOS` pixels remain lit.
       If a target exposes fewer than three G-buffer attachments, the composite
       falls back to a color-only copy and logs the missing attachment condition
       once. Runtime telemetry now also reports deferred composite draw counts.
@@ -1676,10 +1681,12 @@ Validation status:
       render-target sampling, resolve/copy steps, and final swapchain composite.
       Active Vulkan G-buffer variants now store a full encoded normal in the
       normal attachment `xyz`; the environment/intensity payload that was using
-      `normal.z` moved to `diffuse.a`, and the deferred composite now decodes
-      the complete normal before lighting. This improves the active lighting
-      input format, but the full OpenGL G-buffer layout, resolve sequence, and
-      multi-pass lighting graph remain open.
+      `normal.z` moved to `diffuse.a`, and `normal.a` carries the OpenGL
+      G-buffer flag values used by the lighting consumers. Deferred composite,
+      lightMap, and local light consumers now decode the complete normal and
+      use the flag for PBR classification before lighting. This improves the
+      active lighting input format, but the full OpenGL G-buffer layout,
+      resolve sequence, and multi-pass lighting graph remain open.
       Screen-composite push constants now preserve `mBaseColorAlpha` for
       deferred/final composite quads without reusing the classic-avatar
       skinning flag slot. Full final-composite parity still needs the real
@@ -1861,7 +1868,9 @@ Known missing runtime coverage:
       Emissive, the sky environment cube-map, BRDF LUT, `lightFunc`,
       reflection-probe cubemap arrays, probe parallax/selection state, and
       OpenGL-derived glossy sceneMap/depth SSR sampling with camera-delta
-      transport now feed the live soften pass. Close this only after the
+      transport now feed the live soften pass. Runtime G-buffer producers now
+      write OpenGL-style `normal.a` flags so `DeferredSoften` selects PBR via
+      `GBUFFER_FLAG_HAS_PBR` rather than the ORM alpha marker. Close this only after the
       remaining graph inputs are real: shadow target validation plus
       PCF/parity tuning, water/debug reflection variants, and final
       composite/post parity.

@@ -39,6 +39,7 @@ layout(location = 3) out vec4 frag_emissive;
 const uint MATERIAL_HAS_NORMAL_MAP = 1u;
 const uint MATERIAL_HAS_ORM_MAP = 2u;
 const uint MATERIAL_DOUBLE_SIDED = 256u;
+const float GBUFFER_FLAG_HAS_PBR = 0.67;
 
 bool has_material_flag(uint flag)
 {
@@ -178,6 +179,6 @@ void main()
     vec3 encoded_normal = normalize(material_normal(vary_material_texcoord0.xy)) * 0.5 + 0.5;
     frag_diffuse = vec4(max(color.rgb, vec3(0.0)), pc.material_legacy.a);
     frag_orm = vec4(max(orm, vec3(0.0)), 1.0);
-    frag_normal = vec4(encoded_normal.xyz, 1.0);
+    frag_normal = vec4(encoded_normal.xyz, GBUFFER_FLAG_HAS_PBR);
     frag_emissive = vec4(max(emissive, vec3(0.0)), 0.0);
 }
