@@ -366,11 +366,11 @@ Validation status:
 - [ ] Replace active-path shader approximations with class-tier owners instead
       of treating `active/*.frag` as the final shader family.
       `active/deferred_composite.frag`, `active/final_composite.frag`,
-      `active/alpha.frag`, `active/glow.frag`, and related active G-buffer
-      shaders are bootstrap adapters. Sky and water have moved to explicit
-      runtime owners, but still need their faithful final UBO/texture pipelines
-      before they are parity-complete. The final Vulkan path should bind
-      class-tier shaders matching the OpenGL families and selected viewer
+      `active/alpha.frag`, and related active G-buffer shaders are bootstrap
+      adapters. Sky, water, and world glow have moved to explicit runtime
+      owners, but still need their faithful final UBO/texture/render-graph
+      pipelines before they are parity-complete. The final Vulkan path should
+      bind class-tier shaders matching the OpenGL families and selected viewer
       settings.
       First safe runtime replacement: UI textured now binds
       `class1/interface/ui.frag` instead of `active/ui.frag`. The UI vertex
@@ -522,6 +522,7 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.vert
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/effects/glow_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed.vert
@@ -1376,8 +1377,9 @@ Validation status:
       post-water ordering, and emissive/glow subpasses still need Vulkan render
       graph ownership.
 - [x] Give active Vulkan glow draws a dedicated runtime shader/pipeline.
-      `LLRenderWorldShaderClass::Glow` now owns `active/glow.frag`, and both
-      swapchain/offscreen Vulkan pipeline sets create glow variants. Glow
+      `LLRenderWorldShaderClass::Glow` now owns
+      `class1/effects/glow_runtime.frag`, and both swapchain/offscreen Vulkan
+      pipeline sets create glow variants. Glow
       commands no longer share the generic textured-world fragment path and can
       stay additive while the real glow extraction/blur/combine graph is still
       pending.
@@ -1624,8 +1626,8 @@ Known missing runtime coverage:
       the Vulkan world push-constant/skinning contract for now.
 - [x] Active Vulkan glow draws have a dedicated shader/pipeline owner.
       Glow world commands route through `LLRenderWorldShaderClass::Glow` and
-      `active/glow.frag` instead of the generic textured-world fragment. This
-      is still a visible active-path glow approximation, not the final
+      `class1/effects/glow_runtime.frag` instead of the generic textured-world
+      fragment. This is still a visible runtime glow approximation, not the final
       extraction/blur/combine render graph.
       The glow pool now requests the legacy emissive vertex stream and texture
       index attributes for Vulkan commands, matching the OpenGL emissive shader

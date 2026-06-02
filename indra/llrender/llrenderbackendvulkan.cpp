@@ -11409,6 +11409,7 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"multi-spot-light-class2", "class3/deferred/multi_point_light.vert.spv", "class2/deferred/multi_spot_light.frag.spv", "multi-projector spot lights"},
         {"reflection-probe-bake", "class2/interface/reflectionprobe.vert.spv", "class2/interface/reflectionprobe.frag.spv", "reflection probe cubemap bake"},
         {"screen-space-reflection", "class3/deferred/screen_space_refl_post.vert.spv", "class3/deferred/screen_space_refl_post.frag.spv", "screen-space reflection post pass"},
+        {"glow-runtime", "active/world_textured.vert.spv", "class1/effects/glow_runtime.frag.spv", "world glow draw-command surface", "runtime-world push constants, diffuse/emissive texture selection", "OpenGL Glow material owner blend/depth/color state approximation", "bound runtime owner; final glow extract/combine post-process remains separate"},
         {"glow", "class1/effects/glow.vert.spv", "class1/effects/glow.frag.spv", "glow blur/combine"},
         {"post-process", "class1/deferred/post_deferred.vert.spv", "class1/deferred/post_deferred.frag.spv", "final deferred composite"},
         {"post-process-tonemap", "class1/deferred/post_deferred.vert.spv", "class1/deferred/post_deferred_tonemap.frag.spv", "tone-mapped deferred composite"},
@@ -13780,7 +13781,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mAlphaFragmentShader =
         get_vulkan_final_shader_module(context, "class2/deferred/alpha.frag.spv", "class2 alpha fragment");
     context.mGlowFragmentShader =
-        get_vulkan_final_shader_module(context, "active/glow.frag.spv", "glow fragment");
+        get_vulkan_final_shader_module(context, "class1/effects/glow_runtime.frag.spv", "class1 glow runtime fragment");
     context.mAlphaMaskVertexShader =
         get_vulkan_final_shader_module(context, "class1/deferred/diffuse_indexed.vert.spv", "class1 alpha-mask G-buffer vertex");
     context.mAlphaMaskFragmentShader =
