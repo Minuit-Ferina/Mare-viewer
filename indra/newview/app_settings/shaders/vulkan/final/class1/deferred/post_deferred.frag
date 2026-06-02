@@ -1,71 +1,110 @@
-// Vulkan final shader source port.
-// Source OpenGL shader: class1/deferred/postDeferredF.glsl
-// This file preserves the source shader's role while the final Vulkan
-// renderer pipeline contracts are completed.
-
 #version 450
 
-layout(set = 0, binding = 0) uniform sampler2D diffuseMap;
-layout(set = 0, binding = 1) uniform sampler2D tex1;
-layout(set = 0, binding = 2) uniform sampler2D tex2;
-layout(set = 0, binding = 3) uniform sampler2D tex3;
-layout(set = 0, binding = 4) uniform sampler2D tex4;
-layout(set = 0, binding = 5) uniform sampler2D tex5;
-layout(set = 0, binding = 6) uniform sampler2D tex6;
-layout(set = 0, binding = 7) uniform sampler2D tex7;
+layout(set = 0, binding = 0) uniform sampler2D diffuseRect;
 
-layout(push_constant) uniform MareGeneratedFragmentConstants
+layout(push_constant) uniform MarePostProcessPushConstants
 {
-    float minimum_alpha;
-    vec3 _pad0;
-    vec4 color;
-    vec4 params;
+    vec4 params0;
+    vec4 params1;
 } pc;
 
-layout(location = 0) in vec4 vertex_color;
-layout(location = 1) in vec2 vary_texcoord0;
-layout(location = 2) in vec3 vary_normal;
-layout(location = 3) in vec3 vary_position;
-layout(location = 4) flat in uint vary_texture_index;
-layout(location = 5) in vec4 vary_tangent;
-layout(location = 6) in vec2 vary_texcoord1;
-layout(location = 7) in vec2 vary_texcoord2;
-layout(location = 8) in vec4 vertex_position;
+layout(location = 0) in vec2 vary_fragcoord;
 
-layout(location = 0) out vec4 frag_data[4];
+layout(location = 0) out vec4 frag_color;
 
-vec4 encode_normal(vec3 n, float env, float gbuffer_flag)
+float max_cof()
 {
-    vec3 encoded = normalize(n) * 0.5 + 0.5;
-    return vec4(encoded.xy, env, gbuffer_flag);
+    return pc.params0.x;
 }
 
-vec4 sample_indexed_texture(vec2 texcoord)
+vec2 screen_res()
 {
-    switch (vary_texture_index)
+    return pc.params1.xy;
+}
+
+vec3 clampHDRRange(vec3 color)
+{
+    color = mix(color, vec3(1.0), isinf(color));
+    color = mix(color, vec3(0.0), isnan(color));
+    return clamp(color, vec3(0.0), vec3(11.2));
+}
+
+void dofSample(inout vec4 diff, inout float w, float min_sc, vec2 tc)
+{
+    vec4 s = texture(diffuseRect, tc);
+
+    float sc = abs(s.a * 2.0 - 1.0) * max_cof();
+
+    if (sc > min_sc)
     {
-        case 1u: return texture(tex1, texcoord);
-        case 2u: return texture(tex2, texcoord);
-        case 3u: return texture(tex3, texcoord);
-        case 4u: return texture(tex4, texcoord);
-        case 5u: return texture(tex5, texcoord);
-        case 6u: return texture(tex6, texcoord);
-        case 7u: return texture(tex7, texcoord);
-        default: return texture(diffuseMap, texcoord);
+        float wg = 0.25;
+        wg += s.r + s.g + s.b;
+
+        diff += wg * s;
+        w += wg;
     }
+}
+
+void dofSampleNear(inout vec4 diff, inout float w, float min_sc, vec2 tc)
+{
+    vec4 s = texture(diffuseRect, tc);
+
+    float wg = 0.25;
+    wg += s.r + s.g + s.b;
+
+    diff += wg * s;
+    w += wg;
 }
 
 void main()
 {
-    vec4 color = texture(diffuseMap, vary_texcoord0.xy) * vertex_color * max(pc.color, vec4(1.0));
-    vec3 normal = normalize(vary_normal);
-    float lambert = max(dot(normal, normalize(vec3(0.35, 0.45, 0.82))), 0.0);
-    vec3 specular = vec3(vertex_color.a);
-    vec3 emissive = vec3(0.0);
+    vec4 diff = texture(diffuseRect, vary_fragcoord.xy);
 
-    color.rgb *= 0.35 + lambert * 0.65;
-    frag_data[0] = vec4(color.rgb, 0.0);
-    frag_data[1] = vec4(specular, color.a);
-    frag_data[2] = encode_normal(vary_normal, color.a, 1.0);
-    frag_data[3] = vec4(emissive, 0.0);
+    float w = 1.0;
+    float sc = (diff.a * 2.0 - 1.0) * max_cof();
+    float PI = 3.14159265358979323846264;
+
+    if (sc > 0.5)
+    {
+        while (sc > 0.5)
+        {
+            int its = int(max(1.0, sc * 3.7));
+            for (int i = 0; i < its; ++i)
+            {
+                float ang = sc + float(i) * 2.0 * PI / float(its);
+                float samp_x = sc * sin(ang);
+                float samp_y = sc * cos(ang);
+                dofSampleNear(
+                    diff,
+                    w,
+                    sc,
+                    vary_fragcoord.xy + vec2(samp_x, samp_y) / screen_res());
+            }
+            sc -= 1.0;
+        }
+    }
+    else if (sc < -0.5)
+    {
+        sc = abs(sc);
+        while (sc > 0.5)
+        {
+            int its = int(max(1.0, sc * 3.7));
+            for (int i = 0; i < its; ++i)
+            {
+                float ang = sc + float(i) * 2.0 * PI / float(its);
+                float samp_x = sc * sin(ang);
+                float samp_y = sc * cos(ang);
+                dofSample(
+                    diff,
+                    w,
+                    sc,
+                    vary_fragcoord.xy + vec2(samp_x, samp_y) / screen_res());
+            }
+            sc -= 1.0;
+        }
+    }
+
+    diff /= w;
+    diff.rgb = clampHDRRange(diff.rgb);
+    frag_color = diff;
 }

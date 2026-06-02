@@ -1,71 +1,74 @@
-// Vulkan final shader source port.
-// Source OpenGL shader: class1/deferred/cofF.glsl
-// This file preserves the source shader's role while the final Vulkan
-// renderer pipeline contracts are completed.
-
 #version 450
 
-layout(set = 0, binding = 0) uniform sampler2D diffuseMap;
-layout(set = 0, binding = 1) uniform sampler2D tex1;
-layout(set = 0, binding = 2) uniform sampler2D tex2;
-layout(set = 0, binding = 3) uniform sampler2D tex3;
-layout(set = 0, binding = 4) uniform sampler2D tex4;
-layout(set = 0, binding = 5) uniform sampler2D tex5;
-layout(set = 0, binding = 6) uniform sampler2D tex6;
-layout(set = 0, binding = 7) uniform sampler2D tex7;
+layout(set = 0, binding = 0) uniform sampler2D diffuseRect;
+layout(set = 0, binding = 1) uniform sampler2D depthMap;
 
-layout(push_constant) uniform MareGeneratedFragmentConstants
+layout(set = 1, binding = 0) uniform MareCoFUniforms
 {
-    float minimum_alpha;
-    vec3 _pad0;
-    vec4 color;
-    vec4 params;
-} pc;
+    mat4 inv_proj;
+    vec4 params0;
+    vec4 params1;
+} u;
 
-layout(location = 0) in vec4 vertex_color;
-layout(location = 1) in vec2 vary_texcoord0;
-layout(location = 2) in vec3 vary_normal;
-layout(location = 3) in vec3 vary_position;
-layout(location = 4) flat in uint vary_texture_index;
-layout(location = 5) in vec4 vary_tangent;
-layout(location = 6) in vec2 vary_texcoord1;
-layout(location = 7) in vec2 vary_texcoord2;
-layout(location = 8) in vec4 vertex_position;
+layout(location = 0) in vec2 vary_fragcoord;
 
-layout(location = 0) out vec4 frag_data[4];
+layout(location = 0) out vec4 frag_color;
 
-vec4 encode_normal(vec3 n, float env, float gbuffer_flag)
+float focal_distance()
 {
-    vec3 encoded = normalize(n) * 0.5 + 0.5;
-    return vec4(encoded.xy, env, gbuffer_flag);
+    return u.params0.z;
 }
 
-vec4 sample_indexed_texture(vec2 texcoord)
+float blur_constant()
 {
-    switch (vary_texture_index)
-    {
-        case 1u: return texture(tex1, texcoord);
-        case 2u: return texture(tex2, texcoord);
-        case 3u: return texture(tex3, texcoord);
-        case 4u: return texture(tex4, texcoord);
-        case 5u: return texture(tex5, texcoord);
-        case 6u: return texture(tex6, texcoord);
-        case 7u: return texture(tex7, texcoord);
-        default: return texture(diffuseMap, texcoord);
-    }
+    return u.params0.w;
+}
+
+float tan_pixel_angle()
+{
+    return u.params1.x;
+}
+
+float magnification()
+{
+    return u.params1.y;
+}
+
+float max_cof()
+{
+    return u.params1.z;
+}
+
+float calc_cof(float depth)
+{
+    float sc = (depth - focal_distance()) / -depth * blur_constant();
+
+    sc /= magnification();
+
+    float pixel_length = tan_pixel_angle() * -focal_distance();
+
+    sc = sc / pixel_length;
+    sc *= 1.414;
+
+    return sc;
 }
 
 void main()
 {
-    vec4 color = texture(diffuseMap, vary_texcoord0.xy) * vertex_color * max(pc.color, vec4(1.0));
-    vec3 normal = normalize(vary_normal);
-    float lambert = max(dot(normal, normalize(vec3(0.35, 0.45, 0.82))), 0.0);
-    vec3 specular = vec3(vertex_color.a);
-    vec3 emissive = vec3(0.0);
+    vec2 tc = vary_fragcoord.xy;
 
-    color.rgb *= 0.35 + lambert * 0.65;
-    frag_data[0] = vec4(color.rgb, 0.0);
-    frag_data[1] = vec4(specular, color.a);
-    frag_data[2] = encode_normal(vary_normal, color.a, 1.0);
-    frag_data[3] = vec4(emissive, 0.0);
+    float z = texture(depthMap, tc).r;
+    z = z * 2.0 - 1.0;
+    vec4 ndc = vec4(0.0, 0.0, z, 1.0);
+    vec4 p = u.inv_proj * ndc;
+    float depth = p.z / p.w;
+
+    vec4 diff = texture(diffuseRect, vary_fragcoord.xy);
+
+    float sc = calc_cof(depth);
+    sc = min(sc, max_cof());
+    sc = max(sc, -max_cof());
+
+    frag_color.rgb = diff.rgb;
+    frag_color.a = sc / max_cof() * 0.5 + 0.5;
 }

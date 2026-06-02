@@ -17,6 +17,7 @@
 #include <array>
 #include <chrono>
 #include <cmath>
+#include <cctype>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -54,6 +55,11 @@ enum class SmokeMode
     CopyChain,
     CopyMRTChain,
     WorldPipelines,
+    ShaderProbe,
+    ShaderSuite,
+    Class1GBufferColorProbe,
+    FinalColorCompare,
+    ViewerDeferredColorCompare,
 };
 
 enum class SmokeViewerStagedStop
@@ -87,8 +93,15 @@ struct SmokeOptions
     bool mRenderViewerUISequence = false;
     bool mRenderSceneMarker = false;
     bool mHelp = false;
+    bool mListShaderCases = false;
+    bool mListShaderParity = false;
+    bool mListPipelineContracts = false;
+    bool mShaderCaseExplicit = false;
     std::string mCapturePath;
     std::string mScreenshotPPMPath;
+    std::string mReferencePPMPath;
+    std::string mOpenGLReferencePPMPath;
+    std::string mShaderCase = "textured";
     int mScreenshotMinFrame = 0;
     std::string mVulkanSDK;
 };
@@ -216,6 +229,31 @@ bool parse_smoke_mode_value(const char* value, SmokeMode& mode)
         mode = SmokeMode::WorldPipelines;
         return true;
     }
+    if (std::strcmp(value, "shader-probe") == 0)
+    {
+        mode = SmokeMode::ShaderProbe;
+        return true;
+    }
+    if (std::strcmp(value, "shader-suite") == 0)
+    {
+        mode = SmokeMode::ShaderSuite;
+        return true;
+    }
+    if (std::strcmp(value, "class1-gbuffer-color-probe") == 0)
+    {
+        mode = SmokeMode::Class1GBufferColorProbe;
+        return true;
+    }
+    if (std::strcmp(value, "final-color-compare") == 0)
+    {
+        mode = SmokeMode::FinalColorCompare;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-color-compare") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredColorCompare;
+        return true;
+    }
     return false;
 }
 
@@ -252,8 +290,18 @@ const char* get_smoke_mode_name(SmokeMode mode)
 {
     switch (mode)
     {
+    case SmokeMode::Class1GBufferColorProbe:
+        return "class1-gbuffer-color-probe";
     case SmokeMode::WorldPipelines:
         return "world-pipelines";
+    case SmokeMode::ShaderProbe:
+        return "shader-probe";
+    case SmokeMode::ShaderSuite:
+        return "shader-suite";
+    case SmokeMode::FinalColorCompare:
+        return "final-color-compare";
+    case SmokeMode::ViewerDeferredColorCompare:
+        return "viewer-deferred-color-compare";
     case SmokeMode::DeferredGraph:
         return "deferred-graph";
     case SmokeMode::ViewerDeferredDirect:
@@ -362,6 +410,16 @@ const char* get_smoke_mode_description(SmokeMode mode)
         return " rendered as a multi-attachment world target, then attachment 0 is copied through multiple LLRenderTarget hops with the real Copy shader. ";
     case SmokeMode::WorldPipelines:
         return " replaced by a grid of real Vulkan world shader pipelines. ";
+    case SmokeMode::ShaderProbe:
+        return " rendered through one selected Vulkan world shader pipeline. ";
+    case SmokeMode::ShaderSuite:
+        return " rendered as one fullscreen Vulkan shader-probe case per frame. ";
+    case SmokeMode::Class1GBufferColorProbe:
+        return " rendered as a class1-style G-buffer color grid, then copied from deferredScreen color attachment 0 to the swapchain. ";
+    case SmokeMode::FinalColorCompare:
+        return " rendered through the real Vulkan final composite shader and compared against an OpenGL-style CPU color reference. ";
+    case SmokeMode::ViewerDeferredColorCompare:
+        return " rendered through a viewer-style legacy G-buffer, deferred composite, final composite, and compared against an OpenGL-style CPU color reference. ";
     case SmokeMode::DirectClear:
     default:
         return ". ";
@@ -387,6 +445,9 @@ bool smoke_mode_uses_scene(SmokeMode mode)
     case SmokeMode::CopyChain:
     case SmokeMode::CopyMRTChain:
     case SmokeMode::WorldPipelines:
+    case SmokeMode::Class1GBufferColorProbe:
+    case SmokeMode::FinalColorCompare:
+    case SmokeMode::ViewerDeferredColorCompare:
         return true;
     case SmokeMode::DirectClear:
     case SmokeMode::OffscreenCopy:
@@ -419,6 +480,8 @@ bool smoke_mode_replays_capture(SmokeMode mode)
     case SmokeMode::OffscreenCopy:
     case SmokeMode::DeferredComposite:
     case SmokeMode::WorldPipelines:
+    case SmokeMode::ShaderProbe:
+    case SmokeMode::ShaderSuite:
     default:
         return false;
     }
@@ -444,7 +507,12 @@ void print_smoke_usage(const char* executable)
         << "                             viewer-staged-post-targets,\n"
         << "                             copy-chain,\n"
         << "                             copy-mrt-chain,\n"
-        << "                             world-pipelines\n"
+        << "                             world-pipelines,\n"
+        << "                             shader-probe,\n"
+        << "                             shader-suite,\n"
+        << "                             class1-gbuffer-color-probe,\n"
+        << "                             final-color-compare,\n"
+        << "                             viewer-deferred-color-compare\n"
         << "  --scene <name>             basic, post-overlays-stress, two-prims,\n"
         << "                             replay-capture\n"
         << "  --capture <path>           Capture file for --scene replay-capture\n"
@@ -455,6 +523,14 @@ void print_smoke_usage(const char* executable)
         << "  --frame-diff-summary-only  Compare frame diffs but print only final summaries\n"
         << "  --screenshot-ppm <path>    Write the first eligible final swapchain readback as PPM\n"
         << "  --screenshot-min-frame <n> First frame eligible for --screenshot-ppm\n"
+        << "  --reference-ppm <path>     Write a CPU reference PPM for modes that support it\n"
+        << "  --opengl-reference-ppm <path>\n"
+        << "                             Write a real OpenGL reference PPM for supported shader cases\n"
+        << "  --shader-case <name>       Select one shader case for --mode shader-probe\n"
+        << "                             Use --mode shader-suite --frames 15 for one pass over all runtime cases\n"
+        << "  --list-shader-cases        List shader-probe cases and exit\n"
+        << "  --list-shader-parity       List Vulkan probe cases and their OpenGL shader references\n"
+        << "  --list-pipeline-contracts  List OpenGL-derived world material pipeline contracts\n"
         << "  --no-buffer-readbacks      Disable G-buffer/composite input readbacks\n"
         << "  --no-stdout-readback       Keep readbacks in normal logs only\n"
         << "  --ui                       Draw a synthetic UI layer after the world/deferred pass\n"
@@ -657,6 +733,71 @@ bool parse_smoke_options(int argc, char** argv, SmokeOptions& options)
             continue;
         }
 
+        if (argument == "--reference-ppm" ||
+            (value = value_after_equals(argument, "--reference-ppm")) != nullptr)
+        {
+            if (!value)
+            {
+                value = require_value(i, "--reference-ppm");
+            }
+            if (!value)
+            {
+                return false;
+            }
+            options.mReferencePPMPath = value;
+            continue;
+        }
+
+        if (argument == "--opengl-reference-ppm" ||
+            (value = value_after_equals(argument, "--opengl-reference-ppm")) != nullptr)
+        {
+            if (!value)
+            {
+                value = require_value(i, "--opengl-reference-ppm");
+            }
+            if (!value)
+            {
+                return false;
+            }
+            options.mOpenGLReferencePPMPath = value;
+            continue;
+        }
+
+        if (argument == "--shader-case" ||
+            (value = value_after_equals(argument, "--shader-case")) != nullptr)
+        {
+            if (!value)
+            {
+                value = require_value(i, "--shader-case");
+            }
+            if (!value || !*value)
+            {
+                std::cerr << "--shader-case requires a value.\n";
+                return false;
+            }
+            options.mShaderCase = value;
+            options.mShaderCaseExplicit = true;
+            continue;
+        }
+
+        if (argument == "--list-shader-cases")
+        {
+            options.mListShaderCases = true;
+            continue;
+        }
+
+        if (argument == "--list-shader-parity")
+        {
+            options.mListShaderParity = true;
+            continue;
+        }
+
+        if (argument == "--list-pipeline-contracts")
+        {
+            options.mListPipelineContracts = true;
+            continue;
+        }
+
         if (argument == "--no-stdout-readback")
         {
             options.mStdoutReadback = false;
@@ -741,7 +882,10 @@ struct SmokeQuad
     U64 mTextureIndexOffset = 0;
 };
 
-bool create_smoke_quad(LLRenderBackend& backend, SmokeQuad& quad)
+bool create_smoke_quad(
+    LLRenderBackend& backend,
+    SmokeQuad& quad,
+    const std::array<U8, 4>& vertex_color = {{ 255, 255, 255, 255 }})
 {
     const std::array<std::array<F32, 4>, 6> positions =
     {{
@@ -803,12 +947,12 @@ bool create_smoke_quad(LLRenderBackend& backend, SmokeQuad& quad)
     }};
     const std::array<std::array<U8, 4>, 6> colors =
     {{
-        {{ 255, 255, 255, 255 }},
-        {{ 255, 255, 255, 255 }},
-        {{ 255, 255, 255, 255 }},
-        {{ 255, 255, 255, 255 }},
-        {{ 255, 255, 255, 255 }},
-        {{ 255, 255, 255, 255 }},
+        vertex_color,
+        vertex_color,
+        vertex_color,
+        vertex_color,
+        vertex_color,
+        vertex_color,
     }};
 
     std::vector<U8> bytes;
@@ -1341,7 +1485,7 @@ bool ensure_smoke_deferred_textures(
             textures.mDepth,
             texture_width,
             texture_height,
-            make_solid_rgba_pixels(texture_width, texture_height, 255, 255, 255, 255)) ||
+            make_solid_rgba_pixels(texture_width, texture_height, 204, 204, 204, 255)) ||
         !create_smoke_texture(
             backend,
             textures.mWhite,
@@ -1441,7 +1585,11 @@ void bind_world_pipeline_smoke_textures(
         backend.setActiveTextureUnit(unit);
         backend.bindTexture(LLRenderTextureTarget::Texture2D, bindings[unit]);
     }
-    for (S32 unit = 9; unit <= 12; ++unit)
+    backend.setActiveTextureUnit(8);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, textures.mDepth);
+    backend.setActiveTextureUnit(9);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, textures.mDiffuse);
+    for (S32 unit = 10; unit <= 12; ++unit)
     {
         backend.setActiveTextureUnit(unit);
         backend.bindTexture(LLRenderTextureTarget::Texture2D, textures.mEmissive);
@@ -1524,7 +1672,823 @@ struct SmokeWorldPipelineEntry
     U32 mFlags;
     bool mAlphaBlend = false;
     bool mAddBlend = false;
+    LLWorldRenderMaterialClass mMaterialClass =
+        LLWorldRenderMaterialClass::SimpleOpaque;
+    bool mHasMaterialClass = false;
 };
+
+std::array<SmokeWorldPipelineEntry, 17> make_world_pipeline_probe_entries()
+{
+    constexpr U32 fullbright =
+        LLRenderWorldMaterialParameters::Fullbright;
+    constexpr U32 fullbright_shiny =
+        LLRenderWorldMaterialParameters::Fullbright |
+        LLRenderWorldMaterialParameters::LegacyShiny |
+        LLRenderWorldMaterialParameters::PostDeferred;
+    constexpr U32 pbr =
+        LLRenderWorldMaterialParameters::GLTFPBR |
+        LLRenderWorldMaterialParameters::HasNormalMap |
+        LLRenderWorldMaterialParameters::HasORMMap;
+    constexpr U32 material =
+        LLRenderWorldMaterialParameters::HasSpecularMap |
+        LLRenderWorldMaterialParameters::LegacyBump |
+        LLRenderWorldMaterialParameters::LegacyShiny;
+    constexpr U32 post_bump =
+        LLRenderWorldMaterialParameters::LegacyBump |
+        LLRenderWorldMaterialParameters::PostDeferred;
+    constexpr U32 alpha =
+        LLRenderWorldMaterialParameters::AlphaBlend;
+    constexpr U32 glow =
+        LLRenderWorldMaterialParameters::Glow |
+        LLRenderWorldMaterialParameters::PostDeferred;
+    constexpr U32 water =
+        LLRenderWorldMaterialParameters::Water |
+        LLRenderWorldMaterialParameters::PostDeferred |
+        LLRenderWorldMaterialParameters::SceneDepth |
+        LLRenderWorldMaterialParameters::SceneColor;
+    constexpr U32 haze =
+        LLRenderWorldMaterialParameters::AtmosphericHaze |
+        LLRenderWorldMaterialParameters::PostDeferred |
+        LLRenderWorldMaterialParameters::SceneDepth |
+        LLRenderWorldMaterialParameters::SceneColor;
+
+    return
+    {{
+        { LLRenderWorldShaderClass::Sky, "Sky", 0.25f, 0.48f, 0.92f, 0 },
+        { LLRenderWorldShaderClass::Terrain, "Terrain", 0.34f, 0.58f, 0.28f, 0 },
+        { LLRenderWorldShaderClass::Textured, "Textured", 0.42f, 0.72f, 0.96f, 0 },
+        { LLRenderWorldShaderClass::AlphaMask, "AlphaMask", 0.92f, 0.78f, 0.28f, LLRenderWorldMaterialParameters::AlphaMask },
+        { LLRenderWorldShaderClass::Fullbright, "Fullbright", 0.95f, 0.42f, 0.35f, fullbright },
+        { LLRenderWorldShaderClass::Fullbright, "FullbrightShiny", 0.98f, 0.54f, 0.34f, fullbright_shiny, true, false, LLWorldRenderMaterialClass::FullbrightShiny, true },
+        { LLRenderWorldShaderClass::Material, "Material", 0.78f, 0.58f, 0.95f, material },
+        { LLRenderWorldShaderClass::Material, "PostBump", 0.72f, 0.82f, 0.96f, post_bump, false, false, LLWorldRenderMaterialClass::PostBump, true },
+        { LLRenderWorldShaderClass::PBR, "PBR", 0.90f, 0.72f, 0.48f, pbr },
+        { LLRenderWorldShaderClass::Avatar, "Avatar", 0.86f, 0.52f, 0.44f, 0 },
+        { LLRenderWorldShaderClass::Water, "Water", 0.20f, 0.52f, 0.82f, water, true },
+        { LLRenderWorldShaderClass::Haze, "Haze", 0.72f, 0.78f, 0.86f, haze, true },
+        { LLRenderWorldShaderClass::Alpha, "Alpha", 0.82f, 0.34f, 0.68f, alpha, true },
+        { LLRenderWorldShaderClass::Glow, "Glow", 1.00f, 0.72f, 0.22f, glow, false, true },
+        { LLRenderWorldShaderClass::Copy, "Copy", 0.58f, 0.68f, 0.86f, 0 },
+        { LLRenderWorldShaderClass::DeferredComposite, "DeferredComposite", 0.38f, 0.48f, 0.68f, 0 },
+        { LLRenderWorldShaderClass::FinalComposite, "FinalComposite", 0.72f, 0.84f, 0.96f, 0 },
+    }};
+}
+
+std::string normalize_shader_case_name(const std::string& value)
+{
+    std::string normalized;
+    normalized.reserve(value.size());
+    for (unsigned char character : value)
+    {
+        if (std::isalnum(character))
+        {
+            normalized.push_back(
+                static_cast<char>(std::tolower(character)));
+        }
+    }
+    return normalized;
+}
+
+struct SmokeShaderParityEntry
+{
+    const char* mCaseName;
+    const char* mRuntimeVulkanVertex;
+    const char* mRuntimeVulkanFragment;
+    const char* mIntendedFinalVulkanVertex;
+    const char* mIntendedFinalVulkanFragment;
+    const char* mOpenGLVertexReference;
+    const char* mOpenGLFragmentReference;
+    const char* mRuntimeInterfaceContract;
+    const char* mIntendedInterfaceContract;
+    const char* mPipelineStateContract;
+    const char* mStatus;
+    const char* mNextStep;
+};
+
+std::array<SmokeShaderParityEntry, 15> make_shader_parity_entries()
+{
+    return
+    {{
+        {
+            "Sky",
+            "vulkan/final/active/world_textured.vert",
+            "vulkan/final/active/sky.frag",
+            "vulkan/final/class1/deferred/sky.vert",
+            "vulkan/final/class1/deferred/sky.frag",
+            "class1/deferred/skyV.glsl",
+            "class1/deferred/skyF.glsl",
+            "active world adapter: MareWorldPushConstants plus set0 texture array",
+            "pending final sky ABI: EEP/WindLight uniforms, generated varyings, and atmosphere inputs must be mapped before binding",
+            "OpenGL sky pass: deferred sky draw, depth disabled/read-only by owner, blend and cull state inherited from sky owner",
+            "active Vulkan adapter; final class1 source exists but is not the runtime owner yet",
+            "compare EEP sky uniforms and generated varyings against OpenGL class1 sky"
+        },
+        {
+            "Terrain",
+            "vulkan/final/active/terrain.vert",
+            "vulkan/final/active/terrain.frag",
+            "vulkan/final/class1/deferred/terrain.vert",
+            "vulkan/final/class1/deferred/terrain.frag",
+            "class1/deferred/terrainV.glsl",
+            "class1/deferred/terrainF.glsl",
+            "active terrain adapter: MareWorldPushConstants plus set0 terrain texture array",
+            "pending final terrain ABI: terrain scale/offset, splat channels, and G-buffer outputs must match class1 terrain",
+            "OpenGL terrain deferred pass: opaque blend, depth read/write, back-face cull unless owner disables it",
+            "active Vulkan adapter; final class1 source exists but is not the runtime owner yet",
+            "compare splat/base-color terrain inputs and G-buffer color output"
+        },
+        {
+            "Textured",
+            "vulkan/final/active/world_textured.vert",
+            "vulkan/final/active/world_textured.frag",
+            "vulkan/final/class1/deferred/diffuse.vert",
+            "vulkan/final/class1/deferred/diffuse.frag",
+            "class1/deferred/diffuseV.glsl; class1/objects/simpleNoAtmosV.glsl",
+            "class1/deferred/diffuseF.glsl; class1/objects/simpleF.glsl",
+            "active world adapter: MareWorldPushConstants plus set0 texture array",
+            "pending split ABI: deferred diffuse and simple-object uniforms must not be collapsed unless OpenGL does",
+            "LLWorldRenderCommand opaque/simple state: blend/depth/cull/color-mask translated from captured OpenGL state",
+            "active Vulkan adapter; maps to legacy diffuse/simple OpenGL families",
+            "split direct textured and deferred diffuse comparisons instead of using one reference"
+        },
+        {
+            "AlphaMask",
+            "direct: vulkan/final/active/world_textured.vert; G-buffer: vulkan/final/class1/deferred/diffuse_indexed.vert",
+            "direct: vulkan/final/active/alpha_mask.frag; G-buffer: vulkan/final/class1/deferred/diffuse_alpha_mask_indexed.frag",
+            "vulkan/final/class1/deferred/diffuse_indexed.vert",
+            "vulkan/final/class1/deferred/diffuse_alpha_mask_indexed.frag",
+            "class1/deferred/diffuseV.glsl",
+            "class1/deferred/diffuseAlphaMaskF.glsl; class1/deferred/diffuseAlphaMaskIndexedF.glsl",
+            "G-buffer final ABI: MareWorldPushConstants, set0 texture array, texture index, runtime cutoff, optional skinning; direct AlphaMask still uses the active adapter",
+            "same final G-buffer ABI; direct swapchain parity still needs a separate source-faithful object/simple path",
+            "OpenGL alpha-mask deferred pass: alpha discard/cutoff, opaque-style depth write, cull state from captured draw owner",
+            "runtime G-buffer alpha-mask now uses the indexed class1 final shader pair; direct shader-probe alpha-mask remains active adapter coverage",
+            "add a controlled G-buffer alpha-mask probe and compare cutoff/discard behavior with OpenGL source output"
+        },
+        {
+            "Fullbright",
+            "vulkan/final/active/world_textured.vert",
+            "vulkan/final/active/fullbright.frag",
+            "vulkan/final/class1/deferred/fullbright.vert",
+            "vulkan/final/class1/deferred/fullbright.frag",
+            "class1/deferred/fullbrightV.glsl; class1/deferred/fullbrightShinyV.glsl",
+            "class1/deferred/fullbrightF.glsl; class3/deferred/fullbrightShinyF.glsl",
+            "active world adapter: MareWorldPushConstants plus set0 texture array",
+            "pending split ABI: fullbright, shiny, alpha-mask, and alpha variants need separate runtime contracts",
+            "OpenGL fullbright state: owner-selected blend/depth/cull with no deferred lighting contribution",
+            "active Vulkan adapter; fullbright and shiny variants are still collapsed in the probe",
+            "add separate non-shiny, alpha-mask, alpha, and shiny probe cases"
+        },
+        {
+            "Material",
+            "vulkan/final/active/world_textured.vert",
+            "vulkan/final/active/material.frag",
+            "vulkan/final/class1/deferred/material.vert",
+            "vulkan/final/class1/deferred/material.frag",
+            "class1/deferred/materialV.glsl",
+            "class1/deferred/materialF.glsl; class3/deferred/materialF.glsl",
+            "active material adapter: MareWorldPushConstants, set0 texture array, and synthetic normal/specular bindings",
+            "pending material ABI: class1/class3 material uniforms, tangent basis, and map enables must match OpenGL",
+            "OpenGL material deferred state: opaque G-buffer write, depth read/write, owner cull state",
+            "active Vulkan adapter; specular/bump/shiny flags are synthetic",
+            "compare legacy material permutations and normal/specular map inputs"
+        },
+        {
+            "PBR",
+            "vulkan/final/active/world_textured.vert",
+            "vulkan/final/active/pbr.frag",
+            "vulkan/final/class1/deferred/pbropaque.vert",
+            "vulkan/final/class1/deferred/pbropaque.frag",
+            "class1/deferred/pbropaqueV.glsl; class1/gltf/pbrmetallicroughnessV.glsl",
+            "class1/deferred/pbropaqueF.glsl; class1/gltf/pbrmetallicroughnessF.glsl",
+            "active PBR adapter: MareWorldPushConstants plus set0 texture array with normal/ORM/emissive slots",
+            "pending PBR ABI: GLTF/PBR material uniforms, reflection probes, and lighting classes must match OpenGL settings",
+            "OpenGL PBR deferred state: opaque G-buffer write with material-specific vertex attributes and tangent input",
+            "active Vulkan adapter; PBR lighting and reflection probes are not a full OpenGL match yet",
+            "compare base color, normal, ORM, emissive, and reflection-probe terms separately"
+        },
+        {
+            "Avatar",
+            "vulkan/final/active/world_textured.vert",
+            "vulkan/final/active/avatar.frag",
+            "vulkan/final/class1/deferred/avatar.vert",
+            "vulkan/final/class1/deferred/avatar.frag",
+            "class1/deferred/avatarV.glsl; class1/avatar/avatarV.glsl; class1/avatar/avatarSkinV.glsl",
+            "class1/deferred/avatarF.glsl; class1/avatar/avatarF.glsl",
+            "active avatar adapter: MareWorldPushConstants plus set0 avatar texture and optional skinning palette",
+            "pending avatar ABI: baked textures, skinning include contract, impostor/direct/deferred variants must stay distinct",
+            "OpenGL avatar state: avatar draw-pool selected depth/cull/blend with skinned vertex attributes when enabled",
+            "active Vulkan adapter; smoke probe does not exercise real skinning or baked avatar textures",
+            "add skinned vertex-buffer probe before judging avatar shader parity"
+        },
+        {
+            "Water",
+            "vulkan/final/active/world_textured.vert",
+            "vulkan/final/active/water.frag",
+            "vulkan/final/class1/environment/water.vert; vulkan/final/class3/environment/water.frag",
+            "vulkan/final/class3/environment/water.frag",
+            "class1/environment/waterV.glsl",
+            "class1/environment/waterF.glsl; class3/environment/waterF.glsl; class3/environment/underWaterF.glsl",
+            "active water adapter: MareWorldPushConstants plus set0 texture array",
+            "pending water ABI: water normals, reflection/refraction targets, fog, fresnel, and class1/class3 settings must match OpenGL",
+            "OpenGL water pass: transparent water composition state with owner-specific depth/blend and reflection inputs",
+            "active Vulkan adapter; class3 water source exists but runtime water remains approximate",
+            "compare water normals, fresnel, fog, and reflection/refraction inputs"
+        },
+        {
+            "Haze",
+            "vulkan/final/active/world_textured.vert",
+            "vulkan/final/active/haze.frag",
+            "vulkan/final/class2/deferred/soften_light.vert; vulkan/final/class3/deferred/haze.frag",
+            "vulkan/final/class3/deferred/haze.frag",
+            "class2/deferred/softenLightV.glsl",
+            "class3/deferred/hazeF.glsl",
+            "active haze adapter: MareWorldPushConstants plus synthetic depth/color probe inputs",
+            "pending haze ABI: class2 soften-light varyings and class3 haze atmospheric/depth uniforms must be mapped exactly",
+            "OpenGL haze pass: fullscreen deferred pass using depth, color, water plane, and atmosphere uniforms",
+            "active Vulkan adapter; shader-probe is now visible with controlled depth/color inputs, but differs strongly from the OpenGL source-level reference",
+            "replace active haze approximation with the final class3 haze shader path and match depth/atmospheric inputs"
+        },
+        {
+            "Alpha",
+            "vulkan/final/class1/deferred/alpha.vert",
+            "vulkan/final/class2/deferred/alpha.frag",
+            "vulkan/final/class1/deferred/alpha.vert",
+            "vulkan/final/class2/deferred/alpha.frag",
+            "class1/deferred/alphaV.glsl",
+            "class2/deferred/alphaF.glsl",
+            "runtime alpha ABI: MareWorldPushConstants, set0 texture array, vertex color, and optional skinning palette",
+            "same as runtime for the current final alpha owner; remaining work is missing OpenGL inputs, not a different ABI",
+            "LLDrawPoolAlpha forward state: src-alpha/one-minus-src-alpha blend, owner-selected depth read/write, cull disabled for alpha",
+            "runtime now uses class1/deferred/alpha.vert plus class2/deferred/alpha.frag; OpenGL source reference uses vertex color; strict RGB diff is 5.3333 mean, 15 max",
+            "finish OpenGL local-light, reflection, fog, depth, and post-water lighting inputs"
+        },
+        {
+            "Glow",
+            "vulkan/final/active/world_textured.vert",
+            "vulkan/final/active/glow.frag",
+            "vulkan/final/class1/effects/glow.vert",
+            "vulkan/final/class1/effects/glow.frag",
+            "class1/effects/glowV.glsl",
+            "class1/effects/glowF.glsl; class1/effects/glowExtractF.glsl",
+            "active glow adapter: MareWorldPushConstants plus set0 texture array",
+            "pending glow ABI: extract, blur/combine, and glow target contracts must be separated like OpenGL",
+            "OpenGL glow state: effect target writes and combine passes, not ordinary world textured state",
+            "active Vulkan adapter; glow combine/extract are not separated in the probe",
+            "add extract and combine probe cases with OpenGL glow target inputs"
+        },
+        {
+            "Copy",
+            "vulkan/final/class1/interface/copy.vert",
+            "vulkan/final/class1/interface/copy.frag",
+            "vulkan/final/class1/interface/copy.vert",
+            "vulkan/final/class1/interface/copy.frag",
+            "class1/interface/copyV.glsl",
+            "class1/interface/copyF.glsl",
+            "runtime copy ABI: position-only fullscreen triangle, generated UV, set0 diffuseMap",
+            "same as runtime; this is the final copy ABI",
+            "OpenGL copy state: no blend, depth disabled, cull disabled, byte-level color copy",
+            "runtime now uses the class1 interface copy vertex/fragment shaders; strict PPM diff is 0.0000 mean, 0 max",
+            "keep as the byte-level copy shader harness baseline"
+        },
+        {
+            "DeferredComposite",
+            "vulkan/final/active/world_textured.vert",
+            "vulkan/final/active/deferred_composite.frag",
+            "vulkan/final/class3/deferred/soften_light.vert",
+            "vulkan/final/class3/deferred/soften_light.frag",
+            "class2/deferred/softenLightV.glsl",
+            "class3/deferred/softenLightF.glsl",
+            "active deferred-composite adapter: MareWorldPushConstants plus currently staged G-buffer inputs",
+            "pending deferred ABI: class2/class3 soften-light uniforms, depth/light/SSAO/shadow/probe inputs must match OpenGL",
+            "OpenGL deferred composite state: fullscreen lighting pass from G-buffer into light/composite targets",
+            "active Vulkan adapter; OpenGL reference is the soften/deferred lighting pass, not one simple shader",
+            "compare controlled G-buffer, depth, shadow, SSAO, and reflection-probe inputs"
+        },
+        {
+            "FinalComposite",
+            "vulkan/final/active/world_textured.vert",
+            "vulkan/final/active/final_composite.frag",
+            "vulkan/final/class1/deferred/post_deferred.vert",
+            "vulkan/final/class1/deferred/post_deferred.frag",
+            "class1/deferred/postDeferredV.glsl",
+            "class1/deferred/postDeferredF.glsl; postDeferredGammaCorrect.glsl; postDeferredTonemap.glsl",
+            "active final-composite adapter: MareWorldPushConstants plus staged color/depth/post targets",
+            "pending post ABI: postDeferred variants, DoF, tonemap, gamma, AA, and glow inputs must follow user settings",
+            "OpenGL final post state: fullscreen post-process pass with setting-selected shader class and no world depth writes",
+            "active Vulkan adapter; OpenGL final output depends on post-processing settings",
+            "compare no-tonemap, tonemap, gamma, DoF, and FXAA/SMAA variants separately"
+        },
+    }};
+}
+
+bool find_shader_probe_case(
+    const std::string& name,
+    SmokeWorldPipelineEntry& output)
+{
+    const std::string requested = normalize_shader_case_name(name);
+    for (const SmokeWorldPipelineEntry& entry : make_world_pipeline_probe_entries())
+    {
+        if (normalize_shader_case_name(entry.mName) == requested)
+        {
+            output = entry;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool shader_parity_matches_filter(
+    const SmokeShaderParityEntry& entry,
+    const std::string& filter)
+{
+    if (filter.empty())
+    {
+        return true;
+    }
+    return normalize_shader_case_name(entry.mCaseName) ==
+        normalize_shader_case_name(filter);
+}
+
+bool print_shader_parity_entries(const std::string& filter)
+{
+    bool found = false;
+    std::cout << "Mare Vulkan/OpenGL shader parity map:\n";
+    for (const SmokeShaderParityEntry& entry : make_shader_parity_entries())
+    {
+        if (!shader_parity_matches_filter(entry, filter))
+        {
+            continue;
+        }
+        found = true;
+        std::cout
+            << "\n"
+            << entry.mCaseName
+            << "\n"
+            << "  runtime Vulkan: "
+            << entry.mRuntimeVulkanVertex
+            << " + "
+            << entry.mRuntimeVulkanFragment
+            << "\n"
+            << "  intended final Vulkan: "
+            << entry.mIntendedFinalVulkanVertex
+            << " + "
+            << entry.mIntendedFinalVulkanFragment
+            << "\n"
+            << "  OpenGL reference: "
+            << entry.mOpenGLVertexReference
+            << " + "
+            << entry.mOpenGLFragmentReference
+            << "\n"
+            << "  runtime interface: "
+            << entry.mRuntimeInterfaceContract
+            << "\n"
+            << "  intended interface: "
+            << entry.mIntendedInterfaceContract
+            << "\n"
+            << "  pipeline state: "
+            << entry.mPipelineStateContract
+            << "\n"
+            << "  status: "
+            << entry.mStatus
+            << "\n"
+            << "  next: "
+            << entry.mNextStep
+            << "\n";
+    }
+
+    if (!found)
+    {
+        std::cerr
+            << "No shader parity entry matched '"
+            << filter
+            << "'. Use --list-shader-cases.\n";
+        return false;
+    }
+    return true;
+}
+
+std::array<LLWorldRenderMaterialClass, 23> make_world_render_material_contract_classes()
+{
+    return
+    {{
+        LLWorldRenderMaterialClass::Sky,
+        LLWorldRenderMaterialClass::Terrain,
+        LLWorldRenderMaterialClass::SimpleOpaque,
+        LLWorldRenderMaterialClass::AlphaMask,
+        LLWorldRenderMaterialClass::Grass,
+        LLWorldRenderMaterialClass::Tree,
+        LLWorldRenderMaterialClass::Fullbright,
+        LLWorldRenderMaterialClass::FullbrightAlphaMask,
+        LLWorldRenderMaterialClass::Bump,
+        LLWorldRenderMaterialClass::LegacyMaterial,
+        LLWorldRenderMaterialClass::GLTFPBR,
+        LLWorldRenderMaterialClass::GLTFPBRAlphaMask,
+        LLWorldRenderMaterialClass::Avatar,
+        LLWorldRenderMaterialClass::AvatarImpostor,
+        LLWorldRenderMaterialClass::Alpha,
+        LLWorldRenderMaterialClass::Glow,
+        LLWorldRenderMaterialClass::Water,
+        LLWorldRenderMaterialClass::WaterExclusionMask,
+        LLWorldRenderMaterialClass::WaterExclusionSurface,
+        LLWorldRenderMaterialClass::AtmosphericHaze,
+        LLWorldRenderMaterialClass::WaterHaze,
+        LLWorldRenderMaterialClass::FullbrightShiny,
+        LLWorldRenderMaterialClass::PostBump,
+    }};
+}
+
+LLWorldRenderPipelineContract get_smoke_world_render_pipeline_contract(
+    LLWorldRenderMaterialClass material_class)
+{
+    LLWorldRenderPipelineContract contract;
+    contract.mMaterialClass = material_class;
+
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Fullbright:
+        case LLWorldRenderMaterialClass::FullbrightAlphaMask:
+        case LLWorldRenderMaterialClass::Alpha:
+        case LLWorldRenderMaterialClass::Glow:
+        case LLWorldRenderMaterialClass::Water:
+        case LLWorldRenderMaterialClass::WaterExclusionMask:
+        case LLWorldRenderMaterialClass::WaterExclusionSurface:
+        case LLWorldRenderMaterialClass::AtmosphericHaze:
+        case LLWorldRenderMaterialClass::WaterHaze:
+        case LLWorldRenderMaterialClass::FullbrightShiny:
+        case LLWorldRenderMaterialClass::PostBump:
+            contract.mPassClass = LLWorldRenderPassClass::PostDeferred;
+            break;
+        case LLWorldRenderMaterialClass::Sky:
+        default:
+            contract.mPassClass = LLWorldRenderPassClass::Deferred;
+            break;
+    }
+
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Alpha:
+            contract.mBlendMode = LLWorldRenderBlendMode::ForwardAlpha;
+            break;
+        case LLWorldRenderMaterialClass::Fullbright:
+        case LLWorldRenderMaterialClass::FullbrightShiny:
+            contract.mBlendMode = LLWorldRenderBlendMode::Alpha;
+            break;
+        case LLWorldRenderMaterialClass::AtmosphericHaze:
+        case LLWorldRenderMaterialClass::WaterHaze:
+            contract.mBlendMode = LLWorldRenderBlendMode::Haze;
+            break;
+        case LLWorldRenderMaterialClass::Glow:
+            contract.mBlendMode = LLWorldRenderBlendMode::Add;
+            break;
+        case LLWorldRenderMaterialClass::PostBump:
+            contract.mBlendMode = LLWorldRenderBlendMode::MultiplyX2;
+            break;
+        default:
+            contract.mBlendMode = LLWorldRenderBlendMode::None;
+            break;
+    }
+
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Sky:
+        case LLWorldRenderMaterialClass::Alpha:
+        case LLWorldRenderMaterialClass::Glow:
+        case LLWorldRenderMaterialClass::Water:
+        case LLWorldRenderMaterialClass::AtmosphericHaze:
+        case LLWorldRenderMaterialClass::WaterHaze:
+        case LLWorldRenderMaterialClass::PostBump:
+            contract.mDepthMode = LLWorldRenderDepthMode::ReadOnly;
+            break;
+        default:
+            contract.mDepthMode = LLWorldRenderDepthMode::ReadWrite;
+            break;
+    }
+
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Alpha:
+        case LLWorldRenderMaterialClass::AvatarImpostor:
+        case LLWorldRenderMaterialClass::Sky:
+        case LLWorldRenderMaterialClass::Water:
+        case LLWorldRenderMaterialClass::WaterExclusionMask:
+        case LLWorldRenderMaterialClass::AtmosphericHaze:
+        case LLWorldRenderMaterialClass::WaterHaze:
+            contract.mCullMode = LLWorldRenderCullMode::Disabled;
+            break;
+        default:
+            contract.mCullMode = LLWorldRenderCullMode::Back;
+            break;
+    }
+
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Terrain:
+            contract.mShaderClass = LLRenderWorldShaderClass::Terrain;
+            break;
+        case LLWorldRenderMaterialClass::Sky:
+            contract.mShaderClass = LLRenderWorldShaderClass::Sky;
+            break;
+        case LLWorldRenderMaterialClass::Water:
+            contract.mShaderClass = LLRenderWorldShaderClass::Water;
+            break;
+        case LLWorldRenderMaterialClass::WaterExclusionMask:
+        case LLWorldRenderMaterialClass::WaterExclusionSurface:
+        case LLWorldRenderMaterialClass::AtmosphericHaze:
+        case LLWorldRenderMaterialClass::WaterHaze:
+            contract.mShaderClass = LLRenderWorldShaderClass::Haze;
+            break;
+        case LLWorldRenderMaterialClass::Alpha:
+            contract.mShaderClass = LLRenderWorldShaderClass::Alpha;
+            break;
+        case LLWorldRenderMaterialClass::Glow:
+            contract.mShaderClass = LLRenderWorldShaderClass::Glow;
+            break;
+        case LLWorldRenderMaterialClass::AlphaMask:
+        case LLWorldRenderMaterialClass::Grass:
+        case LLWorldRenderMaterialClass::Tree:
+        case LLWorldRenderMaterialClass::GLTFPBRAlphaMask:
+            contract.mShaderClass = LLRenderWorldShaderClass::AlphaMask;
+            break;
+        case LLWorldRenderMaterialClass::Fullbright:
+        case LLWorldRenderMaterialClass::FullbrightAlphaMask:
+        case LLWorldRenderMaterialClass::FullbrightShiny:
+            contract.mShaderClass = LLRenderWorldShaderClass::Fullbright;
+            break;
+        case LLWorldRenderMaterialClass::LegacyMaterial:
+        case LLWorldRenderMaterialClass::Bump:
+        case LLWorldRenderMaterialClass::PostBump:
+            contract.mShaderClass = LLRenderWorldShaderClass::Material;
+            break;
+        case LLWorldRenderMaterialClass::GLTFPBR:
+            contract.mShaderClass = LLRenderWorldShaderClass::PBR;
+            break;
+        case LLWorldRenderMaterialClass::Avatar:
+        case LLWorldRenderMaterialClass::AvatarImpostor:
+            contract.mShaderClass = LLRenderWorldShaderClass::Avatar;
+            break;
+        default:
+            contract.mShaderClass = LLRenderWorldShaderClass::Textured;
+            break;
+    }
+
+    if (material_class == LLWorldRenderMaterialClass::Glow)
+    {
+        contract.mWriteColor = false;
+        contract.mWriteAlpha = true;
+    }
+    if (material_class == LLWorldRenderMaterialClass::Glow ||
+        material_class == LLWorldRenderMaterialClass::PostBump)
+    {
+        contract.mPolygonOffsetEnabled = true;
+        contract.mPolygonOffsetFactor = -1.f;
+        contract.mPolygonOffsetUnits = -1.f;
+    }
+
+    return contract;
+}
+
+const char* get_smoke_world_render_material_class_name(
+    LLWorldRenderMaterialClass material_class)
+{
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Sky: return "Sky";
+        case LLWorldRenderMaterialClass::Terrain: return "Terrain";
+        case LLWorldRenderMaterialClass::SimpleOpaque: return "SimpleOpaque";
+        case LLWorldRenderMaterialClass::AlphaMask: return "AlphaMask";
+        case LLWorldRenderMaterialClass::Grass: return "Grass";
+        case LLWorldRenderMaterialClass::Tree: return "Tree";
+        case LLWorldRenderMaterialClass::Fullbright: return "Fullbright";
+        case LLWorldRenderMaterialClass::FullbrightAlphaMask: return "FullbrightAlphaMask";
+        case LLWorldRenderMaterialClass::Bump: return "Bump";
+        case LLWorldRenderMaterialClass::LegacyMaterial: return "LegacyMaterial";
+        case LLWorldRenderMaterialClass::GLTFPBR: return "GLTFPBR";
+        case LLWorldRenderMaterialClass::GLTFPBRAlphaMask: return "GLTFPBRAlphaMask";
+        case LLWorldRenderMaterialClass::Avatar: return "Avatar";
+        case LLWorldRenderMaterialClass::AvatarImpostor: return "AvatarImpostor";
+        case LLWorldRenderMaterialClass::Alpha: return "Alpha";
+        case LLWorldRenderMaterialClass::Glow: return "Glow";
+        case LLWorldRenderMaterialClass::Water: return "Water";
+        case LLWorldRenderMaterialClass::WaterExclusionMask: return "WaterExclusionMask";
+        case LLWorldRenderMaterialClass::WaterExclusionSurface: return "WaterExclusionSurface";
+        case LLWorldRenderMaterialClass::AtmosphericHaze: return "AtmosphericHaze";
+        case LLWorldRenderMaterialClass::WaterHaze: return "WaterHaze";
+        case LLWorldRenderMaterialClass::FullbrightShiny: return "FullbrightShiny";
+        case LLWorldRenderMaterialClass::PostBump: return "PostBump";
+    }
+    return "Unknown";
+}
+
+const char* get_smoke_world_render_pass_class_name(LLWorldRenderPassClass pass_class)
+{
+    switch (pass_class)
+    {
+        case LLWorldRenderPassClass::Deferred: return "Deferred";
+        case LLWorldRenderPassClass::PostDeferred: return "PostDeferred";
+    }
+    return "Unknown";
+}
+
+const char* get_smoke_world_render_blend_mode_name(LLWorldRenderBlendMode blend_mode)
+{
+    switch (blend_mode)
+    {
+        case LLWorldRenderBlendMode::None: return "None";
+        case LLWorldRenderBlendMode::Alpha: return "Alpha";
+        case LLWorldRenderBlendMode::ForwardAlpha: return "ForwardAlpha";
+        case LLWorldRenderBlendMode::Add: return "Add";
+        case LLWorldRenderBlendMode::Haze: return "Haze";
+        case LLWorldRenderBlendMode::MultiplyX2: return "MultiplyX2";
+    }
+    return "Unknown";
+}
+
+const char* get_smoke_world_render_depth_mode_name(LLWorldRenderDepthMode depth_mode)
+{
+    switch (depth_mode)
+    {
+        case LLWorldRenderDepthMode::ReadWrite: return "ReadWrite";
+        case LLWorldRenderDepthMode::ReadOnly: return "ReadOnly";
+        case LLWorldRenderDepthMode::Disabled: return "Disabled";
+    }
+    return "Unknown";
+}
+
+const char* get_smoke_world_render_cull_mode_name(LLWorldRenderCullMode cull_mode)
+{
+    switch (cull_mode)
+    {
+        case LLWorldRenderCullMode::Back: return "Back";
+        case LLWorldRenderCullMode::Disabled: return "Disabled";
+    }
+    return "Unknown";
+}
+
+const char* get_smoke_world_render_shader_class_name(LLRenderWorldShaderClass shader_class)
+{
+    switch (shader_class)
+    {
+        case LLRenderWorldShaderClass::Textured: return "Textured";
+        case LLRenderWorldShaderClass::Sky: return "Sky";
+        case LLRenderWorldShaderClass::Water: return "Water";
+        case LLRenderWorldShaderClass::Haze: return "Haze";
+        case LLRenderWorldShaderClass::Alpha: return "Alpha";
+        case LLRenderWorldShaderClass::Glow: return "Glow";
+        case LLRenderWorldShaderClass::AlphaMask: return "AlphaMask";
+        case LLRenderWorldShaderClass::Fullbright: return "Fullbright";
+        case LLRenderWorldShaderClass::Material: return "Material";
+        case LLRenderWorldShaderClass::PBR: return "PBR";
+        case LLRenderWorldShaderClass::Avatar: return "Avatar";
+        case LLRenderWorldShaderClass::Terrain: return "Terrain";
+        case LLRenderWorldShaderClass::PointLight: return "PointLight";
+        case LLRenderWorldShaderClass::MultiPointLight: return "MultiPointLight";
+        case LLRenderWorldShaderClass::SpotLight: return "SpotLight";
+        case LLRenderWorldShaderClass::MultiSpotLight: return "MultiSpotLight";
+        case LLRenderWorldShaderClass::Copy: return "Copy";
+        case LLRenderWorldShaderClass::DeferredComposite: return "DeferredComposite";
+        case LLRenderWorldShaderClass::FinalComposite: return "FinalComposite";
+    }
+    return "Unknown";
+}
+
+const char* get_world_render_blend_state_contract(LLWorldRenderBlendMode blend_mode)
+{
+    switch (blend_mode)
+    {
+        case LLWorldRenderBlendMode::None:
+            return "blend disabled; Vulkan blend pipeline Opaque";
+        case LLWorldRenderBlendMode::Alpha:
+            return "source-alpha/one-minus-source-alpha color and alpha; Vulkan blend pipeline Alpha";
+        case LLWorldRenderBlendMode::ForwardAlpha:
+            return "color src-alpha/one-minus-src-alpha plus alpha zero/one-minus-src-alpha; Vulkan blend pipeline ForwardAlpha";
+        case LLWorldRenderBlendMode::Add:
+            return "one/one additive color and alpha; Vulkan blend pipeline Add";
+        case LLWorldRenderBlendMode::Haze:
+            return "one/source-alpha color plus zero/source-alpha alpha; Vulkan blend pipeline Haze";
+        case LLWorldRenderBlendMode::MultiplyX2:
+            return "dest-color/source-color multiply-x2; Vulkan blend pipeline MultiplyX2";
+    }
+    return "unknown blend contract";
+}
+
+const char* get_world_render_depth_state_contract(LLWorldRenderDepthMode depth_mode)
+{
+    switch (depth_mode)
+    {
+        case LLWorldRenderDepthMode::ReadWrite:
+            return "depth test enabled, function <=, depth write enabled";
+        case LLWorldRenderDepthMode::ReadOnly:
+            return "depth test enabled, function <=, depth write disabled";
+        case LLWorldRenderDepthMode::Disabled:
+            return "depth test disabled, depth write disabled";
+    }
+    return "unknown depth contract";
+}
+
+const char* get_world_render_cull_state_contract(LLWorldRenderCullMode cull_mode)
+{
+    switch (cull_mode)
+    {
+        case LLWorldRenderCullMode::Back:
+            return "back-face cull enabled unless the command is double-sided";
+        case LLWorldRenderCullMode::Disabled:
+            return "cull disabled";
+    }
+    return "unknown cull contract";
+}
+
+const char* get_world_render_color_pipeline_contract(
+    bool write_color,
+    bool write_alpha)
+{
+    if (write_color && write_alpha)
+    {
+        return "Enabled";
+    }
+    if (write_color)
+    {
+        return "ColorOnly";
+    }
+    if (write_alpha)
+    {
+        return "AlphaOnly";
+    }
+    return "Disabled";
+}
+
+bool print_world_pipeline_contract_entries()
+{
+    std::cout
+        << "Mare Vulkan/OpenGL world pipeline contract map:\n"
+        << "  Rule: Vulkan may use different API objects, but the pass, shader class,\n"
+        << "  blend, depth, cull, and color-mask behavior must match this OpenGL-derived\n"
+        << "  command contract before a final shader is considered branchable.\n";
+
+    for (LLWorldRenderMaterialClass material_class : make_world_render_material_contract_classes())
+    {
+        const LLWorldRenderPipelineContract contract =
+            get_smoke_world_render_pipeline_contract(material_class);
+        std::cout
+            << "\n"
+            << get_smoke_world_render_material_class_name(material_class)
+            << "\n"
+            << "  pass: "
+            << get_smoke_world_render_pass_class_name(contract.mPassClass)
+            << "\n"
+            << "  runtime shader class: "
+            << get_smoke_world_render_shader_class_name(contract.mShaderClass)
+            << "\n"
+            << "  blend: "
+            << get_smoke_world_render_blend_mode_name(contract.mBlendMode)
+            << " - "
+            << get_world_render_blend_state_contract(contract.mBlendMode)
+            << "\n"
+            << "  depth: "
+            << get_smoke_world_render_depth_mode_name(contract.mDepthMode)
+            << " - "
+            << get_world_render_depth_state_contract(contract.mDepthMode)
+            << "\n"
+            << "  cull: "
+            << get_smoke_world_render_cull_mode_name(contract.mCullMode)
+            << " - "
+            << get_world_render_cull_state_contract(contract.mCullMode)
+            << "\n"
+            << "  color mask: rgb="
+            << (contract.mWriteColor ? "write" : "skip")
+            << ", alpha="
+            << (contract.mWriteAlpha ? "write" : "skip")
+            << "\n"
+            << "  polygon offset: "
+            << (contract.mPolygonOffsetEnabled ? "enabled" : "disabled");
+        if (contract.mPolygonOffsetEnabled)
+        {
+            std::cout
+                << " factor="
+                << contract.mPolygonOffsetFactor
+                << " units="
+                << contract.mPolygonOffsetUnits;
+        }
+        std::cout
+            << "\n"
+            << "  Vulkan color pipeline: "
+            << get_world_render_color_pipeline_contract(
+                contract.mWriteColor,
+                contract.mWriteAlpha)
+            << "\n";
+    }
+
+    return true;
+}
+
+void print_shader_probe_cases()
+{
+    std::cout << "Available mare-vulkan-smoke shader cases:\n";
+    for (const SmokeWorldPipelineEntry& entry : make_world_pipeline_probe_entries())
+    {
+        std::cout << "  " << entry.mName << "\n";
+    }
+}
 
 struct SmokeCapturedMaterialTransform
 {
@@ -1543,6 +2507,9 @@ struct SmokeCapturedCommand
     LLWorldRenderBlendMode mBlendMode = LLWorldRenderBlendMode::None;
     LLWorldRenderDepthMode mDepthMode = LLWorldRenderDepthMode::ReadWrite;
     LLWorldRenderCullMode mCullMode = LLWorldRenderCullMode::Back;
+    bool mPolygonOffsetEnabled = false;
+    F32 mPolygonOffsetFactor = 0.f;
+    F32 mPolygonOffsetUnits = 0.f;
     bool mWriteColor = true;
     bool mWriteAlpha = true;
     bool mUseTexture = true;
@@ -1685,6 +2652,16 @@ bool load_smoke_capture_file(const std::string& path)
             {
                 command.mCullMode =
                     smoke_enum_from_u32(value, command.mCullMode);
+            }
+            else if (key == "polygon_offset" && stream >> value)
+            {
+                command.mPolygonOffsetEnabled = value != 0;
+            }
+            else if (key == "polygon_offset_factor" && stream >> command.mPolygonOffsetFactor)
+            {
+            }
+            else if (key == "polygon_offset_units" && stream >> command.mPolygonOffsetUnits)
+            {
             }
             else if (key == "write_color" && stream >> value)
             {
@@ -1871,6 +2848,7 @@ LLRenderWorldShaderClass get_capture_shader_class(LLWorldRenderMaterialClass mat
     case LLWorldRenderMaterialClass::Water:
         return LLRenderWorldShaderClass::Water;
     case LLWorldRenderMaterialClass::WaterExclusionMask:
+    case LLWorldRenderMaterialClass::WaterExclusionSurface:
     case LLWorldRenderMaterialClass::AtmosphericHaze:
     case LLWorldRenderMaterialClass::WaterHaze:
         return LLRenderWorldShaderClass::Haze;
@@ -1945,7 +2923,8 @@ U32 get_capture_material_flags(const SmokeCapturedCommand& command)
     {
         flags |= LLRenderWorldMaterialParameters::AlphaMask;
     }
-    if (command.mBlendMode == LLWorldRenderBlendMode::Alpha)
+    if (command.mBlendMode == LLWorldRenderBlendMode::Alpha ||
+        command.mBlendMode == LLWorldRenderBlendMode::ForwardAlpha)
     {
         flags |= LLRenderWorldMaterialParameters::AlphaBlend;
     }
@@ -1970,6 +2949,11 @@ U32 get_capture_material_flags(const SmokeCapturedCommand& command)
             LLRenderWorldMaterialParameters::SceneDepth |
             LLRenderWorldMaterialParameters::SceneColor;
     }
+    if (command.mMaterialClass == LLWorldRenderMaterialClass::WaterExclusionMask ||
+        command.mMaterialClass == LLWorldRenderMaterialClass::WaterExclusionSurface)
+    {
+        flags |= LLRenderWorldMaterialParameters::WaterExclusionMask;
+    }
     return flags;
 }
 
@@ -1990,6 +2974,7 @@ LLColor4 make_capture_replay_color(
         break;
     case LLWorldRenderMaterialClass::Water:
     case LLWorldRenderMaterialClass::WaterExclusionMask:
+    case LLWorldRenderMaterialClass::WaterExclusionSurface:
     case LLWorldRenderMaterialClass::WaterHaze:
         color = LLColor4(0.18f, 0.62f, 0.92f, 0.82f);
         break;
@@ -2107,7 +3092,7 @@ void apply_capture_command_state(
     {
         backend.setBlendState(
             {
-                LLRenderBlendFactor::SourceAlpha,
+                LLRenderBlendFactor::One,
                 LLRenderBlendFactor::One,
                 LLRenderBlendFactor::One,
                 LLRenderBlendFactor::One,
@@ -2119,8 +3104,28 @@ void apply_capture_command_state(
             {
                 LLRenderBlendFactor::SourceAlpha,
                 LLRenderBlendFactor::OneMinusSourceAlpha,
-                LLRenderBlendFactor::One,
+                LLRenderBlendFactor::SourceAlpha,
                 LLRenderBlendFactor::OneMinusSourceAlpha,
+            });
+    }
+    else if (command.mBlendMode == LLWorldRenderBlendMode::ForwardAlpha)
+    {
+        backend.setBlendState(
+            {
+                LLRenderBlendFactor::SourceAlpha,
+                LLRenderBlendFactor::OneMinusSourceAlpha,
+                LLRenderBlendFactor::Zero,
+                LLRenderBlendFactor::OneMinusSourceAlpha,
+            });
+    }
+    else if (command.mBlendMode == LLWorldRenderBlendMode::MultiplyX2)
+    {
+        backend.setBlendState(
+            {
+                LLRenderBlendFactor::DestinationColor,
+                LLRenderBlendFactor::SourceColor,
+                LLRenderBlendFactor::DestinationColor,
+                LLRenderBlendFactor::SourceColor,
             });
     }
 
@@ -2136,7 +3141,188 @@ void apply_capture_command_state(
     {
         backend.setCullFace(LLRenderCullFace::Back);
     }
+    backend.setCapability(
+        LLRenderCapability::PolygonOffsetFill,
+        command.mPolygonOffsetEnabled);
+    backend.setPolygonOffset(
+        command.mPolygonOffsetEnabled ? command.mPolygonOffsetFactor : 0.f,
+        command.mPolygonOffsetEnabled ? command.mPolygonOffsetUnits : 0.f);
     backend.setAlphaMaskCutoff(command.mAlphaMaskCutoff);
+}
+
+bool get_smoke_world_pipeline_entry_material_class(
+    const SmokeWorldPipelineEntry& entry,
+    LLWorldRenderMaterialClass& material_class)
+{
+    if (entry.mHasMaterialClass)
+    {
+        material_class = entry.mMaterialClass;
+        return true;
+    }
+
+    switch (entry.mShaderClass)
+    {
+        case LLRenderWorldShaderClass::Sky:
+            material_class = LLWorldRenderMaterialClass::Sky;
+            return true;
+        case LLRenderWorldShaderClass::Terrain:
+            material_class = LLWorldRenderMaterialClass::Terrain;
+            return true;
+        case LLRenderWorldShaderClass::Textured:
+            material_class = LLWorldRenderMaterialClass::SimpleOpaque;
+            return true;
+        case LLRenderWorldShaderClass::AlphaMask:
+            material_class = LLWorldRenderMaterialClass::AlphaMask;
+            return true;
+        case LLRenderWorldShaderClass::Fullbright:
+            material_class = LLWorldRenderMaterialClass::Fullbright;
+            return true;
+        case LLRenderWorldShaderClass::Material:
+            material_class = LLWorldRenderMaterialClass::LegacyMaterial;
+            return true;
+        case LLRenderWorldShaderClass::PBR:
+            material_class = LLWorldRenderMaterialClass::GLTFPBR;
+            return true;
+        case LLRenderWorldShaderClass::Avatar:
+            material_class = LLWorldRenderMaterialClass::Avatar;
+            return true;
+        case LLRenderWorldShaderClass::Water:
+            material_class = LLWorldRenderMaterialClass::Water;
+            return true;
+        case LLRenderWorldShaderClass::Haze:
+            material_class = LLWorldRenderMaterialClass::AtmosphericHaze;
+            return true;
+        case LLRenderWorldShaderClass::Alpha:
+            material_class = LLWorldRenderMaterialClass::Alpha;
+            return true;
+        case LLRenderWorldShaderClass::Glow:
+            material_class = LLWorldRenderMaterialClass::Glow;
+            return true;
+        default:
+            return false;
+    }
+}
+
+F32 get_smoke_world_pipeline_entry_alpha_cutoff(
+    LLWorldRenderMaterialClass material_class)
+{
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::AlphaMask:
+        case LLWorldRenderMaterialClass::Grass:
+        case LLWorldRenderMaterialClass::Tree:
+        case LLWorldRenderMaterialClass::FullbrightAlphaMask:
+        case LLWorldRenderMaterialClass::GLTFPBRAlphaMask:
+        case LLWorldRenderMaterialClass::Avatar:
+        case LLWorldRenderMaterialClass::AvatarImpostor:
+            return 0.5f;
+        default:
+            return -1.f;
+    }
+}
+
+void apply_smoke_world_pipeline_entry_state(
+    LLRenderBackend& backend,
+    const SmokeWorldPipelineEntry& entry)
+{
+    LLWorldRenderMaterialClass material_class =
+        LLWorldRenderMaterialClass::SimpleOpaque;
+    if (!get_smoke_world_pipeline_entry_material_class(entry, material_class))
+    {
+        backend.setColorMask({ true, true, true, true });
+        backend.setCapability(LLRenderCapability::Blend, false);
+        backend.setCapability(LLRenderCapability::DepthTest, false);
+        backend.setDepthWriteEnabled(false);
+        backend.setCapability(LLRenderCapability::CullFace, false);
+        backend.setCapability(LLRenderCapability::PolygonOffsetFill, false);
+        backend.setPolygonOffset(0.f, 0.f);
+        backend.setAlphaMaskCutoff(-1.f);
+        return;
+    }
+
+    const LLWorldRenderPipelineContract contract =
+        get_smoke_world_render_pipeline_contract(material_class);
+    backend.setColorMask(
+        {
+            contract.mWriteColor,
+            contract.mWriteColor,
+            contract.mWriteColor,
+            contract.mWriteAlpha
+        });
+    backend.setCapability(
+        LLRenderCapability::Blend,
+        contract.mBlendMode != LLWorldRenderBlendMode::None);
+    if (contract.mBlendMode == LLWorldRenderBlendMode::Add)
+    {
+        backend.setBlendState(
+            {
+                LLRenderBlendFactor::One,
+                LLRenderBlendFactor::One,
+                LLRenderBlendFactor::One,
+                LLRenderBlendFactor::One,
+            });
+    }
+    else if (contract.mBlendMode == LLWorldRenderBlendMode::Haze)
+    {
+        backend.setBlendState(
+            {
+                LLRenderBlendFactor::One,
+                LLRenderBlendFactor::SourceAlpha,
+                LLRenderBlendFactor::Zero,
+                LLRenderBlendFactor::SourceAlpha,
+            });
+    }
+    else if (contract.mBlendMode == LLWorldRenderBlendMode::Alpha)
+    {
+        backend.setBlendState(
+            {
+                LLRenderBlendFactor::SourceAlpha,
+                LLRenderBlendFactor::OneMinusSourceAlpha,
+                LLRenderBlendFactor::SourceAlpha,
+                LLRenderBlendFactor::OneMinusSourceAlpha,
+            });
+    }
+    else if (contract.mBlendMode == LLWorldRenderBlendMode::ForwardAlpha)
+    {
+        backend.setBlendState(
+            {
+                LLRenderBlendFactor::SourceAlpha,
+                LLRenderBlendFactor::OneMinusSourceAlpha,
+                LLRenderBlendFactor::Zero,
+                LLRenderBlendFactor::OneMinusSourceAlpha,
+            });
+    }
+    else if (contract.mBlendMode == LLWorldRenderBlendMode::MultiplyX2)
+    {
+        backend.setBlendState(
+            {
+                LLRenderBlendFactor::DestinationColor,
+                LLRenderBlendFactor::SourceColor,
+                LLRenderBlendFactor::DestinationColor,
+                LLRenderBlendFactor::SourceColor,
+            });
+    }
+
+    const bool depth_enabled =
+        contract.mDepthMode != LLWorldRenderDepthMode::Disabled;
+    backend.setCapability(LLRenderCapability::DepthTest, depth_enabled);
+    backend.setDepthFunction(LLRenderDepthFunction::LessEqual);
+    backend.setDepthWriteEnabled(contract.mDepthMode == LLWorldRenderDepthMode::ReadWrite);
+    backend.setCapability(
+        LLRenderCapability::CullFace,
+        contract.mCullMode == LLWorldRenderCullMode::Back);
+    if (contract.mCullMode == LLWorldRenderCullMode::Back)
+    {
+        backend.setCullFace(LLRenderCullFace::Back);
+    }
+    backend.setCapability(
+        LLRenderCapability::PolygonOffsetFill,
+        contract.mPolygonOffsetEnabled);
+    backend.setPolygonOffset(
+        contract.mPolygonOffsetEnabled ? contract.mPolygonOffsetFactor : 0.f,
+        contract.mPolygonOffsetEnabled ? contract.mPolygonOffsetUnits : 0.f);
+    backend.setAlphaMaskCutoff(
+        get_smoke_world_pipeline_entry_alpha_cutoff(material_class));
 }
 
 bool draw_capture_commands_for_pass(
@@ -2259,50 +3445,8 @@ bool render_world_pipelines_frame(
         return false;
     }
 
-    constexpr U32 fullbright =
-        LLRenderWorldMaterialParameters::Fullbright;
-    constexpr U32 pbr =
-        LLRenderWorldMaterialParameters::GLTFPBR |
-        LLRenderWorldMaterialParameters::HasNormalMap |
-        LLRenderWorldMaterialParameters::HasORMMap;
-    constexpr U32 material =
-        LLRenderWorldMaterialParameters::HasSpecularMap |
-        LLRenderWorldMaterialParameters::LegacyBump |
-        LLRenderWorldMaterialParameters::LegacyShiny;
-    constexpr U32 alpha =
-        LLRenderWorldMaterialParameters::AlphaBlend;
-    constexpr U32 glow =
-        LLRenderWorldMaterialParameters::Glow |
-        LLRenderWorldMaterialParameters::PostDeferred;
-    constexpr U32 water =
-        LLRenderWorldMaterialParameters::Water |
-        LLRenderWorldMaterialParameters::PostDeferred |
-        LLRenderWorldMaterialParameters::SceneDepth |
-        LLRenderWorldMaterialParameters::SceneColor;
-    constexpr U32 haze =
-        LLRenderWorldMaterialParameters::AtmosphericHaze |
-        LLRenderWorldMaterialParameters::PostDeferred |
-        LLRenderWorldMaterialParameters::SceneDepth |
-        LLRenderWorldMaterialParameters::SceneColor;
-
-    const std::array<SmokeWorldPipelineEntry, 15> entries =
-    {{
-        { LLRenderWorldShaderClass::Sky, "Sky", 0.25f, 0.48f, 0.92f, 0 },
-        { LLRenderWorldShaderClass::Terrain, "Terrain", 0.34f, 0.58f, 0.28f, 0 },
-        { LLRenderWorldShaderClass::Textured, "Textured", 0.42f, 0.72f, 0.96f, 0 },
-        { LLRenderWorldShaderClass::AlphaMask, "AlphaMask", 0.92f, 0.78f, 0.28f, LLRenderWorldMaterialParameters::AlphaMask },
-        { LLRenderWorldShaderClass::Fullbright, "Fullbright", 0.95f, 0.42f, 0.35f, fullbright },
-        { LLRenderWorldShaderClass::Material, "Material", 0.78f, 0.58f, 0.95f, material },
-        { LLRenderWorldShaderClass::PBR, "PBR", 0.90f, 0.72f, 0.48f, pbr },
-        { LLRenderWorldShaderClass::Avatar, "Avatar", 0.86f, 0.52f, 0.44f, 0 },
-        { LLRenderWorldShaderClass::Water, "Water", 0.20f, 0.52f, 0.82f, water, true },
-        { LLRenderWorldShaderClass::Haze, "Haze", 0.72f, 0.78f, 0.86f, haze, true },
-        { LLRenderWorldShaderClass::Alpha, "Alpha", 0.82f, 0.34f, 0.68f, alpha, true },
-        { LLRenderWorldShaderClass::Glow, "Glow", 1.00f, 0.72f, 0.22f, glow, false, true },
-        { LLRenderWorldShaderClass::Copy, "Copy", 0.58f, 0.68f, 0.86f, 0 },
-        { LLRenderWorldShaderClass::DeferredComposite, "DeferredComposite", 0.38f, 0.48f, 0.68f, 0 },
-        { LLRenderWorldShaderClass::FinalComposite, "FinalComposite", 0.72f, 0.84f, 0.96f, 0 },
-    }};
+    const std::array<SmokeWorldPipelineEntry, 17> entries =
+        make_world_pipeline_probe_entries();
 
     backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
     backend.restoreDefaultFramebufferBufferRouting();
@@ -2370,27 +3514,7 @@ bool render_world_pipelines_frame(
                 entry.mBlue,
                 entry.mAlphaBlend ? 0.72f : 1.f,
                 entry.mFlags));
-        backend.setCapability(LLRenderCapability::Blend, entry.mAlphaBlend || entry.mAddBlend);
-        if (entry.mAddBlend)
-        {
-            backend.setBlendState(
-                {
-                    LLRenderBlendFactor::SourceAlpha,
-                    LLRenderBlendFactor::One,
-                    LLRenderBlendFactor::One,
-                    LLRenderBlendFactor::One,
-                });
-        }
-        else if (entry.mAlphaBlend)
-        {
-            backend.setBlendState(
-                {
-                    LLRenderBlendFactor::SourceAlpha,
-                    LLRenderBlendFactor::OneMinusSourceAlpha,
-                    LLRenderBlendFactor::One,
-                    LLRenderBlendFactor::OneMinusSourceAlpha,
-                });
-        }
+        apply_smoke_world_pipeline_entry_state(backend, entry);
         backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
     }
     if (log_world_pipeline_entries)
@@ -2406,8 +3530,147 @@ bool render_world_pipelines_frame(
     backend.setWorldTerrainParameters({});
     backend.setWorldTextureTransform({});
     backend.setWorldSkinningMatrixPalette(0, nullptr);
+    backend.setAlphaMaskCutoff(-1.f);
+    backend.setColorMask({ true, true, true, true });
     backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
     return true;
+}
+
+bool render_shader_probe_entry_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& textures,
+    const SmokeQuad& quad,
+    const SmokeWorldPipelineEntry& entry,
+    U32 width,
+    U32 height)
+{
+    if (!ensure_smoke_deferred_textures(backend, textures))
+    {
+        return false;
+    }
+
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(0.015f, 0.018f, 0.024f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+
+    bind_world_pipeline_smoke_textures(backend, textures);
+    bind_world_smoke_quad(backend, quad);
+    backend.setWorldTextureTransform({});
+    backend.setWorldTerrainParameters(make_world_pipeline_terrain_parameters());
+    backend.setWorldSkinningMatrixPalette(0, nullptr);
+    backend.setWorldDrawEnabled(true);
+    backend.setWorldShaderClass(entry.mShaderClass);
+    backend.setWorldMaterialParameters(
+        make_world_pipeline_material(
+            entry.mRed,
+            entry.mGreen,
+            entry.mBlue,
+            entry.mAlphaBlend ? 0.72f : 1.f,
+            entry.mFlags));
+    apply_smoke_world_pipeline_entry_state(backend, entry);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setWorldDrawEnabled(false);
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+    backend.setWorldMaterialParameters({});
+    backend.setWorldTerrainParameters({});
+    backend.setWorldTextureTransform({});
+    backend.setWorldSkinningMatrixPalette(0, nullptr);
+    backend.setAlphaMaskCutoff(-1.f);
+    backend.setColorMask({ true, true, true, true });
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    return true;
+}
+
+bool render_shader_probe_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& textures,
+    const SmokeQuad& quad,
+    const std::string& shader_case,
+    U32 width,
+    U32 height)
+{
+    SmokeWorldPipelineEntry entry;
+    if (!find_shader_probe_case(shader_case, entry))
+    {
+        std::cerr
+            << "Unknown shader-probe case '"
+            << shader_case
+            << "'. Use --list-shader-cases.\n";
+        return false;
+    }
+
+    static std::string logged_case;
+    if (logged_case != entry.mName)
+    {
+        std::cout
+            << "Mare Vulkan smoke shader-probe case: "
+            << entry.mName
+            << ". This tests one runtime Vulkan shader pipeline with fixed synthetic inputs."
+            << std::endl;
+        logged_case = entry.mName;
+    }
+
+    return render_shader_probe_entry_frame(
+        backend,
+        textures,
+        quad,
+        entry,
+        width,
+        height);
+}
+
+bool render_shader_suite_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& textures,
+    const SmokeQuad& quad,
+    int frame,
+    U32 width,
+    U32 height)
+{
+    const auto entries = make_world_pipeline_probe_entries();
+    const size_t entry_index =
+        static_cast<size_t>(frame) % entries.size();
+    const SmokeWorldPipelineEntry& entry = entries[entry_index];
+
+    if (frame == 0)
+    {
+        std::cout
+            << "Mare Vulkan smoke shader-suite: "
+            << entries.size()
+            << " runtime shader cases; one fullscreen case per frame. "
+            << "Use --frames "
+            << entries.size()
+            << " for one full pass."
+            << std::endl;
+    }
+    if (frame < static_cast<int>(entries.size()))
+    {
+        std::cout
+            << "Mare Vulkan smoke shader-suite frame "
+            << frame
+            << " case "
+            << entry_index
+            << ": "
+            << entry.mName
+            << std::endl;
+    }
+
+    return render_shader_probe_entry_frame(
+        backend,
+        textures,
+        quad,
+        entry,
+        width,
+        height);
 }
 
 struct SmokeDeferredGraph
@@ -2902,6 +4165,215 @@ LLRenderWorldMaterialParameters make_deferred_graph_final_parameters(
     return make_vulkan_final_composite_material_parameters(settings);
 }
 
+struct SmokeRGB
+{
+    F32 mRed = 0.f;
+    F32 mGreen = 0.f;
+    F32 mBlue = 0.f;
+};
+
+F32 smoke_linear_to_srgb_component(F32 value)
+{
+    value = llclamp(value, 0.f, 1.f);
+    if (value < 0.0031308f)
+    {
+        return value * 12.92f;
+    }
+    return 1.055f * std::pow(value, 0.41666f) - 0.055f;
+}
+
+F32 smoke_srgb_to_linear_component(F32 value)
+{
+    value = llclamp(value, 0.f, 1.f);
+    if (value <= 0.04045f)
+    {
+        return value / 12.92f;
+    }
+    return std::pow((value + 0.055f) / 1.055f, 2.4f);
+}
+
+SmokeRGB smoke_linear_to_srgb(SmokeRGB color)
+{
+    return
+    {
+        smoke_linear_to_srgb_component(color.mRed),
+        smoke_linear_to_srgb_component(color.mGreen),
+        smoke_linear_to_srgb_component(color.mBlue)
+    };
+}
+
+SmokeRGB smoke_srgb_to_linear(SmokeRGB color)
+{
+    return
+    {
+        smoke_srgb_to_linear_component(color.mRed),
+        smoke_srgb_to_linear_component(color.mGreen),
+        smoke_srgb_to_linear_component(color.mBlue)
+    };
+}
+
+SmokeRGB get_deferred_color_compare_srgb_input()
+{
+    return { 0.50f, 0.32f, 0.18f };
+}
+
+LLRenderWorldMaterialParameters make_final_color_compare_parameters()
+{
+    LLVulkanFinalCompositeSettings settings;
+    settings.mNoPost = false;
+    settings.mExposure = 1.f;
+    settings.mGamma = 2.2f;
+    settings.mTonemapMix = 0.f;
+    settings.mTonemapType = 0;
+    settings.mCASSharpness = 0.f;
+    settings.mRenderGlow = false;
+    settings.mDeferredAttachmentCount = 0;
+    return make_vulkan_final_composite_material_parameters(settings);
+}
+
+void log_final_color_compare_reference(SmokeRGB linear_input)
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    const SmokeRGB opengl_reference = smoke_linear_to_srgb(linear_input);
+    std::cout
+        << "Mare Vulkan final-color-compare OpenGL-style reference: linear input "
+        << std::fixed
+        << std::setprecision(4)
+        << linear_input.mRed
+        << ", "
+        << linear_input.mGreen
+        << ", "
+        << linear_input.mBlue
+        << " should read back approximately sRGB "
+        << opengl_reference.mRed
+        << ", "
+        << opengl_reference.mGreen
+        << ", "
+        << opengl_reference.mBlue
+        << " rgb8 "
+        << to_color_byte(opengl_reference.mRed)
+        << ","
+        << to_color_byte(opengl_reference.mGreen)
+        << ","
+        << to_color_byte(opengl_reference.mBlue)
+        << ". If Vulkan readback is much brighter, suspect double sRGB/gamma conversion."
+        << std::endl;
+    logged_reference = true;
+}
+
+void log_deferred_color_compare_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    const SmokeRGB srgb_input = get_deferred_color_compare_srgb_input();
+    const SmokeRGB opengl_linear = smoke_srgb_to_linear(srgb_input);
+    const SmokeRGB opengl_final = smoke_linear_to_srgb(opengl_linear);
+    const SmokeRGB missing_conversion_final = smoke_linear_to_srgb(srgb_input);
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-color-compare OpenGL-style reference: "
+        << "legacy G-buffer sRGB input "
+        << std::fixed
+        << std::setprecision(4)
+        << srgb_input.mRed
+        << ", "
+        << srgb_input.mGreen
+        << ", "
+        << srgb_input.mBlue
+        << " converts to linear "
+        << opengl_linear.mRed
+        << ", "
+        << opengl_linear.mGreen
+        << ", "
+        << opengl_linear.mBlue
+        << " and should read back near final sRGB "
+        << opengl_final.mRed
+        << ", "
+        << opengl_final.mGreen
+        << ", "
+        << opengl_final.mBlue
+        << " rgb8 "
+        << to_color_byte(opengl_final.mRed)
+        << ","
+        << to_color_byte(opengl_final.mGreen)
+        << ","
+        << to_color_byte(opengl_final.mBlue)
+        << ". If the deferred pass skips the legacy sRGB-to-linear conversion, "
+        << "the final readback drifts toward pale sRGB "
+        << missing_conversion_final.mRed
+        << ", "
+        << missing_conversion_final.mGreen
+        << ", "
+        << missing_conversion_final.mBlue
+        << " rgb8 "
+        << to_color_byte(missing_conversion_final.mRed)
+        << ","
+        << to_color_byte(missing_conversion_final.mGreen)
+        << ","
+        << to_color_byte(missing_conversion_final.mBlue)
+        << "."
+        << std::endl;
+    logged_reference = true;
+}
+
+LLRenderWorldMaterialParameters make_deferred_color_compare_gbuffer_material()
+{
+    const SmokeRGB srgb_input = get_deferred_color_compare_srgb_input();
+
+    LLRenderWorldMaterialParameters parameters;
+    parameters.mBaseColorRed = srgb_input.mRed;
+    parameters.mBaseColorGreen = srgb_input.mGreen;
+    parameters.mBaseColorBlue = srgb_input.mBlue;
+    parameters.mBaseColorAlpha = 1.f;
+    parameters.mSpecularColorRed = 0.f;
+    parameters.mSpecularColorGreen = 0.f;
+    parameters.mSpecularColorBlue = 0.f;
+    parameters.mEnvIntensity = 0.f;
+    parameters.mDiffuseAlphaMode = 0.f;
+    parameters.mGLTFAlphaMode = 0.f;
+    parameters.mShiny = 0.f;
+    return parameters;
+}
+
+LLRenderWorldMaterialParameters make_deferred_color_compare_composite_parameters()
+{
+    LLRenderWorldMaterialParameters parameters;
+    parameters.mBaseColorRed = 1.f;
+    parameters.mBaseColorGreen = 1.f;
+    parameters.mBaseColorBlue = 1.f;
+    parameters.mBaseColorAlpha = 1.f;
+    parameters.mEmissiveColorRed = 0.f;
+    parameters.mEmissiveColorGreen = 0.f;
+    parameters.mEmissiveColorBlue = 0.f;
+    parameters.mHasEmissiveMap = 0.f;
+    parameters.mSpecularColorRed = 0.f;
+    parameters.mSpecularColorGreen = 0.f;
+    parameters.mSpecularColorBlue = 1.f;
+    parameters.mEnvIntensity = 0.f;
+    parameters.mRoughnessFactor = 4.f;
+    parameters.mMetallicFactor = 0.f;
+    parameters.mMaterialFlags = -1.f;
+    parameters.mNormalTextureOffsetS = 0.f;
+    parameters.mNormalTextureOffsetT = 0.f;
+    parameters.mORMTextureScaleS = 0.f;
+    parameters.mORMTextureScaleT = 0.f;
+    parameters.mSceneAmbientRed = 0.f;
+    parameters.mSceneAmbientGreen = 0.f;
+    parameters.mSceneAmbientBlue = 0.f;
+    parameters.mSceneDirectScale = 0.f;
+    parameters.mSceneLightingValid = 1.f;
+    return parameters;
+}
+
 void bind_two_prim_material_textures(
     LLRenderBackend& backend,
     const SmokeDeferredTextures& textures)
@@ -2941,6 +4413,52 @@ void set_two_prim_world_matrix(
     gGL.loadMatrix(glm::value_ptr(projection));
     gGL.matrixMode(LLRender::MM_MODELVIEW);
     gGL.loadMatrix(glm::value_ptr(modelview));
+}
+
+void draw_deferred_color_compare_gbuffer_scene(
+    LLRenderBackend& backend,
+    const SmokeDeferredTextures& textures,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    log_deferred_color_compare_reference();
+
+    SmokeMatrixScope matrix_scope;
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, textures.mWhite);
+    backend.setActiveTextureUnit(1);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, textures.mNormal);
+    backend.setActiveTextureUnit(2);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, textures.mSpecular);
+    backend.setActiveTextureUnit(3);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, textures.mEmissive);
+    backend.setActiveTextureUnit(0);
+
+    bind_world_smoke_quad(backend, quad);
+    backend.setWorldDrawEnabled(true);
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+    backend.setWorldTextureTransform({});
+    backend.setWorldTerrainParameters({});
+    backend.setWorldSkinningMatrixPalette(0, nullptr);
+    backend.setWorldMaterialParameters(
+        make_deferred_color_compare_gbuffer_material());
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::DepthTest, true);
+    backend.setDepthFunction(LLRenderDepthFunction::LessEqual);
+    backend.setDepthWriteEnabled(true);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    set_two_prim_world_matrix(0.f, 0.f, 0.f, 1.f, 1.f);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    backend.setWorldDrawEnabled(false);
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+    backend.setWorldMaterialParameters({});
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
 }
 
 void draw_two_prim_deferred_gbuffer_scene(
@@ -3071,6 +4589,19 @@ void draw_two_prim_post_alpha_scene(
     backend.setActiveTextureUnit(0);
 }
 
+std::array<SmokeWorldPipelineEntry, 6> make_class1_gbuffer_probe_entries()
+{
+    return
+    {{
+        { LLRenderWorldShaderClass::Textured, "Textured", 0.32f, 0.62f, 0.94f, 0 },
+        { LLRenderWorldShaderClass::Terrain, "Terrain", 0.34f, 0.58f, 0.28f, 0 },
+        { LLRenderWorldShaderClass::AlphaMask, "AlphaMask", 0.95f, 0.82f, 0.25f, LLRenderWorldMaterialParameters::AlphaMask },
+        { LLRenderWorldShaderClass::Material, "Material", 0.78f, 0.58f, 0.95f, LLRenderWorldMaterialParameters::HasSpecularMap },
+        { LLRenderWorldShaderClass::PBR, "PBR", 0.90f, 0.72f, 0.48f, LLRenderWorldMaterialParameters::GLTFPBR | LLRenderWorldMaterialParameters::HasORMMap | LLRenderWorldMaterialParameters::HasNormalMap },
+        { LLRenderWorldShaderClass::Avatar, "Avatar", 0.86f, 0.52f, 0.44f, 0 },
+    }};
+}
+
 void draw_deferred_graph_gbuffer_tiles(
     LLRenderBackend& backend,
     const SmokeDeferredTextures& textures,
@@ -3091,14 +4622,7 @@ void draw_deferred_graph_gbuffer_tiles(
     }
 
     const std::array<SmokeWorldPipelineEntry, 6> entries =
-    {{
-        { LLRenderWorldShaderClass::Textured, "Textured", 0.32f, 0.62f, 0.94f, 0 },
-        { LLRenderWorldShaderClass::Terrain, "Terrain", 0.34f, 0.58f, 0.28f, 0 },
-        { LLRenderWorldShaderClass::AlphaMask, "AlphaMask", 0.95f, 0.82f, 0.25f, LLRenderWorldMaterialParameters::AlphaMask },
-        { LLRenderWorldShaderClass::Material, "Material", 0.78f, 0.58f, 0.95f, LLRenderWorldMaterialParameters::HasSpecularMap },
-        { LLRenderWorldShaderClass::PBR, "PBR", 0.90f, 0.72f, 0.48f, LLRenderWorldMaterialParameters::GLTFPBR | LLRenderWorldMaterialParameters::HasORMMap | LLRenderWorldMaterialParameters::HasNormalMap },
-        { LLRenderWorldShaderClass::Avatar, "Avatar", 0.86f, 0.52f, 0.44f, 0 },
-    }};
+        make_class1_gbuffer_probe_entries();
 
     bind_world_smoke_quad(backend, quad);
     backend.setWorldTextureTransform({});
@@ -3839,6 +5363,1107 @@ void copy_smoke_target_to_swapchain(
     backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
 }
 
+bool write_rgb_ppm_file(
+    const std::string& path,
+    U32 width,
+    U32 height,
+    const std::vector<U8>& rgb_pixels)
+{
+    if (path.empty())
+    {
+        return true;
+    }
+
+    const size_t expected_size =
+        static_cast<size_t>(width) * static_cast<size_t>(height) * 3U;
+    if (rgb_pixels.size() != expected_size)
+    {
+        std::cerr
+            << "Invalid PPM pixel buffer for "
+            << path
+            << ": expected "
+            << expected_size
+            << " bytes, got "
+            << rgb_pixels.size()
+            << ".\n";
+        return false;
+    }
+
+    std::ofstream output(path, std::ios::binary);
+    if (!output.is_open())
+    {
+        std::cerr << "Unable to open reference PPM file: " << path << ".\n";
+        return false;
+    }
+
+    output
+        << "P6\n"
+        << width
+        << " "
+        << height
+        << "\n255\n";
+    output.write(
+        reinterpret_cast<const char*>(rgb_pixels.data()),
+        static_cast<std::streamsize>(rgb_pixels.size()));
+    if (!output.good())
+    {
+        std::cerr << "Failed while writing reference PPM file: " << path << ".\n";
+        return false;
+    }
+
+    std::cout << "Wrote Mare smoke RGB PPM to " << path << ".\n";
+    return true;
+}
+
+std::string read_smoke_text_file(const std::string& path)
+{
+    std::ifstream input(path, std::ios::binary);
+    if (!input.is_open())
+    {
+        return {};
+    }
+
+    std::ostringstream output;
+    output << input.rdbuf();
+    return output.str();
+}
+
+bool log_shader_compile_failure(
+    LLRenderBackend& backend,
+    U32 shader,
+    const char* label)
+{
+    S32 status = 0;
+    backend.getShaderInteger(
+        shader,
+        LLRenderShaderParameter::CompileStatus,
+        &status);
+    if (status)
+    {
+        return false;
+    }
+
+    S32 log_length = 0;
+    backend.getShaderInteger(
+        shader,
+        LLRenderShaderParameter::InfoLogLength,
+        &log_length);
+    std::vector<char> info_log(static_cast<size_t>(llmax(1, log_length)), '\0');
+    S32 written = 0;
+    backend.getShaderInfoLog(
+        shader,
+        static_cast<S32>(info_log.size()),
+        &written,
+        info_log.data());
+    std::cerr
+        << "OpenGL reference shader compile failed for "
+        << label
+        << ": "
+        << info_log.data()
+        << "\n";
+    return true;
+}
+
+bool log_program_link_failure(
+    LLRenderBackend& backend,
+    U32 program,
+    const char* label)
+{
+    S32 status = 0;
+    backend.getProgramInteger(
+        program,
+        LLRenderProgramParameter::LinkStatus,
+        &status);
+    if (status)
+    {
+        return false;
+    }
+
+    S32 log_length = 0;
+    backend.getProgramInteger(
+        program,
+        LLRenderProgramParameter::InfoLogLength,
+        &log_length);
+    std::vector<char> info_log(static_cast<size_t>(llmax(1, log_length)), '\0');
+    S32 written = 0;
+    backend.getProgramInfoLog(
+        program,
+        static_cast<S32>(info_log.size()),
+        &written,
+        info_log.data());
+    std::cerr
+        << "OpenGL reference program link failed for "
+        << label
+        << ": "
+        << info_log.data()
+        << "\n";
+    return true;
+}
+
+bool compile_opengl_reference_shader(
+    LLRenderBackend& backend,
+    const std::string& path,
+    LLRenderShaderStage stage,
+    U32& shader,
+    const std::string& prefix = std::string())
+{
+    const std::string source = read_smoke_text_file(path);
+    if (source.empty())
+    {
+        std::cerr << "Unable to read OpenGL reference shader: " << path << ".\n";
+        return false;
+    }
+
+    shader = backend.createShader(stage);
+    if (!shader)
+    {
+        std::cerr << "Unable to create OpenGL reference shader: " << path << ".\n";
+        return false;
+    }
+
+    const std::string version = "#version 410 core\n";
+    const char* sources[] =
+    {
+        version.c_str(),
+        prefix.c_str(),
+        source.c_str(),
+    };
+    backend.setShaderSource(shader, 3, sources);
+    backend.compileShader(shader);
+    if (log_shader_compile_failure(backend, shader, path.c_str()))
+    {
+        backend.deleteShader(shader);
+        shader = 0;
+        return false;
+    }
+    return true;
+}
+
+bool write_rgba_readback_as_rgb_ppm(
+    const std::string& path,
+    U32 width,
+    U32 height,
+    const std::vector<U8>& rgba_pixels)
+{
+    const size_t expected_size =
+        static_cast<size_t>(width) * static_cast<size_t>(height) * 4U;
+    if (rgba_pixels.size() != expected_size)
+    {
+        std::cerr
+            << "Invalid RGBA readback size for "
+            << path
+            << ": expected "
+            << expected_size
+            << " bytes, got "
+            << rgba_pixels.size()
+            << ".\n";
+        return false;
+    }
+
+    std::vector<U8> rgb_pixels;
+    rgb_pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 3U);
+    for (size_t rgba = 0, rgb = 0; rgba < rgba_pixels.size(); rgba += 4, rgb += 3)
+    {
+        rgb_pixels[rgb + 0] = rgba_pixels[rgba + 0];
+        rgb_pixels[rgb + 1] = rgba_pixels[rgba + 1];
+        rgb_pixels[rgb + 2] = rgba_pixels[rgba + 2];
+    }
+    return write_rgb_ppm_file(path, width, height, rgb_pixels);
+}
+
+bool render_opengl_copy_reference_ppm(
+    LLRenderBackend& backend,
+    const std::string& path,
+    U32 width,
+    U32 height)
+{
+    U32 vertex_shader = 0;
+    U32 fragment_shader = 0;
+    U32 program = 0;
+    LLRenderTextureHandle diffuse_texture;
+    LLRenderVertexArrayHandle vertex_array;
+    SmokeQuad quad;
+
+    auto cleanup = [&]()
+    {
+        backend.useProgram(0);
+        if (quad.mVertexBuffer)
+        {
+            backend.deleteBufferHandle(quad.mVertexBuffer);
+            quad.mVertexBuffer = {};
+        }
+        if (vertex_array)
+        {
+            backend.bindVertexArray(0);
+            vertex_array = {};
+        }
+        if (diffuse_texture)
+        {
+            backend.deleteTextureHandle(diffuse_texture);
+            diffuse_texture = {};
+        }
+        if (program)
+        {
+            if (vertex_shader)
+            {
+                backend.detachShader(program, vertex_shader);
+            }
+            if (fragment_shader)
+            {
+                backend.detachShader(program, fragment_shader);
+            }
+            backend.deleteProgram(program);
+            program = 0;
+        }
+        if (vertex_shader)
+        {
+            backend.deleteShader(vertex_shader);
+            vertex_shader = 0;
+        }
+        if (fragment_shader)
+        {
+            backend.deleteShader(fragment_shader);
+            fragment_shader = 0;
+        }
+    };
+
+    if (!compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class1/interface/copyV.glsl",
+            LLRenderShaderStage::Vertex,
+            vertex_shader) ||
+        !compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class1/interface/copyF.glsl",
+            LLRenderShaderStage::Fragment,
+            fragment_shader))
+    {
+        cleanup();
+        return false;
+    }
+
+    program = backend.createProgram();
+    if (!program)
+    {
+        cleanup();
+        return false;
+    }
+    backend.attachShader(program, vertex_shader);
+    backend.attachShader(program, fragment_shader);
+    backend.bindAttributeLocation(program, 0, "position");
+    backend.linkProgram(program);
+    if (log_program_link_failure(backend, program, "OpenGL copy reference"))
+    {
+        cleanup();
+        return false;
+    }
+
+    if (!create_smoke_texture(
+            backend,
+            diffuse_texture,
+            4,
+            4,
+            make_solid_rgba_pixels(4, 4, 42, 126, 230, 255)) ||
+        !create_smoke_quad(backend, quad))
+    {
+        cleanup();
+        return false;
+    }
+
+    vertex_array = backend.createVertexArrayHandle();
+    if (!vertex_array)
+    {
+        cleanup();
+        return false;
+    }
+    backend.bindVertexArray(vertex_array);
+
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(0.f, 0.f, 0.f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+
+    backend.useProgram(program);
+    const S32 diffuse_location = backend.getUniformLocation(program, "diffuseMap");
+    if (diffuse_location >= 0)
+    {
+        backend.setUniformInteger(diffuse_location, 0);
+    }
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, diffuse_texture);
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Linear,
+        LLRenderTextureFilter::Linear);
+    bind_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    std::vector<U8> rgba_pixels;
+    rgba_pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
+    backend.readPixels(
+        0,
+        0,
+        static_cast<S32>(width),
+        static_cast<S32>(height),
+        LLRenderPixelFormat::RGBA,
+        LLRenderPixelType::UnsignedByte,
+        rgba_pixels.data());
+
+    bool result = write_rgba_readback_as_rgb_ppm(path, width, height, rgba_pixels);
+    if (result)
+    {
+        std::cout
+            << "Wrote Mare smoke real OpenGL copy reference PPM to "
+            << path
+            << " at "
+            << width
+            << "x"
+            << height
+            << ".\n";
+    }
+    cleanup();
+    return result;
+}
+
+std::string get_opengl_haze_vertex_prefix()
+{
+    return
+        "out vec3 mare_smoke_atmos_attenuation;\n"
+        "out vec3 mare_smoke_additive_color;\n"
+        "void setAtmosAttenuation(vec3 c) { mare_smoke_atmos_attenuation = c; }\n"
+        "void setAdditiveColor(vec3 c) { mare_smoke_additive_color = c; }\n";
+}
+
+std::string get_opengl_haze_fragment_prefix()
+{
+    return
+        "uniform sampler2D depthMap;\n"
+        "uniform sampler2D normalMap;\n"
+        "vec3 linear_to_srgb(vec3 c)\n"
+        "{\n"
+        "    bvec3 cutoff = lessThanEqual(c, vec3(0.0031308));\n"
+        "    vec3 low = c * 12.92;\n"
+        "    vec3 high = 1.055 * pow(max(c, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055;\n"
+        "    return mix(high, low, cutoff);\n"
+        "}\n"
+        "vec3 srgb_to_linear(vec3 c)\n"
+        "{\n"
+        "    bvec3 cutoff = lessThanEqual(c, vec3(0.04045));\n"
+        "    vec3 low = c / 12.92;\n"
+        "    vec3 high = pow((c + vec3(0.055)) / 1.055, vec3(2.4));\n"
+        "    return mix(high, low, cutoff);\n"
+        "}\n"
+        "float getDepth(vec2 pos_screen)\n"
+        "{\n"
+        "    return texture(depthMap, pos_screen).r;\n"
+        "}\n"
+        "vec4 getNorm(vec2 pos_screen)\n"
+        "{\n"
+        "    vec3 encoded = texture(normalMap, pos_screen).rgb;\n"
+        "    vec3 normal = normalize(encoded * 2.0 - 1.0);\n"
+        "    return vec4(normal, 0.0);\n"
+        "}\n"
+        "vec4 getPositionWithDepth(vec2 pos_screen, float depth)\n"
+        "{\n"
+        "    vec2 ndc = pos_screen * 2.0 - 1.0;\n"
+        "    float eye_depth = mix(2.0, 80.0, clamp(depth, 0.0, 1.0));\n"
+        "    return vec4(ndc.x * 24.0, ndc.y * 14.0, -eye_depth, 1.0);\n"
+        "}\n"
+        "void calcAtmosphericVarsLinear(\n"
+        "    vec3 inPositionEye,\n"
+        "    vec3 norm,\n"
+        "    vec3 light_dir,\n"
+        "    out vec3 sunlit,\n"
+        "    out vec3 amblit,\n"
+        "    out vec3 atten,\n"
+        "    out vec3 additive)\n"
+        "{\n"
+        "    float distance_factor = clamp(length(inPositionEye) / 80.0, 0.0, 1.0);\n"
+        "    float light_factor = clamp(dot(normalize(norm), normalize(light_dir)) * 0.5 + 0.5, 0.0, 1.0);\n"
+        "    sunlit = vec3(0.95, 0.92, 0.84) * light_factor;\n"
+        "    amblit = vec3(0.30, 0.36, 0.48);\n"
+        "    atten = vec3(mix(0.88, 0.32, smoothstep(0.1, 1.0, distance_factor)));\n"
+        "    additive = vec3(0.22, 0.34, 0.58) * (1.0 - atten) * (0.72 + light_factor * 0.28);\n"
+        "}\n";
+}
+
+bool render_opengl_haze_reference_ppm(
+    LLRenderBackend& backend,
+    const std::string& path,
+    U32 width,
+    U32 height)
+{
+    U32 vertex_shader = 0;
+    U32 fragment_shader = 0;
+    U32 program = 0;
+    LLRenderTextureHandle depth_texture;
+    LLRenderTextureHandle normal_texture;
+    LLRenderVertexArrayHandle vertex_array;
+    SmokeQuad quad;
+
+    auto cleanup = [&]()
+    {
+        backend.useProgram(0);
+        if (quad.mVertexBuffer)
+        {
+            backend.deleteBufferHandle(quad.mVertexBuffer);
+            quad.mVertexBuffer = {};
+        }
+        if (vertex_array)
+        {
+            backend.bindVertexArray(0);
+            vertex_array = {};
+        }
+        if (depth_texture)
+        {
+            backend.deleteTextureHandle(depth_texture);
+            depth_texture = {};
+        }
+        if (normal_texture)
+        {
+            backend.deleteTextureHandle(normal_texture);
+            normal_texture = {};
+        }
+        if (program)
+        {
+            if (vertex_shader)
+            {
+                backend.detachShader(program, vertex_shader);
+            }
+            if (fragment_shader)
+            {
+                backend.detachShader(program, fragment_shader);
+            }
+            backend.deleteProgram(program);
+            program = 0;
+        }
+        if (vertex_shader)
+        {
+            backend.deleteShader(vertex_shader);
+            vertex_shader = 0;
+        }
+        if (fragment_shader)
+        {
+            backend.deleteShader(fragment_shader);
+            fragment_shader = 0;
+        }
+    };
+
+    if (!compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class2/deferred/softenLightV.glsl",
+            LLRenderShaderStage::Vertex,
+            vertex_shader,
+            get_opengl_haze_vertex_prefix()) ||
+        !compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class3/deferred/hazeF.glsl",
+            LLRenderShaderStage::Fragment,
+            fragment_shader,
+            get_opengl_haze_fragment_prefix()))
+    {
+        cleanup();
+        return false;
+    }
+
+    program = backend.createProgram();
+    if (!program)
+    {
+        cleanup();
+        return false;
+    }
+    backend.attachShader(program, vertex_shader);
+    backend.attachShader(program, fragment_shader);
+    backend.bindAttributeLocation(program, 0, "position");
+    backend.linkProgram(program);
+    if (log_program_link_failure(backend, program, "OpenGL haze reference"))
+    {
+        cleanup();
+        return false;
+    }
+
+    if (!create_smoke_texture(
+            backend,
+            depth_texture,
+            4,
+            4,
+            make_solid_rgba_pixels(4, 4, 204, 204, 204, 255)) ||
+        !create_smoke_texture(
+            backend,
+            normal_texture,
+            4,
+            4,
+            make_solid_rgba_pixels(4, 4, 128, 128, 255, 0)) ||
+        !create_smoke_quad(backend, quad))
+    {
+        cleanup();
+        return false;
+    }
+
+    vertex_array = backend.createVertexArrayHandle();
+    if (!vertex_array)
+    {
+        cleanup();
+        return false;
+    }
+    backend.bindVertexArray(vertex_array);
+
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(0.f, 0.f, 0.f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+
+    backend.useProgram(program);
+    const auto set_int_uniform = [&](const char* name, S32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformInteger(location, value);
+        }
+    };
+    const auto set_float_uniform = [&](const char* name, F32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat(location, value);
+        }
+    };
+    const auto set_vec3_uniform = [&](const char* name, F32 x, F32 y, F32 z)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat3(location, x, y, z);
+        }
+    };
+    const auto set_vec4_uniform = [&](const char* name, F32 x, F32 y, F32 z, F32 w)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat4(location, x, y, z, w);
+        }
+    };
+
+    set_int_uniform("depthMap", 0);
+    set_int_uniform("normalMap", 1);
+    set_int_uniform("sun_up_factor", 1);
+    set_int_uniform("cube_snapshot", 0);
+    set_float_uniform("sky_hdr_scale", 1.f);
+    set_vec3_uniform("sun_dir", 0.35f, 0.45f, 0.82f);
+    set_vec3_uniform("moon_dir", -0.25f, -0.15f, 0.95f);
+    set_vec4_uniform("waterPlane", 0.f, 0.f, 1.f, 1.f);
+
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, depth_texture);
+    backend.setActiveTextureUnit(1);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, normal_texture);
+    backend.setActiveTextureUnit(0);
+    bind_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    std::vector<U8> rgba_pixels;
+    rgba_pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
+    backend.readPixels(
+        0,
+        0,
+        static_cast<S32>(width),
+        static_cast<S32>(height),
+        LLRenderPixelFormat::RGBA,
+        LLRenderPixelType::UnsignedByte,
+        rgba_pixels.data());
+
+    bool result = write_rgba_readback_as_rgb_ppm(path, width, height, rgba_pixels);
+    if (result)
+    {
+        std::cout
+            << "Wrote Mare smoke OpenGL haze source-reference PPM to "
+            << path
+            << " at "
+            << width
+            << "x"
+            << height
+            << ".\n";
+    }
+    cleanup();
+    return result;
+}
+
+std::string get_opengl_alpha_fragment_prefix()
+{
+    return
+        "#define USE_DIFFUSE_TEX 1\n"
+        "#define USE_VERTEX_COLOR 1\n"
+        "#define HAS_ALPHA_MASK 1\n"
+        "vec3 linear_to_srgb(vec3 c)\n"
+        "{\n"
+        "    bvec3 cutoff = lessThanEqual(c, vec3(0.0031308));\n"
+        "    vec3 low = c * 12.92;\n"
+        "    vec3 high = 1.055 * pow(max(c, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055;\n"
+        "    return mix(high, low, cutoff);\n"
+        "}\n"
+        "vec3 srgb_to_linear(vec3 c)\n"
+        "{\n"
+        "    bvec3 cutoff = lessThanEqual(c, vec3(0.04045));\n"
+        "    vec3 low = c / 12.92;\n"
+        "    vec3 high = pow((c + vec3(0.055)) / 1.055, vec3(2.4));\n"
+        "    return mix(high, low, cutoff);\n"
+        "}\n"
+        "void waterClip(vec3 pos) {}\n"
+        "void mirrorClip(vec3 pos) {}\n"
+        "float getAmbientClamp() { return 1.0; }\n"
+        "vec4 applySkyAndWaterFog(vec3 pos, vec3 additive, vec3 atten, vec4 color)\n"
+        "{\n"
+        "    return color;\n"
+        "}\n"
+        "void calcAtmosphericVarsLinear(\n"
+        "    vec3 inPositionEye,\n"
+        "    vec3 norm,\n"
+        "    vec3 light_dir,\n"
+        "    out vec3 sunlit,\n"
+        "    out vec3 amblit,\n"
+        "    out vec3 atten,\n"
+        "    out vec3 additive)\n"
+        "{\n"
+        "    float light_factor = clamp(dot(normalize(norm), normalize(light_dir)) * 0.5 + 0.5, 0.0, 1.0);\n"
+        "    sunlit = vec3(1.0, 0.96, 0.88) * light_factor;\n"
+        "    amblit = vec3(0.34, 0.38, 0.46);\n"
+        "    atten = vec3(1.0);\n"
+        "    additive = vec3(0.0);\n"
+        "}\n"
+        "void sampleReflectionProbesLegacy(\n"
+        "    inout vec3 ambenv,\n"
+        "    inout vec3 glossenv,\n"
+        "    inout vec3 legacyenv,\n"
+        "    vec2 tc,\n"
+        "    vec3 pos,\n"
+        "    vec3 norm,\n"
+        "    float glossiness,\n"
+        "    float envIntensity,\n"
+        "    bool transparent,\n"
+        "    vec3 amblit_linear)\n"
+        "{\n"
+        "    ambenv = amblit_linear;\n"
+        "    glossenv = vec3(0.0);\n"
+        "    legacyenv = vec3(0.0);\n"
+        "}\n";
+}
+
+bool render_opengl_alpha_reference_ppm(
+    LLRenderBackend& backend,
+    const std::string& path,
+    U32 width,
+    U32 height)
+{
+    U32 vertex_shader = 0;
+    U32 fragment_shader = 0;
+    U32 program = 0;
+    LLRenderTextureHandle diffuse_texture;
+    LLRenderVertexArrayHandle vertex_array;
+    SmokeQuad quad;
+
+    auto cleanup = [&]()
+    {
+        backend.useProgram(0);
+        if (quad.mVertexBuffer)
+        {
+            backend.deleteBufferHandle(quad.mVertexBuffer);
+            quad.mVertexBuffer = {};
+        }
+        if (vertex_array)
+        {
+            backend.bindVertexArray(0);
+            vertex_array = {};
+        }
+        if (diffuse_texture)
+        {
+            backend.deleteTextureHandle(diffuse_texture);
+            diffuse_texture = {};
+        }
+        if (program)
+        {
+            if (vertex_shader)
+            {
+                backend.detachShader(program, vertex_shader);
+            }
+            if (fragment_shader)
+            {
+                backend.detachShader(program, fragment_shader);
+            }
+            backend.deleteProgram(program);
+            program = 0;
+        }
+        if (vertex_shader)
+        {
+            backend.deleteShader(vertex_shader);
+            vertex_shader = 0;
+        }
+        if (fragment_shader)
+        {
+            backend.deleteShader(fragment_shader);
+            fragment_shader = 0;
+        }
+    };
+
+    if (!compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class1/deferred/alphaV.glsl",
+            LLRenderShaderStage::Vertex,
+            vertex_shader,
+            get_opengl_alpha_fragment_prefix()) ||
+        !compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class2/deferred/alphaF.glsl",
+            LLRenderShaderStage::Fragment,
+            fragment_shader,
+            get_opengl_alpha_fragment_prefix()))
+    {
+        cleanup();
+        return false;
+    }
+
+    program = backend.createProgram();
+    if (!program)
+    {
+        cleanup();
+        return false;
+    }
+    backend.attachShader(program, vertex_shader);
+    backend.attachShader(program, fragment_shader);
+    backend.bindAttributeLocation(program, 0, "position");
+    backend.bindAttributeLocation(program, 1, "normal");
+    backend.bindAttributeLocation(program, 2, "texcoord0");
+    backend.bindAttributeLocation(program, 6, "diffuse_color");
+    backend.linkProgram(program);
+    if (log_program_link_failure(backend, program, "OpenGL alpha reference"))
+    {
+        cleanup();
+        return false;
+    }
+
+    if (!create_smoke_texture(
+            backend,
+            diffuse_texture,
+            4,
+            4,
+            make_solid_rgba_pixels(4, 4, 42, 126, 230, 255)) ||
+        !create_smoke_quad(
+            backend,
+            quad,
+            {{
+                static_cast<U8>(to_color_byte(0.82f)),
+                static_cast<U8>(to_color_byte(0.34f)),
+                static_cast<U8>(to_color_byte(0.68f)),
+                static_cast<U8>(to_color_byte(0.72f)),
+            }}))
+    {
+        cleanup();
+        return false;
+    }
+
+    vertex_array = backend.createVertexArrayHandle();
+    if (!vertex_array)
+    {
+        cleanup();
+        return false;
+    }
+    backend.bindVertexArray(vertex_array);
+
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(0.015f, 0.018f, 0.024f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setCapability(LLRenderCapability::Blend, true);
+    backend.setBlendState(
+        {
+            LLRenderBlendFactor::SourceAlpha,
+            LLRenderBlendFactor::OneMinusSourceAlpha,
+            LLRenderBlendFactor::One,
+            LLRenderBlendFactor::OneMinusSourceAlpha,
+        });
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+
+    backend.useProgram(program);
+    const auto set_int_uniform = [&](const char* name, S32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformInteger(location, value);
+        }
+    };
+    const auto set_float_uniform = [&](const char* name, F32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat(location, value);
+        }
+    };
+    const auto set_vec2_uniform = [&](const char* name, F32 x, F32 y)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat2(location, x, y);
+        }
+    };
+    const auto set_vec3_uniform = [&](const char* name, F32 x, F32 y, F32 z)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat3(location, x, y, z);
+        }
+    };
+    const auto set_vec4_uniform = [&](const char* name, F32 x, F32 y, F32 z, F32 w)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat4(location, x, y, z, w);
+        }
+    };
+    const auto set_mat3_uniform = [&](const char* name, const glm::mat3& matrix)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformMatrix3(location, 1, false, glm::value_ptr(matrix));
+        }
+    };
+    const auto set_mat4_uniform = [&](const char* name, const glm::mat4& matrix)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformMatrix4(location, 1, false, glm::value_ptr(matrix));
+        }
+    };
+
+    const glm::mat4 identity4(1.f);
+    const glm::mat3 identity3(1.f);
+    set_mat3_uniform("normal_matrix", identity3);
+    set_mat3_uniform("env_mat", identity3);
+    set_mat4_uniform("texture_matrix0", identity4);
+    set_mat4_uniform("projection_matrix", identity4);
+    set_mat4_uniform("modelview_matrix", identity4);
+    set_mat4_uniform("modelview_projection_matrix", identity4);
+    set_mat4_uniform("proj_mat", identity4);
+    set_mat4_uniform("inv_proj", identity4);
+    set_int_uniform("diffuseMap", 0);
+    set_int_uniform("sun_up_factor", 1);
+    set_int_uniform("classic_mode", 0);
+    set_float_uniform("near_clip", 1.f);
+    set_float_uniform("minimum_alpha", -1.f);
+    set_vec2_uniform("screen_res", static_cast<F32>(width), static_cast<F32>(height));
+    set_vec3_uniform("sun_dir", 0.35f, 0.45f, 0.82f);
+    set_vec3_uniform("moon_dir", -0.25f, -0.15f, 0.95f);
+
+    for (S32 i = 0; i < 8; ++i)
+    {
+        const std::string index = std::to_string(i);
+        set_vec4_uniform(("light_position[" + index + "]").c_str(), 0.f, 0.f, 10.f, 1.f);
+        set_vec3_uniform(("light_direction[" + index + "]").c_str(), 0.f, 0.f, -1.f);
+        set_vec4_uniform(("light_attenuation[" + index + "]").c_str(), 12.f, 1.f, 1.f, 0.f);
+        set_vec3_uniform(("light_diffuse[" + index + "]").c_str(), 0.f, 0.f, 0.f);
+    }
+
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, diffuse_texture);
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Linear,
+        LLRenderTextureFilter::Linear);
+    bind_world_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    std::vector<U8> rgba_pixels;
+    rgba_pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
+    backend.readPixels(
+        0,
+        0,
+        static_cast<S32>(width),
+        static_cast<S32>(height),
+        LLRenderPixelFormat::RGBA,
+        LLRenderPixelType::UnsignedByte,
+        rgba_pixels.data());
+
+    bool result = write_rgba_readback_as_rgb_ppm(path, width, height, rgba_pixels);
+    if (result)
+    {
+        std::cout
+            << "Wrote Mare smoke OpenGL alpha source-reference PPM to "
+            << path
+            << " at "
+            << width
+            << "x"
+            << height
+            << ".\n";
+    }
+    cleanup();
+    return result;
+}
+
+bool write_class1_gbuffer_probe_reference_ppm(
+    const std::string& path,
+    SmokeScene scene,
+    U32 width,
+    U32 height)
+{
+    if (path.empty())
+    {
+        return true;
+    }
+
+    const std::array<SmokeWorldPipelineEntry, 6> entries =
+        make_class1_gbuffer_probe_entries();
+    const U32 repeat_count =
+        scene == SmokeScene::PostOverlaysStress ? 4U : 1U;
+    const U32 tile_count =
+        static_cast<U32>(entries.size()) * repeat_count;
+    const S32 columns =
+        scene == SmokeScene::PostOverlaysStress ? 6 : 3;
+    const S32 rows =
+        static_cast<S32>((tile_count + static_cast<U32>(columns) - 1U) / static_cast<U32>(columns));
+    const S32 cell_width = llmax(1, static_cast<S32>(width) / columns);
+    const S32 cell_height = llmax(1, static_cast<S32>(height) / rows);
+
+    std::vector<U8> pixels;
+    pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 3U);
+    for (U32 y = 0; y < height; ++y)
+    {
+        const S32 row =
+            llclamp(static_cast<S32>(y) / cell_height, 0, rows - 1);
+        for (U32 x = 0; x < width; ++x)
+        {
+            const S32 column =
+                llclamp(static_cast<S32>(x) / cell_width, 0, columns - 1);
+            const U32 tile_index =
+                static_cast<U32>(row * columns + column);
+            const SmokeWorldPipelineEntry& entry =
+                entries[tile_index < tile_count ? tile_index % entries.size() : 0U];
+            const size_t offset =
+                (static_cast<size_t>(y) * static_cast<size_t>(width) +
+                    static_cast<size_t>(x)) * 3U;
+            pixels[offset + 0] = static_cast<U8>(to_color_byte(entry.mRed));
+            pixels[offset + 1] = static_cast<U8>(to_color_byte(entry.mGreen));
+            pixels[offset + 2] = static_cast<U8>(to_color_byte(entry.mBlue));
+        }
+    }
+
+    std::cout
+        << "Mare Vulkan class1-gbuffer-color-probe CPU reference: flat "
+        << columns
+        << "x"
+        << rows
+        << " tile grid for Textured, Terrain, AlphaMask, Material, PBR, Avatar. "
+        << "This is a first image probe for G-buffer color output; it is not a full OpenGL runtime reference yet."
+        << std::endl;
+    return write_rgb_ppm_file(path, width, height, pixels);
+}
+
+bool render_class1_gbuffer_color_probe_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& material_textures,
+    SmokeViewerRenderTargetGraph& graph,
+    const SmokeQuad& quad,
+    SmokeScene scene,
+    U32 width,
+    U32 height,
+    const std::string& reference_path)
+{
+    if (!ensure_smoke_deferred_textures(backend, material_textures))
+    {
+        return false;
+    }
+
+    const U32 graph_width = llmax(64U, llmin(width, 960U));
+    const U32 graph_height = llmax(
+        64U,
+        llmin(
+            height,
+            static_cast<U32>(
+                static_cast<double>(graph_width) *
+                static_cast<double>(height) /
+                static_cast<double>(llmax(1U, width)))));
+
+    if (!ensure_smoke_viewer_render_target_graph(
+            graph,
+            graph_width,
+            graph_height,
+            4))
+    {
+        return false;
+    }
+
+    static bool wrote_reference = false;
+    if (!wrote_reference)
+    {
+        if (!write_class1_gbuffer_probe_reference_ppm(
+                reference_path,
+                scene,
+                width,
+                height))
+        {
+            return false;
+        }
+        wrote_reference = true;
+    }
+
+    graph.mDeferredScreen.bindTarget();
+    backend.setViewport(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setScissor(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setClearColor(0.f, 0.f, 0.f, 0.f);
+    graph.mDeferredScreen.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    bind_deferred_graph_material_textures(backend, material_textures);
+    draw_deferred_graph_gbuffer_tiles(
+        backend,
+        material_textures,
+        quad,
+        scene,
+        graph_width,
+        graph_height);
+    graph.mDeferredScreen.flush();
+
+    copy_smoke_target_to_swapchain(
+        backend,
+        graph.mDeferredScreen,
+        quad,
+        width,
+        height);
+    return true;
+}
+
 bool render_copy_chain_frame(
     LLRenderBackend& backend,
     SmokeDeferredTextures& material_textures,
@@ -3946,7 +6571,8 @@ void draw_smoke_deferred_screen_composite_quad(
     LLRenderTarget& deferred_screen,
     const SmokeQuad& quad,
     U32 width,
-    U32 height)
+    U32 height,
+    const LLRenderWorldMaterialParameters* override_parameters = nullptr)
 {
     const U32 attachment_count =
         llmin(deferred_screen.getNumTextures(), 4U);
@@ -3968,9 +6594,14 @@ void draw_smoke_deferred_screen_composite_quad(
     }
 
     LLRenderWorldMaterialParameters parameters =
-        make_deferred_graph_composite_parameters();
-    parameters.mRoughnessFactor = static_cast<F32>(attachment_count);
-    parameters.mNormalTextureOffsetS = depth_bound ? 1.f : 0.f;
+        override_parameters ?
+            *override_parameters :
+            make_deferred_graph_composite_parameters();
+    if (!override_parameters)
+    {
+        parameters.mRoughnessFactor = static_cast<F32>(attachment_count);
+        parameters.mNormalTextureOffsetS = depth_bound ? 1.f : 0.f;
+    }
     set_smoke_fullscreen_world_draw_state(
         backend,
         LLRenderWorldShaderClass::DeferredComposite,
@@ -3997,7 +6628,8 @@ void draw_smoke_final_composite_quad(
     LLRenderTarget& deferred_screen,
     const SmokeQuad& quad,
     U32 width,
-    U32 height)
+    U32 height,
+    const LLRenderWorldMaterialParameters* override_parameters = nullptr)
 {
     source.bindTexture(0, 0, LLTexUnit::TFO_BILINEAR);
 
@@ -4019,7 +6651,9 @@ void draw_smoke_final_composite_quad(
     }
 
     LLRenderWorldMaterialParameters parameters =
-        make_deferred_graph_final_parameters(attachment_count);
+        override_parameters ?
+            *override_parameters :
+            make_deferred_graph_final_parameters(attachment_count);
     set_smoke_fullscreen_world_draw_state(
         backend,
         LLRenderWorldShaderClass::FinalComposite,
@@ -4039,6 +6673,182 @@ void draw_smoke_final_composite_quad(
     {
         gGL.getTexUnit(5)->unbind(LLTexUnit::TT_TEXTURE);
     }
+}
+
+bool render_final_color_compare_frame(
+    LLRenderBackend& backend,
+    SmokeViewerRenderTargetGraph& graph,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    const U32 graph_width = llmax(64U, llmin(width, 960U));
+    const U32 graph_height = llmax(
+        64U,
+        llmin(
+            height,
+            static_cast<U32>(
+                static_cast<double>(graph_width) *
+                static_cast<double>(height) /
+                static_cast<double>(llmax(1U, width)))));
+
+    if (!ensure_smoke_viewer_render_target_graph(
+            graph,
+            graph_width,
+            graph_height,
+            3,
+            true))
+    {
+        return false;
+    }
+
+    const SmokeRGB linear_input { 0.18f, 0.36f, 0.72f };
+    log_final_color_compare_reference(linear_input);
+
+    graph.mDeferredLight.bindTarget();
+    backend.setViewport(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setScissor(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setClearColor(
+        linear_input.mRed,
+        linear_input.mGreen,
+        linear_input.mBlue,
+        1.f);
+    graph.mDeferredLight.clear(LL_RENDER_CLEAR_COLOR);
+    graph.mDeferredLight.flush();
+
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(0.f, 0.f, 0.f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+
+    LLRenderWorldMaterialParameters final_parameters =
+        make_final_color_compare_parameters();
+    draw_smoke_final_composite_quad(
+        backend,
+        graph.mDeferredLight,
+        graph.mDeferredScreen,
+        quad,
+        width,
+        height,
+        &final_parameters);
+    return true;
+}
+
+bool render_viewer_deferred_color_compare_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& material_textures,
+    SmokeViewerRenderTargetGraph& graph,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    if (!ensure_smoke_deferred_textures(backend, material_textures))
+    {
+        return false;
+    }
+
+    const U32 graph_width = llmax(64U, llmin(width, 960U));
+    const U32 graph_height = llmax(
+        64U,
+        llmin(
+            height,
+            static_cast<U32>(
+                static_cast<double>(graph_width) *
+                static_cast<double>(height) /
+                static_cast<double>(llmax(1U, width)))));
+
+    if (!ensure_smoke_viewer_render_target_graph(
+            graph,
+            graph_width,
+            graph_height,
+            4,
+            true))
+    {
+        return false;
+    }
+
+    graph.mDeferredScreen.bindTarget();
+    backend.setViewport(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setScissor(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setClearColor(0.f, 0.f, 0.f, 0.f);
+    graph.mDeferredScreen.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    draw_deferred_color_compare_gbuffer_scene(
+        backend,
+        material_textures,
+        quad,
+        graph_width,
+        graph_height);
+    graph.mDeferredScreen.flush();
+
+    graph.mDeferredLight.bindTarget();
+    backend.setClearColor(0.f, 0.f, 0.f, 1.f);
+    graph.mDeferredLight.clear(LL_RENDER_CLEAR_COLOR);
+    LLRenderWorldMaterialParameters deferred_parameters =
+        make_deferred_color_compare_composite_parameters();
+    draw_smoke_deferred_screen_composite_quad(
+        backend,
+        graph.mDeferredScreen,
+        quad,
+        graph_width,
+        graph_height,
+        &deferred_parameters);
+    graph.mDeferredLight.flush();
+
+    copy_smoke_target_to_target(
+        backend,
+        graph.mDeferredLight,
+        graph.mScreen,
+        quad,
+        graph_width,
+        graph_height);
+    copy_smoke_target_to_target(
+        backend,
+        graph.mScreen,
+        graph.mDeferredLight,
+        quad,
+        graph_width,
+        graph_height);
+
+    graph.mPostPing.bindTarget();
+    backend.setClearColor(0.f, 0.f, 0.f, 1.f);
+    graph.mPostPing.clear(LL_RENDER_CLEAR_COLOR);
+    LLRenderWorldMaterialParameters final_parameters =
+        make_final_color_compare_parameters();
+    draw_smoke_final_composite_quad(
+        backend,
+        graph.mDeferredLight,
+        graph.mDeferredScreen,
+        quad,
+        graph_width,
+        graph_height,
+        &final_parameters);
+    graph.mPostPing.flush();
+
+    copy_smoke_target_to_swapchain(
+        backend,
+        graph.mPostPing,
+        quad,
+        width,
+        height);
+    return true;
 }
 
 bool render_viewer_staged_post_targets_frame(
@@ -4799,6 +7609,112 @@ bool render_smoke_viewer_ui_sequence(
     backend.setActiveTextureUnit(0);
     return true;
 }
+
+int run_opengl_shader_reference_ppm(const SmokeOptions& options)
+{
+    const std::string shader_case =
+        normalize_shader_case_name(options.mShaderCase);
+    if (!options.mShaderCaseExplicit ||
+        (shader_case != "copy" &&
+            shader_case != "haze" &&
+            shader_case != "alpha"))
+    {
+        std::cerr
+            << "--opengl-reference-ppm currently supports only "
+            << "--shader-case copy, --shader-case haze, or --shader-case alpha.\n";
+        return 1;
+    }
+
+    setenv("MARE_RENDER_BACKEND", "opengl", 1);
+
+    void* window = mare_vulkan_smoke_create_window(
+        960,
+        540,
+        "Mare OpenGL Shader Reference");
+    if (!window)
+    {
+        std::cerr << "Failed to create OpenGL reference window.\n";
+        return 1;
+    }
+
+    LLRenderBackend& backend = getRenderBackend();
+    if (backend.getType() != LLRenderBackendType::OpenGL)
+    {
+        std::cerr
+            << "Expected OpenGL backend, got "
+            << backend.getName()
+            << ".\n";
+        mare_vulkan_smoke_destroy_window(window);
+        return 2;
+    }
+
+    LLRenderNativeContext context;
+    LLRenderNativeContextDesc desc;
+    desc.mWindow = window;
+    desc.mSamples = 0;
+    desc.mEnableVSync = false;
+
+    if (!backend.createNativeContext(desc, context))
+    {
+        std::cerr << "Failed to create OpenGL native context.\n";
+        mare_vulkan_smoke_destroy_window(window);
+        return 3;
+    }
+
+    if (!backend.makeNativeContextCurrent(context.mContext))
+    {
+        std::cerr << "Failed to make OpenGL native context current.\n";
+        backend.destroyNativeContext(context);
+        mare_vulkan_smoke_destroy_window(window);
+        return 4;
+    }
+
+    backend.initPlatformContextExtensions();
+    if (!backend.initContextCapabilities())
+    {
+        std::cerr << "Failed to initialize OpenGL context capabilities.\n";
+        backend.destroyNativeContext(context);
+        mare_vulkan_smoke_destroy_window(window);
+        return 5;
+    }
+
+    unsigned int width = 1;
+    unsigned int height = 1;
+    mare_vulkan_smoke_get_view_size(context.mView, &width, &height);
+    bool rendered = false;
+    if (shader_case == "copy")
+    {
+        rendered =
+            render_opengl_copy_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height);
+    }
+    else if (shader_case == "haze")
+    {
+        rendered =
+            render_opengl_haze_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height);
+    }
+    else
+    {
+        rendered =
+            render_opengl_alpha_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height);
+    }
+
+    backend.shutdownContextCapabilities();
+    backend.destroyNativeContext(context);
+    mare_vulkan_smoke_destroy_window(window);
+    return rendered ? 0 : 6;
+}
 }
 
 int main(int argc, char** argv)
@@ -4813,6 +7729,44 @@ int main(int argc, char** argv)
     {
         print_smoke_usage(argv[0] ? argv[0] : "mare-vulkan-smoke");
         return 0;
+    }
+    if (options.mListShaderCases)
+    {
+        print_shader_probe_cases();
+        return 0;
+    }
+    if (options.mListShaderParity)
+    {
+        return print_shader_parity_entries(
+            options.mShaderCaseExplicit ? options.mShaderCase : std::string()) ? 0 : 1;
+    }
+    if (options.mListPipelineContracts)
+    {
+        return print_world_pipeline_contract_entries() ? 0 : 1;
+    }
+    if (!options.mOpenGLReferencePPMPath.empty())
+    {
+        return run_opengl_shader_reference_ppm(options);
+    }
+    if (options.mShaderCaseExplicit &&
+        options.mOpenGLReferencePPMPath.empty() &&
+        options.mMode != SmokeMode::ShaderProbe)
+    {
+        std::cerr << "--shader-case requires --mode shader-probe.\n";
+        return 1;
+    }
+    if (options.mMode == SmokeMode::ShaderProbe)
+    {
+        SmokeWorldPipelineEntry selected_case;
+        if (!find_shader_probe_case(options.mShaderCase, selected_case))
+        {
+            std::cerr
+                << "Unknown shader-probe case '"
+                << options.mShaderCase
+                << "'.\n";
+            print_shader_probe_cases();
+            return 1;
+        }
     }
     if (options.mScene != SmokeScene::Basic &&
         !smoke_mode_uses_scene(options.mMode))
@@ -4847,6 +7801,15 @@ int main(int argc, char** argv)
         {
             return 1;
         }
+    }
+    if (options.mMode == SmokeMode::Class1GBufferColorProbe &&
+        options.mScene == SmokeScene::TwoPrims)
+    {
+        std::cerr
+            << "--mode class1-gbuffer-color-probe supports --scene basic or "
+            << "post-overlays-stress. Use a viewer-staged mode for two-prims."
+            << std::endl;
+        return 1;
     }
     if (!options.mVulkanSDK.empty())
     {
@@ -4962,6 +7925,9 @@ int main(int argc, char** argv)
         smoke_mode == SmokeMode::ViewerStagedPostTargets ||
         smoke_mode == SmokeMode::CopyChain ||
         smoke_mode == SmokeMode::CopyMRTChain ||
+        smoke_mode == SmokeMode::Class1GBufferColorProbe ||
+        smoke_mode == SmokeMode::FinalColorCompare ||
+        smoke_mode == SmokeMode::ViewerDeferredColorCompare ||
         options.mRenderUI ||
         options.mRenderSceneMarker)
     {
@@ -5007,7 +7973,12 @@ int main(int argc, char** argv)
             smoke_mode == SmokeMode::ViewerStagedPostTargets ||
             smoke_mode == SmokeMode::CopyChain ||
             smoke_mode == SmokeMode::CopyMRTChain ||
-            smoke_mode == SmokeMode::WorldPipelines) &&
+            smoke_mode == SmokeMode::WorldPipelines ||
+            smoke_mode == SmokeMode::ShaderProbe ||
+            smoke_mode == SmokeMode::ShaderSuite ||
+            smoke_mode == SmokeMode::Class1GBufferColorProbe ||
+            smoke_mode == SmokeMode::FinalColorCompare ||
+            smoke_mode == SmokeMode::ViewerDeferredColorCompare) &&
         !create_smoke_quad(backend, smoke_quad))
     {
         std::cerr << "Failed to create Vulkan smoke quad.\n";
@@ -5042,6 +8013,20 @@ int main(int argc, char** argv)
                 "off")
         << "."
         << std::endl;
+    if (smoke_mode == SmokeMode::ShaderProbe)
+    {
+        std::cout
+            << "Mare Vulkan smoke shader case selected: "
+            << options.mShaderCase
+            << std::endl;
+    }
+    else if (smoke_mode == SmokeMode::ShaderSuite)
+    {
+        std::cout
+            << "Mare Vulkan smoke shader suite selected: runtime shader cases "
+            << "will be rendered fullscreen, one case per frame."
+            << std::endl;
+    }
     if (options.mRenderUI)
     {
         std::cout
@@ -5231,6 +8216,49 @@ int main(int argc, char** argv)
                 break;
             }
         }
+        else if (smoke_mode == SmokeMode::FinalColorCompare)
+        {
+            if (!render_final_color_compare_frame(
+                    backend,
+                    smoke_viewer_render_target_graph,
+                    smoke_quad,
+                    width,
+                    height))
+            {
+                std::cerr << "Failed to render Vulkan smoke final-color-compare frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::Class1GBufferColorProbe)
+        {
+            if (!render_class1_gbuffer_color_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_viewer_render_target_graph,
+                    smoke_quad,
+                    smoke_scene,
+                    width,
+                    height,
+                    options.mReferencePPMPath))
+            {
+                std::cerr << "Failed to render Vulkan smoke class1-gbuffer-color-probe frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredColorCompare)
+        {
+            if (!render_viewer_deferred_color_compare_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_viewer_render_target_graph,
+                    smoke_quad,
+                    width,
+                    height))
+            {
+                std::cerr << "Failed to render Vulkan smoke viewer-deferred-color-compare frame.\n";
+                break;
+            }
+        }
         else if (smoke_mode == SmokeMode::CopyChain ||
             smoke_mode == SmokeMode::CopyMRTChain)
         {
@@ -5320,6 +8348,34 @@ int main(int argc, char** argv)
                     height))
             {
                 std::cerr << "Failed to render Vulkan smoke world-pipelines frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ShaderProbe)
+        {
+            if (!render_shader_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_quad,
+                    options.mShaderCase,
+                    width,
+                    height))
+            {
+                std::cerr << "Failed to render Vulkan smoke shader-probe frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ShaderSuite)
+        {
+            if (!render_shader_suite_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_quad,
+                    frame,
+                    width,
+                    height))
+            {
+                std::cerr << "Failed to render Vulkan smoke shader-suite frame.\n";
                 break;
             }
         }

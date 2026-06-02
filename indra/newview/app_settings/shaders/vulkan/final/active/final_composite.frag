@@ -81,13 +81,32 @@ vec3 tonemap_final(vec3 color, float tonemap_type)
     return tonemap_pbr_neutral(color);
 }
 
-vec3 apply_final_transform(vec3 color, float exposure, float inverse_gamma, float apply_gamma, float tonemap_mix, float tonemap_type)
+vec3 linear_to_srgb(vec3 color)
+{
+    color = clamp(color, vec3(0.0), vec3(1.0));
+    bvec3 cutoff = lessThan(color, vec3(0.0031308));
+    vec3 low = color * 12.92;
+    vec3 high = 1.055 * pow(color, vec3(0.41666)) - 0.055;
+    return mix(high, low, cutoff);
+}
+
+vec3 legacy_gamma(vec3 color, float gamma)
+{
+    vec3 inverted = 1.0 - clamp(color, vec3(0.0), vec3(1.0));
+    return 1.0 - pow(inverted, vec3(gamma));
+}
+
+vec3 apply_final_transform(vec3 color, float exposure, float legacy_gamma_exponent, float gamma_mode, float tonemap_mix, float tonemap_type)
 {
     vec3 rgb = max(color * exposure, vec3(0.0));
     rgb = mix(rgb, tonemap_final(rgb, tonemap_type), tonemap_mix);
-    if (apply_gamma > 0.5)
+    if (gamma_mode > 0.5)
     {
-        rgb = pow(rgb, vec3(inverse_gamma));
+        rgb = linear_to_srgb(rgb);
+        if (gamma_mode > 1.5)
+        {
+            rgb = legacy_gamma(rgb, legacy_gamma_exponent);
+        }
     }
     return rgb;
 }
@@ -160,8 +179,8 @@ void main()
 {
     vec4 color = texture(diffuseMap, vary_texcoord0.xy) * vertex_color;
     float exposure = max(pc.final_params.x, 0.0);
-    float inverse_gamma = max(pc.final_params.y, 0.0001);
-    float apply_gamma = pc.final_params.z;
+    float legacy_gamma_exponent = max(pc.final_params.y, 0.0001);
+    float gamma_mode = pc.final_params.z;
     float tonemap_mix = clamp(pc.final_post_params.x, 0.0, 1.0);
     float tonemap_type = pc.final_post_params.y;
     float glow_warmth_amount = clamp(pc.final_post_params.z, 0.0, 1.0);
@@ -181,7 +200,7 @@ void main()
         return;
     }
 
-    vec3 rgb = apply_final_transform(color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type);
+    vec3 rgb = apply_final_transform(color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type);
     if (glow_strength > 0.001)
     {
         vec2 texel = 1.0 / max(vec2(textureSize(diffuseMap, 0)), vec2(1.0));
@@ -194,12 +213,12 @@ void main()
         {
             vec4 sample_raw = texture(diffuseMap, vary_texcoord0.xy + vec2(glow_texel.x * offsets[i], 0.0)) * vertex_color;
             glow_accum += kernel[i] *
-                apply_final_transform(sample_raw.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type) *
+                apply_final_transform(sample_raw.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type) *
                 extract_glow_weight(sample_raw, glow_max_extract_alpha, glow_warmth_amount);
 
             sample_raw = texture(diffuseMap, vary_texcoord0.xy + vec2(0.0, glow_texel.y * offsets[i])) * vertex_color;
             glow_accum += kernel[i] *
-                apply_final_transform(sample_raw.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type) *
+                apply_final_transform(sample_raw.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type) *
                 extract_glow_weight(sample_raw, glow_max_extract_alpha, glow_warmth_amount);
         }
         rgb = clamp(rgb + glow_accum * glow_strength * (0.5 / kernel_sum), vec3(0.0), vec3(1.0));
@@ -212,29 +231,29 @@ void main()
         float cof = clamp(abs(pixel_depth - center_depth) * dof_strength * 8.0, 0.0, 1.0);
         vec2 dof_texel = texel * mix(1.0, 4.0, cof);
         vec3 blur =
-            apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(dof_texel.x, 0.0)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type) +
-            apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(dof_texel.x, 0.0)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type) +
-            apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(0.0, dof_texel.y)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type) +
-            apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(0.0, dof_texel.y)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type);
+            apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(dof_texel.x, 0.0)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type) +
+            apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(dof_texel.x, 0.0)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type) +
+            apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(0.0, dof_texel.y)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type) +
+            apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(0.0, dof_texel.y)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type);
         rgb = mix(rgb, blur * 0.25, cof);
     }
     if (cas_sharpness > 0.001)
     {
         vec2 texel = 1.0 / max(vec2(textureSize(diffuseMap, 0)), vec2(1.0));
-        vec3 left = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(texel.x, 0.0)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type);
-        vec3 right = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(texel.x, 0.0)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type);
-        vec3 down = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(0.0, texel.y)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type);
-        vec3 up = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(0.0, texel.y)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type);
+        vec3 left = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(texel.x, 0.0)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type);
+        vec3 right = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(texel.x, 0.0)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type);
+        vec3 down = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(0.0, texel.y)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type);
+        vec3 up = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(0.0, texel.y)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type);
         vec3 blur = (left + right + down + up) * 0.25;
         rgb = clamp(rgb + (rgb - blur) * cas_sharpness * 0.65, vec3(0.0), vec3(1.0));
     }
     if (fsaa_type > 0.5)
     {
         vec2 texel = 1.0 / max(vec2(textureSize(diffuseMap, 0)), vec2(1.0));
-        vec3 left = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(texel.x, 0.0)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type);
-        vec3 right = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(texel.x, 0.0)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type);
-        vec3 down = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(0.0, texel.y)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type);
-        vec3 up = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(0.0, texel.y)).rgb * vertex_color.rgb, exposure, inverse_gamma, apply_gamma, tonemap_mix, tonemap_type);
+        vec3 left = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(texel.x, 0.0)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type);
+        vec3 right = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(texel.x, 0.0)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type);
+        vec3 down = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy - vec2(0.0, texel.y)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type);
+        vec3 up = apply_final_transform(texture(diffuseMap, vary_texcoord0.xy + vec2(0.0, texel.y)).rgb * vertex_color.rgb, exposure, legacy_gamma_exponent, gamma_mode, tonemap_mix, tonemap_type);
         float edge =
             max(abs(luminance(left) - luminance(right)), abs(luminance(down) - luminance(up)));
         float blend = clamp((edge - 0.03125) * 8.0, 0.0, 1.0);

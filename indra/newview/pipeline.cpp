@@ -28,6 +28,8 @@
 
 #include "pipeline.h"
 
+#include <cstdlib>
+
 // library includes
 #include "llimagepng.h"
 #include "llaudioengine.h" // For debugging.
@@ -9885,6 +9887,16 @@ void LLPipeline::doAtmospherics()
     {
         if (use_vulkan_world_command_path())
         {
+            if (std::getenv("MARE_VULKAN_DEBUG_SKIP_ATMOSPHERIC_HAZE") ||
+                std::getenv("MARE_VULKAN_DEBUG_SKIP_HAZE") ||
+                !std::getenv("MARE_VULKAN_ENABLE_APPROXIMATE_HAZE"))
+            {
+                LL_WARNS_ONCE("RenderBackend")
+                    << "Vulkan atmospheric haze approximation skipped; set MARE_VULKAN_ENABLE_APPROXIMATE_HAZE=1 to debug the non-final haze path."
+                    << LL_ENDL;
+                return;
+            }
+
             LLColor4 haze_color(0.45f, 0.58f, 0.76f, 0.16f);
             LLSettingsSky::ptr_t sky = LLEnvironment::instance().getCurrentSky();
             if (sky)
@@ -9975,6 +9987,16 @@ void LLPipeline::doWaterHaze()
     {
         if (use_vulkan_world_command_path())
         {
+            if (std::getenv("MARE_VULKAN_DEBUG_SKIP_WATER_HAZE") ||
+                std::getenv("MARE_VULKAN_DEBUG_SKIP_HAZE") ||
+                !std::getenv("MARE_VULKAN_ENABLE_APPROXIMATE_HAZE"))
+            {
+                LL_WARNS_ONCE("RenderBackend")
+                    << "Vulkan water haze approximation skipped; set MARE_VULKAN_ENABLE_APPROXIMATE_HAZE=1 to debug the non-final haze path."
+                    << LL_ENDL;
+                return;
+            }
+
             LLColor4 water_haze_color(0.08f, 0.32f, 0.42f, 0.22f);
             LLSettingsWater::ptr_t water = LLEnvironment::instance().getCurrentWater();
             if (water)

@@ -1172,6 +1172,7 @@ public:
     void setWorldDrawEnabled(bool) override {}
     bool isWorldDrawEnabled() const override { return false; }
     void setWorldShaderClass(LLRenderWorldShaderClass) override {}
+    void setWorldDeferredShaderLevel(S32) override {}
     void setWorldTerrainParameters(const LLRenderWorldTerrainParameters&) override {}
     void setWorldMaterialParameters(const LLRenderWorldMaterialParameters&) override {}
     void setWorldTextureTransform(const LLRenderWorldTextureTransform&) override {}

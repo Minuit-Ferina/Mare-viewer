@@ -9,6 +9,7 @@ struct LLVulkanFinalCompositeSettings
     bool mNoPost = true;
     F32 mExposure = 1.f;
     F32 mGamma = 2.2f;
+    bool mLegacyGamma = false;
     F32 mTonemapMix = 0.f;
     U32 mTonemapType = 0;
     F32 mCASSharpness = 0.4f;
@@ -33,8 +34,8 @@ inline LLRenderWorldMaterialParameters make_vulkan_final_composite_material_para
     const F32 gamma = llclamp(settings.mGamma, 0.1f, 8.f);
     parameters.mBaseColorRed =
         settings.mNoPost ? 1.f : llclamp(settings.mExposure, 0.5f, 4.f);
-    parameters.mBaseColorGreen = settings.mNoPost ? 1.f : 1.f / gamma;
-    parameters.mBaseColorBlue = settings.mNoPost ? 0.f : 1.f;
+    parameters.mBaseColorGreen = gamma;
+    parameters.mBaseColorBlue = settings.mLegacyGamma ? 2.f : 1.f;
     parameters.mBaseColorAlpha =
         settings.mNoPost ? 0.f : llclamp(settings.mCASSharpness, 0.f, 1.f);
     parameters.mRoughnessFactor = llclamp(settings.mTonemapMix, 0.f, 1.f);

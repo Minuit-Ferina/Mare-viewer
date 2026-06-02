@@ -42,6 +42,14 @@ vec3 fallback_sky_color(vec2 texcoord)
     return max(mix(horizon_color, zenith_color, horizon), vec3(0.0));
 }
 
+vec3 srgb_to_linear(vec3 color)
+{
+    bvec3 cutoff = lessThanEqual(color, vec3(0.04045));
+    vec3 low = color / 12.92;
+    vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
+    return mix(high, low, cutoff);
+}
+
 float legacy_specular_weight(vec4 specular)
 {
     return clamp(specular.a * 2.0, 0.0, 1.0);
@@ -151,6 +159,14 @@ void main()
     float metallic = pbr ? clamp(specular_or_orm.b, 0.0, 1.0) : 0.0;
 
     vec3 base_color = max(diffuse.rgb, vec3(0.0));
+    if (!pbr)
+    {
+        // Legacy deferred G-buffer colors match OpenGL: albedo/specular are
+        // stored as sRGB and converted to linear during the soften/composite pass.
+        base_color = srgb_to_linear(base_color);
+        specular_or_orm.rgb = srgb_to_linear(max(specular_or_orm.rgb, vec3(0.0)));
+    }
+
     float probe_ambiance = clamp(pc.scene_reflection.x, 0.0, 1.0);
     vec3 ambient_color = max(pc.composite_ambient.rgb, vec3(0.02));
     ambient_color = mix(

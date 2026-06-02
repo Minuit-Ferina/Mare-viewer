@@ -93,7 +93,7 @@ bool LLDrawPoolWaterExclusion::emitPostDeferredCommands(LLWorldRenderCommandBuff
 
     commands.appendRenderMapWithColor(
         LLRenderPass::PASS_INVISIBLE,
-        LLWorldRenderMaterialClass::WaterExclusionMask,
+        LLWorldRenderMaterialClass::WaterExclusionSurface,
         false,
         false,
         VERTEX_DATA_MASK,

@@ -98,6 +98,15 @@ filled in.
       post-process stack, and FSR/upscaler parity are intentionally tracked as
       future renderer-parity work rather than required for the current active
       path.
+- [x] Add a deferred legacy color-parity smoke test before continuing visual
+      parity work.
+      `mare-vulkan-smoke --mode viewer-deferred-color-compare` now runs a
+      controlled legacy sRGB G-buffer color through the viewer-style
+      `deferredScreen -> deferredLight -> screen -> post -> swapchain` path.
+      The active Vulkan deferred composite now matches the OpenGL deferred
+      convention by converting legacy G-buffer albedo/specular values from sRGB
+      to linear before lighting. This prevents the deferred path from drifting
+      toward pale double-gamma-looking colors.
 - [x] Harden Vulkan resource lifetime: texture reload after budget refusal,
       stale white-texture recovery, buffer reuse, and viewport-driven eviction.
       Added a lower-discard retry path when a Vulkan texture create fails
@@ -172,6 +181,173 @@ Validation status:
       `environment`, `objects`, and `avatar`.
 - [x] Keep `class1`/`class2`/`class3` as migration labels for now. They are
       OpenGL viewer shader complexity tiers, not Vulkan pipeline tiers.
+- [ ] Preserve and port the `class1`/`class2`/`class3` shader tiers as real
+      OpenGL shader-manager variants in Vulkan.
+      The classes are selected through the OpenGL shader manager and its
+      capability/fallback flow; Vulkan must not collapse them into one
+      approximation or add its own quality mapping. For each shader family,
+      keep every OpenGL tier that exists in the source tree, including fallback
+      tiers such as `class1`
+      environment water, intermediate tiers such as `class2` alpha, and high
+      fidelity tiers such as `class3` deferred lighting, water, haze,
+      reflection probes, and local lights.
+- [ ] Separate "source-level port exists" from "runtime parity complete".
+      Current `vulkan/final/class*` files guarantee coverage and SPIR-V
+      syntax, but several are generated placeholders. Runtime parity requires
+      the matching class-tier pipeline, textures, uniforms, permutations, and
+      render-pass ordering to be wired before marking a family complete.
+- [x] Add a first class1 image-parity smoke probe.
+      `mare-vulkan-smoke --mode class1-gbuffer-color-probe` renders a stable
+      G-buffer color tile grid for Textured, Terrain, AlphaMask, Material, PBR,
+      and Avatar-style class1 world families, then copies deferredScreen color
+      attachment 0 to the swapchain. `--reference-ppm <path>` writes a CPU
+      flat-color reference for the same tile layout, and `--screenshot-ppm
+      <path>` writes the Vulkan result. This is the first image probe; it is
+      not yet a full OpenGL runtime reference because several current runtime
+      pipelines still bind active adapters instead of final class-tier shader
+      owners. Local run on 2026-06-02 built and executed successfully; the
+      CPU flat-color reference intentionally does not pass strict comparison
+      against the active Vulkan G-buffer output because the shader path encodes
+      material/texture/G-buffer state instead of writing raw tile colors.
+- [x] Add a small PPM diff helper for smoke output.
+      `python3 tools/rendering/compare_ppm.py <reference.ppm> <actual.ppm>`
+      reports mean/max RGB channel differences and can fail with configurable
+      `--max-mean` and `--max-pixel` thresholds. Use it first for snapshot
+      comparisons, then for true OpenGL/Vulkan image parity once the OpenGL
+      reference path is wired.
+- [x] Add per-shader Vulkan smoke probing.
+      `mare-vulkan-smoke --mode shader-probe --shader-case <name>` renders one
+      selected runtime Vulkan world shader case with fixed synthetic textures,
+      material parameters, and fullscreen geometry. `--list-shader-cases`
+      prints the currently selectable cases: Sky, Terrain, Textured, AlphaMask,
+      Fullbright, Material, PBR, Avatar, Water, Haze, Alpha, Glow, Copy,
+      DeferredComposite, and FinalComposite. This is a one-shader-at-a-time
+      runtime probe; it is not yet a true OpenGL/Vulkan per-source shader
+      equivalence test.
+- [x] Add a runtime shader-suite smoke pass.
+      `mare-vulkan-smoke --mode shader-suite --frames 15` renders the current
+      runtime shader-probe cases fullscreen, one case per frame, in the same
+      order reported by `--list-shader-cases`. This gives a quick no-login
+      sanity sweep before adding stricter OpenGL/Vulkan image references for
+      each specialized shader family. It still tests the currently exposed
+      runtime shader classes, not every final class-tier file one by one.
+- [x] Add a per-shader OpenGL reference map for the Vulkan smoke probes.
+      `mare-vulkan-smoke --list-shader-parity` prints the currently active
+      runtime Vulkan shader source, the intended final Vulkan class-tier source,
+      the OpenGL source reference, the parity status, and the next comparison
+      step for each shader-probe case. It can be filtered with
+      `--shader-case <name>`, for example
+      `mare-vulkan-smoke --list-shader-parity --shader-case haze`. This is the
+      first comparison layer: it makes the OpenGL reference explicit before
+      adding a true OpenGL-rendered image reference path.
+- [x] Add shader interface and pipeline-state contracts to the parity map.
+      `mare-vulkan-smoke --list-shader-parity` now separates three questions:
+      which final shader files exist, which runtime shader interface they are
+      compatible with, and which OpenGL pipeline state must be reproduced.
+      A final shader is not considered branchable merely because the GLSL file
+      exists; its Vulkan ABI and its blend/depth/cull/color-mask contract must
+      match the OpenGL owner first. Runtime `Copy` is the strict zero-diff
+      baseline, and runtime `Alpha` now has an explicit `LLDrawPoolAlpha`
+      blend/depth/cull contract. Alpha-mask remains inventory-only until the
+      final diffuse ABI is reconciled with the runtime world adapter.
+- [x] Make the OpenGL-derived world material pipeline contract public and
+      smoke-testable before further shader binding.
+      `LLWorldRenderCommand` now exposes
+      `get_world_render_pipeline_contract()`, which maps each
+      `LLWorldRenderMaterialClass` to the pass class, runtime
+      `LLRenderWorldShaderClass`, blend mode, depth mode, cull mode, and color
+      write mask. Command classification and Vulkan world submission use that
+      contract. `mare-vulkan-smoke --list-pipeline-contracts` prints a mirror
+      of the same contract without linking the full `newview` implementation,
+      keeping the smoke target lightweight. This is the pre-shader guardrail:
+      final Vulkan shaders should be wired only after their ABI and the
+      selected Vulkan pipeline reproduce the matching OpenGL contract.
+- [x] Preserve partial world color masks in Vulkan pipeline selection.
+      The OpenGL-derived material contract includes `Glow` draws that skip RGB
+      writes while preserving alpha writes. Vulkan world pipelines now have
+      separate `AlphaOnly` and `ColorOnly` color-mask variants instead of
+      collapsing every non-empty mask into one enabled RGBA pipeline. This keeps
+      color-mask state branchable before shader math is judged.
+      `mare-vulkan-smoke --list-pipeline-contracts` now prints the expected
+      Vulkan color pipeline, and synthetic `world-pipelines` / `shader-probe`
+      draws apply the same material contract instead of forcing RGBA writes.
+      The Vulkan world-command contract now separates standard `BT_ALPHA`
+      blending from `LLDrawPoolAlpha::setupForwardAlphaRenderState()`.
+      Fullbright-style `Alpha` uses source-alpha/one-minus-source-alpha for
+      both color and alpha, while `ForwardAlpha` uses
+      `zero / one-minus-src-alpha` for the destination alpha attenuation used
+      by the alpha post-water path.
+      Water is kept as blend-disabled/opaque at the world-command contract
+      level, matching `LLDrawPoolWater::renderPostDeferred()` rather than
+      sharing the alpha-post-water blend pipeline by accident.
+      Glow `Add` now maps to the OpenGL `BT_ADD` state (`one / one`) instead
+      of the alpha-modulated additive state. Fullbright and FullbrightShiny
+      now use the OpenGL alpha blend contract, and PostBump has an explicit
+      `MultiplyX2` blend contract (`dest-color / source-color`) with
+      read-only depth to match `LLDrawPoolBump::renderBump()`.
+      Water-exclusion commands are split between double-sided water-plane mask
+      draws and back-face-culled invisible exclusion surfaces, matching the
+      OpenGL owner scopes instead of forcing one cull state for both.
+      `Glow` and `PostBump` now also preserve the OpenGL
+      `PolygonOffsetFill`/`setPolygonOffset(-1, -1)` contract. The world command
+      contract, live command capture, capture replay, and
+      `mare-vulkan-smoke --list-pipeline-contracts` all carry this state, and
+      the Vulkan backend maps it to dynamic depth bias on world pipelines.
+- [x] Reconcile and bind the AlphaMask G-buffer ABI before further AlphaMask
+      shader work.
+      The final indexed class1 pair
+      `vulkan/final/class1/deferred/diffuse_indexed.vert` plus
+      `diffuse_alpha_mask_indexed.frag` now uses the runtime world contract:
+      `MareWorldPushConstants`, set0 texture descriptors, texture index,
+      runtime alpha cutoff, and optional skinning. Vulkan G-buffer AlphaMask
+      pipelines now bind this indexed final pair. The direct swapchain
+      AlphaMask pipeline intentionally remains on the active adapter until the
+      direct object/simple AlphaMask path has its own OpenGL-faithful contract
+      and probe.
+- [x] Add the first true OpenGL-rendered shader reference path.
+      `mare-vulkan-smoke --opengl-reference-ppm <path> --shader-case copy`
+      starts the OpenGL backend, compiles the real
+      `class1/interface/copyV.glsl` and `class1/interface/copyF.glsl` sources,
+      renders the same solid-texture fullscreen quad used by the Vulkan
+      `shader-probe` copy case, and writes a PPM reference. This intentionally
+      started with `copy` because the other OpenGL shader families depend on
+      shader-manager includes, permutations, uniforms, render targets, or
+      deferred graph state.
+- [x] Add a first OpenGL source-level Haze reference harness.
+      `mare-vulkan-smoke --opengl-reference-ppm <path> --shader-case haze`
+      starts OpenGL, compiles the real `class2/deferred/softenLightV.glsl`
+      and `class3/deferred/hazeF.glsl` shader bodies, and supplies minimal
+      smoke-test helper functions for the shader-manager/deferred inputs
+      (`getDepth`, `getNorm`, `getPositionWithDepth`, and
+      `calcAtmosphericVarsLinear`). This is a real OpenGL-rendered source
+      reference for a controlled Haze input, not yet the full viewer
+      `gHazeProgram` render graph with real EEP, water, shadow, and depth
+      target bindings. The matching Vulkan `shader-probe --shader-case haze`
+      now binds synthetic scene depth/color inputs and no longer renders black;
+      the first strict PPM comparison against the OpenGL source-level reference
+      still fails strongly, with mean abs diff 124.5276 and max channel diff
+      142, confirming that active Vulkan Haze remains an approximation.
+- [x] Add a true OpenGL-rendered Alpha reference harness.
+      `mare-vulkan-smoke --opengl-reference-ppm <path> --shader-case alpha`
+      starts OpenGL, compiles the real `class1/deferred/alphaV.glsl` and
+      `class2/deferred/alphaF.glsl` shader bodies, and supplies controlled
+      smoke-test helper functions for fog, reflection probes, water clipping,
+      local lights, and atmospheric inputs. The reference now compiles both the
+      OpenGL vertex and fragment with `USE_VERTEX_COLOR`, so the synthetic
+      vertex color path is exercised. The Vulkan final swapchain readback
+      originally reported alpha `0.0000`; after routing runtime alpha to
+      `vulkan/final/class1/deferred/alpha.vert` plus
+      `vulkan/final/class2/deferred/alpha.frag`, the smoke readback reports
+      nonzero alpha again. Removing Alpha-owned emissive/glow approximation and
+      switching legacy Alpha lighting to the OpenGL-style linear path improves
+      the strict RGB source-reference comparison to mean abs diff `5.3333` and
+      max channel diff `15`. Parity is not complete yet.
+- [x] Bind runtime Vulkan Copy to the specialized final shader pair.
+      `LLRenderWorldShaderClass::Copy` now uses
+      `vulkan/final/class1/interface/copy.vert` plus
+      `vulkan/final/class1/interface/copy.frag` instead of the active
+      `world_textured/copy` adapter. The controlled OpenGL/Vulkan PPM comparison
+      remains strict zero-diff: mean abs diff `0.0000`, max channel diff `0`.
 - [x] Do not reorganize final Vulkan shaders by Vulkan pipeline names until the
       backend has real final pipeline ownership for UI, G-buffer, lighting,
       shadows, reflections, water, post-processing, terrain, avatars, and
@@ -181,6 +357,116 @@ Validation status:
       architecture.
 - [x] Replace the incomplete compatibility-shader checklist with OpenGL-derived
       final source ports for the whole shader inventory.
+- [ ] Audit generated/placeholder Vulkan shader ports against their OpenGL
+      sources before considering them parity-complete. Several `vulkan/final`
+      entries currently preserve file coverage and source-tree organization but
+      are not faithful runtime ports yet; `class3/deferred/haze.frag` and
+      `water_haze.frag` are confirmed placeholders and must not be treated as
+      completed haze parity.
+- [ ] Replace active-path shader approximations with class-tier owners instead
+      of treating `active/*.frag` as the final shader family.
+      `active/deferred_composite.frag`, `active/final_composite.frag`,
+      `active/water.frag`, `active/sky.frag`, `active/alpha.frag`,
+      `active/glow.frag`, and related active G-buffer shaders are bootstrap
+      adapters. The final Vulkan path should bind class-tier shaders matching
+      the OpenGL families and selected viewer settings.
+
+### Vulkan Class-Tier Shader Parity Targets
+
+- [ ] Deferred soften/composite:
+      port and wire `class3/deferred/softenLightV.glsl` and
+      `class3/deferred/softenLightF.glsl` as the real deferred soften pass.
+      This replaces the approximate `active/deferred_composite.frag` lighting
+      logic and requires real G-buffer inputs, lightMap/SSAO, shadow state,
+      water plane, reflection probe data, and the same atmospherics path as
+      OpenGL.
+- [ ] Local lights:
+      port and wire the class-tier deferred point, multi-point, spot, and
+      multi-spot light shaders as separate passes instead of folding local
+      lighting into the active composite shader. Preserve the viewer's light
+      count/permutation behavior.
+      Source parity progress: `class3/deferred/point_light.frag` and
+      `multi_point_light.frag` now preserve the OpenGL `pointLightF` and
+      `multiPointLightF` legacy/PBR lighting equations, including legacy
+      distance attenuation, `lightFunc` specular lookup, classic-mode scale,
+      and `GBUFFER_FLAG_HAS_PBR` handling. `class1/deferred/spot_light.frag`,
+      `class1/deferred/multi_spot_light.frag`,
+      `class2/deferred/multi_spot_light.frag`, and
+      `class3/deferred/spot_light.frag` now preserve the OpenGL projected
+      light paths for no-shadow, shadowed legacy, and class3 PBR spotlights.
+      Backend binding progress: `LLRenderWorldShaderClass` now has separate
+      `PointLight`, `MultiPointLight`, `SpotLight`, and `MultiSpotLight`
+      owners. The Vulkan backend loads the local-light SPIR-V modules, creates
+      topology-limited pipelines for the cube and fullscreen paths, adds a
+      world uniform descriptor set for their `set=1` parameters, and captures
+      the current OpenGL `SHADER_DEFERRED` shader-manager level from
+      `LLViewerShaderMgr` so spot/multi-spot pipeline selection follows the
+      same class-tier decision as OpenGL. Do not map
+      `RenderQualityPerformance` directly in the Vulkan backend; if quality
+      presets start changing class tiers, make that change in the
+      `LLViewerShaderMgr`/feature-table flow first and let Vulkan follow the
+      resulting `SHADER_DEFERRED` level. Runtime work remains:
+      populate the Vulkan uniform buffers from `LLPipeline`, bind the projected
+      light, light function, G-buffer, depth, shadow/lightMap, and optional
+      emissive inputs, and submit these as separate additive deferred light
+      passes.
+- [ ] Final post-processing:
+      port and wire the OpenGL post chain as separate class-tier passes:
+      glow extraction/blur/combine, gamma/tonemap, FXAA/SMAA/CAS, DoF/cof, and
+      buffer visualization. `active/final_composite.frag` should shrink toward
+      a final copy/combine owner, not remain an inline approximation of all
+      post-processing.
+      Source parity progress: `class1/deferred/post_deferred.frag`,
+      `post_deferred_no_dof.frag`, `post_deferred_tonemap.frag`, and
+      `post_deferred_gamma.frag` now preserve the OpenGL post/DoF/tonemap/
+      gamma algorithms closely enough for final pipeline wiring.
+      `cof.frag`, `dof_combine.frag`, and
+      `post_deferred_visualize_buffers.frag` now cover the OpenGL CoF,
+      DoF-combine, and buffer-visualization source roles. Runtime work
+      remains: bind exposureMap/depthMap, compile the needed NO_POST,
+      GAMMA_CORRECT, LEGACY_GAMMA, and HAS_NOISE permutations, and replace the
+      inline logic still present in `active/final_composite.frag`.
+- [ ] Water:
+      keep both OpenGL source tiers: `class1/environment/waterF.glsl` as the
+      magenta error/fallback shader and `class3/environment/waterF.glsl` as
+      the high-fidelity water shader. Vulkan water parity needs bumpMap,
+      bumpMap2, blend factor, transparent-water screen/depth inputs,
+      exclusionTex, water fog, reflection probes, shadows, fresnel, and PBR
+      water lighting.
+- [ ] Sky:
+      port `class1/deferred/skyV.glsl` and `class1/deferred/skyF.glsl`
+      faithfully, including `vary_HazeColor`, `vary_LightNormPosDot`,
+      rainbow/halo maps, HDRI mode, and G-buffer output flags. Do not replace
+      it with a procedural sky gradient.
+      Source parity progress: `vulkan/final/class1/deferred/sky.vert` and
+      `sky.frag` now carry the OpenGL haze/rainbow/halo/HDRI source logic.
+      Runtime work remains: populate the sky uniform blocks from
+      `LLDrawPoolWLSky`, bind rainbow/halo/HDRI textures, compile the HDRI and
+      emissive permutations, and route Vulkan sky away from
+      `active/sky.frag`.
+- [x] Local light source stages:
+      `class3/deferred/point_light.vert` and `multi_point_light.vert` now match
+      the OpenGL point-light/fullscreen vertex roles instead of generated mesh
+      placeholders. The matching point, multi-point, spot, and multi-spot
+      fragment placeholders have been replaced with OpenGL-derived source
+      logic. Runtime work remains: wire the final class-tier shader owners and
+      render-pass ordering so these source ports actually replace local-light
+      approximation inside `active/deferred_composite.frag`.
+- [ ] Alpha:
+      port and wire `class2/deferred/alphaF.glsl` and the PBR alpha variants
+      as class-tier paths. Vulkan alpha parity needs the OpenGL local-light
+      arrays, atmospheric fog, water clip, reflection probe sampling, alpha
+      mask/impostor/HUD permutations, and final blend/depth ordering.
+      Runtime progress: `LLRenderWorldShaderClass::Alpha` now loads
+      `vulkan/final/class1/deferred/alpha.vert` and
+      `vulkan/final/class2/deferred/alpha.frag` instead of the active alpha
+      adapter. The vertex and fragment are adapted to the current Vulkan world
+      push-constant/skinning contract, preserve alpha by default, and use the
+      OpenGL-style linear lighting path for legacy Alpha. Current strict Alpha
+      smoke diff is mean abs `5.3333`, max channel `15`. Remaining alpha work:
+      add the OpenGL local-light/reflection/fog inputs, align
+      blend/depth/post-water ordering, and re-run strict OpenGL/Vulkan RGB
+      plus alpha comparisons.
 
 ### Additional Final Vulkan Entry Points
 
@@ -440,7 +726,7 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/class2/interface/reflectionprobeF.glsl - port: vulkan/final/class2/interface/reflectionprobe.frag
 - [x] indra/newview/app_settings/shaders/class2/interface/reflectionprobeV.glsl - port: vulkan/final/class2/interface/reflectionprobe.vert
 - [x] indra/newview/app_settings/shaders/class3/deferred/fullbrightShinyF.glsl - port: vulkan/final/class3/deferred/fullbright_shiny.frag
-- [x] indra/newview/app_settings/shaders/class3/deferred/hazeF.glsl - port: vulkan/final/class3/deferred/haze.frag
+- [ ] indra/newview/app_settings/shaders/class3/deferred/hazeF.glsl - port: vulkan/final/class3/deferred/haze.frag exists, but is a generated placeholder; needs faithful port of depth/normal/position reconstruction, EEP atmospheric uniforms, water-plane masking, and OpenGL haze blend semantics.
 - [x] indra/newview/app_settings/shaders/class3/deferred/materialF.glsl - port: vulkan/final/class3/deferred/material.frag
 - [x] indra/newview/app_settings/shaders/class3/deferred/multiPointLightF.glsl - port: vulkan/final/class3/deferred/multi_point_light.frag
 - [x] indra/newview/app_settings/shaders/class3/deferred/multiPointLightV.glsl - port: vulkan/final/class3/deferred/multi_point_light.vert
@@ -452,8 +738,8 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/class3/deferred/screenSpaceReflUtil.glsl - port: vulkan/final/class3/deferred/screen_space_refl_util.glsl
 - [x] indra/newview/app_settings/shaders/class3/deferred/softenLightF.glsl - port: vulkan/final/class3/deferred/soften_light.frag
 - [x] indra/newview/app_settings/shaders/class3/deferred/spotLightF.glsl - port: vulkan/final/class3/deferred/spot_light.frag
-- [x] indra/newview/app_settings/shaders/class3/deferred/waterHazeF.glsl - port: vulkan/final/class3/deferred/water_haze.frag
-- [x] indra/newview/app_settings/shaders/class3/deferred/waterHazeV.glsl - port: vulkan/final/class3/deferred/water_haze.vert
+- [ ] indra/newview/app_settings/shaders/class3/deferred/waterHazeF.glsl - port: vulkan/final/class3/deferred/water_haze.frag exists, but is a generated placeholder; needs faithful water-fog/exclusion/depth behavior.
+- [ ] indra/newview/app_settings/shaders/class3/deferred/waterHazeV.glsl - port: vulkan/final/class3/deferred/water_haze.vert exists, but needs runtime validation against the OpenGL water-haze pass.
 - [x] indra/newview/app_settings/shaders/class3/environment/underWaterF.glsl - port: vulkan/final/class3/environment/under_water.frag
 - [x] indra/newview/app_settings/shaders/class3/environment/waterF.glsl - port: vulkan/final/class3/environment/water.frag
 - [x] indra/newview/app_settings/shaders/class3/lighting/lightV.glsl - port: vulkan/final/class3/lighting/light_v.glsl
@@ -784,6 +1070,12 @@ Validation status:
       without `--ui-viewer-sequence`. The old black-frame/UI interaction is not
       the active issue anymore; the current active defect is that the Vulkan
       deferred graph renders incorrectly compared with OpenGL.
+      Current pipeline/interface lock validation: after adding dynamic
+      `PolygonOffsetFill`/depth-bias support, `mare-vulkan-smoke` still passes
+      `viewer-staged-light-target`, `viewer-staged-screen-target`,
+      `viewer-staged-post-overlays`, `viewer-staged-reused-light-overlays`, and
+      `viewer-staged-post-targets` on the synthetic basic scene with nonzero
+      final swapchain readbacks.
       Scene support: `mare-vulkan-smoke` now accepts `--scene basic` and
       `--scene post-overlays-stress`. The stress scene keeps the same synthetic
       shader families but repeats G-buffer and post-deferred overlay draws, so
@@ -1006,8 +1298,8 @@ Validation status:
       fresnel uniforms, above/below-water policy, water fog, and the
       source-ported water shader family still need dedicated render graph
       ownership.
-- [x] Give active Vulkan alpha draws a dedicated runtime shader/pipeline.
-      `LLRenderWorldShaderClass::Alpha` now owns `active/alpha.frag`, and both
+- [x] Give Vulkan alpha draws a dedicated runtime shader/pipeline.
+      `LLRenderWorldShaderClass::Alpha` now owns `class2/deferred/alpha.frag`, and both
       swapchain/offscreen Vulkan pipeline sets create alpha variants. Alpha
       commands no longer share the generic textured-world fragment path, while
       still preserving the existing blend/depth/cull state selection and
@@ -1257,11 +1549,11 @@ Known missing runtime coverage:
       active water approximation now also consumes the shared EEP scene-lighting
       push constants so its tint and fresnel term follow the selected sun/moon
       lighting instead of staying fully fixed.
-- [x] Active Vulkan alpha draws have a dedicated shader/pipeline owner.
+- [x] Vulkan alpha draws have a dedicated shader/pipeline owner.
       Alpha-blended world commands route through `LLRenderWorldShaderClass::Alpha`
-      and `active/alpha.frag` instead of the generic textured-world fragment.
-      This gives transparency its own runtime owner before the final sorted
-      alpha/depth-prepass/emissive subpass work.
+      and `class1/deferred/alpha.vert` plus `class2/deferred/alpha.frag`
+      instead of the generic textured-world shader pair. The vertex side keeps
+      the Vulkan world push-constant/skinning contract for now.
 - [x] Active Vulkan glow draws have a dedicated shader/pipeline owner.
       Glow world commands route through `LLRenderWorldShaderClass::Glow` and
       `active/glow.frag` instead of the generic textured-world fragment. This
@@ -3751,6 +4043,18 @@ No open items in this section right now.
 - [ ] Evaluate raytracing as a very long-term rendering goal only after the
       modern backend path owns scene acceleration data, materials, lighting,
       and fallback paths cleanly.
+- [ ] Explore a machine-local derived texture cache for faster renderer startup
+      and scene texture warmup.
+      Keep the original J2C asset cache as the source of truth, but allow the
+      viewer to generate a backend/GPU/version-specific cache entry after a
+      successful decode. The derived cache does not need to be portable between
+      machines. Candidate payloads include raw mipmapped images for a simple
+      first implementation, backend-native compressed formats such as ASTC on
+      Apple Silicon or BCn on desktop GPUs, and later KTX2/Basis-style
+      intermediates if they prove useful. Any implementation must include cache
+      invalidation by asset UUID, source data version, requested discard/mip
+      policy, backend, GPU capabilities, texture format, and derived-cache
+      schema version.
 
 ## Non-Goals For Now
 

@@ -676,7 +676,6 @@ static LLRenderWorldMaterialParameters get_vulkan_final_composite_parameters(
     static LLCachedControl<bool> build_no_post(gSavedSettings, "RenderDisablePostProcessing", false);
     static LLCachedControl<bool> should_auto_adjust(gSavedSettings, "RenderSkyAutoAdjustLegacy", false);
     static LLCachedControl<F32> exposure(gSavedSettings, "RenderExposure", 1.f);
-    static LLCachedControl<F32> display_gamma(gSavedSettings, "RenderDeferredDisplayGamma", 2.2f);
     static LLCachedControl<U32> tonemap_type(gSavedSettings, "RenderTonemapType", 0U);
     static LLCachedControl<F32> cas_sharpness(gSavedSettings, "RenderCASSharpness", 0.4f);
 
@@ -704,7 +703,10 @@ static LLRenderWorldMaterialParameters get_vulkan_final_composite_parameters(
     LLVulkanFinalCompositeSettings settings;
     settings.mNoPost = no_post;
     settings.mExposure = exposure();
-    settings.mGamma = display_gamma();
+    settings.mGamma = sky ? sky->getGamma() : 1.f;
+    settings.mLegacyGamma =
+        sky &&
+        sky->getReflectionProbeAmbiance(should_auto_adjust()) == 0.f;
     settings.mTonemapMix = tonemap_mix;
     settings.mTonemapType = tonemap_type();
     settings.mCASSharpness = cas_sharpness();
@@ -1944,6 +1946,12 @@ static void render_vulkan_world_frame()
     LLColor4 clear_color = gSky.mVOSkyp ?
         gSky.getSkyFogColor() :
         LLColor4(0.025f, 0.03f, 0.04f, 1.f);
+
+    // Keep Vulkan class-tier selection tied to LLViewerShaderMgr. Graphics
+    // presets/feature tables should change shader levels through that same
+    // path instead of adding a Vulkan-only quality mapping here.
+    getRenderBackend().setWorldDeferredShaderLevel(
+        LLViewerShaderMgr::instance()->getShaderLevel(LLViewerShaderMgr::SHADER_DEFERRED));
 
     gGL.setColorMask(true, true);
     getRenderBackend().setClearColor(

@@ -46,6 +46,14 @@ bool has_material_flag(uint flag)
     return (uint(pc.material_pbr.z + 0.5) & flag) != 0u;
 }
 
+vec3 srgb_to_linear(vec3 color)
+{
+    bvec3 cutoff = lessThanEqual(color, vec3(0.04045));
+    vec3 low = color / 12.92;
+    vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
+    return mix(high, low, cutoff);
+}
+
 vec3 get_scene_ambient_color()
 {
     if (pc.scene_direct_color.a < 0.5)
@@ -94,61 +102,46 @@ vec2 screen_texcoord_from_depth()
     return clamp(gl_FragCoord.xy / max(scene_size, vec2(1.0)), vec2(0.0), vec2(1.0));
 }
 
-float depth_haze_factor(vec2 screen_texcoord)
+float depth_haze_opacity(vec2 screen_texcoord)
 {
     if (!has_material_flag(MATERIAL_HAS_SCENE_DEPTH))
     {
-        return 1.0;
+        return 0.0;
     }
 
     float depth = texture(sceneDepthMap, screen_texcoord).r;
     if (depth >= 0.99999)
     {
-        return 1.0;
+        return 0.0;
     }
-    return smoothstep(0.45, 0.98, depth);
+    return smoothstep(0.55, 0.985, depth);
 }
 
 vec4 apply_atmospheric_or_water_haze(vec4 color)
 {
     vec2 screen_texcoord = screen_texcoord_from_depth();
-    float haze = depth_haze_factor(screen_texcoord);
-    vec3 scene_color = has_material_flag(MATERIAL_HAS_SCENE_COLOR) ?
-        texture(sceneColorMap, screen_texcoord).rgb :
-        color.rgb;
-    vec3 fog_color = color.rgb;
-    float fog_mix = 0.5;
+    float opacity = depth_haze_opacity(screen_texcoord) * clamp(color.a, 0.0, 1.0);
     vec3 ambient = get_scene_ambient_color();
     vec3 direct = get_scene_direct_color();
-    vec3 lit_fog_color = max(color.rgb * (ambient + direct * 0.28), vec3(0.0));
+    vec3 fog_color = srgb_to_linear(clamp(color.rgb, vec3(0.0), vec3(1.0)));
+    fog_color *= clamp(ambient + direct * 0.28, vec3(0.05), vec3(2.0));
+    float fog_mix = 0.42;
 
     if (has_material_flag(MATERIAL_WATER_HAZE))
     {
         float exclusion = texture(tex5, screen_texcoord).r;
-        haze *= mix(1.0, exclusion, 0.65);
-        vec2 ripple = vec2(
-            sin((screen_texcoord.y + pc.material_params.x) * 37.0),
-            cos((screen_texcoord.x + pc.material_params.y) * 29.0)) * 0.003;
-        scene_color = has_material_flag(MATERIAL_HAS_SCENE_COLOR) ?
-            texture(sceneColorMap, clamp(screen_texcoord + ripple, vec2(0.0), vec2(1.0))).rgb :
-            scene_color;
-        fog_color = mix(
-            lit_fog_color,
-            lit_fog_color * mix(vec3(0.72, 0.94, 1.08), direct + ambient, 0.22),
-            0.35);
+        opacity *= mix(1.0, exclusion, 0.65);
+        fog_color *= mix(vec3(0.72, 0.94, 1.08), direct + ambient, 0.22);
         fog_mix = 0.62;
     }
     else
     {
-        fog_color = mix(
-            lit_fog_color,
-            lit_fog_color * mix(vec3(1.05, 1.08, 1.12), direct + ambient, 0.18),
-            0.25);
-        fog_mix = 0.42;
+        fog_color *= mix(vec3(1.0), direct + ambient, 0.12);
     }
 
-    color.rgb = mix(scene_color, fog_color, fog_mix);
-    color.a *= haze;
+    float haze_contribution = opacity * fog_mix;
+    color.rgb = fog_color * haze_contribution;
+    color.a = 1.0 - haze_contribution;
     return color;
 }
 

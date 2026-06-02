@@ -80,6 +80,7 @@ public:
     virtual void setWorldDrawEnabled(bool enabled) = 0;
     virtual bool isWorldDrawEnabled() const = 0;
     virtual void setWorldShaderClass(LLRenderWorldShaderClass shader_class) = 0;
+    virtual void setWorldDeferredShaderLevel(S32 shader_level) = 0;
     virtual void setWorldTerrainParameters(const LLRenderWorldTerrainParameters& parameters) = 0;
     virtual void setWorldMaterialParameters(const LLRenderWorldMaterialParameters& parameters) = 0;
     virtual void setWorldTextureTransform(const LLRenderWorldTextureTransform& transform) = 0;

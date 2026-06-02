@@ -25,6 +25,7 @@
 #include "llpointer.h"
 #include "m4math.h"
 #include "llrender.h"
+#include "llrenderbackendtypes.h"
 #include "llviewertexture.h"
 #include "llvertexbuffer.h"
 #include "v3color.h"
@@ -58,6 +59,7 @@ enum class LLWorldRenderMaterialClass : U8
     Glow,
     Water,
     WaterExclusionMask,
+    WaterExclusionSurface,
     AtmosphericHaze,
     WaterHaze,
     FullbrightShiny,
@@ -74,7 +76,10 @@ enum class LLWorldRenderBlendMode : U8
 {
     None,
     Alpha,
+    ForwardAlpha,
     Add,
+    Haze,
+    MultiplyX2,
 };
 
 enum class LLWorldRenderDepthMode : U8
@@ -107,6 +112,9 @@ struct LLWorldRenderCommand
     LLWorldRenderBlendMode mBlendMode = LLWorldRenderBlendMode::None;
     LLWorldRenderDepthMode mDepthMode = LLWorldRenderDepthMode::ReadWrite;
     LLWorldRenderCullMode mCullMode = LLWorldRenderCullMode::Back;
+    bool mPolygonOffsetEnabled = false;
+    F32 mPolygonOffsetFactor = 0.f;
+    F32 mPolygonOffsetUnits = 0.f;
     bool mWriteColor = true;
     bool mWriteAlpha = true;
     bool mDepthOnlyAlphaPass = false;
@@ -199,6 +207,21 @@ struct LLWorldRenderCommand
     bool mHasGlow = false;
     U32 mMode = LLRender::TRIANGLES;
     bool mDrawArrays = false;
+};
+
+struct LLWorldRenderPipelineContract
+{
+    LLWorldRenderMaterialClass mMaterialClass = LLWorldRenderMaterialClass::SimpleOpaque;
+    LLWorldRenderPassClass mPassClass = LLWorldRenderPassClass::Deferred;
+    LLWorldRenderBlendMode mBlendMode = LLWorldRenderBlendMode::None;
+    LLWorldRenderDepthMode mDepthMode = LLWorldRenderDepthMode::ReadWrite;
+    LLWorldRenderCullMode mCullMode = LLWorldRenderCullMode::Back;
+    LLRenderWorldShaderClass mShaderClass = LLRenderWorldShaderClass::Textured;
+    bool mPolygonOffsetEnabled = false;
+    F32 mPolygonOffsetFactor = 0.f;
+    F32 mPolygonOffsetUnits = 0.f;
+    bool mWriteColor = true;
+    bool mWriteAlpha = true;
 };
 
 class LLWorldRenderCommandBuffer
@@ -340,5 +363,15 @@ private:
 
 bool use_vulkan_world_command_path();
 void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buffer);
+LLWorldRenderPipelineContract get_world_render_pipeline_contract(
+    LLWorldRenderMaterialClass material_class);
+const char* get_world_render_material_class_name(
+    LLWorldRenderMaterialClass material_class);
+const char* get_world_render_pass_class_name(LLWorldRenderPassClass pass_class);
+const char* get_world_render_blend_mode_name(LLWorldRenderBlendMode blend_mode);
+const char* get_world_render_depth_mode_name(LLWorldRenderDepthMode depth_mode);
+const char* get_world_render_cull_mode_name(LLWorldRenderCullMode cull_mode);
+const char* get_world_render_shader_class_name(
+    LLRenderWorldShaderClass shader_class);
 
 #endif

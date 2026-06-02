@@ -9,9 +9,9 @@ layout(set = 0, binding = 5) uniform sampler2D tex5;
 layout(set = 0, binding = 6) uniform sampler2D tex6;
 layout(set = 0, binding = 7) uniform sampler2D tex7;
 
-layout(push_constant) uniform MareDiffuseMaskPushConstants
+layout(push_constant) uniform MareWorldPushConstants
 {
-    float minimum_alpha;
+    layout(offset = 64) vec4 params;
 } pc;
 
 layout(location = 0) in vec3 vary_normal;
@@ -20,7 +20,9 @@ layout(location = 2) in vec2 vary_texcoord0;
 layout(location = 3) in vec3 vary_position;
 layout(location = 4) flat in uint vary_texture_index;
 
-layout(location = 0) out vec4 frag_data[4];
+layout(location = 0) out vec4 frag_diffuse;
+layout(location = 1) out vec4 frag_specular;
+layout(location = 2) out vec4 frag_normal;
 
 vec4 encode_normal(vec3 n, float env, float gbuffer_flag)
 {
@@ -48,13 +50,12 @@ void main()
 {
     vec4 color = diffuse_lookup(vary_texcoord0.xy) * vertex_color;
 
-    if (color.a < pc.minimum_alpha)
+    if (pc.params.x >= 0.0 && color.a < pc.params.x)
     {
         discard;
     }
 
-    frag_data[0] = vec4(color.rgb, 0.0);
-    frag_data[1] = vec4(0.0);
-    frag_data[2] = encode_normal(vary_normal, 0.0, 1.0);
-    frag_data[3] = vec4(0.0);
+    frag_diffuse = vec4(color.rgb, 0.0);
+    frag_specular = vec4(0.0);
+    frag_normal = encode_normal(vary_normal, 0.0, 1.0);
 }

@@ -54,91 +54,22 @@ constexpr U32 WORLD_RENDER_SCENE_COLOR_TEXTURE_UNIT = 9;
 
 LLRenderWorldTextureTransform get_world_texture_transform(const LLMatrix4* matrix);
 
-LLWorldRenderPassClass get_world_render_pass_class(LLWorldRenderMaterialClass material_class)
-{
-    switch (material_class)
-    {
-        case LLWorldRenderMaterialClass::Sky:
-            return LLWorldRenderPassClass::Deferred;
-        case LLWorldRenderMaterialClass::Fullbright:
-        case LLWorldRenderMaterialClass::FullbrightAlphaMask:
-        case LLWorldRenderMaterialClass::Alpha:
-        case LLWorldRenderMaterialClass::Glow:
-        case LLWorldRenderMaterialClass::Water:
-        case LLWorldRenderMaterialClass::WaterExclusionMask:
-        case LLWorldRenderMaterialClass::AtmosphericHaze:
-        case LLWorldRenderMaterialClass::WaterHaze:
-        case LLWorldRenderMaterialClass::FullbrightShiny:
-        case LLWorldRenderMaterialClass::PostBump:
-            return LLWorldRenderPassClass::PostDeferred;
-        default:
-            return LLWorldRenderPassClass::Deferred;
-    }
-}
-
-LLWorldRenderBlendMode get_world_render_blend_mode(LLWorldRenderMaterialClass material_class)
-{
-    switch (material_class)
-    {
-        case LLWorldRenderMaterialClass::Alpha:
-        case LLWorldRenderMaterialClass::Water:
-        case LLWorldRenderMaterialClass::AtmosphericHaze:
-        case LLWorldRenderMaterialClass::WaterHaze:
-            return LLWorldRenderBlendMode::Alpha;
-        case LLWorldRenderMaterialClass::Glow:
-            return LLWorldRenderBlendMode::Add;
-        default:
-            return LLWorldRenderBlendMode::None;
-    }
-}
-
-LLWorldRenderDepthMode get_world_render_depth_mode(LLWorldRenderMaterialClass material_class)
-{
-    switch (material_class)
-    {
-        case LLWorldRenderMaterialClass::Sky:
-        case LLWorldRenderMaterialClass::Alpha:
-        case LLWorldRenderMaterialClass::Glow:
-        case LLWorldRenderMaterialClass::Water:
-        case LLWorldRenderMaterialClass::AtmosphericHaze:
-        case LLWorldRenderMaterialClass::WaterHaze:
-            return LLWorldRenderDepthMode::ReadOnly;
-        default:
-            return LLWorldRenderDepthMode::ReadWrite;
-    }
-}
-
-LLWorldRenderCullMode get_world_render_cull_mode(LLWorldRenderMaterialClass material_class)
-{
-    switch (material_class)
-    {
-        case LLWorldRenderMaterialClass::Alpha:
-        case LLWorldRenderMaterialClass::AvatarImpostor:
-        case LLWorldRenderMaterialClass::Sky:
-        case LLWorldRenderMaterialClass::Water:
-        case LLWorldRenderMaterialClass::WaterExclusionMask:
-        case LLWorldRenderMaterialClass::AtmosphericHaze:
-        case LLWorldRenderMaterialClass::WaterHaze:
-            return LLWorldRenderCullMode::Disabled;
-        default:
-            return LLWorldRenderCullMode::Back;
-    }
-}
-
 void classify_world_render_command(LLWorldRenderCommand& command)
 {
-    command.mPassClass = get_world_render_pass_class(command.mMaterialClass);
-    command.mBlendMode = get_world_render_blend_mode(command.mMaterialClass);
-    command.mDepthMode = get_world_render_depth_mode(command.mMaterialClass);
-    command.mCullMode = get_world_render_cull_mode(command.mMaterialClass);
-    if (command.mMaterialClass == LLWorldRenderMaterialClass::Glow)
-    {
-        command.mWriteColor = false;
-        command.mWriteAlpha = true;
-    }
+    const LLWorldRenderPipelineContract contract =
+        ::get_world_render_pipeline_contract(command.mMaterialClass);
+    command.mPassClass = contract.mPassClass;
+    command.mBlendMode = contract.mBlendMode;
+    command.mDepthMode = contract.mDepthMode;
+    command.mCullMode = contract.mCullMode;
+    command.mPolygonOffsetEnabled = contract.mPolygonOffsetEnabled;
+    command.mPolygonOffsetFactor = contract.mPolygonOffsetFactor;
+    command.mPolygonOffsetUnits = contract.mPolygonOffsetUnits;
+    command.mWriteColor = contract.mWriteColor;
+    command.mWriteAlpha = contract.mWriteAlpha;
 }
 
-const char* get_world_render_material_class_name(LLWorldRenderMaterialClass material_class)
+const char* get_world_render_material_class_log_name(LLWorldRenderMaterialClass material_class)
 {
     switch (material_class)
     {
@@ -160,6 +91,7 @@ const char* get_world_render_material_class_name(LLWorldRenderMaterialClass mate
         case LLWorldRenderMaterialClass::Glow: return "Glow";
         case LLWorldRenderMaterialClass::Water: return "Water";
         case LLWorldRenderMaterialClass::WaterExclusionMask: return "WaterExclusionMask";
+        case LLWorldRenderMaterialClass::WaterExclusionSurface: return "WaterExclusionSurface";
         case LLWorldRenderMaterialClass::AtmosphericHaze: return "AtmosphericHaze";
         case LLWorldRenderMaterialClass::WaterHaze: return "WaterHaze";
         case LLWorldRenderMaterialClass::FullbrightShiny: return "FullbrightShiny";
@@ -270,7 +202,7 @@ void log_vulkan_world_command_summary(const LLWorldRenderCommandBuffer& command_
             << "Vulkan world command buffer "
             << sLoggedCommandBuffers + 1
             << " material "
-            << get_world_render_material_class_name(static_cast<LLWorldRenderMaterialClass>(i))
+            << get_world_render_material_class_log_name(static_cast<LLWorldRenderMaterialClass>(i))
             << ": "
             << material_counts[i]
             << " draw command(s)."
@@ -532,6 +464,9 @@ void write_vulkan_world_command_capture(const LLWorldRenderCommandBuffer& comman
             << " blend " << static_cast<U32>(command.mBlendMode)
             << " depth " << static_cast<U32>(command.mDepthMode)
             << " cull " << static_cast<U32>(command.mCullMode)
+            << " polygon_offset " << (command.mPolygonOffsetEnabled ? 1 : 0)
+            << " polygon_offset_factor " << command.mPolygonOffsetFactor
+            << " polygon_offset_units " << command.mPolygonOffsetUnits
             << " write_color " << (command.mWriteColor ? 1 : 0)
             << " write_alpha " << (command.mWriteAlpha ? 1 : 0)
             << " source_pass " << command.mSourcePass
@@ -734,9 +669,14 @@ LLRender::eBlendType get_scene_blend_type(LLWorldRenderBlendMode mode)
     switch (mode)
     {
         case LLWorldRenderBlendMode::Alpha:
+        case LLWorldRenderBlendMode::ForwardAlpha:
             return LLRender::BT_ALPHA;
         case LLWorldRenderBlendMode::Add:
-            return LLRender::BT_ADD_WITH_ALPHA;
+            return LLRender::BT_ADD;
+        case LLWorldRenderBlendMode::Haze:
+            return LLRender::BT_REPLACE;
+        case LLWorldRenderBlendMode::MultiplyX2:
+            return LLRender::BT_MULT_X2;
         case LLWorldRenderBlendMode::None:
         default:
             return LLRender::BT_REPLACE;
@@ -854,6 +794,7 @@ F32 get_world_material_flags(const LLWorldRenderCommand& command)
     }
     if (command.mMaterialClass == LLWorldRenderMaterialClass::Sky ||
         command.mMaterialClass == LLWorldRenderMaterialClass::WaterExclusionMask ||
+        command.mMaterialClass == LLWorldRenderMaterialClass::WaterExclusionSurface ||
         command.mMaterialClass == LLWorldRenderMaterialClass::AtmosphericHaze ||
         command.mMaterialClass == LLWorldRenderMaterialClass::WaterHaze)
     {
@@ -867,7 +808,8 @@ F32 get_world_material_flags(const LLWorldRenderCommand& command)
     {
         flags |= LLRenderWorldMaterialParameters::Water;
     }
-    if (command.mBlendMode == LLWorldRenderBlendMode::Alpha)
+    if (command.mBlendMode == LLWorldRenderBlendMode::Alpha ||
+        command.mBlendMode == LLWorldRenderBlendMode::ForwardAlpha)
     {
         flags |= LLRenderWorldMaterialParameters::AlphaBlend;
     }
@@ -906,7 +848,8 @@ F32 get_world_material_flags(const LLWorldRenderCommand& command)
     {
         flags |= LLRenderWorldMaterialParameters::WaterHaze;
     }
-    if (command.mMaterialClass == LLWorldRenderMaterialClass::WaterExclusionMask)
+    if (command.mMaterialClass == LLWorldRenderMaterialClass::WaterExclusionMask ||
+        command.mMaterialClass == LLWorldRenderMaterialClass::WaterExclusionSurface)
     {
         flags |= LLRenderWorldMaterialParameters::WaterExclusionMask;
     }
@@ -1011,7 +954,26 @@ void apply_world_render_command_state(const LLWorldRenderCommand& command)
     getRenderBackend().setCapability(
         LLRenderCapability::Blend,
         command.mBlendMode != LLWorldRenderBlendMode::None);
-    gGL.setSceneBlendType(get_scene_blend_type(command.mBlendMode));
+    if (command.mBlendMode == LLWorldRenderBlendMode::ForwardAlpha)
+    {
+        gGL.blendFunc(
+            LLRender::BF_SOURCE_ALPHA,
+            LLRender::BF_ONE_MINUS_SOURCE_ALPHA,
+            LLRender::BF_ZERO,
+            LLRender::BF_ONE_MINUS_SOURCE_ALPHA);
+    }
+    else if (command.mBlendMode == LLWorldRenderBlendMode::Haze)
+    {
+        gGL.blendFunc(
+            LLRender::BF_ONE,
+            LLRender::BF_SOURCE_ALPHA,
+            LLRender::BF_ZERO,
+            LLRender::BF_SOURCE_ALPHA);
+    }
+    else
+    {
+        gGL.setSceneBlendType(get_scene_blend_type(command.mBlendMode));
+    }
 
     const bool depth_enabled = command.mDepthMode != LLWorldRenderDepthMode::Disabled;
     getRenderBackend().setCapability(LLRenderCapability::DepthTest, depth_enabled);
@@ -1025,6 +987,13 @@ void apply_world_render_command_state(const LLWorldRenderCommand& command)
     {
         getRenderBackend().setCullFace(LLRenderCullFace::Back);
     }
+
+    getRenderBackend().setCapability(
+        LLRenderCapability::PolygonOffsetFill,
+        command.mPolygonOffsetEnabled);
+    getRenderBackend().setPolygonOffset(
+        command.mPolygonOffsetEnabled ? command.mPolygonOffsetFactor : 0.f,
+        command.mPolygonOffsetEnabled ? command.mPolygonOffsetUnits : 0.f);
 }
 }
 
@@ -1032,6 +1001,259 @@ bool use_vulkan_world_command_path()
 {
     return getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
         getRenderBackend().isReady();
+}
+
+LLWorldRenderPipelineContract get_world_render_pipeline_contract(
+    LLWorldRenderMaterialClass material_class)
+{
+    LLWorldRenderPipelineContract contract;
+    contract.mMaterialClass = material_class;
+
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Fullbright:
+        case LLWorldRenderMaterialClass::FullbrightAlphaMask:
+        case LLWorldRenderMaterialClass::Alpha:
+        case LLWorldRenderMaterialClass::Glow:
+        case LLWorldRenderMaterialClass::Water:
+        case LLWorldRenderMaterialClass::WaterExclusionMask:
+        case LLWorldRenderMaterialClass::WaterExclusionSurface:
+        case LLWorldRenderMaterialClass::AtmosphericHaze:
+        case LLWorldRenderMaterialClass::WaterHaze:
+        case LLWorldRenderMaterialClass::FullbrightShiny:
+        case LLWorldRenderMaterialClass::PostBump:
+            contract.mPassClass = LLWorldRenderPassClass::PostDeferred;
+            break;
+        case LLWorldRenderMaterialClass::Sky:
+        default:
+            contract.mPassClass = LLWorldRenderPassClass::Deferred;
+            break;
+    }
+
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Alpha:
+            contract.mBlendMode = LLWorldRenderBlendMode::ForwardAlpha;
+            break;
+        case LLWorldRenderMaterialClass::Fullbright:
+        case LLWorldRenderMaterialClass::FullbrightShiny:
+            contract.mBlendMode = LLWorldRenderBlendMode::Alpha;
+            break;
+        case LLWorldRenderMaterialClass::AtmosphericHaze:
+        case LLWorldRenderMaterialClass::WaterHaze:
+            contract.mBlendMode = LLWorldRenderBlendMode::Haze;
+            break;
+        case LLWorldRenderMaterialClass::Glow:
+            contract.mBlendMode = LLWorldRenderBlendMode::Add;
+            break;
+        case LLWorldRenderMaterialClass::PostBump:
+            contract.mBlendMode = LLWorldRenderBlendMode::MultiplyX2;
+            break;
+        default:
+            contract.mBlendMode = LLWorldRenderBlendMode::None;
+            break;
+    }
+
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Sky:
+        case LLWorldRenderMaterialClass::Alpha:
+        case LLWorldRenderMaterialClass::Glow:
+        case LLWorldRenderMaterialClass::Water:
+        case LLWorldRenderMaterialClass::AtmosphericHaze:
+        case LLWorldRenderMaterialClass::WaterHaze:
+        case LLWorldRenderMaterialClass::PostBump:
+            contract.mDepthMode = LLWorldRenderDepthMode::ReadOnly;
+            break;
+        default:
+            contract.mDepthMode = LLWorldRenderDepthMode::ReadWrite;
+            break;
+    }
+
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Alpha:
+        case LLWorldRenderMaterialClass::AvatarImpostor:
+        case LLWorldRenderMaterialClass::Sky:
+        case LLWorldRenderMaterialClass::Water:
+        case LLWorldRenderMaterialClass::WaterExclusionMask:
+        case LLWorldRenderMaterialClass::AtmosphericHaze:
+        case LLWorldRenderMaterialClass::WaterHaze:
+            contract.mCullMode = LLWorldRenderCullMode::Disabled;
+            break;
+        default:
+            contract.mCullMode = LLWorldRenderCullMode::Back;
+            break;
+    }
+
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Terrain:
+            contract.mShaderClass = LLRenderWorldShaderClass::Terrain;
+            break;
+        case LLWorldRenderMaterialClass::Sky:
+            contract.mShaderClass = LLRenderWorldShaderClass::Sky;
+            break;
+        case LLWorldRenderMaterialClass::Water:
+            contract.mShaderClass = LLRenderWorldShaderClass::Water;
+            break;
+        case LLWorldRenderMaterialClass::WaterExclusionMask:
+        case LLWorldRenderMaterialClass::WaterExclusionSurface:
+        case LLWorldRenderMaterialClass::AtmosphericHaze:
+        case LLWorldRenderMaterialClass::WaterHaze:
+            contract.mShaderClass = LLRenderWorldShaderClass::Haze;
+            break;
+        case LLWorldRenderMaterialClass::Alpha:
+            contract.mShaderClass = LLRenderWorldShaderClass::Alpha;
+            break;
+        case LLWorldRenderMaterialClass::Glow:
+            contract.mShaderClass = LLRenderWorldShaderClass::Glow;
+            break;
+        case LLWorldRenderMaterialClass::AlphaMask:
+        case LLWorldRenderMaterialClass::Grass:
+        case LLWorldRenderMaterialClass::Tree:
+        case LLWorldRenderMaterialClass::GLTFPBRAlphaMask:
+            contract.mShaderClass = LLRenderWorldShaderClass::AlphaMask;
+            break;
+        case LLWorldRenderMaterialClass::Fullbright:
+        case LLWorldRenderMaterialClass::FullbrightAlphaMask:
+        case LLWorldRenderMaterialClass::FullbrightShiny:
+            contract.mShaderClass = LLRenderWorldShaderClass::Fullbright;
+            break;
+        case LLWorldRenderMaterialClass::LegacyMaterial:
+        case LLWorldRenderMaterialClass::Bump:
+        case LLWorldRenderMaterialClass::PostBump:
+            contract.mShaderClass = LLRenderWorldShaderClass::Material;
+            break;
+        case LLWorldRenderMaterialClass::GLTFPBR:
+            contract.mShaderClass = LLRenderWorldShaderClass::PBR;
+            break;
+        case LLWorldRenderMaterialClass::Avatar:
+        case LLWorldRenderMaterialClass::AvatarImpostor:
+            contract.mShaderClass = LLRenderWorldShaderClass::Avatar;
+            break;
+        default:
+            contract.mShaderClass = LLRenderWorldShaderClass::Textured;
+            break;
+    }
+
+    if (material_class == LLWorldRenderMaterialClass::Glow)
+    {
+        contract.mWriteColor = false;
+        contract.mWriteAlpha = true;
+    }
+    if (material_class == LLWorldRenderMaterialClass::Glow ||
+        material_class == LLWorldRenderMaterialClass::PostBump)
+    {
+        contract.mPolygonOffsetEnabled = true;
+        contract.mPolygonOffsetFactor = -1.f;
+        contract.mPolygonOffsetUnits = -1.f;
+    }
+
+    return contract;
+}
+
+const char* get_world_render_material_class_name(LLWorldRenderMaterialClass material_class)
+{
+    switch (material_class)
+    {
+        case LLWorldRenderMaterialClass::Sky: return "Sky";
+        case LLWorldRenderMaterialClass::Terrain: return "Terrain";
+        case LLWorldRenderMaterialClass::SimpleOpaque: return "SimpleOpaque";
+        case LLWorldRenderMaterialClass::AlphaMask: return "AlphaMask";
+        case LLWorldRenderMaterialClass::Grass: return "Grass";
+        case LLWorldRenderMaterialClass::Tree: return "Tree";
+        case LLWorldRenderMaterialClass::Fullbright: return "Fullbright";
+        case LLWorldRenderMaterialClass::FullbrightAlphaMask: return "FullbrightAlphaMask";
+        case LLWorldRenderMaterialClass::Bump: return "Bump";
+        case LLWorldRenderMaterialClass::LegacyMaterial: return "LegacyMaterial";
+        case LLWorldRenderMaterialClass::GLTFPBR: return "GLTFPBR";
+        case LLWorldRenderMaterialClass::GLTFPBRAlphaMask: return "GLTFPBRAlphaMask";
+        case LLWorldRenderMaterialClass::Avatar: return "Avatar";
+        case LLWorldRenderMaterialClass::AvatarImpostor: return "AvatarImpostor";
+        case LLWorldRenderMaterialClass::Alpha: return "Alpha";
+        case LLWorldRenderMaterialClass::Glow: return "Glow";
+        case LLWorldRenderMaterialClass::Water: return "Water";
+        case LLWorldRenderMaterialClass::WaterExclusionMask: return "WaterExclusionMask";
+        case LLWorldRenderMaterialClass::WaterExclusionSurface: return "WaterExclusionSurface";
+        case LLWorldRenderMaterialClass::AtmosphericHaze: return "AtmosphericHaze";
+        case LLWorldRenderMaterialClass::WaterHaze: return "WaterHaze";
+        case LLWorldRenderMaterialClass::FullbrightShiny: return "FullbrightShiny";
+        case LLWorldRenderMaterialClass::PostBump: return "PostBump";
+    }
+    return "Unknown";
+}
+
+const char* get_world_render_pass_class_name(LLWorldRenderPassClass pass_class)
+{
+    switch (pass_class)
+    {
+        case LLWorldRenderPassClass::Deferred: return "Deferred";
+        case LLWorldRenderPassClass::PostDeferred: return "PostDeferred";
+    }
+    return "Unknown";
+}
+
+const char* get_world_render_blend_mode_name(LLWorldRenderBlendMode blend_mode)
+{
+    switch (blend_mode)
+    {
+        case LLWorldRenderBlendMode::None: return "None";
+        case LLWorldRenderBlendMode::Alpha: return "Alpha";
+        case LLWorldRenderBlendMode::ForwardAlpha: return "ForwardAlpha";
+        case LLWorldRenderBlendMode::Add: return "Add";
+        case LLWorldRenderBlendMode::Haze: return "Haze";
+        case LLWorldRenderBlendMode::MultiplyX2: return "MultiplyX2";
+    }
+    return "Unknown";
+}
+
+const char* get_world_render_depth_mode_name(LLWorldRenderDepthMode depth_mode)
+{
+    switch (depth_mode)
+    {
+        case LLWorldRenderDepthMode::ReadWrite: return "ReadWrite";
+        case LLWorldRenderDepthMode::ReadOnly: return "ReadOnly";
+        case LLWorldRenderDepthMode::Disabled: return "Disabled";
+    }
+    return "Unknown";
+}
+
+const char* get_world_render_cull_mode_name(LLWorldRenderCullMode cull_mode)
+{
+    switch (cull_mode)
+    {
+        case LLWorldRenderCullMode::Back: return "Back";
+        case LLWorldRenderCullMode::Disabled: return "Disabled";
+    }
+    return "Unknown";
+}
+
+const char* get_world_render_shader_class_name(LLRenderWorldShaderClass shader_class)
+{
+    switch (shader_class)
+    {
+        case LLRenderWorldShaderClass::Textured: return "Textured";
+        case LLRenderWorldShaderClass::Sky: return "Sky";
+        case LLRenderWorldShaderClass::Water: return "Water";
+        case LLRenderWorldShaderClass::Haze: return "Haze";
+        case LLRenderWorldShaderClass::Alpha: return "Alpha";
+        case LLRenderWorldShaderClass::Glow: return "Glow";
+        case LLRenderWorldShaderClass::AlphaMask: return "AlphaMask";
+        case LLRenderWorldShaderClass::Fullbright: return "Fullbright";
+        case LLRenderWorldShaderClass::Material: return "Material";
+        case LLRenderWorldShaderClass::PBR: return "PBR";
+        case LLRenderWorldShaderClass::Avatar: return "Avatar";
+        case LLRenderWorldShaderClass::Terrain: return "Terrain";
+        case LLRenderWorldShaderClass::PointLight: return "PointLight";
+        case LLRenderWorldShaderClass::MultiPointLight: return "MultiPointLight";
+        case LLRenderWorldShaderClass::SpotLight: return "SpotLight";
+        case LLRenderWorldShaderClass::MultiSpotLight: return "MultiSpotLight";
+        case LLRenderWorldShaderClass::Copy: return "Copy";
+        case LLRenderWorldShaderClass::DeferredComposite: return "DeferredComposite";
+        case LLRenderWorldShaderClass::FinalComposite: return "FinalComposite";
+    }
+    return "Unknown";
 }
 
 void LLWorldRenderCommandBuffer::clear()
@@ -1586,6 +1808,9 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
     LLWorldRenderBlendMode active_blend_mode = LLWorldRenderBlendMode::None;
     LLWorldRenderDepthMode active_depth_mode = LLWorldRenderDepthMode::ReadWrite;
     LLWorldRenderCullMode active_cull_mode = LLWorldRenderCullMode::Back;
+    bool active_polygon_offset_enabled = false;
+    F32 active_polygon_offset_factor = 0.f;
+    F32 active_polygon_offset_units = 0.f;
     bool active_write_color = true;
     bool active_write_alpha = true;
     bool state_bound = false;
@@ -1603,6 +1828,9 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
             active_blend_mode != command.mBlendMode ||
             active_depth_mode != command.mDepthMode ||
             active_cull_mode != command.mCullMode ||
+            active_polygon_offset_enabled != command.mPolygonOffsetEnabled ||
+            active_polygon_offset_factor != command.mPolygonOffsetFactor ||
+            active_polygon_offset_units != command.mPolygonOffsetUnits ||
             active_write_color != command.mWriteColor ||
             active_write_alpha != command.mWriteAlpha)
         {
@@ -1610,6 +1838,9 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
             active_blend_mode = command.mBlendMode;
             active_depth_mode = command.mDepthMode;
             active_cull_mode = command.mCullMode;
+            active_polygon_offset_enabled = command.mPolygonOffsetEnabled;
+            active_polygon_offset_factor = command.mPolygonOffsetFactor;
+            active_polygon_offset_units = command.mPolygonOffsetUnits;
             active_write_color = command.mWriteColor;
             active_write_alpha = command.mWriteAlpha;
             state_bound = true;
@@ -1624,9 +1855,10 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
                 uses_texture_matrix ?
                     command.mTextureMatrix :
                     nullptr));
+        const LLWorldRenderPipelineContract contract =
+            get_world_render_pipeline_contract(command.mMaterialClass);
         if (command.mMaterialClass == LLWorldRenderMaterialClass::Terrain)
         {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Terrain);
             LLRenderWorldTerrainParameters terrain_parameters;
             terrain_parameters.mDetailScale = command.mTerrainDetailScale;
             terrain_parameters.mOffsetX = command.mTerrainOffsetX;
@@ -1667,60 +1899,7 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
             }
             getRenderBackend().setWorldTerrainParameters(terrain_parameters);
         }
-        else if (command.mMaterialClass == LLWorldRenderMaterialClass::Sky)
-        {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Sky);
-        }
-        else if (command.mMaterialClass == LLWorldRenderMaterialClass::Water)
-        {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Water);
-        }
-        else if (command.mMaterialClass == LLWorldRenderMaterialClass::WaterExclusionMask ||
-                 command.mMaterialClass == LLWorldRenderMaterialClass::AtmosphericHaze ||
-                 command.mMaterialClass == LLWorldRenderMaterialClass::WaterHaze)
-        {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Haze);
-        }
-        else if (command.mMaterialClass == LLWorldRenderMaterialClass::Alpha)
-        {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Alpha);
-        }
-        else if (command.mMaterialClass == LLWorldRenderMaterialClass::Glow)
-        {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Glow);
-        }
-        else if (command.mMaterialClass == LLWorldRenderMaterialClass::AlphaMask ||
-                 command.mMaterialClass == LLWorldRenderMaterialClass::Grass ||
-                 command.mMaterialClass == LLWorldRenderMaterialClass::Tree ||
-                 command.mMaterialClass == LLWorldRenderMaterialClass::GLTFPBRAlphaMask)
-        {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::AlphaMask);
-        }
-        else if (command.mMaterialClass == LLWorldRenderMaterialClass::Fullbright ||
-                 command.mMaterialClass == LLWorldRenderMaterialClass::FullbrightAlphaMask ||
-                 command.mMaterialClass == LLWorldRenderMaterialClass::FullbrightShiny)
-        {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Fullbright);
-        }
-        else if (command.mMaterialClass == LLWorldRenderMaterialClass::LegacyMaterial ||
-                 command.mMaterialClass == LLWorldRenderMaterialClass::Bump ||
-                 command.mMaterialClass == LLWorldRenderMaterialClass::PostBump)
-        {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Material);
-        }
-        else if (command.mMaterialClass == LLWorldRenderMaterialClass::GLTFPBR)
-        {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::PBR);
-        }
-        else if (command.mMaterialClass == LLWorldRenderMaterialClass::Avatar ||
-                 command.mMaterialClass == LLWorldRenderMaterialClass::AvatarImpostor)
-        {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Avatar);
-        }
-        else
-        {
-            getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::Textured);
-        }
+        getRenderBackend().setWorldShaderClass(contract.mShaderClass);
 
         getRenderBackend().setWorldMaterialParameters(
             get_world_material_parameters(command, scene_lighting));
@@ -1916,6 +2095,8 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
     getRenderBackend().setWorldMaterialParameters({});
     getRenderBackend().setWorldTextureTransform({});
     getRenderBackend().setWorldSkinningMatrixPalette(0, nullptr);
+    getRenderBackend().setCapability(LLRenderCapability::PolygonOffsetFill, false);
+    getRenderBackend().setPolygonOffset(0.f, 0.f);
     getRenderBackend().setColorMask({ true, true, true, true });
     gUIProgram.mAttributeMask = saved_attribute_mask;
     LLVertexBuffer::setupClientArrays(saved_attribute_mask);
