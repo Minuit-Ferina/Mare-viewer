@@ -367,11 +367,11 @@ Validation status:
       of treating `active/*.frag` as the final shader family.
       `active/deferred_composite.frag`, `active/final_composite.frag`,
       `active/alpha.frag`, and related active G-buffer shaders are bootstrap
-      adapters. Sky, water, and world glow have moved to explicit runtime
-      owners, but still need their faithful final UBO/texture/render-graph
-      pipelines before they are parity-complete. The final Vulkan path should
-      bind class-tier shaders matching the OpenGL families and selected viewer
-      settings.
+      adapters. Sky, water, world glow, and fullbright have moved to explicit
+      runtime owners, but still need their faithful final UBO/texture/render-
+      graph pipelines before they are parity-complete. The final Vulkan path
+      should bind class-tier shaders matching the OpenGL families and selected
+      viewer settings.
       First safe runtime replacement: UI textured now binds
       `class1/interface/ui.frag` instead of `active/ui.frag`. The UI vertex
       remains `active/ui.vert` because the class1 interface vertex expects
@@ -523,6 +523,7 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.vert
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/effects/glow_runtime.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/fullbright_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed.vert
@@ -1387,8 +1388,9 @@ Validation status:
 	      shader/pipeline owners.
 	      `LLRenderWorldShaderClass::AlphaMask` now owns `active/alpha_mask.frag`
 	      for alpha-mask, grass, tree, and GLTF alpha-mask fallback draws.
-      `LLRenderWorldShaderClass::Fullbright` now owns `active/fullbright.frag`
-      for fullbright, fullbright alpha-mask, and fullbright-shiny fallback
+      `LLRenderWorldShaderClass::Fullbright` now owns
+      `class1/deferred/fullbright_runtime.frag` for fullbright, fullbright
+      alpha-mask, and fullbright-shiny fallback
 	      draws. Offscreen G-buffer draws can still choose the G-buffer pipeline
 	      when appropriate; the dedicated owners remove more post-deferred and
 	      direct-swapchain draws from the generic textured-world fragment path.
@@ -1644,7 +1646,9 @@ Known missing runtime coverage:
       pipeline owners.
       Alpha-mask/grass/tree/GLTF alpha-mask fallback commands can route through
       `LLRenderWorldShaderClass::AlphaMask`; fullbright/fullbright alpha-mask/
-      fullbright-shiny commands can route through `LLRenderWorldShaderClass::Fullbright`.
+      fullbright-shiny commands can route through
+      `LLRenderWorldShaderClass::Fullbright` and
+      `class1/deferred/fullbright_runtime.frag`.
       This still does not replace the final deferred alpha-mask G-buffer
       variants or full post-deferred shader family, but it reduces runtime
       dependence on the generic textured-world shader.

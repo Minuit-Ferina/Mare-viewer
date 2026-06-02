@@ -11384,6 +11384,7 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"legacy-material-gbuffer", "active/world_textured.vert.spv", "class3/deferred/material_gbuffer.frag.spv", "legacy material G-buffer geometry", "runtime-world push constants, material texture transforms, normal/specular maps", "OpenGL class3 deferred material G-buffer writes adapted to the Vulkan G-buffer layout", "bound runtime owner; emissive attachment uses material_gbuffer_emissive.frag"},
         {"pbr-alpha-class1", "class1/deferred/pbralpha.vert.spv", "class1/deferred/pbralpha.frag.spv", "alpha GLTF/PBR geometry fallback", "pending GLTF/PBR alpha ABI", "OpenGL PBR alpha state", "inventory-only"},
         {"pbr-alpha-class2", "class1/deferred/pbralpha.vert.spv", "class2/deferred/pbralpha.frag.spv", "alpha GLTF/PBR geometry", "pending GLTF/PBR alpha class2 ABI", "OpenGL PBR alpha state", "inventory-only"},
+        {"fullbright-runtime", "active/world_textured.vert.spv", "class1/deferred/fullbright_runtime.frag.spv", "fullbright and fullbright-shiny runtime surface", "runtime-world push constants, alpha policy, diffuse/emissive texture selection", "OpenGL fullbright owner blend/depth/color state approximation", "bound runtime owner; final class1/class3 fullbright shaders remain inventory-only"},
         {"legacy-alpha", "class1/deferred/alpha.vert.spv", "class2/deferred/alpha.frag.spv", "legacy alpha-blend geometry", "runtime-world-alpha push constants, set0 texture array, vertex color, optional skinning", "LLDrawPoolAlpha blend/depth/cull state translated from OpenGL", "bound runtime owner"},
         {"alpha-mask", "class1/deferred/diffuse_indexed.vert.spv", "class1/deferred/diffuse_alpha_mask_indexed.frag.spv", "legacy alpha-mask G-buffer geometry", "runtime-world push constants, set0 texture array, texture index, optional skinning", "OpenGL alpha-mask cutoff plus opaque depth write", "G-buffer runtime owner; direct swapchain alpha-mask still uses the active adapter"},
         {"avatar", "class1/deferred/avatar.vert.spv", "class1/deferred/avatar.frag.spv", "classic avatar G-buffer", "pending avatar baked texture/skinning ABI", "avatar draw-pool depth/cull/blend state", "inventory-only"},
@@ -13787,7 +13788,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mAlphaMaskFragmentShader =
         get_vulkan_final_shader_module(context, "active/alpha_mask.frag.spv", "alpha-mask fragment");
     context.mFullbrightFragmentShader =
-        get_vulkan_final_shader_module(context, "active/fullbright.frag.spv", "fullbright fragment");
+        get_vulkan_final_shader_module(context, "class1/deferred/fullbright_runtime.frag.spv", "class1 fullbright runtime fragment");
     context.mMaterialFragmentShader =
         get_vulkan_final_shader_module(context, "active/material.frag.spv", "material fragment");
     context.mPBRFragmentShader =
