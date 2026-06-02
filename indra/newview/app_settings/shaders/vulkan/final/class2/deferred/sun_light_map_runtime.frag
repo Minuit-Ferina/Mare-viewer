@@ -215,8 +215,8 @@ float sample_spot_shadow(vec3 position, vec3 normal, int index, vec2 pos_screen)
 
     float shadow =
         index == 0 ?
-            pcf_spot_shadow(shadowMap4, u.shadow_matrix[4] * spos, 0.8, pos_screen) :
-            pcf_spot_shadow(shadowMap5, u.shadow_matrix[5] * spos, 0.8, pos_screen);
+            pcf_spot_shadow(shadowMap4, u.shadow_matrix[4] * spos, 0.8, spos.xy) :
+            pcf_spot_shadow(shadowMap5, u.shadow_matrix[5] * spos, 0.8, spos.xy);
     shadow = shadow * w +
         max((position.z + u.shadow_clip.z) / (u.shadow_clip.z - u.shadow_clip.w) * 2.0 - 1.0, 0.0);
     return clamp(shadow / max(w, 0.000001), 0.0, 1.0);

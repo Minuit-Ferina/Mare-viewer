@@ -1190,9 +1190,12 @@ constexpr U32 LL_VK_MEMORY_HEAP_DEVICE_LOCAL_BIT = 0x00000001;
 constexpr U32 LL_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT = 0x00000001;
 constexpr U32 LL_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT = 0x00000002;
 constexpr U32 LL_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT = 0x00000004;
+constexpr U32 LL_VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT = 0x00000010;
 constexpr U32 LL_VK_IMAGE_ASPECT_COLOR_BIT = 0x00000001;
 constexpr U32 LL_VK_IMAGE_ASPECT_DEPTH_BIT = 0x00000002;
 constexpr S32 LL_VK_IMAGE_VIEW_TYPE_2D = 1;
+constexpr S32 LL_VK_IMAGE_VIEW_TYPE_CUBE = 3;
+constexpr S32 LL_VK_IMAGE_VIEW_TYPE_CUBE_ARRAY = 6;
 constexpr S32 LL_VK_COMPONENT_SWIZZLE_IDENTITY = 0;
 constexpr S32 LL_VK_FILTER_NEAREST = 0;
 constexpr S32 LL_VK_FILTER_LINEAR = 1;
@@ -1861,7 +1864,11 @@ struct LLVulkanTextureResource
     U64 mMemorySize = 0;
     S32 mWidth = 0;
     S32 mHeight = 0;
+    S32 mDepth = 1;
+    U32 mMipLevels = 1;
+    U32 mArrayLayers = 1;
     S32 mFormat = LL_VK_FORMAT_R8G8B8A8_UNORM;
+    S32 mImageViewType = LL_VK_IMAGE_VIEW_TYPE_2D;
     U32 mAspectMask = LL_VK_IMAGE_ASPECT_COLOR_BIT;
     bool mMemoryAccounted = false;
     U64 mLastBoundFrame = 0;
@@ -6332,7 +6339,11 @@ void transition_vulkan_texture_layout(
     LLVkImage image,
     S32 old_layout,
     S32 new_layout,
-    U32 aspect_mask = LL_VK_IMAGE_ASPECT_COLOR_BIT)
+    U32 aspect_mask = LL_VK_IMAGE_ASPECT_COLOR_BIT,
+    U32 base_mip_level = 0,
+    U32 mip_level_count = 1,
+    U32 base_array_layer = 0,
+    U32 array_layer_count = 1)
 {
     U32 src_access = 0;
     U32 dst_access = 0;
@@ -6411,10 +6422,10 @@ void transition_vulkan_texture_layout(
         LLVkImageSubresourceRange
         {
             aspect_mask,
-            0,
-            1,
-            0,
-            1
+            base_mip_level,
+            mip_level_count,
+            base_array_layer,
+            array_layer_count
         }
     };
 
@@ -8521,6 +8532,112 @@ bool upload_vulkan_texture_pixels_to_image(
     return upload_ok;
 }
 
+bool upload_vulkan_texture_pixels_to_image_layer(
+    LLVulkanNativeContext& context,
+    LLVulkanTextureResource& resource,
+    const std::vector<U8>& pixels,
+    S32 xoffset,
+    S32 yoffset,
+    S32 width,
+    S32 height,
+    U32 mip_level,
+    U32 array_layer,
+    S32 old_layout)
+{
+    if (width <= 0 ||
+        height <= 0 ||
+        pixels.size() != static_cast<size_t>(width * height * 4) ||
+        !resource.mImage ||
+        mip_level >= resource.mMipLevels ||
+        array_layer >= resource.mArrayLayers)
+    {
+        return false;
+    }
+
+    if (!ensure_vulkan_texture_entry_points(context) ||
+        !ensure_vulkan_command_entry_points(context))
+    {
+        return false;
+    }
+
+    LLVulkanBufferResource staging;
+    if (!create_vulkan_buffer_resource(
+            context,
+            pixels.size(),
+            LL_VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            pixels.data(),
+            staging,
+            0,
+            false))
+    {
+        return false;
+    }
+
+    LLVkCommandBuffer command_buffer = nullptr;
+    if (!begin_vulkan_one_time_commands(context, command_buffer))
+    {
+        destroy_vulkan_buffer_resource(context, staging);
+        return false;
+    }
+
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        resource.mImage,
+        old_layout,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        resource.mAspectMask,
+        mip_level,
+        1,
+        array_layer,
+        1);
+
+    LLVkBufferImageCopy copy_region =
+    {
+        0,
+        0,
+        0,
+        LLVkImageSubresourceLayers
+        {
+            resource.mAspectMask,
+            mip_level,
+            array_layer,
+            1
+        },
+        { xoffset, yoffset, 0 },
+        LLVkExtent3D
+        {
+            static_cast<U32>(width),
+            static_cast<U32>(height),
+            1
+        }
+    };
+
+    context.mCmdCopyBufferToImage(
+        command_buffer,
+        staging.mBuffer,
+        resource.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &copy_region);
+
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        resource.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        resource.mAspectMask,
+        mip_level,
+        1,
+        array_layer,
+        1);
+
+    const bool upload_ok = end_vulkan_one_time_commands(context, command_buffer);
+    destroy_vulkan_buffer_resource(context, staging);
+    return upload_ok;
+}
+
 bool update_vulkan_texture_sampler(
     LLVulkanNativeContext& context,
     U32 handle,
@@ -9332,6 +9449,43 @@ U32 to_vulkan_image_usage(LLRenderTextureFormat format)
     return usage;
 }
 
+U32 get_vulkan_full_mip_level_count(S32 width, S32 height)
+{
+    U32 mip_levels = 1;
+    U32 mip_width = static_cast<U32>(llmax(width, 1));
+    U32 mip_height = static_cast<U32>(llmax(height, 1));
+    while (mip_width > 1 || mip_height > 1)
+    {
+        mip_width = llmax(1U, mip_width / 2U);
+        mip_height = llmax(1U, mip_height / 2U);
+        ++mip_levels;
+    }
+    return mip_levels;
+}
+
+S32 to_vulkan_cube_map_layer(LLRenderTextureTarget target)
+{
+    switch (target)
+    {
+    case LLRenderTextureTarget::TextureCubeMapPositiveX:
+        return 0;
+    case LLRenderTextureTarget::TextureCubeMapNegativeX:
+        return 1;
+    case LLRenderTextureTarget::TextureCubeMapPositiveY:
+        return 2;
+    case LLRenderTextureTarget::TextureCubeMapNegativeY:
+        return 3;
+    case LLRenderTextureTarget::TextureCubeMapPositiveZ:
+        return 4;
+    case LLRenderTextureTarget::TextureCubeMapNegativeZ:
+        return 5;
+    case LLRenderTextureTarget::TextureCubeMap:
+        return 0;
+    default:
+        return -1;
+    }
+}
+
 S32 to_vulkan_framebuffer_color_index(LLRenderFramebufferAttachment attachment)
 {
     switch (attachment)
@@ -9749,6 +9903,256 @@ bool create_empty_vulkan_texture_resource(
     return true;
 }
 
+bool create_empty_vulkan_cube_texture_resource(
+    LLVulkanNativeContext& context,
+    U32 handle,
+    S32 width,
+    S32 height,
+    S32 layers,
+    U32 mip_levels,
+    LLRenderTextureFormat render_format,
+    S32 image_view_type)
+{
+    if (width <= 0 ||
+        height <= 0 ||
+        layers <= 0 ||
+        (layers % 6) != 0 ||
+        mip_levels == 0 ||
+        (image_view_type != LL_VK_IMAGE_VIEW_TYPE_CUBE &&
+         image_view_type != LL_VK_IMAGE_VIEW_TYPE_CUBE_ARRAY))
+    {
+        return false;
+    }
+
+    record_vulkan_texture_allocation_desc(handle, width, height, render_format);
+
+    if (!ensure_vulkan_texture_entry_points(context) ||
+        !ensure_vulkan_command_entry_points(context))
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan cube-array texture allocation skipped because required entry points are not ready."
+            << LL_ENDL;
+        return false;
+    }
+
+    auto existing_iter = gVulkanTextures.find(handle);
+    const U64 old_memory_size =
+        existing_iter != gVulkanTextures.end() ?
+        existing_iter->second.mMemorySize :
+        0;
+
+    LLVulkanTextureResource new_resource;
+    new_resource.mWidth = width;
+    new_resource.mHeight = height;
+    new_resource.mDepth = layers;
+    new_resource.mMipLevels = mip_levels;
+    new_resource.mArrayLayers = static_cast<U32>(layers);
+    new_resource.mImageViewType = image_view_type;
+    new_resource.mAspectMask = to_vulkan_image_aspect_mask(render_format);
+    new_resource.mFormat = to_vulkan_image_format(render_format);
+    new_resource.mLastBoundFrame = context.mPresentedFrameCount;
+    invalidate_vulkan_framebuffers_for_texture(handle);
+
+    LLVkImageCreateInfo image_create_info =
+    {
+        LL_VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        nullptr,
+        LL_VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
+        LL_VK_IMAGE_TYPE_2D,
+        new_resource.mFormat,
+        LLVkExtent3D
+        {
+            static_cast<U32>(width),
+            static_cast<U32>(height),
+            1
+        },
+        new_resource.mMipLevels,
+        new_resource.mArrayLayers,
+        LL_VK_SAMPLE_COUNT_1_BIT,
+        LL_VK_IMAGE_TILING_OPTIMAL,
+        to_vulkan_image_usage(render_format),
+        LL_VK_SHARING_MODE_EXCLUSIVE,
+        0,
+        nullptr,
+        LL_VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    S32 result = context.mCreateImage(
+        context.mDevice,
+        &image_create_info,
+        nullptr,
+        &new_resource.mImage);
+    if (result != LL_VK_SUCCESS || !new_resource.mImage)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkCreateImage(cube texture) failed with result "
+            << result
+            << LL_ENDL;
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    LLVkMemoryRequirements memory_requirements = {};
+    context.mGetImageMemoryRequirements(context.mDevice, new_resource.mImage, &memory_requirements);
+    new_resource.mMemorySize = memory_requirements.size;
+
+    U32 memory_type_index = 0;
+    if (!find_vulkan_memory_type(
+            context,
+            memory_requirements.memoryTypeBits,
+            LL_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            memory_type_index))
+    {
+        LL_WARNS("RenderBackend")
+            << "No device-local Vulkan memory type for cube texture."
+            << LL_ENDL;
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    evict_vulkan_texture_resources_for_upload(
+        context,
+        handle,
+        old_memory_size,
+        new_resource.mMemorySize,
+        get_vulkan_texture_memory_budget_bytes(context, memory_type_index));
+
+    if (!can_commit_vulkan_texture_memory(
+            context,
+            old_memory_size,
+            new_resource.mMemorySize,
+            memory_type_index,
+            handle,
+            width,
+            height))
+    {
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    LLVkMemoryAllocateInfo allocate_info =
+    {
+        LL_VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        nullptr,
+        memory_requirements.size,
+        memory_type_index
+    };
+
+    result = context.mAllocateMemory(context.mDevice, &allocate_info, nullptr, &new_resource.mMemory);
+    if (result != LL_VK_SUCCESS || !new_resource.mMemory)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkAllocateMemory(cube texture) failed with result "
+            << result
+            << LL_ENDL;
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    result = context.mBindImageMemory(context.mDevice, new_resource.mImage, new_resource.mMemory, 0);
+    if (result != LL_VK_SUCCESS)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkBindImageMemory(cube texture) failed with result "
+            << result
+            << LL_ENDL;
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    LLVkImageViewCreateInfo image_view_create_info =
+    {
+        LL_VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        nullptr,
+        0,
+        new_resource.mImage,
+        new_resource.mImageViewType,
+        new_resource.mFormat,
+        LLVkComponentMapping
+        {
+            LL_VK_COMPONENT_SWIZZLE_IDENTITY,
+            LL_VK_COMPONENT_SWIZZLE_IDENTITY,
+            LL_VK_COMPONENT_SWIZZLE_IDENTITY,
+            LL_VK_COMPONENT_SWIZZLE_IDENTITY
+        },
+        LLVkImageSubresourceRange
+        {
+            new_resource.mAspectMask,
+            0,
+            new_resource.mMipLevels,
+            0,
+            new_resource.mArrayLayers
+        }
+    };
+
+    result = context.mCreateImageView(
+        context.mDevice,
+        &image_view_create_info,
+        nullptr,
+        &new_resource.mImageView);
+    if (result != LL_VK_SUCCESS || !new_resource.mImageView)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkCreateImageView(cube texture) failed with result "
+            << result
+            << LL_ENDL;
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    if (!create_vulkan_texture_sampler(
+            context,
+            get_vulkan_texture_sampler_state(handle),
+            new_resource.mSampler))
+    {
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    LLVkCommandBuffer command_buffer = nullptr;
+    if (!begin_vulkan_one_time_commands(context, command_buffer))
+    {
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        new_resource.mImage,
+        LL_VK_IMAGE_LAYOUT_UNDEFINED,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        new_resource.mAspectMask,
+        0,
+        new_resource.mMipLevels,
+        0,
+        new_resource.mArrayLayers);
+
+    if (!end_vulkan_one_time_commands(context, command_buffer))
+    {
+        destroy_vulkan_texture_resource(context, new_resource);
+        return false;
+    }
+
+    new_resource.mMemoryAccounted = true;
+    context.mTextureMemoryAllocatedBytes += new_resource.mMemorySize;
+    if (existing_iter != gVulkanTextures.end())
+    {
+        destroy_vulkan_texture_descriptor_set_cache(context);
+        destroy_vulkan_texture_resource(context, existing_iter->second);
+        existing_iter->second = new_resource;
+    }
+    else
+    {
+        gVulkanTextures.emplace(handle, new_resource);
+    }
+
+    LL_INFOS_ONCE("RenderBackend")
+        << "Vulkan cube texture allocation is active for environment/probe resources."
+        << LL_ENDL;
+    return true;
+}
+
 bool ensure_vulkan_texture_resource_from_allocation_desc(
     LLVulkanNativeContext& context,
     U32 texture_handle)
@@ -9915,6 +10319,157 @@ bool copy_vulkan_texture_resource(
         LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         destination.mAspectMask);
+
+    return end_vulkan_one_time_commands(context, command_buffer);
+}
+
+bool copy_vulkan_texture_resource_to_array_layer(
+    LLVulkanNativeContext& context,
+    LLVulkanTextureResource& source,
+    S32 source_x,
+    S32 source_y,
+    LLVulkanTextureResource& destination,
+    S32 destination_level,
+    S32 destination_x,
+    S32 destination_y,
+    S32 destination_layer,
+    S32 width,
+    S32 height)
+{
+    if (destination_level < 0 ||
+        destination_layer < 0 ||
+        width <= 0 ||
+        height <= 0 ||
+        !source.mImage ||
+        !destination.mImage ||
+        source.mAspectMask != destination.mAspectMask)
+    {
+        return false;
+    }
+
+    const U32 mip_level = static_cast<U32>(destination_level);
+    const U32 array_layer = static_cast<U32>(destination_layer);
+    if (mip_level >= destination.mMipLevels ||
+        array_layer >= destination.mArrayLayers)
+    {
+        return false;
+    }
+
+    const S32 destination_mip_width =
+        llmax(1, destination.mWidth >> destination_level);
+    const S32 destination_mip_height =
+        llmax(1, destination.mHeight >> destination_level);
+    if (source_x < 0 ||
+        source_y < 0 ||
+        destination_x < 0 ||
+        destination_y < 0 ||
+        source_x + width > source.mWidth ||
+        source_y + height > source.mHeight ||
+        destination_x + width > destination_mip_width ||
+        destination_y + height > destination_mip_height)
+    {
+        return false;
+    }
+
+    LLVulkanCmdCopyImage copy_image =
+        reinterpret_cast<LLVulkanCmdCopyImage>(
+            get_vulkan_device_proc_address(context, "vkCmdCopyImage"));
+    if (!copy_image || !ensure_vulkan_command_entry_points(context))
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan image-to-array-layer copy skipped because required entry points are not ready."
+            << LL_ENDL;
+        return false;
+    }
+
+    LLVkCommandBuffer command_buffer = nullptr;
+    if (!begin_vulkan_one_time_commands(context, command_buffer))
+    {
+        return false;
+    }
+
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        source.mImage,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        source.mAspectMask);
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        destination.mImage,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        destination.mAspectMask,
+        mip_level,
+        1,
+        array_layer,
+        1);
+
+    LLVkImageCopy copy_region =
+    {
+        LLVkImageSubresourceLayers
+        {
+            source.mAspectMask,
+            0,
+            0,
+            1
+        },
+        LLVkOffset3D
+        {
+            source_x,
+            source_y,
+            0
+        },
+        LLVkImageSubresourceLayers
+        {
+            destination.mAspectMask,
+            mip_level,
+            array_layer,
+            1
+        },
+        LLVkOffset3D
+        {
+            destination_x,
+            destination_y,
+            0
+        },
+        LLVkExtent3D
+        {
+            static_cast<U32>(width),
+            static_cast<U32>(height),
+            1
+        }
+    };
+
+    copy_image(
+        command_buffer,
+        source.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        destination.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &copy_region);
+
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        source.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        source.mAspectMask);
+    transition_vulkan_texture_layout(
+        context,
+        command_buffer,
+        destination.mImage,
+        LL_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        destination.mAspectMask,
+        mip_level,
+        1,
+        array_layer,
+        1);
 
     return end_vulkan_one_time_commands(context, command_buffer);
 }
@@ -21644,7 +22199,7 @@ public:
     }
 
     void setTextureImage2D(
-        LLRenderTextureTarget,
+        LLRenderTextureTarget target,
         S32 level,
         S32 internal_format,
         S32 width,
@@ -21689,6 +22244,72 @@ public:
 
         gCurrentVulkanContext->mLastTextureUploadSucceeded = false;
         gCurrentVulkanContext->mLastTextureUploadDeferred = false;
+
+        const S32 cube_layer = to_vulkan_cube_map_layer(target);
+        if (cube_layer >= 0)
+        {
+            auto cube_texture = gVulkanTextures.find(texture);
+            const bool needs_cube_allocation =
+                cube_texture == gVulkanTextures.end() ||
+                cube_texture->second.mImageViewType != LL_VK_IMAGE_VIEW_TYPE_CUBE ||
+                cube_texture->second.mWidth != width ||
+                cube_texture->second.mHeight != height ||
+                cube_texture->second.mArrayLayers != 6 ||
+                cube_texture->second.mFormat != to_vulkan_image_format(render_format);
+            if (needs_cube_allocation &&
+                !create_empty_vulkan_cube_texture_resource(
+                    *gCurrentVulkanContext,
+                    texture,
+                    width,
+                    height,
+                    6,
+                    1,
+                    render_format,
+                    LL_VK_IMAGE_VIEW_TYPE_CUBE))
+            {
+                return;
+            }
+
+            if (!data)
+            {
+                gCurrentVulkanContext->mLastTextureUploadSucceeded = true;
+                return;
+            }
+
+            std::vector<U8> pixels;
+            if (!convert_texture_pixels_to_rgba8(width, height, width, format, type, data, pixels))
+            {
+                ++gCurrentVulkanContext->mSkippedTextureUnsupportedUploadCount;
+                LL_WARNS_ONCE("RenderBackend")
+                    << "Vulkan cube-map texture upload skipped unsupported legacy format "
+                    << format
+                    << ", type "
+                    << type
+                    << "."
+                    << LL_ENDL;
+                return;
+            }
+
+            cube_texture = gVulkanTextures.find(texture);
+            if (cube_texture == gVulkanTextures.end())
+            {
+                return;
+            }
+
+            gCurrentVulkanContext->mLastTextureUploadSucceeded =
+                upload_vulkan_texture_pixels_to_image_layer(
+                    *gCurrentVulkanContext,
+                    cube_texture->second,
+                    pixels,
+                    0,
+                    0,
+                    width,
+                    height,
+                    0,
+                    static_cast<U32>(cube_layer),
+                    LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            return;
+        }
 
         if (is_vulkan_texture_upload_pending(*gCurrentVulkanContext, texture))
         {
@@ -21903,6 +22524,81 @@ public:
         setTextureImage2D(target, level, 0, width, height, border, legacy_format, legacy_type, data);
     }
 
+    void setTextureImage3D(
+        LLRenderTextureTarget target,
+        S32 level,
+        S32 internal_format,
+        S32 width,
+        S32 height,
+        S32 depth,
+        S32,
+        U32 format,
+        U32 type,
+        const void* data) override
+    {
+        if (gCurrentVulkanContext)
+        {
+            gCurrentVulkanContext->mLastTextureUploadSucceeded = false;
+            gCurrentVulkanContext->mLastTextureUploadDeferred = false;
+        }
+
+        U32 texture = gBoundVulkanTextures[gActiveVulkanTextureUnit];
+        if (!gCurrentVulkanContext ||
+            !texture ||
+            target != LLRenderTextureTarget::TextureCubeMapArray ||
+            level < 0 ||
+            width <= 0 ||
+            height <= 0 ||
+            depth <= 0)
+        {
+            return;
+        }
+
+        const LLRenderTextureFormat render_format =
+            to_vulkan_render_texture_format_from_legacy(internal_format, format, type);
+
+        auto existing_texture = gVulkanTextures.find(texture);
+        const U32 expected_mips = get_vulkan_full_mip_level_count(width, height);
+        if (existing_texture != gVulkanTextures.end() &&
+            existing_texture->second.mWidth == width &&
+            existing_texture->second.mHeight == height &&
+            existing_texture->second.mDepth == depth &&
+            existing_texture->second.mMipLevels >= expected_mips &&
+            existing_texture->second.mFormat == to_vulkan_image_format(render_format))
+        {
+            gCurrentVulkanContext->mLastTextureUploadSucceeded = true;
+            return;
+        }
+
+        if (level != 0)
+        {
+            // LLCubeMapArray allocates mips one level at a time, but the Vulkan
+            // image is created with the full mip chain from level zero.
+            gCurrentVulkanContext->mLastTextureUploadSucceeded =
+                existing_texture != gVulkanTextures.end();
+            return;
+        }
+
+        if (data)
+        {
+            LL_WARNS_ONCE("RenderBackend")
+                << "Vulkan cube-array CPU texture uploads are not implemented yet; "
+                << "reflection probes currently rely on framebuffer-to-layer copies."
+                << LL_ENDL;
+        }
+
+        gCurrentVulkanContext->mLastTextureUploadSucceeded =
+            create_empty_vulkan_cube_texture_resource(
+                *gCurrentVulkanContext,
+                texture,
+                width,
+                height,
+                depth,
+                get_vulkan_full_mip_level_count(width, height),
+                render_format,
+                LL_VK_IMAGE_VIEW_TYPE_CUBE_ARRAY);
+    }
+
     bool didLastTextureUploadSucceed() const override
     {
         return !gCurrentVulkanContext || gCurrentVulkanContext->mLastTextureUploadSucceeded;
@@ -21995,7 +22691,7 @@ public:
     }
 
     void setTextureSubImage2D(
-        LLRenderTextureTarget,
+        LLRenderTextureTarget target,
         S32 level,
         S32 xoffset,
         S32 yoffset,
@@ -22014,6 +22710,10 @@ public:
         gCurrentVulkanContext->mLastTextureUploadDeferred = false;
 
         U32 texture = gBoundVulkanTextures[gActiveVulkanTextureUnit];
+        if (!texture)
+        {
+            return;
+        }
         if (is_vulkan_texture_upload_pending(*gCurrentVulkanContext, texture))
         {
             gCurrentVulkanContext->mLastTextureUploadDeferred = true;
@@ -22036,6 +22736,41 @@ public:
             yoffset + height > resource.mHeight)
         {
             ++gCurrentVulkanContext->mSkippedTextureSubImageOutOfBoundsCount;
+            return;
+        }
+
+        const S32 cube_layer = to_vulkan_cube_map_layer(target);
+        if (cube_layer >= 0 &&
+            resource.mImageViewType == LL_VK_IMAGE_VIEW_TYPE_CUBE)
+        {
+            std::vector<U8> converted;
+            const S32 source_row_length =
+                gVulkanUnpackRowLength > 0 ? gVulkanUnpackRowLength : width;
+            if (!convert_texture_pixels_to_rgba8(
+                    width,
+                    height,
+                    source_row_length,
+                    format,
+                    type,
+                    pixels,
+                    converted))
+            {
+                ++gCurrentVulkanContext->mSkippedTextureUnsupportedUploadCount;
+                return;
+            }
+
+            gCurrentVulkanContext->mLastTextureUploadSucceeded =
+                upload_vulkan_texture_pixels_to_image_layer(
+                    *gCurrentVulkanContext,
+                    resource,
+                    converted,
+                    xoffset,
+                    yoffset,
+                    width,
+                    height,
+                    0,
+                    static_cast<U32>(cube_layer),
+                    LL_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             return;
         }
 
@@ -22132,6 +22867,24 @@ public:
                 timings,
                 elapsed_vulkan_telemetry_ms(upload_start));
         }
+    }
+
+    void setTextureSubImage3D(
+        LLRenderTextureTarget,
+        S32,
+        S32,
+        S32,
+        S32,
+        S32,
+        S32,
+        S32,
+        U32,
+        U32,
+        const void*) override
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan setTextureSubImage3D is not implemented yet; cube-array probe copies use framebuffer copyTextureSubImage3D."
+            << LL_ENDL;
     }
 
     void copyImageSubData(
@@ -22257,6 +23010,68 @@ public:
             yoffset,
             width,
             height);
+    }
+
+    void copyTextureSubImage3D(
+        LLRenderTextureTarget target,
+        S32 level,
+        S32 xoffset,
+        S32 yoffset,
+        S32 zoffset,
+        S32 x,
+        S32 y,
+        S32 width,
+        S32 height) override
+    {
+        if (!gCurrentVulkanContext ||
+            target != LLRenderTextureTarget::TextureCubeMapArray ||
+            level < 0 ||
+            zoffset < 0 ||
+            width <= 0 ||
+            height <= 0)
+        {
+            return;
+        }
+
+        U32 destination_texture = gBoundVulkanTextures[gActiveVulkanTextureUnit];
+        if (!destination_texture || !gBoundVulkanReadFramebuffer)
+        {
+            return;
+        }
+
+        auto framebuffer_iter = gVulkanFramebuffers.find(gBoundVulkanReadFramebuffer);
+        if (framebuffer_iter == gVulkanFramebuffers.end())
+        {
+            return;
+        }
+
+        U32 source_texture = framebuffer_iter->second.mColorTextures[0];
+        auto source_iter = gVulkanTextures.find(source_texture);
+        auto destination_iter = gVulkanTextures.find(destination_texture);
+        if (source_iter == gVulkanTextures.end() ||
+            destination_iter == gVulkanTextures.end())
+        {
+            return;
+        }
+
+        if (!copy_vulkan_texture_resource_to_array_layer(
+                *gCurrentVulkanContext,
+                source_iter->second,
+                x,
+                y,
+                destination_iter->second,
+                level,
+                xoffset,
+                yoffset,
+                zoffset,
+                width,
+                height))
+        {
+            LL_WARNS_ONCE("RenderBackend")
+                << "Vulkan copyTextureSubImage3D failed for a cube-array layer. "
+                << "Reflection-probe contents may be incomplete."
+                << LL_ENDL;
+        }
     }
 
     U32 getBoundTexture2D() override

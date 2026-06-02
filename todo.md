@@ -442,6 +442,14 @@ Validation status:
       sky environment cube-map as a read-only composite input. This is still
       not full reflection-probe parity: probe cubemap arrays, irradiance maps,
       parallax selection, and SSR scene/depth bindings remain separate work.
+      Reflection-probe backend progress: Vulkan now has a native
+      `TextureCubeMapArray` allocation/copy path for `LLCubeMapArray` so
+      reflection/hero probe managers no longer fall through null 3D texture
+      stubs when allocating probe arrays or copying framebuffer faces into
+      cube-array layers. The next parity step is to bind the existing
+      `ReflectionProbeData` block plus radiance/irradiance cube arrays into the
+      deferred soften/PBR reflection shaders, then port probe influence,
+      parallax, and hero-probe selection.
 - [ ] Local lights:
       port and wire the class-tier deferred point, multi-point, spot, and
       multi-spot light shaders as separate passes instead of folding local
@@ -488,7 +496,9 @@ Validation status:
       targets when those targets are available. Reflection-probe cubemap-array
       selection/parallax remains a separate probe-manager integration task; the
       active composite now has the scalar reflection ambiance and sky cube-map
-      fallback, but not the real probe arrays.
+      fallback, and the backend can allocate/copy Vulkan cube-map arrays for
+      probe storage, but the lighting shaders still do not consume
+      `ReflectionProbeData` or radiance/irradiance cube-array descriptors.
       Composite/lighting six-point status: point and spot/projector light
       owners exist, the first read-only lightMap/SSAO target exists,
       projector shadow index/fade ownership is transported, emissive is sampled
@@ -541,7 +551,11 @@ Validation status:
       `DeferredLightMap` now logs the first few sun/spot shadow target
       validation summaries, including target presence, completeness, depth
       handle, dimensions, and whether each target was actually bound as a
-      depth input.
+      depth input. Spot shadow PCF progress: the Vulkan lightMap shader now
+      matches OpenGL's `sampleSpotShadow()` jitter input by passing the
+      view-space shadow sample position (`spos.xy`) to `pcfSpotShadow()`
+      instead of framebuffer coordinates. Remaining PCF work is visual
+      validation/tuning against OpenGL shadow softness and acne bias.
 - [ ] Final post-processing:
       port and wire the OpenGL post chain as separate class-tier passes:
       glow extraction/blur/combine, gamma/tonemap, FXAA/SMAA/CAS, DoF/cof, and
