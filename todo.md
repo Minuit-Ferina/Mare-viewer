@@ -367,9 +367,9 @@ Validation status:
       of treating `active/*.frag` as the final shader family.
       `active/deferred_composite.frag`, `active/final_composite.frag`,
       `active/alpha.frag`, and related active G-buffer shaders are bootstrap
-      adapters. Sky, water, world glow, fullbright, direct alpha-mask, direct
-      legacy material, direct PBR, and direct avatar have moved to explicit
-      runtime owners, but still need their faithful final
+      adapters. Sky, water, haze, world glow, fullbright, direct alpha-mask,
+      direct legacy material, direct PBR, and direct avatar have moved to
+      explicit runtime owners, but still need their faithful final
       UBO/texture/render-graph pipelines before they are parity-complete. The
       final Vulkan path should bind class-tier shaders matching the OpenGL
       families and selected viewer settings.
@@ -540,6 +540,7 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/environment/water_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/interface/copy_depth.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_runtime.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/haze_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer_emissive.frag
 
@@ -1415,8 +1416,9 @@ Validation status:
 	      textured-world fragment path.
 	- [x] Give active Vulkan haze and water-exclusion draws a dedicated runtime
 	      shader/pipeline owner.
-	      `LLRenderWorldShaderClass::Haze` now owns `active/haze.frag` for
-	      atmospheric haze, water haze, and water-exclusion-mask fallback draws.
+	      `LLRenderWorldShaderClass::Haze` now owns
+	      `class3/deferred/haze_runtime.frag` for atmospheric haze, water haze,
+	      and water-exclusion-mask fallback draws.
 	      This preserves the current depth/exclusion texture consumption while
 	      removing another special material family from the generic
 	      textured-world fragment path. True parity still needs the final
