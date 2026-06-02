@@ -580,12 +580,18 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     LLEnvironment& environment = LLEnvironment::instance();
     LLSettingsSky::ptr_t sky = environment.getCurrentSky();
     static LLCachedControl<bool> should_auto_adjust(gSavedSettings, "RenderSkyAutoAdjustLegacy", false);
+    static LLCachedControl<F32> auto_adjust_hdr_scale(gSavedSettings, "RenderSkyAutoAdjustHDRScale", 2.f);
+    static LLCachedControl<F32> ssao_irradiance_scale(gSavedSettings, "RenderSSAOIrradianceScale", 0.5f);
+    static LLCachedControl<F32> ssao_irradiance_max(gSavedSettings, "RenderSSAOIrradianceMax", 0.25f);
+    static LLCachedControl<U32> shadow_blur_samples(gSavedSettings, "RenderShadowBlurSamples", 4U);
 
     LLColor4 ambient(0.28f, 0.28f, 0.28f, 1.f);
     LLColor3 diffuse_light(0.85f, 0.85f, 0.85f);
     F32 direct_light_scale = 1.f;
     F32 reflection_probe_ambiance = 0.f;
     F32 tonemap_mix = 0.f;
+    F32 sky_hdr_scale = 1.f;
+    bool classic_mode = false;
     if (sky)
     {
         ambient = sky->getTotalAmbient();
@@ -596,6 +602,15 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
             llclamp(sky->getReflectionProbeAmbiance(should_auto_adjust()), 0.f, 1.f);
         tonemap_mix =
             llclamp(sky->getTonemapMix(should_auto_adjust()), 0.f, 1.f);
+        classic_mode = sky->canAutoAdjust() && !should_auto_adjust();
+        if (sky->getReflectionProbeAmbiance() != 0.f)
+        {
+            sky_hdr_scale = sqrtf(sky->getGamma()) * 2.f;
+        }
+        else if (sky->canAutoAdjust() && should_auto_adjust)
+        {
+            sky_hdr_scale = auto_adjust_hdr_scale();
+        }
         gPipeline.setupHWLights();
         const LLColor4& selected_diffuse =
             environment.getIsSunUp() ? gPipeline.mSunDiffuse : gPipeline.mMoonDiffuse;
@@ -614,6 +629,28 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
             light_norm.mV[VY],
             light_norm.mV[VZ],
             0.f);
+    LLVector4 transformed_sun_dir = gPipeline.mSunDir;
+    LLVector4 transformed_moon_dir = gPipeline.mMoonDir;
+    if (sky)
+    {
+        const glm::mat4 modelview = get_current_modelview();
+        glm::vec4 sun_dir =
+            modelview *
+            glm::vec4(
+                gPipeline.mSunDir.mV[VX],
+                gPipeline.mSunDir.mV[VY],
+                gPipeline.mSunDir.mV[VZ],
+                0.f);
+        glm::vec4 moon_dir =
+            modelview *
+            glm::vec4(
+                gPipeline.mMoonDir.mV[VX],
+                gPipeline.mMoonDir.mV[VY],
+                gPipeline.mMoonDir.mV[VZ],
+                0.f);
+        transformed_sun_dir.set(sun_dir);
+        transformed_moon_dir.set(moon_dir);
+    }
     settings.mAmbientRed = ambient.mV[VRED];
     settings.mAmbientGreen = ambient.mV[VGREEN];
     settings.mAmbientBlue = ambient.mV[VBLUE];
@@ -663,10 +700,48 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     settings.mSkyLightingValid = sky ? 1.f : 0.f;
     settings.mScreenWidth = static_cast<F32>(llmax(1, viewport_rect.getWidth()));
     settings.mScreenHeight = static_cast<F32>(llmax(1, viewport_rect.getHeight()));
+    settings.mSunDirectionX = transformed_sun_dir.mV[VX];
+    settings.mSunDirectionY = transformed_sun_dir.mV[VY];
+    settings.mSunDirectionZ = transformed_sun_dir.mV[VZ];
+    settings.mSunUpFactor = environment.getIsSunUp() ? 1.f : 0.f;
+    settings.mMoonDirectionX = transformed_moon_dir.mV[VX];
+    settings.mMoonDirectionY = transformed_moon_dir.mV[VY];
+    settings.mMoonDirectionZ = transformed_moon_dir.mV[VZ];
+    settings.mClassicMode = classic_mode ? 1.f : 0.f;
+    settings.mCubeSnapshot = gCubeSnapshot ? 1.f : 0.f;
+    settings.mSkyHDRScale = sky_hdr_scale;
+    settings.mBlurSize = LLPipeline::RenderShadowBlurSize;
+    settings.mBlurFidelity = static_cast<F32>(shadow_blur_samples());
+    settings.mSSAOIrradianceScale = ssao_irradiance_scale();
+    settings.mSSAOIrradianceMax = ssao_irradiance_max();
     settings.mWaterPlaneX = LLDrawPoolAlpha::sWaterPlane.mV[VX];
     settings.mWaterPlaneY = LLDrawPoolAlpha::sWaterPlane.mV[VY];
     settings.mWaterPlaneZ = LLDrawPoolAlpha::sWaterPlane.mV[VZ];
     settings.mWaterPlaneW = LLDrawPoolAlpha::sWaterPlane.mV[VW];
+    const F32* modelview_values = gGLModelView;
+    settings.mEnvironmentMatrix[0] = modelview_values[0];
+    settings.mEnvironmentMatrix[1] = modelview_values[1];
+    settings.mEnvironmentMatrix[2] = modelview_values[2];
+    settings.mEnvironmentMatrix[3] = modelview_values[4];
+    settings.mEnvironmentMatrix[4] = modelview_values[5];
+    settings.mEnvironmentMatrix[5] = modelview_values[6];
+    settings.mEnvironmentMatrix[6] = modelview_values[8];
+    settings.mEnvironmentMatrix[7] = modelview_values[9];
+    settings.mEnvironmentMatrix[8] = modelview_values[10];
+    const LLVector3 ssao_effect = LLPipeline::RenderSSAOEffect;
+    const F32 matrix_diag =
+        (ssao_effect.mV[VX] + 2.f * ssao_effect.mV[VY]) / 3.f;
+    const F32 matrix_nondiag =
+        (ssao_effect.mV[VX] - ssao_effect.mV[VY]) / 3.f;
+    settings.mSSAOEffectMatrix[0] = matrix_diag;
+    settings.mSSAOEffectMatrix[1] = matrix_nondiag;
+    settings.mSSAOEffectMatrix[2] = matrix_nondiag;
+    settings.mSSAOEffectMatrix[3] = matrix_nondiag;
+    settings.mSSAOEffectMatrix[4] = matrix_diag;
+    settings.mSSAOEffectMatrix[5] = matrix_nondiag;
+    settings.mSSAOEffectMatrix[6] = matrix_nondiag;
+    settings.mSSAOEffectMatrix[7] = matrix_nondiag;
+    settings.mSSAOEffectMatrix[8] = matrix_diag;
     const glm::mat4 inverse_projection =
         glm::inverse(get_current_projection());
     const F32* inverse_projection_values =

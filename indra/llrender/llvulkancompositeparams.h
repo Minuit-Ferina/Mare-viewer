@@ -56,10 +56,40 @@ struct LLVulkanDeferredCompositeSettings
     F32 mSkyLightingValid = 0.f;
     F32 mScreenWidth = 1.f;
     F32 mScreenHeight = 1.f;
+    F32 mClipPlaneX = 0.f;
+    F32 mClipPlaneY = 0.f;
+    F32 mClipPlaneZ = 0.f;
+    F32 mClipPlaneW = 0.f;
+    F32 mSunDirectionX = 0.35f;
+    F32 mSunDirectionY = 0.45f;
+    F32 mSunDirectionZ = 0.82f;
+    F32 mSunUpFactor = 1.f;
+    F32 mMoonDirectionX = -0.25f;
+    F32 mMoonDirectionY = -0.15f;
+    F32 mMoonDirectionZ = 0.95f;
+    F32 mClassicMode = 0.f;
+    F32 mCubeSnapshot = 0.f;
+    F32 mSkyHDRScale = 1.f;
+    F32 mBlurSize = 1.4f;
+    F32 mBlurFidelity = 4.f;
+    F32 mSSAOIrradianceScale = 0.6f;
+    F32 mSSAOIrradianceMax = 0.18f;
     F32 mWaterPlaneX = 0.f;
     F32 mWaterPlaneY = 0.f;
     F32 mWaterPlaneZ = 1.f;
     F32 mWaterPlaneW = 1.f;
+    F32 mEnvironmentMatrix[9] =
+    {
+        1.f, 0.f, 0.f,
+        0.f, 1.f, 0.f,
+        0.f, 0.f, 1.f,
+    };
+    F32 mSSAOEffectMatrix[9] =
+    {
+        1.f, 0.f, 0.f,
+        0.f, 1.f, 0.f,
+        0.f, 0.f, 1.f,
+    };
     F32 mInverseProjection[16] =
     {
         1.f, 0.f, 0.f, 0.f,
@@ -110,12 +140,35 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
     parameters.mSceneDirectScale = settings.mSkyLightingValid;
     parameters.mSceneDirectRed = llmax(settings.mScreenWidth, 1.f);
     parameters.mSceneDirectGreen = llmax(settings.mScreenHeight, 1.f);
-    parameters.mSceneDirectBlue = 0.f;
-    parameters.mSceneLightingValid = 1.f;
+    parameters.mSceneDirectBlue = settings.mSSAOIrradianceScale;
+    parameters.mSceneLightingValid = settings.mSSAOIrradianceMax;
     parameters.mSceneLightDirectionX = settings.mWaterPlaneX;
     parameters.mSceneLightDirectionY = settings.mWaterPlaneY;
     parameters.mSceneLightDirectionZ = settings.mWaterPlaneZ;
     parameters.mSceneLightDirectionValid = settings.mWaterPlaneW;
+    parameters.mCompositeClipPlane[0] = settings.mClipPlaneX;
+    parameters.mCompositeClipPlane[1] = settings.mClipPlaneY;
+    parameters.mCompositeClipPlane[2] = settings.mClipPlaneZ;
+    parameters.mCompositeClipPlane[3] = settings.mClipPlaneW;
+    parameters.mCompositeSunDirection[0] = settings.mSunDirectionX;
+    parameters.mCompositeSunDirection[1] = settings.mSunDirectionY;
+    parameters.mCompositeSunDirection[2] = settings.mSunDirectionZ;
+    parameters.mCompositeSunDirection[3] = settings.mSunUpFactor;
+    parameters.mCompositeMoonDirection[0] = settings.mMoonDirectionX;
+    parameters.mCompositeMoonDirection[1] = settings.mMoonDirectionY;
+    parameters.mCompositeMoonDirection[2] = settings.mMoonDirectionZ;
+    parameters.mCompositeMoonDirection[3] = settings.mClassicMode;
+    parameters.mCompositeSkySettings[0] = settings.mCubeSnapshot;
+    parameters.mCompositeSkySettings[1] = settings.mSkyHDRScale;
+    parameters.mCompositeSkySettings[2] = settings.mBlurSize;
+    parameters.mCompositeSkySettings[3] = settings.mBlurFidelity;
+    for (U32 i = 0; i < 9; ++i)
+    {
+        parameters.mCompositeEnvironmentMatrix[i] =
+            settings.mEnvironmentMatrix[i];
+        parameters.mCompositeSSAOEffectMatrix[i] =
+            settings.mSSAOEffectMatrix[i];
+    }
     for (U32 i = 0; i < 16; ++i)
     {
         parameters.mCompositeInverseProjection[i] =

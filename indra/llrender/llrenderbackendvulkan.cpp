@@ -1652,6 +1652,7 @@ struct LLVulkanWorldPushConstants
     glm::vec4 mSceneAmbientDirectScale = glm::vec4(0.36f, 0.36f, 0.36f, 1.f);
     glm::vec4 mSceneDirectColor = glm::vec4(1.f, 1.f, 1.f, 0.f);
     glm::vec4 mSceneLightDirection = glm::vec4(0.35f, 0.45f, 0.82f, 0.f);
+    glm::vec4 mCompositeExtra = glm::vec4(0.f, 0.f, 0.f, 0.f);
 };
 
 bool is_vulkan_default_world_overlay_draw(const LLVulkanPendingDraw& draw)
@@ -18401,6 +18402,44 @@ bool record_vulkan_frame_command_buffer(
                     draw.mMaterialParameters.mSceneLightDirectionY,
                     draw.mMaterialParameters.mSceneLightDirectionZ,
                     draw.mMaterialParameters.mSceneLightDirectionValid);
+                push_constants.mTextureTransformS = glm::make_vec4(
+                    draw.mMaterialParameters.mCompositeClipPlane);
+                push_constants.mTextureTransformT = glm::make_vec4(
+                    draw.mMaterialParameters.mCompositeSunDirection);
+                push_constants.mBaseTextureTransform0 = glm::make_vec4(
+                    draw.mMaterialParameters.mCompositeMoonDirection);
+                push_constants.mBaseTextureTransform1 = glm::make_vec4(
+                    draw.mMaterialParameters.mCompositeSkySettings);
+                push_constants.mTerrainTextureTransform0 = glm::vec4(
+                    draw.mMaterialParameters.mCompositeEnvironmentMatrix[0],
+                    draw.mMaterialParameters.mCompositeEnvironmentMatrix[1],
+                    draw.mMaterialParameters.mCompositeEnvironmentMatrix[2],
+                    0.f);
+                push_constants.mTerrainTextureTransform1 = glm::vec4(
+                    draw.mMaterialParameters.mCompositeEnvironmentMatrix[3],
+                    draw.mMaterialParameters.mCompositeEnvironmentMatrix[4],
+                    draw.mMaterialParameters.mCompositeEnvironmentMatrix[5],
+                    0.f);
+                push_constants.mTerrainTextureTransform2 = glm::vec4(
+                    draw.mMaterialParameters.mCompositeEnvironmentMatrix[6],
+                    draw.mMaterialParameters.mCompositeEnvironmentMatrix[7],
+                    draw.mMaterialParameters.mCompositeEnvironmentMatrix[8],
+                    0.f);
+                push_constants.mMaterialTextureTransform3 = glm::vec4(
+                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[0],
+                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[1],
+                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[2],
+                    0.f);
+                push_constants.mMaterialTextureTransform4 = glm::vec4(
+                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[3],
+                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[4],
+                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[5],
+                    0.f);
+                push_constants.mCompositeExtra = glm::vec4(
+                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[6],
+                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[7],
+                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[8],
+                    0.f);
             }
             else
             {

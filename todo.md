@@ -110,6 +110,12 @@ filled in.
       convention by converting legacy G-buffer albedo/specular values from sRGB
       to linear before lighting. This prevents the deferred path from drifting
       toward pale double-gamma-looking colors.
+      The Vulkan deferred composite ABI now carries the OpenGL `softenLight`
+      uniform family: inverse projection, screen resolution, water plane,
+      sun/moon directions, sun-up factor, classic mode, cube-snapshot flag, sky
+      HDR scale, shadow blur controls, SSAO irradiance controls, environment
+      matrix, and SSAO effect matrix. The runtime shader still needs to consume
+      the full family before this item becomes full visual parity.
 - [x] Harden Vulkan resource lifetime: texture reload after budget refusal,
       stale white-texture recovery, buffer reuse, and viewport-driven eviction.
       Added a lower-discard retry path when a Vulkan texture create fails

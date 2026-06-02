@@ -612,6 +612,34 @@ struct LLRenderWorldMaterialParameters
     F32 mSceneLightDirectionY = 0.45f;
     F32 mSceneLightDirectionZ = 0.82f;
     F32 mSceneLightDirectionValid = 0.f;
+    F32 mCompositeClipPlane[4] =
+    {
+        0.f, 0.f, 0.f, 0.f,
+    };
+    F32 mCompositeSunDirection[4] =
+    {
+        0.35f, 0.45f, 0.82f, 1.f,
+    };
+    F32 mCompositeMoonDirection[4] =
+    {
+        -0.25f, -0.15f, 0.95f, 0.f,
+    };
+    F32 mCompositeSkySettings[4] =
+    {
+        0.f, 1.f, 1.4f, 4.f,
+    };
+    F32 mCompositeEnvironmentMatrix[9] =
+    {
+        1.f, 0.f, 0.f,
+        0.f, 1.f, 0.f,
+        0.f, 0.f, 1.f,
+    };
+    F32 mCompositeSSAOEffectMatrix[9] =
+    {
+        1.f, 0.f, 0.f,
+        0.f, 1.f, 0.f,
+        0.f, 0.f, 1.f,
+    };
     F32 mCompositeInverseProjection[16] =
     {
         1.f, 0.f, 0.f, 0.f,

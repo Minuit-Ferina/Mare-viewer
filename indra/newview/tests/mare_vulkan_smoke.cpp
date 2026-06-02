@@ -4461,6 +4461,20 @@ LLRenderWorldMaterialParameters make_deferred_color_compare_composite_parameters
     settings.mSkyLightingValid = 0.f;
     settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
     settings.mScreenHeight = static_cast<F32>(llmax(1U, height));
+    settings.mSunDirectionX = 0.35f;
+    settings.mSunDirectionY = 0.45f;
+    settings.mSunDirectionZ = 0.82f;
+    settings.mSunUpFactor = 1.f;
+    settings.mMoonDirectionX = -0.25f;
+    settings.mMoonDirectionY = -0.15f;
+    settings.mMoonDirectionZ = 0.95f;
+    settings.mClassicMode = 0.f;
+    settings.mCubeSnapshot = 0.f;
+    settings.mSkyHDRScale = 1.f;
+    settings.mBlurSize = 1.4f;
+    settings.mBlurFidelity = 4.f;
+    settings.mSSAOIrradianceScale = 0.6f;
+    settings.mSSAOIrradianceMax = 0.18f;
     return make_vulkan_deferred_composite_material_parameters(settings);
 }
 
