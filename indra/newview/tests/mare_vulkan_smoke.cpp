@@ -4217,6 +4217,16 @@ SmokeRGB get_deferred_color_compare_srgb_input()
     return { 0.50f, 0.32f, 0.18f };
 }
 
+SmokeRGB get_deferred_color_compare_material_srgb_input()
+{
+    return { 0.68f, 0.45f, 0.82f };
+}
+
+SmokeRGB get_deferred_color_compare_pbr_srgb_input()
+{
+    return { 0.90f, 0.72f, 0.48f };
+}
+
 LLRenderWorldMaterialParameters make_final_color_compare_parameters()
 {
     LLVulkanFinalCompositeSettings settings;
@@ -4275,9 +4285,15 @@ void log_deferred_color_compare_reference()
     }
 
     const SmokeRGB srgb_input = get_deferred_color_compare_srgb_input();
+    const SmokeRGB material_input =
+        get_deferred_color_compare_material_srgb_input();
+    const SmokeRGB pbr_input =
+        get_deferred_color_compare_pbr_srgb_input();
     const SmokeRGB opengl_linear = smoke_srgb_to_linear(srgb_input);
     const SmokeRGB opengl_final = smoke_linear_to_srgb(opengl_linear);
     const SmokeRGB missing_conversion_final = smoke_linear_to_srgb(srgb_input);
+    const SmokeRGB material_linear = smoke_srgb_to_linear(material_input);
+    const SmokeRGB pbr_linear = smoke_srgb_to_linear(pbr_input);
 
     std::cout
         << "Mare Vulkan viewer-deferred-color-compare OpenGL-style reference: "
@@ -4321,6 +4337,32 @@ void log_deferred_color_compare_reference()
         << ","
         << to_color_byte(missing_conversion_final.mBlue)
         << "."
+        << " The synthetic scene is split into vertical bands: left legacy diffuse, "
+        << "middle legacy material, right PBR. Middle legacy material sRGB "
+        << material_input.mRed
+        << ", "
+        << material_input.mGreen
+        << ", "
+        << material_input.mBlue
+        << " converts to linear "
+        << material_linear.mRed
+        << ", "
+        << material_linear.mGreen
+        << ", "
+        << material_linear.mBlue
+        << "; right PBR sRGB "
+        << pbr_input.mRed
+        << ", "
+        << pbr_input.mGreen
+        << ", "
+        << pbr_input.mBlue
+        << " is written linear "
+        << pbr_linear.mRed
+        << ", "
+        << pbr_linear.mGreen
+        << ", "
+        << pbr_linear.mBlue
+        << " by the PBR G-buffer shader."
         << std::endl;
     logged_reference = true;
 }
@@ -4341,6 +4383,57 @@ LLRenderWorldMaterialParameters make_deferred_color_compare_gbuffer_material()
     parameters.mDiffuseAlphaMode = 0.f;
     parameters.mGLTFAlphaMode = 0.f;
     parameters.mShiny = 0.f;
+    return parameters;
+}
+
+LLRenderWorldMaterialParameters make_deferred_color_compare_legacy_material()
+{
+    const SmokeRGB srgb_input =
+        get_deferred_color_compare_material_srgb_input();
+
+    LLRenderWorldMaterialParameters parameters;
+    parameters.mBaseColorRed = srgb_input.mRed;
+    parameters.mBaseColorGreen = srgb_input.mGreen;
+    parameters.mBaseColorBlue = srgb_input.mBlue;
+    parameters.mBaseColorAlpha = 1.f;
+    parameters.mSpecularColorRed = 0.24f;
+    parameters.mSpecularColorGreen = 0.22f;
+    parameters.mSpecularColorBlue = 0.18f;
+    parameters.mEnvIntensity = 0.15f;
+    parameters.mRoughnessFactor = 0.72f;
+    parameters.mMetallicFactor = 0.f;
+    parameters.mMaterialFlags =
+        static_cast<F32>(LLRenderWorldMaterialParameters::LegacyShiny);
+    parameters.mDiffuseAlphaMode = 0.f;
+    parameters.mGLTFAlphaMode = 0.f;
+    parameters.mShiny = 3.f;
+    return parameters;
+}
+
+LLRenderWorldMaterialParameters make_deferred_color_compare_pbr_material()
+{
+    const SmokeRGB srgb_input =
+        get_deferred_color_compare_pbr_srgb_input();
+
+    LLRenderWorldMaterialParameters parameters;
+    parameters.mBaseColorRed = srgb_input.mRed;
+    parameters.mBaseColorGreen = srgb_input.mGreen;
+    parameters.mBaseColorBlue = srgb_input.mBlue;
+    parameters.mBaseColorAlpha = 1.f;
+    parameters.mSpecularColorRed = 0.04f;
+    parameters.mSpecularColorGreen = 0.04f;
+    parameters.mSpecularColorBlue = 0.04f;
+    parameters.mEnvIntensity = 0.30f;
+    parameters.mRoughnessFactor = 0.58f;
+    parameters.mMetallicFactor = 0.18f;
+    parameters.mMaterialFlags =
+        static_cast<F32>(
+            LLRenderWorldMaterialParameters::GLTFPBR |
+            LLRenderWorldMaterialParameters::HasNormalMap);
+    parameters.mHasORMMap = 0.f;
+    parameters.mHasEmissiveMap = 0.f;
+    parameters.mDiffuseAlphaMode = 0.f;
+    parameters.mGLTFAlphaMode = 0.f;
     return parameters;
 }
 
@@ -4372,6 +4465,27 @@ LLRenderWorldMaterialParameters make_deferred_color_compare_composite_parameters
     parameters.mSceneDirectScale = 0.f;
     parameters.mSceneLightingValid = 1.f;
     return parameters;
+}
+
+void bind_deferred_color_compare_material_textures(
+    LLRenderBackend& backend,
+    const SmokeDeferredTextures& textures)
+{
+    const LLRenderTextureHandle bindings[] =
+    {
+        textures.mWhite,
+        textures.mNormal,
+        textures.mSpecular,
+        textures.mEmissive,
+    };
+    const S32 binding_count =
+        static_cast<S32>(sizeof(bindings) / sizeof(bindings[0]));
+    for (S32 unit = 0; unit < binding_count; ++unit)
+    {
+        backend.setActiveTextureUnit(unit);
+        backend.bindTexture(LLRenderTextureTarget::Texture2D, bindings[unit]);
+    }
+    backend.setActiveTextureUnit(0);
 }
 
 void bind_two_prim_material_textures(
@@ -4425,24 +4539,12 @@ void draw_deferred_color_compare_gbuffer_scene(
     log_deferred_color_compare_reference();
 
     SmokeMatrixScope matrix_scope;
-    backend.setActiveTextureUnit(0);
-    backend.bindTexture(LLRenderTextureTarget::Texture2D, textures.mWhite);
-    backend.setActiveTextureUnit(1);
-    backend.bindTexture(LLRenderTextureTarget::Texture2D, textures.mNormal);
-    backend.setActiveTextureUnit(2);
-    backend.bindTexture(LLRenderTextureTarget::Texture2D, textures.mSpecular);
-    backend.setActiveTextureUnit(3);
-    backend.bindTexture(LLRenderTextureTarget::Texture2D, textures.mEmissive);
-    backend.setActiveTextureUnit(0);
-
+    bind_deferred_color_compare_material_textures(backend, textures);
     bind_world_smoke_quad(backend, quad);
     backend.setWorldDrawEnabled(true);
-    backend.setWorldShaderClass(LLRenderWorldShaderClass::Textured);
     backend.setWorldTextureTransform({});
     backend.setWorldTerrainParameters({});
     backend.setWorldSkinningMatrixPalette(0, nullptr);
-    backend.setWorldMaterialParameters(
-        make_deferred_color_compare_gbuffer_material());
     backend.setCapability(LLRenderCapability::Blend, false);
     backend.setCapability(LLRenderCapability::DepthTest, true);
     backend.setDepthFunction(LLRenderDepthFunction::LessEqual);
@@ -4450,7 +4552,23 @@ void draw_deferred_color_compare_gbuffer_scene(
     backend.setCapability(LLRenderCapability::CullFace, false);
     backend.setColorMask({ true, true, true, true });
     backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
-    set_two_prim_world_matrix(0.f, 0.f, 0.f, 1.f, 1.f);
+
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+    backend.setWorldMaterialParameters(
+        make_deferred_color_compare_gbuffer_material());
+    set_two_prim_world_matrix(-0.67f, 0.f, 0.f, 0.34f, 1.f);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Material);
+    backend.setWorldMaterialParameters(
+        make_deferred_color_compare_legacy_material());
+    set_two_prim_world_matrix(0.f, 0.f, 0.f, 0.34f, 1.f);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::PBR);
+    backend.setWorldMaterialParameters(
+        make_deferred_color_compare_pbr_material());
+    set_two_prim_world_matrix(0.67f, 0.f, 0.f, 0.34f, 1.f);
     backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
 
     backend.setWorldDrawEnabled(false);

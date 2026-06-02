@@ -101,8 +101,11 @@ filled in.
 - [x] Add a deferred legacy color-parity smoke test before continuing visual
       parity work.
       `mare-vulkan-smoke --mode viewer-deferred-color-compare` now runs a
-      controlled legacy sRGB G-buffer color through the viewer-style
+      controlled synthetic G-buffer scene through the viewer-style
       `deferredScreen -> deferredLight -> screen -> post -> swapchain` path.
+      The scene is split into legacy diffuse, legacy material, and PBR bands so
+      deferred composite changes can isolate which G-buffer family drifts
+      without logging into Second Life.
       The active Vulkan deferred composite now matches the OpenGL deferred
       convention by converting legacy G-buffer albedo/specular values from sRGB
       to linear before lighting. This prevents the deferred path from drifting
