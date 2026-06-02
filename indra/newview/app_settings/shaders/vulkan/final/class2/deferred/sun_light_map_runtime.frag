@@ -76,6 +76,23 @@ float compare_shadow_depth(sampler2D shadow_map, vec3 coord)
     return coord.z <= stored_depth ? 1.0 : 0.0;
 }
 
+bool shadow_runtime_bit(float mask, int index)
+{
+    return (int(mask + 0.5) & (1 << index)) != 0;
+}
+
+bool sun_shadow_map_available(int index)
+{
+    return u.shadow_runtime.x > 0.5 &&
+        shadow_runtime_bit(u.shadow_runtime.z, index);
+}
+
+bool spot_shadow_map_available(int index)
+{
+    return u.shadow_runtime.y > 0.5 &&
+        shadow_runtime_bit(u.shadow_runtime.w, index);
+}
+
 float pcf_directional_shadow(
     sampler2D shadow_map,
     vec4 shadow_coord,
@@ -133,7 +150,7 @@ float pcf_spot_shadow(
 
 float sample_directional_shadow(vec3 position, vec3 normal, vec2 pos_screen)
 {
-    if (u.shadow_runtime.x < 0.5)
+    if (u.shadow_runtime.x < 0.5 || int(u.shadow_runtime.z + 0.5) == 0)
     {
         return 1.0;
     }
@@ -159,7 +176,7 @@ float sample_directional_shadow(vec3 position, vec3 normal, vec2 pos_screen)
     float shadow = 0.0;
     float weight = 0.0;
 
-    if (spos.z < near_split.z)
+    if (spos.z < near_split.z && sun_shadow_map_available(3))
     {
         float w = 1.0;
         w -= max(spos.z - far_split.z, 0.0) / max(transition_domain.z, 0.000001);
@@ -167,7 +184,9 @@ float sample_directional_shadow(vec3 position, vec3 normal, vec2 pos_screen)
         weight += w;
         shadow += max((position.z + u.shadow_clip.z) / (u.shadow_clip.z - u.shadow_clip.w) * 2.0 - 1.0, 0.0);
     }
-    if (spos.z < near_split.y && spos.z > far_split.z)
+    if (spos.z < near_split.y &&
+        spos.z > far_split.z &&
+        sun_shadow_map_available(2))
     {
         float w = 1.0;
         w -= max(spos.z - far_split.y, 0.0) / max(transition_domain.y, 0.000001);
@@ -175,7 +194,9 @@ float sample_directional_shadow(vec3 position, vec3 normal, vec2 pos_screen)
         shadow += pcf_directional_shadow(shadowMap2, u.shadow_matrix[2] * spos, 1.0, pos_screen) * w;
         weight += w;
     }
-    if (spos.z < near_split.x && spos.z > far_split.y)
+    if (spos.z < near_split.x &&
+        spos.z > far_split.y &&
+        sun_shadow_map_available(1))
     {
         float w = 1.0;
         w -= max(spos.z - far_split.x, 0.0) / max(transition_domain.x, 0.000001);
@@ -183,7 +204,7 @@ float sample_directional_shadow(vec3 position, vec3 normal, vec2 pos_screen)
         shadow += pcf_directional_shadow(shadowMap1, u.shadow_matrix[1] * spos, 1.0, pos_screen) * w;
         weight += w;
     }
-    if (spos.z > far_split.x)
+    if (spos.z > far_split.x && sun_shadow_map_available(0))
     {
         float w = 1.0;
         w -= max(near_split.x - spos.z, 0.0) / max(transition_domain.x, 0.000001);
@@ -196,7 +217,9 @@ float sample_directional_shadow(vec3 position, vec3 normal, vec2 pos_screen)
 
 float sample_spot_shadow(vec3 position, vec3 normal, int index, vec2 pos_screen)
 {
-    if (u.shadow_runtime.y < 0.5)
+    if (u.shadow_runtime.y < 0.5 ||
+        int(u.shadow_runtime.w + 0.5) == 0 ||
+        !spot_shadow_map_available(index))
     {
         return 1.0;
     }

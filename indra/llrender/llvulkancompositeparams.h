@@ -156,6 +156,38 @@ struct LLVulkanDeferredCompositeSettings
     {
         0.f, 0.f, 0.f, 0.f,
     };
+    F32 mAtmosBlueHorizonHaze[4] =
+    {
+        0.4954f, 0.4954f, 0.6399f, 0.19f,
+    };
+    F32 mAtmosBlueDensityHaze[4] =
+    {
+        0.2447f, 0.4487f, 0.7599f, 0.7f,
+    };
+    F32 mAtmosDensity[4] =
+    {
+        0.f, 0.0001f, 0.8f, 1605.f,
+    };
+    F32 mAtmosGlow[4] =
+    {
+        18.f, 0.f, -0.01f, 1.f,
+    };
+    F32 mAtmosSunlight[4] =
+    {
+        1.f, 1.f, 1.f, 1.5f,
+    };
+    F32 mAtmosMoonlight[4] =
+    {
+        1.f, 1.f, 1.f, 1.5f,
+    };
+    F32 mAtmosAmbient[4] =
+    {
+        0.25f, 0.25f, 0.25f, 1.f,
+    };
+    F32 mAtmosLightNorm[4] =
+    {
+        0.f, 1.f, 0.f, 1.f,
+    };
 };
 
 inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_parameters(
@@ -257,6 +289,22 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
             settings.mShadowResolution[i];
         parameters.mCompositeShadowRuntime[i] =
             settings.mShadowRuntime[i];
+        parameters.mCompositeAtmosBlueHorizonHaze[i] =
+            settings.mAtmosBlueHorizonHaze[i];
+        parameters.mCompositeAtmosBlueDensityHaze[i] =
+            settings.mAtmosBlueDensityHaze[i];
+        parameters.mCompositeAtmosDensity[i] =
+            settings.mAtmosDensity[i];
+        parameters.mCompositeAtmosGlow[i] =
+            settings.mAtmosGlow[i];
+        parameters.mCompositeAtmosSunlight[i] =
+            settings.mAtmosSunlight[i];
+        parameters.mCompositeAtmosMoonlight[i] =
+            settings.mAtmosMoonlight[i];
+        parameters.mCompositeAtmosAmbient[i] =
+            settings.mAtmosAmbient[i];
+        parameters.mCompositeAtmosLightNorm[i] =
+            settings.mAtmosLightNorm[i];
     }
 
     return parameters;

@@ -530,10 +530,15 @@ Validation status:
       (`HAS_ATMOS=0.34`, `HAS_PBR=0.67`, sky/HDRI remains `1.0`) while keeping
       full encoded normals in `normal.xyz`; `DeferredLightMap`, local lights,
       and `DeferredSoften` no longer treat `normal.a < 0.5` as an invalid
-      world pixel.
+      world pixel. The live `DeferredSoften` pass now also receives a
+      dedicated WindLight/EEP atmospheric UBO with OpenGL-source inputs
+      (`blue_horizon`, `blue_density`, haze, density/distance/max_y, glow,
+      sun/moon colors, cloud shadow, ambient, HDR sunlight/ambient scales,
+      sun/moon glow, and lightnorm) and uses a local port of
+      `calcAtmosphericVarsLinear()` for its sunlit/ambient lighting inputs.
       Vulkan still needs Vulkan-owned sun/spot shadow-map render passes, water/debug
-      reflection variants, atmospheric helper parity, and final visual
-      validation before this item can be closed. Shadow pipeline
+      reflection variants, atmospheric visual parity validation, and final
+      visual validation before this item can be closed. Shadow pipeline
       progress: the Vulkan backend now has
       explicit world shader classes and pipeline arrays for generic,
       alpha-mask, avatar, avatar alpha, avatar alpha-mask, tree, PBR
@@ -579,11 +584,25 @@ Validation status:
       `DeferredLightMap` now logs the first few sun/spot shadow target
       validation summaries, including target presence, completeness, depth
       handle, dimensions, and whether each target was actually bound as a
-      depth input. Spot shadow PCF progress: the Vulkan lightMap shader now
+      depth input. Runtime target-mask progress: the lightMap pass now
+      transports per-map sun/spot availability masks from those real depth
+      bindings and the Vulkan PCF shader skips missing split/projector maps
+      instead of treating a fallback texture as a valid shadow map.
+      Spot shadow PCF progress: the Vulkan lightMap shader now
       matches OpenGL's `sampleSpotShadow()` jitter input by passing the
       view-space shadow sample position (`spos.xy`) to `pcfSpotShadow()`
       instead of framebuffer coordinates. Remaining PCF work is visual
       validation/tuning against OpenGL shadow softness and acne bias.
+      LightMap blur gap: OpenGL runs `sunLightF`/`sunLightSSAOF` into
+      `deferredLight`, then applies the two-pass `blurLightF` graph
+      (`deferredLight -> screen -> deferredLight`) before `softenLightF`
+      consumes the lightMap. Vulkan currently consumes the raw
+      `DeferredLightMap` target directly. The existing
+      `vulkan/final/class1/deferred/blur_light.frag` file is still an
+      inventory/source-port placeholder, not the live runtime blur owner.
+      The next graph-parity packet should add a dedicated Vulkan
+      `DeferredBlurLight` owner and wire the same two-pass lightMap blur
+      before `DeferredSoften`.
 - [ ] Final post-processing:
       port and wire the OpenGL post chain as separate class-tier passes:
       glow extraction/blur/combine, gamma/tonemap, FXAA/SMAA/CAS, DoF/cof, and
@@ -1864,13 +1883,23 @@ Known missing runtime coverage:
       read-only SSAO lightMap target from depth/normal, and projector
       candidate/index/fade ownership is transported into Vulkan spot uniforms.
       Its directional and spot shadow channels now sample the shadow depth
-      targets using transported OpenGL matrices/clip/bias/resolution state.
+      targets using transported OpenGL matrices/clip/bias/resolution state,
+      with per-target availability masks derived from actual shadow depth
+      bindings.
+      The remaining major graph mismatch is the missing OpenGL-equivalent
+      two-pass `blurLightF` lightMap blur before `DeferredSoften`; the shader
+      source file exists but is not a live runtime owner yet.
       Emissive, the sky environment cube-map, BRDF LUT, `lightFunc`,
       reflection-probe cubemap arrays, probe parallax/selection state, and
       OpenGL-derived glossy sceneMap/depth SSR sampling with camera-delta
       transport now feed the live soften pass. Runtime G-buffer producers now
       write OpenGL-style `normal.a` flags so `DeferredSoften` selects PBR via
-      `GBUFFER_FLAG_HAS_PBR` rather than the ORM alpha marker. Close this only after the
+      `GBUFFER_FLAG_HAS_PBR` rather than the ORM alpha marker. The same pass
+      now transports the WindLight/EEP atmospheric uniforms through a dedicated
+      Vulkan UBO and computes `sunlit`, `amblit`, scattering additive, and
+      attenuation with an OpenGL-source `calcAtmosphericVarsLinear()` port
+      instead of the older `composite_ambient + composite_light` shortcut.
+      Close this only after the
       remaining graph inputs are real: shadow target validation plus
       PCF/parity tuning, water/debug reflection variants, and final
       composite/post parity.

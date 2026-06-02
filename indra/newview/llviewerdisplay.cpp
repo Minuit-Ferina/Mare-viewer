@@ -591,12 +591,37 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     LLEnvironment& environment = LLEnvironment::instance();
     LLSettingsSky::ptr_t sky = environment.getCurrentSky();
     static LLCachedControl<bool> should_auto_adjust(gSavedSettings, "RenderSkyAutoAdjustLegacy", false);
+    static LLCachedControl<bool> hdr(gSavedSettings, "RenderHDREnabled", false);
+    static LLCachedControl<F32> auto_adjust_ambient_scale(gSavedSettings, "RenderSkyAutoAdjustAmbientScale", 0.75f);
     static LLCachedControl<F32> auto_adjust_hdr_scale(gSavedSettings, "RenderSkyAutoAdjustHDRScale", 2.f);
+    static LLCachedControl<F32> auto_adjust_blue_horizon_scale(gSavedSettings, "RenderSkyAutoAdjustBlueHorizonScale", 1.f);
+    static LLCachedControl<F32> auto_adjust_blue_density_scale(gSavedSettings, "RenderSkyAutoAdjustBlueDensityScale", 1.f);
+    static LLCachedControl<F32> auto_adjust_sun_color_scale(gSavedSettings, "RenderSkyAutoAdjustSunColorScale", 1.f);
+    static LLCachedControl<F32> sunlight_scale(gSavedSettings, "RenderSkySunlightScale", 1.5f);
+    static LLCachedControl<F32> sunlight_hdr_scale(gSavedSettings, "RenderHDRSkySunlightScale", 1.5f);
+    static LLCachedControl<F32> ambient_scale(gSavedSettings, "RenderSkyAmbientScale", 1.5f);
+    static LLCachedControl<F32> sun_dynamic_range(gSavedSettings, "RenderSunDynamicRange", 1.f);
     static LLCachedControl<F32> ssao_irradiance_scale(gSavedSettings, "RenderSSAOIrradianceScale", 0.5f);
     static LLCachedControl<F32> ssao_irradiance_max(gSavedSettings, "RenderSSAOIrradianceMax", 0.25f);
     static LLCachedControl<U32> shadow_blur_samples(gSavedSettings, "RenderShadowBlurSamples", 4U);
 
     LLColor4 ambient(0.28f, 0.28f, 0.28f, 1.f);
+    LLColor3 atmos_ambient_color(0.25f, 0.25f, 0.25f);
+    LLColor3 atmos_blue_horizon(0.4954f, 0.4954f, 0.6399f);
+    LLColor3 atmos_blue_density(0.2447f, 0.4487f, 0.7599f);
+    LLColor3 atmos_glow(18.f, 0.f, -0.01f);
+    LLColor3 atmos_sunlight_color(1.f, 1.f, 1.f);
+    LLColor3 atmos_moonlight_color(1.f, 1.f, 1.f);
+    F32 atmos_haze_horizon = 0.19f;
+    F32 atmos_haze_density = 0.7f;
+    F32 atmos_cloud_shadow = 0.f;
+    F32 atmos_density_multiplier = 0.0001f;
+    F32 atmos_distance_multiplier = 0.8f;
+    F32 atmos_max_y = 1605.f;
+    F32 atmos_scene_light_strength = 1.f;
+    F32 atmos_sun_moon_glow_factor = 1.f;
+    F32 atmos_sky_sunlight_scale = hdr() ? sunlight_hdr_scale() : sunlight_scale();
+    F32 atmos_sky_ambient_scale = ambient_scale();
     LLColor3 diffuse_light(0.85f, 0.85f, 0.85f);
     F32 direct_light_scale = 1.f;
     F32 reflection_probe_ambiance = 0.f;
@@ -607,6 +632,23 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     {
         ambient = sky->getTotalAmbient();
         const F32 cloud_shadow = llclamp(sky->getCloudShadow(), 0.f, 1.f);
+        atmos_ambient_color = LLColor3(ambient);
+        atmos_blue_horizon = sky->getBlueHorizon();
+        atmos_blue_density = sky->getBlueDensity();
+        atmos_glow = sky->getGlow();
+        atmos_sunlight_color = sky->getSunlightColor();
+        atmos_moonlight_color = sky->getMoonlightColor();
+        atmos_haze_horizon = sky->getHazeHorizon();
+        atmos_haze_density = sky->getHazeDensity();
+        atmos_cloud_shadow = cloud_shadow;
+        atmos_density_multiplier = sky->getDensityMultiplier();
+        atmos_distance_multiplier = sky->getDistanceMultiplier();
+        atmos_max_y = sky->getMaxY();
+        atmos_sun_moon_glow_factor = sky->getSunMoonGlowFactor();
+        const F32 sun_dp =
+            llmax(sky->getSunDirection().mV[VZ], 0.f);
+        atmos_scene_light_strength =
+            2.f * (0.75f + llmax(sun_dynamic_range(), 0.0001f) * sun_dp);
         ambient += (LLColor4::white - ambient) * cloud_shadow * 0.5f;
         direct_light_scale = 1.f - cloud_shadow;
         reflection_probe_ambiance =
@@ -621,6 +663,10 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
         else if (sky->canAutoAdjust() && should_auto_adjust)
         {
             sky_hdr_scale = auto_adjust_hdr_scale();
+            atmos_ambient_color *= auto_adjust_ambient_scale();
+            atmos_blue_horizon *= auto_adjust_blue_horizon_scale();
+            atmos_blue_density *= auto_adjust_blue_density_scale();
+            atmos_sunlight_color *= auto_adjust_sun_color_scale();
         }
         gPipeline.setupHWLights();
         const LLColor4& selected_diffuse =
@@ -629,6 +675,7 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     }
 
     LLVector4 light_norm = environment.getClampedLightNorm();
+    const LLVector4 atmos_light_norm = light_norm;
     if (sky)
     {
         light_norm = environment.getIsSunUp() ? gPipeline.mSunDir : gPipeline.mMoonDir;
@@ -730,6 +777,38 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     settings.mWaterPlaneY = LLDrawPoolAlpha::sWaterPlane.mV[VY];
     settings.mWaterPlaneZ = LLDrawPoolAlpha::sWaterPlane.mV[VZ];
     settings.mWaterPlaneW = LLDrawPoolAlpha::sWaterPlane.mV[VW];
+    settings.mAtmosBlueHorizonHaze[0] = atmos_blue_horizon.mV[VRED];
+    settings.mAtmosBlueHorizonHaze[1] = atmos_blue_horizon.mV[VGREEN];
+    settings.mAtmosBlueHorizonHaze[2] = atmos_blue_horizon.mV[VBLUE];
+    settings.mAtmosBlueHorizonHaze[3] = atmos_haze_horizon;
+    settings.mAtmosBlueDensityHaze[0] = atmos_blue_density.mV[VRED];
+    settings.mAtmosBlueDensityHaze[1] = atmos_blue_density.mV[VGREEN];
+    settings.mAtmosBlueDensityHaze[2] = atmos_blue_density.mV[VBLUE];
+    settings.mAtmosBlueDensityHaze[3] = atmos_haze_density;
+    settings.mAtmosDensity[0] = atmos_cloud_shadow;
+    settings.mAtmosDensity[1] = atmos_density_multiplier;
+    settings.mAtmosDensity[2] = atmos_distance_multiplier;
+    settings.mAtmosDensity[3] = atmos_max_y;
+    settings.mAtmosGlow[0] = atmos_glow.mV[VRED];
+    settings.mAtmosGlow[1] = atmos_glow.mV[VGREEN];
+    settings.mAtmosGlow[2] = atmos_glow.mV[VBLUE];
+    settings.mAtmosGlow[3] = atmos_sun_moon_glow_factor;
+    settings.mAtmosSunlight[0] = atmos_sunlight_color.mV[VRED];
+    settings.mAtmosSunlight[1] = atmos_sunlight_color.mV[VGREEN];
+    settings.mAtmosSunlight[2] = atmos_sunlight_color.mV[VBLUE];
+    settings.mAtmosSunlight[3] = atmos_sky_sunlight_scale;
+    settings.mAtmosMoonlight[0] = atmos_moonlight_color.mV[VRED];
+    settings.mAtmosMoonlight[1] = atmos_moonlight_color.mV[VGREEN];
+    settings.mAtmosMoonlight[2] = atmos_moonlight_color.mV[VBLUE];
+    settings.mAtmosMoonlight[3] = atmos_sky_ambient_scale;
+    settings.mAtmosAmbient[0] = atmos_ambient_color.mV[VRED];
+    settings.mAtmosAmbient[1] = atmos_ambient_color.mV[VGREEN];
+    settings.mAtmosAmbient[2] = atmos_ambient_color.mV[VBLUE];
+    settings.mAtmosAmbient[3] = atmos_scene_light_strength;
+    settings.mAtmosLightNorm[0] = atmos_light_norm.mV[VX];
+    settings.mAtmosLightNorm[1] = atmos_light_norm.mV[VY];
+    settings.mAtmosLightNorm[2] = atmos_light_norm.mV[VZ];
+    settings.mAtmosLightNorm[3] = sky ? 1.f : 0.f;
     const F32* modelview_values = gGLModelView;
     settings.mEnvironmentMatrix[0] = modelview_values[0];
     settings.mEnvironmentMatrix[1] = modelview_values[1];
@@ -2117,6 +2196,8 @@ static LLRenderTarget* render_vulkan_deferred_light_map_target()
     bool sun_shadow_bound[4] = {};
     bool spot_shadow_bound[2] = {};
     U32 bound_shadow_count = 0;
+    U32 sun_shadow_mask = 0;
+    U32 spot_shadow_mask = 0;
     for (U32 shadow_index = 0; shadow_index < 4; ++shadow_index)
     {
         sun_shadow_bound[shadow_index] =
@@ -2126,6 +2207,7 @@ static LLRenderTarget* render_vulkan_deferred_light_map_target()
         if (sun_shadow_bound[shadow_index])
         {
             ++bound_shadow_count;
+            sun_shadow_mask |= 1U << shadow_index;
         }
     }
     for (U32 spot_index = 0; spot_index < 2; ++spot_index)
@@ -2137,8 +2219,17 @@ static LLRenderTarget* render_vulkan_deferred_light_map_target()
         if (spot_shadow_bound[spot_index])
         {
             ++bound_shadow_count;
+            spot_shadow_mask |= 1U << spot_index;
         }
     }
+    light_map_parameters.mCompositeShadowRuntime[0] =
+        sun_shadow_mask != 0 ? 1.f : 0.f;
+    light_map_parameters.mCompositeShadowRuntime[1] =
+        spot_shadow_mask != 0 ? 1.f : 0.f;
+    light_map_parameters.mCompositeShadowRuntime[2] =
+        static_cast<F32>(sun_shadow_mask);
+    light_map_parameters.mCompositeShadowRuntime[3] =
+        static_cast<F32>(spot_shadow_mask);
     static U32 sShadowTargetValidationLogCount = 0;
     if (sShadowTargetValidationLogCount < 4 &&
         (bound_shadow_count < 6 || sShadowTargetValidationLogCount == 0))

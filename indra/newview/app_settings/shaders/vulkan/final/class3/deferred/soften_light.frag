@@ -40,6 +40,14 @@ layout(std140, set = 2, binding = 0) uniform ReflectionProbes
 layout(std140, set = 1, binding = 0) uniform DeferredSoften
 {
     mat4 inverse_modelview_delta;
+    vec4 atmos_blue_horizon_haze;
+    vec4 atmos_blue_density_haze;
+    vec4 atmos_density;
+    vec4 atmos_glow;
+    vec4 atmos_sunlight;
+    vec4 atmos_moonlight;
+    vec4 atmos_ambient;
+    vec4 atmos_lightnorm;
 } soften;
 
 layout(location = 0) in vec4 vertex_color;
@@ -437,6 +445,127 @@ vec3 safe_normalize(vec3 value)
         return vec3(0.0, 0.0, 1.0);
     }
     return value * inversesqrt(len2);
+}
+
+float ambient_lighting(vec3 norm, vec3 light_dir)
+{
+    float ambient = min(abs(dot(norm.xyz, light_dir.xyz)), 1.0);
+    ambient *= 0.5;
+    ambient *= ambient;
+    return 1.0 - ambient;
+}
+
+void calc_atmospheric_vars(
+    vec3 in_position_eye,
+    vec3 light_dir,
+    out vec3 sunlit,
+    out vec3 amblit,
+    out vec3 additive,
+    out vec3 atten)
+{
+    vec3 rel_pos = in_position_eye;
+    float max_y = max(soften.atmos_density.w, 0.000001);
+    if (abs(rel_pos.y) > max_y)
+    {
+        rel_pos *= max_y / rel_pos.y;
+    }
+
+    vec3 rel_pos_norm = safe_normalize(rel_pos);
+    float rel_pos_len = length(rel_pos);
+    vec3 lightnorm = soften.atmos_lightnorm.xyz;
+    if (dot(lightnorm, lightnorm) <= 0.000001)
+    {
+        lightnorm = light_dir;
+    }
+
+    vec3 sunlight =
+        pc.composite_sun_direction.w > 0.5 ?
+            soften.atmos_sunlight.rgb :
+            soften.atmos_moonlight.rgb;
+    vec3 blue_horizon = soften.atmos_blue_horizon_haze.rgb;
+    vec3 blue_density = soften.atmos_blue_density_haze.rgb;
+    float haze_horizon = soften.atmos_blue_horizon_haze.a;
+    float haze_density = soften.atmos_blue_density_haze.a;
+    float cloud_shadow = clamp(soften.atmos_density.x, 0.0, 1.0);
+    float density_multiplier = max(soften.atmos_density.y, 0.0);
+    float distance_multiplier = max(soften.atmos_density.z, 0.0);
+
+    vec3 light_atten =
+        (blue_density + vec3(haze_density * 0.25)) *
+        (density_multiplier * max_y);
+    vec3 combined_haze = max(blue_density + vec3(haze_density), vec3(0.000001));
+    vec3 blue_weight = blue_density / combined_haze;
+    vec3 haze_weight = vec3(haze_density) / combined_haze;
+
+    float above_horizon_factor = 1.0 / max(0.000001, lightnorm.y);
+    sunlight *= exp(-light_atten * above_horizon_factor);
+
+    float density_dist = rel_pos_len * density_multiplier;
+    combined_haze =
+        exp(-combined_haze * density_dist * distance_multiplier);
+    atten = combined_haze.rgb;
+
+    float haze_glow = dot(rel_pos_norm, lightnorm.xyz);
+    haze_glow *= max(0.0, dot(light_dir, rel_pos_norm));
+    haze_glow = 1.0 - haze_glow;
+    haze_glow = max(haze_glow, 0.001);
+    haze_glow *= soften.atmos_glow.x;
+    haze_glow =
+        clamp(pow(haze_glow, soften.atmos_glow.z), -100000.0, 100000.0);
+    haze_glow += 0.25;
+    haze_glow *= soften.atmos_glow.w;
+
+    vec3 ambient_color = soften.atmos_ambient.rgb;
+    vec3 tmp_ambient =
+        ambient_color + (vec3(1.0) - ambient_color) * cloud_shadow * 0.5;
+    vec3 cs = sunlight.rgb * (1.0 - cloud_shadow);
+    additive =
+        (blue_horizon.rgb * blue_weight.rgb) * (cs + tmp_ambient.rgb) +
+        (haze_horizon * haze_weight.rgb) *
+            (cs * haze_glow + tmp_ambient.rgb);
+
+    sunlit = sunlight.rgb;
+    amblit = pow(tmp_ambient.rgb, vec3(0.9)) * 0.57;
+    additive *= vec3(1.0 - combined_haze);
+    additive = min(additive, vec3(10.0));
+}
+
+void calc_atmospheric_vars_linear(
+    vec3 in_position_eye,
+    vec3 norm,
+    vec3 light_dir,
+    out vec3 sunlit,
+    out vec3 amblit,
+    out vec3 additive,
+    out vec3 atten)
+{
+    calc_atmospheric_vars(
+        in_position_eye,
+        light_dir,
+        sunlit,
+        amblit,
+        additive,
+        atten);
+
+    amblit *= ambient_lighting(norm, light_dir);
+
+    if (pc.composite_moon_direction.w < 0.5)
+    {
+        amblit = srgb_to_linear(amblit);
+        amblit = vec3(dot(amblit, vec3(0.2126, 0.7152, 0.0722)));
+        sunlit = srgb_to_linear(sunlit);
+    }
+
+    sunlit *= soften.atmos_sunlight.a;
+    amblit *= soften.atmos_moonlight.a;
+}
+
+vec3 atmos_frag_lighting_linear(vec3 light, vec3 additive, vec3 atten)
+{
+    light *= atten.r;
+    additive = srgb_to_linear(additive * 2.0);
+    additive *= pc.composite_sky_settings.y;
+    return light + additive;
 }
 
 bool has_reflection_probe_inputs()
@@ -1381,10 +1510,18 @@ void main()
     vec3 base_color = max(diffuse.rgb, vec3(0.0));
 
     float probe_ambiance = clamp(pc.scene_reflection.x, 0.0, 1.0);
-    vec3 ambient_color = max(pc.composite_ambient.rgb, vec3(0.0));
-    vec3 sunlit_linear = max(pc.composite_light.rgb, vec3(0.0));
-    float direct_scale = max(pc.composite_light_direction.a, 0.0);
-    sunlit_linear *= direct_scale;
+    vec3 sunlit_linear = vec3(0.0);
+    vec3 ambient_color = vec3(0.0);
+    vec3 atmos_additive = vec3(0.0);
+    vec3 atmos_atten = vec3(1.0);
+    calc_atmospheric_vars_linear(
+        view_position,
+        normal,
+        light_dir,
+        sunlit_linear,
+        ambient_color,
+        atmos_additive,
+        atmos_atten);
     if (classic_mode)
     {
         sunlit_linear *= 1.35;

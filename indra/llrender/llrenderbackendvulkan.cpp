@@ -1684,6 +1684,14 @@ struct LLVulkanDeferredLightMapUniforms
 struct LLVulkanDeferredSoftenUniforms
 {
     glm::mat4 mInverseModelviewDelta = glm::mat4(1.f);
+    glm::vec4 mAtmosBlueHorizonHaze = glm::vec4(0.4954f, 0.4954f, 0.6399f, 0.19f);
+    glm::vec4 mAtmosBlueDensityHaze = glm::vec4(0.2447f, 0.4487f, 0.7599f, 0.7f);
+    glm::vec4 mAtmosDensity = glm::vec4(0.f, 0.0001f, 0.8f, 1605.f);
+    glm::vec4 mAtmosGlow = glm::vec4(18.f, 0.f, -0.01f, 1.f);
+    glm::vec4 mAtmosSunlight = glm::vec4(1.f, 1.f, 1.f, 1.5f);
+    glm::vec4 mAtmosMoonlight = glm::vec4(1.f, 1.f, 1.f, 1.5f);
+    glm::vec4 mAtmosAmbient = glm::vec4(0.25f, 0.25f, 0.25f, 1.f);
+    glm::vec4 mAtmosLightNorm = glm::vec4(0.f, 1.f, 0.f, 1.f);
 };
 
 struct LLVulkanPointLightUniforms
@@ -8413,6 +8421,30 @@ LLVulkanDeferredSoftenUniforms make_vulkan_deferred_soften_uniforms(
     uniforms.mInverseModelviewDelta =
         glm::make_mat4(
             draw.mMaterialParameters.mCompositeInverseModelviewDelta);
+    uniforms.mAtmosBlueHorizonHaze =
+        glm::make_vec4(
+            draw.mMaterialParameters.mCompositeAtmosBlueHorizonHaze);
+    uniforms.mAtmosBlueDensityHaze =
+        glm::make_vec4(
+            draw.mMaterialParameters.mCompositeAtmosBlueDensityHaze);
+    uniforms.mAtmosDensity =
+        glm::make_vec4(
+            draw.mMaterialParameters.mCompositeAtmosDensity);
+    uniforms.mAtmosGlow =
+        glm::make_vec4(
+            draw.mMaterialParameters.mCompositeAtmosGlow);
+    uniforms.mAtmosSunlight =
+        glm::make_vec4(
+            draw.mMaterialParameters.mCompositeAtmosSunlight);
+    uniforms.mAtmosMoonlight =
+        glm::make_vec4(
+            draw.mMaterialParameters.mCompositeAtmosMoonlight);
+    uniforms.mAtmosAmbient =
+        glm::make_vec4(
+            draw.mMaterialParameters.mCompositeAtmosAmbient);
+    uniforms.mAtmosLightNorm =
+        glm::make_vec4(
+            draw.mMaterialParameters.mCompositeAtmosLightNorm);
     return uniforms;
 }
 
