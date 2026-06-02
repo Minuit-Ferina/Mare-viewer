@@ -566,10 +566,32 @@ Validation status:
       position) while keeping the current Vulkan world push-constant ABI. The
       runtime shader now also receives the OpenGL water plane, fog color,
       fog density, and fog KS values and applies the source `waterFogF.glsl`
-      linear water-fog equation to the Water surface.
+      linear water-fog equation to the Water surface. The Vulkan post-deferred
+      graph now also flushes the queued pre-Water commands, copies the current
+      `mRT->screen` color target into `mWaterDis` with the existing Vulkan
+      `Copy` shader, and binds that target as Water's screen/refraction input
+      instead of sampling `deferredScreen` directly. The Water runtime shader
+      also now uses a local port of the source class3 `calcDiffuseSpecular()`
+      and `pbrPunctual()` equations for its direct Water specular/punctual
+      contribution instead of the earlier fixed tint/direct-light mix. Water
+      draw parameters now also override the generic scene direct light with
+      the same source `WATER_SPECULAR` value computed by OpenGL Water
+      (`sunlight`/`moonlight`, normalized, then scaled by horizontal light
+      projection). Water refraction/depth/exclusion sampling now also uses the
+      source `refCoord.xy / refCoord.z` projection from `waterV.glsl`, with the
+      Vulkan vertex path applying the required Y flip before exporting
+      `refCoord`. Water now also binds the Vulkan `DeferredLightMap`
+      (`mPostPongMap`) on Water draws when available and applies `lightMap.r`
+      as the direct punctual shadow factor, matching the role of the source
+      Water `shadow` multiplier while the full `sampleDirectionalShadow()`
+      parity remains pending. The runtime shader also now calculates the
+      source class3 Water `df2`/`df3` Fresnel factors from the three wave-normal
+      taps, using `df2.x` for scene/radiance mix and `df2.y` for radiance
+      scaling instead of the earlier one-dot Fresnel approximation.
       This is not full water parity yet; final class3 water fragment graph
-      ownership, reflection target, shadow, PBR water lighting, and water-fog
-      visual parity still need to be wired and validated.
+      ownership, reflection-target visual/depth parity, shadow, PBR water
+      lighting, and water-fog visual parity still need to be wired and
+      validated.
       Vulkan still needs Vulkan-owned sun/spot shadow-map render passes,
       deeper water/debug reflection variants, atmospheric visual parity
       validation, and final visual validation before this item can be closed.
@@ -668,10 +690,19 @@ Validation status:
       magenta error/fallback shader and `class3/environment/waterF.glsl` as
       the high-fidelity water shader. Vulkan water parity now transports and
       samples the source bumpMap/bumpMap2/blend-factor inputs in the runtime
-      path and routes Water through a dedicated runtime vertex shader with
-      OpenGL-style wave varyings, but still needs reflection render targets,
-      shadows, final class3 fragment ownership, PBR water lighting, and visual
-      validation of the newly wired source water-fog equation.
+      path, routes Water through a dedicated runtime vertex shader with
+      OpenGL-style wave varyings, and copies the current post-deferred screen
+      color into `mWaterDis` before Water draws so the Water runtime samples a
+      Water-owned screen/refraction target. It still needs reflection-target
+      depth/debug variant parity, shadows, final class3 fragment ownership,
+      full PBR water IBL/atmospheric/shadow parity, and visual validation of
+      the newly wired source water-fog/refraction/direct-punctual equation.
+      The direct Water specular input now follows the OpenGL owner calculation
+      instead of the generic scene-light shortcut, and Water screen/depth
+      sampling now follows the source `refCoord` projection instead of raw
+      `gl_FragCoord`. A first Water shadow input is active through the existing
+      Vulkan `DeferredLightMap`; remaining work is direct
+      `sampleDirectionalShadow()` parity and tuning against OpenGL.
       Runtime Water already has exclusion, scene depth/color, reflection/
       irradiance/hero probes, source Fresnel, blur, normalScale, and
       above/below-water refScale transport.
@@ -1970,8 +2001,9 @@ Known missing runtime coverage:
       probes first, suppressing automatic probes, and appending the void probe.
       It also binds and samples hero probes for the OpenGL-style high-gloss
       mirror/probe mix, including the source clip-plane falloff. Remaining
-      water parity still needs exact class3 water position/normal/wave inputs
-      and final class3 water graph ownership.
+      water parity still needs reflection-target depth/debug variants, direct
+      `sampleDirectionalShadow()` parity, final class3 water graph ownership,
+      and visual tuning against OpenGL.
       Close this only after the
       remaining graph inputs are real: shadow target validation plus
       PCF/parity tuning, water/debug reflection variants, and final

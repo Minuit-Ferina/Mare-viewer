@@ -61,6 +61,7 @@ constexpr U32 WORLD_RENDER_SCENE_COLOR_TEXTURE_UNIT = 9;
 constexpr U32 WORLD_RENDER_REFLECTION_PROBES_TEXTURE_UNIT = 10;
 constexpr U32 WORLD_RENDER_IRRADIANCE_PROBES_TEXTURE_UNIT = 11;
 constexpr U32 WORLD_RENDER_HERO_PROBES_TEXTURE_UNIT = 12;
+constexpr U32 WORLD_RENDER_LIGHT_MAP_TEXTURE_UNIT = 13;
 
 LLRenderWorldTextureTransform get_world_texture_transform(const LLMatrix4* matrix);
 
@@ -98,6 +99,39 @@ void set_world_water_parameters(LLRenderWorldMaterialParameters& parameters)
         return;
     }
 
+    LLEnvironment& environment = LLEnvironment::instance();
+    LLSettingsSky::ptr_t sky = environment.getCurrentSky();
+    LLVector3 light_dir = environment.getLightDirection();
+    LLColor3 water_specular(0.f, 0.f, 0.f);
+    if (sky)
+    {
+        if (environment.getIsSunUp())
+        {
+            water_specular += sky->getSunlightColor();
+        }
+        else if (environment.getIsMoonUp())
+        {
+            water_specular += sky->getMoonlightColor();
+        }
+    }
+    light_dir.normalize();
+    F32 ground_proj_sq =
+        light_dir.mV[VX] * light_dir.mV[VX] +
+        light_dir.mV[VY] * light_dir.mV[VY];
+    if (0.f < water_specular.normalize())
+    {
+        water_specular *= (1.5f + (6.f * ground_proj_sq));
+    }
+    parameters.mSceneDirectRed = water_specular.mV[VRED];
+    parameters.mSceneDirectGreen = water_specular.mV[VGREEN];
+    parameters.mSceneDirectBlue = water_specular.mV[VBLUE];
+    parameters.mSceneDirectScale = 1.f;
+    parameters.mSceneLightingValid = 1.f;
+    parameters.mSceneLightDirectionX = light_dir.mV[VX];
+    parameters.mSceneLightDirectionY = light_dir.mV[VY];
+    parameters.mSceneLightDirectionZ = light_dir.mV[VZ];
+    parameters.mSceneLightDirectionValid = 1.f;
+
     const LLVector3 normal_scale = water->getNormalScale();
     parameters.mWaterNormalScaleX = normal_scale.mV[VX];
     parameters.mWaterNormalScaleY = normal_scale.mV[VY];
@@ -113,7 +147,6 @@ void set_world_water_parameters(LLRenderWorldMaterialParameters& parameters)
     parameters.mWaterWaveDir1Y = water->getWave1Dir().mV[VY];
     parameters.mWaterWaveDir2X = water->getWave2Dir().mV[VX];
     parameters.mWaterWaveDir2Y = water->getWave2Dir().mV[VY];
-    LLEnvironment& environment = LLEnvironment::instance();
     parameters.mWaterTime = static_cast<F32>(LLFrameTimer::getElapsedSeconds()) * 0.5f;
     F32 water_height = environment.getWaterHeight();
     const LLVector3& eye_vec = LLViewerCamera::getInstance()->getOrigin();
@@ -206,6 +239,7 @@ const char* get_world_render_material_class_log_name(LLWorldRenderMaterialClass 
         case LLWorldRenderMaterialClass::TreeShadow: return "TreeShadow";
         case LLWorldRenderMaterialClass::PBRAlphaMaskShadow: return "PBRAlphaMaskShadow";
         case LLWorldRenderMaterialClass::PBRAlphaBlendShadow: return "PBRAlphaBlendShadow";
+        case LLWorldRenderMaterialClass::Copy: return "Copy";
     }
     return "Unknown";
 }
@@ -219,7 +253,7 @@ void log_vulkan_world_command_summary(const LLWorldRenderCommandBuffer& command_
     }
 
     constexpr U32 material_class_count =
-        static_cast<U32>(LLWorldRenderMaterialClass::PBRAlphaBlendShadow) + 1;
+        static_cast<U32>(LLWorldRenderMaterialClass::Copy) + 1;
     U32 material_counts[material_class_count] = {};
     U32 deferred_count = 0;
     U32 post_deferred_count = 0;
@@ -857,6 +891,38 @@ bool has_world_deferred_scene_color()
         gPipeline.mRT->deferredScreen.isComplete();
 }
 
+bool has_world_water_scene_color()
+{
+    return gPipeline.mWaterDis.isComplete() || has_world_deferred_scene_color();
+}
+
+bool has_world_light_map()
+{
+    return gPipeline.mPostPongMap.isComplete();
+}
+
+void bind_world_water_scene_color()
+{
+    if (gPipeline.mWaterDis.isComplete())
+    {
+        gPipeline.mWaterDis.bindTexture(
+            0,
+            WORLD_RENDER_SCENE_COLOR_TEXTURE_UNIT,
+            LLTexUnit::TFO_BILINEAR);
+    }
+    else if (has_world_deferred_scene_color())
+    {
+        gPipeline.mRT->deferredScreen.bindTexture(
+            0,
+            WORLD_RENDER_SCENE_COLOR_TEXTURE_UNIT,
+            LLTexUnit::TFO_BILINEAR);
+    }
+    else
+    {
+        gGL.getTexUnit(WORLD_RENDER_SCENE_COLOR_TEXTURE_UNIT)->unbindFast(LLTexUnit::TT_TEXTURE);
+    }
+}
+
 bool uses_world_deferred_screen_depth(const LLWorldRenderCommand& command)
 {
     if (command.mDepthMode == LLWorldRenderDepthMode::Disabled)
@@ -881,6 +947,7 @@ bool uses_world_deferred_scene_color(const LLWorldRenderCommand& command)
     switch (command.mMaterialClass)
     {
         case LLWorldRenderMaterialClass::Water:
+            return has_world_water_scene_color();
         case LLWorldRenderMaterialClass::AtmosphericHaze:
         case LLWorldRenderMaterialClass::WaterHaze:
             return has_world_deferred_scene_color();
@@ -996,6 +1063,11 @@ F32 get_world_material_flags(const LLWorldRenderCommand& command)
     if (uses_world_deferred_scene_color(command))
     {
         flags |= LLRenderWorldMaterialParameters::SceneColor;
+    }
+    if (command.mMaterialClass == LLWorldRenderMaterialClass::Water &&
+        has_world_light_map())
+    {
+        flags |= LLRenderWorldMaterialParameters::LightMap;
     }
     return static_cast<F32>(flags);
 }
@@ -1156,6 +1228,7 @@ LLWorldRenderPipelineContract get_world_render_pipeline_contract(
         case LLWorldRenderMaterialClass::WaterHaze:
         case LLWorldRenderMaterialClass::FullbrightShiny:
         case LLWorldRenderMaterialClass::PostBump:
+        case LLWorldRenderMaterialClass::Copy:
             contract.mPassClass = LLWorldRenderPassClass::PostDeferred;
             break;
         case LLWorldRenderMaterialClass::Sky:
@@ -1199,6 +1272,9 @@ LLWorldRenderPipelineContract get_world_render_pipeline_contract(
         case LLWorldRenderMaterialClass::PostBump:
             contract.mDepthMode = LLWorldRenderDepthMode::ReadOnly;
             break;
+        case LLWorldRenderMaterialClass::Copy:
+            contract.mDepthMode = LLWorldRenderDepthMode::Disabled;
+            break;
         default:
             contract.mDepthMode = LLWorldRenderDepthMode::ReadWrite;
             break;
@@ -1213,6 +1289,7 @@ LLWorldRenderPipelineContract get_world_render_pipeline_contract(
         case LLWorldRenderMaterialClass::WaterExclusionMask:
         case LLWorldRenderMaterialClass::AtmosphericHaze:
         case LLWorldRenderMaterialClass::WaterHaze:
+        case LLWorldRenderMaterialClass::Copy:
             contract.mCullMode = LLWorldRenderCullMode::Disabled;
             break;
         default:
@@ -1290,6 +1367,9 @@ LLWorldRenderPipelineContract get_world_render_pipeline_contract(
         case LLWorldRenderMaterialClass::PBRAlphaBlendShadow:
             contract.mShaderClass = LLRenderWorldShaderClass::PBRAlphaBlendShadow;
             break;
+        case LLWorldRenderMaterialClass::Copy:
+            contract.mShaderClass = LLRenderWorldShaderClass::Copy;
+            break;
         default:
             contract.mShaderClass = LLRenderWorldShaderClass::Textured;
             break;
@@ -1346,6 +1426,7 @@ const char* get_world_render_material_class_name(LLWorldRenderMaterialClass mate
         case LLWorldRenderMaterialClass::TreeShadow: return "TreeShadow";
         case LLWorldRenderMaterialClass::PBRAlphaMaskShadow: return "PBRAlphaMaskShadow";
         case LLWorldRenderMaterialClass::PBRAlphaBlendShadow: return "PBRAlphaBlendShadow";
+        case LLWorldRenderMaterialClass::Copy: return "Copy";
     }
     return "Unknown";
 }
@@ -2253,7 +2334,13 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
         bool water_reflection_probes_bound = false;
         bool water_irradiance_probes_bound = false;
         bool water_hero_probes_bound = false;
-        if (command.mMaterialClass == LLWorldRenderMaterialClass::AvatarImpostor &&
+        if (command.mMaterialClass == LLWorldRenderMaterialClass::Copy &&
+            command.mSourceRenderTarget &&
+            command.mSourceRenderTarget->isComplete())
+        {
+            command.mSourceRenderTarget->bindTexture(0, 0, LLTexUnit::TFO_BILINEAR);
+        }
+        else if (command.mMaterialClass == LLWorldRenderMaterialClass::AvatarImpostor &&
             command.mAvatar &&
             command.mAvatar->mImpostor.isComplete())
         {
@@ -2357,7 +2444,11 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
             command.mMaterialClass == LLWorldRenderMaterialClass::AtmosphericHaze ||
             command.mMaterialClass == LLWorldRenderMaterialClass::WaterHaze)
         {
-            if (has_world_deferred_scene_color())
+            if (command.mMaterialClass == LLWorldRenderMaterialClass::Water)
+            {
+                bind_world_water_scene_color();
+            }
+            else if (has_world_deferred_scene_color())
             {
                 gPipeline.mRT->deferredScreen.bindTexture(
                     0,
@@ -2367,6 +2458,21 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
             else
             {
                 gGL.getTexUnit(WORLD_RENDER_SCENE_COLOR_TEXTURE_UNIT)->unbindFast(LLTexUnit::TT_TEXTURE);
+            }
+        }
+
+        if (command.mMaterialClass == LLWorldRenderMaterialClass::Water)
+        {
+            if (has_world_light_map())
+            {
+                gPipeline.mPostPongMap.bindTexture(
+                    0,
+                    WORLD_RENDER_LIGHT_MAP_TEXTURE_UNIT,
+                    LLTexUnit::TFO_BILINEAR);
+            }
+            else
+            {
+                gGL.getTexUnit(WORLD_RENDER_LIGHT_MAP_TEXTURE_UNIT)->unbindFast(LLTexUnit::TT_TEXTURE);
             }
         }
 
@@ -2448,6 +2554,7 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
                 LLRenderBufferTarget::Uniform,
                 LLGLSLShader::UB_REFLECTION_PROBES,
                 0);
+            gGL.getTexUnit(WORLD_RENDER_LIGHT_MAP_TEXTURE_UNIT)->unbindFast(LLTexUnit::TT_TEXTURE);
         }
     }
 

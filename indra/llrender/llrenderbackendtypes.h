@@ -575,6 +575,7 @@ struct LLRenderWorldMaterialParameters
         SceneColor = 1u << 18,
         SceneDepthFlipY = 1u << 19,
         SceneDepthReversed = 1u << 20,
+        LightMap = 1u << 21,
     };
 
     F32 mBaseColorRed = 1.f;

@@ -9,6 +9,7 @@ layout(set = 0, binding = 9) uniform sampler2D sceneColorMap;
 layout(set = 0, binding = 10) uniform samplerCubeArray reflectionProbes;
 layout(set = 0, binding = 11) uniform samplerCubeArray irradianceProbes;
 layout(set = 0, binding = 12) uniform samplerCubeArray heroProbes;
+layout(set = 0, binding = 13) uniform sampler2D lightMap;
 
 #define MAX_REFMAP_COUNT 256
 #define REF_SAMPLE_COUNT 32
@@ -61,6 +62,8 @@ layout(location = 0) out vec4 frag_color;
 const uint MATERIAL_HAS_SCENE_DEPTH = 131072u;
 const uint MATERIAL_HAS_SCENE_COLOR = 262144u;
 const uint MATERIAL_HAS_NORMAL_MAP = 1u;
+const uint MATERIAL_HAS_LIGHT_MAP = 2097152u;
+const float M_PI = 3.1415926535897932384626433832795;
 
 bool has_material_flag(uint flag)
 {
@@ -72,6 +75,115 @@ vec3 srgb_to_linear(vec3 color)
     vec3 low = color / 12.92;
     vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
     return mix(high, low, lessThan(color, vec3(0.04045)));
+}
+
+struct PBRInfo
+{
+    float NdotL;
+    float NdotV;
+    float NdotH;
+    float LdotH;
+    float VdotH;
+    float perceptualRoughness;
+    float metalness;
+    vec3 reflectance0;
+    vec3 reflectance90;
+    float alphaRoughness;
+    vec3 diffuseColor;
+    vec3 specularColor;
+};
+
+vec3 diffuse(PBRInfo pbr_inputs)
+{
+    return pbr_inputs.diffuseColor / M_PI;
+}
+
+vec3 specular_reflection(PBRInfo pbr_inputs)
+{
+    return pbr_inputs.reflectance0 +
+        (pbr_inputs.reflectance90 - pbr_inputs.reflectance0) *
+            pow(clamp(1.0 - pbr_inputs.VdotH, 0.0, 1.0), 5.0);
+}
+
+float geometric_occlusion(PBRInfo pbr_inputs)
+{
+    float ndotl = pbr_inputs.NdotL;
+    float ndotv = pbr_inputs.NdotV;
+    float roughness = pbr_inputs.alphaRoughness;
+    float attenuation_l =
+        2.0 * ndotl /
+        (ndotl + sqrt(roughness * roughness + (1.0 - roughness * roughness) * (ndotl * ndotl)));
+    float attenuation_v =
+        2.0 * ndotv /
+        (ndotv + sqrt(roughness * roughness + (1.0 - roughness * roughness) * (ndotv * ndotv)));
+    return attenuation_l * attenuation_v;
+}
+
+float microfacet_distribution(PBRInfo pbr_inputs)
+{
+    float roughness_sq = pbr_inputs.alphaRoughness * pbr_inputs.alphaRoughness;
+    float f = (pbr_inputs.NdotH * roughness_sq - pbr_inputs.NdotH) * pbr_inputs.NdotH + 1.0;
+    return roughness_sq / (M_PI * f * f);
+}
+
+void calc_diffuse_specular(
+    vec3 base_color,
+    float metallic,
+    inout vec3 diffuse_color,
+    inout vec3 specular_color)
+{
+    vec3 f0 = vec3(0.04);
+    diffuse_color = base_color * (vec3(1.0) - f0);
+    diffuse_color *= 1.0 - metallic;
+    specular_color = mix(f0, base_color, metallic);
+}
+
+void pbr_punctual(
+    vec3 diffuse_color,
+    vec3 specular_color,
+    float perceptual_roughness,
+    float metallic,
+    vec3 normal,
+    vec3 view_vector,
+    vec3 light_vector,
+    out float nl,
+    out vec3 diff,
+    out vec3 spec)
+{
+    perceptual_roughness = max(perceptual_roughness, 8.0 / 255.0);
+    float alpha_roughness = perceptual_roughness * perceptual_roughness;
+    float reflectance = max(max(specular_color.r, specular_color.g), specular_color.b);
+    float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
+    vec3 specular_environment_r0 = specular_color.rgb;
+    vec3 specular_environment_r90 = vec3(1.0) * reflectance90;
+
+    vec3 half_vector = normalize(light_vector + view_vector);
+    float ndotl = clamp(dot(normal, light_vector), 0.001, 1.0);
+    float ndotv = clamp(abs(dot(normal, view_vector)), 0.001, 1.0);
+    float ndoth = clamp(dot(normal, half_vector), 0.0, 1.0);
+    float ldoth = clamp(dot(light_vector, half_vector), 0.0, 1.0);
+    float vdoth = clamp(dot(view_vector, half_vector), 0.0, 1.0);
+
+    PBRInfo pbr_inputs = PBRInfo(
+        ndotl,
+        ndotv,
+        ndoth,
+        ldoth,
+        vdoth,
+        perceptual_roughness,
+        metallic,
+        specular_environment_r0,
+        specular_environment_r90,
+        alpha_roughness,
+        diffuse_color,
+        specular_color);
+
+    vec3 fresnel = specular_reflection(pbr_inputs);
+    float geometric = geometric_occlusion(pbr_inputs);
+    float distribution = microfacet_distribution(pbr_inputs);
+    diff = (1.0 - fresnel) * diffuse(pbr_inputs);
+    spec = fresnel * geometric * distribution / (4.0 * ndotl * ndotv);
+    nl = ndotl;
 }
 
 vec3 get_scene_ambient_color()
@@ -533,8 +645,18 @@ vec3 transform_water_normal(vec3 normal_tangent_space, vec3 fallback_normal)
             normal_tangent_space.z * n);
 }
 
-vec3 get_water_wave_normal(vec3 fallback_normal)
+vec3 get_water_wave_normal(
+    vec3 fallback_normal,
+    out vec3 wave1,
+    out vec3 wave2,
+    out vec3 wave3,
+    out vec3 wavef)
 {
+    wave1 = vec3(0.0, 0.0, 1.0);
+    wave2 = vec3(0.0, 0.0, 1.0);
+    wave3 = vec3(0.0, 0.0, 1.0);
+    wavef = vec3(0.0, 0.0, 1.0);
+
     if (!has_material_flag(MATERIAL_HAS_NORMAL_MAP))
     {
         return fallback_normal;
@@ -553,11 +675,11 @@ vec3 get_water_wave_normal(vec3 fallback_normal)
     vec3 wave3_b = sample_water_bump(bumpMap2, little_wave1);
 
     float blend_factor = clamp(pc.water_normal_scale.w, 0.0, 1.0);
-    vec3 wave1 = mix(wave1_a, wave1_b, blend_factor);
-    vec3 wave2 = mix(wave2_a, wave2_b, blend_factor);
-    vec3 wave3 = mix(wave3_a, wave3_b, blend_factor);
-    vec3 wave = safe_normalize((wave1 + wave2 * 0.4 + wave3 * 0.6) * 0.5);
-    return transform_water_normal(wave, fallback_normal);
+    wave1 = mix(wave1_a, wave1_b, blend_factor);
+    wave2 = mix(wave2_a, wave2_b, blend_factor);
+    wave3 = mix(wave3_a, wave3_b, blend_factor);
+    wavef = safe_normalize((wave1 + wave2 * 0.4 + wave3 * 0.6) * 0.5);
+    return transform_water_normal(wavef, fallback_normal);
 }
 
 float get_water_glossiness()
@@ -565,11 +687,29 @@ float get_water_glossiness()
     return clamp(1.0 - max(pc.water_settings.z, 0.0), 0.0, 1.0);
 }
 
-float get_water_fresnel(vec3 view_vec, vec3 normal)
+void calculate_water_fresnel_factors(
+    out vec3 df3,
+    out vec2 df2,
+    vec3 view_vec,
+    vec3 wave1,
+    vec3 wave2,
+    vec3 wave3,
+    vec3 wavef)
 {
-    float fresnel_value =
-        max(dot(view_vec, normal) * pc.water_settings.x + pc.water_settings.y, 0.0);
-    return fresnel_value * fresnel_value;
+    df3 = max(
+        vec3(0.0),
+        vec3(
+            dot(view_vec, wave1),
+            dot(view_vec, (wave2 + wave3) * 0.5),
+            dot(view_vec, wave3)) *
+            pc.water_settings.x +
+            pc.water_settings.y);
+    df3 *= df3;
+    df2 = max(
+        vec2(0.0),
+        vec2(
+            df3.x + df3.y + df3.z,
+            dot(view_vec, wavef) * pc.water_settings.x + pc.water_settings.y));
 }
 
 vec2 get_water_refraction_offset(vec3 normal, float depth_fade, float distance_to_eye)
@@ -695,34 +835,56 @@ vec2 screen_texcoord()
     return clamp(gl_FragCoord.xy / max(scene_size, vec2(1.0)), vec2(0.0), vec2(1.0));
 }
 
+vec2 water_refraction_texcoord()
+{
+    if (abs(refCoord.z) <= 0.000001)
+    {
+        return screen_texcoord();
+    }
+    return clamp((refCoord.xy / refCoord.z) * 0.5 + 0.5, vec2(0.0), vec2(0.999));
+}
+
 void main()
 {
     vec4 water = texture(tex0, vary_texcoord0.xy) *
         vertex_color *
         vec4(pc.material_params.rgb, pc.material_pbr.w);
 
-    vec2 screen_uv = screen_texcoord();
+    vec2 screen_uv = water_refraction_texcoord();
+    float water_shadow = has_material_flag(MATERIAL_HAS_LIGHT_MAP) ?
+        clamp(texture(lightMap, screen_uv).r, 0.0, 1.0) :
+        1.0;
     float scene_depth = has_material_flag(MATERIAL_HAS_SCENE_DEPTH) ?
         texture(depthMap, screen_uv).r :
         1.0;
     float exclusion = texture(waterExclusionMap, screen_uv).r;
     float depth_fade = scene_depth >= 0.99999 ? 1.0 : smoothstep(0.2, 0.98, scene_depth);
     vec3 normal = safe_normalize(vary_normal);
-    vec3 wave_normal = get_water_wave_normal(normal);
+    vec3 wave1 = vec3(0.0);
+    vec3 wave2 = vec3(0.0);
+    vec3 wave3 = vec3(0.0);
+    vec3 wavef = vec3(0.0);
+    vec3 wave_normal = get_water_wave_normal(normal, wave1, wave2, wave3, wavef);
     vec3 probe_position = vary_position;
     vec3 probe_normal = get_water_probe_normal(wave_normal);
     vec3 view_vector = safe_normalize(view.xyz);
+    vec3 fresnel_df3 = vec3(0.0);
+    vec2 fresnel_df2 = vec2(0.0);
+    calculate_water_fresnel_factors(
+        fresnel_df3,
+        fresnel_df2,
+        view_vector,
+        wave1,
+        wave2,
+        wave3,
+        wavef);
+    float reflection_mix = min(1.0, fresnel_df2.x);
+    float radiance_scale = max(fresnel_df2.y, 0.0);
     float distance_to_eye = length(view.xyz);
-    float fresnel = get_water_fresnel(view_vector, probe_normal);
     vec3 view_dir =
         safe_normalize(vec3(screen_uv * 2.0 - vec2(1.0), 1.0));
     vec3 reflection_dir = reflect(-view_dir, probe_normal);
     float glossiness = get_water_glossiness();
-    vec3 probe_ambient =
-        sample_water_probe_irradiance(
-            probe_position,
-            probe_normal,
-            get_scene_ambient_color());
     vec3 probe_radiance =
         sample_water_probe_radiance(probe_position, reflection_dir, glossiness);
     tap_water_hero_probe(
@@ -731,24 +893,51 @@ void main()
         probe_normal,
         reflection_dir,
         glossiness);
+    probe_radiance *= radiance_scale;
 
-    vec3 shallow = vec3(0.12, 0.34, 0.43);
-    vec3 deep = vec3(0.03, 0.18, 0.28);
-    vec3 tint = mix(shallow, deep, depth_fade);
     vec2 refraction_offset =
         get_water_refraction_offset(probe_normal, depth_fade, distance_to_eye);
     vec3 scene_color = has_material_flag(MATERIAL_HAS_SCENE_COLOR) ?
         texture(sceneColorMap, clamp(screen_uv + refraction_offset, vec2(0.0), vec2(1.0))).rgb :
         water.rgb;
-    water.rgb = mix(scene_color, water.rgb, 0.38);
-    water.rgb = mix(water.rgb, tint, 0.42);
+
+    float metallic = 1.0;
+    float perceptual_roughness = max(pc.water_settings.z, 0.0);
+    vec3 diffuse_color = vec3(0.0);
+    vec3 specular_color = vec3(0.0);
+    calc_diffuse_specular(
+        srgb_to_linear(max(get_scene_direct_color(), vec3(0.0))),
+        metallic,
+        diffuse_color,
+        specular_color);
+
     vec3 light_dir = get_scene_light_direction();
-    vec3 scene_light =
-        max(get_scene_ambient_color(), probe_ambient) +
-        get_scene_direct_color() * max(dot(probe_normal, light_dir), 0.0);
-    water.rgb *= mix(vec3(0.72), clamp(scene_light, vec3(0.0), vec3(1.35)), 0.42);
-    water.rgb += get_scene_direct_color() * fresnel * 0.18;
-    water.rgb += probe_radiance * fresnel * 0.22;
+    vec3 view_surface_to_camera = -safe_normalize(probe_position);
+    vec3 up = normal;
+    float vdu = clamp(-dot(safe_normalize(probe_position), up) * 2.0, 0.0, 1.0);
+    vec3 punctual_normal =
+        safe_normalize(wave_normal + up * max(distance_to_eye, 32.0) / 32.0 * (1.0 - vdu));
+    float nl = 0.0;
+    vec3 diff_punctual = vec3(0.0);
+    vec3 spec_punctual = vec3(0.0);
+    pbr_punctual(
+        diffuse_color,
+        specular_color,
+        perceptual_roughness,
+        metallic,
+        punctual_normal,
+        view_surface_to_camera,
+        normalize(light_dir),
+        nl,
+        diff_punctual,
+        spec_punctual);
+    vec3 punctual =
+        clamp(nl * (diff_punctual + spec_punctual), vec3(0.0), vec3(10.0)) *
+        max(get_scene_direct_color(), vec3(0.0)) *
+        water_shadow;
+    vec3 source_water_color = mix(scene_color, probe_radiance, reflection_mix) + punctual;
+    float fade = min(1.0, depth_fade * exclusion * 60.0);
+    water.rgb = mix(scene_color, source_water_color, fade);
     water = apply_water_fog_view_linear(probe_position, water);
     water.a *= mix(0.52, 0.82, depth_fade) * mix(1.0, exclusion, 0.45);
 

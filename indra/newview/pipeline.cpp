@@ -479,6 +479,66 @@ void append_vulkan_fullscreen_tint_command(
         command->mFullbright = true;
     }
 }
+
+void append_vulkan_fullscreen_copy_command(
+    LLWorldRenderCommandBuffer& commands,
+    LLVertexBuffer* screen_triangle,
+    LLRenderTarget& source,
+    U32 source_pass)
+{
+    LLWorldRenderCommand* command = commands.appendDrawArrays(
+        screen_triangle,
+        nullptr,
+        LLWorldRenderMaterialClass::Copy,
+        source_pass,
+        nullptr,
+        0,
+        3,
+        false,
+        false,
+        LLVertexBuffer::MAP_VERTEX);
+    if (command)
+    {
+        command->mSourceRenderTarget = &source;
+    }
+}
+
+bool copy_vulkan_screen_to_water_displacement(
+    LLWorldRenderCommandBuffer& pending_commands,
+    LLRenderTarget* screen_target,
+    LLRenderTarget& water_target,
+    LLVertexBuffer* screen_triangle)
+{
+    if (!screen_target ||
+        !screen_target->isComplete() ||
+        !water_target.isComplete() ||
+        !screen_triangle)
+    {
+        LL_WARNS_ONCE("RenderBackend")
+            << "Vulkan Water reflection target copy skipped because the source, destination, or fullscreen triangle is incomplete."
+            << LL_ENDL;
+        return false;
+    }
+
+    submit_vulkan_world_commands(pending_commands);
+    pending_commands.clear();
+    screen_target->flush();
+
+    water_target.bindTarget();
+    LLWorldRenderCommandBuffer copy_commands;
+    append_vulkan_fullscreen_copy_command(
+        copy_commands,
+        screen_triangle,
+        *screen_target,
+        LLDrawPool::POOL_WATER);
+    {
+        LLScopedVulkanScreenSpaceMatrices screen_space;
+        submit_vulkan_world_commands(copy_commands);
+    }
+    water_target.flush();
+    screen_target->bindTarget();
+    return true;
+}
 }
 
 //----------------------------------------
@@ -4649,6 +4709,17 @@ void LLPipeline::renderGeomPostDeferred(LLCamera& camera)
                 LLVertexBuffer::unbind();
                 if (use_vulkan_commands)
                 {
+                    if (cur_type == LLDrawPool::POOL_WATER &&
+                        i == 0 &&
+                        LLPipeline::sRenderTransparentWater)
+                    {
+                        copy_vulkan_screen_to_water_displacement(
+                            vulkan_commands,
+                            mRT ? &mRT->screen : nullptr,
+                            mWaterDis,
+                            mScreenTriangleVB);
+                    }
+
                     for (iter2 = iter1; iter2 != mPools.end(); iter2++)
                     {
                         LLDrawPool *p = *iter2;

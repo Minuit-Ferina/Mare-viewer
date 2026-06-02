@@ -37,6 +37,7 @@ class LLDrawInfo;
 class LLFace;
 class LLMatrix4;
 class LLMeshSkinInfo;
+class LLRenderTarget;
 class LLVOAvatar;
 
 enum class LLWorldRenderMaterialClass : U8
@@ -72,6 +73,7 @@ enum class LLWorldRenderMaterialClass : U8
     TreeShadow,
     PBRAlphaMaskShadow,
     PBRAlphaBlendShadow,
+    Copy,
 };
 
 enum class LLWorldRenderPassClass : U8
@@ -136,6 +138,7 @@ struct LLWorldRenderCommand
     LLPointer<LLViewerTexture> mORMMap;
     LLPointer<LLViewerTexture> mEmissiveMap;
     std::vector<LLPointer<LLViewerTexture> > mTextureList;
+    LLRenderTarget* mSourceRenderTarget = nullptr;
 
     const LLMatrix4* mModelMatrix = nullptr;
     LLMatrix4 mOwnedModelMatrix;

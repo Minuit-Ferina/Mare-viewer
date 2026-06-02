@@ -88,7 +88,7 @@ void main()
             vec3(1.0, 0.0, 0.0)),
         1.0);
 
-    refCoord.xyz = clip_position.xyz + vec3(0.0, 0.0, 0.2);
+    refCoord.xyz = vec3(gl_Position.xy, clip_position.z) + vec3(0.0, 0.0, 0.2);
     refCoord.w = big_wave.x;
     littleWave.xy =
         wave_position.xy * vec2(0.45, 0.9) + wave_dir2 * time * 0.13;
