@@ -377,9 +377,10 @@ Validation status:
       pre-transformed clip-space positions.
       Second safe runtime replacement: non-indexed direct `Textured` draws now
       use `class1/objects/simple.frag` through a dedicated Vulkan simple
-      pipeline. Texture-indexed/batched draws and simple G-buffer draws still
-      use the active adapters until an indexed final simple path and matching
-      G-buffer owner are wired.
+      pipeline. Third safe runtime replacement: texture-indexed/batched direct
+      `Textured` draws now use `class1/objects/simple_indexed.frag` through a
+      dedicated Vulkan simple-indexed pipeline. Simple G-buffer draws still use
+      the active adapter until a matching G-buffer owner is wired.
       Do not replace the remaining active modules by path substitution alone:
       `sky`, `terrain`, deferred soften/composite, post/final composite,
       water, material/PBR/avatar G-buffer, and broad world textured adapters
