@@ -4439,32 +4439,25 @@ LLRenderWorldMaterialParameters make_deferred_color_compare_pbr_material()
 
 LLRenderWorldMaterialParameters make_deferred_color_compare_composite_parameters()
 {
-    LLRenderWorldMaterialParameters parameters;
-    parameters.mBaseColorRed = 1.f;
-    parameters.mBaseColorGreen = 1.f;
-    parameters.mBaseColorBlue = 1.f;
-    parameters.mBaseColorAlpha = 1.f;
-    parameters.mEmissiveColorRed = 0.f;
-    parameters.mEmissiveColorGreen = 0.f;
-    parameters.mEmissiveColorBlue = 0.f;
-    parameters.mHasEmissiveMap = 0.f;
-    parameters.mSpecularColorRed = 0.f;
-    parameters.mSpecularColorGreen = 0.f;
-    parameters.mSpecularColorBlue = 1.f;
-    parameters.mEnvIntensity = 0.f;
-    parameters.mRoughnessFactor = 4.f;
-    parameters.mMetallicFactor = 0.f;
-    parameters.mMaterialFlags = -1.f;
-    parameters.mNormalTextureOffsetS = 0.f;
-    parameters.mNormalTextureOffsetT = 0.f;
-    parameters.mORMTextureScaleS = 0.f;
-    parameters.mORMTextureScaleT = 0.f;
-    parameters.mSceneAmbientRed = 0.f;
-    parameters.mSceneAmbientGreen = 0.f;
-    parameters.mSceneAmbientBlue = 0.f;
-    parameters.mSceneDirectScale = 0.f;
-    parameters.mSceneLightingValid = 1.f;
-    return parameters;
+    LLVulkanDeferredCompositeSettings settings;
+    settings.mAmbientRed = 1.f;
+    settings.mAmbientGreen = 1.f;
+    settings.mAmbientBlue = 1.f;
+    settings.mDirectLightRed = 0.f;
+    settings.mDirectLightGreen = 0.f;
+    settings.mDirectLightBlue = 0.f;
+    settings.mLightDirectionX = 0.f;
+    settings.mLightDirectionY = 0.f;
+    settings.mLightDirectionZ = 1.f;
+    settings.mDirectLightScale = 0.f;
+    settings.mDeferredAttachmentCount = 4;
+    settings.mDominantLightScreenX = -1.f;
+    settings.mDominantLightScreenY = 1.f;
+    settings.mDominantLightRadius = 0.f;
+    settings.mReflectionProbeAmbiance = 0.f;
+    settings.mTonemapMix = 0.f;
+    settings.mSkyLightingValid = 0.f;
+    return make_vulkan_deferred_composite_material_parameters(settings);
 }
 
 void bind_deferred_color_compare_material_textures(

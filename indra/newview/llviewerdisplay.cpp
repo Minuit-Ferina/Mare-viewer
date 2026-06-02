@@ -574,7 +574,7 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     U32 attachment_count,
     bool deferred_depth_bound)
 {
-    LLRenderWorldMaterialParameters parameters;
+    LLVulkanDeferredCompositeSettings settings;
 
     LLEnvironment& environment = LLEnvironment::instance();
     LLSettingsSky::ptr_t sky = environment.getCurrentSky();
@@ -613,32 +613,28 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
             light_norm.mV[VY],
             light_norm.mV[VZ],
             0.f);
-    parameters.mBaseColorRed = llclamp(ambient.mV[VRED], 0.f, 2.f);
-    parameters.mBaseColorGreen = llclamp(ambient.mV[VGREEN], 0.f, 2.f);
-    parameters.mBaseColorBlue = llclamp(ambient.mV[VBLUE], 0.f, 2.f);
-    parameters.mBaseColorAlpha = 1.f;
-    parameters.mEmissiveColorRed = llclamp(diffuse_light.mV[VRED], 0.f, 2.f);
-    parameters.mEmissiveColorGreen = llclamp(diffuse_light.mV[VGREEN], 0.f, 2.f);
-    parameters.mEmissiveColorBlue = llclamp(diffuse_light.mV[VBLUE], 0.f, 2.f);
-    parameters.mHasEmissiveMap = 0.f;
-    parameters.mSpecularColorRed = transformed_light.x;
-    parameters.mSpecularColorGreen = transformed_light.y;
-    parameters.mSpecularColorBlue = transformed_light.z;
-    parameters.mEnvIntensity = direct_light_scale;
-    parameters.mRoughnessFactor = static_cast<F32>(attachment_count);
+    settings.mAmbientRed = ambient.mV[VRED];
+    settings.mAmbientGreen = ambient.mV[VGREEN];
+    settings.mAmbientBlue = ambient.mV[VBLUE];
+    settings.mDirectLightRed = diffuse_light.mV[VRED];
+    settings.mDirectLightGreen = diffuse_light.mV[VGREEN];
+    settings.mDirectLightBlue = diffuse_light.mV[VBLUE];
+    settings.mLightDirectionX = transformed_light.x;
+    settings.mLightDirectionY = transformed_light.y;
+    settings.mLightDirectionZ = transformed_light.z;
+    settings.mDirectLightScale = direct_light_scale;
+    settings.mDeferredAttachmentCount = attachment_count;
+
     const bool ssao_enabled =
         deferred_depth_bound &&
         LLPipeline::RenderDeferredSSAO &&
         !gCubeSnapshot;
-    parameters.mMetallicFactor = ssao_enabled ? 1.f : 0.f;
-    parameters.mNormalTextureOffsetS =
-        ssao_enabled ? llclamp(LLPipeline::RenderSSAOScale, 0.f, 32.f) : 0.f;
-    parameters.mNormalTextureOffsetT =
-        ssao_enabled ? static_cast<F32>(llmin(LLPipeline::RenderSSAOMaxScale, 32U)) : 0.f;
-    parameters.mORMTextureScaleS =
-        ssao_enabled ? llclamp(LLPipeline::RenderSSAOFactor, 0.1f, 8.f) : 0.f;
-    parameters.mORMTextureScaleT =
-        ssao_enabled ? llclamp(LLPipeline::RenderSSAOEffect.mV[VX], 0.f, 2.f) : 0.f;
+    settings.mSSAOEnabled = ssao_enabled;
+    settings.mSSAOScale = LLPipeline::RenderSSAOScale;
+    settings.mSSAOMaxScale =
+        static_cast<F32>(llmin(LLPipeline::RenderSSAOMaxScale, 32U));
+    settings.mSSAOFactor = LLPipeline::RenderSSAOFactor;
+    settings.mSSAOEffect = LLPipeline::RenderSSAOEffect.mV[VX];
 
     LLColor3 local_light_color = LLColor3::black;
     F32 local_light_strength = 0.f;
@@ -654,19 +650,18 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
             visible_light_count,
             dominant_light_screen);
     }
-    parameters.mHasEmissiveMap = dominant_light_screen.mV[VZ];
-    parameters.mMaterialFlags = dominant_light_screen.mV[VX];
-    parameters.mBaseColorAlpha = dominant_light_screen.mV[VY];
-    parameters.mDiffuseAlphaMode = local_light_color.mV[VRED];
-    parameters.mGLTFAlphaMode = local_light_color.mV[VGREEN];
-    parameters.mBump = local_light_color.mV[VBLUE];
-    parameters.mShiny = local_light_strength;
-    parameters.mSceneAmbientRed = reflection_probe_ambiance;
-    parameters.mSceneAmbientGreen = tonemap_mix;
-    parameters.mSceneAmbientBlue = direct_light_scale;
-    parameters.mSceneDirectScale = sky ? 1.f : 0.f;
+    settings.mDominantLightScreenX = dominant_light_screen.mV[VX];
+    settings.mDominantLightScreenY = dominant_light_screen.mV[VY];
+    settings.mDominantLightRadius = dominant_light_screen.mV[VZ];
+    settings.mLocalLightRed = local_light_color.mV[VRED];
+    settings.mLocalLightGreen = local_light_color.mV[VGREEN];
+    settings.mLocalLightBlue = local_light_color.mV[VBLUE];
+    settings.mLocalLightStrength = local_light_strength;
+    settings.mReflectionProbeAmbiance = reflection_probe_ambiance;
+    settings.mTonemapMix = tonemap_mix;
+    settings.mSkyLightingValid = sky ? 1.f : 0.f;
 
-    return parameters;
+    return make_vulkan_deferred_composite_material_parameters(settings);
 }
 
 static LLRenderWorldMaterialParameters get_vulkan_final_composite_parameters(

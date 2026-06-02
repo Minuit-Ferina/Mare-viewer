@@ -26,6 +26,79 @@ struct LLVulkanFinalCompositeSettings
     F32 mGlowIterations = 0.f;
 };
 
+struct LLVulkanDeferredCompositeSettings
+{
+    F32 mAmbientRed = 0.28f;
+    F32 mAmbientGreen = 0.28f;
+    F32 mAmbientBlue = 0.28f;
+    F32 mDirectLightRed = 0.85f;
+    F32 mDirectLightGreen = 0.85f;
+    F32 mDirectLightBlue = 0.85f;
+    F32 mLightDirectionX = 0.f;
+    F32 mLightDirectionY = 0.f;
+    F32 mLightDirectionZ = 1.f;
+    F32 mDirectLightScale = 1.f;
+    U32 mDeferredAttachmentCount = 0;
+    bool mSSAOEnabled = false;
+    F32 mSSAOScale = 0.f;
+    F32 mSSAOMaxScale = 0.f;
+    F32 mSSAOFactor = 0.f;
+    F32 mSSAOEffect = 0.f;
+    F32 mDominantLightScreenX = -1.f;
+    F32 mDominantLightScreenY = -1.f;
+    F32 mDominantLightRadius = 0.f;
+    F32 mLocalLightRed = 0.f;
+    F32 mLocalLightGreen = 0.f;
+    F32 mLocalLightBlue = 0.f;
+    F32 mLocalLightStrength = 0.f;
+    F32 mReflectionProbeAmbiance = 0.f;
+    F32 mTonemapMix = 0.f;
+    F32 mSkyLightingValid = 0.f;
+};
+
+inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_parameters(
+    const LLVulkanDeferredCompositeSettings& settings)
+{
+    LLRenderWorldMaterialParameters parameters;
+
+    // Keep these assignments aligned with LLVulkanWorldPushConstants and
+    // vulkan/final/class3/deferred/deferred_composite_runtime.frag.
+    parameters.mBaseColorRed = llclamp(settings.mAmbientRed, 0.f, 2.f);
+    parameters.mBaseColorGreen = llclamp(settings.mAmbientGreen, 0.f, 2.f);
+    parameters.mBaseColorBlue = llclamp(settings.mAmbientBlue, 0.f, 2.f);
+    parameters.mBaseColorAlpha = settings.mDominantLightScreenY;
+    parameters.mEmissiveColorRed = llclamp(settings.mDirectLightRed, 0.f, 2.f);
+    parameters.mEmissiveColorGreen = llclamp(settings.mDirectLightGreen, 0.f, 2.f);
+    parameters.mEmissiveColorBlue = llclamp(settings.mDirectLightBlue, 0.f, 2.f);
+    parameters.mHasEmissiveMap = settings.mDominantLightRadius;
+    parameters.mSpecularColorRed = settings.mLightDirectionX;
+    parameters.mSpecularColorGreen = settings.mLightDirectionY;
+    parameters.mSpecularColorBlue = settings.mLightDirectionZ;
+    parameters.mEnvIntensity = settings.mDirectLightScale;
+    parameters.mRoughnessFactor =
+        static_cast<F32>(settings.mDeferredAttachmentCount);
+    parameters.mMetallicFactor = settings.mSSAOEnabled ? 1.f : 0.f;
+    parameters.mNormalTextureOffsetS =
+        settings.mSSAOEnabled ? llclamp(settings.mSSAOScale, 0.f, 32.f) : 0.f;
+    parameters.mNormalTextureOffsetT =
+        settings.mSSAOEnabled ? llclamp(settings.mSSAOMaxScale, 0.f, 32.f) : 0.f;
+    parameters.mORMTextureScaleS =
+        settings.mSSAOEnabled ? llclamp(settings.mSSAOFactor, 0.1f, 8.f) : 0.f;
+    parameters.mORMTextureScaleT =
+        settings.mSSAOEnabled ? llclamp(settings.mSSAOEffect, 0.f, 2.f) : 0.f;
+    parameters.mMaterialFlags = settings.mDominantLightScreenX;
+    parameters.mDiffuseAlphaMode = settings.mLocalLightRed;
+    parameters.mGLTFAlphaMode = settings.mLocalLightGreen;
+    parameters.mBump = settings.mLocalLightBlue;
+    parameters.mShiny = settings.mLocalLightStrength;
+    parameters.mSceneAmbientRed = settings.mReflectionProbeAmbiance;
+    parameters.mSceneAmbientGreen = settings.mTonemapMix;
+    parameters.mSceneAmbientBlue = settings.mDirectLightScale;
+    parameters.mSceneDirectScale = settings.mSkyLightingValid;
+
+    return parameters;
+}
+
 inline LLRenderWorldMaterialParameters make_vulkan_final_composite_material_parameters(
     const LLVulkanFinalCompositeSettings& settings)
 {
