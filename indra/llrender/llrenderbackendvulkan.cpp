@@ -1915,6 +1915,7 @@ struct LLVulkanNativeContext
     LLVkShaderModule mMaterialFragmentShader = nullptr;
     LLVkShaderModule mPBRFragmentShader = nullptr;
     LLVkShaderModule mAvatarFragmentShader = nullptr;
+    LLVkShaderModule mWorldGBufferVertexShader = nullptr;
     LLVkShaderModule mWorldGBufferFragmentShader = nullptr;
     LLVkShaderModule mWorldGBufferEmissiveFragmentShader = nullptr;
     LLVkShaderModule mAlphaMaskGBufferFragmentShader = nullptr;
@@ -11373,8 +11374,9 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
     static constexpr LLVulkanFinalPipelineOwnerBinding OWNER_BINDINGS[] =
     {
         {"ui-textured", "active/ui.vert.spv", "class1/interface/ui.frag.spv", "UI textured quads and font atlas draws", "runtime UI clip-space vertex adapter plus final class1 UI fragment", "UI blend/depth state from LLGLSUIDefault", "fragment bound to final class1 owner; vertex pending interface push-constant contract"},
-        {"simple-object", "active/world_textured.vert.spv", "class1/objects/simple.frag.spv", "non-indexed simple textured objects", "runtime world vertex adapter plus final class1 simple fragment", "direct Textured owner only when texture-index attribute is absent; G-buffer still uses active indexed adapter", "bound for non-indexed direct Textured draws"},
-        {"simple-indexed-object", "active/world_textured.vert.spv", "class1/objects/simple_indexed.frag.spv", "indexed/batched simple textured objects", "runtime world vertex adapter plus final class1 simple indexed fragment", "direct Textured owner only when texture-index attribute is present; G-buffer still uses active indexed adapter", "bound for indexed direct Textured draws"},
+        {"simple-object", "active/world_textured.vert.spv", "class1/objects/simple.frag.spv", "non-indexed simple textured objects", "runtime world vertex adapter plus final class1 simple fragment", "direct Textured owner only when texture-index attribute is absent; G-buffer uses the final diffuse-indexed owner", "bound for non-indexed direct Textured draws"},
+        {"simple-indexed-object", "active/world_textured.vert.spv", "class1/objects/simple_indexed.frag.spv", "indexed/batched simple textured objects", "runtime world vertex adapter plus final class1 simple indexed fragment", "direct Textured owner only when texture-index attribute is present; G-buffer uses the final diffuse-indexed owner", "bound for indexed direct Textured draws"},
+        {"simple-gbuffer", "class1/deferred/diffuse_indexed.vert.spv", "class1/deferred/diffuse_indexed_gbuffer.frag.spv", "simple indexed Textured G-buffer geometry", "runtime-world push constants, set0 texture array, texture index, optional skinning", "OpenGL class1 deferred diffuse indexed G-buffer writes", "bound runtime owner; emissive attachment uses diffuse_indexed_gbuffer_emissive.frag"},
         {"sky-class1", "class1/deferred/sky.vert.spv", "class1/deferred/sky.frag.spv", "WindLight/EEP sky dome and haze", "pending final sky uniforms/varyings", "OpenGL sky owner depth/blend/cull state", "inventory-only"},
         {"terrain", "class1/deferred/terrain.vert.spv", "class1/deferred/terrain.frag.spv", "legacy terrain G-buffer", "pending terrain splat/G-buffer uniforms", "opaque depth write, owner cull state", "inventory-only"},
         {"pbr-terrain", "class1/deferred/pbrterrain.vert.spv", "class1/deferred/pbrterrain.frag.spv", "PBR terrain G-buffer", "pending PBR terrain material ABI", "opaque G-buffer terrain pass", "inventory-only"},
@@ -11740,6 +11742,10 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         {
             destroy_shader_module_once(context.mAvatarFragmentShader);
         }
+        if (context.mWorldGBufferVertexShader)
+        {
+            destroy_shader_module_once(context.mWorldGBufferVertexShader);
+        }
         if (context.mWorldGBufferFragmentShader)
         {
             destroy_shader_module_once(context.mWorldGBufferFragmentShader);
@@ -11865,6 +11871,7 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mMaterialFragmentShader = nullptr;
     context.mPBRFragmentShader = nullptr;
     context.mAvatarFragmentShader = nullptr;
+    context.mWorldGBufferVertexShader = nullptr;
     context.mWorldGBufferFragmentShader = nullptr;
     context.mWorldGBufferEmissiveFragmentShader = nullptr;
     context.mAlphaMaskGBufferFragmentShader = nullptr;
@@ -12438,7 +12445,16 @@ bool create_vulkan_offscreen_pipeline_set(
         terrain_gbuffer_fragment_shader;
     LLVkPipelineShaderStageCreateInfo world_gbuffer_shader_stages[2] =
     {
-        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mWorldGBufferVertexShader,
+            "main",
+            nullptr
+        },
         LLVkPipelineShaderStageCreateInfo
         {
             LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -13775,10 +13791,12 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         get_vulkan_final_shader_module(context, "active/pbr.frag.spv", "PBR fragment");
     context.mAvatarFragmentShader =
         get_vulkan_final_shader_module(context, "active/avatar.frag.spv", "avatar fragment");
+    context.mWorldGBufferVertexShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/diffuse_indexed.vert.spv", "class1 world G-buffer vertex");
     context.mWorldGBufferFragmentShader =
-        get_vulkan_final_shader_module(context, "active/world_gbuffer.frag.spv", "world G-buffer fragment");
+        get_vulkan_final_shader_module(context, "class1/deferred/diffuse_indexed_gbuffer.frag.spv", "class1 world G-buffer fragment");
     context.mWorldGBufferEmissiveFragmentShader =
-        get_vulkan_final_shader_module(context, "active/world_gbuffer_emissive.frag.spv", "world G-buffer emissive fragment");
+        get_vulkan_final_shader_module(context, "class1/deferred/diffuse_indexed_gbuffer_emissive.frag.spv", "class1 world G-buffer emissive fragment");
     context.mAlphaMaskGBufferFragmentShader =
         get_vulkan_final_shader_module(context, "class1/deferred/diffuse_alpha_mask_indexed.frag.spv", "class1 alpha-mask G-buffer fragment");
     context.mAlphaMaskGBufferEmissiveFragmentShader =
@@ -13849,6 +13867,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         !context.mMaterialFragmentShader ||
         !context.mPBRFragmentShader ||
         !context.mAvatarFragmentShader ||
+        !context.mWorldGBufferVertexShader ||
         !context.mWorldGBufferFragmentShader ||
         !context.mWorldGBufferEmissiveFragmentShader ||
         !context.mAlphaMaskGBufferFragmentShader ||

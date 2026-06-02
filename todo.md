@@ -517,6 +517,8 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/active/world_textured.vert
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed_gbuffer.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/diffuse_indexed.vert
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/exposure_history.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/interface/copy_depth.frag
@@ -859,6 +861,13 @@ Validation status:
       emissive color/map contribution to attachment 3, and the deferred
       composite binds/samples that attachment only when it exists. Three
       attachment targets keep the existing diffuse/spec-or-ORM/normal path.
+- [x] Replace the simple `Textured` Vulkan G-buffer adapter with final class1
+      diffuse-indexed owners.
+      The simple offscreen G-buffer pipeline now binds
+      `class1/deferred/diffuse_indexed.vert` and explicit
+      `diffuse_indexed_gbuffer*.frag` variants for 3-attachment and
+      4-attachment render passes. Material, PBR, avatar, and terrain G-buffer
+      families remain on their separate owners.
 - [x] Feed real terrain normals into the active Vulkan terrain G-buffer path.
       Terrain command emission now includes `MAP_NORMAL`, terrain pipelines use
       a vertex input layout that exposes the normal attribute, and both
