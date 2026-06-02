@@ -762,6 +762,13 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     {
         settings.mInverseProjection[i] = inverse_projection_values[i];
     }
+    const F32* inverse_modelview_delta_values =
+        glm::value_ptr(gGLInverseDeltaModelView);
+    for (U32 i = 0; i < 16; ++i)
+    {
+        settings.mInverseModelviewDelta[i] =
+            inverse_modelview_delta_values[i];
+    }
     for (U32 shadow_index = 0; shadow_index < 6; ++shadow_index)
     {
         const F32* shadow_matrix_values =

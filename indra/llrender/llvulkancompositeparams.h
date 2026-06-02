@@ -106,6 +106,13 @@ struct LLVulkanDeferredCompositeSettings
         0.f, 0.f, 1.f, 0.f,
         0.f, 0.f, 0.f, 1.f,
     };
+    F32 mInverseModelviewDelta[16] =
+    {
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+    };
     F32 mShadowMatrix[16 * 6] =
     {
         1.f, 0.f, 0.f, 0.f,
@@ -232,6 +239,8 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
     {
         parameters.mCompositeInverseProjection[i] =
             settings.mInverseProjection[i];
+        parameters.mCompositeInverseModelviewDelta[i] =
+            settings.mInverseModelviewDelta[i];
     }
     for (U32 i = 0; i < 16 * 6; ++i)
     {

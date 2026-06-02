@@ -448,11 +448,13 @@ Validation status:
       weighting, max-probe-LOD, and hero-probe blend model before falling back
       to the sky cube. SSR progress: Vulkan now binds `mSceneMap` color/depth
       as `DeferredSoften` inputs and transports the OpenGL screen-space
-      reflection settings through explicit composite parameters; the shader has
-      a first high-gloss single-ray SSR tap mixed into reflection-probe
-      radiance. Full OpenGL glossy Poisson multisample SSR parity,
-      water/debug probe variants, and runtime visual validation remain separate
-      work.
+      reflection settings through explicit composite parameters; the shader now
+      uses the OpenGL-derived glossy Poisson multisample SSR loop for
+      high-gloss reflection-probe radiance instead of the earlier single-ray
+      tap, and the backend transports the OpenGL `inv_modelview_delta`
+      camera-delta matrix through a dedicated `DeferredSoften` uniform block.
+      Remaining SSR parity work is to validate moving-camera imagery plus
+      water/debug probe variants.
       Reflection-probe backend progress: Vulkan now has a native
       `TextureCubeMapArray` allocation/copy path for `LLCubeMapArray` so
       reflection/hero probe managers no longer fall through null 3D texture
@@ -460,8 +462,8 @@ Validation status:
       cube-array layers. `DeferredSoften` now receives the probe texture arrays,
       probe UBO, `mMaxProbeLOD`, BRDF LUT, and `lightFunc` inputs needed by the
       OpenGL soften/reflection path. The remaining reflection parity work is
-      runtime image validation, full SSR parity, and sharing the same probe
-      model with the final PBR/alpha/water reflection consumers.
+      runtime image validation and sharing the same probe/SSR model with the
+      final PBR/alpha/water reflection consumers.
 - [ ] Local lights:
       port and wire the class-tier deferred point, multi-point, spot, and
       multi-spot light shaders as separate passes instead of folding local
@@ -520,10 +522,13 @@ Validation status:
       projector shadow index/fade ownership is transported, emissive is sampled
       by `DeferredSoften`, sky/probe/BRDF/lightFunc inputs are bound as input,
       and `DeferredSoften` now uses a closer OpenGL-style PBR/legacy lighting
-      split with first sceneMap/depth SSR sampling. Vulkan still needs
-      Vulkan-owned sun/spot shadow-map render passes, full glossy SSR parity,
-      water/debug reflection variants, atmospheric helper parity, and final
-      visual validation before this item can be closed. Shadow pipeline
+      split with OpenGL-derived glossy sceneMap/depth SSR sampling. Vulkan
+      also matches the OpenGL soften legacy `baseColor.a` lighting mix and
+      writes zero alpha from the soften pass so final glow extraction does not
+      treat every lit pixel as emissive.
+      Vulkan still needs Vulkan-owned sun/spot shadow-map render passes, water/debug
+      reflection variants, atmospheric helper parity, and final visual
+      validation before this item can be closed. Shadow pipeline
       progress: the Vulkan backend now has
       explicit world shader classes and pipeline arrays for generic,
       alpha-mask, avatar, avatar alpha, avatar alpha-mask, tree, PBR
@@ -1855,10 +1860,11 @@ Known missing runtime coverage:
       targets using transported OpenGL matrices/clip/bias/resolution state.
       Emissive, the sky environment cube-map, BRDF LUT, `lightFunc`,
       reflection-probe cubemap arrays, probe parallax/selection state, and
-      first sceneMap/depth SSR sampling now feed the live soften pass. Close
-      this only after the remaining graph inputs are real: shadow target
-      validation plus PCF/parity tuning, full glossy SSR parity, water/debug
-      reflection variants, and final composite/post parity.
+      OpenGL-derived glossy sceneMap/depth SSR sampling with camera-delta
+      transport now feed the live soften pass. Close this only after the
+      remaining graph inputs are real: shadow target validation plus
+      PCF/parity tuning, water/debug reflection variants, and final
+      composite/post parity.
 - [ ] Shadow map rendering is not Vulkan-native. `generateSunShadow()` still
       owns the OpenGL-era shadow render targets, shadow cameras, and
       `renderShadow()` flow. Vulkan now has explicit shadow shader classes,

@@ -1681,6 +1681,11 @@ struct LLVulkanDeferredLightMapUniforms
     glm::vec4 mShadowRuntime = glm::vec4(0.f, 0.f, 0.f, 0.f);
 };
 
+struct LLVulkanDeferredSoftenUniforms
+{
+    glm::mat4 mInverseModelviewDelta = glm::mat4(1.f);
+};
+
 struct LLVulkanPointLightUniforms
 {
     glm::mat4 mModelviewProjection = glm::mat4(1.f);
@@ -8398,6 +8403,16 @@ LLVulkanDeferredLightMapUniforms make_vulkan_deferred_light_map_uniforms(
         glm::make_vec4(parameters.mCompositeShadowResolution);
     uniforms.mShadowRuntime =
         glm::make_vec4(parameters.mCompositeShadowRuntime);
+    return uniforms;
+}
+
+LLVulkanDeferredSoftenUniforms make_vulkan_deferred_soften_uniforms(
+    const LLVulkanPendingDraw& draw)
+{
+    LLVulkanDeferredSoftenUniforms uniforms;
+    uniforms.mInverseModelviewDelta =
+        glm::make_mat4(
+            draw.mMaterialParameters.mCompositeInverseModelviewDelta);
     return uniforms;
 }
 
@@ -20501,6 +20516,21 @@ bool record_vulkan_frame_command_buffer(
         {
             const LLVulkanDeferredLightMapUniforms uniforms =
                 make_vulkan_deferred_light_map_uniforms(draw);
+            world_uniform_descriptor_set =
+                create_vulkan_world_uniform_descriptor_set(
+                    context,
+                    &uniforms,
+                    sizeof(uniforms));
+            if (!world_uniform_descriptor_set)
+            {
+                ++missing_buffer_count;
+                continue;
+            }
+        }
+        else if (use_deferred_soften_pipeline)
+        {
+            const LLVulkanDeferredSoftenUniforms uniforms =
+                make_vulkan_deferred_soften_uniforms(draw);
             world_uniform_descriptor_set =
                 create_vulkan_world_uniform_descriptor_set(
                     context,

@@ -671,6 +671,13 @@ struct LLRenderWorldMaterialParameters
         0.f, 0.f, 1.f, 0.f,
         0.f, 0.f, 0.f, 1.f,
     };
+    F32 mCompositeInverseModelviewDelta[16] =
+    {
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+    };
     F32 mCompositeShadowMatrix[16 * 6] =
     {
         1.f, 0.f, 0.f, 0.f,
