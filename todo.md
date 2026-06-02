@@ -550,8 +550,13 @@ Validation status:
       as a first water-specific irradiance/radiance input. It now also mirrors
       the key OpenGL `sampleReflectionProbesWater()` selection rule by
       selecting local manual probes first, disabling automatic probes for water,
-      and always adding the void probe. This is not full water parity yet;
-      hero probes, exact water position/normal inputs, water Fresnel uniforms,
+      and always adding the void probe. Water runtime now also binds the hero
+      probe cube-array on a Water-only texture unit and applies the OpenGL
+      hero-probe glossy mix rule with `heroShape`/`heroMipCount` and the
+      source `clipPlane` falloff. The runtime path also transports the source
+      water `normalScale`, `fresnelScale`, `fresnelOffset`, `blurMultiplier`,
+      and above/below-water `refScale` values into Water draw push constants.
+      This is not full water parity yet; exact water position/normal inputs
       and the final class3 water shader still need graph ownership.
       Vulkan still needs Vulkan-owned sun/spot shadow-map render passes,
       deeper water/debug reflection variants, atmospheric visual parity
@@ -650,9 +655,11 @@ Validation status:
       keep both OpenGL source tiers: `class1/environment/waterF.glsl` as the
       magenta error/fallback shader and `class3/environment/waterF.glsl` as
       the high-fidelity water shader. Vulkan water parity needs bumpMap,
-      bumpMap2, blend factor, transparent-water screen/depth inputs,
-      exclusionTex, water fog, reflection probes, shadows, fresnel, and PBR
-      water lighting.
+      bumpMap2, blend factor, reflection render targets, water fog, shadows,
+      exact class3 water position/normal/wave inputs, and PBR water lighting.
+      Runtime Water already has exclusion, scene depth/color, reflection/
+      irradiance/hero probes, source Fresnel, blur, normalScale, and
+      above/below-water refScale transport.
 - [ ] Sky:
       port `class1/deferred/skyV.glsl` and `class1/deferred/skyF.glsl`
       faithfully, including `vary_HazeColor`, `vary_LightNormPosDot`,
@@ -1586,9 +1593,9 @@ Validation status:
       pending.
       This is still not
       final water parity: reflection render targets, normal/displacement maps,
-      Fresnel uniforms, above/below-water policy, water fog, manual/hero probe
-      selection, and the source-ported water shader family still need dedicated
-      render graph ownership.
+      bump-map blending, water fog, shadows, exact class3 water
+      position/normal/wave inputs, and the source-ported water shader family
+      still need dedicated render graph ownership.
 - [x] Give Vulkan alpha draws a dedicated runtime shader/pipeline.
       `LLRenderWorldShaderClass::Alpha` now owns `class2/deferred/alpha.frag`, and both
       swapchain/offscreen Vulkan pipeline sets create alpha variants. Alpha
@@ -1946,8 +1953,10 @@ Known missing runtime coverage:
       primary/void probe for a first water-specific irradiance/radiance term;
       the runtime now also applies the OpenGL water rule of selecting manual
       probes first, suppressing automatic probes, and appending the void probe.
-      Remaining water parity still needs hero probes, exact class3 water
-      inputs, and final class3 water graph ownership.
+      It also binds and samples hero probes for the OpenGL-style high-gloss
+      mirror/probe mix, including the source clip-plane falloff. Remaining
+      water parity still needs exact class3 water position/normal/wave inputs
+      and final class3 water graph ownership.
       Close this only after the
       remaining graph inputs are real: shadow target validation plus
       PCF/parity tuning, water/debug reflection variants, and final

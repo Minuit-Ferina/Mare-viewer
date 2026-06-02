@@ -30,12 +30,15 @@
 #include "llenvironment.h"
 #include "llmaterial.h"
 #include "m4math.h"
+#include "llrender.h"
 #include "llrenderbackend.h"
 #include "llrenderstate.h"
 #include "llsettingssky.h"
+#include "llsettingswater.h"
 #include "llspatialpartition.h"
 #include "llstring.h"
 #include "llvoavatar.h"
+#include "llviewercamera.h"
 #include "llviewerregion.h"
 #include "llviewershadermgr.h"
 #include "pipeline.h"
@@ -54,8 +57,56 @@ constexpr U32 WORLD_RENDER_SCENE_DEPTH_TEXTURE_UNIT = 8;
 constexpr U32 WORLD_RENDER_SCENE_COLOR_TEXTURE_UNIT = 9;
 constexpr U32 WORLD_RENDER_REFLECTION_PROBES_TEXTURE_UNIT = 10;
 constexpr U32 WORLD_RENDER_IRRADIANCE_PROBES_TEXTURE_UNIT = 11;
+constexpr U32 WORLD_RENDER_HERO_PROBES_TEXTURE_UNIT = 12;
 
 LLRenderWorldTextureTransform get_world_texture_transform(const LLMatrix4* matrix);
+
+void set_world_mirror_clip_plane(LLRenderWorldMaterialParameters& parameters)
+{
+    glm::vec3 normal = glm::vec3(gPipeline.mHeroProbeManager.mMirrorNormal);
+    if (glm::dot(normal, normal) <= 0.000001f)
+    {
+        return;
+    }
+
+    glm::vec3 position = glm::vec3(gPipeline.mHeroProbeManager.mMirrorPosition);
+    glm::mat4 modelview = get_current_modelview();
+    glm::mat4 inverse_transpose = glm::transpose(glm::inverse(modelview));
+    inverse_transpose[0][3] = 0.f;
+    inverse_transpose[1][3] = 0.f;
+    inverse_transpose[2][3] = 0.f;
+
+    glm::vec3 eye_normal =
+        glm::normalize(mul_mat4_vec3(inverse_transpose, normal));
+    glm::vec3 eye_position = mul_mat4_vec3(modelview, position);
+    glm::vec4 clip_plane(eye_normal, -glm::dot(eye_position, eye_normal));
+
+    parameters.mCompositeClipPlane[0] = clip_plane.x;
+    parameters.mCompositeClipPlane[1] = clip_plane.y;
+    parameters.mCompositeClipPlane[2] = clip_plane.z;
+    parameters.mCompositeClipPlane[3] = clip_plane.w;
+}
+
+void set_world_water_parameters(LLRenderWorldMaterialParameters& parameters)
+{
+    LLSettingsWater::ptr_t water = LLEnvironment::instance().getCurrentWater();
+    if (!water)
+    {
+        return;
+    }
+
+    const LLVector3 normal_scale = water->getNormalScale();
+    parameters.mWaterNormalScaleX = normal_scale.mV[VX];
+    parameters.mWaterNormalScaleY = normal_scale.mV[VY];
+    parameters.mWaterNormalScaleZ = normal_scale.mV[VZ];
+    parameters.mWaterFresnelScale = water->getFresnelScale();
+    parameters.mWaterFresnelOffset = water->getFresnelOffset();
+    parameters.mWaterBlurMultiplier = llmax(0.f, water->getBlurMultiplier()) * 2.f;
+    parameters.mWaterRefScale =
+        LLViewerCamera::getInstance()->cameraUnderWater() ?
+            water->getScaleBelow() :
+            water->getScaleAbove();
+}
 
 void classify_world_render_command(LLWorldRenderCommand& command)
 {
@@ -968,6 +1019,11 @@ LLRenderWorldMaterialParameters get_world_material_parameters(
     parameters.mCompositeEnvironmentMatrix[6] = modelview_values[8];
     parameters.mCompositeEnvironmentMatrix[7] = modelview_values[9];
     parameters.mCompositeEnvironmentMatrix[8] = modelview_values[10];
+    if (command.mMaterialClass == LLWorldRenderMaterialClass::Water)
+    {
+        set_world_mirror_clip_plane(parameters);
+        set_world_water_parameters(parameters);
+    }
     return parameters;
 }
 
@@ -2146,6 +2202,7 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
         bool tex_setup = false;
         bool water_reflection_probes_bound = false;
         bool water_irradiance_probes_bound = false;
+        bool water_hero_probes_bound = false;
         if (command.mMaterialClass == LLWorldRenderMaterialClass::AvatarImpostor &&
             command.mAvatar &&
             command.mAvatar->mImpostor.isComplete())
@@ -2283,7 +2340,16 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
                         WORLD_RENDER_IRRADIANCE_PROBES_TEXTURE_UNIT);
                     water_irradiance_probes_bound = true;
                 }
-                if (water_reflection_probes_bound || water_irradiance_probes_bound)
+                if (LLPipeline::RenderMirrors &&
+                    gPipeline.mHeroProbeManager.mTexture.notNull())
+                {
+                    gPipeline.mHeroProbeManager.mTexture->bind(
+                        WORLD_RENDER_HERO_PROBES_TEXTURE_UNIT);
+                    water_hero_probes_bound = true;
+                }
+                if (water_reflection_probes_bound ||
+                    water_irradiance_probes_bound ||
+                    water_hero_probes_bound)
                 {
                     gPipeline.mReflectionMapManager.setUniforms();
                 }
@@ -2321,6 +2387,10 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
         if (water_irradiance_probes_bound)
         {
             gPipeline.mReflectionMapManager.mIrradianceMaps->unbind();
+        }
+        if (water_hero_probes_bound)
+        {
+            gPipeline.mHeroProbeManager.mTexture->unbind();
         }
         if (command.mMaterialClass == LLWorldRenderMaterialClass::Water)
         {

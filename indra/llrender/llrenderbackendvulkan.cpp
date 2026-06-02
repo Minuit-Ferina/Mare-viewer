@@ -8069,7 +8069,7 @@ LLVkDescriptorSet get_vulkan_texture_descriptor_set(
             ((draw->mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften &&
                 (i == 7 || i == 8 || i == 9)) ||
              (draw->mWorldShaderClass == LLRenderWorldShaderClass::Water &&
-                (i == 10 || i == 11))) &&
+                (i == 10 || i == 11 || i == 12))) &&
             ensure_vulkan_fallback_cube_array_texture(context))
         {
             requested_handle = gVulkanFallbackCubeArrayTextureHandle;
@@ -12743,7 +12743,7 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"alpha-mask-gbuffer", "class1/deferred/diffuse_indexed.vert.spv", "class1/deferred/diffuse_alpha_mask_indexed.frag.spv", "legacy alpha-mask G-buffer geometry", "runtime-world push constants, set0 texture array, texture index, optional skinning", "OpenGL alpha-mask cutoff plus opaque depth write", "G-buffer runtime owner"},
         {"avatar", "class1/deferred/avatar.vert.spv", "class1/deferred/avatar.frag.spv", "classic avatar G-buffer", "pending avatar baked texture/skinning ABI", "avatar draw-pool depth/cull/blend state", "inventory-only"},
         {"avatar-impostor", "class1/deferred/impostor.vert.spv", "class1/deferred/impostor.frag.spv", "avatar impostor billboard G-buffer"},
-        {"water-runtime", "active/world_textured.vert.spv", "class1/environment/water_runtime.frag.spv", "water runtime surface", "runtime-world push constants, depth/scene-color/water-exclusion inputs, and reflection-probe cube-array inputs", "OpenGL water owner blend/depth/cull state approximation", "bound runtime owner; final class1/class3 water shaders remain inventory-only"},
+        {"water-runtime", "active/world_textured.vert.spv", "class1/environment/water_runtime.frag.spv", "water runtime surface", "runtime-world push constants, depth/scene-color/water-exclusion inputs, and reflection/irradiance/hero probe cube-array inputs", "OpenGL water owner blend/depth/cull state approximation", "bound runtime owner; final class1/class3 water shaders remain inventory-only"},
         {"haze-runtime", "active/world_textured.vert.spv", "class3/deferred/haze_runtime.frag.spv", "atmospheric haze, water haze, and water-exclusion fallback surface", "runtime-world push constants, depth, scene color, and water-exclusion inputs", "active Vulkan haze approximation isolated from the final class3 haze inventory shader", "bound runtime owner; final class3 haze shader still fails strict parity"},
         {"water-class1-fallback", "class1/environment/water.vert.spv", "class1/environment/water.frag.spv", "water error/fallback surface"},
         {"water-class3", "class1/environment/water.vert.spv", "class3/environment/water.frag.spv", "high-fidelity water surface"},
@@ -21026,6 +21026,18 @@ bool record_vulkan_frame_command_buffer(
             }
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::Water)
             {
+                push_constants.mMaterialExtra = glm::make_vec4(
+                    draw.mMaterialParameters.mCompositeClipPlane);
+                push_constants.mMaterialTextureTransform3 = glm::vec4(
+                    draw.mMaterialParameters.mWaterFresnelScale,
+                    draw.mMaterialParameters.mWaterFresnelOffset,
+                    draw.mMaterialParameters.mWaterBlurMultiplier,
+                    draw.mMaterialParameters.mWaterRefScale);
+                push_constants.mMaterialTextureTransform4 = glm::vec4(
+                    draw.mMaterialParameters.mWaterNormalScaleX,
+                    draw.mMaterialParameters.mWaterNormalScaleY,
+                    draw.mMaterialParameters.mWaterNormalScaleZ,
+                    1.f);
                 push_constants.mTerrainTextureTransform0 = glm::vec4(
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[0],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[1],

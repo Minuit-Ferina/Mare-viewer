@@ -629,6 +629,13 @@ struct LLRenderWorldMaterialParameters
     F32 mSceneLightDirectionY = 0.45f;
     F32 mSceneLightDirectionZ = 0.82f;
     F32 mSceneLightDirectionValid = 0.f;
+    F32 mWaterNormalScaleX = 2.f;
+    F32 mWaterNormalScaleY = 2.f;
+    F32 mWaterNormalScaleZ = 2.f;
+    F32 mWaterFresnelScale = 0.5f;
+    F32 mWaterFresnelOffset = 0.4f;
+    F32 mWaterBlurMultiplier = 0.2f;
+    F32 mWaterRefScale = 0.025f;
     F32 mCompositeClipPlane[4] =
     {
         0.f, 0.f, 0.f, 0.f,

@@ -6,6 +6,7 @@ layout(set = 0, binding = 8) uniform sampler2D depthMap;
 layout(set = 0, binding = 9) uniform sampler2D sceneColorMap;
 layout(set = 0, binding = 10) uniform samplerCubeArray reflectionProbes;
 layout(set = 0, binding = 11) uniform samplerCubeArray irradianceProbes;
+layout(set = 0, binding = 12) uniform samplerCubeArray heroProbes;
 
 #define MAX_REFMAP_COUNT 256
 #define REF_SAMPLE_COUNT 32
@@ -29,7 +30,10 @@ layout(std140, set = 2, binding = 0) uniform ReflectionProbes
 layout(push_constant) uniform MareWorldPushConstants
 {
     layout(offset = 80) vec4 material_params;
+    layout(offset = 128) vec4 clip_plane;
     layout(offset = 176) vec4 material_pbr;
+    layout(offset = 240) vec4 water_settings;
+    layout(offset = 256) vec4 water_normal_scale;
     layout(offset = 272) vec4 environment0;
     layout(offset = 288) vec4 environment1;
     layout(offset = 304) vec4 environment2;
@@ -490,6 +494,86 @@ vec3 sample_water_probe_radiance(vec3 pos, vec3 direction, float glossiness)
     return weight_auto > 0.0 ? color_auto : vec3(0.0);
 }
 
+vec3 get_water_probe_normal(vec3 normal)
+{
+    vec3 scale = max(abs(pc.water_normal_scale.xyz), vec3(0.001));
+    return safe_normalize(normal * scale);
+}
+
+float get_water_glossiness()
+{
+    return clamp(1.0 - max(pc.water_settings.z, 0.0), 0.0, 1.0);
+}
+
+float get_water_fresnel(vec3 view_vec, vec3 normal)
+{
+    float fresnel_value =
+        max(dot(view_vec, normal) * pc.water_settings.x + pc.water_settings.y, 0.0);
+    return fresnel_value * fresnel_value;
+}
+
+vec2 get_water_refraction_offset(vec3 normal, float depth_fade, float distance_to_eye)
+{
+    float dmod = sqrt(max(distance_to_eye, 1.0));
+    float source_offset =
+        pc.water_settings.w / max(dmod, 1.0) * 2.0;
+    float fallback_offset = mix(0.002, 0.012, depth_fade);
+    return normal.xy * (pc.water_settings.w > 0.0 ? source_offset : fallback_offset);
+}
+
+void tap_water_hero_probe(
+    inout vec3 radiance,
+    vec3 pos,
+    vec3 normal,
+    vec3 reflected,
+    float glossiness)
+{
+    if (probes.heroProbeCount <= 0 || textureSize(heroProbes, 0).z <= 0)
+    {
+        return;
+    }
+
+    float weight = 0.0;
+    float distance_weight = 0.0;
+    const float falloff_mult = 10.0;
+    float clip_dist = 1.0;
+    if (dot(pc.clip_plane.xyz, pc.clip_plane.xyz) > 0.000001)
+    {
+        clip_dist = dot(pos, pc.clip_plane.xyz) + pc.clip_plane.w;
+        clip_dist = clip_dist * 0.95 + 0.05;
+    }
+    if (probes.heroShape < 1)
+    {
+        float distance_to_box = 0.0;
+        water_box_intersect(pos, normal, probes.heroBox, distance_to_box);
+        weight = max(distance_to_box, 0.0);
+    }
+    else
+    {
+        weight =
+            water_sphere_weight(
+                pos,
+                reflected,
+                probes.heroSphere.xyz,
+                probes.heroSphere.w,
+                vec4(1.0),
+                distance_weight);
+    }
+
+    clip_dist = clamp(clip_dist * falloff_mult, 0.0, 1.0);
+    weight = clamp(weight * falloff_mult * clip_dist, 0.0, 1.0);
+    weight = mix(0.0, weight, clamp(glossiness - 0.75, 0.0, 1.0) * 4.0);
+
+    float hero_lod = (1.0 - glossiness) * max(float(probes.heroMipCount), 0.0);
+    vec3 hero_dir = water_env_mat() * reflected;
+    vec3 hero_color =
+        textureLod(
+            heroProbes,
+            vec4(safe_normalize(hero_dir), 0),
+            hero_lod).rgb;
+    radiance = mix(radiance, hero_color, weight);
+}
+
 vec2 screen_texcoord()
 {
     vec2 scene_size = has_material_flag(MATERIAL_HAS_SCENE_DEPTH) ?
@@ -511,24 +595,34 @@ void main()
     float exclusion = texture(waterExclusionMap, screen_uv).r;
     float depth_fade = scene_depth >= 0.99999 ? 1.0 : smoothstep(0.2, 0.98, scene_depth);
     vec3 normal = normalize(vary_normal);
-    float fresnel = pow(1.0 - clamp(abs(normal.z), 0.0, 1.0), 2.0);
+    vec3 probe_position = vary_position;
+    vec3 probe_normal = get_water_probe_normal(normal);
+    vec3 view_vector = safe_normalize(probe_position);
+    float distance_to_eye = length(probe_position);
+    float fresnel = get_water_fresnel(view_vector, probe_normal);
     vec3 view_dir =
         safe_normalize(vec3(screen_uv * 2.0 - vec2(1.0), 1.0));
-    vec3 reflection_dir = reflect(-view_dir, normal);
-    vec3 probe_position = vary_position;
-    float glossiness = clamp(1.0 - depth_fade * 0.35, 0.25, 1.0);
+    vec3 reflection_dir = reflect(-view_dir, probe_normal);
+    float glossiness = get_water_glossiness();
     vec3 probe_ambient =
         sample_water_probe_irradiance(
             probe_position,
-            normal,
+            probe_normal,
             get_scene_ambient_color());
     vec3 probe_radiance =
         sample_water_probe_radiance(probe_position, reflection_dir, glossiness);
+    tap_water_hero_probe(
+        probe_radiance,
+        probe_position,
+        probe_normal,
+        reflection_dir,
+        glossiness);
 
     vec3 shallow = vec3(0.12, 0.34, 0.43);
     vec3 deep = vec3(0.03, 0.18, 0.28);
     vec3 tint = mix(shallow, deep, depth_fade);
-    vec2 refraction_offset = normal.xy * mix(0.002, 0.012, depth_fade);
+    vec2 refraction_offset =
+        get_water_refraction_offset(probe_normal, depth_fade, distance_to_eye);
     vec3 scene_color = has_material_flag(MATERIAL_HAS_SCENE_COLOR) ?
         texture(sceneColorMap, clamp(screen_uv + refraction_offset, vec2(0.0), vec2(1.0))).rgb :
         water.rgb;
@@ -537,7 +631,7 @@ void main()
     vec3 light_dir = get_scene_light_direction();
     vec3 scene_light =
         max(get_scene_ambient_color(), probe_ambient) +
-        get_scene_direct_color() * max(dot(normal, light_dir), 0.0);
+        get_scene_direct_color() * max(dot(probe_normal, light_dir), 0.0);
     water.rgb *= mix(vec3(0.72), clamp(scene_light, vec3(0.0), vec3(1.35)), 0.42);
     water.rgb += get_scene_direct_color() * fresnel * 0.18;
     water.rgb += probe_radiance * fresnel * 0.22;
