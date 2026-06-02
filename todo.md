@@ -523,6 +523,8 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/exposure_history.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/pbropaque_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/pbropaque_gbuffer_emissive.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_gbuffer.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_gbuffer_emissive.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/interface/copy_depth.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer_emissive.frag
@@ -889,6 +891,15 @@ Validation status:
       linear like the OpenGL `pbropaqueF.glsl` path, and preserve ORM plus
       normal-map output for the deferred composite. Direct PBR rendering still
       uses the active runtime fragment.
+- [x] Replace the Terrain Vulkan G-buffer adapter with final class1 terrain
+      owners.
+      The terrain offscreen G-buffer pipeline now binds
+      `class1/deferred/terrain_gbuffer*.frag` for 3-attachment and
+      4-attachment render passes. These fragments keep the current runtime
+      `active/terrain.vert` ABI because the specialized terrain/PBR-terrain
+      vertex UBO interface is not connected yet, but the fragment owner is now
+      separated from the active direct-swapchain terrain adapter. Direct
+      terrain rendering still uses the active runtime fragment.
 - [x] Feed real terrain normals into the active Vulkan terrain G-buffer path.
       Terrain command emission now includes `MAP_NORMAL`, terrain pipelines use
       a vertex input layout that exposes the normal attribute, and both

@@ -11378,8 +11378,8 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"simple-indexed-object", "active/world_textured.vert.spv", "class1/objects/simple_indexed.frag.spv", "indexed/batched simple textured objects", "runtime world vertex adapter plus final class1 simple indexed fragment", "direct Textured owner only when texture-index attribute is present; G-buffer uses the final diffuse-indexed owner", "bound for indexed direct Textured draws"},
         {"simple-gbuffer", "class1/deferred/diffuse_indexed.vert.spv", "class1/deferred/diffuse_indexed_gbuffer.frag.spv", "simple indexed Textured G-buffer geometry", "runtime-world push constants, set0 texture array, texture index, optional skinning", "OpenGL class1 deferred diffuse indexed G-buffer writes", "bound runtime owner; emissive attachment uses diffuse_indexed_gbuffer_emissive.frag"},
         {"sky-class1", "class1/deferred/sky.vert.spv", "class1/deferred/sky.frag.spv", "WindLight/EEP sky dome and haze", "pending final sky uniforms/varyings", "OpenGL sky owner depth/blend/cull state", "inventory-only"},
-        {"terrain", "class1/deferred/terrain.vert.spv", "class1/deferred/terrain.frag.spv", "legacy terrain G-buffer", "pending terrain splat/G-buffer uniforms", "opaque depth write, owner cull state", "inventory-only"},
-        {"pbr-terrain", "class1/deferred/pbrterrain.vert.spv", "class1/deferred/pbrterrain.frag.spv", "PBR terrain G-buffer", "pending PBR terrain material ABI", "opaque G-buffer terrain pass", "inventory-only"},
+        {"terrain", "active/terrain.vert.spv", "class1/deferred/terrain_gbuffer.frag.spv", "terrain G-buffer geometry", "runtime terrain push constants, detail/paint/ORM/emissive/normal textures", "OpenGL terrain and PBR terrain G-buffer writes adapted to the current Vulkan terrain ABI", "bound runtime owner; emissive attachment uses terrain_gbuffer_emissive.frag"},
+        {"pbr-terrain", "active/terrain.vert.spv", "class1/deferred/terrain_gbuffer.frag.spv", "PBR terrain G-buffer geometry", "runtime terrain push constants, GLTF terrain factors, paint maps, texture transforms, triplanar normals", "OpenGL PBR terrain G-buffer writes adapted to the current Vulkan terrain ABI", "bound through shared terrain runtime owner; final terrain vertex ABI still pending"},
         {"pbr-opaque", "active/world_textured.vert.spv", "class1/deferred/pbropaque_gbuffer.frag.spv", "opaque GLTF/PBR G-buffer geometry", "runtime-world push constants, GLTF texture transforms, normal/ORM/emissive maps", "OpenGL class1 PBR opaque G-buffer writes adapted to the Vulkan G-buffer layout", "bound runtime owner; emissive attachment uses pbropaque_gbuffer_emissive.frag"},
         {"legacy-material-gbuffer", "active/world_textured.vert.spv", "class3/deferred/material_gbuffer.frag.spv", "legacy material G-buffer geometry", "runtime-world push constants, material texture transforms, normal/specular maps", "OpenGL class3 deferred material G-buffer writes adapted to the Vulkan G-buffer layout", "bound runtime owner; emissive attachment uses material_gbuffer_emissive.frag"},
         {"pbr-alpha-class1", "class1/deferred/pbralpha.vert.spv", "class1/deferred/pbralpha.frag.spv", "alpha GLTF/PBR geometry fallback", "pending GLTF/PBR alpha ABI", "OpenGL PBR alpha state", "inventory-only"},
@@ -13845,9 +13845,9 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mTerrainFragmentShader =
         get_vulkan_final_shader_module(context, "active/terrain.frag.spv", "terrain fragment");
     context.mTerrainGBufferFragmentShader =
-        get_vulkan_final_shader_module(context, "active/terrain_gbuffer.frag.spv", "terrain G-buffer fragment");
+        get_vulkan_final_shader_module(context, "class1/deferred/terrain_gbuffer.frag.spv", "class1 terrain G-buffer fragment");
     context.mTerrainGBufferEmissiveFragmentShader =
-        get_vulkan_final_shader_module(context, "active/terrain_gbuffer_emissive.frag.spv", "terrain G-buffer emissive fragment");
+        get_vulkan_final_shader_module(context, "class1/deferred/terrain_gbuffer_emissive.frag.spv", "class1 terrain G-buffer emissive fragment");
     if (!context.mBootstrapVertexShader ||
         !context.mBootstrapFragmentShader ||
         !context.mUIVertexShader ||
