@@ -366,12 +366,12 @@ Validation status:
 - [ ] Replace active-path shader approximations with class-tier owners instead
       of treating `active/*.frag` as the final shader family.
       `active/deferred_composite.frag`, `active/final_composite.frag`,
-      `active/water.frag`, `active/alpha.frag`, `active/glow.frag`, and
-      related active G-buffer shaders are bootstrap adapters. Sky has moved to
-      the explicit `class1/deferred/sky_runtime.frag` runtime owner, but still
-      needs the faithful `sky.vert`/`sky.frag` UBO pipeline before it is
-      parity-complete. The final Vulkan path should bind class-tier shaders
-      matching the OpenGL families and selected viewer settings.
+      `active/alpha.frag`, `active/glow.frag`, and related active G-buffer
+      shaders are bootstrap adapters. Sky and water have moved to explicit
+      runtime owners, but still need their faithful final UBO/texture pipelines
+      before they are parity-complete. The final Vulkan path should bind
+      class-tier shaders matching the OpenGL families and selected viewer
+      settings.
       First safe runtime replacement: UI textured now binds
       `class1/interface/ui.frag` instead of `active/ui.frag`. The UI vertex
       remains `active/ui.vert` because the class1 interface vertex expects
@@ -531,6 +531,7 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/sky_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/deferred/terrain_gbuffer_emissive.frag
+- [x] indra/newview/app_settings/shaders/vulkan/final/class1/environment/water_runtime.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class1/interface/copy_depth.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer.frag
 - [x] indra/newview/app_settings/shaders/vulkan/final/class3/deferred/material_gbuffer_emissive.frag
@@ -1351,8 +1352,9 @@ Validation status:
       gradient artifact while the final EEP/HDRI sky shader family is still
       pending.
 - [x] Give active Vulkan water draws a dedicated runtime shader/pipeline.
-      `LLRenderWorldShaderClass::Water` now owns `active/water.frag`, and both
-      swapchain/offscreen Vulkan pipeline sets create water variants. Water
+      `LLRenderWorldShaderClass::Water` now owns
+      `class1/environment/water_runtime.frag`, and both swapchain/offscreen
+      Vulkan pipeline sets create water variants. Water
       commands bind the active deferred depth and water-exclusion target where
       available, and the shader uses those inputs for a first depth/exclusion
       fade. Water commands now also bind deferred scene color so the active

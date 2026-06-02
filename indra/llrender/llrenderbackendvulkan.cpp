@@ -11388,6 +11388,7 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"alpha-mask", "class1/deferred/diffuse_indexed.vert.spv", "class1/deferred/diffuse_alpha_mask_indexed.frag.spv", "legacy alpha-mask G-buffer geometry", "runtime-world push constants, set0 texture array, texture index, optional skinning", "OpenGL alpha-mask cutoff plus opaque depth write", "G-buffer runtime owner; direct swapchain alpha-mask still uses the active adapter"},
         {"avatar", "class1/deferred/avatar.vert.spv", "class1/deferred/avatar.frag.spv", "classic avatar G-buffer", "pending avatar baked texture/skinning ABI", "avatar draw-pool depth/cull/blend state", "inventory-only"},
         {"avatar-impostor", "class1/deferred/impostor.vert.spv", "class1/deferred/impostor.frag.spv", "avatar impostor billboard G-buffer"},
+        {"water-runtime", "active/world_textured.vert.spv", "class1/environment/water_runtime.frag.spv", "water runtime surface", "runtime-world push constants, depth/scene-color/water-exclusion inputs", "OpenGL water owner blend/depth/cull state approximation", "bound runtime owner; final class1/class3 water shaders remain inventory-only"},
         {"water-class1-fallback", "class1/environment/water.vert.spv", "class1/environment/water.frag.spv", "water error/fallback surface"},
         {"water-class3", "class1/environment/water.vert.spv", "class3/environment/water.frag.spv", "high-fidelity water surface"},
         {"underwater-class3", "class1/environment/water.vert.spv", "class3/environment/under_water.frag.spv", "underwater surface"},
@@ -13771,7 +13772,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mSkyFragmentShader =
         get_vulkan_final_shader_module(context, "class1/deferred/sky_runtime.frag.spv", "class1 sky runtime fragment");
     context.mWaterFragmentShader =
-        get_vulkan_final_shader_module(context, "active/water.frag.spv", "water fragment");
+        get_vulkan_final_shader_module(context, "class1/environment/water_runtime.frag.spv", "class1 water runtime fragment");
     context.mHazeFragmentShader =
         get_vulkan_final_shader_module(context, "active/haze.frag.spv", "haze fragment");
     context.mAlphaVertexShader =
