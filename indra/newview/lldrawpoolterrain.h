@@ -58,6 +58,11 @@ public:
     void beginShadowPass(S32 pass) override;
     void endShadowPass(S32 pass) override;
     void renderShadow(S32 pass) override;
+    bool emitShadowCommands(
+        LLWorldRenderCommandBuffer& commands,
+        S32 pass,
+        bool write_color,
+        bool write_alpha);
 
     void prerender() override;
     void dirtyTextures(const std::set<LLViewerFetchedTexture*>& textures) override;

@@ -1482,6 +1482,41 @@ void LLWorldRenderCommandBuffer::appendFace(
     mCommands.push_back(command);
 }
 
+void LLWorldRenderCommandBuffer::appendTerrainShadowFace(
+    const LLFace& face,
+    bool write_color,
+    bool write_alpha)
+{
+    LLVertexBuffer* vertex_buffer = face.getVertexBuffer();
+    if (!vertex_buffer || !face.getIndicesCount() || !face.getGeomCount())
+    {
+        return;
+    }
+
+    const LLDrawable* drawable = face.getDrawable();
+    const LLViewerRegion* region = drawable ? drawable->getRegion() : nullptr;
+
+    LLWorldRenderCommand command;
+    command.mMaterialClass = LLWorldRenderMaterialClass::Shadow;
+    classify_world_render_command(command);
+    command.mSourcePass = LLDrawPool::POOL_TERRAIN;
+    command.mAttributeMask = LLVertexBuffer::MAP_VERTEX;
+    command.mVertexBuffer = vertex_buffer;
+    command.mModelMatrix = region ? &region->mRenderMatrix : nullptr;
+    command.mStart = face.getGeomIndex();
+    command.mEnd = face.getGeomIndex() + face.getGeomCount() - 1;
+    command.mCount = face.getIndicesCount();
+    command.mOffset = face.getIndicesStart();
+    command.mUseTexture = false;
+    command.mBatchTextures = false;
+    command.mPassClass = LLWorldRenderPassClass::Deferred;
+    command.mBlendMode = LLWorldRenderBlendMode::None;
+    command.mDepthMode = LLWorldRenderDepthMode::ReadWrite;
+    command.mWriteColor = write_color;
+    command.mWriteAlpha = write_alpha;
+    mCommands.push_back(command);
+}
+
 void LLWorldRenderCommandBuffer::appendTerrainFace(
     const LLFace& face,
     LLViewerTexture* detail_texture0,

@@ -67,6 +67,7 @@
 #include "lldrawpoolalpha.h"
 #include "lldrawpoolavatar.h"
 #include "lldrawpoolbump.h"
+#include "lldrawpoolterrain.h"
 #include "lldrawpooltree.h"
 #include "lldrawpoolwater.h"
 #include "llface.h"
@@ -11115,7 +11116,7 @@ void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCa
     if (vulkan_shadow_path)
     {
         LL_INFOS_ONCE("RenderBackend")
-            << "Vulkan shadow map render is emitting render-map caster commands. Classic avatar shadow pools, GLTFSceneManager scene shadow casters, and renderGeomShadow remain separate shadow-parity work."
+            << "Vulkan shadow map render is emitting render-map caster commands. Terrain, avatar, and GLTFSceneManager static opaque/alpha-mask shadow casters are emitted separately; GLTFSceneManager rigged standalone scene shadow casters remain separate shadow-parity work."
             << LL_ENDL;
 
         LLWorldRenderCommandBuffer commands;
@@ -11125,6 +11126,14 @@ void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCa
             write_shadow_alpha);
 
         U32 avatar_shadow_command_count = 0;
+        U32 terrain_shadow_command_count = 0;
+        const U32 gltf_scene_shadow_before_count = commands.size();
+        LL::GLTFSceneManager::instance().emitStaticShadowCommands(
+            commands,
+            write_shadow_color,
+            write_shadow_alpha);
+        const U32 gltf_scene_shadow_command_count =
+            commands.size() - gltf_scene_shadow_before_count;
         pool_set_t::iterator shadow_pool_iter = mPools.begin();
         while (shadow_pool_iter != mPools.end())
         {
@@ -11132,10 +11141,12 @@ void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCa
             const U32 pool_type = poolp->getType();
             LLDrawPoolAvatar* base_avatar_poolp =
                 dynamic_cast<LLDrawPoolAvatar*>(poolp);
+            LLDrawPoolTerrain* base_terrain_poolp =
+                dynamic_cast<LLDrawPoolTerrain*>(poolp);
 
             pool_set_t::iterator next_pool_iter = shadow_pool_iter;
             if (hasRenderType(pool_type) &&
-                base_avatar_poolp &&
+                (base_avatar_poolp || base_terrain_poolp) &&
                 poolp->getNumShadowPasses() > 0)
             {
                 poolp->prerender();
@@ -11154,14 +11165,25 @@ void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCa
 
                         LLDrawPoolAvatar* avatar_poolp =
                             dynamic_cast<LLDrawPoolAvatar*>(typed_poolp);
-                        if (!avatar_poolp)
+                        if (avatar_poolp)
                         {
-                            continue;
+                            const U32 before_count = commands.size();
+                            avatar_poolp->emitShadowCommands(commands, pass);
+                            avatar_shadow_command_count += commands.size() - before_count;
                         }
 
-                        const U32 before_count = commands.size();
-                        avatar_poolp->emitShadowCommands(commands, pass);
-                        avatar_shadow_command_count += commands.size() - before_count;
+                        LLDrawPoolTerrain* terrain_poolp =
+                            dynamic_cast<LLDrawPoolTerrain*>(typed_poolp);
+                        if (terrain_poolp)
+                        {
+                            const U32 before_count = commands.size();
+                            terrain_poolp->emitShadowCommands(
+                                commands,
+                                pass,
+                                write_shadow_color,
+                                write_shadow_alpha);
+                            terrain_shadow_command_count += commands.size() - before_count;
+                        }
                     }
                 }
             }
@@ -11186,6 +11208,16 @@ void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCa
             << "Vulkan avatar shadow pool command emission is active; emitted "
             << avatar_shadow_command_count
             << " avatar shadow command(s) in this first shadow pass."
+            << LL_ENDL;
+        LL_INFOS_ONCE("RenderBackend")
+            << "Vulkan terrain shadow pool command emission is active; emitted "
+            << terrain_shadow_command_count
+            << " terrain shadow command(s) in this first shadow pass."
+            << LL_ENDL;
+        LL_INFOS_ONCE("RenderBackend")
+            << "Vulkan GLTFSceneManager static opaque/alpha-mask shadow command emission is active; emitted "
+            << gltf_scene_shadow_command_count
+            << " standalone glTF shadow command(s) in this first shadow pass."
             << LL_ENDL;
 
         submit_vulkan_world_commands(commands);

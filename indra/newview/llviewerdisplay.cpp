@@ -1980,23 +1980,77 @@ static LLRenderTarget* render_vulkan_deferred_light_map_target()
         return false;
     };
 
+    bool sun_shadow_bound[4] = {};
+    bool spot_shadow_bound[2] = {};
     U32 bound_shadow_count = 0;
     for (U32 shadow_index = 0; shadow_index < 4; ++shadow_index)
     {
-        if (bind_shadow_depth_or_white(
+        sun_shadow_bound[shadow_index] =
+            bind_shadow_depth_or_white(
                 gPipeline.getSunShadowTarget(shadow_index),
-                VULKAN_DEFERRED_LIGHT_MAP_SHADOW_UNIT0 + static_cast<S32>(shadow_index)))
+                VULKAN_DEFERRED_LIGHT_MAP_SHADOW_UNIT0 + static_cast<S32>(shadow_index));
+        if (sun_shadow_bound[shadow_index])
         {
             ++bound_shadow_count;
         }
     }
     for (U32 spot_index = 0; spot_index < 2; ++spot_index)
     {
-        if (bind_shadow_depth_or_white(
+        spot_shadow_bound[spot_index] =
+            bind_shadow_depth_or_white(
                 gPipeline.getSpotShadowTarget(spot_index),
-                VULKAN_DEFERRED_LIGHT_MAP_SHADOW_UNIT0 + 4 + static_cast<S32>(spot_index)))
+                VULKAN_DEFERRED_LIGHT_MAP_SHADOW_UNIT0 + 4 + static_cast<S32>(spot_index));
+        if (spot_shadow_bound[spot_index])
         {
             ++bound_shadow_count;
+        }
+    }
+    static U32 sShadowTargetValidationLogCount = 0;
+    if (sShadowTargetValidationLogCount < 4 &&
+        (bound_shadow_count < 6 || sShadowTargetValidationLogCount == 0))
+    {
+        ++sShadowTargetValidationLogCount;
+        LL_INFOS("RenderBackend")
+            << "Vulkan DeferredLightMap shadow target validation: bound "
+            << bound_shadow_count
+            << "/6 depth target(s)."
+            << LL_ENDL;
+        auto log_shadow_target_state =
+            [](const char* label, U32 index, LLRenderTarget* target, bool bound)
+        {
+            LL_INFOS("RenderBackend")
+                << "Vulkan DeferredLightMap shadow target "
+                << label
+                << index
+                << ": present "
+                << (target != nullptr)
+                << ", complete "
+                << (target ? target->isComplete() : false)
+                << ", depth "
+                << (target ? target->getDepth() : 0)
+                << ", size "
+                << (target ? target->getWidth() : 0)
+                << "x"
+                << (target ? target->getHeight() : 0)
+                << ", bound "
+                << bound
+                << LL_ENDL;
+        };
+        for (U32 shadow_index = 0; shadow_index < 4; ++shadow_index)
+        {
+            log_shadow_target_state(
+                "sun",
+                shadow_index,
+                gPipeline.getSunShadowTarget(shadow_index),
+                sun_shadow_bound[shadow_index]);
+        }
+        for (U32 spot_index = 0; spot_index < 2; ++spot_index)
+        {
+            log_shadow_target_state(
+                "spot",
+                spot_index,
+                gPipeline.getSpotShadowTarget(spot_index),
+                spot_shadow_bound[spot_index]);
         }
     }
 

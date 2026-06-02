@@ -508,9 +508,12 @@ Validation status:
       GLTF alpha-mask, and GLTF alpha-blend shadow casters, then submits them
       to the backend shadow shader classes with the same RenderShadowDetail
       color-mask policy as OpenGL. `generateSunShadow()` is no longer skipped
-      for the Vulkan world path. The shadow vertex shaders now use the active
-      world backend push-constant ABI and GPU skinning palette instead of the
-      stale generated `set=1` uniform block.
+      for the Vulkan world path. The generic `shadow.vert` Vulkan port keeps
+      the shared Vulkan shadow caster ABI, including optional skinning/default
+      attributes, while terrain shadow faces request only `MAP_VERTEX` and rely
+      on backend default attributes for the unused inputs. The avatar shadow
+      vertex shaders use the active world backend push-constant ABI and GPU
+      skinning palette instead of the stale generated `set=1` uniform block.
       LightMap sampling progress: `DeferredLightMap` now binds sun shadow
       targets 0..3 and spot shadow targets 0..1 as depth inputs and writes
       OpenGL-style directional shadow, SSAO, and spot shadow terms into
@@ -519,10 +522,24 @@ Validation status:
       shadow commands for opaque, alpha-blend, and alpha-mask avatar shadow
       passes, and avatar joint meshes select the matching avatar shadow
       material class while `LLPipeline::sShadowRender` is active.
-      Remaining shadow work: `GLTFSceneManager` standalone scene shadow
-      casters, non-avatar `renderGeomShadow()` pools, explicit validation of
-      the shadow render-target formats/depth ownership, and visual parity
-      tuning of the manual Vulkan shadow compare/PCF path are still open.
+      Terrain shadow progress: `LLDrawPoolTerrain` now emits Vulkan backend
+      shadow commands for its terrain faces with `MAP_VERTEX` only, preserving
+      the OpenGL terrain shadow draw loop's minimal attribute contract at the
+      command boundary.
+      GLTFSceneManager progress: standalone static opaque and alpha-mask glTF
+      assets now emit Vulkan shadow commands directly from their asset render
+      batches, with asset-to-agent and node-to-asset transforms precomposed
+      into owned backend model matrices. The Vulkan PBR alpha-mask shadow
+      vertex shader now follows the OpenGL `pbrShadowAlphaMaskV.glsl`
+      base-color texture transform contract for KHR texture transforms plus
+      texture animation rows.
+      Remaining shadow work: `GLTFSceneManager` rigged standalone scene shadow
+      casters and visual parity tuning of the manual Vulkan shadow compare/PCF
+      path are still open. Shadow target validation progress:
+      `DeferredLightMap` now logs the first few sun/spot shadow target
+      validation summaries, including target presence, completeness, depth
+      handle, dimensions, and whether each target was actually bound as a
+      depth input.
 - [ ] Final post-processing:
       port and wire the OpenGL post chain as separate class-tier passes:
       glow extraction/blur/combine, gamma/tonemap, FXAA/SMAA/CAS, DoF/cof, and
@@ -1813,11 +1830,13 @@ Known missing runtime coverage:
       pipeline arrays for generic, alpha-mask, avatar, avatar alpha,
       avatar alpha-mask, tree, PBR alpha-mask, and PBR alpha-blend casters.
       Vulkan now emits backend world commands from the OpenGL `renderShadow()`
-      render-map batches and avatar shadow pools, and `generateSunShadow()` is
-      active on the Vulkan world path. Remaining work is
-      `GLTFSceneManager` standalone scene shadow casters, non-avatar
-      `renderGeomShadow()` pools, explicit shadow target ownership validation,
-      and visual parity tuning of the manual Vulkan shadow compare/PCF path.
+      render-map batches plus terrain, avatar, and GLTFSceneManager static
+      opaque/alpha-mask shadow pools, and `generateSunShadow()` is active on
+      the Vulkan world path. Remaining work is `GLTFSceneManager` rigged
+      standalone scene shadow casters and visual parity tuning of the manual
+      Vulkan shadow compare/PCF path. `DeferredLightMap` now logs bounded
+      sun/spot shadow target validation for presence, completeness, depth
+      ownership, dimensions, and bind success.
 - [ ] Final post-processing is not fully Vulkan-native. The active final
       composite now owns exposure/gamma/tonemap settings and a bounded
       CAS-like sharpen, bounded HDR glow approximation, and edge-aware

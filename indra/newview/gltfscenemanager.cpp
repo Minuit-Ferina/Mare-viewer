@@ -49,6 +49,7 @@
 #include "llviewercontrol.h"
 #include "boost/json.hpp"
 #include "llrenderstate.h"
+#include "llworldrendercommand.h"
 
 #define GLTF_SIM_SUPPORT 1
 
@@ -84,6 +85,49 @@ LLRenderTextureFilter to_render_texture_mag_filter(S32 gltf_filter)
     return gltf_filter == GLTF_SAMPLER_NEAREST ?
         LLRenderTextureFilter::Nearest :
         LLRenderTextureFilter::Linear;
+}
+
+LLMatrix4 make_gltf_node_shadow_matrix(const LLMatrix4a& asset_to_agent, const Node& node)
+{
+    const glm::mat4 agent_from_asset = glm::make_mat4((F32*)asset_to_agent.mMatrix);
+    const glm::mat4 agent_from_node = agent_from_asset * node.mAssetMatrix;
+    return LLMatrix4(glm::value_ptr(agent_from_node));
+}
+
+LLWorldRenderTextureTransform2D make_gltf_texture_transform(
+    const TextureTransform& transform)
+{
+    LLWorldRenderTextureTransform2D result;
+    result.mOffsetS = transform.mOffset.x;
+    result.mOffsetT = transform.mOffset.y;
+    result.mScaleS = transform.mScale.x;
+    result.mScaleT = transform.mScale.y;
+    result.mRotation = transform.mRotation;
+    result.mValid = true;
+    return result;
+}
+
+LLViewerTexture* get_gltf_base_color_texture_or_white(
+    Asset& asset,
+    const TextureInfo& texture_info)
+{
+    if (texture_info.mIndex >= 0 &&
+        texture_info.mIndex < static_cast<S32>(asset.mTextures.size()))
+    {
+        const Texture& texture = asset.mTextures[texture_info.mIndex];
+        if (texture.mSource >= 0 &&
+            texture.mSource < static_cast<S32>(asset.mImages.size()))
+        {
+            LLViewerTexture* viewer_texture =
+                asset.mImages[texture.mSource].mTexture.get();
+            if (viewer_texture)
+            {
+                return viewer_texture;
+            }
+        }
+    }
+
+    return LLViewerFetchedTexture::sWhiteImagep.get();
 }
 }
 
@@ -388,6 +432,178 @@ void GLTFSceneManager::renderOpaque()
 void GLTFSceneManager::renderAlpha()
 {
     render(false);
+}
+
+bool GLTFSceneManager::emitStaticShadowCommands(
+    LLWorldRenderCommandBuffer& commands,
+    bool write_color,
+    bool write_alpha)
+{
+    LL_PROFILE_ZONE_SCOPED_CATEGORY_GLTF;
+
+    static LLCachedControl<bool> can_use_shaders(
+        gSavedSettings,
+        "RenderCanUseGLTFPBROpaqueShaders",
+        true);
+    if (!can_use_shaders)
+    {
+        return false;
+    }
+
+    constexpr U8 shadow_variants[] =
+    {
+        0,
+        LLGLSLShader::GLTFVariant::MULTI_UV,
+        LLGLSLShader::GLTFVariant::UNLIT,
+        LLGLSLShader::GLTFVariant::UNLIT | LLGLSLShader::GLTFVariant::MULTI_UV,
+    };
+
+    const U32 before_count = commands.size();
+    for (U32 object_index = 0; object_index < mObjects.size(); ++object_index)
+    {
+        if (mObjects[object_index]->isDead() ||
+            mObjects[object_index]->mGLTFAsset == nullptr)
+        {
+            mObjects.erase(mObjects.begin() + object_index);
+            --object_index;
+            continue;
+        }
+
+        Asset* asset = mObjects[object_index]->mGLTFAsset.get();
+        const LLMatrix4a asset_to_agent =
+            mObjects[object_index]->getGLTFAssetToAgentTransform();
+
+        for (U32 double_sided = 0; double_sided < 2; ++double_sided)
+        {
+            RenderData& render_data = asset->mRenderData[double_sided];
+            for (U8 variant : shadow_variants)
+            {
+                auto& batches = render_data.mBatches[variant];
+                for (U32 batch_index = 0; batch_index < batches.size(); ++batch_index)
+                {
+                    RenderBatch& batch = batches[batch_index];
+                    if (batch.mPrimitives.empty())
+                    {
+                        continue;
+                    }
+
+                    const S32 material_index = static_cast<S32>(batch_index) - 1;
+                    LLWorldRenderMaterialClass shadow_material_class =
+                        LLWorldRenderMaterialClass::Shadow;
+                    LLViewerTexture* base_color_texture = nullptr;
+                    LLColor4 base_color = LLColor4::white;
+                    F32 alpha_mask_cutoff = 0.5f;
+                    LLWorldRenderTextureTransform2D base_color_transform;
+                    if (material_index >= 0)
+                    {
+                        if (material_index >= static_cast<S32>(asset->mMaterials.size()))
+                        {
+                            continue;
+                        }
+
+                        const Material& material = asset->mMaterials[material_index];
+                        if (material.mAlphaMode == Material::AlphaMode::BLEND)
+                        {
+                            continue;
+                        }
+                        if (material.mAlphaMode == Material::AlphaMode::MASK)
+                        {
+                            shadow_material_class =
+                                LLWorldRenderMaterialClass::PBRAlphaMaskShadow;
+                        }
+                        base_color = LLColor4(
+                            glm::value_ptr(
+                                material.mPbrMetallicRoughness.mBaseColorFactor));
+                        alpha_mask_cutoff = material.mAlphaCutoff;
+                        const TextureInfo& base_color_texture_info =
+                            material.mPbrMetallicRoughness.mBaseColorTexture;
+                        base_color_texture =
+                            get_gltf_base_color_texture_or_white(
+                                *asset,
+                                base_color_texture_info);
+                        base_color_transform =
+                            make_gltf_texture_transform(
+                                base_color_texture_info.mTextureTransform);
+                    }
+
+                    for (const RenderBatch::PrimitiveData& primitive_data : batch.mPrimitives)
+                    {
+                        if (primitive_data.mNodeIndex < 0 ||
+                            primitive_data.mNodeIndex >= static_cast<S32>(asset->mNodes.size()))
+                        {
+                            continue;
+                        }
+
+                        Node& node = asset->mNodes[primitive_data.mNodeIndex];
+                        if (node.mMesh < 0 ||
+                            node.mMesh >= static_cast<S32>(asset->mMeshes.size()))
+                        {
+                            continue;
+                        }
+
+                        Mesh& mesh = asset->mMeshes[node.mMesh];
+                        if (primitive_data.mPrimitiveIndex < 0 ||
+                            primitive_data.mPrimitiveIndex >= static_cast<S32>(mesh.mPrimitives.size()))
+                        {
+                            continue;
+                        }
+
+                        Primitive& primitive = mesh.mPrimitives[primitive_data.mPrimitiveIndex];
+                        LLVertexBuffer* vertex_buffer = primitive.mVertexBuffer.get();
+                        if (!vertex_buffer ||
+                            !primitive.getVertexCount() ||
+                            !primitive.getIndexCount())
+                        {
+                            continue;
+                        }
+
+                        const LLMatrix4 model_matrix =
+                            make_gltf_node_shadow_matrix(asset_to_agent, node);
+                        LLWorldRenderCommand* command =
+                            commands.appendOwnedDrawRange(
+                                vertex_buffer,
+                                base_color_texture,
+                                shadow_material_class,
+                                shadow_material_class == LLWorldRenderMaterialClass::PBRAlphaMaskShadow ?
+                                    LLRenderPass::PASS_GLTF_PBR_ALPHA_MASK :
+                                    LLRenderPass::PASS_GLTF_PBR,
+                                model_matrix,
+                                primitive.mVertexOffset,
+                                primitive.mVertexOffset + primitive.getVertexCount() - 1,
+                                primitive.getIndexCount(),
+                                primitive.mIndexOffset,
+                                shadow_material_class == LLWorldRenderMaterialClass::PBRAlphaMaskShadow,
+                                false,
+                                shadow_material_class == LLWorldRenderMaterialClass::PBRAlphaMaskShadow ?
+                                    (LLVertexBuffer::MAP_VERTEX |
+                                        LLVertexBuffer::MAP_TEXCOORD0 |
+                                        LLVertexBuffer::MAP_COLOR) :
+                                    LLVertexBuffer::MAP_VERTEX,
+                                primitive.mGLMode);
+                        if (!command)
+                        {
+                            continue;
+                        }
+
+                        command->mPassClass = LLWorldRenderPassClass::Deferred;
+                        command->mBlendMode = LLWorldRenderBlendMode::None;
+                        command->mDepthMode = LLWorldRenderDepthMode::ReadWrite;
+                        command->mWriteColor = write_color;
+                        command->mWriteAlpha = write_alpha;
+                        command->mBaseColor = base_color;
+                        command->mAlphaMaskCutoff = alpha_mask_cutoff;
+                        command->mBaseColorTextureTransform = base_color_transform;
+                        if (double_sided)
+                        {
+                            command->mCullMode = LLWorldRenderCullMode::Disabled;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return commands.size() != before_count;
 }
 
 void GLTFSceneManager::addGLTFObject(LLViewerObject* obj, LLUUID gltf_id)

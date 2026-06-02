@@ -257,6 +257,11 @@ public:
         LLWorldRenderMaterialClass material_class,
         U32 source_pass);
 
+    void appendTerrainShadowFace(
+        const LLFace& face,
+        bool write_color,
+        bool write_alpha);
+
     void appendTerrainFace(
         const LLFace& face,
         LLViewerTexture* detail_texture0,

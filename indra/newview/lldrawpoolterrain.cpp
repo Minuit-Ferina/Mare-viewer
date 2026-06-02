@@ -434,6 +434,31 @@ void LLDrawPoolTerrain::renderShadow(S32 pass)
     // back-face cull restore not needed here
 }
 
+bool LLDrawPoolTerrain::emitShadowCommands(
+    LLWorldRenderCommandBuffer& commands,
+    S32 pass,
+    bool write_color,
+    bool write_alpha)
+{
+    LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
+
+    if (mDrawFace.empty())
+    {
+        return false;
+    }
+
+    const U32 before_count = commands.size();
+    for (LLFace* facep : mDrawFace)
+    {
+        if (facep)
+        {
+            commands.appendTerrainShadowFace(*facep, write_color, write_alpha);
+        }
+    }
+
+    return commands.size() != before_count;
+}
+
 void LLDrawPoolTerrain::drawLoop()
 {
     if (!mDrawFace.empty())
