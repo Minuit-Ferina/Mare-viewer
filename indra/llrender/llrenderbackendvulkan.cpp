@@ -11381,6 +11381,7 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"terrain", "active/terrain.vert.spv", "class1/deferred/terrain_gbuffer.frag.spv", "terrain G-buffer geometry", "runtime terrain push constants, detail/paint/ORM/emissive/normal textures", "OpenGL terrain and PBR terrain G-buffer writes adapted to the current Vulkan terrain ABI", "bound runtime owner; emissive attachment uses terrain_gbuffer_emissive.frag"},
         {"pbr-terrain", "active/terrain.vert.spv", "class1/deferred/terrain_gbuffer.frag.spv", "PBR terrain G-buffer geometry", "runtime terrain push constants, GLTF terrain factors, paint maps, texture transforms, triplanar normals", "OpenGL PBR terrain G-buffer writes adapted to the current Vulkan terrain ABI", "bound through shared terrain runtime owner; final terrain vertex ABI still pending"},
         {"pbr-opaque", "active/world_textured.vert.spv", "class1/deferred/pbropaque_gbuffer.frag.spv", "opaque GLTF/PBR G-buffer geometry", "runtime-world push constants, GLTF texture transforms, normal/ORM/emissive maps", "OpenGL class1 PBR opaque G-buffer writes adapted to the Vulkan G-buffer layout", "bound runtime owner; emissive attachment uses pbropaque_gbuffer_emissive.frag"},
+        {"legacy-material-runtime", "active/world_textured.vert.spv", "class3/deferred/material_runtime.frag.spv", "legacy material direct/post-deferred geometry", "runtime-world push constants, material texture transforms, normal/specular maps", "OpenGL legacy material direct color output adapted to the current Vulkan world ABI", "bound runtime owner"},
         {"legacy-material-gbuffer", "active/world_textured.vert.spv", "class3/deferred/material_gbuffer.frag.spv", "legacy material G-buffer geometry", "runtime-world push constants, material texture transforms, normal/specular maps", "OpenGL class3 deferred material G-buffer writes adapted to the Vulkan G-buffer layout", "bound runtime owner; emissive attachment uses material_gbuffer_emissive.frag"},
         {"pbr-alpha-class1", "class1/deferred/pbralpha.vert.spv", "class1/deferred/pbralpha.frag.spv", "alpha GLTF/PBR geometry fallback", "pending GLTF/PBR alpha ABI", "OpenGL PBR alpha state", "inventory-only"},
         {"pbr-alpha-class2", "class1/deferred/pbralpha.vert.spv", "class2/deferred/pbralpha.frag.spv", "alpha GLTF/PBR geometry", "pending GLTF/PBR alpha class2 ABI", "OpenGL PBR alpha state", "inventory-only"},
@@ -13791,7 +13792,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mFullbrightFragmentShader =
         get_vulkan_final_shader_module(context, "class1/deferred/fullbright_runtime.frag.spv", "class1 fullbright runtime fragment");
     context.mMaterialFragmentShader =
-        get_vulkan_final_shader_module(context, "active/material.frag.spv", "material fragment");
+        get_vulkan_final_shader_module(context, "class3/deferred/material_runtime.frag.spv", "class3 material runtime fragment");
     context.mPBRFragmentShader =
         get_vulkan_final_shader_module(context, "active/pbr.frag.spv", "PBR fragment");
     context.mAvatarFragmentShader =
