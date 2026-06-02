@@ -431,8 +431,12 @@ Validation status:
       LightMap progress: `LLRenderWorldShaderClass::DeferredLightMap` now
       renders `class2/deferred/sun_light_map_runtime.frag` into `mPostPongMap`
       before `DeferredSoften`. Its SSAO channel is generated from
-      deferredScreen depth/normal. Directional and spot shadow channels remain
-      neutral until Vulkan shadow maps/projector shadow ownership exists.
+      deferredScreen depth/normal. Directional and spot shadow channels now
+      bind the OpenGL-equivalent Vulkan shadow depth inputs and receive the
+      six `mSunShadowMatrix` transforms, clip planes, offsets/biases, and
+      shadow target resolutions through explicit Vulkan composite parameters.
+      Remaining work is parity validation and completing the caster coverage
+      that feeds those maps.
       Environment/emissive progress: the live `DeferredSoften` pass samples
       the fourth G-buffer emissive attachment when present and now binds the
       sky environment cube-map as a read-only composite input. This is still
@@ -475,12 +479,13 @@ Validation status:
       projector texture handles, attenuation/falloff, classic-mode state, and
       the G-buffer/depth/lightFunc input bindings.
       Runtime work remains: Vulkan now produces a read-only `DeferredLightMap`
-      SSAO target before local lights and projector passes bind that target.
+      SSAO/shadow target before local lights and projector passes bind that
+      target.
       The projector collection also mirrors OpenGL's two-light candidate
       selection by updating `mTargetShadowSpotLight` and transports any current
       `mShadowSpotLight` index/fade into the Vulkan spot uniforms. The target's
-      spot shadow channels are intentionally neutral until Vulkan-owned spot
-      shadow-map render passes exist. Reflection-probe cubemap-array
+      directional and spot shadow channels now sample the Vulkan shadow depth
+      targets when those targets are available. Reflection-probe cubemap-array
       selection/parallax remains a separate probe-manager integration task; the
       active composite now has the scalar reflection ambiance and sky cube-map
       fallback, but not the real probe arrays.
@@ -489,9 +494,9 @@ Validation status:
       projector shadow index/fade ownership is transported, emissive is sampled
       by `DeferredSoften`, and the sky cube-map is bound as an environment
       input. Vulkan still needs Vulkan-owned sun/spot shadow-map render passes,
-      non-neutral shadow channels in `DeferredLightMap`, full reflection-probe
-      cubemap/parallax bindings, and final post/composite parity before this
-      item can be closed. Shadow pipeline progress: the Vulkan backend now has
+      full reflection-probe cubemap/parallax bindings, and final
+      post/composite parity before this item can be closed. Shadow pipeline
+      progress: the Vulkan backend now has
       explicit world shader classes and pipeline arrays for generic,
       alpha-mask, avatar, avatar alpha, avatar alpha-mask, tree, PBR
       alpha-mask, and PBR alpha-blend shadow casters. The matching Vulkan
@@ -506,11 +511,18 @@ Validation status:
       for the Vulkan world path. The shadow vertex shaders now use the active
       world backend push-constant ABI and GPU skinning palette instead of the
       stale generated `set=1` uniform block.
-      Remaining shadow work: classic avatar shadow pool commands,
-      `GLTFSceneManager` standalone scene shadow casters, `renderGeomShadow()`,
-      explicit validation of the shadow render-target formats/depth ownership,
-      shadow-map sampling bindings in the lightMap/spot passes, and non-neutral
-      shadow channels in `DeferredLightMap` are still open.
+      LightMap sampling progress: `DeferredLightMap` now binds sun shadow
+      targets 0..3 and spot shadow targets 0..1 as depth inputs and writes
+      OpenGL-style directional shadow, SSAO, and spot shadow terms into
+      `R/G/B/A`.
+      Avatar shadow progress: `LLDrawPoolAvatar` now emits Vulkan backend
+      shadow commands for opaque, alpha-blend, and alpha-mask avatar shadow
+      passes, and avatar joint meshes select the matching avatar shadow
+      material class while `LLPipeline::sShadowRender` is active.
+      Remaining shadow work: `GLTFSceneManager` standalone scene shadow
+      casters, non-avatar `renderGeomShadow()` pools, explicit validation of
+      the shadow render-target formats/depth ownership, and visual parity
+      tuning of the manual Vulkan shadow compare/PCF path are still open.
 - [ ] Final post-processing:
       port and wire the OpenGL post chain as separate class-tier passes:
       glow extraction/blur/combine, gamma/tonemap, FXAA/SMAA/CAS, DoF/cof, and
@@ -1787,12 +1799,13 @@ Known missing runtime coverage:
       G-buffer/depth/lightMap pass. This is the intended owner for the
       OpenGL-style soften-light role. `DeferredLightMap` now provides a
       read-only SSAO lightMap target from depth/normal, and projector
-      candidate/index/fade ownership is transported into Vulkan spot uniforms,
-      but its directional and spot shadow channels are still neutral. Emissive
-      and the sky environment cube-map now feed the live soften pass. Close
-      this only after the remaining graph inputs are real: Vulkan shadow maps,
-      non-neutral shadow channels, reflection-probe cubemap/parallax bindings,
-      and final composite/post parity.
+      candidate/index/fade ownership is transported into Vulkan spot uniforms.
+      Its directional and spot shadow channels now sample the shadow depth
+      targets using transported OpenGL matrices/clip/bias/resolution state.
+      Emissive and the sky environment cube-map now feed the live soften pass.
+      Close this only after the remaining graph inputs are real: complete
+      shadow caster coverage/target validation, reflection-probe
+      cubemap/parallax bindings, and final composite/post parity.
 - [ ] Shadow map rendering is not Vulkan-native. `generateSunShadow()` still
       owns the OpenGL-era shadow render targets, shadow cameras, and
       `renderShadow()` flow. Vulkan now has explicit shadow shader classes,
@@ -1800,12 +1813,11 @@ Known missing runtime coverage:
       pipeline arrays for generic, alpha-mask, avatar, avatar alpha,
       avatar alpha-mask, tree, PBR alpha-mask, and PBR alpha-blend casters.
       Vulkan now emits backend world commands from the OpenGL `renderShadow()`
-      render-map batches and `generateSunShadow()` is active on the Vulkan
-      world path. Remaining work is classic avatar shadow-pool commands,
-      `GLTFSceneManager` standalone scene shadow casters, `renderGeomShadow()`,
-      explicit shadow target ownership validation, shadow-map texture bindings
-      in `DeferredLightMap`/spot lighting, and non-neutral shadow channels in
-      `DeferredLightMap`.
+      render-map batches and avatar shadow pools, and `generateSunShadow()` is
+      active on the Vulkan world path. Remaining work is
+      `GLTFSceneManager` standalone scene shadow casters, non-avatar
+      `renderGeomShadow()` pools, explicit shadow target ownership validation,
+      and visual parity tuning of the manual Vulkan shadow compare/PCF path.
 - [ ] Final post-processing is not fully Vulkan-native. The active final
       composite now owns exposure/gamma/tonemap settings and a bounded
       CAS-like sharpen, bounded HDR glow approximation, and edge-aware

@@ -97,6 +97,49 @@ struct LLVulkanDeferredCompositeSettings
         0.f, 0.f, 1.f, 0.f,
         0.f, 0.f, 0.f, 1.f,
     };
+    F32 mShadowMatrix[16 * 6] =
+    {
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+    };
+    F32 mShadowClip[4] =
+    {
+        1.f, 64.f, 128.f, 256.f,
+    };
+    F32 mShadowSettings[4] =
+    {
+        0.f, 0.f, 0.f, 0.f,
+    };
+    F32 mShadowResolution[4] =
+    {
+        1.f, 1.f, 1.f, 1.f,
+    };
+    F32 mShadowRuntime[4] =
+    {
+        0.f, 0.f, 0.f, 0.f,
+    };
 };
 
 inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_parameters(
@@ -173,6 +216,22 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
     {
         parameters.mCompositeInverseProjection[i] =
             settings.mInverseProjection[i];
+    }
+    for (U32 i = 0; i < 16 * 6; ++i)
+    {
+        parameters.mCompositeShadowMatrix[i] =
+            settings.mShadowMatrix[i];
+    }
+    for (U32 i = 0; i < 4; ++i)
+    {
+        parameters.mCompositeShadowClip[i] =
+            settings.mShadowClip[i];
+        parameters.mCompositeShadowSettings[i] =
+            settings.mShadowSettings[i];
+        parameters.mCompositeShadowResolution[i] =
+            settings.mShadowResolution[i];
+        parameters.mCompositeShadowRuntime[i] =
+            settings.mShadowRuntime[i];
     }
 
     return parameters;

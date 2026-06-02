@@ -760,6 +760,46 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     {
         settings.mInverseProjection[i] = inverse_projection_values[i];
     }
+    for (U32 shadow_index = 0; shadow_index < 6; ++shadow_index)
+    {
+        const F32* shadow_matrix_values =
+            glm::value_ptr(gPipeline.mSunShadowMatrix[shadow_index]);
+        for (U32 i = 0; i < 16; ++i)
+        {
+            settings.mShadowMatrix[shadow_index * 16 + i] =
+                shadow_matrix_values[i];
+        }
+    }
+    settings.mShadowClip[0] = gPipeline.mSunClipPlanes.mV[VX];
+    settings.mShadowClip[1] = gPipeline.mSunClipPlanes.mV[VY];
+    settings.mShadowClip[2] = gPipeline.mSunClipPlanes.mV[VZ];
+    settings.mShadowClip[3] = gPipeline.mSunClipPlanes.mV[VW];
+    const F32 camera_height =
+        camera ? fabsf(camera->getOrigin().mV[VZ]) : 0.f;
+    const F32 shadow_bias =
+        LLPipeline::RenderShadowBias +
+        LLPipeline::RenderShadowBiasError * camera_height / 3000.f;
+    settings.mShadowSettings[0] = LLPipeline::RenderShadowOffset;
+    settings.mShadowSettings[1] = shadow_bias;
+    settings.mShadowSettings[2] = LLPipeline::RenderSpotShadowOffset;
+    settings.mShadowSettings[3] = LLPipeline::RenderSpotShadowBias;
+    LLRenderTarget* sun_shadow_target = gPipeline.getSunShadowTarget(0);
+    LLRenderTarget* spot_shadow_target = gPipeline.getSpotShadowTarget(0);
+    settings.mShadowResolution[0] =
+        sun_shadow_target ? static_cast<F32>(sun_shadow_target->getWidth()) : 1.f;
+    settings.mShadowResolution[1] =
+        sun_shadow_target ? static_cast<F32>(sun_shadow_target->getHeight()) : 1.f;
+    settings.mShadowResolution[2] =
+        spot_shadow_target ? static_cast<F32>(spot_shadow_target->getWidth()) : 1.f;
+    settings.mShadowResolution[3] =
+        spot_shadow_target ? static_cast<F32>(spot_shadow_target->getHeight()) : 1.f;
+    settings.mShadowRuntime[0] =
+        LLPipeline::RenderShadowDetail > 0 && sun_shadow_target ? 1.f : 0.f;
+    settings.mShadowRuntime[1] =
+        LLPipeline::RenderShadowDetail > 1 && !gCubeSnapshot && spot_shadow_target ? 1.f : 0.f;
+    settings.mShadowRuntime[2] =
+        static_cast<F32>(LLPipeline::RenderShadowSplits);
+    settings.mShadowRuntime[3] = gCubeSnapshot ? 1.f : 0.f;
 
     return make_vulkan_deferred_composite_material_parameters(settings);
 }
@@ -1634,7 +1674,7 @@ static void render_vulkan_deferred_local_point_lights(
             << spot_light_volumes.size()
             << ", fullscreen spots "
             << multi_spot_lights.size()
-            << ". Spot shadow/lightMap sampling reads the DeferredLightMap target; shadow channels remain neutral until Vulkan shadow maps are wired."
+            << ". Spot shadow/lightMap sampling reads the DeferredLightMap SSAO/shadow target."
             << LL_ENDL;
     }
 
@@ -1920,6 +1960,45 @@ static LLRenderTarget* render_vulkan_deferred_light_map_target()
     }
     const bool deferred_depth_bound =
         gGL.getTexUnit(4)->bind(&gPipeline.mRT->deferredScreen, true);
+    constexpr S32 VULKAN_DEFERRED_LIGHT_MAP_SHADOW_UNIT0 = 9;
+    auto bind_shadow_depth_or_white = [](LLRenderTarget* shadow_target, S32 unit)
+    {
+        if (shadow_target &&
+            shadow_target->isComplete() &&
+            shadow_target->getDepth() != 0 &&
+            gGL.getTexUnit(unit)->bind(shadow_target, true))
+        {
+            gGL.getTexUnit(unit)->setTextureFilteringOption(LLTexUnit::TFO_POINT);
+            gGL.getTexUnit(unit)->setTextureAddressMode(LLTexUnit::TAM_CLAMP);
+            return true;
+        }
+
+        if (!LLViewerFetchedTexture::sWhiteImagep.isNull())
+        {
+            gGL.getTexUnit(unit)->bind(LLViewerFetchedTexture::sWhiteImagep);
+        }
+        return false;
+    };
+
+    U32 bound_shadow_count = 0;
+    for (U32 shadow_index = 0; shadow_index < 4; ++shadow_index)
+    {
+        if (bind_shadow_depth_or_white(
+                gPipeline.getSunShadowTarget(shadow_index),
+                VULKAN_DEFERRED_LIGHT_MAP_SHADOW_UNIT0 + static_cast<S32>(shadow_index)))
+        {
+            ++bound_shadow_count;
+        }
+    }
+    for (U32 spot_index = 0; spot_index < 2; ++spot_index)
+    {
+        if (bind_shadow_depth_or_white(
+                gPipeline.getSpotShadowTarget(spot_index),
+                VULKAN_DEFERRED_LIGHT_MAP_SHADOW_UNIT0 + 4 + static_cast<S32>(spot_index)))
+        {
+            ++bound_shadow_count;
+        }
+    }
 
     LLGLSUIDefault gls_ui;
     LLGLDepthTest depth(false);
@@ -1962,10 +2041,18 @@ static LLRenderTarget* render_vulkan_deferred_light_map_target()
     {
         gGL.getTexUnit(4)->unbind(LLTexUnit::TT_TEXTURE);
     }
+    for (U32 shadow_index = 0; shadow_index < 6; ++shadow_index)
+    {
+        gGL.getTexUnit(
+            VULKAN_DEFERRED_LIGHT_MAP_SHADOW_UNIT0 + static_cast<S32>(shadow_index))->unbind(
+                LLTexUnit::TT_TEXTURE);
+    }
 
     light_map_target.flush();
     LL_INFOS_ONCE("RenderBackend")
-        << "Vulkan DeferredLightMap target is active. SSAO is generated from depth/normal; directional and spot shadow channels are neutral until Vulkan shadow maps are wired."
+        << "Vulkan DeferredLightMap target is active. SSAO is generated from depth/normal; "
+        << bound_shadow_count
+        << " shadow depth input(s) are bound for directional/spot shadow channels."
         << LL_ENDL;
     return &light_map_target;
 }

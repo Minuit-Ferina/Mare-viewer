@@ -761,6 +761,165 @@ void LLDrawPoolAvatar::renderShadow(S32 pass)
     }
 }
 
+bool LLDrawPoolAvatar::emitShadowCommands(LLWorldRenderCommandBuffer& commands, S32 pass)
+{
+//MK from CY
+    static LLCachedControl<U32> RestrainedLoveAvatarShadows(gSavedSettings, "RestrainedLoveAvatarShadows", 2);
+    if (RestrainedLoveAvatarShadows == 0)
+    {
+        return true;
+    }
+//mk from cy
+
+    LL_PROFILE_ZONE_SCOPED_CATEGORY_AVATAR;
+
+    auto log_avatar_shadow_command_state = [this, pass](const char* reason, LLVOAvatar* avatarp = nullptr)
+    {
+        static U32 sLoggedAvatarShadowCommandState = 0;
+        if (sLoggedAvatarShadowCommandState >= 32)
+        {
+            return;
+        }
+
+        LL_INFOS("RenderBackend")
+            << "Vulkan avatar shadow command state "
+            << sLoggedAvatarShadowCommandState
+            << ": pass "
+            << pass
+            << ", reason "
+            << reason
+            << ", draw faces "
+            << mDrawFace.size();
+
+        if (avatarp)
+        {
+            LL_CONT
+                << ", self "
+                << avatarp->isSelf()
+                << ", ui "
+                << avatarp->isUIAvatar()
+                << ", control "
+                << avatarp->isControlAvatar()
+                << ", dead "
+                << avatarp->isDead()
+                << ", fully loaded "
+                << avatarp->isFullyLoaded()
+                << ", impostor "
+                << avatarp->isImpostor()
+                << ", too slow "
+                << avatarp->isTooSlow()
+                << ", appearance "
+                << static_cast<S32>(avatarp->getOverallAppearance());
+        }
+
+        LL_CONT << LL_ENDL;
+        ++sLoggedAvatarShadowCommandState;
+    };
+
+    if (pass != SHADOW_PASS_AVATAR_OPAQUE &&
+        pass != SHADOW_PASS_AVATAR_ALPHA_BLEND &&
+        pass != SHADOW_PASS_AVATAR_ALPHA_MASK)
+    {
+        log_avatar_shadow_command_state("unsupported shadow pass");
+        return false;
+    }
+
+    if (mDrawFace.empty())
+    {
+        log_avatar_shadow_command_state("empty draw face list");
+        return false;
+    }
+
+    const LLFace* facep = mDrawFace[0];
+    if (!facep->getDrawable())
+    {
+        log_avatar_shadow_command_state("missing drawable");
+        return false;
+    }
+
+    LLVOAvatar* avatarp = (LLVOAvatar*)facep->getDrawable()->getVObj().get();
+    if (!avatarp || avatarp->isDead() || avatarp->isUIAvatar() || avatarp->mDrawable.isNull())
+    {
+        log_avatar_shadow_command_state("missing, dead, ui, or drawable-less avatar", avatarp);
+        return true;
+    }
+
+    static LLCachedControl<bool> friends_only(gSavedSettings, "RenderAvatarFriendsOnly", false);
+    if (friends_only()
+        && !avatarp->isControlAvatar()
+        && !avatarp->isSelf()
+        && !avatarp->isBuddy())
+    {
+        log_avatar_shadow_command_state("friends-only filter", avatarp);
+        return true;
+    }
+
+    const LLVOAvatar::AvatarOverallAppearance appearance =
+        avatarp->getOverallAppearance();
+    const bool impostor =
+        !LLPipeline::sImpostorRender && avatarp->isImpostor();
+    if (avatarp->isTooSlow() ||
+        impostor ||
+        appearance == LLVOAvatar::AOA_INVISIBLE)
+    {
+        log_avatar_shadow_command_state("avatar shadow filter", avatarp);
+        return true;
+    }
+
+    struct LLScopedAvatarShadowCommandState
+    {
+        LLScopedAvatarShadowCommandState(S32 pass)
+        {
+            mSavedShadowPass = LLDrawPoolAvatar::sShadowPass;
+            mSavedSkipOpaque = LLDrawPoolAvatar::sSkipOpaque;
+            mSavedSkipTransparent = LLDrawPoolAvatar::sSkipTransparent;
+            mSavedRenderingSkinned = sRenderingSkinned;
+
+            LLDrawPoolAvatar::sShadowPass = pass;
+            sRenderingSkinned = true;
+            if (pass == SHADOW_PASS_AVATAR_OPAQUE)
+            {
+                LLDrawPoolAvatar::sSkipTransparent = true;
+                LLDrawPoolAvatar::sSkipOpaque = false;
+            }
+            else
+            {
+                LLDrawPoolAvatar::sSkipOpaque = true;
+                LLDrawPoolAvatar::sSkipTransparent = false;
+            }
+        }
+
+        ~LLScopedAvatarShadowCommandState()
+        {
+            sRenderingSkinned = mSavedRenderingSkinned;
+            LLDrawPoolAvatar::sSkipTransparent = mSavedSkipTransparent;
+            LLDrawPoolAvatar::sSkipOpaque = mSavedSkipOpaque;
+            LLDrawPoolAvatar::sShadowPass = mSavedShadowPass;
+        }
+
+        S32 mSavedShadowPass = -1;
+        bool mSavedSkipOpaque = false;
+        bool mSavedSkipTransparent = false;
+        bool mSavedRenderingSkinned = false;
+    } scoped_state(pass);
+
+    const U32 command_count_before = commands.size();
+    if (pass == SHADOW_PASS_AVATAR_OPAQUE)
+    {
+        avatarp->emitSkinnedWorldCommands(commands);
+    }
+    else
+    {
+        avatarp->emitTransparentWorldCommands(commands, true);
+    }
+
+    const U32 emitted_count = commands.size() - command_count_before;
+    log_avatar_shadow_command_state(
+        emitted_count ? "emitted shadow commands" : "no shadow commands emitted",
+        avatarp);
+    return true;
+}
+
 S32 LLDrawPoolAvatar::getNumPasses()
 {
     return 3;

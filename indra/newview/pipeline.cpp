@@ -11123,6 +11123,71 @@ void LLPipeline::renderShadow(const glm::mat4& view, const glm::mat4& proj, LLCa
             commands,
             write_shadow_color,
             write_shadow_alpha);
+
+        U32 avatar_shadow_command_count = 0;
+        pool_set_t::iterator shadow_pool_iter = mPools.begin();
+        while (shadow_pool_iter != mPools.end())
+        {
+            LLDrawPool* poolp = *shadow_pool_iter;
+            const U32 pool_type = poolp->getType();
+            LLDrawPoolAvatar* base_avatar_poolp =
+                dynamic_cast<LLDrawPoolAvatar*>(poolp);
+
+            pool_set_t::iterator next_pool_iter = shadow_pool_iter;
+            if (hasRenderType(pool_type) &&
+                base_avatar_poolp &&
+                poolp->getNumShadowPasses() > 0)
+            {
+                poolp->prerender();
+
+                for (S32 pass = 0; pass < poolp->getNumShadowPasses(); ++pass)
+                {
+                    for (next_pool_iter = shadow_pool_iter;
+                        next_pool_iter != mPools.end();
+                        ++next_pool_iter)
+                    {
+                        LLDrawPool* typed_poolp = *next_pool_iter;
+                        if (typed_poolp->getType() != pool_type)
+                        {
+                            break;
+                        }
+
+                        LLDrawPoolAvatar* avatar_poolp =
+                            dynamic_cast<LLDrawPoolAvatar*>(typed_poolp);
+                        if (!avatar_poolp)
+                        {
+                            continue;
+                        }
+
+                        const U32 before_count = commands.size();
+                        avatar_poolp->emitShadowCommands(commands, pass);
+                        avatar_shadow_command_count += commands.size() - before_count;
+                    }
+                }
+            }
+            else
+            {
+                for (next_pool_iter = shadow_pool_iter;
+                    next_pool_iter != mPools.end();
+                    ++next_pool_iter)
+                {
+                    LLDrawPool* typed_poolp = *next_pool_iter;
+                    if (typed_poolp->getType() != pool_type)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            shadow_pool_iter = next_pool_iter;
+        }
+
+        LL_INFOS_ONCE("RenderBackend")
+            << "Vulkan avatar shadow pool command emission is active; emitted "
+            << avatar_shadow_command_count
+            << " avatar shadow command(s) in this first shadow pass."
+            << LL_ENDL;
+
         submit_vulkan_world_commands(commands);
 
         gGL.setColorMask(true, true);

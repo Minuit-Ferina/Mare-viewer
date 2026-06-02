@@ -412,10 +412,26 @@ U32 LLViewerJointMesh::appendWorldCommand(
     const U32 start = mMesh->mFaceVertexOffset;
     const U32 end = start + mMesh->mFaceVertexCount - 1;
     const U32 offset = mMesh->mFaceIndexOffset;
-    const LLWorldRenderMaterialClass material_class =
+    LLWorldRenderMaterialClass material_class =
         alpha_pass ?
             LLWorldRenderMaterialClass::Alpha :
             LLWorldRenderMaterialClass::Avatar;
+    if (LLPipeline::sShadowRender)
+    {
+        switch (LLDrawPoolAvatar::sShadowPass)
+        {
+            case LLDrawPoolAvatar::SHADOW_PASS_AVATAR_ALPHA_BLEND:
+                material_class = LLWorldRenderMaterialClass::AvatarAlphaShadow;
+                break;
+            case LLDrawPoolAvatar::SHADOW_PASS_AVATAR_ALPHA_MASK:
+                material_class = LLWorldRenderMaterialClass::AvatarAlphaMaskShadow;
+                break;
+            case LLDrawPoolAvatar::SHADOW_PASS_AVATAR_OPAQUE:
+            default:
+                material_class = LLWorldRenderMaterialClass::AvatarShadow;
+                break;
+        }
+    }
 
     if (!mMesh->hasWeights())
     {

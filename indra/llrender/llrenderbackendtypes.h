@@ -663,6 +663,49 @@ struct LLRenderWorldMaterialParameters
         0.f, 0.f, 1.f, 0.f,
         0.f, 0.f, 0.f, 1.f,
     };
+    F32 mCompositeShadowMatrix[16 * 6] =
+    {
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        0.f, 0.f, 0.f, 1.f,
+    };
+    F32 mCompositeShadowClip[4] =
+    {
+        1.f, 64.f, 128.f, 256.f,
+    };
+    F32 mCompositeShadowSettings[4] =
+    {
+        0.f, 0.f, 0.f, 0.f,
+    };
+    F32 mCompositeShadowResolution[4] =
+    {
+        1.f, 1.f, 1.f, 1.f,
+    };
+    F32 mCompositeShadowRuntime[4] =
+    {
+        0.f, 0.f, 0.f, 0.f,
+    };
     F32 mLocalLight[MaxDeferredMultiLightCount * 4] = {};
     F32 mLocalLightColor[MaxDeferredMultiLightCount * 4] = {};
     F32 mLocalLightScreenSettings[4] =

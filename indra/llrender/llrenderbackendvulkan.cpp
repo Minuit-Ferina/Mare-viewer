@@ -1656,6 +1656,24 @@ struct LLVulkanWorldPushConstants
     glm::vec4 mCompositeExtra = glm::vec4(0.f, 0.f, 0.f, 0.f);
 };
 
+struct LLVulkanDeferredLightMapUniforms
+{
+    glm::mat4 mInverseProjection = glm::mat4(1.f);
+    glm::mat4 mShadowMatrix[6] =
+    {
+        glm::mat4(1.f),
+        glm::mat4(1.f),
+        glm::mat4(1.f),
+        glm::mat4(1.f),
+        glm::mat4(1.f),
+        glm::mat4(1.f),
+    };
+    glm::vec4 mShadowClip = glm::vec4(1.f, 64.f, 128.f, 256.f);
+    glm::vec4 mShadowSettings = glm::vec4(0.f, 0.f, 0.f, 0.f);
+    glm::vec4 mShadowResolution = glm::vec4(1.f, 1.f, 1.f, 1.f);
+    glm::vec4 mShadowRuntime = glm::vec4(0.f, 0.f, 0.f, 0.f);
+};
+
 struct LLVulkanPointLightUniforms
 {
     glm::mat4 mModelviewProjection = glm::mat4(1.f);
@@ -8174,6 +8192,30 @@ glm::vec4 make_vulkan_local_light_env_row(
         0.f);
 }
 
+LLVulkanDeferredLightMapUniforms make_vulkan_deferred_light_map_uniforms(
+    const LLVulkanPendingDraw& draw)
+{
+    const LLRenderWorldMaterialParameters& parameters = draw.mMaterialParameters;
+    LLVulkanDeferredLightMapUniforms uniforms;
+    uniforms.mInverseProjection =
+        glm::make_mat4(parameters.mCompositeInverseProjection);
+    for (U32 shadow_index = 0; shadow_index < 6; ++shadow_index)
+    {
+        uniforms.mShadowMatrix[shadow_index] =
+            glm::make_mat4(
+                &parameters.mCompositeShadowMatrix[shadow_index * 16]);
+    }
+    uniforms.mShadowClip =
+        glm::make_vec4(parameters.mCompositeShadowClip);
+    uniforms.mShadowSettings =
+        glm::make_vec4(parameters.mCompositeShadowSettings);
+    uniforms.mShadowResolution =
+        glm::make_vec4(parameters.mCompositeShadowResolution);
+    uniforms.mShadowRuntime =
+        glm::make_vec4(parameters.mCompositeShadowRuntime);
+    return uniforms;
+}
+
 LLVulkanPointLightUniforms make_vulkan_point_light_uniforms(
     const LLVulkanPendingDraw& draw)
 {
@@ -11872,8 +11914,8 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"pbr-alpha-blend-shadow", "class1/deferred/pbr_shadow_alpha_mask.vert.spv", "class1/deferred/pbr_shadow_alpha_blend.frag.spv", "PBR alpha-blend shadow caster"},
         {"sun-light", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light.frag.spv", "sunlight and soften pass"},
         {"sun-light-ssao", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light_ssao.frag.spv", "sunlight with SSAO"},
-        {"deferred-light-map-runtime", "active/world_textured.vert.spv", "class2/deferred/sun_light_map_runtime.frag.spv", "sun/SSAO lightMap pass", "fullscreen runtime lightMap ABI with G-buffer normal/depth inputs", "OpenGL sunLight/sunLightSSAO role isolated behind DeferredLightMap owner", "bound runtime owner; directional and spot shadow channels stay neutral until Vulkan shadow maps exist"},
-        {"deferred-soften-class3", "active/world_textured.vert.spv", "class3/deferred/soften_light.frag.spv", "deferred soften/composite pass", "fullscreen runtime composite ABI with G-buffer, depth, and lightMap inputs", "OpenGL softenLight role isolated behind DeferredSoften owner", "bound runtime owner; lightMap is produced by DeferredLightMap but shadow channels are neutral until Vulkan shadow maps exist"},
+        {"deferred-light-map-runtime", "active/world_textured.vert.spv", "class2/deferred/sun_light_map_runtime.frag.spv", "sun/SSAO/shadow lightMap pass", "fullscreen runtime lightMap ABI with G-buffer normal/depth and shadow-map inputs", "OpenGL sunLight/sunLightSSAO role isolated behind DeferredLightMap owner", "bound runtime owner; directional and spot shadow channels sample Vulkan shadow depth inputs"},
+        {"deferred-soften-class3", "active/world_textured.vert.spv", "class3/deferred/soften_light.frag.spv", "deferred soften/composite pass", "fullscreen runtime composite ABI with G-buffer, depth, and lightMap inputs", "OpenGL softenLight role isolated behind DeferredSoften owner", "bound runtime owner; lightMap is produced by DeferredLightMap with SSAO/shadow channels"},
         {"deferred-composite-runtime", "active/world_textured.vert.spv", "class3/deferred/deferred_composite_runtime.frag.spv", "runtime deferred composite/lighting approximation", "active fullscreen adapter plus current G-buffer/depth/light inputs", "bootstrap deferred composite adapter isolated from final class3 soften_light.frag", "bound runtime owner; not strict OpenGL parity"},
         {"point-light", "class3/deferred/point_light.vert.spv", "class3/deferred/point_light.frag.spv", "local point lights"},
         {"multi-point-light", "class3/deferred/multi_point_light.vert.spv", "class3/deferred/multi_point_light.frag.spv", "fullscreen local lights"},
@@ -19685,7 +19727,22 @@ bool record_vulkan_frame_command_buffer(
             0,
             nullptr);
         LLVkDescriptorSet world_uniform_descriptor_set = nullptr;
-        if (use_point_light_pipeline)
+        if (use_deferred_light_map_pipeline)
+        {
+            const LLVulkanDeferredLightMapUniforms uniforms =
+                make_vulkan_deferred_light_map_uniforms(draw);
+            world_uniform_descriptor_set =
+                create_vulkan_world_uniform_descriptor_set(
+                    context,
+                    &uniforms,
+                    sizeof(uniforms));
+            if (!world_uniform_descriptor_set)
+            {
+                ++missing_buffer_count;
+                continue;
+            }
+        }
+        else if (use_point_light_pipeline)
         {
             const LLVulkanPointLightUniforms uniforms =
                 make_vulkan_point_light_uniforms(draw);
