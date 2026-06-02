@@ -1754,6 +1754,14 @@ bool is_vulkan_default_world_overlay_draw(const LLVulkanPendingDraw& draw)
         draw.mWorldShaderClass != LLRenderWorldShaderClass::MultiPointLight &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::SpotLight &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::MultiSpotLight &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::Shadow &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::ShadowAlphaMask &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::AvatarShadow &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::AvatarAlphaShadow &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::AvatarAlphaMaskShadow &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::TreeShadow &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::PBRAlphaMaskShadow &&
+        draw.mWorldShaderClass != LLRenderWorldShaderClass::PBRAlphaBlendShadow &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredLightMap &&
         draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredSoften &&
@@ -1938,6 +1946,14 @@ struct LLVulkanPipelineSet
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mPBRPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mAvatarPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mTerrainPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mShadowAlphaMaskPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mAvatarShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mAvatarAlphaShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mAvatarAlphaMaskShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mTreeShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mPBRAlphaMaskShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mPBRAlphaBlendShadowPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mPointLightPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mMultiPointLightPipelines = {};
     std::array<
@@ -2010,6 +2026,20 @@ struct LLVulkanNativeContext
     LLVkShaderModule mMaterialFragmentShader = nullptr;
     LLVkShaderModule mPBRFragmentShader = nullptr;
     LLVkShaderModule mAvatarFragmentShader = nullptr;
+    LLVkShaderModule mShadowVertexShader = nullptr;
+    LLVkShaderModule mShadowFragmentShader = nullptr;
+    LLVkShaderModule mShadowAlphaMaskVertexShader = nullptr;
+    LLVkShaderModule mShadowAlphaMaskFragmentShader = nullptr;
+    LLVkShaderModule mAvatarShadowVertexShader = nullptr;
+    LLVkShaderModule mAvatarShadowFragmentShader = nullptr;
+    LLVkShaderModule mAvatarAlphaShadowVertexShader = nullptr;
+    LLVkShaderModule mAvatarAlphaShadowFragmentShader = nullptr;
+    LLVkShaderModule mAvatarAlphaMaskShadowFragmentShader = nullptr;
+    LLVkShaderModule mTreeShadowVertexShader = nullptr;
+    LLVkShaderModule mTreeShadowFragmentShader = nullptr;
+    LLVkShaderModule mPBRAlphaMaskShadowVertexShader = nullptr;
+    LLVkShaderModule mPBRAlphaMaskShadowFragmentShader = nullptr;
+    LLVkShaderModule mPBRAlphaBlendShadowFragmentShader = nullptr;
     LLVkShaderModule mWorldGBufferVertexShader = nullptr;
     LLVkShaderModule mWorldGBufferFragmentShader = nullptr;
     LLVkShaderModule mWorldGBufferEmissiveFragmentShader = nullptr;
@@ -2060,6 +2090,14 @@ struct LLVulkanNativeContext
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mPBRPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mAvatarPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mTerrainPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mShadowAlphaMaskPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mAvatarShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mAvatarAlphaShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mAvatarAlphaMaskShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mTreeShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mPBRAlphaMaskShadowPipelines = {};
+    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mPBRAlphaBlendShadowPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mPointLightPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mMultiPointLightPipelines = {};
     std::array<
@@ -11827,8 +11865,11 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"shadow", "class1/deferred/shadow.vert.spv", "class1/deferred/shadow.frag.spv", "generic shadow caster"},
         {"shadow-alpha-mask", "class1/deferred/shadow_alpha_mask.vert.spv", "class1/deferred/shadow_alpha_mask.frag.spv", "alpha-mask shadow caster"},
         {"avatar-shadow", "class1/deferred/avatar_shadow.vert.spv", "class1/deferred/avatar_shadow.frag.spv", "avatar shadow caster"},
+        {"avatar-alpha-shadow", "class1/deferred/avatar_alpha_shadow.vert.spv", "class1/deferred/avatar_alpha_shadow.frag.spv", "avatar alpha shadow caster"},
+        {"avatar-alpha-mask-shadow", "class1/deferred/avatar_alpha_shadow.vert.spv", "class1/deferred/avatar_alpha_mask_shadow.frag.spv", "avatar alpha-mask shadow caster"},
         {"tree-shadow", "class1/deferred/tree_shadow.vert.spv", "class1/deferred/tree_shadow.frag.spv", "tree shadow caster"},
         {"pbr-alpha-shadow", "class1/deferred/pbr_shadow_alpha_mask.vert.spv", "class1/deferred/pbr_shadow_alpha_mask.frag.spv", "PBR alpha-mask shadow caster"},
+        {"pbr-alpha-blend-shadow", "class1/deferred/pbr_shadow_alpha_mask.vert.spv", "class1/deferred/pbr_shadow_alpha_blend.frag.spv", "PBR alpha-blend shadow caster"},
         {"sun-light", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light.frag.spv", "sunlight and soften pass"},
         {"sun-light-ssao", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light_ssao.frag.spv", "sunlight with SSAO"},
         {"deferred-light-map-runtime", "active/world_textured.vert.spv", "class2/deferred/sun_light_map_runtime.frag.spv", "sun/SSAO lightMap pass", "fullscreen runtime lightMap ABI with G-buffer normal/depth inputs", "OpenGL sunLight/sunLightSSAO role isolated behind DeferredLightMap owner", "bound runtime owner; directional and spot shadow channels stay neutral until Vulkan shadow maps exist"},
@@ -11987,6 +12028,14 @@ void destroy_vulkan_pipeline_set(
     destroy_vulkan_pipeline_array(context, pipeline_set.mPBRPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mAvatarPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mTerrainPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mShadowPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mShadowAlphaMaskPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mAvatarShadowPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mAvatarAlphaShadowPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mAvatarAlphaMaskShadowPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mTreeShadowPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mPBRAlphaMaskShadowPipelines);
+    destroy_vulkan_pipeline_array(context, pipeline_set.mPBRAlphaBlendShadowPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mPointLightPipelines);
     destroy_vulkan_pipeline_array(context, pipeline_set.mMultiPointLightPipelines);
     for (auto& pipelines : pipeline_set.mSpotLightPipelines)
@@ -12032,6 +12081,14 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     destroy_vulkan_pipeline_array(context, context.mPBRPipelines);
     destroy_vulkan_pipeline_array(context, context.mAvatarPipelines);
     destroy_vulkan_pipeline_array(context, context.mTerrainPipelines);
+    destroy_vulkan_pipeline_array(context, context.mShadowPipelines);
+    destroy_vulkan_pipeline_array(context, context.mShadowAlphaMaskPipelines);
+    destroy_vulkan_pipeline_array(context, context.mAvatarShadowPipelines);
+    destroy_vulkan_pipeline_array(context, context.mAvatarAlphaShadowPipelines);
+    destroy_vulkan_pipeline_array(context, context.mAvatarAlphaMaskShadowPipelines);
+    destroy_vulkan_pipeline_array(context, context.mTreeShadowPipelines);
+    destroy_vulkan_pipeline_array(context, context.mPBRAlphaMaskShadowPipelines);
+    destroy_vulkan_pipeline_array(context, context.mPBRAlphaBlendShadowPipelines);
     destroy_vulkan_pipeline_array(context, context.mPointLightPipelines);
     destroy_vulkan_pipeline_array(context, context.mMultiPointLightPipelines);
     for (auto& pipelines : context.mSpotLightPipelines)
@@ -12182,6 +12239,62 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         {
             destroy_shader_module_once(context.mAvatarFragmentShader);
         }
+        if (context.mShadowVertexShader)
+        {
+            destroy_shader_module_once(context.mShadowVertexShader);
+        }
+        if (context.mShadowFragmentShader)
+        {
+            destroy_shader_module_once(context.mShadowFragmentShader);
+        }
+        if (context.mShadowAlphaMaskVertexShader)
+        {
+            destroy_shader_module_once(context.mShadowAlphaMaskVertexShader);
+        }
+        if (context.mShadowAlphaMaskFragmentShader)
+        {
+            destroy_shader_module_once(context.mShadowAlphaMaskFragmentShader);
+        }
+        if (context.mAvatarShadowVertexShader)
+        {
+            destroy_shader_module_once(context.mAvatarShadowVertexShader);
+        }
+        if (context.mAvatarShadowFragmentShader)
+        {
+            destroy_shader_module_once(context.mAvatarShadowFragmentShader);
+        }
+        if (context.mAvatarAlphaShadowVertexShader)
+        {
+            destroy_shader_module_once(context.mAvatarAlphaShadowVertexShader);
+        }
+        if (context.mAvatarAlphaShadowFragmentShader)
+        {
+            destroy_shader_module_once(context.mAvatarAlphaShadowFragmentShader);
+        }
+        if (context.mAvatarAlphaMaskShadowFragmentShader)
+        {
+            destroy_shader_module_once(context.mAvatarAlphaMaskShadowFragmentShader);
+        }
+        if (context.mTreeShadowVertexShader)
+        {
+            destroy_shader_module_once(context.mTreeShadowVertexShader);
+        }
+        if (context.mTreeShadowFragmentShader)
+        {
+            destroy_shader_module_once(context.mTreeShadowFragmentShader);
+        }
+        if (context.mPBRAlphaMaskShadowVertexShader)
+        {
+            destroy_shader_module_once(context.mPBRAlphaMaskShadowVertexShader);
+        }
+        if (context.mPBRAlphaMaskShadowFragmentShader)
+        {
+            destroy_shader_module_once(context.mPBRAlphaMaskShadowFragmentShader);
+        }
+        if (context.mPBRAlphaBlendShadowFragmentShader)
+        {
+            destroy_shader_module_once(context.mPBRAlphaBlendShadowFragmentShader);
+        }
         if (context.mWorldGBufferVertexShader)
         {
             destroy_shader_module_once(context.mWorldGBufferVertexShader);
@@ -12319,6 +12432,20 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mMaterialFragmentShader = nullptr;
     context.mPBRFragmentShader = nullptr;
     context.mAvatarFragmentShader = nullptr;
+    context.mShadowVertexShader = nullptr;
+    context.mShadowFragmentShader = nullptr;
+    context.mShadowAlphaMaskVertexShader = nullptr;
+    context.mShadowAlphaMaskFragmentShader = nullptr;
+    context.mAvatarShadowVertexShader = nullptr;
+    context.mAvatarShadowFragmentShader = nullptr;
+    context.mAvatarAlphaShadowVertexShader = nullptr;
+    context.mAvatarAlphaShadowFragmentShader = nullptr;
+    context.mAvatarAlphaMaskShadowFragmentShader = nullptr;
+    context.mTreeShadowVertexShader = nullptr;
+    context.mTreeShadowFragmentShader = nullptr;
+    context.mPBRAlphaMaskShadowVertexShader = nullptr;
+    context.mPBRAlphaMaskShadowFragmentShader = nullptr;
+    context.mPBRAlphaBlendShadowFragmentShader = nullptr;
     context.mWorldGBufferVertexShader = nullptr;
     context.mWorldGBufferFragmentShader = nullptr;
     context.mWorldGBufferEmissiveFragmentShader = nullptr;
@@ -12723,6 +12850,172 @@ bool create_vulkan_offscreen_pipeline_set(
             0,
             LL_VK_SHADER_STAGE_FRAGMENT_BIT,
             context.mAvatarFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo shadow_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mShadowVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo shadow_alpha_mask_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mShadowAlphaMaskVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mShadowAlphaMaskFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo avatar_shadow_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mAvatarShadowVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mAvatarShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo avatar_alpha_shadow_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mAvatarAlphaShadowVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mAvatarAlphaShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo avatar_alpha_mask_shadow_shader_stages[2] =
+    {
+        avatar_alpha_shadow_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mAvatarAlphaMaskShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo tree_shadow_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mTreeShadowVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mTreeShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo pbr_alpha_mask_shadow_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mPBRAlphaMaskShadowVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mPBRAlphaMaskShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo pbr_alpha_blend_shadow_shader_stages[2] =
+    {
+        pbr_alpha_mask_shadow_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mPBRAlphaBlendShadowFragmentShader,
             "main",
             nullptr
         }
@@ -13739,6 +14032,55 @@ bool create_vulkan_offscreen_pipeline_set(
                                 return false;
                             }
 
+                            auto create_offscreen_shadow_pipeline =
+                                [&](const char* label,
+                                    LLVkPipelineShaderStageCreateInfo* stages,
+                                    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& pipelines) -> bool
+                            {
+                                LLVkGraphicsPipelineCreateInfo shadow_pipeline_create_info = world_pipeline_create_info;
+                                shadow_pipeline_create_info.pStages = stages;
+                                S32 shadow_result = create_graphics_pipelines(
+                                    context.mDevice,
+                                    nullptr,
+                                    1,
+                                    &shadow_pipeline_create_info,
+                                    nullptr,
+                                    &pipelines[world_pipeline_index]);
+                                if (shadow_result != LL_VK_SUCCESS || !pipelines[world_pipeline_index])
+                                {
+                                    LL_WARNS("RenderBackend")
+                                        << "vkCreateGraphicsPipelines(offscreen "
+                                        << label
+                                        << " mode "
+                                        << i
+                                        << ", blend "
+                                        << blend_index
+                                        << ", depth "
+                                        << depth_index
+                                        << ", cull "
+                                        << cull_index
+                                        << ", color "
+                                        << color_index
+                                        << ") failed with result "
+                                        << shadow_result
+                                        << LL_ENDL;
+                                    return false;
+                                }
+                                return true;
+                            };
+
+                            if (!create_offscreen_shadow_pipeline("shadow", shadow_shader_stages, pipeline_set.mShadowPipelines) ||
+                                !create_offscreen_shadow_pipeline("shadow alpha-mask", shadow_alpha_mask_shader_stages, pipeline_set.mShadowAlphaMaskPipelines) ||
+                                !create_offscreen_shadow_pipeline("avatar shadow", avatar_shadow_shader_stages, pipeline_set.mAvatarShadowPipelines) ||
+                                !create_offscreen_shadow_pipeline("avatar alpha shadow", avatar_alpha_shadow_shader_stages, pipeline_set.mAvatarAlphaShadowPipelines) ||
+                                !create_offscreen_shadow_pipeline("avatar alpha-mask shadow", avatar_alpha_mask_shadow_shader_stages, pipeline_set.mAvatarAlphaMaskShadowPipelines) ||
+                                !create_offscreen_shadow_pipeline("tree shadow", tree_shadow_shader_stages, pipeline_set.mTreeShadowPipelines) ||
+                                !create_offscreen_shadow_pipeline("PBR alpha-mask shadow", pbr_alpha_mask_shadow_shader_stages, pipeline_set.mPBRAlphaMaskShadowPipelines) ||
+                                !create_offscreen_shadow_pipeline("PBR alpha-blend shadow", pbr_alpha_blend_shadow_shader_stages, pipeline_set.mPBRAlphaBlendShadowPipelines))
+                            {
+                                return false;
+                            }
+
                             LLVkGraphicsPipelineCreateInfo terrain_pipeline_create_info = world_pipeline_create_info;
                             terrain_pipeline_create_info.pStages = terrain_shader_stages;
                         terrain_pipeline_create_info.pVertexInputState = &terrain_vertex_input;
@@ -14327,6 +14669,34 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         get_vulkan_final_shader_module(context, "class1/deferred/pbr_runtime.frag.spv", "class1 PBR runtime fragment");
     context.mAvatarFragmentShader =
         get_vulkan_final_shader_module(context, "class1/avatar/avatar_runtime.frag.spv", "class1 avatar runtime fragment");
+    context.mShadowVertexShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/shadow.vert.spv", "class1 shadow vertex");
+    context.mShadowFragmentShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/shadow.frag.spv", "class1 shadow fragment");
+    context.mShadowAlphaMaskVertexShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/shadow_alpha_mask.vert.spv", "class1 shadow alpha-mask vertex");
+    context.mShadowAlphaMaskFragmentShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/shadow_alpha_mask.frag.spv", "class1 shadow alpha-mask fragment");
+    context.mAvatarShadowVertexShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/avatar_shadow.vert.spv", "class1 avatar shadow vertex");
+    context.mAvatarShadowFragmentShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/avatar_shadow.frag.spv", "class1 avatar shadow fragment");
+    context.mAvatarAlphaShadowVertexShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/avatar_alpha_shadow.vert.spv", "class1 avatar alpha shadow vertex");
+    context.mAvatarAlphaShadowFragmentShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/avatar_alpha_shadow.frag.spv", "class1 avatar alpha shadow fragment");
+    context.mAvatarAlphaMaskShadowFragmentShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/avatar_alpha_mask_shadow.frag.spv", "class1 avatar alpha-mask shadow fragment");
+    context.mTreeShadowVertexShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/tree_shadow.vert.spv", "class1 tree shadow vertex");
+    context.mTreeShadowFragmentShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/tree_shadow.frag.spv", "class1 tree shadow fragment");
+    context.mPBRAlphaMaskShadowVertexShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/pbr_shadow_alpha_mask.vert.spv", "class1 PBR alpha-mask shadow vertex");
+    context.mPBRAlphaMaskShadowFragmentShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/pbr_shadow_alpha_mask.frag.spv", "class1 PBR alpha-mask shadow fragment");
+    context.mPBRAlphaBlendShadowFragmentShader =
+        get_vulkan_final_shader_module(context, "class1/deferred/pbr_shadow_alpha_blend.frag.spv", "class1 PBR alpha-blend shadow fragment");
     context.mWorldGBufferVertexShader =
         get_vulkan_final_shader_module(context, "class1/deferred/diffuse_indexed.vert.spv", "class1 world G-buffer vertex");
     context.mWorldGBufferFragmentShader =
@@ -14407,6 +14777,20 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         !context.mMaterialFragmentShader ||
         !context.mPBRFragmentShader ||
         !context.mAvatarFragmentShader ||
+        !context.mShadowVertexShader ||
+        !context.mShadowFragmentShader ||
+        !context.mShadowAlphaMaskVertexShader ||
+        !context.mShadowAlphaMaskFragmentShader ||
+        !context.mAvatarShadowVertexShader ||
+        !context.mAvatarShadowFragmentShader ||
+        !context.mAvatarAlphaShadowVertexShader ||
+        !context.mAvatarAlphaShadowFragmentShader ||
+        !context.mAvatarAlphaMaskShadowFragmentShader ||
+        !context.mTreeShadowVertexShader ||
+        !context.mTreeShadowFragmentShader ||
+        !context.mPBRAlphaMaskShadowVertexShader ||
+        !context.mPBRAlphaMaskShadowFragmentShader ||
+        !context.mPBRAlphaBlendShadowFragmentShader ||
         !context.mWorldGBufferVertexShader ||
         !context.mWorldGBufferFragmentShader ||
         !context.mWorldGBufferEmissiveFragmentShader ||
@@ -15095,6 +15479,172 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
             0,
             LL_VK_SHADER_STAGE_FRAGMENT_BIT,
             context.mAvatarFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo shadow_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mShadowVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo shadow_alpha_mask_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mShadowAlphaMaskVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mShadowAlphaMaskFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo avatar_shadow_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mAvatarShadowVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mAvatarShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo avatar_alpha_shadow_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mAvatarAlphaShadowVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mAvatarAlphaShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo avatar_alpha_mask_shadow_shader_stages[2] =
+    {
+        avatar_alpha_shadow_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mAvatarAlphaMaskShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo tree_shadow_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mTreeShadowVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mTreeShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo pbr_alpha_mask_shadow_shader_stages[2] =
+    {
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mPBRAlphaMaskShadowVertexShader,
+            "main",
+            nullptr
+        },
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mPBRAlphaMaskShadowFragmentShader,
+            "main",
+            nullptr
+        }
+    };
+    LLVkPipelineShaderStageCreateInfo pbr_alpha_blend_shadow_shader_stages[2] =
+    {
+        pbr_alpha_mask_shadow_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+            context.mPBRAlphaBlendShadowFragmentShader,
             "main",
             nullptr
         }
@@ -15884,6 +16434,56 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
                                     << ") failed with result "
                                     << result
                                     << LL_ENDL;
+                                destroy_vulkan_graphics_pipelines(context);
+                                return false;
+                            }
+
+                            auto create_shadow_pipeline =
+                                [&](const char* label,
+                                    LLVkPipelineShaderStageCreateInfo* stages,
+                                    std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& pipelines) -> bool
+                            {
+                                LLVkGraphicsPipelineCreateInfo shadow_pipeline_create_info = world_pipeline_create_info;
+                                shadow_pipeline_create_info.pStages = stages;
+                                result = create_graphics_pipelines(
+                                    context.mDevice,
+                                    nullptr,
+                                    1,
+                                    &shadow_pipeline_create_info,
+                                    nullptr,
+                                    &pipelines[world_pipeline_index]);
+                                if (result != LL_VK_SUCCESS || !pipelines[world_pipeline_index])
+                                {
+                                    LL_WARNS("RenderBackend")
+                                        << "vkCreateGraphicsPipelines("
+                                        << label
+                                        << " mode "
+                                        << i
+                                        << ", blend "
+                                        << blend_index
+                                        << ", depth "
+                                        << depth_index
+                                        << ", cull "
+                                        << cull_index
+                                        << ", color "
+                                        << color_index
+                                        << ") failed with result "
+                                        << result
+                                        << LL_ENDL;
+                                    return false;
+                                }
+                                return true;
+                            };
+
+                            if (!create_shadow_pipeline("shadow", shadow_shader_stages, context.mShadowPipelines) ||
+                                !create_shadow_pipeline("shadow alpha-mask", shadow_alpha_mask_shader_stages, context.mShadowAlphaMaskPipelines) ||
+                                !create_shadow_pipeline("avatar shadow", avatar_shadow_shader_stages, context.mAvatarShadowPipelines) ||
+                                !create_shadow_pipeline("avatar alpha shadow", avatar_alpha_shadow_shader_stages, context.mAvatarAlphaShadowPipelines) ||
+                                !create_shadow_pipeline("avatar alpha-mask shadow", avatar_alpha_mask_shadow_shader_stages, context.mAvatarAlphaMaskShadowPipelines) ||
+                                !create_shadow_pipeline("tree shadow", tree_shadow_shader_stages, context.mTreeShadowPipelines) ||
+                                !create_shadow_pipeline("PBR alpha-mask shadow", pbr_alpha_mask_shadow_shader_stages, context.mPBRAlphaMaskShadowPipelines) ||
+                                !create_shadow_pipeline("PBR alpha-blend shadow", pbr_alpha_blend_shadow_shader_stages, context.mPBRAlphaBlendShadowPipelines))
+                            {
                                 destroy_vulkan_graphics_pipelines(context);
                                 return false;
                             }
@@ -16699,6 +17299,14 @@ const char* get_vulkan_world_shader_class_name(LLRenderWorldShaderClass shader_c
         case LLRenderWorldShaderClass::PBR: return "PBR";
         case LLRenderWorldShaderClass::Avatar: return "Avatar";
         case LLRenderWorldShaderClass::Terrain: return "Terrain";
+        case LLRenderWorldShaderClass::Shadow: return "Shadow";
+        case LLRenderWorldShaderClass::ShadowAlphaMask: return "ShadowAlphaMask";
+        case LLRenderWorldShaderClass::AvatarShadow: return "AvatarShadow";
+        case LLRenderWorldShaderClass::AvatarAlphaShadow: return "AvatarAlphaShadow";
+        case LLRenderWorldShaderClass::AvatarAlphaMaskShadow: return "AvatarAlphaMaskShadow";
+        case LLRenderWorldShaderClass::TreeShadow: return "TreeShadow";
+        case LLRenderWorldShaderClass::PBRAlphaMaskShadow: return "PBRAlphaMaskShadow";
+        case LLRenderWorldShaderClass::PBRAlphaBlendShadow: return "PBRAlphaBlendShadow";
         case LLRenderWorldShaderClass::PointLight: return "PointLight";
         case LLRenderWorldShaderClass::MultiPointLight: return "MultiPointLight";
         case LLRenderWorldShaderClass::SpotLight: return "SpotLight";
@@ -16710,6 +17318,24 @@ const char* get_vulkan_world_shader_class_name(LLRenderWorldShaderClass shader_c
         case LLRenderWorldShaderClass::FinalComposite: return "FinalComposite";
     }
     return "Unknown";
+}
+
+bool is_vulkan_shadow_shader_class(LLRenderWorldShaderClass shader_class)
+{
+    switch (shader_class)
+    {
+        case LLRenderWorldShaderClass::Shadow:
+        case LLRenderWorldShaderClass::ShadowAlphaMask:
+        case LLRenderWorldShaderClass::AvatarShadow:
+        case LLRenderWorldShaderClass::AvatarAlphaShadow:
+        case LLRenderWorldShaderClass::AvatarAlphaMaskShadow:
+        case LLRenderWorldShaderClass::TreeShadow:
+        case LLRenderWorldShaderClass::PBRAlphaMaskShadow:
+        case LLRenderWorldShaderClass::PBRAlphaBlendShadow:
+            return true;
+        default:
+            return false;
+    }
 }
 
 U32 clamp_vulkan_deferred_shader_level(S32 shader_level)
@@ -16828,7 +17454,8 @@ bool should_use_vulkan_gbuffer_pipeline(
         return false;
     }
 
-    if (draw.mWorldShaderClass == LLRenderWorldShaderClass::Copy ||
+    if (is_vulkan_shadow_shader_class(draw.mWorldShaderClass) ||
+        draw.mWorldShaderClass == LLRenderWorldShaderClass::Copy ||
         draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
         draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
         draw.mWorldShaderClass == LLRenderWorldShaderClass::PointLight ||
@@ -17786,6 +18413,38 @@ bool record_vulkan_frame_command_buffer(
             active_pass.mPipelineSet ?
             active_pass.mPipelineSet->mTerrainPipelines :
             context.mTerrainPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& shadow_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mShadowPipelines :
+            context.mShadowPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& shadow_alpha_mask_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mShadowAlphaMaskPipelines :
+            context.mShadowAlphaMaskPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& avatar_shadow_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mAvatarShadowPipelines :
+            context.mAvatarShadowPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& avatar_alpha_shadow_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mAvatarAlphaShadowPipelines :
+            context.mAvatarAlphaShadowPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& avatar_alpha_mask_shadow_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mAvatarAlphaMaskShadowPipelines :
+            context.mAvatarAlphaMaskShadowPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& tree_shadow_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mTreeShadowPipelines :
+            context.mTreeShadowPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& pbr_alpha_mask_shadow_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mPBRAlphaMaskShadowPipelines :
+            context.mPBRAlphaMaskShadowPipelines;
+        const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& pbr_alpha_blend_shadow_pipelines =
+            active_pass.mPipelineSet ?
+            active_pass.mPipelineSet->mPBRAlphaBlendShadowPipelines :
+            context.mPBRAlphaBlendShadowPipelines;
         const std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT>& point_light_pipelines =
             active_pass.mPipelineSet ?
             active_pass.mPipelineSet->mPointLightPipelines :
@@ -17897,6 +18556,7 @@ bool record_vulkan_frame_command_buffer(
             if (draw.mFramebuffer != 0 &&
                 can_be_gbuffer_draw &&
                 !use_gbuffer_pipeline &&
+                !is_vulkan_shadow_shader_class(draw.mWorldShaderClass) &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::Copy &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredLightMap &&
                 draw.mWorldShaderClass != LLRenderWorldShaderClass::DeferredSoften &&
@@ -17932,6 +18592,22 @@ bool record_vulkan_frame_command_buffer(
             draw.mWorldShaderClass == LLRenderWorldShaderClass::SpotLight;
         const bool use_multi_spot_light_pipeline =
             draw.mWorldShaderClass == LLRenderWorldShaderClass::MultiSpotLight;
+        const bool use_shadow_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::Shadow;
+        const bool use_shadow_alpha_mask_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::ShadowAlphaMask;
+        const bool use_avatar_shadow_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::AvatarShadow;
+        const bool use_avatar_alpha_shadow_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::AvatarAlphaShadow;
+        const bool use_avatar_alpha_mask_shadow_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::AvatarAlphaMaskShadow;
+        const bool use_tree_shadow_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::TreeShadow;
+        const bool use_pbr_alpha_mask_shadow_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::PBRAlphaMaskShadow;
+        const bool use_pbr_alpha_blend_shadow_pipeline =
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::PBRAlphaBlendShadow;
         if (use_copy_pipeline)
         {
             active_pass.mSawCopyDraw = true;
@@ -18070,6 +18746,38 @@ bool record_vulkan_frame_command_buffer(
                 {
                     pipeline = multi_spot_light_pipelines[world_pipeline_index];
                 }
+                else if (use_shadow_pipeline)
+                {
+                    pipeline = shadow_pipelines[world_pipeline_index];
+                }
+                else if (use_shadow_alpha_mask_pipeline)
+                {
+                    pipeline = shadow_alpha_mask_pipelines[world_pipeline_index];
+                }
+                else if (use_avatar_shadow_pipeline)
+                {
+                    pipeline = avatar_shadow_pipelines[world_pipeline_index];
+                }
+                else if (use_avatar_alpha_shadow_pipeline)
+                {
+                    pipeline = avatar_alpha_shadow_pipelines[world_pipeline_index];
+                }
+                else if (use_avatar_alpha_mask_shadow_pipeline)
+                {
+                    pipeline = avatar_alpha_mask_shadow_pipelines[world_pipeline_index];
+                }
+                else if (use_tree_shadow_pipeline)
+                {
+                    pipeline = tree_shadow_pipelines[world_pipeline_index];
+                }
+                else if (use_pbr_alpha_mask_shadow_pipeline)
+                {
+                    pipeline = pbr_alpha_mask_shadow_pipelines[world_pipeline_index];
+                }
+                else if (use_pbr_alpha_blend_shadow_pipeline)
+                {
+                    pipeline = pbr_alpha_blend_shadow_pipelines[world_pipeline_index];
+                }
                 else if (use_simple_pipeline)
                 {
                     pipeline = simple_pipelines[world_pipeline_index];
@@ -18133,7 +18841,8 @@ bool record_vulkan_frame_command_buffer(
                     else if (use_point_light_pipeline ||
                         use_multi_point_light_pipeline ||
                         use_spot_light_pipeline ||
-                        use_multi_spot_light_pipeline)
+                        use_multi_spot_light_pipeline ||
+                        is_vulkan_shadow_shader_class(draw.mWorldShaderClass))
                     {
                         pipeline = nullptr;
                     }
@@ -18189,6 +18898,38 @@ bool record_vulkan_frame_command_buffer(
                     else if (use_multi_spot_light_pipeline)
                     {
                         pipeline = multi_spot_light_pipelines[world_pipeline_index];
+                    }
+                    else if (use_shadow_pipeline)
+                    {
+                        pipeline = shadow_pipelines[world_pipeline_index];
+                    }
+                    else if (use_shadow_alpha_mask_pipeline)
+                    {
+                        pipeline = shadow_alpha_mask_pipelines[world_pipeline_index];
+                    }
+                    else if (use_avatar_shadow_pipeline)
+                    {
+                        pipeline = avatar_shadow_pipelines[world_pipeline_index];
+                    }
+                    else if (use_avatar_alpha_shadow_pipeline)
+                    {
+                        pipeline = avatar_alpha_shadow_pipelines[world_pipeline_index];
+                    }
+                    else if (use_avatar_alpha_mask_shadow_pipeline)
+                    {
+                        pipeline = avatar_alpha_mask_shadow_pipelines[world_pipeline_index];
+                    }
+                    else if (use_tree_shadow_pipeline)
+                    {
+                        pipeline = tree_shadow_pipelines[world_pipeline_index];
+                    }
+                    else if (use_pbr_alpha_mask_shadow_pipeline)
+                    {
+                        pipeline = pbr_alpha_mask_shadow_pipelines[world_pipeline_index];
+                    }
+                    else if (use_pbr_alpha_blend_shadow_pipeline)
+                    {
+                        pipeline = pbr_alpha_blend_shadow_pipelines[world_pipeline_index];
                     }
                     else if (use_simple_pipeline)
                     {
@@ -18253,7 +18994,8 @@ bool record_vulkan_frame_command_buffer(
                         else if (use_point_light_pipeline ||
                             use_multi_point_light_pipeline ||
                             use_spot_light_pipeline ||
-                            use_multi_spot_light_pipeline)
+                            use_multi_spot_light_pipeline ||
+                            is_vulkan_shadow_shader_class(draw.mWorldShaderClass))
                         {
                             pipeline = nullptr;
                         }

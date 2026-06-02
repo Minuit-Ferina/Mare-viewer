@@ -1245,6 +1245,14 @@ const char* get_world_render_shader_class_name(LLRenderWorldShaderClass shader_c
         case LLRenderWorldShaderClass::PBR: return "PBR";
         case LLRenderWorldShaderClass::Avatar: return "Avatar";
         case LLRenderWorldShaderClass::Terrain: return "Terrain";
+        case LLRenderWorldShaderClass::Shadow: return "Shadow";
+        case LLRenderWorldShaderClass::ShadowAlphaMask: return "ShadowAlphaMask";
+        case LLRenderWorldShaderClass::AvatarShadow: return "AvatarShadow";
+        case LLRenderWorldShaderClass::AvatarAlphaShadow: return "AvatarAlphaShadow";
+        case LLRenderWorldShaderClass::AvatarAlphaMaskShadow: return "AvatarAlphaMaskShadow";
+        case LLRenderWorldShaderClass::TreeShadow: return "TreeShadow";
+        case LLRenderWorldShaderClass::PBRAlphaMaskShadow: return "PBRAlphaMaskShadow";
+        case LLRenderWorldShaderClass::PBRAlphaBlendShadow: return "PBRAlphaBlendShadow";
         case LLRenderWorldShaderClass::PointLight: return "PointLight";
         case LLRenderWorldShaderClass::MultiPointLight: return "MultiPointLight";
         case LLRenderWorldShaderClass::SpotLight: return "SpotLight";

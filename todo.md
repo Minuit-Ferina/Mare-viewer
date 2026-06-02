@@ -491,7 +491,15 @@ Validation status:
       input. Vulkan still needs Vulkan-owned sun/spot shadow-map render passes,
       non-neutral shadow channels in `DeferredLightMap`, full reflection-probe
       cubemap/parallax bindings, and final post/composite parity before this
-      item can be closed.
+      item can be closed. Shadow pipeline progress: the Vulkan backend now has
+      explicit world shader classes and pipeline arrays for generic,
+      alpha-mask, avatar, avatar alpha, avatar alpha-mask, tree, PBR
+      alpha-mask, and PBR alpha-blend shadow casters. The matching Vulkan
+      shadow fragments now expose a single white output with OpenGL-style alpha
+      discard/dither instead of the earlier accidental G-buffer output shape.
+      These pipelines are not yet fed by `generateSunShadow()`; the real
+      Vulkan shadow-map render passes and shadow-map texture bindings remain
+      open.
 - [ ] Final post-processing:
       port and wire the OpenGL post chain as separate class-tier passes:
       glow extraction/blur/combine, gamma/tonemap, FXAA/SMAA/CAS, DoF/cof, and
@@ -1776,8 +1784,13 @@ Known missing runtime coverage:
       and final composite/post parity.
 - [ ] Shadow map rendering is not Vulkan-native. `generateSunShadow()` still
       owns the OpenGL-era shadow render targets, shadow cameras, and
-      `renderShadow()` flow. Vulkan needs explicit shadow render passes and
-      shadow shader pipeline families.
+      `renderShadow()` flow. Vulkan now has explicit shadow shader classes,
+      final shadow fragments with one color output, and per-render-pass
+      pipeline arrays for generic, alpha-mask, avatar, avatar alpha,
+      avatar alpha-mask, tree, PBR alpha-mask, and PBR alpha-blend casters.
+      Vulkan still needs explicit shadow render passes, command emission from
+      the OpenGL `renderShadow()` batches, real depth/color shadow target
+      ownership, and non-neutral shadow channels in `DeferredLightMap`.
 - [ ] Final post-processing is not fully Vulkan-native. The active final
       composite now owns exposure/gamma/tonemap settings and a bounded
       CAS-like sharpen, bounded HDR glow approximation, and edge-aware
