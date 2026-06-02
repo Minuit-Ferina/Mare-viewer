@@ -48,6 +48,9 @@ layout(std140, set = 1, binding = 0) uniform DeferredSoften
     vec4 atmos_moonlight;
     vec4 atmos_ambient;
     vec4 atmos_lightnorm;
+    vec4 ssao_effect_mat0;
+    vec4 ssao_effect_mat1;
+    vec4 ssao_effect_mat2;
 } soften;
 
 layout(location = 0) in vec4 vertex_color;
@@ -297,7 +300,13 @@ void adjust_irradiance(inout vec3 irradiance, float ambient_occlusion)
     float max_value = max(pc.scene_direct.w, 0.0);
     if (pc.composite_features.y > 0.5 && scale > 0.0 && max_value > 0.0)
     {
-        vec3 ssao_irradiance = min(irradiance * scale, vec3(max_value));
+        mat3 ssao_effect_mat =
+            mat3(
+                soften.ssao_effect_mat0.xyz,
+                soften.ssao_effect_mat1.xyz,
+                soften.ssao_effect_mat2.xyz);
+        vec3 ssao_irradiance =
+            ssao_effect_mat * min(irradiance * scale, vec3(max_value));
         irradiance = mix(ssao_irradiance, irradiance, ambient_occlusion);
     }
 }
@@ -1383,7 +1392,7 @@ void sample_reflection_probes(
     float max_probe_lod = max(pc.scene_reflection.z, 0.0);
     float lod = (1.0 - glossiness) * max_probe_lod;
     radiance = sample_probe_radiance(pos, safe_normalize(reflect(pos, norm)), lod);
-    if (glossiness >= 0.9)
+    if (pc.composite_sky_settings.x < 0.5 && glossiness >= 0.9)
     {
         vec4 ssr = vec4(0.0);
         tap_screen_space_reflection(tc, pos, norm, ssr, glossiness);
@@ -1408,38 +1417,6 @@ vec3 select_composite_light_direction()
         selected_light_dir = vec3(0.32, 0.48, 0.82);
     }
     return normalize(selected_light_dir);
-}
-
-float compute_fallback_ssao(vec2 texcoord, float enabled)
-{
-    if (enabled < 0.5)
-    {
-        return 1.0;
-    }
-
-    float center_depth = texture(depthMap, texcoord).r;
-    if (center_depth >= 0.99999)
-    {
-        return 1.0;
-    }
-
-    vec2 texel = 1.0 / max(vec2(textureSize(depthMap, 0)), vec2(1.0));
-    float radius = clamp(pc.composite_ssao.x, 0.5, max(pc.composite_ssao.y, 1.0));
-    float factor = clamp(pc.composite_ssao.z, 0.1, 8.0);
-    float strength = clamp(pc.composite_ssao.w, 0.0, 2.0);
-    vec2 sample_offset = texel * radius;
-
-    float occlusion = 0.0;
-    float sample_depth = texture(depthMap, texcoord + vec2(sample_offset.x, 0.0)).r;
-    occlusion += clamp((center_depth - sample_depth) * factor * 64.0, 0.0, 1.0);
-    sample_depth = texture(depthMap, texcoord - vec2(sample_offset.x, 0.0)).r;
-    occlusion += clamp((center_depth - sample_depth) * factor * 64.0, 0.0, 1.0);
-    sample_depth = texture(depthMap, texcoord + vec2(0.0, sample_offset.y)).r;
-    occlusion += clamp((center_depth - sample_depth) * factor * 64.0, 0.0, 1.0);
-    sample_depth = texture(depthMap, texcoord - vec2(0.0, sample_offset.y)).r;
-    occlusion += clamp((center_depth - sample_depth) * factor * 64.0, 0.0, 1.0);
-
-    return clamp(1.0 - occlusion * 0.25 * strength, 0.25, 1.0);
 }
 
 float local_light_screen_weight(vec2 texcoord, vec2 light_center, float light_radius)
@@ -1494,11 +1471,6 @@ void main()
     vec2 shadow_ao = texture(lightMap, tc).rg;
     float sun_shadow = max(shadow_ao.r, diffuse.a);
     float ambient_occlusion = clamp(shadow_ao.g, 0.0, 1.0);
-    if (shadow_ao.r <= 0.0001 && shadow_ao.g <= 0.0001)
-    {
-        sun_shadow = 1.0;
-        ambient_occlusion = compute_fallback_ssao(tc, pc.composite_features.y);
-    }
 
     vec3 normal = decode_gbuffer_normal(encoded_normal);
     vec3 view_position = reconstruct_view_position(tc, scene_depth);

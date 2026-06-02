@@ -52,6 +52,8 @@ constexpr F32 AVATAR_RENDER_MINIMUM_ALPHA = 0.2f;
 constexpr F32 WORLD_RENDER_SHADOW_ALPHA_BLEND_CUTOFF = 0.598f;
 constexpr U32 WORLD_RENDER_SCENE_DEPTH_TEXTURE_UNIT = 8;
 constexpr U32 WORLD_RENDER_SCENE_COLOR_TEXTURE_UNIT = 9;
+constexpr U32 WORLD_RENDER_REFLECTION_PROBES_TEXTURE_UNIT = 10;
+constexpr U32 WORLD_RENDER_IRRADIANCE_PROBES_TEXTURE_UNIT = 11;
 
 LLRenderWorldTextureTransform get_world_texture_transform(const LLMatrix4* matrix);
 
@@ -956,6 +958,16 @@ LLRenderWorldMaterialParameters get_world_material_parameters(
     parameters.mSceneLightDirectionY = scene_lighting.mDirection.mV[VY];
     parameters.mSceneLightDirectionZ = scene_lighting.mDirection.mV[VZ];
     parameters.mSceneLightDirectionValid = 1.f;
+    const F32* modelview_values = gGLModelView;
+    parameters.mCompositeEnvironmentMatrix[0] = modelview_values[0];
+    parameters.mCompositeEnvironmentMatrix[1] = modelview_values[1];
+    parameters.mCompositeEnvironmentMatrix[2] = modelview_values[2];
+    parameters.mCompositeEnvironmentMatrix[3] = modelview_values[4];
+    parameters.mCompositeEnvironmentMatrix[4] = modelview_values[5];
+    parameters.mCompositeEnvironmentMatrix[5] = modelview_values[6];
+    parameters.mCompositeEnvironmentMatrix[6] = modelview_values[8];
+    parameters.mCompositeEnvironmentMatrix[7] = modelview_values[9];
+    parameters.mCompositeEnvironmentMatrix[8] = modelview_values[10];
     return parameters;
 }
 
@@ -2132,6 +2144,8 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
                 command.mModelMatrix);
 
         bool tex_setup = false;
+        bool water_reflection_probes_bound = false;
+        bool water_irradiance_probes_bound = false;
         if (command.mMaterialClass == LLWorldRenderMaterialClass::AvatarImpostor &&
             command.mAvatar &&
             command.mAvatar->mImpostor.isComplete())
@@ -2249,6 +2263,33 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
             }
         }
 
+        if (command.mMaterialClass == LLWorldRenderMaterialClass::Water)
+        {
+            getRenderBackend().bindBufferBase(
+                LLRenderBufferTarget::Uniform,
+                LLGLSLShader::UB_REFLECTION_PROBES,
+                0);
+            if (LLPipeline::sReflectionProbesEnabled)
+            {
+                if (gPipeline.mReflectionMapManager.mTexture.notNull())
+                {
+                    gPipeline.mReflectionMapManager.mTexture->bind(
+                        WORLD_RENDER_REFLECTION_PROBES_TEXTURE_UNIT);
+                    water_reflection_probes_bound = true;
+                }
+                if (gPipeline.mReflectionMapManager.mIrradianceMaps.notNull())
+                {
+                    gPipeline.mReflectionMapManager.mIrradianceMaps->bind(
+                        WORLD_RENDER_IRRADIANCE_PROBES_TEXTURE_UNIT);
+                    water_irradiance_probes_bound = true;
+                }
+                if (water_reflection_probes_bound || water_irradiance_probes_bound)
+                {
+                    gPipeline.mReflectionMapManager.setUniforms();
+                }
+            }
+        }
+
         vertex_buffer->setBuffer();
         if (command.mDrawArrays)
         {
@@ -2272,6 +2313,21 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
             gGL.matrixMode(LLRender::MM_TEXTURE0);
             gGL.loadIdentity();
             gGL.matrixMode(LLRender::MM_MODELVIEW);
+        }
+        if (water_reflection_probes_bound)
+        {
+            gPipeline.mReflectionMapManager.mTexture->unbind();
+        }
+        if (water_irradiance_probes_bound)
+        {
+            gPipeline.mReflectionMapManager.mIrradianceMaps->unbind();
+        }
+        if (command.mMaterialClass == LLWorldRenderMaterialClass::Water)
+        {
+            getRenderBackend().bindBufferBase(
+                LLRenderBufferTarget::Uniform,
+                LLGLSLShader::UB_REFLECTION_PROBES,
+                0);
         }
     }
 

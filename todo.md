@@ -536,9 +536,27 @@ Validation status:
       sun/moon colors, cloud shadow, ambient, HDR sunlight/ambient scales,
       sun/moon glow, and lightnorm) and uses a local port of
       `calcAtmosphericVarsLinear()` for its sunlit/ambient lighting inputs.
-      Vulkan still needs Vulkan-owned sun/spot shadow-map render passes, water/debug
-      reflection variants, atmospheric visual parity validation, and final
-      visual validation before this item can be closed. Shadow pipeline
+      It also transports the full OpenGL `ssao_effect_mat` into the
+      `DeferredSoften` UBO and applies it to irradiance in `adjust_irradiance`
+      instead of using the older Vulkan-only scalar SSAO irradiance
+      approximation. Its reflection-probe SSR mix now also follows the
+      OpenGL `cube_snapshot != 1` rule before sampling/mixing screen-space
+      reflections. The shader no longer substitutes a Vulkan-only depth-based
+      SSAO fallback when `lightMap.rg` is black; `DeferredSoften` now consumes
+      the lightMap value directly like OpenGL, with missing lightMap handled by
+      binding a neutral/white input outside the shader. The live Water runtime
+      path now also receives reflection-probe cube-array textures and the
+      `ReflectionProbes` UBO on Water draws, and samples the primary/void probe
+      as a first water-specific irradiance/radiance input. It now also mirrors
+      the key OpenGL `sampleReflectionProbesWater()` selection rule by
+      selecting local manual probes first, disabling automatic probes for water,
+      and always adding the void probe. This is not full water parity yet;
+      hero probes, exact water position/normal inputs, water Fresnel uniforms,
+      and the final class3 water shader still need graph ownership.
+      Vulkan still needs Vulkan-owned sun/spot shadow-map render passes,
+      deeper water/debug reflection variants, atmospheric visual parity
+      validation, and final visual validation before this item can be closed.
+      Shadow pipeline
       progress: the Vulkan backend now has
       explicit world shader classes and pipeline arrays for generic,
       alpha-mask, avatar, avatar alpha, avatar alpha-mask, tree, PBR
@@ -1558,11 +1576,19 @@ Validation status:
       shader can apply a first screen-color refraction mix. The depth and scene
       color inputs are now reserved outside the `tex0..tex7` world texture
       bindings, with the skinning storage descriptor moved beyond those slots.
+      Water commands now also bind reflection-probe and irradiance cube-array
+      textures on dedicated units plus the `ReflectionProbes` UBO, and
+      `water_runtime.frag` samples the primary/void probe for a first
+      water-specific ambient/radiance term. The runtime shader now selects
+      local manual probes, suppresses automatic probes for water, and appends
+      the void probe, matching the main behavior of OpenGL
+      `sampleReflectionProbesWater()` while the final class3 shader is still
+      pending.
       This is still not
       final water parity: reflection render targets, normal/displacement maps,
-      fresnel uniforms, above/below-water policy, water fog, and the
-      source-ported water shader family still need dedicated render graph
-      ownership.
+      Fresnel uniforms, above/below-water policy, water fog, manual/hero probe
+      selection, and the source-ported water shader family still need dedicated
+      render graph ownership.
 - [x] Give Vulkan alpha draws a dedicated runtime shader/pipeline.
       `LLRenderWorldShaderClass::Alpha` now owns `class2/deferred/alpha.frag`, and both
       swapchain/offscreen Vulkan pipeline sets create alpha variants. Alpha
@@ -1908,6 +1934,20 @@ Known missing runtime coverage:
       Vulkan UBO and computes `sunlit`, `amblit`, scattering additive, and
       attenuation with an OpenGL-source `calcAtmosphericVarsLinear()` port
       instead of the older `composite_ambient + composite_light` shortcut.
+      It now also uses the transported full OpenGL `ssao_effect_mat` for
+      SSAO irradiance coloring, matching `softenLightF.glsl`'s
+      `adjustIrradiance()` path rather than the previous scalar-only Vulkan
+      approximation. The SSR reflection-probe mix now also keeps the OpenGL
+      `cube_snapshot != 1` guard at the probe-sampling decision point, and the
+      old Vulkan-only `compute_fallback_ssao()` path has been removed so
+      black lightMap pixels remain valid shadow/AO data instead of being
+      replaced by a shader-local approximation. Water runtime draws now bind
+      reflection-probe textures plus the `ReflectionProbes` UBO and sample the
+      primary/void probe for a first water-specific irradiance/radiance term;
+      the runtime now also applies the OpenGL water rule of selecting manual
+      probes first, suppressing automatic probes, and appending the void probe.
+      Remaining water parity still needs hero probes, exact class3 water
+      inputs, and final class3 water graph ownership.
       Close this only after the
       remaining graph inputs are real: shadow target validation plus
       PCF/parity tuning, water/debug reflection variants, and final
