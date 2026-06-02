@@ -656,6 +656,14 @@ struct LLRenderWorldMaterialParameters
         0.f, 1.f, 0.f,
         0.f, 0.f, 1.f,
     };
+    F32 mCompositeSSR0[4] =
+    {
+        0.f, 16.f, 0.1f, 0.2f,
+    };
+    F32 mCompositeSSR1[4] =
+    {
+        0.2f, 1.f, 1.25f, 0.f,
+    };
     F32 mCompositeInverseProjection[16] =
     {
         1.f, 0.f, 0.f, 0.f,

@@ -52,6 +52,7 @@ struct LLVulkanDeferredCompositeSettings
     F32 mLocalLightBlue = 0.f;
     F32 mLocalLightStrength = 0.f;
     F32 mReflectionProbeAmbiance = 0.f;
+    F32 mMaxProbeLOD = 6.f;
     F32 mTonemapMix = 0.f;
     F32 mSkyLightingValid = 0.f;
     F32 mScreenWidth = 1.f;
@@ -89,6 +90,14 @@ struct LLVulkanDeferredCompositeSettings
         1.f, 0.f, 0.f,
         0.f, 1.f, 0.f,
         0.f, 0.f, 1.f,
+    };
+    F32 mSSRParameters0[4] =
+    {
+        0.f, 16.f, 0.1f, 0.2f,
+    };
+    F32 mSSRParameters1[4] =
+    {
+        0.2f, 1.f, 1.25f, 0.f,
     };
     F32 mInverseProjection[16] =
     {
@@ -179,7 +188,7 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
     parameters.mShiny = settings.mLocalLightStrength;
     parameters.mSceneAmbientRed = settings.mReflectionProbeAmbiance;
     parameters.mSceneAmbientGreen = settings.mTonemapMix;
-    parameters.mSceneAmbientBlue = settings.mDirectLightScale;
+    parameters.mSceneAmbientBlue = llmax(settings.mMaxProbeLOD, 0.f);
     parameters.mSceneDirectScale = settings.mSkyLightingValid;
     parameters.mSceneDirectRed = llmax(settings.mScreenWidth, 1.f);
     parameters.mSceneDirectGreen = llmax(settings.mScreenHeight, 1.f);
@@ -211,6 +220,13 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
             settings.mEnvironmentMatrix[i];
         parameters.mCompositeSSAOEffectMatrix[i] =
             settings.mSSAOEffectMatrix[i];
+    }
+    for (U32 i = 0; i < 4; ++i)
+    {
+        parameters.mCompositeSSR0[i] =
+            settings.mSSRParameters0[i];
+        parameters.mCompositeSSR1[i] =
+            settings.mSSRParameters1[i];
     }
     for (U32 i = 0; i < 16; ++i)
     {

@@ -57,14 +57,12 @@ vec3 srgb_to_linear(vec3 c)
 
 vec4 decodeNormal(vec4 norm)
 {
-    vec2 fenc = norm.xy * 4.0 - 2.0;
-    float f = dot(fenc, fenc);
-    float g = sqrt(max(1.0 - f / 4.0, 0.0));
-    vec4 n;
-    n.xy = fenc * g;
-    n.z = 1.0 - f / 2.0;
-    n.w = norm.w;
-    return n;
+    vec3 n = normalize(norm.xyz * 2.0 - 1.0);
+    if (dot(n, n) <= 0.0001)
+    {
+        n = vec3(0.0, 0.0, 1.0);
+    }
+    return vec4(n, norm.w);
 }
 
 vec2 getScreenCoordinate(vec2 screenpos)
@@ -249,7 +247,7 @@ void main()
     float vh;
     float lightDist;
 
-    if (get_gbuffer_flag(gb.gbufferFlag, GBUFFER_FLAG_HAS_PBR))
+    if (spec.a > 0.5 || get_gbuffer_flag(gb.gbufferFlag, GBUFFER_FLAG_HAS_PBR))
     {
         vec3 orm = spec.rgb;
         float perceptualRoughness = orm.g;

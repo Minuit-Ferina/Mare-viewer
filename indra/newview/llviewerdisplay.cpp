@@ -707,6 +707,7 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     settings.mLocalLightBlue = local_light_color.mV[VBLUE];
     settings.mLocalLightStrength = local_light_strength;
     settings.mReflectionProbeAmbiance = reflection_probe_ambiance;
+    settings.mMaxProbeLOD = gPipeline.mReflectionMapManager.mMaxProbeLOD;
     settings.mTonemapMix = tonemap_mix;
     settings.mSkyLightingValid = sky ? 1.f : 0.f;
     settings.mScreenWidth = static_cast<F32>(llmax(1, viewport_rect.getWidth()));
@@ -801,6 +802,35 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     settings.mShadowRuntime[2] =
         static_cast<F32>(LLPipeline::RenderShadowSplits);
     settings.mShadowRuntime[3] = gCubeSnapshot ? 1.f : 0.f;
+    const bool ssr_available =
+        LLPipeline::RenderScreenSpaceReflections &&
+        !gCubeSnapshot &&
+        gPipeline.mSceneMap.isComplete() &&
+        gPipeline.mSceneMap.getDepth() != 0;
+    settings.mSSRParameters0[0] = ssr_available ? 1.f : 0.f;
+    settings.mSSRParameters0[1] =
+        static_cast<F32>(llclamp(LLPipeline::RenderScreenSpaceReflectionIterations, 1, 128));
+    settings.mSSRParameters0[2] =
+        llmax(LLPipeline::RenderScreenSpaceReflectionRayStep, 0.001f);
+    settings.mSSRParameters0[3] =
+        llmax(LLPipeline::RenderScreenSpaceReflectionDistanceBias, 0.0001f);
+    settings.mSSRParameters1[0] =
+        llmax(LLPipeline::RenderScreenSpaceReflectionDepthRejectBias, 0.f);
+    settings.mSSRParameters1[1] =
+        static_cast<F32>(llclamp(LLPipeline::RenderScreenSpaceReflectionGlossySamples, 1, 128));
+    settings.mSSRParameters1[2] =
+        llmax(LLPipeline::RenderScreenSpaceReflectionAdaptiveStepMultiplier, 1.f);
+    if (ssr_available)
+    {
+        ++gPipeline.mPoissonOffset;
+        if (gPipeline.mPoissonOffset >
+            128 - LLPipeline::RenderScreenSpaceReflectionGlossySamples)
+        {
+            gPipeline.mPoissonOffset = 0;
+        }
+    }
+    settings.mSSRParameters1[3] =
+        static_cast<F32>(gPipeline.mPoissonOffset);
 
     return make_vulkan_deferred_composite_material_parameters(settings);
 }
@@ -1292,6 +1322,10 @@ static void render_vulkan_deferred_screen_composite_quad(
         bool deferred_reflection_probes_bound = false;
         bool deferred_irradiance_probes_bound = false;
         bool deferred_hero_probes_bound = false;
+        bool deferred_brdf_lut_bound = false;
+        bool deferred_light_func_bound = false;
+        bool deferred_scene_map_bound = false;
+        bool deferred_scene_depth_bound = false;
         if (!debug_attachment_rendered)
         {
             for (U32 attachment = 0; attachment < deferred_attachment_count; ++attachment)
@@ -1357,6 +1391,30 @@ static void render_vulkan_deferred_screen_composite_quad(
                             gPipeline.mReflectionMapManager.setUniforms();
                         }
                     }
+                    deferred_brdf_lut_bound =
+                        gPipeline.mPbrBrdfLut.bindTexture(0, 10);
+                    deferred_light_func_bound =
+                        gPipeline.mLightFunc != 0 &&
+                        gGL.getTexUnit(11)->bindManual(
+                            LLTexUnit::TT_TEXTURE,
+                            gPipeline.mLightFunc);
+                    if (!deferred_light_func_bound &&
+                        LLViewerFetchedTexture::sWhiteImagep)
+                    {
+                        deferred_light_func_bound =
+                            gGL.getTexUnit(11)->bind(
+                                LLViewerFetchedTexture::sWhiteImagep);
+                    }
+                    if (gPipeline.mSceneMap.isComplete())
+                    {
+                        deferred_scene_map_bound =
+                            gGL.getTexUnit(12)->bind(&gPipeline.mSceneMap);
+                        if (gPipeline.mSceneMap.getDepth() != 0)
+                        {
+                            deferred_scene_depth_bound =
+                                gGL.getTexUnit(13)->bind(&gPipeline.mSceneMap, true);
+                        }
+                    }
                     deferred_composite_parameters.mSceneAmbientGreen =
                         (deferred_environment_bound ||
                          deferred_reflection_probes_bound ||
@@ -1373,6 +1431,12 @@ static void render_vulkan_deferred_screen_composite_quad(
                         << (deferred_reflection_probes_bound ? "are bound" : "are unavailable")
                         << ", irradiance probes "
                         << (deferred_irradiance_probes_bound ? "are bound" : "are unavailable")
+                        << ", BRDF LUT "
+                        << (deferred_brdf_lut_bound ? "is bound" : "is unavailable")
+                        << ", lightFunc "
+                        << (deferred_light_func_bound ? "is bound" : "is unavailable")
+                        << ", SSR scene map "
+                        << (deferred_scene_map_bound && deferred_scene_depth_bound ? "is bound" : "is unavailable")
                         << "."
                         << LL_ENDL;
                 }
@@ -1436,6 +1500,22 @@ static void render_vulkan_deferred_screen_composite_quad(
             if (deferred_hero_probes_bound)
             {
                 gPipeline.mHeroProbeManager.mTexture->unbind();
+            }
+            if (deferred_brdf_lut_bound)
+            {
+                gGL.getTexUnit(10)->unbind(LLTexUnit::TT_TEXTURE);
+            }
+            if (deferred_light_func_bound)
+            {
+                gGL.getTexUnit(11)->unbind(LLTexUnit::TT_TEXTURE);
+            }
+            if (deferred_scene_map_bound)
+            {
+                gGL.getTexUnit(12)->unbind(LLTexUnit::TT_TEXTURE);
+            }
+            if (deferred_scene_depth_bound)
+            {
+                gGL.getTexUnit(13)->unbind(LLTexUnit::TT_TEXTURE);
             }
         }
     }

@@ -10,9 +10,15 @@ layout(set = 0, binding = 6) uniform samplerCube environmentMap;
 layout(set = 0, binding = 7) uniform samplerCubeArray reflectionProbes;
 layout(set = 0, binding = 8) uniform samplerCubeArray irradianceProbes;
 layout(set = 0, binding = 9) uniform samplerCubeArray heroProbes;
+layout(set = 0, binding = 10) uniform sampler2D brdfLut;
+layout(set = 0, binding = 11) uniform sampler2D lightFunc;
+layout(set = 0, binding = 12) uniform sampler2D sceneMap;
+layout(set = 0, binding = 13) uniform sampler2D sceneDepthMap;
 
 #define MAX_REFMAP_COUNT 256
 #define REF_SAMPLE_COUNT 32
+
+const float M_PI = 3.14159265;
 
 layout(std140, set = 2, binding = 0) uniform ReflectionProbes
 {
@@ -47,11 +53,14 @@ layout(push_constant) uniform MareWorldPushConstants
     layout(offset = 192) vec4 composite_light_direction;
     layout(offset = 208) vec4 composite_local_light;
     layout(offset = 224) vec4 composite_ssao;
+    layout(offset = 240) vec4 ssr_params0;
+    layout(offset = 256) vec4 ssr_params1;
     layout(offset = 272) vec4 composite_environment0;
     layout(offset = 288) vec4 composite_environment1;
     layout(offset = 304) vec4 composite_environment2;
     layout(offset = 352) mat4 inverse_projection;
     layout(offset = 416) vec4 scene_reflection;
+    layout(offset = 432) vec4 scene_direct;
 } pc;
 
 vec3 srgb_to_linear(vec3 color)
@@ -60,6 +69,22 @@ vec3 srgb_to_linear(vec3 color)
     vec3 low = color / 12.92;
     vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
     return mix(high, low, cutoff);
+}
+
+vec3 linear_to_srgb(vec3 color)
+{
+    color = max(color, vec3(0.0));
+    bvec3 cutoff = lessThanEqual(color, vec3(0.0031308));
+    vec3 low = color * 12.92;
+    vec3 high = pow(color, vec3(1.0 / 2.4)) * 1.055 - vec3(0.055);
+    return mix(high, low, cutoff);
+}
+
+vec3 clamp_hdr_range(vec3 color)
+{
+    color = mix(color, vec3(1.0), isinf(color));
+    color = mix(color, vec3(0.0), isnan(color));
+    return clamp(color, vec3(0.0), vec3(11.2));
 }
 
 vec3 decode_gbuffer_normal(vec4 encoded)
@@ -118,6 +143,275 @@ vec3 sample_environment(vec3 normal, vec3 view_dir, float roughness, float probe
         normalize(env_dir),
         clamp(roughness * pc.composite_sky_settings.w, 0.0, pc.composite_sky_settings.w)).rgb;
     return max(cube_color, vec3(0.0)) * max(probe_ambiance, 0.0);
+}
+
+void calc_diffuse_specular(vec3 base_color, float metallic, out vec3 diffuse_color, out vec3 specular_color)
+{
+    vec3 f0 = vec3(0.04);
+    diffuse_color = base_color * (vec3(1.0) - f0);
+    diffuse_color *= 1.0 - metallic;
+    specular_color = mix(f0, base_color, metallic);
+}
+
+vec2 brdf_lookup(float ndotv, float roughness)
+{
+    return texture(brdfLut, vec2(clamp(ndotv, 0.0, 1.0), roughness)).rg;
+}
+
+void pbr_ibl(
+    vec3 diffuse_color,
+    vec3 specular_color,
+    vec3 radiance,
+    vec3 irradiance,
+    float ao,
+    float ndotv,
+    float perceptual_roughness,
+    out vec3 diffuse_out,
+    out vec3 specular_out)
+{
+    vec2 brdf = brdf_lookup(ndotv, 1.0 - perceptual_roughness);
+    diffuse_out = irradiance * diffuse_color * ao;
+    specular_out = radiance * (specular_color * brdf.x + brdf.y) * ao;
+}
+
+struct PBRInfo
+{
+    float NdotL;
+    float NdotV;
+    float NdotH;
+    float LdotH;
+    float VdotH;
+    float perceptualRoughness;
+    float metalness;
+    vec3 reflectance0;
+    vec3 reflectance90;
+    float alphaRoughness;
+    vec3 diffuseColor;
+    vec3 specularColor;
+};
+
+vec3 diffuse_brdf(PBRInfo pbr_inputs)
+{
+    return pbr_inputs.diffuseColor / M_PI;
+}
+
+vec3 specular_reflection(PBRInfo pbr_inputs)
+{
+    return pbr_inputs.reflectance0 +
+        (pbr_inputs.reflectance90 - pbr_inputs.reflectance0) *
+        pow(clamp(1.0 - pbr_inputs.VdotH, 0.0, 1.0), 5.0);
+}
+
+float geometric_occlusion(PBRInfo pbr_inputs)
+{
+    float ndotl = pbr_inputs.NdotL;
+    float ndotv = pbr_inputs.NdotV;
+    float r = pbr_inputs.alphaRoughness;
+    float attenuation_l =
+        2.0 * ndotl / (ndotl + sqrt(r * r + (1.0 - r * r) * (ndotl * ndotl)));
+    float attenuation_v =
+        2.0 * ndotv / (ndotv + sqrt(r * r + (1.0 - r * r) * (ndotv * ndotv)));
+    return attenuation_l * attenuation_v;
+}
+
+float microfacet_distribution(PBRInfo pbr_inputs)
+{
+    float roughness_sq = pbr_inputs.alphaRoughness * pbr_inputs.alphaRoughness;
+    float f =
+        (pbr_inputs.NdotH * roughness_sq - pbr_inputs.NdotH) *
+            pbr_inputs.NdotH +
+        1.0;
+    return roughness_sq / (M_PI * f * f);
+}
+
+void pbr_punctual(
+    vec3 diffuse_color,
+    vec3 specular_color,
+    float perceptual_roughness,
+    float metallic,
+    vec3 n,
+    vec3 v,
+    vec3 l,
+    out float nl,
+    out vec3 diff,
+    out vec3 spec)
+{
+    perceptual_roughness = max(perceptual_roughness, 8.0 / 255.0);
+
+    float alpha_roughness = perceptual_roughness * perceptual_roughness;
+    float reflectance = max(max(specular_color.r, specular_color.g), specular_color.b);
+    float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
+    vec3 h = normalize(l + v);
+
+    float ndotl = clamp(dot(n, l), 0.001, 1.0);
+    float ndotv = clamp(abs(dot(n, v)), 0.001, 1.0);
+    float ndoth = clamp(dot(n, h), 0.0, 1.0);
+    float ldoth = clamp(dot(l, h), 0.0, 1.0);
+    float vdoth = clamp(dot(v, h), 0.0, 1.0);
+
+    PBRInfo pbr_inputs = PBRInfo(
+        ndotl,
+        ndotv,
+        ndoth,
+        ldoth,
+        vdoth,
+        perceptual_roughness,
+        metallic,
+        specular_color.rgb,
+        vec3(1.0) * reflectance90,
+        alpha_roughness,
+        diffuse_color,
+        specular_color);
+
+    vec3 F = specular_reflection(pbr_inputs);
+    float G = geometric_occlusion(pbr_inputs);
+    float D = microfacet_distribution(pbr_inputs);
+
+    diff = (1.0 - F) * diffuse_brdf(pbr_inputs);
+    spec = F * G * D / (4.0 * ndotl * ndotv);
+    nl = ndotl;
+}
+
+void adjust_irradiance(inout vec3 irradiance, float ambient_occlusion)
+{
+    float scale = max(pc.scene_direct.z, 0.0);
+    float max_value = max(pc.scene_direct.w, 0.0);
+    if (pc.composite_features.y > 0.5 && scale > 0.0 && max_value > 0.0)
+    {
+        vec3 ssao_irradiance = min(irradiance * scale, vec3(max_value));
+        irradiance = mix(ssao_irradiance, irradiance, ambient_occlusion);
+    }
+}
+
+vec3 pbr_base_light(
+    vec3 diffuse_color,
+    vec3 specular_color,
+    float metallic,
+    vec3 v,
+    vec3 norm,
+    float perceptual_roughness,
+    vec3 light_dir,
+    vec3 sunlit,
+    float sun_shadow,
+    vec3 radiance,
+    vec3 irradiance,
+    vec3 color_emissive,
+    float ao,
+    bool classic_mode)
+{
+    vec3 color = vec3(0.0);
+    float ndotv = clamp(abs(dot(norm, v)), 0.001, 1.0);
+    vec3 ibl_diff = vec3(0.0);
+    vec3 ibl_spec = vec3(0.0);
+    pbr_ibl(
+        diffuse_color,
+        specular_color,
+        radiance,
+        irradiance,
+        ao,
+        ndotv,
+        perceptual_roughness,
+        ibl_diff,
+        ibl_spec);
+
+    color += ibl_diff;
+
+    float nl = 0.0;
+    vec3 diff_punc = vec3(0.0);
+    vec3 spec_punc = vec3(0.0);
+    pbr_punctual(
+        diffuse_color,
+        specular_color,
+        perceptual_roughness,
+        metallic,
+        norm,
+        v,
+        normalize(light_dir),
+        nl,
+        diff_punc,
+        spec_punc);
+
+    if (classic_mode)
+    {
+        irradiance = srgb_to_linear(irradiance * 0.9);
+        float da = pow(nl, 1.2);
+        vec3 sun_contrib = vec3(min(da, sun_shadow));
+        sun_contrib =
+            srgb_to_linear(linear_to_srgb(sun_contrib) * sunlit * 0.7) * M_PI;
+        vec3 final_ambient = irradiance * diffuse_color;
+        vec3 final_sun =
+            clamp(
+                sun_contrib * ((diff_punc + spec_punc) * sun_shadow),
+                vec3(0.0),
+                vec3(10.0));
+        color =
+            srgb_to_linear(
+                linear_to_srgb(final_ambient) +
+                (linear_to_srgb(final_sun) * 1.1));
+    }
+    else
+    {
+        color +=
+            clamp(nl * (diff_punc + spec_punc), vec3(0.0), vec3(10.0)) *
+            sunlit *
+            3.0 *
+            sun_shadow;
+    }
+
+    color += ibl_spec;
+    color += color_emissive;
+    return color;
+}
+
+void calc_half_vectors(
+    vec3 lv,
+    vec3 n,
+    vec3 v,
+    out vec3 h,
+    out vec3 l,
+    out float nh,
+    out float nl,
+    out float nv,
+    out float vh,
+    out float light_dist)
+{
+    l = normalize(lv);
+    h = normalize(l + v);
+
+    float eps = 0.000001;
+    nh = clamp(dot(n, h), eps, 1.0);
+    nl = clamp(dot(n, l), eps, 1.0);
+    nv = clamp(dot(n, v), eps, 1.0);
+    vh = clamp(dot(v, h), eps, 1.0);
+    light_dist = length(lv);
+}
+
+void apply_gloss_env(inout vec3 color, vec3 glossenv, vec4 spec, vec3 pos, vec3 norm)
+{
+    glossenv *= 0.5;
+    float fresnel = clamp(1.0 + dot(normalize(pos), norm), 0.3, 1.0);
+    fresnel *= fresnel;
+    fresnel *= spec.a;
+    glossenv *= spec.rgb * fresnel;
+    glossenv *= vec3(1.0) - color;
+    color += glossenv * 0.5;
+}
+
+void apply_legacy_env(
+    inout vec3 color,
+    vec3 legacyenv,
+    vec4 spec,
+    vec3 pos,
+    vec3 norm,
+    float env_intensity)
+{
+    vec3 reflected_color = legacyenv;
+    vec3 look_at = normalize(pos);
+    float fresnel = 1.0 + dot(look_at, norm);
+    fresnel *= fresnel;
+    fresnel = min(fresnel + env_intensity, 1.0);
+    reflected_color *= env_intensity * fresnel;
+    color = mix(color, reflected_color * 0.5, env_intensity);
 }
 
 int probeIndex[REF_SAMPLE_COUNT];
@@ -569,6 +863,177 @@ void tap_hero_probe(inout vec3 glossenv, vec3 pos, vec3 norm, float glossiness)
         w);
 }
 
+vec3 reconstruct_view_position(vec2 texcoord, float depth);
+
+bool ssr_inputs_available()
+{
+    return pc.ssr_params0.x > 0.5 &&
+        pc.composite_sky_settings.x < 0.5 &&
+        textureSize(sceneMap, 0).x > 1 &&
+        textureSize(sceneDepthMap, 0).x > 1;
+}
+
+vec2 ssr_projected_position(vec3 pos)
+{
+    mat4 projection = inverse(pc.inverse_projection);
+    vec4 sample_position = projection * vec4(pos, 1.0);
+    sample_position.xy =
+        (sample_position.xy / max(abs(sample_position.w), 0.000001)) * 0.5 +
+        0.5;
+    return sample_position.xy;
+}
+
+float ssr_linear_depth(vec2 tc)
+{
+    float depth = texture(sceneDepthMap, tc).r;
+    vec3 pos = reconstruct_view_position(tc, depth);
+    return -pos.z;
+}
+
+bool trace_screen_space_ray(
+    vec3 position,
+    vec3 reflection,
+    out vec4 hit_color,
+    out float hit_depth,
+    float depth)
+{
+    depth = -position.z;
+    vec3 step = max(pc.ssr_params0.z, 0.001) * reflection;
+    vec3 marching_position = position + step;
+    float delta = 0.0;
+    float depth_from_screen = 0.0;
+    vec2 screen_position = vec2(0.0);
+    hit_color = vec4(0.0);
+
+    int iteration_count = int(clamp(pc.ssr_params0.y, 1.0, 128.0));
+    float distance_bias = max(pc.ssr_params0.w, 0.0001);
+    float depth_reject_bias = max(pc.ssr_params1.x, 0.0);
+    float adaptive_step_multiplier = max(pc.ssr_params1.z, 1.0);
+
+    if (depth <= depth_reject_bias)
+    {
+        return false;
+    }
+
+    for (int i = 0; i < iteration_count; ++i)
+    {
+        screen_position = ssr_projected_position(marching_position);
+        if (screen_position.x > 1.0 ||
+            screen_position.x < 0.0 ||
+            screen_position.y > 1.0 ||
+            screen_position.y < 0.0)
+        {
+            return false;
+        }
+
+        depth_from_screen = ssr_linear_depth(screen_position);
+        delta = abs(marching_position.z) - depth_from_screen;
+
+        if (depth < depth_from_screen + 0.1 &&
+            depth > depth_from_screen - 0.1)
+        {
+            break;
+        }
+
+        if (abs(delta) < distance_bias)
+        {
+            hit_color = texture(sceneMap, screen_position);
+            hit_depth = depth_from_screen;
+            return true;
+        }
+
+        if (delta > 0.0)
+        {
+            break;
+        }
+
+        float direction_sign = sign(abs(marching_position.z) - depth_from_screen);
+        step *= 1.0 - max(pc.ssr_params0.z, 0.001) * max(direction_sign, 0.0);
+        marching_position += step * (-direction_sign);
+        step *= adaptive_step_multiplier;
+    }
+
+    for (int i = 0; i < iteration_count; ++i)
+    {
+        step *= 0.5;
+        marching_position -= step * sign(delta);
+
+        screen_position = ssr_projected_position(marching_position);
+        if (screen_position.x > 1.0 ||
+            screen_position.x < 0.0 ||
+            screen_position.y > 1.0 ||
+            screen_position.y < 0.0)
+        {
+            return false;
+        }
+
+        depth_from_screen = ssr_linear_depth(screen_position);
+        delta = abs(marching_position.z) - depth_from_screen;
+
+        if (depth < depth_from_screen + 0.1 &&
+            depth > depth_from_screen - 0.1)
+        {
+            break;
+        }
+
+        if (abs(delta) < distance_bias &&
+            depth_from_screen != (depth - distance_bias))
+        {
+            hit_color = texture(sceneMap, screen_position);
+            hit_depth = depth_from_screen;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+float tap_screen_space_reflection(
+    vec2 tc,
+    vec3 view_pos,
+    vec3 norm,
+    inout vec4 collected_color,
+    float glossiness)
+{
+    collected_color = vec4(0.0);
+    if (!ssr_inputs_available())
+    {
+        return 0.0;
+    }
+
+    vec3 ray_direction = safe_normalize(reflect(view_pos, safe_normalize(norm)));
+    vec2 screenpos = 1.0 - abs(tc * 2.0 - 1.0);
+    float vignette = clamp((abs(screenpos.x) * abs(screenpos.y)) * 16.0, 0.0, 1.0);
+    vignette *= clamp(
+        (dot(safe_normalize(view_pos), norm) * 0.5 + 0.5) * 5.5 - 0.8,
+        0.0,
+        1.0);
+    vignette *= clamp(1.0 + (view_pos.z / 128.0), 0.0, 1.0);
+    vignette *= clamp(glossiness * 3.0 - 1.7, 0.0, 1.0);
+
+    if (vignette <= 0.0)
+    {
+        return 0.0;
+    }
+
+    vec4 hitpoint = vec4(0.0);
+    float hit_depth = 0.0;
+    bool hit =
+        trace_screen_space_ray(
+            view_pos,
+            ray_direction,
+            hitpoint,
+            hit_depth,
+            -view_pos.z);
+    if (!hit)
+    {
+        return 0.0;
+    }
+
+    collected_color = vec4(hitpoint.rgb, vignette);
+    return 1.0;
+}
+
 void sample_reflection_probes(
     inout vec3 irradiance,
     inout vec3 radiance,
@@ -594,6 +1059,12 @@ void sample_reflection_probes(
     float max_probe_lod = max(pc.scene_reflection.z, 0.0);
     float lod = (1.0 - glossiness) * max_probe_lod;
     radiance = sample_probe_radiance(pos, safe_normalize(reflect(pos, norm)), lod);
+    if (glossiness >= 0.9)
+    {
+        vec4 ssr = vec4(0.0);
+        tap_screen_space_reflection(tc, pos, norm, ssr, glossiness);
+        radiance = mix(radiance, ssr.rgb, ssr.a);
+    }
     tap_hero_probe(radiance, pos, norm, glossiness);
     radiance = clamp(radiance, vec3(0.0), vec3(10.0));
 }
@@ -708,93 +1179,175 @@ void main()
     vec3 normal = decode_gbuffer_normal(encoded_normal);
     vec3 view_position = reconstruct_view_position(tc, scene_depth);
     vec3 light_dir = select_composite_light_direction();
-    float ndotl = max(dot(normal, light_dir), 0.0);
     bool classic_mode = pc.composite_moon_direction.w > 0.5;
-    if (classic_mode)
-    {
-        ndotl = pow(ndotl, 1.2);
-    }
+    vec3 view_dir = -safe_normalize(view_position);
 
     bool pbr = specular_or_orm.a > 0.5;
     vec3 base_color = max(diffuse.rgb, vec3(0.0));
-    if (!pbr)
-    {
-        base_color = srgb_to_linear(base_color);
-        specular_or_orm.rgb = srgb_to_linear(max(specular_or_orm.rgb, vec3(0.0)));
-    }
-
-    float env = clamp(diffuse.a, 0.0, 1.0);
-    float ao = pbr ? clamp(specular_or_orm.r, 0.0, 1.0) : 1.0;
-    float legacy_shiny = clamp(specular_or_orm.a * 2.0, 0.0, 1.0);
-    float roughness = pbr ?
-        clamp(specular_or_orm.g, 0.04, 1.0) :
-        mix(0.72, 0.22, legacy_shiny);
-    float metallic = pbr ? clamp(specular_or_orm.b, 0.0, 1.0) : 0.0;
-    float combined_ao = min(ao, ambient_occlusion);
 
     float probe_ambiance = clamp(pc.scene_reflection.x, 0.0, 1.0);
-    vec3 ambient_color = max(pc.composite_ambient.rgb, vec3(0.02));
-    ambient_color = mix(
-        ambient_color,
-        max(ambient_color, vec3(probe_ambiance * 0.25)),
-        probe_ambiance);
-    vec3 direct_color = max(pc.composite_light.rgb, vec3(0.0));
+    vec3 ambient_color = max(pc.composite_ambient.rgb, vec3(0.0));
+    vec3 sunlit_linear = max(pc.composite_light.rgb, vec3(0.0));
     float direct_scale = max(pc.composite_light_direction.a, 0.0);
+    sunlit_linear *= direct_scale;
     if (classic_mode)
     {
-        direct_scale *= 1.35;
+        sunlit_linear *= 1.35;
     }
 
-    vec3 view_dir = -safe_normalize(view_position);
-    vec3 sampled_environment = vec3(0.0);
-    sample_reflection_probes(
-        ambient_color,
-        sampled_environment,
-        tc,
-        view_position,
-        normal,
-        1.0 - roughness,
-        ambient_color,
-        classic_mode);
-    if (max(max(sampled_environment.r, sampled_environment.g), sampled_environment.b) <= 0.0001)
+    vec3 color = vec3(0.0);
+    if (pbr)
     {
-        sampled_environment =
-            sample_environment(normal, view_dir, roughness, probe_ambiance);
-    }
-    float environment_scale = mix(1.0, 1.75, probe_ambiance);
-    vec3 fallback_environment =
-        base_color * env * environment_scale * mix(0.08, 0.18, 1.0 - roughness);
-    vec3 environment = mix(
-        fallback_environment,
-        sampled_environment * env,
-        clamp(probe_ambiance, 0.0, 1.0));
-    vec3 ambient = base_color * ambient_color * combined_ao + environment * combined_ao;
-    vec3 direct = base_color * direct_color * ndotl * direct_scale * sun_shadow * mix(1.0, 0.62, metallic);
-
-    vec3 local_light_color = max(pc.composite_local_light.rgb, vec3(0.0));
-    float local_light_strength =
-        clamp(pc.composite_local_light.a, 0.0, 1.0) *
-        local_light_screen_weight(
+        vec3 orm = max(specular_or_orm.rgb, vec3(0.0));
+        float perceptual_roughness = clamp(orm.g, 0.04, 1.0);
+        float metallic = clamp(orm.b, 0.0, 1.0);
+        float ao = clamp(orm.r, 0.0, 1.0);
+        vec3 irradiance = ambient_color;
+        vec3 radiance = vec3(0.0);
+        sample_reflection_probes(
+            irradiance,
+            radiance,
             tc,
-            pc.composite_features.zw,
-            pc.composite_light.a);
-    vec3 local_light = base_color * local_light_color * local_light_strength *
-        combined_ao * mix(0.55, 1.0, 1.0 - roughness);
+            view_position,
+            normal,
+            1.0 - perceptual_roughness,
+            ambient_color,
+            classic_mode);
+        if (max(max(radiance.r, radiance.g), radiance.b) <= 0.0001)
+        {
+            radiance =
+                sample_environment(normal, view_dir, perceptual_roughness, probe_ambiance);
+        }
+        adjust_irradiance(irradiance, ambient_occlusion);
 
-    vec3 half_dir = normalize(light_dir + view_dir);
-    vec3 specular_color = pbr ?
-        mix(vec3(0.04), base_color, metallic) :
-        max(specular_or_orm.rgb, vec3(0.0));
-    float specular_power = mix(128.0, 8.0, roughness);
-    float ndoth = max(dot(normal, half_dir), 0.0);
-    vec3 fresnel = pbr ?
-        fresnel_schlick(max(dot(half_dir, view_dir), 0.0), specular_color) :
-        specular_color * mix(0.35, 1.2, legacy_shiny);
-    float specular = pow(ndoth, specular_power) * (1.0 - roughness);
-    vec3 direct_specular = fresnel * direct_color * specular * direct_scale * sun_shadow;
-    vec3 local_specular = fresnel * local_light_color * local_light_strength *
-        specular * mix(0.35, 0.75, 1.0 - roughness);
+        vec3 diffuse_color = vec3(0.0);
+        vec3 specular_color = vec3(0.0);
+        calc_diffuse_specular(base_color, metallic, diffuse_color, specular_color);
+        color = pbr_base_light(
+            diffuse_color,
+            specular_color,
+            metallic,
+            view_dir,
+            normal,
+            perceptual_roughness,
+            light_dir,
+            sunlit_linear,
+            sun_shadow,
+            radiance,
+            irradiance,
+            emissive,
+            ao,
+            classic_mode);
+    }
+    else
+    {
+        base_color = srgb_to_linear(base_color);
+        vec4 spec = specular_or_orm;
+        spec.rgb = srgb_to_linear(max(spec.rgb, vec3(0.0)));
+        float env_intensity = clamp(diffuse.a, 0.0, 1.0);
 
-    vec3 color = ambient + direct + local_light + direct_specular + local_specular + emissive;
-    frag_color = vec4(color * vertex_color.rgb, 1.0);
+        float da = clamp(dot(normal, light_dir), 0.0, 1.0);
+        vec3 irradiance = ambient_color;
+        vec3 glossenv = vec3(0.0);
+        vec3 legacyenv = vec3(0.0);
+        sample_reflection_probes(
+            irradiance,
+            glossenv,
+            tc,
+            view_position,
+            normal,
+            spec.a,
+            ambient_color,
+            classic_mode);
+        if (spec.a > 0.0 &&
+            max(max(glossenv.r, glossenv.g), glossenv.b) <= 0.0001)
+        {
+            glossenv = sample_environment(normal, view_dir, 1.0 - spec.a, probe_ambiance);
+        }
+        if (env_intensity > 0.0)
+        {
+            vec3 legacy_irradiance = irradiance;
+            sample_reflection_probes(
+                legacy_irradiance,
+                legacyenv,
+                tc,
+                view_position,
+                normal,
+                1.0,
+                ambient_color,
+                classic_mode);
+            if (max(max(legacyenv.r, legacyenv.g), legacyenv.b) <= 0.0001)
+            {
+                legacyenv = sample_environment(normal, view_dir, 0.0, probe_ambiance);
+            }
+        }
+        adjust_irradiance(irradiance, ambient_occlusion);
+
+        color = irradiance;
+        if (classic_mode)
+        {
+            da = pow(da, 1.2);
+            vec3 sun_contrib = vec3(min(da, sun_shadow));
+            color =
+                srgb_to_linear(
+                    color * 0.9 +
+                    (linear_to_srgb(sun_contrib) * sunlit_linear * 0.7));
+            sunlit_linear = srgb_to_linear(sunlit_linear);
+        }
+        else
+        {
+            color += min(da, sun_shadow) * sunlit_linear;
+        }
+
+        color *= base_color;
+
+        if (spec.a > 0.0)
+        {
+            vec3 h;
+            vec3 l;
+            float nh;
+            float nl;
+            float nv;
+            float vh;
+            float light_dist;
+            calc_half_vectors(
+                light_dir,
+                normal,
+                view_dir,
+                h,
+                l,
+                nh,
+                nl,
+                nv,
+                vh,
+                light_dist);
+
+            if (nl > 0.0 && nh > 0.0)
+            {
+                float lit = min(nl * 6.0, 1.0);
+                float fres = pow(1.0 - vh, 5.0) * 0.4 + 0.5;
+                float gtdenom = 2.0 * nh;
+                float gt = max(0.0, min(gtdenom * nv / vh, gtdenom * nl / vh));
+                float scol =
+                    fres *
+                    texture(lightFunc, vec2(nh, spec.a)).r *
+                    gt /
+                    (nh * nl);
+                scol *= min(nl, sun_shadow);
+                color += lit * scol * sunlit_linear * spec.rgb;
+            }
+
+            apply_gloss_env(color, glossenv, spec, view_position, normal);
+        }
+
+        if (env_intensity > 0.0)
+        {
+            apply_legacy_env(color, legacyenv, spec, view_position, normal, env_intensity);
+        }
+
+        color += emissive;
+    }
+
+    float final_scale = classic_mode ? 1.1 : 1.0;
+    frag_color = vec4(clamp_hdr_range(color * final_scale) * vertex_color.rgb, 1.0);
 }

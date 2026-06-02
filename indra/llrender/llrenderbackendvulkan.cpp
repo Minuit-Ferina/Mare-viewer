@@ -20776,15 +20776,15 @@ bool record_vulkan_frame_command_buffer(
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[8],
                     0.f);
                 push_constants.mMaterialTextureTransform3 = glm::vec4(
-                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[0],
-                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[1],
-                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[2],
-                    0.f);
+                    draw.mMaterialParameters.mCompositeSSR0[0],
+                    draw.mMaterialParameters.mCompositeSSR0[1],
+                    draw.mMaterialParameters.mCompositeSSR0[2],
+                    draw.mMaterialParameters.mCompositeSSR0[3]);
                 push_constants.mMaterialTextureTransform4 = glm::vec4(
-                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[3],
-                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[4],
-                    draw.mMaterialParameters.mCompositeSSAOEffectMatrix[5],
-                    0.f);
+                    draw.mMaterialParameters.mCompositeSSR1[0],
+                    draw.mMaterialParameters.mCompositeSSR1[1],
+                    draw.mMaterialParameters.mCompositeSSR1[2],
+                    draw.mMaterialParameters.mCompositeSSR1[3]);
                 push_constants.mCompositeExtra = glm::vec4(
                     draw.mMaterialParameters.mCompositeSSAOEffectMatrix[6],
                     draw.mMaterialParameters.mCompositeSSAOEffectMatrix[7],
