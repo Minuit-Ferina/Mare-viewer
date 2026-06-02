@@ -173,6 +173,7 @@ struct LLWorldRenderCommand
     U32 mTerrainPlanarSampleCount = 1;
     F32 mTerrainTriplanarBlendFactor = 8.f;
     bool mTerrainUsesPBRMaterials = false;
+    F32 mWaterBlendFactor = 0.f;
     LLColor4 mTerrainBaseColorFactors[4] =
     {
         LLColor4(1.f, 1.f, 1.f, 1.f),
@@ -286,7 +287,7 @@ public:
         F32 offset_x,
         F32 offset_y);
 
-    void appendDrawRange(
+    LLWorldRenderCommand* appendDrawRange(
         LLVertexBuffer* vertex_buffer,
         LLViewerTexture* texture,
         LLWorldRenderMaterialClass material_class,

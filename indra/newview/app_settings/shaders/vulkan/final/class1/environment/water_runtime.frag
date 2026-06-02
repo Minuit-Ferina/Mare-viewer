@@ -1,6 +1,8 @@
 #version 450
 
 layout(set = 0, binding = 0) uniform sampler2D tex0;
+layout(set = 0, binding = 1) uniform sampler2D bumpMap;
+layout(set = 0, binding = 2) uniform sampler2D bumpMap2;
 layout(set = 0, binding = 5) uniform sampler2D waterExclusionMap;
 layout(set = 0, binding = 8) uniform sampler2D depthMap;
 layout(set = 0, binding = 9) uniform sampler2D sceneColorMap;
@@ -32,11 +34,14 @@ layout(push_constant) uniform MareWorldPushConstants
     layout(offset = 80) vec4 material_params;
     layout(offset = 128) vec4 clip_plane;
     layout(offset = 176) vec4 material_pbr;
+    layout(offset = 208) vec4 water_time_height_fog;
     layout(offset = 240) vec4 water_settings;
-    layout(offset = 256) vec4 water_normal_scale;
+    layout(offset = 256) vec4 water_normal_scale; // xyz normScale, w blend_factor
     layout(offset = 272) vec4 environment0;
     layout(offset = 288) vec4 environment1;
     layout(offset = 304) vec4 environment2;
+    layout(offset = 320) vec4 water_plane;
+    layout(offset = 336) vec4 water_fog_color_density;
     layout(offset = 416) vec4 scene_ambient_direct_scale;
     layout(offset = 432) vec4 scene_direct_color;
     layout(offset = 448) vec4 scene_light_direction;
@@ -45,16 +50,28 @@ layout(push_constant) uniform MareWorldPushConstants
 layout(location = 0) in vec4 vertex_color;
 layout(location = 1) in vec2 vary_texcoord0;
 layout(location = 3) in vec3 vary_normal;
+layout(location = 4) in vec4 vary_tangent;
 layout(location = 5) in vec3 vary_position;
+layout(location = 6) in vec4 refCoord;
+layout(location = 7) in vec4 littleWave;
+layout(location = 8) in vec4 view;
 
 layout(location = 0) out vec4 frag_color;
 
 const uint MATERIAL_HAS_SCENE_DEPTH = 131072u;
 const uint MATERIAL_HAS_SCENE_COLOR = 262144u;
+const uint MATERIAL_HAS_NORMAL_MAP = 1u;
 
 bool has_material_flag(uint flag)
 {
     return (uint(pc.material_pbr.z + 0.5) & flag) != 0u;
+}
+
+vec3 srgb_to_linear(vec3 color)
+{
+    vec3 low = color / 12.92;
+    vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
+    return mix(high, low, lessThan(color, vec3(0.04045)));
 }
 
 vec3 get_scene_ambient_color()
@@ -500,6 +517,49 @@ vec3 get_water_probe_normal(vec3 normal)
     return safe_normalize(normal * scale);
 }
 
+vec3 sample_water_bump(sampler2D bump_sampler, vec2 uv)
+{
+    return texture(bump_sampler, uv).xyz * 2.0 - 1.0;
+}
+
+vec3 transform_water_normal(vec3 normal_tangent_space, vec3 fallback_normal)
+{
+    vec3 n = safe_normalize(fallback_normal);
+    vec3 t = safe_normalize(vary_tangent.xyz);
+    vec3 b = safe_normalize(cross(n, t)) * (vary_tangent.w < 0.0 ? -1.0 : 1.0);
+    return safe_normalize(
+        normal_tangent_space.x * t +
+            normal_tangent_space.y * b +
+            normal_tangent_space.z * n);
+}
+
+vec3 get_water_wave_normal(vec3 fallback_normal)
+{
+    if (!has_material_flag(MATERIAL_HAS_NORMAL_MAP))
+    {
+        return fallback_normal;
+    }
+
+    vec2 big_wave = vec2(refCoord.w, view.w);
+    vec2 little_wave0 = littleWave.xy;
+    vec2 little_wave1 = littleWave.zw;
+
+    vec3 wave1_a = sample_water_bump(bumpMap, big_wave);
+    vec3 wave2_a = sample_water_bump(bumpMap, little_wave0);
+    vec3 wave3_a = sample_water_bump(bumpMap, little_wave1);
+
+    vec3 wave1_b = sample_water_bump(bumpMap2, big_wave);
+    vec3 wave2_b = sample_water_bump(bumpMap2, little_wave0);
+    vec3 wave3_b = sample_water_bump(bumpMap2, little_wave1);
+
+    float blend_factor = clamp(pc.water_normal_scale.w, 0.0, 1.0);
+    vec3 wave1 = mix(wave1_a, wave1_b, blend_factor);
+    vec3 wave2 = mix(wave2_a, wave2_b, blend_factor);
+    vec3 wave3 = mix(wave3_a, wave3_b, blend_factor);
+    vec3 wave = safe_normalize((wave1 + wave2 * 0.4 + wave3 * 0.6) * 0.5);
+    return transform_water_normal(wave, fallback_normal);
+}
+
 float get_water_glossiness()
 {
     return clamp(1.0 - max(pc.water_settings.z, 0.0), 0.0, 1.0);
@@ -519,6 +579,59 @@ vec2 get_water_refraction_offset(vec3 normal, float depth_fade, float distance_t
         pc.water_settings.w / max(dmod, 1.0) * 2.0;
     float fallback_offset = mix(0.002, 0.012, depth_fade);
     return normal.xy * (pc.water_settings.w > 0.0 ? source_offset : fallback_offset);
+}
+
+vec4 get_water_fog_view_no_clip(vec3 pos)
+{
+    float water_fog_density = max(pc.water_time_height_fog.z, 0.0);
+    if (water_fog_density <= 0.0)
+    {
+        return vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    vec3 view_dir = safe_normalize(pos);
+    float es = -(dot(view_dir, pc.water_plane.xyz));
+    if (abs(es) <= 0.00001)
+    {
+        es = es < 0.0 ? -0.00001 : 0.00001;
+    }
+
+    float eye_depth = max(-pc.water_plane.w, 0.0);
+    vec3 intersection =
+        pc.water_plane.w > 0.0 ?
+            view_dir * pc.water_plane.w / es :
+            vec3(0.0);
+    float depth = length(pos - intersection);
+    float water_thickness = max(depth, 0.1);
+
+    float kd = water_fog_density;
+    float ks = max(pc.water_time_height_fog.w, 0.0);
+    vec3 fog_color = pc.water_fog_color_density.rgb;
+    const float fog_base = 0.98;
+
+    float t1 = -kd * pow(fog_base, ks * eye_depth);
+    float t2 = kd + ks * es;
+    if (abs(t2) <= 0.00001)
+    {
+        t2 = t2 < 0.0 ? -0.00001 : 0.00001;
+    }
+    float t3 = pow(fog_base, t2 * water_thickness) - 1.0;
+    float light_term = pow(clamp(t1 / t2 * t3, 0.0, 1.0), 1.0 / 1.7);
+    float density_term = pow(fog_base, water_thickness * kd);
+
+    return vec4(srgb_to_linear(fog_color) * light_term, density_term);
+}
+
+vec4 apply_water_fog_view_linear(vec3 pos, vec4 color)
+{
+    if (dot(pos, pc.water_plane.xyz) + pc.water_plane.w > 0.0)
+    {
+        return color;
+    }
+
+    vec4 fogged = get_water_fog_view_no_clip(pos);
+    color.rgb = color.rgb * fogged.a + fogged.rgb;
+    return color;
 }
 
 void tap_water_hero_probe(
@@ -594,11 +707,12 @@ void main()
         1.0;
     float exclusion = texture(waterExclusionMap, screen_uv).r;
     float depth_fade = scene_depth >= 0.99999 ? 1.0 : smoothstep(0.2, 0.98, scene_depth);
-    vec3 normal = normalize(vary_normal);
+    vec3 normal = safe_normalize(vary_normal);
+    vec3 wave_normal = get_water_wave_normal(normal);
     vec3 probe_position = vary_position;
-    vec3 probe_normal = get_water_probe_normal(normal);
-    vec3 view_vector = safe_normalize(probe_position);
-    float distance_to_eye = length(probe_position);
+    vec3 probe_normal = get_water_probe_normal(wave_normal);
+    vec3 view_vector = safe_normalize(view.xyz);
+    float distance_to_eye = length(view.xyz);
     float fresnel = get_water_fresnel(view_vector, probe_normal);
     vec3 view_dir =
         safe_normalize(vec3(screen_uv * 2.0 - vec2(1.0), 1.0));
@@ -635,6 +749,7 @@ void main()
     water.rgb *= mix(vec3(0.72), clamp(scene_light, vec3(0.0), vec3(1.35)), 0.42);
     water.rgb += get_scene_direct_color() * fresnel * 0.18;
     water.rgb += probe_radiance * fresnel * 0.22;
+    water = apply_water_fog_view_linear(probe_position, water);
     water.a *= mix(0.52, 0.82, depth_fade) * mix(1.0, exclusion, 0.45);
 
     frag_color = water;

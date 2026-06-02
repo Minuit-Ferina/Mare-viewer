@@ -555,9 +555,21 @@ Validation status:
       hero-probe glossy mix rule with `heroShape`/`heroMipCount` and the
       source `clipPlane` falloff. The runtime path also transports the source
       water `normalScale`, `fresnelScale`, `fresnelOffset`, `blurMultiplier`,
-      and above/below-water `refScale` values into Water draw push constants.
-      This is not full water parity yet; exact water position/normal inputs
-      and the final class3 water shader still need graph ownership.
+      above/below-water `refScale`, and normal-map `blend_factor` values into
+      Water draw push constants. Water draws now bind the source `bumpMap` and
+      `bumpMap2` normal textures through the world command texture units and
+      the runtime shader blends the same three OpenGL wave-normal taps before
+      applying Water probe/refraction lighting. Water runtime also has a
+      dedicated `class1/environment/water_runtime.vert` owner that ports the
+      OpenGL `waterV.glsl` wave coordinate contract (`refCoord`, `littleWave`,
+      `view`, source wave directions, time, eye vector, and eye-space water
+      position) while keeping the current Vulkan world push-constant ABI. The
+      runtime shader now also receives the OpenGL water plane, fog color,
+      fog density, and fog KS values and applies the source `waterFogF.glsl`
+      linear water-fog equation to the Water surface.
+      This is not full water parity yet; final class3 water fragment graph
+      ownership, reflection target, shadow, PBR water lighting, and water-fog
+      visual parity still need to be wired and validated.
       Vulkan still needs Vulkan-owned sun/spot shadow-map render passes,
       deeper water/debug reflection variants, atmospheric visual parity
       validation, and final visual validation before this item can be closed.
@@ -654,9 +666,12 @@ Validation status:
 - [ ] Water:
       keep both OpenGL source tiers: `class1/environment/waterF.glsl` as the
       magenta error/fallback shader and `class3/environment/waterF.glsl` as
-      the high-fidelity water shader. Vulkan water parity needs bumpMap,
-      bumpMap2, blend factor, reflection render targets, water fog, shadows,
-      exact class3 water position/normal/wave inputs, and PBR water lighting.
+      the high-fidelity water shader. Vulkan water parity now transports and
+      samples the source bumpMap/bumpMap2/blend-factor inputs in the runtime
+      path and routes Water through a dedicated runtime vertex shader with
+      OpenGL-style wave varyings, but still needs reflection render targets,
+      shadows, final class3 fragment ownership, PBR water lighting, and visual
+      validation of the newly wired source water-fog equation.
       Runtime Water already has exclusion, scene depth/color, reflection/
       irradiance/hero probes, source Fresnel, blur, normalScale, and
       above/below-water refScale transport.

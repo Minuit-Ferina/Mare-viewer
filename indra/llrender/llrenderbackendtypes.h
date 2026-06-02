@@ -636,6 +636,25 @@ struct LLRenderWorldMaterialParameters
     F32 mWaterFresnelOffset = 0.4f;
     F32 mWaterBlurMultiplier = 0.2f;
     F32 mWaterRefScale = 0.025f;
+    F32 mWaterBlendFactor = 0.f;
+    F32 mWaterWaveDir1X = 1.f;
+    F32 mWaterWaveDir1Y = 0.f;
+    F32 mWaterWaveDir2X = 0.f;
+    F32 mWaterWaveDir2Y = 1.f;
+    F32 mWaterTime = 0.f;
+    F32 mWaterHeight = 0.f;
+    F32 mWaterEyeVecX = 0.f;
+    F32 mWaterEyeVecY = 0.f;
+    F32 mWaterEyeVecZ = 0.f;
+    F32 mWaterPlane[4] =
+    {
+        0.f, 0.f, 1.f, 0.f,
+    };
+    F32 mWaterFogColorDensity[4] =
+    {
+        0.f, 0.f, 0.f, 0.f,
+    };
+    F32 mWaterFogKS = 1.f;
     F32 mCompositeClipPlane[4] =
     {
         0.f, 0.f, 0.f, 0.f,

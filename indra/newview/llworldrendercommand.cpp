@@ -27,6 +27,7 @@
 #include "lldrawpool.h"
 #include "llface.h"
 #include "llfetchedgltfmaterial.h"
+#include "llframetimer.h"
 #include "llenvironment.h"
 #include "llmaterial.h"
 #include "m4math.h"
@@ -34,6 +35,7 @@
 #include "llrenderbackend.h"
 #include "llrenderstate.h"
 #include "llsettingssky.h"
+#include "llsettingsvo.h"
 #include "llsettingswater.h"
 #include "llspatialpartition.h"
 #include "llstring.h"
@@ -41,6 +43,7 @@
 #include "llviewercamera.h"
 #include "llviewerregion.h"
 #include "llviewershadermgr.h"
+#include "llworld.h"
 #include "pipeline.h"
 
 #include <cstdlib>
@@ -106,6 +109,51 @@ void set_world_water_parameters(LLRenderWorldMaterialParameters& parameters)
         LLViewerCamera::getInstance()->cameraUnderWater() ?
             water->getScaleBelow() :
             water->getScaleAbove();
+    parameters.mWaterWaveDir1X = water->getWave1Dir().mV[VX];
+    parameters.mWaterWaveDir1Y = water->getWave1Dir().mV[VY];
+    parameters.mWaterWaveDir2X = water->getWave2Dir().mV[VX];
+    parameters.mWaterWaveDir2Y = water->getWave2Dir().mV[VY];
+    LLEnvironment& environment = LLEnvironment::instance();
+    parameters.mWaterTime = static_cast<F32>(LLFrameTimer::getElapsedSeconds()) * 0.5f;
+    F32 water_height = environment.getWaterHeight();
+    const LLVector3& eye_vec = LLViewerCamera::getInstance()->getOrigin();
+    if (LLViewerCamera::getInstance()->cameraUnderWater())
+    {
+        LLViewerRegion* region = LLWorld::instance().getRegionFromPosAgent(eye_vec);
+        if (region)
+        {
+            water_height = region->getWaterHeight();
+        }
+    }
+    parameters.mWaterHeight = water_height;
+    parameters.mWaterEyeVecX = eye_vec.mV[VX];
+    parameters.mWaterEyeVecY = eye_vec.mV[VY];
+    parameters.mWaterEyeVecZ = eye_vec.mV[VZ];
+
+    glm::vec3 water_normal(0.f, 0.f, 1.f);
+    glm::vec3 water_position(0.f, 0.f, water_height);
+    glm::mat4 modelview = get_current_modelview();
+    glm::mat4 inverse_transpose = glm::transpose(glm::inverse(modelview));
+    inverse_transpose[0][3] = 0.f;
+    inverse_transpose[1][3] = 0.f;
+    inverse_transpose[2][3] = 0.f;
+    glm::vec3 eye_normal =
+        glm::normalize(mul_mat4_vec3(inverse_transpose, water_normal));
+    glm::vec3 eye_position = mul_mat4_vec3(modelview, water_position);
+    glm::vec4 water_plane(eye_normal, -glm::dot(eye_position, eye_normal));
+    parameters.mWaterPlane[0] = water_plane.x;
+    parameters.mWaterPlane[1] = water_plane.y;
+    parameters.mWaterPlane[2] = water_plane.z;
+    parameters.mWaterPlane[3] = water_plane.w;
+
+    const LLVector4 light_direction = environment.getClampedLightNorm();
+    parameters.mWaterFogKS =
+        1.f / llmax(light_direction.mV[VZ], LLSettingsVOWater::WATER_FOG_LIGHT_CLAMP);
+    const bool underwater = eye_vec.mV[VZ] - water_height <= 0.f;
+    parameters.mWaterFogColorDensity[0] = water->getWaterFogColor().mV[VRED];
+    parameters.mWaterFogColorDensity[1] = water->getWaterFogColor().mV[VGREEN];
+    parameters.mWaterFogColorDensity[2] = water->getWaterFogColor().mV[VBLUE];
+    parameters.mWaterFogColorDensity[3] = water->getModifiedWaterFogDensity(underwater);
 }
 
 void classify_world_render_command(LLWorldRenderCommand& command)
@@ -1023,6 +1071,7 @@ LLRenderWorldMaterialParameters get_world_material_parameters(
     {
         set_world_mirror_clip_plane(parameters);
         set_world_water_parameters(parameters);
+        parameters.mWaterBlendFactor = command.mWaterBlendFactor;
     }
     return parameters;
 }
@@ -1689,7 +1738,7 @@ void LLWorldRenderCommandBuffer::appendTerrainFace(
     }
 }
 
-void LLWorldRenderCommandBuffer::appendDrawRange(
+LLWorldRenderCommand* LLWorldRenderCommandBuffer::appendDrawRange(
     LLVertexBuffer* vertex_buffer,
     LLViewerTexture* texture,
     LLWorldRenderMaterialClass material_class,
@@ -1706,7 +1755,7 @@ void LLWorldRenderCommandBuffer::appendDrawRange(
 {
     if (!vertex_buffer || !count)
     {
-        return;
+        return nullptr;
     }
 
     LLWorldRenderCommand command;
@@ -1725,6 +1774,7 @@ void LLWorldRenderCommandBuffer::appendDrawRange(
     command.mBatchTextures = batch_textures;
     command.mMode = mode;
     mCommands.push_back(command);
+    return &mCommands.back();
 }
 
 LLWorldRenderCommand* LLWorldRenderCommandBuffer::appendOwnedDrawRange(

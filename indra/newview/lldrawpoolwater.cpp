@@ -322,6 +322,32 @@ bool LLDrawPoolWater::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
     LLViewerTexture* texture = mWaterImagep[0].notNull() ?
         mWaterImagep[0].get() :
         mOpaqueWaterImagep.get();
+    LLSettingsWater::ptr_t pwater = LLEnvironment::instance().getCurrentWater();
+    const bool has_normal_mips = gSavedSettings.getBOOL("RenderWaterMipNormal");
+    const LLTexUnit::eTextureFilterOptions filter_mode =
+        has_normal_mips ? LLTexUnit::TFO_ANISOTROPIC : LLTexUnit::TFO_POINT;
+    LLViewerTexture* bump_map_a = mWaterNormp[0].get();
+    LLViewerTexture* bump_map_b = mWaterNormp[1].get();
+    F32 blend_factor = pwater ? static_cast<F32>(pwater->getBlendFactor()) : 0.f;
+
+    if (bump_map_a && (!bump_map_b || bump_map_a == bump_map_b))
+    {
+        bump_map_a->setFilteringOption(filter_mode);
+        bump_map_b = nullptr;
+        blend_factor = 0.f;
+    }
+    else if (bump_map_b && !bump_map_a)
+    {
+        bump_map_b->setFilteringOption(filter_mode);
+        bump_map_a = bump_map_b;
+        bump_map_b = nullptr;
+        blend_factor = 0.f;
+    }
+    else if (bump_map_a && bump_map_b)
+    {
+        bump_map_a->setFilteringOption(filter_mode);
+        bump_map_b->setFilteringOption(filter_mode);
+    }
 
     if (texture)
     {
@@ -344,7 +370,7 @@ bool LLDrawPoolWater::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
         const LLDrawable* drawable = face->getDrawable();
         const LLViewerRegion* region = drawable ? drawable->getRegion() : nullptr;
 
-        commands.appendDrawRange(
+        LLWorldRenderCommand* command = commands.appendDrawRange(
             vertex_buffer,
             texture,
             LLWorldRenderMaterialClass::Water,
@@ -357,6 +383,12 @@ bool LLDrawPoolWater::emitPostDeferredCommands(LLWorldRenderCommandBuffer& comma
             texture != nullptr,
             false,
             VERTEX_DATA_MASK);
+        if (command)
+        {
+            command->mNormalMap = bump_map_a;
+            command->mSpecularMap = bump_map_b;
+            command->mWaterBlendFactor = blend_factor;
+        }
 
         LLVOWater* water = static_cast<LLVOWater*>(face->getViewerObject());
         if (water && !water->getIsEdgePatch())

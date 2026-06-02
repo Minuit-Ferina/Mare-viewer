@@ -2074,6 +2074,7 @@ struct LLVulkanNativeContext
     LLVkShaderModule mSimpleFragmentShader = nullptr;
     LLVkShaderModule mSimpleIndexedFragmentShader = nullptr;
     LLVkShaderModule mSkyFragmentShader = nullptr;
+    LLVkShaderModule mWaterVertexShader = nullptr;
     LLVkShaderModule mWaterFragmentShader = nullptr;
     LLVkShaderModule mHazeFragmentShader = nullptr;
     LLVkShaderModule mAlphaVertexShader = nullptr;
@@ -12743,7 +12744,7 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"alpha-mask-gbuffer", "class1/deferred/diffuse_indexed.vert.spv", "class1/deferred/diffuse_alpha_mask_indexed.frag.spv", "legacy alpha-mask G-buffer geometry", "runtime-world push constants, set0 texture array, texture index, optional skinning", "OpenGL alpha-mask cutoff plus opaque depth write", "G-buffer runtime owner"},
         {"avatar", "class1/deferred/avatar.vert.spv", "class1/deferred/avatar.frag.spv", "classic avatar G-buffer", "pending avatar baked texture/skinning ABI", "avatar draw-pool depth/cull/blend state", "inventory-only"},
         {"avatar-impostor", "class1/deferred/impostor.vert.spv", "class1/deferred/impostor.frag.spv", "avatar impostor billboard G-buffer"},
-        {"water-runtime", "active/world_textured.vert.spv", "class1/environment/water_runtime.frag.spv", "water runtime surface", "runtime-world push constants, depth/scene-color/water-exclusion inputs, and reflection/irradiance/hero probe cube-array inputs", "OpenGL water owner blend/depth/cull state approximation", "bound runtime owner; final class1/class3 water shaders remain inventory-only"},
+        {"water-runtime", "class1/environment/water_runtime.vert.spv", "class1/environment/water_runtime.frag.spv", "water runtime surface", "runtime-world push constants, source water wave inputs, depth/scene-color/water-exclusion inputs, and reflection/irradiance/hero probe cube-array inputs", "OpenGL water owner blend/depth/cull state approximation", "bound runtime owner; final class1/class3 water fragment graph still being narrowed"},
         {"haze-runtime", "active/world_textured.vert.spv", "class3/deferred/haze_runtime.frag.spv", "atmospheric haze, water haze, and water-exclusion fallback surface", "runtime-world push constants, depth, scene color, and water-exclusion inputs", "active Vulkan haze approximation isolated from the final class3 haze inventory shader", "bound runtime owner; final class3 haze shader still fails strict parity"},
         {"water-class1-fallback", "class1/environment/water.vert.spv", "class1/environment/water.frag.spv", "water error/fallback surface"},
         {"water-class3", "class1/environment/water.vert.spv", "class3/environment/water.frag.spv", "high-fidelity water surface"},
@@ -13085,6 +13086,10 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         {
             destroy_shader_module_once(context.mSkyFragmentShader);
         }
+        if (context.mWaterVertexShader)
+        {
+            destroy_shader_module_once(context.mWaterVertexShader);
+        }
         if (context.mWaterFragmentShader)
         {
             destroy_shader_module_once(context.mWaterFragmentShader);
@@ -13315,6 +13320,7 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mSimpleFragmentShader = nullptr;
     context.mSimpleIndexedFragmentShader = nullptr;
     context.mSkyFragmentShader = nullptr;
+    context.mWaterVertexShader = nullptr;
     context.mWaterFragmentShader = nullptr;
     context.mHazeFragmentShader = nullptr;
     context.mAlphaVertexShader = nullptr;
@@ -13518,6 +13524,7 @@ bool create_vulkan_offscreen_pipeline_set(
         !context.mUIFragmentShader ||
         !context.mWorldVertexShader ||
         !context.mWorldFragmentShader ||
+        !context.mWaterVertexShader ||
         !context.mTerrainVertexShader ||
         !context.mTerrainFragmentShader)
     {
@@ -13616,7 +13623,16 @@ bool create_vulkan_offscreen_pipeline_set(
     };
     LLVkPipelineShaderStageCreateInfo water_shader_stages[2] =
     {
-        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mWaterVertexShader,
+            "main",
+            nullptr
+        },
         LLVkPipelineShaderStageCreateInfo
         {
             LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -15587,6 +15603,8 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         get_vulkan_final_shader_module(context, "class1/objects/simple_indexed.frag.spv", "class1 simple indexed object fragment");
     context.mSkyFragmentShader =
         get_vulkan_final_shader_module(context, "class1/deferred/sky_runtime.frag.spv", "class1 sky runtime fragment");
+    context.mWaterVertexShader =
+        get_vulkan_final_shader_module(context, "class1/environment/water_runtime.vert.spv", "class1 water runtime vertex");
     context.mWaterFragmentShader =
         get_vulkan_final_shader_module(context, "class1/environment/water_runtime.frag.spv", "class1 water runtime fragment");
     context.mHazeFragmentShader =
@@ -15708,6 +15726,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         !context.mSimpleFragmentShader ||
         !context.mSimpleIndexedFragmentShader ||
         !context.mSkyFragmentShader ||
+        !context.mWaterVertexShader ||
         !context.mWaterFragmentShader ||
         !context.mHazeFragmentShader ||
         !context.mAlphaVertexShader ||
@@ -16294,7 +16313,16 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     };
     LLVkPipelineShaderStageCreateInfo water_shader_stages[2] =
     {
-        world_shader_stages[0],
+        LLVkPipelineShaderStageCreateInfo
+        {
+            LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            nullptr,
+            0,
+            LL_VK_SHADER_STAGE_VERTEX_BIT,
+            context.mWaterVertexShader,
+            "main",
+            nullptr
+        },
         LLVkPipelineShaderStageCreateInfo
         {
             LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -21037,7 +21065,23 @@ bool record_vulkan_frame_command_buffer(
                     draw.mMaterialParameters.mWaterNormalScaleX,
                     draw.mMaterialParameters.mWaterNormalScaleY,
                     draw.mMaterialParameters.mWaterNormalScaleZ,
-                    1.f);
+                    draw.mMaterialParameters.mWaterBlendFactor);
+                push_constants.mMaterialLegacy = glm::vec4(
+                    draw.mMaterialParameters.mWaterWaveDir1X,
+                    draw.mMaterialParameters.mWaterWaveDir1Y,
+                    draw.mMaterialParameters.mWaterWaveDir2X,
+                    draw.mMaterialParameters.mWaterWaveDir2Y);
+                push_constants.mMaterialModes = glm::vec4(
+                    draw.mMaterialParameters.mWaterTime,
+                    draw.mMaterialParameters.mWaterHeight,
+                    draw.mMaterialParameters.mWaterFogColorDensity[3],
+                    draw.mMaterialParameters.mWaterFogKS);
+                push_constants.mMaterialTextureTransform2 = glm::vec4(
+                    draw.mMaterialParameters.mWaterEyeVecX,
+                    draw.mMaterialParameters.mWaterEyeVecY,
+                    draw.mMaterialParameters.mWaterEyeVecZ,
+                    0.f);
+                push_constants.mNormalMatrix = draw.mModelview;
                 push_constants.mTerrainTextureTransform0 = glm::vec4(
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[0],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[1],
@@ -21053,6 +21097,13 @@ bool record_vulkan_frame_command_buffer(
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[7],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[8],
                     0.f);
+                push_constants.mTerrainTextureTransform3 = glm::make_vec4(
+                    draw.mMaterialParameters.mWaterPlane);
+                push_constants.mTerrainTextureTransform4 = glm::vec4(
+                    draw.mMaterialParameters.mWaterFogColorDensity[0],
+                    draw.mMaterialParameters.mWaterFogColorDensity[1],
+                    draw.mMaterialParameters.mWaterFogColorDensity[2],
+                    draw.mMaterialParameters.mWaterFogColorDensity[3]);
             }
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::Terrain)
             {
