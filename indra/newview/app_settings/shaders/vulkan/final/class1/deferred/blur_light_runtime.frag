@@ -44,7 +44,8 @@ vec4 reconstruct_view_position(vec2 texcoord)
 
 void main()
 {
-    vec2 tc = vary_texcoord0.xy;
+    vec2 screen_res = max(u.blur_screen.xy, vec2(1.0));
+    vec2 tc = clamp(gl_FragCoord.xy / screen_res, vec2(0.0), vec2(1.0));
     vec4 norm = vec4(decode_gbuffer_normal(texture(normalMap, tc)), 0.0);
     vec3 pos = reconstruct_view_position(tc).xyz;
     vec4 ccol = texture(lightMap, tc).rgba;
@@ -52,7 +53,6 @@ void main()
     vec2 delta = u.blur_settings.xy;
     float dist_factor = u.blur_settings.z;
     float kern_scale = u.blur_settings.w;
-    vec2 screen_res = max(u.blur_screen.xy, vec2(1.0));
 
     vec2 dlt = kern_scale * delta / (1.0 + norm.xy * norm.xy);
     dlt /= max(-pos.z * dist_factor, 1.0);

@@ -600,6 +600,12 @@ Validation status:
       also produce real point and spot shader contributions. The earlier
       black/no-op volume probe was a smoke-scene setup error, not evidence that
       the backend volume topology or additive render-target path was dead.
+      Volume-light validation progress: the point and spot cube-volume smoke
+      modes now set expected RGB values for both the deferred-light target and
+      final swapchain, matching the fullscreen local/projector probes. This
+      catches regressions in the indexed cube-volume owner, additive blend state,
+      G-buffer/depth/lightFunc bindings, and final handoff without requiring a
+      viewer login.
       This is not full water parity yet; final class3 water fragment graph
       ownership, reflection-target visual/depth parity, shadow, PBR water
       lighting, and water-fog visual parity still need to be wired and
@@ -675,6 +681,14 @@ Validation status:
       final swapchain RGB, so regressions in the local-light owner, G-buffer/
       depth/lightFunc bindings, additive blend state, or final handoff fail
       without requiring a login.
+      Emissive validation progress: `mare-vulkan-smoke --mode
+      viewer-deferred-emissive-probe` now exercises a PBR G-buffer emissive
+      variant by writing a bright emissive value into attachment 3, then
+      validates that the deferred composite output and final swapchain include
+      that emissive contribution. This is a local guardrail for the G-buffer
+      emissive attachment, composite `emissiveMap` binding, and final handoff;
+      full live-viewer `DeferredSoften` visual parity still needs scene
+      comparison.
       Projector validation progress: `mare-vulkan-smoke --mode
       viewer-deferred-projector-light-probe` now adds a white cube-map fixture
       and renders a fullscreen `MultiSpotLight` projector pass with real cube,
@@ -689,6 +703,17 @@ Validation status:
       `class1/deferred/blur_light_runtime.frag`, and the viewer graph runs
       the same horizontal/vertical lightMap blur (`postPong -> screen ->
       postPong`) before `DeferredSoften` when `RenderDeferredSSAO` is active.
+      Runtime coordinate fix: the live Vulkan blur shader now reconstructs its
+      fullscreen sampling coordinate from `gl_FragCoord / blur_screen`, matching
+      the source `blurLightV/F` framebuffer-coordinate contract instead of
+      depending on the shared textured-world vertex UV. This fixed the smoke
+      regression where the two-pass blur sampled only the first lightMap band.
+      Validation progress: `mare-vulkan-smoke --mode
+      viewer-deferred-lightmap-blur-probe` now seeds a deterministic three-band
+      lightMap, runs both `DeferredBlurLight` ping-pong passes, and validates
+      the blur output plus final swapchain RGB against the expected lightMap
+      average, catching both black output and single-band UV regressions without
+      logging into the viewer.
       The existing
       `vulkan/final/class1/deferred/blur_light.frag` file is still an
       inventory/source-port placeholder, not the live runtime blur owner.

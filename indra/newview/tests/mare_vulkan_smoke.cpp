@@ -62,6 +62,7 @@ enum class SmokeMode
     FinalColorCompare,
     ViewerDeferredColorCompare,
     ViewerDeferredSoftenStateProbe,
+    ViewerDeferredEmissiveProbe,
     ViewerDeferredLocalLightProbe,
     ViewerDeferredProjectorLightProbe,
     ViewerDeferredPointLightVolumeProbe,
@@ -274,6 +275,11 @@ bool parse_smoke_mode_value(const char* value, SmokeMode& mode)
         mode = SmokeMode::ViewerDeferredSoftenStateProbe;
         return true;
     }
+    if (std::strcmp(value, "viewer-deferred-emissive-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredEmissiveProbe;
+        return true;
+    }
     if (std::strcmp(value, "viewer-deferred-local-light-probe") == 0)
     {
         mode = SmokeMode::ViewerDeferredLocalLightProbe;
@@ -351,6 +357,8 @@ const char* get_smoke_mode_name(SmokeMode mode)
         return "viewer-deferred-color-compare";
     case SmokeMode::ViewerDeferredSoftenStateProbe:
         return "viewer-deferred-soften-state-probe";
+    case SmokeMode::ViewerDeferredEmissiveProbe:
+        return "viewer-deferred-emissive-probe";
     case SmokeMode::ViewerDeferredLocalLightProbe:
         return "viewer-deferred-local-light-probe";
     case SmokeMode::ViewerDeferredProjectorLightProbe:
@@ -483,6 +491,8 @@ const char* get_smoke_mode_description(SmokeMode mode)
         return " rendered through a viewer-style legacy G-buffer, deferred composite, final composite, and compared against an OpenGL-style CPU color reference. ";
     case SmokeMode::ViewerDeferredSoftenStateProbe:
         return " rendered through the viewer-style deferred graph with non-neutral softenLight state for sun/moon/classic/SSAO parameter probing. ";
+    case SmokeMode::ViewerDeferredEmissiveProbe:
+        return " rendered through the viewer-style deferred graph with a PBR emissive G-buffer band consumed by the deferred composite before final composite. ";
     case SmokeMode::ViewerDeferredLocalLightProbe:
         return " rendered through the viewer-style deferred graph with a separate additive MultiPointLight pass before final composite. ";
     case SmokeMode::ViewerDeferredProjectorLightProbe:
@@ -523,6 +533,7 @@ bool smoke_mode_uses_scene(SmokeMode mode)
     case SmokeMode::FinalColorCompare:
     case SmokeMode::ViewerDeferredColorCompare:
     case SmokeMode::ViewerDeferredSoftenStateProbe:
+    case SmokeMode::ViewerDeferredEmissiveProbe:
     case SmokeMode::ViewerDeferredLocalLightProbe:
     case SmokeMode::ViewerDeferredProjectorLightProbe:
     case SmokeMode::ViewerDeferredPointLightVolumeProbe:
@@ -562,6 +573,7 @@ bool smoke_mode_replays_capture(SmokeMode mode)
     case SmokeMode::WorldPipelines:
     case SmokeMode::ShaderProbe:
     case SmokeMode::ShaderSuite:
+    case SmokeMode::ViewerDeferredEmissiveProbe:
     case SmokeMode::ViewerDeferredLocalLightProbe:
     case SmokeMode::ViewerDeferredProjectorLightProbe:
     case SmokeMode::ViewerDeferredPointLightVolumeProbe:
@@ -600,6 +612,7 @@ void print_smoke_usage(const char* executable)
         << "                             final-color-compare,\n"
         << "                             viewer-deferred-color-compare,\n"
         << "                             viewer-deferred-soften-state-probe,\n"
+        << "                             viewer-deferred-emissive-probe,\n"
         << "                             viewer-deferred-local-light-probe,\n"
         << "                             viewer-deferred-projector-light-probe,\n"
         << "                             viewer-deferred-point-light-volume-probe,\n"
@@ -4724,6 +4737,24 @@ void log_deferred_soften_state_probe_reference()
     logged_reference = true;
 }
 
+void log_deferred_emissive_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-emissive-probe: using the same "
+        << "three-band synthetic G-buffer as viewer-deferred-color-compare, "
+        << "but the PBR band writes a bright emissive value into attachment 3. "
+        << "This validates the G-buffer emissive variant, deferred composite "
+        << "emissiveMap binding, and final composite handoff."
+        << std::endl;
+    logged_reference = true;
+}
+
 void log_terrain_final_probe_reference()
 {
     static bool logged_reference = false;
@@ -4809,6 +4840,17 @@ LLRenderWorldMaterialParameters make_deferred_color_compare_pbr_material()
     parameters.mHasEmissiveMap = 0.f;
     parameters.mDiffuseAlphaMode = 0.f;
     parameters.mGLTFAlphaMode = 0.f;
+    return parameters;
+}
+
+LLRenderWorldMaterialParameters make_deferred_color_compare_pbr_emissive_material()
+{
+    LLRenderWorldMaterialParameters parameters =
+        make_deferred_color_compare_pbr_material();
+    parameters.mEmissiveColorRed = 0.25f;
+    parameters.mEmissiveColorGreen = 1.f;
+    parameters.mEmissiveColorBlue = 0.35f;
+    parameters.mHasEmissiveMap = 0.f;
     return parameters;
 }
 
@@ -5266,7 +5308,8 @@ void draw_deferred_color_compare_gbuffer_scene(
     const SmokeQuad& quad,
     U32 width,
     U32 height,
-    F32 depth = 0.f)
+    F32 depth = 0.f,
+    bool pbr_emissive = false)
 {
     log_deferred_color_compare_reference();
 
@@ -5299,7 +5342,9 @@ void draw_deferred_color_compare_gbuffer_scene(
 
     backend.setWorldShaderClass(LLRenderWorldShaderClass::PBR);
     backend.setWorldMaterialParameters(
-        make_deferred_color_compare_pbr_material());
+        pbr_emissive ?
+            make_deferred_color_compare_pbr_emissive_material() :
+            make_deferred_color_compare_pbr_material());
     set_two_prim_world_matrix(0.67f, 0.f, depth, 0.34f, 1.f);
     backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
 
@@ -8055,7 +8100,8 @@ bool render_viewer_deferred_color_compare_frame(
     const SmokeQuad& quad,
     U32 width,
     U32 height,
-    bool soften_state_probe = false)
+    bool soften_state_probe = false,
+    bool emissive_probe = false)
 {
     if (!ensure_smoke_deferred_textures(backend, material_textures))
     {
@@ -8101,10 +8147,16 @@ bool render_viewer_deferred_color_compare_frame(
         material_textures,
         quad,
         graph_width,
-        graph_height);
+        graph_height,
+        0.f,
+        emissive_probe);
     if (soften_state_probe)
     {
         log_deferred_soften_state_probe_reference();
+    }
+    if (emissive_probe)
+    {
+        log_deferred_emissive_probe_reference();
     }
     graph.mDeferredScreen.flush();
 
@@ -8112,7 +8164,7 @@ bool render_viewer_deferred_color_compare_frame(
     backend.setClearColor(0.f, 0.f, 0.f, 1.f);
     graph.mDeferredLight.clear(LL_RENDER_CLEAR_COLOR);
     LLRenderWorldMaterialParameters deferred_parameters =
-        soften_state_probe ?
+        (soften_state_probe || emissive_probe) ?
             make_deferred_soften_state_probe_parameters(
                 graph_width,
                 graph_height) :
@@ -9839,6 +9891,20 @@ int main(int argc, char** argv)
             { 1.0000f, 0.8275f, 0.5137f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
+    else if (options.mMode == SmokeMode::ViewerDeferredEmissiveProbe)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
+            { 1.2119f, 1.6533f, 0.3269f });
+        setenv(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
+            "0.05",
+            1);
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 1.0000f, 1.0000f, 0.6078f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
+    }
     else if (options.mMode == SmokeMode::ViewerDeferredLocalLightProbe)
     {
         set_expected_rgb(
@@ -9866,6 +9932,48 @@ int main(int argc, char** argv)
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
             { 1.0000f, 0.8769f, 0.6300f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
+    }
+    else if (options.mMode == SmokeMode::ViewerDeferredPointLightVolumeProbe)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
+            { 1.2066f, 0.6649f, 0.2401f });
+        setenv(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
+            "0.05",
+            1);
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 1.0000f, 0.8333f, 0.5250f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
+    }
+    else if (options.mMode == SmokeMode::ViewerDeferredSpotLightVolumeProbe)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
+            { 1.2041f, 0.7129f, 0.4581f });
+        setenv(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
+            "0.05",
+            1);
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 1.0000f, 0.8544f, 0.6102f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
+    }
+    else if (options.mMode == SmokeMode::ViewerDeferredLightMapBlurProbe)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
+            { 0.4000f, 0.6431f, 0.4902f });
+        setenv(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
+            "0.02",
+            1);
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 0.4000f, 0.6431f, 0.4902f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.02", 1);
     }
     if (!options.mScreenshotPPMPath.empty())
     {
@@ -9902,6 +10010,7 @@ int main(int argc, char** argv)
         smoke_mode == SmokeMode::FinalColorCompare ||
         smoke_mode == SmokeMode::ViewerDeferredColorCompare ||
         smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredEmissiveProbe ||
         smoke_mode == SmokeMode::ViewerDeferredLocalLightProbe ||
         smoke_mode == SmokeMode::ViewerDeferredProjectorLightProbe ||
         smoke_mode == SmokeMode::ViewerDeferredPointLightVolumeProbe ||
@@ -9961,6 +10070,7 @@ int main(int argc, char** argv)
             smoke_mode == SmokeMode::FinalColorCompare ||
             smoke_mode == SmokeMode::ViewerDeferredColorCompare ||
             smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredEmissiveProbe ||
             smoke_mode == SmokeMode::ViewerDeferredLocalLightProbe ||
             smoke_mode == SmokeMode::ViewerDeferredProjectorLightProbe ||
             smoke_mode == SmokeMode::ViewerDeferredPointLightVolumeProbe ||
@@ -10256,7 +10366,8 @@ int main(int argc, char** argv)
             }
         }
         else if (smoke_mode == SmokeMode::ViewerDeferredColorCompare ||
-            smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe)
+            smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredEmissiveProbe)
         {
             if (!render_viewer_deferred_color_compare_frame(
                     backend,
@@ -10265,7 +10376,8 @@ int main(int argc, char** argv)
                     smoke_quad,
                     width,
                     height,
-                    smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe))
+                    smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe,
+                    smoke_mode == SmokeMode::ViewerDeferredEmissiveProbe))
             {
                 std::cerr
                     << "Failed to render Vulkan smoke "
