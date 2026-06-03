@@ -2113,6 +2113,7 @@ struct LLVulkanNativeContext
     LLVkShaderModule mAvatarGBufferEmissiveFragmentShader = nullptr;
     LLVkShaderModule mCopyVertexShader = nullptr;
     LLVkShaderModule mCopyFragmentShader = nullptr;
+    LLVkShaderModule mDeferredFullscreenVertexShader = nullptr;
     LLVkShaderModule mDeferredLightMapFragmentShader = nullptr;
     LLVkShaderModule mDeferredBlurLightFragmentShader = nullptr;
     LLVkShaderModule mDeferredSoftenFragmentShader = nullptr;
@@ -12910,10 +12911,10 @@ void log_vulkan_final_pipeline_owner_map(const LLVulkanNativeContext& context)
         {"pbr-alpha-blend-shadow", "class1/deferred/pbr_shadow_alpha_mask.vert.spv", "class1/deferred/pbr_shadow_alpha_blend.frag.spv", "PBR alpha-blend shadow caster"},
         {"sun-light", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light.frag.spv", "sunlight and soften pass"},
         {"sun-light-ssao", "class2/deferred/sun_light.vert.spv", "class2/deferred/sun_light_ssao.frag.spv", "sunlight with SSAO"},
-        {"deferred-light-map-runtime", "active/world_textured.vert.spv", "class2/deferred/sun_light_map_runtime.frag.spv", "sun/SSAO/shadow lightMap pass", "fullscreen runtime lightMap ABI with G-buffer normal/depth and shadow-map inputs", "OpenGL sunLight/sunLightSSAO role isolated behind DeferredLightMap owner", "bound runtime owner; directional and spot shadow channels sample Vulkan shadow depth inputs"},
-        {"deferred-blur-light-runtime", "active/world_textured.vert.spv", "class1/deferred/blur_light_runtime.frag.spv", "deferred lightMap blur pass", "fullscreen runtime blur ABI with lightMap plus G-buffer normal/depth inputs", "OpenGL blurLight role isolated behind DeferredBlurLight owner", "bound runtime owner; two-pass lightMap blur before DeferredSoften"},
-        {"deferred-soften-class3", "active/world_textured.vert.spv", "class3/deferred/soften_light.frag.spv", "deferred soften/composite pass", "fullscreen runtime composite ABI with G-buffer, depth, and lightMap inputs", "OpenGL softenLight role isolated behind DeferredSoften owner", "bound runtime owner; lightMap is produced by DeferredLightMap with SSAO/shadow channels"},
-        {"deferred-composite-runtime", "active/world_textured.vert.spv", "class3/deferred/deferred_composite_runtime.frag.spv", "runtime deferred composite/lighting approximation", "active fullscreen adapter plus current G-buffer/depth/light inputs", "bootstrap deferred composite adapter isolated from final class3 soften_light.frag", "bound runtime owner; not strict OpenGL parity"},
+        {"deferred-light-map-runtime", "active/deferred_fullscreen.vert.spv", "class2/deferred/sun_light_map_runtime.frag.spv", "sun/SSAO/shadow lightMap pass", "fullscreen runtime lightMap ABI with G-buffer normal/depth and shadow-map inputs", "OpenGL sunLight/sunLightSSAO role isolated behind DeferredLightMap owner", "bound runtime owner; directional and spot shadow channels sample Vulkan shadow depth inputs"},
+        {"deferred-blur-light-runtime", "active/deferred_fullscreen.vert.spv", "class1/deferred/blur_light_runtime.frag.spv", "deferred lightMap blur pass", "fullscreen runtime blur ABI with lightMap plus G-buffer normal/depth inputs", "OpenGL blurLight role isolated behind DeferredBlurLight owner", "bound runtime owner; two-pass lightMap blur before DeferredSoften"},
+        {"deferred-soften-class3", "active/deferred_fullscreen.vert.spv", "class3/deferred/soften_light.frag.spv", "deferred soften/composite pass", "fullscreen runtime composite ABI with G-buffer, depth, and lightMap inputs", "OpenGL softenLight role isolated behind DeferredSoften owner", "bound runtime owner; lightMap is produced by DeferredLightMap with SSAO/shadow channels"},
+        {"deferred-composite-runtime", "active/deferred_fullscreen.vert.spv", "class3/deferred/deferred_composite_runtime.frag.spv", "runtime deferred composite/lighting approximation", "active fullscreen adapter plus current G-buffer/depth/light inputs", "bootstrap deferred composite adapter isolated from final class3 soften_light.frag", "bound runtime owner; not strict OpenGL parity"},
         {"point-light", "class3/deferred/point_light.vert.spv", "class3/deferred/point_light.frag.spv", "local point lights"},
         {"multi-point-light", "class3/deferred/multi_point_light.vert.spv", "class3/deferred/multi_point_light.frag.spv", "fullscreen local lights"},
         {"spot-light-class1", "class3/deferred/point_light.vert.spv", "class1/deferred/spot_light.frag.spv", "projector spot lights fallback"},
@@ -13392,6 +13393,10 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         {
             destroy_shader_module_once(context.mCopyFragmentShader);
         }
+        if (context.mDeferredFullscreenVertexShader)
+        {
+            destroy_shader_module_once(context.mDeferredFullscreenVertexShader);
+        }
         if (context.mDeferredLightMapFragmentShader)
         {
             destroy_shader_module_once(context.mDeferredLightMapFragmentShader);
@@ -13509,6 +13514,7 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mAvatarGBufferEmissiveFragmentShader = nullptr;
     context.mCopyVertexShader = nullptr;
     context.mCopyFragmentShader = nullptr;
+    context.mDeferredFullscreenVertexShader = nullptr;
     context.mDeferredLightMapFragmentShader = nullptr;
     context.mDeferredBlurLightFragmentShader = nullptr;
     context.mDeferredSoftenFragmentShader = nullptr;
@@ -13674,6 +13680,7 @@ bool create_vulkan_offscreen_pipeline_set(
         !context.mUIFragmentShader ||
         !context.mWorldVertexShader ||
         !context.mWorldFragmentShader ||
+        !context.mDeferredFullscreenVertexShader ||
         !context.mWaterVertexShader ||
         !context.mTerrainVertexShader ||
         !context.mTerrainFragmentShader)
@@ -13728,6 +13735,16 @@ bool create_vulkan_offscreen_pipeline_set(
             "main",
             nullptr
         }
+    };
+    LLVkPipelineShaderStageCreateInfo deferred_fullscreen_vertex_stage =
+    {
+        LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        nullptr,
+        0,
+        LL_VK_SHADER_STAGE_VERTEX_BIT,
+        context.mDeferredFullscreenVertexShader,
+        "main",
+        nullptr
     };
     LLVkPipelineShaderStageCreateInfo sky_shader_stages[2] =
     {
@@ -14083,7 +14100,7 @@ bool create_vulkan_offscreen_pipeline_set(
     };
     LLVkPipelineShaderStageCreateInfo deferred_light_map_shader_stages[2] =
     {
-        world_shader_stages[0],
+        deferred_fullscreen_vertex_stage,
         LLVkPipelineShaderStageCreateInfo
         {
             LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -14097,7 +14114,7 @@ bool create_vulkan_offscreen_pipeline_set(
     };
     LLVkPipelineShaderStageCreateInfo deferred_blur_light_shader_stages[2] =
     {
-        world_shader_stages[0],
+        deferred_fullscreen_vertex_stage,
         LLVkPipelineShaderStageCreateInfo
         {
             LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -14111,7 +14128,7 @@ bool create_vulkan_offscreen_pipeline_set(
     };
     LLVkPipelineShaderStageCreateInfo deferred_composite_shader_stages[2] =
     {
-        world_shader_stages[0],
+        deferred_fullscreen_vertex_stage,
         LLVkPipelineShaderStageCreateInfo
         {
             LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -14125,7 +14142,7 @@ bool create_vulkan_offscreen_pipeline_set(
     };
     LLVkPipelineShaderStageCreateInfo deferred_soften_shader_stages[2] =
     {
-        world_shader_stages[0],
+        deferred_fullscreen_vertex_stage,
         LLVkPipelineShaderStageCreateInfo
         {
             LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -15831,6 +15848,8 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         get_vulkan_final_shader_module(context, "class1/interface/copy.vert.spv", "copy vertex");
     context.mCopyFragmentShader =
         get_vulkan_final_shader_module(context, "class1/interface/copy.frag.spv", "copy fragment");
+    context.mDeferredFullscreenVertexShader =
+        get_vulkan_final_shader_module(context, "active/deferred_fullscreen.vert.spv", "deferred fullscreen vertex");
     context.mDeferredLightMapFragmentShader =
         get_vulkan_final_shader_module(context, "class2/deferred/sun_light_map_runtime.frag.spv", "class2 deferred lightMap runtime fragment");
     context.mDeferredBlurLightFragmentShader =
@@ -15915,6 +15934,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         !context.mAvatarGBufferEmissiveFragmentShader ||
         !context.mCopyVertexShader ||
         !context.mCopyFragmentShader ||
+        !context.mDeferredFullscreenVertexShader ||
         !context.mDeferredLightMapFragmentShader ||
         !context.mDeferredBlurLightFragmentShader ||
         !context.mDeferredSoftenFragmentShader ||
@@ -16395,6 +16415,16 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
             nullptr
         }
     };
+    LLVkPipelineShaderStageCreateInfo deferred_fullscreen_vertex_stage =
+    {
+        LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        nullptr,
+        0,
+        LL_VK_SHADER_STAGE_VERTEX_BIT,
+        context.mDeferredFullscreenVertexShader,
+        "main",
+        nullptr
+    };
     LLVkPipelineShaderStageCreateInfo terrain_shader_stages[2] =
     {
         LLVkPipelineShaderStageCreateInfo
@@ -16774,7 +16804,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
 
     LLVkPipelineShaderStageCreateInfo deferred_light_map_shader_stages[2] =
     {
-        world_shader_stages[0],
+        deferred_fullscreen_vertex_stage,
         LLVkPipelineShaderStageCreateInfo
         {
             LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -16788,7 +16818,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     };
     LLVkPipelineShaderStageCreateInfo deferred_blur_light_shader_stages[2] =
     {
-        world_shader_stages[0],
+        deferred_fullscreen_vertex_stage,
         LLVkPipelineShaderStageCreateInfo
         {
             LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -16802,7 +16832,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     };
     LLVkPipelineShaderStageCreateInfo deferred_composite_shader_stages[2] =
     {
-        world_shader_stages[0],
+        deferred_fullscreen_vertex_stage,
         LLVkPipelineShaderStageCreateInfo
         {
             LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -16816,7 +16846,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     };
     LLVkPipelineShaderStageCreateInfo deferred_soften_shader_stages[2] =
     {
-        world_shader_stages[0],
+        deferred_fullscreen_vertex_stage,
         LLVkPipelineShaderStageCreateInfo
         {
             LL_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
