@@ -24,8 +24,9 @@ const float GBUFFER_FLAG_HAS_ATMOS = 0.34;
 
 vec4 encode_normal(vec3 n, float env, float gbuffer_flag)
 {
-    vec3 encoded = normalize(n) * 0.5 + 0.5;
-    return vec4(encoded.xyz, gbuffer_flag);
+    n = normalize(n);
+    float f = sqrt(8.0 * n.z + 8.0);
+    return vec4(n.xy / f + 0.5, env, gbuffer_flag);
 }
 
 vec4 diffuse_lookup(vec2 texcoord)

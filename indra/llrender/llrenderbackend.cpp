@@ -95,6 +95,14 @@ const char* getRenderBackendTypeName(LLRenderBackendType type)
     }
 }
 
+bool LLRenderBackend::scheduleDebugTexturePPMReadback(
+    LLRenderTextureHandle,
+    const char*,
+    const char*)
+{
+    return false;
+}
+
 LLRenderBackend& getRenderBackend()
 {
     static LLRenderBackend& backend = select_render_backend();

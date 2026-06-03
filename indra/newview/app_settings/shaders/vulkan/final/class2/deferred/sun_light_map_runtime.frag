@@ -66,14 +66,12 @@ vec4 reconstruct_view_position(vec2 texcoord, float depth)
 
 float compare_shadow_depth(sampler2D shadow_map, vec3 coord)
 {
-    if (coord.x < 0.0 || coord.x > 1.0 ||
-        coord.y < 0.0 || coord.y > 1.0 ||
-        coord.z < 0.0 || coord.z > 1.0)
+    if (coord.z < 0.0 || coord.z > 1.0)
     {
         return 1.0;
     }
 
-    float stored_depth = texture(shadow_map, coord.xy).r;
+    float stored_depth = texture(shadow_map, clamp(coord.xy, vec2(0.0), vec2(1.0))).r;
     return coord.z <= stored_depth ? 1.0 : 0.0;
 }
 
@@ -283,7 +281,7 @@ float compute_depth_normal_ssao(vec2 texcoord, vec3 normal, float center_depth)
             texcoord + scale * reflect(kernel[i] / screen_res, noise_reflect);
         vec3 sample_world =
             reconstruct_view_position(
-                clamp(sample_coord, vec2(0.0), vec2(1.0)),
+                sample_coord,
                 sample_depth(sample_coord)).xyz;
 
         vec3 diff = pos_world - sample_world;

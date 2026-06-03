@@ -186,9 +186,10 @@ void main()
     }
     emissive = srgb_to_linear(max(emissive, vec3(0.0)));
 
-    vec3 encoded_normal = normalize(material_normal(vary_material_texcoord0.xy)) * 0.5 + 0.5;
+    vec3 pbr_normal = normalize(material_normal(vary_material_texcoord0.xy));
+    float encoded_normal_f = sqrt(8.0 * pbr_normal.z + 8.0);
     frag_diffuse = vec4(color.rgb, pc.material_legacy.a);
     frag_orm = vec4(max(orm, vec3(0.0)), 1.0);
-    frag_normal = vec4(encoded_normal.xyz, GBUFFER_FLAG_HAS_PBR);
+    frag_normal = vec4(pbr_normal.xy / encoded_normal_f + 0.5, 0.0, GBUFFER_FLAG_HAS_PBR);
     frag_emissive = vec4(emissive, 0.0);
 }

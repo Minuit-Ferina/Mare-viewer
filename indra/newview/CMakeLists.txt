@@ -1861,13 +1861,15 @@ add_mare_vulkan_shader_target(
     "Compiling Mare Vulkan final shaders")
 
 if (DARWIN)
-  add_executable(mare-vulkan-smoke
-    tests/mare_vulkan_smoke.cpp
+  add_library(mare-vulkan-test-support STATIC
     tests/mare_vulkan_smoke_macosx-objc.mm
     tests/mare_vulkan_smoke_macosx.h
+    tests/mare_vulkan_test_support.cpp
+    tests/mare_vulkan_test_support.h
     )
-  add_dependencies(mare-vulkan-smoke mare_vulkan_final_shaders)
-  target_link_libraries(mare-vulkan-smoke
+
+  set(mare_vulkan_test_LIBRARIES
+    mare-vulkan-test-support
     ${PNG_PRELOAD_ARCHIVES}
     llaudio
     llcharacter
@@ -1894,6 +1896,22 @@ if (DARWIN)
     ll::tracy
     ll::openxr
     ll::oslibraries
+    )
+
+  add_executable(mare-vulkan-smoke
+    tests/mare_vulkan_smoke.cpp
+    )
+  add_dependencies(mare-vulkan-smoke mare_vulkan_final_shaders)
+  target_link_libraries(mare-vulkan-smoke
+    ${mare_vulkan_test_LIBRARIES}
+    )
+
+  add_executable(mare-vulkan-scene-test
+    tests/mare_vulkan_scene_test.cpp
+    )
+  add_dependencies(mare-vulkan-scene-test mare_vulkan_final_shaders)
+  target_link_libraries(mare-vulkan-scene-test
+    ${mare_vulkan_test_LIBRARIES}
     )
 endif ()
 

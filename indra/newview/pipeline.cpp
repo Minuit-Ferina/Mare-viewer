@@ -10366,11 +10366,10 @@ void LLPipeline::doAtmospherics()
         if (use_vulkan_world_command_path())
         {
             if (std::getenv("MARE_VULKAN_DEBUG_SKIP_ATMOSPHERIC_HAZE") ||
-                std::getenv("MARE_VULKAN_DEBUG_SKIP_HAZE") ||
-                !std::getenv("MARE_VULKAN_ENABLE_APPROXIMATE_HAZE"))
+                std::getenv("MARE_VULKAN_DEBUG_SKIP_HAZE"))
             {
                 LL_WARNS_ONCE("RenderBackend")
-                    << "Vulkan atmospheric haze approximation skipped; set MARE_VULKAN_ENABLE_APPROXIMATE_HAZE=1 to debug the non-final haze path."
+                    << "Vulkan atmospheric haze skipped by debug control."
                     << LL_ENDL;
                 return;
             }
@@ -10394,7 +10393,7 @@ void LLPipeline::doAtmospherics()
             submit_vulkan_world_commands(commands);
 
             LL_WARNS_ONCE("RenderBackend")
-                << "Vulkan atmospheric haze uses a visible fullscreen haze approximation; final depth-aware haze shader ownership is still tracked by the deferred render graph."
+                << "Vulkan atmospheric haze uses the depth-aware runtime Haze owner; final class3 haze source-parity validation is still tracked by the deferred render graph."
                 << LL_ENDL;
             return;
         }
@@ -10466,11 +10465,10 @@ void LLPipeline::doWaterHaze()
         if (use_vulkan_world_command_path())
         {
             if (std::getenv("MARE_VULKAN_DEBUG_SKIP_WATER_HAZE") ||
-                std::getenv("MARE_VULKAN_DEBUG_SKIP_HAZE") ||
-                !std::getenv("MARE_VULKAN_ENABLE_APPROXIMATE_HAZE"))
+                std::getenv("MARE_VULKAN_DEBUG_SKIP_HAZE"))
             {
                 LL_WARNS_ONCE("RenderBackend")
-                    << "Vulkan water haze approximation skipped; set MARE_VULKAN_ENABLE_APPROXIMATE_HAZE=1 to debug the non-final haze path."
+                    << "Vulkan water haze skipped by debug control."
                     << LL_ENDL;
                 return;
             }
@@ -10501,7 +10499,7 @@ void LLPipeline::doWaterHaze()
             }
 
             LL_WARNS_ONCE("RenderBackend")
-                << "Vulkan water haze uses a visible water-fog approximation; final depth-aware water haze and water-exclusion sampling remain tracked by the deferred render graph."
+                << "Vulkan water haze uses the runtime Haze owner; final water-haze source-parity validation and water-exclusion sampling remain tracked by the deferred render graph."
                 << LL_ENDL;
             return;
         }

@@ -140,6 +140,14 @@ vec4 apply_fullbright_alpha_policy(vec4 color)
     return color;
 }
 
+vec3 srgb_to_linear(vec3 color)
+{
+    bvec3 cutoff = lessThanEqual(color, vec3(0.04045));
+    vec3 low = color / 12.92;
+    vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
+    return mix(high, low, cutoff);
+}
+
 void main()
 {
     vec4 color =
@@ -147,6 +155,7 @@ void main()
         vertex_color *
         vec4(pc.material_params.rgb, pc.material_pbr.w);
     color = apply_fullbright_alpha_policy(color);
+    color.rgb = srgb_to_linear(max(color.rgb, vec3(0.0)));
 
     vec3 emissive = pc.material_extra.rgb;
     if (pc.material_extra.a > 0.5)

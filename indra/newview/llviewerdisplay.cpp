@@ -97,8 +97,11 @@
 #include <boost/json.hpp>
 
 #include <array>
+#include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
+#include <limits>
 #include <set>
 #include <sstream>
 #include <vector>
@@ -172,6 +175,15 @@ static bool use_vulkan_smoke_sky_scene()
     return enabled;
 }
 
+static bool use_mare_viewer_pipeline_scene_test()
+{
+    static const bool enabled =
+        !LLStringUtil::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST").empty();
+    return enabled;
+}
+
+static void setup_mare_viewer_pipeline_scene_camera();
+
 static bool get_vulkan_boolean_env(const char* name)
 {
     std::string value = LLStringUtil::getenv(name);
@@ -237,6 +249,174 @@ static bool use_vulkan_debug_show_copy_stage(const char* stage)
 {
     const std::string& selected_stage = get_vulkan_debug_show_copy_stage();
     return !selected_stage.empty() && selected_stage == stage;
+}
+
+static S32 get_mare_viewer_pipeline_scene_test_frames()
+{
+    static const S32 frames = []()
+    {
+        const std::string value =
+            LLStringUtil::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_FRAMES");
+        if (value.empty())
+        {
+            return 2;
+        }
+
+        char* end = nullptr;
+        const long parsed = std::strtol(value.c_str(), &end, 10);
+        if (*end != '\0' || parsed < 0 || parsed > std::numeric_limits<S32>::max())
+        {
+            LL_WARNS("RenderBackend")
+                << "Ignoring invalid MARE_VIEWER_PIPELINE_SCENE_TEST_FRAMES='"
+                << value
+                << "'."
+                << LL_ENDL;
+            return 2;
+        }
+        return static_cast<S32>(parsed);
+    }();
+    return frames;
+}
+
+static const std::string& get_mare_viewer_pipeline_scene_test_capture_path()
+{
+    static const std::string path =
+        LLStringUtil::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_CAPTURE");
+    return path;
+}
+
+static const std::string& get_mare_viewer_pipeline_scene_test_capture_stage()
+{
+    static const std::string stage = []()
+    {
+        std::string value =
+            LLStringUtil::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_CAPTURE_STAGE");
+        LLStringUtil::toLower(value);
+        if (value.empty())
+        {
+            return std::string("final");
+        }
+
+        if (value == "final" ||
+            value == "gbuffer-color" ||
+            value == "gbuffer-color-alpha" ||
+            value == "gbuffer-specular" ||
+            value == "gbuffer-normal" ||
+            value == "gbuffer-normal-alpha" ||
+            value == "gbuffer-emissive" ||
+            value == "gbuffer-depth" ||
+            value == "screen-after-lighting" ||
+            value == "deferred-light")
+        {
+            return value;
+        }
+
+        LL_WARNS("RenderBackend")
+            << "Ignoring invalid MARE_VIEWER_PIPELINE_SCENE_TEST_CAPTURE_STAGE='"
+            << value
+            << "'. Expected final, gbuffer-color, gbuffer-color-alpha, gbuffer-specular, gbuffer-normal, gbuffer-normal-alpha, gbuffer-emissive, gbuffer-depth, screen-after-lighting, or deferred-light."
+            << LL_ENDL;
+        return std::string("final");
+    }();
+    return stage;
+}
+
+static bool use_mare_viewer_pipeline_scene_test_capture_stage(const char* stage)
+{
+    return get_mare_viewer_pipeline_scene_test_capture_stage() == stage;
+}
+
+static U32 get_mare_viewer_pipeline_scene_test_gbuffer_attachment()
+{
+    const std::string& stage = get_mare_viewer_pipeline_scene_test_capture_stage();
+    if (stage == "gbuffer-specular")
+    {
+        return 1;
+    }
+    if (stage == "gbuffer-normal" ||
+        stage == "gbuffer-normal-alpha")
+    {
+        return 2;
+    }
+    if (stage == "gbuffer-emissive")
+    {
+        return 3;
+    }
+    return 0;
+}
+
+static bool use_mare_viewer_pipeline_scene_test_gbuffer_capture_stage()
+{
+    const std::string& stage = get_mare_viewer_pipeline_scene_test_capture_stage();
+    return stage == "gbuffer-color" ||
+        stage == "gbuffer-color-alpha" ||
+        stage == "gbuffer-specular" ||
+        stage == "gbuffer-normal" ||
+        stage == "gbuffer-normal-alpha" ||
+        stage == "gbuffer-emissive";
+}
+
+static bool use_mare_viewer_pipeline_scene_test_gbuffer_alpha_capture_stage()
+{
+    const std::string& stage = get_mare_viewer_pipeline_scene_test_capture_stage();
+    return stage == "gbuffer-color-alpha" ||
+        stage == "gbuffer-normal-alpha";
+}
+
+static bool use_mare_viewer_pipeline_scene_test_gbuffer_depth_capture_stage()
+{
+    return get_mare_viewer_pipeline_scene_test_capture_stage() == "gbuffer-depth";
+}
+
+static S32 get_mare_viewer_pipeline_scene_test_shader_level_override()
+{
+    static const S32 level = []()
+    {
+        const std::string value =
+            LLStringUtil::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_SHADER_LEVEL");
+        if (value.empty())
+        {
+            return -1;
+        }
+
+        char* end = nullptr;
+        const long parsed = std::strtol(value.c_str(), &end, 10);
+        if (*end != '\0' || parsed < 1 || parsed > 3)
+        {
+            LL_WARNS("RenderBackend")
+                << "Ignoring invalid MARE_VIEWER_PIPELINE_SCENE_TEST_SHADER_LEVEL='"
+                << value
+                << "'. Expected 1, 2, or 3."
+                << LL_ENDL;
+            return -1;
+        }
+        return static_cast<S32>(parsed);
+    }();
+    return level;
+}
+
+static S32 get_vulkan_world_deferred_shader_level()
+{
+    const S32 viewer_level =
+        LLViewerShaderMgr::instance()->getShaderLevel(
+            LLViewerShaderMgr::SHADER_DEFERRED);
+
+    if (use_mare_viewer_pipeline_scene_test())
+    {
+        const S32 override_level =
+            get_mare_viewer_pipeline_scene_test_shader_level_override();
+        if (override_level > 0)
+        {
+            return override_level;
+        }
+
+        if (viewer_level <= 0)
+        {
+            return 3;
+        }
+    }
+
+    return viewer_level;
 }
 
 static void log_vulkan_ui_stage_once(
@@ -543,14 +723,20 @@ static bool render_vulkan_world_to_deferred_screen(const LLColor4& clear_color)
     }
 
     const LLColor4 smoke_sky_color(0.23f, 0.46f, 0.86f, 1.f);
+    const LLColor4 pipeline_scene_clear_color(1.f, 0.f, 1.f, 1.f);
+    const bool pipeline_scene_test = use_mare_viewer_pipeline_scene_test();
     const LLColor4& target_clear_color =
-        use_vulkan_smoke_sky_scene() ? smoke_sky_color : clear_color;
+        use_vulkan_smoke_sky_scene() ?
+            smoke_sky_color :
+            (pipeline_scene_test ? pipeline_scene_clear_color : clear_color);
+    const F32 target_clear_alpha =
+        (use_vulkan_smoke_sky_scene() || pipeline_scene_test) ? 1.f : 0.f;
 
     getRenderBackend().setClearColor(
         target_clear_color.mV[VRED],
         target_clear_color.mV[VGREEN],
         target_clear_color.mV[VBLUE],
-        use_vulkan_smoke_sky_scene() ? 1.f : 0.f);
+        target_clear_alpha);
     gPipeline.mRT->deferredScreen.clear();
 
     if (use_vulkan_smoke_sky_scene())
@@ -562,16 +748,27 @@ static bool render_vulkan_world_to_deferred_screen(const LLColor4& clear_color)
         return true;
     }
 
-    LLViewerCamera::sCurCameraID = LLViewerCamera::CAMERA_WORLD;
-    LLViewerCamera::getInstance()->setPerspective(
-        NOT_FOR_SELECTION,
-        0,
-        0,
-        gPipeline.mRT->deferredScreen.getWidth(),
-        gPipeline.mRT->deferredScreen.getHeight(),
-        false,
-        LLViewerCamera::getInstance()->getNear(),
-        MAX_FAR_CLIP * 2.f);
+    if (!use_mare_viewer_pipeline_scene_test())
+    {
+        LLViewerCamera::sCurCameraID = LLViewerCamera::CAMERA_WORLD;
+        LLViewerCamera::getInstance()->setPerspective(
+            NOT_FOR_SELECTION,
+            0,
+            0,
+            gPipeline.mRT->deferredScreen.getWidth(),
+            gPipeline.mRT->deferredScreen.getHeight(),
+            false,
+            LLViewerCamera::getInstance()->getNear(),
+            MAX_FAR_CLIP * 2.f);
+    }
+    else
+    {
+        getRenderBackend().setViewport(
+            0,
+            0,
+            gPipeline.mRT->deferredScreen.getWidth(),
+            gPipeline.mRT->deferredScreen.getHeight());
+    }
 
     LLGLSPipeline gls_pipeline;
     LLGLDisable blend(LLRenderCapability::Blend);
@@ -755,7 +952,7 @@ static LLRenderWorldMaterialParameters get_vulkan_deferred_composite_parameters(
     settings.mLocalLightBlue = local_light_color.mV[VBLUE];
     settings.mLocalLightStrength = local_light_strength;
     settings.mReflectionProbeAmbiance = reflection_probe_ambiance;
-    settings.mMaxProbeLOD = gPipeline.mReflectionMapManager.mMaxProbeLOD;
+    settings.mMaxProbeLOD = gPipeline.mReflectionMapManager.getMaxProbeLOD();
     settings.mTonemapMix = tonemap_mix;
     settings.mSkyLightingValid = sky ? 1.f : 0.f;
     settings.mScreenWidth = static_cast<F32>(llmax(1, viewport_rect.getWidth()));
@@ -1211,6 +1408,30 @@ static bool draw_vulkan_fullscreen_quad()
     return true;
 }
 
+class LLVulkanShaderAttributeFacade
+{
+public:
+    LLVulkanShaderAttributeFacade(LLGLSLShader& shader, U32 attribute_mask)
+    :   mShader(shader),
+        mPreviousShader(LLGLSLShader::sCurBoundShaderPtr),
+        mPreviousAttributeMask(shader.mAttributeMask)
+    {
+        mShader.mAttributeMask = attribute_mask;
+        LLGLSLShader::sCurBoundShaderPtr = &mShader;
+    }
+
+    ~LLVulkanShaderAttributeFacade()
+    {
+        mShader.mAttributeMask = mPreviousAttributeMask;
+        LLGLSLShader::sCurBoundShaderPtr = mPreviousShader;
+    }
+
+private:
+    LLGLSLShader& mShader;
+    LLGLSLShader* mPreviousShader;
+    U32 mPreviousAttributeMask;
+};
+
 static LLRect make_vulkan_target_rect(S32 width, S32 height)
 {
     return LLRect(0, height, width, 0);
@@ -1351,13 +1572,13 @@ static void render_vulkan_deferred_screen_composite_quad(
         {
             if (use_deferred_composite)
             {
-                gPipeline.mRT->deferredScreen.bindTexture(0, 0, LLTexUnit::TFO_BILINEAR);
+                gPipeline.mRT->deferredScreen.bindTexture(0, 0, LLTexUnit::TFO_POINT);
                 for (U32 attachment = 0; attachment < deferred_attachment_count; ++attachment)
                 {
                     gPipeline.mRT->deferredScreen.bindTexture(
                         attachment,
                         static_cast<S32>(attachment + 1),
-                        LLTexUnit::TFO_BILINEAR);
+                        LLTexUnit::TFO_POINT);
                 }
 
                 bool deferred_debug_depth_bound = false;
@@ -1438,7 +1659,7 @@ static void render_vulkan_deferred_screen_composite_quad(
                 gPipeline.mRT->deferredScreen.bindTexture(
                     attachment,
                     static_cast<S32>(attachment),
-                    LLTexUnit::TFO_BILINEAR);
+                    LLTexUnit::TFO_POINT);
             }
             if (gPipeline.mRT->deferredScreen.getDepth() != 0)
             {
@@ -1451,8 +1672,8 @@ static void render_vulkan_deferred_screen_composite_quad(
                 light_map_target &&
                 light_map_target->isComplete())
             {
-                deferred_light_map_bound =
-                    gGL.getTexUnit(5)->bind(light_map_target);
+                light_map_target->bindTexture(0, 5, LLTexUnit::TFO_POINT);
+                deferred_light_map_bound = true;
             }
             else if (use_deferred_soften &&
                 LLViewerFetchedTexture::sWhiteImagep)
@@ -1473,31 +1694,27 @@ static void render_vulkan_deferred_screen_composite_quad(
                         cube_map && gGL.getTexUnit(6)->bind(cube_map);
                     if (LLPipeline::sReflectionProbesEnabled)
                     {
-                        if (gPipeline.mReflectionMapManager.mTexture.notNull())
-                        {
-                            gPipeline.mReflectionMapManager.mTexture->bind(7);
-                            deferred_reflection_probes_bound = true;
-                        }
-                        if (gPipeline.mReflectionMapManager.mIrradianceMaps.notNull())
-                        {
-                            gPipeline.mReflectionMapManager.mIrradianceMaps->bind(8);
-                            deferred_irradiance_probes_bound = true;
-                        }
+                        deferred_reflection_probes_bound =
+                            gPipeline.mReflectionMapManager.bindReflectionTexture(7);
+                        deferred_irradiance_probes_bound =
+                            gPipeline.mReflectionMapManager.bindIrradianceTexture(8);
                         if (LLPipeline::RenderMirrors &&
-                            gPipeline.mHeroProbeManager.mTexture.notNull())
+                            gPipeline.mHeroProbeManager.bindTexture(9))
                         {
-                            gPipeline.mHeroProbeManager.mTexture->bind(9);
                             deferred_hero_probes_bound = true;
                         }
                         if (deferred_reflection_probes_bound ||
                             deferred_irradiance_probes_bound ||
                             deferred_hero_probes_bound)
                         {
-                            gPipeline.mReflectionMapManager.setUniforms();
+                            gPipeline.mReflectionMapManager.bindUniforms();
                         }
                     }
-                    deferred_brdf_lut_bound =
+                    if (gPipeline.mPbrBrdfLut.isComplete())
+                    {
                         gPipeline.mPbrBrdfLut.bindTexture(0, 10);
+                        deferred_brdf_lut_bound = true;
+                    }
                     deferred_light_func_bound =
                         gPipeline.mLightFunc != 0 &&
                         gGL.getTexUnit(11)->bindManual(
@@ -1597,15 +1814,15 @@ static void render_vulkan_deferred_screen_composite_quad(
             }
             if (deferred_reflection_probes_bound)
             {
-                gPipeline.mReflectionMapManager.mTexture->unbind();
+                gPipeline.mReflectionMapManager.unbindReflectionTexture();
             }
             if (deferred_irradiance_probes_bound)
             {
-                gPipeline.mReflectionMapManager.mIrradianceMaps->unbind();
+                gPipeline.mReflectionMapManager.unbindIrradianceTexture();
             }
             if (deferred_hero_probes_bound)
             {
-                gPipeline.mHeroProbeManager.mTexture->unbind();
+                gPipeline.mHeroProbeManager.unbindTexture();
             }
             if (deferred_brdf_lut_bound)
             {
@@ -1814,6 +2031,9 @@ static void render_vulkan_deferred_local_point_lights(
         getRenderBackend().setCapability(LLRenderCapability::CullFace, true);
         getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::PointLight);
         getRenderBackend().setWorldDeferredShaderLevel(3);
+        LLVulkanShaderAttributeFacade shader_facade(
+            gDeferredLightProgram,
+            LLVertexBuffer::MAP_VERTEX);
         gPipeline.mCubeVB->setBuffer();
         for (size_t i = 0; i < point_light_volumes.size(); ++i)
         {
@@ -1857,6 +2077,9 @@ static void render_vulkan_deferred_local_point_lights(
         getRenderBackend().setCapability(LLRenderCapability::CullFace, true);
         getRenderBackend().setWorldShaderClass(LLRenderWorldShaderClass::SpotLight);
         getRenderBackend().setWorldDeferredShaderLevel(3);
+        LLVulkanShaderAttributeFacade shader_facade(
+            gDeferredSpotLightProgram,
+            LLVertexBuffer::MAP_VERTEX);
         gPipeline.mCubeVB->setBuffer();
         for (size_t i = 0; i < spot_light_volumes.size(); ++i)
         {
@@ -2621,7 +2844,14 @@ static bool render_vulkan_lit_world_to_screen_target(
 
     if (use_vulkan_post_deferred_overlays_after_composite())
     {
-        gViewerWindow->setup3DRender();
+        if (use_mare_viewer_pipeline_scene_test())
+        {
+            setup_mare_viewer_pipeline_scene_camera();
+        }
+        else
+        {
+            gViewerWindow->setup3DRender();
+        }
         gPipeline.disableLights();
         render_vulkan_existing_world_post_geometry();
     }
@@ -3058,7 +3288,7 @@ static void render_vulkan_world_frame()
     // presets/feature tables should change shader levels through that same
     // path instead of adding a Vulkan-only quality mapping here.
     getRenderBackend().setWorldDeferredShaderLevel(
-        LLViewerShaderMgr::instance()->getShaderLevel(LLViewerShaderMgr::SHADER_DEFERRED));
+        get_vulkan_world_deferred_shader_level());
 
     gGL.setColorMask(true, true);
     getRenderBackend().setClearColor(
@@ -3231,6 +3461,837 @@ static void render_vulkan_world_frame()
     // renderFinalize().
 }
 
+struct MareViewerPipelineSceneResources
+{
+    LLPointer<LLVertexBuffer> mVertexBuffer;
+    std::vector<U32> mPasses;
+    std::vector<LLPointer<LLDrawInfo>> mDrawInfos;
+};
+
+static MareViewerPipelineSceneResources& get_mare_viewer_pipeline_scene_resources()
+{
+    static MareViewerPipelineSceneResources resources;
+    return resources;
+}
+
+static bool init_mare_viewer_pipeline_scene_resources()
+{
+    MareViewerPipelineSceneResources& resources =
+        get_mare_viewer_pipeline_scene_resources();
+    if (!resources.mDrawInfos.empty())
+    {
+        return true;
+    }
+
+    constexpr U32 data_mask =
+        LLVertexBuffer::MAP_VERTEX |
+        LLVertexBuffer::MAP_NORMAL |
+        LLVertexBuffer::MAP_TEXCOORD0 |
+        LLVertexBuffer::MAP_TEXCOORD1 |
+        LLVertexBuffer::MAP_TEXCOORD2 |
+        LLVertexBuffer::MAP_COLOR |
+        LLVertexBuffer::MAP_TANGENT;
+
+    constexpr U32 quad_count = 12;
+    constexpr U32 vertices_per_quad = 4;
+    constexpr U32 indices_per_quad = 6;
+    constexpr U32 vertex_count = quad_count * vertices_per_quad;
+    constexpr U32 index_count = quad_count * indices_per_quad;
+
+    resources.mVertexBuffer = new LLVertexBuffer(data_mask);
+    if (!resources.mVertexBuffer->allocateBuffer(vertex_count, index_count))
+    {
+        LL_WARNS("RenderBackend")
+            << "Unable to allocate Mare viewer pipeline scene vertex buffer."
+            << LL_ENDL;
+        resources.mVertexBuffer = nullptr;
+        return false;
+    }
+
+    std::array<LLVector4a, vertex_count> positions;
+    std::array<LLVector4a, vertex_count> normals;
+    std::array<LLVector4a, vertex_count> tangents;
+    std::array<LLVector2, vertex_count> texcoords0;
+    std::array<LLVector2, vertex_count> texcoords1;
+    std::array<LLVector2, vertex_count> texcoords2;
+    std::array<LLColor4U, vertex_count> colors;
+    std::array<U16, index_count> indices;
+
+    const auto set_quad =
+        [&](
+            U32 quad_index,
+            F32 x0,
+            F32 y0,
+            F32 x1,
+            F32 y1,
+            const LLColor4U& lower_left,
+            const LLColor4U& lower_right,
+            const LLColor4U& upper_right,
+            const LLColor4U& upper_left,
+            F32 z = 0.f)
+    {
+        const U32 vertex_base = quad_index * vertices_per_quad;
+        const U32 index_base = quad_index * indices_per_quad;
+        // The viewer's indexed world shaders read the texture array slot from
+        // position.w.  Keep the synthetic fixture on texture slot 0 unless a
+        // test intentionally exercises texture-array selection.
+        positions[vertex_base + 0].set(x0, y0, z, 0.f);
+        positions[vertex_base + 1].set(x1, y0, z, 0.f);
+        positions[vertex_base + 2].set(x1, y1, z, 0.f);
+        positions[vertex_base + 3].set(x0, y1, z, 0.f);
+
+        for (U32 vertex = 0; vertex < vertices_per_quad; ++vertex)
+        {
+            normals[vertex_base + vertex].set(0.f, 0.f, 1.f, 0.f);
+            tangents[vertex_base + vertex].set(1.f, 0.f, 0.f, 1.f);
+        }
+
+        texcoords0[vertex_base + 0] = LLVector2(0.f, 0.f);
+        texcoords0[vertex_base + 1] = LLVector2(1.f, 0.f);
+        texcoords0[vertex_base + 2] = LLVector2(1.f, 1.f);
+        texcoords0[vertex_base + 3] = LLVector2(0.f, 1.f);
+
+        texcoords1[vertex_base + 0] = LLVector2(0.f, 0.f);
+        texcoords1[vertex_base + 1] = LLVector2(2.f, 0.f);
+        texcoords1[vertex_base + 2] = LLVector2(2.f, 2.f);
+        texcoords1[vertex_base + 3] = LLVector2(0.f, 2.f);
+
+        texcoords2[vertex_base + 0] = LLVector2(0.25f, 0.25f);
+        texcoords2[vertex_base + 1] = LLVector2(1.25f, 0.25f);
+        texcoords2[vertex_base + 2] = LLVector2(1.25f, 1.25f);
+        texcoords2[vertex_base + 3] = LLVector2(0.25f, 1.25f);
+
+        colors[vertex_base + 0] = lower_left;
+        colors[vertex_base + 1] = lower_right;
+        colors[vertex_base + 2] = upper_right;
+        colors[vertex_base + 3] = upper_left;
+
+        indices[index_base + 0] = static_cast<U16>(vertex_base + 0);
+        indices[index_base + 1] = static_cast<U16>(vertex_base + 1);
+        indices[index_base + 2] = static_cast<U16>(vertex_base + 2);
+        indices[index_base + 3] = static_cast<U16>(vertex_base + 0);
+        indices[index_base + 4] = static_cast<U16>(vertex_base + 2);
+        indices[index_base + 5] = static_cast<U16>(vertex_base + 3);
+    };
+
+    set_quad(
+        0,
+        -0.92f,
+        0.30f,
+        -0.48f,
+        0.82f,
+        LLColor4U(255, 80, 64, 255),
+        LLColor4U(255, 180, 64, 255),
+        LLColor4U(180, 255, 96, 255),
+        LLColor4U(96, 180, 255, 255));
+    set_quad(
+        1,
+        -0.46f,
+        0.30f,
+        -0.02f,
+        0.82f,
+        LLColor4U(64, 255, 192, 255),
+        LLColor4U(64, 128, 255, 255),
+        LLColor4U(220, 96, 255, 255),
+        LLColor4U(255, 255, 96, 255));
+    set_quad(
+        2,
+        0.04f,
+        0.30f,
+        0.48f,
+        0.82f,
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(255, 96, 224, 255),
+        LLColor4U(96, 255, 255, 255),
+        LLColor4U(255, 255, 128, 255));
+    set_quad(
+        3,
+        0.50f,
+        0.30f,
+        0.94f,
+        0.82f,
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(255, 255, 255, 255));
+    set_quad(
+        4,
+        -0.92f,
+        -0.22f,
+        -0.48f,
+        0.20f,
+        LLColor4U(120, 120, 255, 255),
+        LLColor4U(180, 180, 255, 255),
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(96, 128, 255, 255));
+    set_quad(
+        5,
+        -0.46f,
+        -0.22f,
+        -0.02f,
+        0.20f,
+        LLColor4U(128, 255, 128, 255),
+        LLColor4U(96, 224, 255, 255),
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(96, 255, 160, 255));
+    set_quad(
+        6,
+        0.04f,
+        -0.22f,
+        0.48f,
+        0.20f,
+        LLColor4U(255, 224, 96, 255),
+        LLColor4U(255, 160, 96, 255),
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(255, 255, 160, 255));
+    set_quad(
+        7,
+        0.50f,
+        -0.22f,
+        0.94f,
+        0.20f,
+        LLColor4U(255, 128, 128, 255),
+        LLColor4U(160, 255, 160, 255),
+        LLColor4U(160, 160, 255, 255),
+        LLColor4U(255, 255, 255, 255));
+    set_quad(
+        8,
+        -0.70f,
+        -0.78f,
+        -0.25f,
+        -0.35f,
+        LLColor4U(255, 120, 200, 255),
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(160, 255, 255, 255),
+        LLColor4U(255, 180, 255, 255));
+    set_quad(
+        9,
+        -0.22f,
+        -0.78f,
+        0.23f,
+        -0.35f,
+        LLColor4U(180, 255, 96, 255),
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(255, 180, 96, 255),
+        LLColor4U(96, 255, 255, 255));
+    set_quad(
+        10,
+        0.26f,
+        -0.78f,
+        0.71f,
+        -0.35f,
+        LLColor4U(96, 160, 255, 255),
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(255, 128, 96, 255),
+        LLColor4U(160, 255, 160, 255));
+    set_quad(
+        11,
+        -1.f,
+        -1.f,
+        1.f,
+        1.f,
+        LLColor4U(42, 72, 50, 255),
+        LLColor4U(52, 86, 58, 255),
+        LLColor4U(106, 156, 228, 255),
+        LLColor4U(80, 132, 218, 255),
+        0.85f);
+
+    resources.mVertexBuffer->setPositionData(positions.data());
+    resources.mVertexBuffer->setNormalData(normals.data());
+    resources.mVertexBuffer->setTangentData(tangents.data());
+    resources.mVertexBuffer->setTexCoord0Data(texcoords0.data());
+    resources.mVertexBuffer->setTexCoord1Data(texcoords1.data());
+    {
+        LLStrider<LLVector2> texcoord2_strider;
+        if (resources.mVertexBuffer->getTexCoord2Strider(texcoord2_strider))
+        {
+            for (U32 vertex = 0; vertex < vertex_count; ++vertex)
+            {
+                *texcoord2_strider++ = texcoords2[vertex];
+            }
+        }
+    }
+    resources.mVertexBuffer->setColorData(colors.data());
+    resources.mVertexBuffer->setIndexData(indices.data());
+    resources.mVertexBuffer->unmapBuffer();
+
+    LLViewerTexture* texture =
+        LLViewerFetchedTexture::sWhiteImagep.notNull() ?
+            LLViewerFetchedTexture::sWhiteImagep.get() :
+            LLViewerTexture::sNullImagep.get();
+    LLViewerTexture* normal_texture =
+        LLViewerFetchedTexture::sFlatNormalImagep.notNull() ?
+            LLViewerFetchedTexture::sFlatNormalImagep.get() :
+            texture;
+    LLViewerTexture* specular_texture =
+        LLViewerFetchedTexture::sWhiteImagep.notNull() ?
+            LLViewerFetchedTexture::sWhiteImagep.get() :
+            texture;
+    if (!texture)
+    {
+        LL_WARNS("RenderBackend")
+            << "Unable to initialize Mare viewer pipeline scene: no viewer fallback texture is available."
+            << LL_ENDL;
+        resources.mVertexBuffer = nullptr;
+        return false;
+    }
+
+    const auto add_draw_info =
+        [&](U32 pass, U32 quad_index, bool fullbright)
+    {
+        const U16 start = static_cast<U16>(quad_index * vertices_per_quad);
+        LLPointer<LLDrawInfo> draw_info =
+            new LLDrawInfo(
+                start,
+                static_cast<U16>(start + vertices_per_quad - 1),
+                indices_per_quad,
+                quad_index * indices_per_quad,
+                texture,
+                resources.mVertexBuffer.get(),
+                fullbright);
+        draw_info->mNormalMap = normal_texture;
+        draw_info->mSpecularMap = specular_texture;
+        draw_info->mSpecColor = LLVector4(1.f, 0.88f, 0.68f, 0.55f);
+        draw_info->mEnvIntensity = 0.35f;
+        draw_info->mAlphaMaskCutoff = 0.5f;
+        draw_info->mBump = BE_BRIGHTNESS;
+        draw_info->mShiny = 2;
+        resources.mPasses.push_back(pass);
+        resources.mDrawInfos.push_back(draw_info);
+    };
+
+    add_draw_info(LLRenderPass::PASS_SIMPLE, 0, false);
+    add_draw_info(LLRenderPass::PASS_ALPHA_MASK, 1, false);
+    add_draw_info(LLRenderPass::PASS_FULLBRIGHT, 2, true);
+    add_draw_info(LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK, 3, true);
+    add_draw_info(LLRenderPass::PASS_BUMP, 4, false);
+    add_draw_info(LLRenderPass::PASS_POST_BUMP, 5, false);
+    add_draw_info(LLRenderPass::PASS_FULLBRIGHT_SHINY, 6, true);
+    add_draw_info(LLRenderPass::PASS_MATERIAL, 7, false);
+    add_draw_info(LLRenderPass::PASS_SPECMAP, 8, false);
+    add_draw_info(LLRenderPass::PASS_NORMMAP, 9, false);
+    add_draw_info(LLRenderPass::PASS_NORMSPEC, 10, false);
+    add_draw_info(LLRenderPass::PASS_FULLBRIGHT, 11, true);
+
+    LL_INFOS("RenderBackend")
+        << "Initialized Mare viewer pipeline scene fixture with "
+        << resources.mDrawInfos.size()
+        << " synthetic LLDrawInfo entries."
+        << LL_ENDL;
+    return true;
+}
+
+static void setup_mare_viewer_pipeline_scene_camera()
+{
+    const S32 width =
+        gPipeline.mRT && gPipeline.mRT->deferredScreen.isComplete() ?
+            gPipeline.mRT->deferredScreen.getWidth() :
+            gViewerWindow->getWindowWidthRaw();
+    const S32 height =
+        gPipeline.mRT && gPipeline.mRT->deferredScreen.isComplete() ?
+            gPipeline.mRT->deferredScreen.getHeight() :
+            gViewerWindow->getWindowHeightRaw();
+    getRenderBackend().setViewport(0, 0, width, height);
+
+    const glm::mat4 projection =
+        glm::ortho(-1.f, 1.f, -1.f, 1.f, -1.f, 1.f);
+    const glm::mat4 modelview = glm::identity<glm::mat4>();
+
+    set_current_projection(projection);
+    set_current_modelview(modelview);
+    gGL.matrixMode(LLRender::MM_PROJECTION);
+    gGL.loadMatrix(glm::value_ptr(projection));
+    gGL.matrixMode(LLRender::MM_MODELVIEW);
+    gGL.loadMatrix(glm::value_ptr(modelview));
+    gGLLastMatrix = nullptr;
+}
+
+static bool write_mare_viewer_pipeline_scene_capture(
+    S32 capture_width = 0,
+    S32 capture_height = 0,
+    bool alpha_as_gray = false)
+{
+    const std::string& path = get_mare_viewer_pipeline_scene_test_capture_path();
+    if (path.empty())
+    {
+        return true;
+    }
+
+    const S32 width =
+        capture_width > 0 ?
+            capture_width :
+            gViewerWindow->getWindowWidthRaw();
+    const S32 height =
+        capture_height > 0 ?
+            capture_height :
+            gViewerWindow->getWindowHeightRaw();
+    if (width <= 0 || height <= 0)
+    {
+        LL_WARNS("RenderBackend")
+            << "Unable to capture Mare viewer pipeline scene: invalid window size "
+            << width
+            << "x"
+            << height
+            << "."
+            << LL_ENDL;
+        return false;
+    }
+
+    std::vector<U8> rgba(
+        static_cast<size_t>(width) *
+        static_cast<size_t>(height) *
+        4U);
+    getRenderBackend().readPixels(
+        0,
+        0,
+        width,
+        height,
+        LLRenderPixelFormat::RGBA,
+        LLRenderPixelType::UnsignedByte,
+        rgba.data());
+
+    std::ofstream output(path, std::ios::binary);
+    if (!output.is_open())
+    {
+        LL_WARNS("RenderBackend")
+            << "Unable to open Mare viewer pipeline scene capture path: "
+            << path
+            << LL_ENDL;
+        return false;
+    }
+
+    output << "P6\n" << width << " " << height << "\n255\n";
+    U64 red_sum = 0;
+    U64 green_sum = 0;
+    U64 blue_sum = 0;
+    U64 nonzero_rgb = 0;
+    for (S32 row = height - 1; row >= 0; --row)
+    {
+        const size_t row_offset =
+            static_cast<size_t>(row) *
+            static_cast<size_t>(width) *
+            4U;
+        for (S32 column = 0; column < width; ++column)
+        {
+            const size_t i = row_offset + static_cast<size_t>(column) * 4U;
+            const U8 red = alpha_as_gray ? rgba[i + 3] : rgba[i + 0];
+            const U8 green = alpha_as_gray ? rgba[i + 3] : rgba[i + 1];
+            const U8 blue = alpha_as_gray ? rgba[i + 3] : rgba[i + 2];
+            red_sum += red;
+            green_sum += green;
+            blue_sum += blue;
+            if (red != 0 || green != 0 || blue != 0)
+            {
+                ++nonzero_rgb;
+            }
+            const char rgb[3] =
+            {
+                static_cast<char>(red),
+                static_cast<char>(green),
+                static_cast<char>(blue),
+            };
+            output.write(rgb, sizeof(rgb));
+        }
+    }
+    if (!output.good())
+    {
+        LL_WARNS("RenderBackend")
+            << "Failed while writing Mare viewer pipeline scene capture: "
+            << path
+            << LL_ENDL;
+        return false;
+    }
+
+    LL_INFOS("RenderBackend")
+        << "Wrote Mare viewer pipeline scene capture to "
+        << path
+        << (alpha_as_gray ? " alpha-as-gray" : "");
+    const F64 pixel_count =
+        static_cast<F64>(width) *
+        static_cast<F64>(height);
+    if (pixel_count > 0.0)
+    {
+        LL_CONT
+            << " avg rgb "
+            << static_cast<F64>(red_sum) / pixel_count
+            << ", "
+            << static_cast<F64>(green_sum) / pixel_count
+            << ", "
+            << static_cast<F64>(blue_sum) / pixel_count
+            << ", nonzero rgb "
+            << (100.0 * static_cast<F64>(nonzero_rgb) / pixel_count)
+            << "%";
+    }
+    LL_CONT << "." << LL_ENDL;
+    return true;
+}
+
+static bool write_mare_viewer_pipeline_scene_depth_capture(
+    S32 capture_width,
+    S32 capture_height)
+{
+    const std::string& path = get_mare_viewer_pipeline_scene_test_capture_path();
+    if (path.empty())
+    {
+        return true;
+    }
+
+    if (capture_width <= 0 || capture_height <= 0)
+    {
+        LL_WARNS("RenderBackend")
+            << "Unable to capture Mare viewer pipeline scene depth: invalid size "
+            << capture_width
+            << "x"
+            << capture_height
+            << "."
+            << LL_ENDL;
+        return false;
+    }
+
+    std::vector<F32> depth(
+        static_cast<size_t>(capture_width) *
+        static_cast<size_t>(capture_height));
+    getRenderBackend().readPixels(
+        0,
+        0,
+        capture_width,
+        capture_height,
+        LLRenderPixelFormat::DepthComponent,
+        LLRenderPixelType::Float32,
+        depth.data());
+
+    std::ofstream output(path, std::ios::binary);
+    if (!output.is_open())
+    {
+        LL_WARNS("RenderBackend")
+            << "Unable to open Mare viewer pipeline scene depth capture path: "
+            << path
+            << LL_ENDL;
+        return false;
+    }
+
+    output << "P6\n" << capture_width << " " << capture_height << "\n255\n";
+    F64 depth_sum = 0.0;
+    F32 min_depth = 1.f;
+    F32 max_depth = 0.f;
+    for (S32 row = capture_height - 1; row >= 0; --row)
+    {
+        const size_t row_offset =
+            static_cast<size_t>(row) *
+            static_cast<size_t>(capture_width);
+        for (S32 column = 0; column < capture_width; ++column)
+        {
+            const F32 value =
+                llclamp(depth[row_offset + static_cast<size_t>(column)], 0.f, 1.f);
+            depth_sum += value;
+            min_depth = llmin(min_depth, value);
+            max_depth = llmax(max_depth, value);
+            const char gray = static_cast<char>(ll_round(value * 255.f));
+            const char rgb[3] = {gray, gray, gray};
+            output.write(rgb, sizeof(rgb));
+        }
+    }
+    if (!output.good())
+    {
+        LL_WARNS("RenderBackend")
+            << "Failed while writing Mare viewer pipeline scene depth capture: "
+            << path
+            << LL_ENDL;
+        return false;
+    }
+
+    const F64 pixel_count =
+        static_cast<F64>(capture_width) *
+        static_cast<F64>(capture_height);
+    LL_INFOS("RenderBackend")
+        << "Wrote Mare viewer pipeline scene depth capture to "
+        << path
+        << " avg depth "
+        << (pixel_count > 0.0 ? depth_sum / pixel_count : 0.0)
+        << ", min "
+        << min_depth
+        << ", max "
+        << max_depth
+        << "."
+        << LL_ENDL;
+    return true;
+}
+
+static void render_mare_viewer_pipeline_scene_test_frame()
+{
+    static LLCullResult result;
+    static S32 rendered_frames = 0;
+    static bool captured = false;
+
+    LL_INFOS_ONCE("RenderBackend")
+        << "Mare viewer pipeline scene test is active. Rendering a synthetic LLDrawInfo through the real deferred pipeline."
+        << LL_ENDL;
+
+    if (!init_mare_viewer_pipeline_scene_resources())
+    {
+        LLAppViewer::instance()->forceQuit();
+        return;
+    }
+
+    if (gResizeScreenTexture)
+    {
+        gPipeline.resizeScreenTexture();
+        gResizeScreenTexture = false;
+    }
+
+    static bool environment_initialized = false;
+    if (!environment_initialized)
+    {
+        LLEnvironment::getInstance()->initSingleton();
+        environment_initialized = true;
+    }
+
+    const S32 viewer_shader_level =
+        LLViewerShaderMgr::instance()->getShaderLevel(
+            LLViewerShaderMgr::SHADER_DEFERRED);
+    const S32 backend_shader_level =
+        get_vulkan_world_deferred_shader_level();
+    getRenderBackend().setWorldDeferredShaderLevel(backend_shader_level);
+
+    setup_mare_viewer_pipeline_scene_camera();
+    gPipeline.disableLights();
+    gPipeline.resetFrameStats();
+
+    result.clear();
+    const MareViewerPipelineSceneResources& resources =
+        get_mare_viewer_pipeline_scene_resources();
+    for (size_t i = 0; i < resources.mDrawInfos.size(); ++i)
+    {
+        result.pushDrawInfo(
+            resources.mPasses[i],
+            resources.mDrawInfos[i].get());
+    }
+    gPipeline.grabReferences(result);
+
+    LL_INFOS_ONCE("RenderBackend")
+        << "Mare viewer pipeline scene test state: deferred "
+        << LLPipeline::sRenderDeferred
+        << ", viewer shader level "
+        << viewer_shader_level
+        << ", backend shader level "
+        << backend_shader_level
+        << ", simple "
+        << result.getRenderMapSize(LLRenderPass::PASS_SIMPLE)
+        << ", alpha-mask "
+        << result.getRenderMapSize(LLRenderPass::PASS_ALPHA_MASK)
+        << ", fullbright "
+        << result.getRenderMapSize(LLRenderPass::PASS_FULLBRIGHT)
+        << ", fullbright-alpha-mask "
+        << result.getRenderMapSize(LLRenderPass::PASS_FULLBRIGHT_ALPHA_MASK)
+        << ", bump "
+        << result.getRenderMapSize(LLRenderPass::PASS_BUMP)
+        << ", post-bump "
+        << result.getRenderMapSize(LLRenderPass::PASS_POST_BUMP)
+        << ", fullbright-shiny "
+        << result.getRenderMapSize(LLRenderPass::PASS_FULLBRIGHT_SHINY)
+        << ", material "
+        << result.getRenderMapSize(LLRenderPass::PASS_MATERIAL)
+        << ", specmap "
+        << result.getRenderMapSize(LLRenderPass::PASS_SPECMAP)
+        << ", normmap "
+        << result.getRenderMapSize(LLRenderPass::PASS_NORMMAP)
+        << ", normspec "
+        << result.getRenderMapSize(LLRenderPass::PASS_NORMSPEC)
+        << "."
+        << LL_ENDL;
+
+    gGL.setColorMask(true, true);
+    getRenderBackend().setClearColor(0.025f, 0.03f, 0.08f, 1.f);
+    getRenderBackend().clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+
+    const S32 frame_limit = get_mare_viewer_pipeline_scene_test_frames();
+    const bool should_capture =
+        !captured &&
+        !get_mare_viewer_pipeline_scene_test_capture_path().empty() &&
+        (frame_limit == 0 || rendered_frames + 1 >= frame_limit);
+    const bool request_gbuffer_capture =
+        should_capture &&
+        use_mare_viewer_pipeline_scene_test_gbuffer_capture_stage();
+    const bool request_gbuffer_depth_capture =
+        should_capture &&
+        use_mare_viewer_pipeline_scene_test_gbuffer_depth_capture_stage();
+    const bool request_deferred_light_capture =
+        should_capture &&
+        use_mare_viewer_pipeline_scene_test_capture_stage("deferred-light");
+    const bool request_screen_after_lighting_capture =
+        should_capture &&
+        use_mare_viewer_pipeline_scene_test_capture_stage("screen-after-lighting");
+    const bool capture_gbuffer_color =
+        !use_vulkan_world_path() &&
+        request_gbuffer_capture;
+    const bool capture_gbuffer_depth =
+        !use_vulkan_world_path() &&
+        request_gbuffer_depth_capture;
+    const bool capture_screen_after_lighting =
+        !use_vulkan_world_path() &&
+        (request_screen_after_lighting_capture || request_deferred_light_capture);
+
+    if (use_vulkan_world_path())
+    {
+        render_vulkan_world_frame();
+        if (should_capture)
+        {
+            LLRenderTarget* capture_target = nullptr;
+            const char* capture_label = nullptr;
+            if (request_gbuffer_capture)
+            {
+                capture_target = &gPipeline.mRT->deferredScreen;
+                const U32 attachment =
+                    get_mare_viewer_pipeline_scene_test_gbuffer_attachment();
+                if (attachment == 1)
+                {
+                    capture_label = "viewer pipeline scene gbuffer specular";
+                }
+                else if (attachment == 2)
+                {
+                    capture_label =
+                        use_mare_viewer_pipeline_scene_test_gbuffer_alpha_capture_stage() ?
+                            "viewer pipeline scene gbuffer normal alpha" :
+                            "viewer pipeline scene gbuffer normal";
+                }
+                else if (attachment == 3)
+                {
+                    capture_label = "viewer pipeline scene gbuffer emissive";
+                }
+                else
+                {
+                    capture_label =
+                        use_mare_viewer_pipeline_scene_test_gbuffer_alpha_capture_stage() ?
+                            "viewer pipeline scene gbuffer color alpha" :
+                            "viewer pipeline scene gbuffer color";
+                }
+            }
+            else if (request_gbuffer_depth_capture)
+            {
+                capture_target = &gPipeline.mRT->deferredScreen;
+                capture_label = "viewer pipeline scene gbuffer depth";
+            }
+            else if (request_deferred_light_capture)
+            {
+                // OpenGL's renderDeferredLighting() writes the atmospheric
+                // composite and then draws non-deferred/fullbright geometry
+                // into screen before the pipeline scene test captures
+                // deferred-light.  Capture the same graph point for Vulkan
+                // instead of the intermediate light target.
+                capture_target = &gPipeline.mRT->screen;
+                capture_label = "viewer pipeline scene deferred light";
+            }
+            else if (request_screen_after_lighting_capture)
+            {
+                capture_target = &gPipeline.mRT->screen;
+                capture_label = "viewer pipeline scene screen after lighting";
+            }
+
+            if (capture_target)
+            {
+                const std::string& capture_path =
+                    get_mare_viewer_pipeline_scene_test_capture_path();
+                const LLRenderTextureHandle capture_texture =
+                    request_gbuffer_depth_capture ?
+                        capture_target->getDepthHandle() :
+                        capture_target->getTextureHandle(
+                            get_mare_viewer_pipeline_scene_test_gbuffer_attachment());
+                captured =
+                    capture_texture &&
+                    getRenderBackend().scheduleDebugTexturePPMReadback(
+                        capture_texture,
+                        capture_path.c_str(),
+                        capture_label);
+                if (!captured)
+                {
+                    LL_WARNS("RenderBackend")
+                        << "Unable to schedule Vulkan Mare viewer pipeline scene capture for "
+                        << capture_label
+                        << "."
+                        << LL_ENDL;
+                }
+            }
+        }
+    }
+    else
+    {
+        gPipeline.mRT->deferredScreen.bindTarget();
+        getRenderBackend().setClearColor(1.f, 0.f, 1.f, 1.f);
+        gPipeline.mRT->deferredScreen.clear();
+        gGL.setColorMask(true, true);
+        gPipeline.renderGeomDeferred(*LLViewerCamera::getInstance(), false);
+        gPipeline.mRT->deferredScreen.flush();
+        if (capture_gbuffer_color)
+        {
+            gPipeline.mRT->deferredScreen.bindTarget();
+            const U32 attachment =
+                get_mare_viewer_pipeline_scene_test_gbuffer_attachment();
+            getRenderBackend().setFramebufferReadColorAttachment(attachment);
+            captured = true;
+            write_mare_viewer_pipeline_scene_capture(
+                gPipeline.mRT->deferredScreen.getWidth(),
+                gPipeline.mRT->deferredScreen.getHeight(),
+                use_mare_viewer_pipeline_scene_test_gbuffer_alpha_capture_stage());
+            getRenderBackend().setFramebufferReadColorAttachment(0);
+            gPipeline.mRT->deferredScreen.flush();
+        }
+        if (capture_gbuffer_depth)
+        {
+            gPipeline.mRT->deferredScreen.bindTarget();
+            captured = true;
+            write_mare_viewer_pipeline_scene_depth_capture(
+                gPipeline.mRT->deferredScreen.getWidth(),
+                gPipeline.mRT->deferredScreen.getHeight());
+            gPipeline.mRT->deferredScreen.flush();
+        }
+        if (LLPipeline::sRenderDeferred)
+        {
+            gPipeline.renderDeferredLighting();
+            if (capture_screen_after_lighting)
+            {
+                gPipeline.mRT->screen.bindTarget();
+                captured = true;
+                write_mare_viewer_pipeline_scene_capture(
+                    gPipeline.mRT->screen.getWidth(),
+                    gPipeline.mRT->screen.getHeight());
+                gPipeline.mRT->screen.flush();
+            }
+            gPipeline.renderFinalize();
+        }
+    }
+
+    gPipeline.clearReferences();
+
+    ++rendered_frames;
+
+    if (should_capture &&
+        !capture_gbuffer_color &&
+        !capture_gbuffer_depth &&
+        !capture_screen_after_lighting &&
+        !request_deferred_light_capture &&
+        !use_vulkan_world_path())
+    {
+        captured = true;
+        write_mare_viewer_pipeline_scene_capture();
+    }
+
+    swap();
+
+    if (should_capture &&
+        use_vulkan_world_path() &&
+        !request_gbuffer_capture &&
+        !request_gbuffer_depth_capture &&
+        !request_screen_after_lighting_capture)
+    {
+        captured = true;
+    }
+
+    if (frame_limit > 0 && rendered_frames >= frame_limit)
+    {
+        LLAppViewer::instance()->forceQuit();
+    }
+}
+
 // Paint the display!
 void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
 {
@@ -3376,6 +4437,13 @@ void display(bool rebuild, F32 zoom_factor, int subfield, bool for_snapshot)
     // Bail out if we're in the startup state and don't want to try to
     // render the world.
     //
+    if (use_mare_viewer_pipeline_scene_test())
+    {
+        LLAppViewer::instance()->pingMainloopTimeout("Display:MareViewerPipelineSceneTest");
+        render_mare_viewer_pipeline_scene_test_frame();
+        return;
+    }
+
     if (LLStartUp::getStartupState() < STATE_PRECACHE)
     {
         LLAppViewer::instance()->pingMainloopTimeout("Display:Startup");

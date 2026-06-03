@@ -1962,6 +1962,15 @@ struct LLVulkanBufferAverageReadback
     S32 mHeight = 0;
     S32 mFormat = LL_VK_FORMAT_UNDEFINED;
     std::string mLabel;
+    std::string mPPMPath;
+};
+
+struct LLVulkanPendingDebugTextureReadback
+{
+    U32 mTextureHandle = 0;
+    U32 mTextureSlot = 0;
+    std::string mLabel;
+    std::string mPPMPath;
 };
 
 struct LLVulkanDepthAttachment
@@ -2404,6 +2413,7 @@ std::unordered_set<U32> gVulkanDeletedAttachedTextures;
 std::map<LLVulkanPendingDraw::texture_bindings_t, LLVkDescriptorSet> gVulkanTextureDescriptorSetCache;
 std::array<LLVulkanVertexAttributeState, 16> gCurrentVulkanVertexAttributes = {};
 std::vector<LLVulkanPendingDraw> gPendingVulkanDraws;
+std::vector<LLVulkanPendingDebugTextureReadback> gPendingVulkanDebugTextureReadbacks;
 std::unordered_set<U32> gCurrentFrameVulkanBufferReferences;
 std::unordered_set<U32> gCurrentFrameVulkanTextureReferences;
 
@@ -2422,6 +2432,7 @@ bool ensure_vulkan_fallback_cube_array_texture(LLVulkanNativeContext& context);
 void clear_vulkan_pending_frame_commands()
 {
     gPendingVulkanDraws.clear();
+    gPendingVulkanDebugTextureReadbacks.clear();
     gCurrentFrameVulkanBufferReferences.clear();
     gCurrentFrameVulkanTextureReferences.clear();
 }
@@ -3012,6 +3023,48 @@ U32 to_vulkan_world_pipeline_index(
                  MARE_VULKAN_WORLD_DEPTH_PIPELINE_COUNT *
                     (static_cast<U32>(cull_pipeline) +
                      MARE_VULKAN_WORLD_CULL_PIPELINE_COUNT * static_cast<U32>(color_pipeline))));
+}
+
+bool is_vulkan_fullscreen_deferred_pipeline_variant(
+    LLRenderPrimitiveType primitive,
+    LLVulkanWorldBlendPipeline blend_pipeline,
+    LLVulkanWorldDepthPipeline depth_pipeline,
+    LLVulkanWorldCullPipeline cull_pipeline,
+    LLVulkanWorldColorPipeline color_pipeline)
+{
+    return primitive == LLRenderPrimitiveType::Triangles &&
+        blend_pipeline == LLVulkanWorldBlendPipeline::Opaque &&
+        depth_pipeline == LLVulkanWorldDepthPipeline::Disabled &&
+        cull_pipeline == LLVulkanWorldCullPipeline::None &&
+        color_pipeline == LLVulkanWorldColorPipeline::Enabled;
+}
+
+bool is_vulkan_local_light_volume_pipeline_variant(
+    LLRenderPrimitiveType primitive,
+    LLVulkanWorldBlendPipeline blend_pipeline,
+    LLVulkanWorldDepthPipeline depth_pipeline,
+    LLVulkanWorldCullPipeline cull_pipeline,
+    LLVulkanWorldColorPipeline color_pipeline)
+{
+    return primitive == LLRenderPrimitiveType::TriangleFan &&
+        blend_pipeline == LLVulkanWorldBlendPipeline::Add &&
+        depth_pipeline == LLVulkanWorldDepthPipeline::ReadOnly &&
+        cull_pipeline == LLVulkanWorldCullPipeline::Back &&
+        color_pipeline == LLVulkanWorldColorPipeline::Enabled;
+}
+
+bool is_vulkan_local_light_fullscreen_pipeline_variant(
+    LLRenderPrimitiveType primitive,
+    LLVulkanWorldBlendPipeline blend_pipeline,
+    LLVulkanWorldDepthPipeline depth_pipeline,
+    LLVulkanWorldCullPipeline cull_pipeline,
+    LLVulkanWorldColorPipeline color_pipeline)
+{
+    return primitive == LLRenderPrimitiveType::Triangles &&
+        blend_pipeline == LLVulkanWorldBlendPipeline::Add &&
+        depth_pipeline == LLVulkanWorldDepthPipeline::Disabled &&
+        cull_pipeline == LLVulkanWorldCullPipeline::None &&
+        color_pipeline == LLVulkanWorldColorPipeline::Enabled;
 }
 
 U32 to_vulkan_buffer_usage(LLRenderBufferTarget target)
@@ -6582,10 +6635,35 @@ bool is_vulkan_smoke_test_enabled()
     return get_vulkan_boolean_env("MARE_VULKAN_SMOKE_TEST");
 }
 
+bool is_vulkan_viewer_pipeline_scene_capture_final_stage()
+{
+    const char* stage =
+        std::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_CAPTURE_STAGE");
+    if (!stage || !stage[0])
+    {
+        return true;
+    }
+
+    std::string value(stage);
+    LLStringUtil::trim(value);
+    LLStringUtil::toLower(value);
+    return value == "final";
+}
+
 bool is_vulkan_swapchain_average_debug_enabled()
 {
+    const char* debug_screenshot_path =
+        std::getenv("MARE_VULKAN_DEBUG_SWAPCHAIN_SCREENSHOT_PPM");
+    const char* viewer_pipeline_screenshot_path =
+        std::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_CAPTURE");
+    const bool viewer_pipeline_final_capture =
+        viewer_pipeline_screenshot_path &&
+        viewer_pipeline_screenshot_path[0] &&
+        is_vulkan_viewer_pipeline_scene_capture_final_stage();
     return is_vulkan_smoke_test_enabled() ||
-        get_vulkan_boolean_env("MARE_VULKAN_DEBUG_SWAPCHAIN_AVERAGE");
+        get_vulkan_boolean_env("MARE_VULKAN_DEBUG_SWAPCHAIN_AVERAGE") ||
+        (debug_screenshot_path && debug_screenshot_path[0]) ||
+        viewer_pipeline_final_capture;
 }
 
 bool is_vulkan_smoke_frame_diff_enabled()
@@ -7463,6 +7541,8 @@ bool write_vulkan_readback_ppm(
         << readback.mHeight
         << "\n255\n";
 
+    const bool alpha_as_gray =
+        readback.mLabel.find("alpha") != std::string::npos;
     const U8* bytes = static_cast<const U8*>(readback.mBuffer.mMappedData);
     for (S32 y = 0; y < readback.mHeight; ++y)
     {
@@ -7487,6 +7567,13 @@ bool write_vulkan_readback_ppm(
                 return false;
             }
 
+            if (alpha_as_gray)
+            {
+                red = alpha;
+                green = alpha;
+                blue = alpha;
+            }
+
             const U8 rgb[3] =
             {
                 encode_vulkan_ppm_channel(red),
@@ -7500,14 +7587,14 @@ bool write_vulkan_readback_ppm(
     if (!output.good())
     {
         LL_WARNS("RenderBackend")
-            << "Failed while writing Vulkan smoke screenshot file: "
+            << "Failed while writing Vulkan readback PPM file: "
             << path
             << LL_ENDL;
         return false;
     }
 
     LL_INFOS("RenderBackend")
-        << "Wrote Vulkan smoke screenshot to "
+        << "Wrote Vulkan readback PPM to "
         << path
         << "."
         << LL_ENDL;
@@ -7530,9 +7617,31 @@ U64 get_vulkan_smoke_screenshot_min_frame()
     return 0;
 }
 
+const char* get_vulkan_debug_swapchain_screenshot_path()
+{
+    if (const char* path =
+            std::getenv("MARE_VULKAN_DEBUG_SWAPCHAIN_SCREENSHOT_PPM"))
+    {
+        if (path[0])
+        {
+            return path;
+        }
+    }
+    if (const char* path =
+            std::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_CAPTURE"))
+    {
+        if (path[0] && is_vulkan_viewer_pipeline_scene_capture_final_stage())
+        {
+            return path;
+        }
+    }
+    return nullptr;
+}
+
 void log_and_destroy_vulkan_buffer_average_readbacks(LLVulkanNativeContext& context)
 {
     static bool sWroteSmokeScreenshot = false;
+    static bool sWroteDebugSwapchainScreenshot = false;
     for (LLVulkanBufferAverageReadback& readback : context.mPendingBufferAverageReadbacks)
     {
         const LLVulkanBufferAverageStats stats =
@@ -7646,6 +7755,11 @@ void log_and_destroy_vulkan_buffer_average_readbacks(LLVulkanNativeContext& cont
             log_vulkan_smoke_frame_diff(readback);
         }
 
+        if (!readback.mPPMPath.empty())
+        {
+            write_vulkan_readback_ppm(readback, readback.mPPMPath.c_str());
+        }
+
         if (readback.mLabel == "smoke final swapchain")
         {
             if (!sWroteSmokeScreenshot)
@@ -7699,6 +7813,18 @@ void log_and_destroy_vulkan_buffer_average_readbacks(LLVulkanNativeContext& cont
                     << LL_ENDL;
             }
         }
+        else if (readback.mLabel == "debug final swapchain")
+        {
+            if (!sWroteDebugSwapchainScreenshot)
+            {
+                if (const char* screenshot_path =
+                        get_vulkan_debug_swapchain_screenshot_path())
+                {
+                    sWroteDebugSwapchainScreenshot =
+                        write_vulkan_readback_ppm(readback, screenshot_path);
+                }
+            }
+        }
 
         destroy_vulkan_buffer_resource(context, readback.mBuffer);
     }
@@ -7710,7 +7836,8 @@ bool schedule_vulkan_buffer_average_readback(
     LLVkCommandBuffer command_buffer,
     U32 texture_handle,
     U32 texture_slot,
-    const char* label)
+    const char* label,
+    const char* ppm_path = nullptr)
 {
     auto texture_iter = gVulkanTextures.find(texture_handle);
     if (texture_iter == gVulkanTextures.end())
@@ -7818,8 +7945,64 @@ bool schedule_vulkan_buffer_average_readback(
     readback.mHeight = texture.mHeight;
     readback.mFormat = texture.mFormat;
     readback.mLabel = label;
+    if (ppm_path && ppm_path[0])
+    {
+        readback.mPPMPath = ppm_path;
+    }
     context.mPendingBufferAverageReadbacks.push_back(readback);
     return true;
+}
+
+void schedule_vulkan_pending_debug_texture_readbacks(
+    LLVulkanNativeContext& context,
+    LLVkCommandBuffer command_buffer)
+{
+    if (gPendingVulkanDebugTextureReadbacks.empty())
+    {
+        return;
+    }
+
+    U32 scheduled_count = 0;
+    for (const LLVulkanPendingDebugTextureReadback& request :
+        gPendingVulkanDebugTextureReadbacks)
+    {
+        if (!request.mTextureHandle ||
+            request.mPPMPath.empty())
+        {
+            continue;
+        }
+
+        if (schedule_vulkan_buffer_average_readback(
+                context,
+                command_buffer,
+                request.mTextureHandle,
+                request.mTextureSlot,
+                request.mLabel.c_str(),
+                request.mPPMPath.c_str()))
+        {
+            ++scheduled_count;
+        }
+        else
+        {
+            LL_WARNS("RenderBackend")
+                << "Unable to schedule Vulkan debug texture readback '"
+                << request.mLabel
+                << "' for texture "
+                << request.mTextureHandle
+                << "."
+                << LL_ENDL;
+        }
+    }
+
+    if (scheduled_count > 0)
+    {
+        LL_INFOS("RenderBackend")
+            << "Vulkan scheduled "
+            << scheduled_count
+            << " debug texture PPM readback(s)."
+            << LL_ENDL;
+    }
+    gPendingVulkanDebugTextureReadbacks.clear();
 }
 
 const char* get_vulkan_deferred_composite_input_label(U32 texture_slot)
@@ -14753,8 +14936,31 @@ bool create_vulkan_offscreen_pipeline_set(
                             { 0.f, 0.f, 0.f, 0.f }
                         };
 
+                        const LLRenderPrimitiveType primitive =
+                            static_cast<LLRenderPrimitiveType>(i);
                         U32 world_pipeline_index =
                             to_vulkan_world_pipeline_index(i, blend_pipeline, requested_depth_pipeline, cull_pipeline, color_pipeline);
+                        const bool create_fullscreen_deferred_pipelines =
+                            is_vulkan_fullscreen_deferred_pipeline_variant(
+                                primitive,
+                                blend_pipeline,
+                                requested_depth_pipeline,
+                                cull_pipeline,
+                                color_pipeline);
+                        const bool create_local_light_volume_pipelines =
+                            is_vulkan_local_light_volume_pipeline_variant(
+                                primitive,
+                                blend_pipeline,
+                                requested_depth_pipeline,
+                                cull_pipeline,
+                                color_pipeline);
+                        const bool create_local_light_fullscreen_pipelines =
+                            is_vulkan_local_light_fullscreen_pipeline_variant(
+                                primitive,
+                                blend_pipeline,
+                                requested_depth_pipeline,
+                                cull_pipeline,
+                                color_pipeline);
                         LLVkGraphicsPipelineCreateInfo world_pipeline_create_info = ui_pipeline_create_info;
                         world_pipeline_create_info.pStages = world_shader_stages;
                         world_pipeline_create_info.pVertexInputState = &world_vertex_input;
@@ -15205,178 +15411,181 @@ bool create_vulkan_offscreen_pipeline_set(
                             return false;
                         }
 
-                        LLVkGraphicsPipelineCreateInfo deferred_light_map_pipeline_create_info = world_pipeline_create_info;
-                        deferred_light_map_pipeline_create_info.pStages = deferred_light_map_shader_stages;
-                        S32 deferred_light_map_result = create_graphics_pipelines(
-                            context.mDevice,
-                            nullptr,
-                            1,
-                            &deferred_light_map_pipeline_create_info,
-                            nullptr,
-                            &pipeline_set.mDeferredLightMapPipelines[world_pipeline_index]);
-                        if (deferred_light_map_result != LL_VK_SUCCESS ||
-                            !pipeline_set.mDeferredLightMapPipelines[world_pipeline_index])
+                        if (create_fullscreen_deferred_pipelines)
                         {
-                            LL_WARNS("RenderBackend")
-                                << "vkCreateGraphicsPipelines(offscreen deferred lightMap mode "
-                                << i
-                                << ", blend "
-                                << blend_index
-                                << ", depth "
-                                << depth_index
-                                << ", cull "
-                                << cull_index
-                                << ", color "
-                                << color_index
-                                << ") failed with result "
-                                << deferred_light_map_result
-                                << LL_ENDL;
-                            return false;
-                        }
+                            LLVkGraphicsPipelineCreateInfo deferred_light_map_pipeline_create_info = world_pipeline_create_info;
+                            deferred_light_map_pipeline_create_info.pStages = deferred_light_map_shader_stages;
+                            S32 deferred_light_map_result = create_graphics_pipelines(
+                                context.mDevice,
+                                nullptr,
+                                1,
+                                &deferred_light_map_pipeline_create_info,
+                                nullptr,
+                                &pipeline_set.mDeferredLightMapPipelines[world_pipeline_index]);
+                            if (deferred_light_map_result != LL_VK_SUCCESS ||
+                                !pipeline_set.mDeferredLightMapPipelines[world_pipeline_index])
+                            {
+                                LL_WARNS("RenderBackend")
+                                    << "vkCreateGraphicsPipelines(offscreen deferred lightMap mode "
+                                    << i
+                                    << ", blend "
+                                    << blend_index
+                                    << ", depth "
+                                    << depth_index
+                                    << ", cull "
+                                    << cull_index
+                                    << ", color "
+                                    << color_index
+                                    << ") failed with result "
+                                    << deferred_light_map_result
+                                    << LL_ENDL;
+                                return false;
+                            }
 
-                        LLVkGraphicsPipelineCreateInfo deferred_blur_light_pipeline_create_info = world_pipeline_create_info;
-                        deferred_blur_light_pipeline_create_info.pStages = deferred_blur_light_shader_stages;
-                        S32 deferred_blur_light_result = create_graphics_pipelines(
-                            context.mDevice,
-                            nullptr,
-                            1,
-                            &deferred_blur_light_pipeline_create_info,
-                            nullptr,
-                            &pipeline_set.mDeferredBlurLightPipelines[world_pipeline_index]);
-                        if (deferred_blur_light_result != LL_VK_SUCCESS ||
-                            !pipeline_set.mDeferredBlurLightPipelines[world_pipeline_index])
-                        {
-                            LL_WARNS("RenderBackend")
-                                << "vkCreateGraphicsPipelines(offscreen deferred blur light mode "
-                                << i
-                                << ", blend "
-                                << blend_index
-                                << ", depth "
-                                << depth_index
-                                << ", cull "
-                                << cull_index
-                                << ", color "
-                                << color_index
-                                << ") failed with result "
-                                << deferred_blur_light_result
-                                << LL_ENDL;
-                            return false;
-                        }
+                            LLVkGraphicsPipelineCreateInfo deferred_blur_light_pipeline_create_info = world_pipeline_create_info;
+                            deferred_blur_light_pipeline_create_info.pStages = deferred_blur_light_shader_stages;
+                            S32 deferred_blur_light_result = create_graphics_pipelines(
+                                context.mDevice,
+                                nullptr,
+                                1,
+                                &deferred_blur_light_pipeline_create_info,
+                                nullptr,
+                                &pipeline_set.mDeferredBlurLightPipelines[world_pipeline_index]);
+                            if (deferred_blur_light_result != LL_VK_SUCCESS ||
+                                !pipeline_set.mDeferredBlurLightPipelines[world_pipeline_index])
+                            {
+                                LL_WARNS("RenderBackend")
+                                    << "vkCreateGraphicsPipelines(offscreen deferred blur light mode "
+                                    << i
+                                    << ", blend "
+                                    << blend_index
+                                    << ", depth "
+                                    << depth_index
+                                    << ", cull "
+                                    << cull_index
+                                    << ", color "
+                                    << color_index
+                                    << ") failed with result "
+                                    << deferred_blur_light_result
+                                    << LL_ENDL;
+                                return false;
+                            }
 
-                        LLVkGraphicsPipelineCreateInfo deferred_composite_pipeline_create_info = world_pipeline_create_info;
-                        deferred_composite_pipeline_create_info.pStages = deferred_composite_shader_stages;
-                        S32 deferred_composite_result = create_graphics_pipelines(
-                            context.mDevice,
-                            nullptr,
-                            1,
-                            &deferred_composite_pipeline_create_info,
-                            nullptr,
-                            &pipeline_set.mDeferredCompositePipelines[world_pipeline_index]);
-                        if (deferred_composite_result != LL_VK_SUCCESS ||
-                            !pipeline_set.mDeferredCompositePipelines[world_pipeline_index])
-                        {
-                            LL_WARNS("RenderBackend")
-                                << "vkCreateGraphicsPipelines(offscreen deferred composite mode "
-                                << i
-                                << ", blend "
-                                << blend_index
-                                << ", depth "
-                                << depth_index
-                                << ", cull "
-                                << cull_index
-                                << ", color "
-                                << color_index
-                                << ") failed with result "
-                                << deferred_composite_result
-                                << LL_ENDL;
-                            return false;
-                        }
+                            LLVkGraphicsPipelineCreateInfo deferred_composite_pipeline_create_info = world_pipeline_create_info;
+                            deferred_composite_pipeline_create_info.pStages = deferred_composite_shader_stages;
+                            S32 deferred_composite_result = create_graphics_pipelines(
+                                context.mDevice,
+                                nullptr,
+                                1,
+                                &deferred_composite_pipeline_create_info,
+                                nullptr,
+                                &pipeline_set.mDeferredCompositePipelines[world_pipeline_index]);
+                            if (deferred_composite_result != LL_VK_SUCCESS ||
+                                !pipeline_set.mDeferredCompositePipelines[world_pipeline_index])
+                            {
+                                LL_WARNS("RenderBackend")
+                                    << "vkCreateGraphicsPipelines(offscreen deferred composite mode "
+                                    << i
+                                    << ", blend "
+                                    << blend_index
+                                    << ", depth "
+                                    << depth_index
+                                    << ", cull "
+                                    << cull_index
+                                    << ", color "
+                                    << color_index
+                                    << ") failed with result "
+                                    << deferred_composite_result
+                                    << LL_ENDL;
+                                return false;
+                            }
 
-                        LLVkGraphicsPipelineCreateInfo deferred_soften_pipeline_create_info = world_pipeline_create_info;
-                        deferred_soften_pipeline_create_info.pStages = deferred_soften_shader_stages;
-                        S32 deferred_soften_result = create_graphics_pipelines(
-                            context.mDevice,
-                            nullptr,
-                            1,
-                            &deferred_soften_pipeline_create_info,
-                            nullptr,
-                            &pipeline_set.mDeferredSoftenPipelines[world_pipeline_index]);
-                        if (deferred_soften_result != LL_VK_SUCCESS ||
-                            !pipeline_set.mDeferredSoftenPipelines[world_pipeline_index])
-                        {
-                            LL_WARNS("RenderBackend")
-                                << "vkCreateGraphicsPipelines(offscreen deferred soften mode "
-                                << i
-                                << ", blend "
-                                << blend_index
-                                << ", depth "
-                                << depth_index
-                                << ", cull "
-                                << cull_index
-                                << ", color "
-                                << color_index
-                                << ") failed with result "
-                                << deferred_soften_result
-                                << LL_ENDL;
-                            return false;
-                        }
+                            LLVkGraphicsPipelineCreateInfo deferred_soften_pipeline_create_info = world_pipeline_create_info;
+                            deferred_soften_pipeline_create_info.pStages = deferred_soften_shader_stages;
+                            S32 deferred_soften_result = create_graphics_pipelines(
+                                context.mDevice,
+                                nullptr,
+                                1,
+                                &deferred_soften_pipeline_create_info,
+                                nullptr,
+                                &pipeline_set.mDeferredSoftenPipelines[world_pipeline_index]);
+                            if (deferred_soften_result != LL_VK_SUCCESS ||
+                                !pipeline_set.mDeferredSoftenPipelines[world_pipeline_index])
+                            {
+                                LL_WARNS("RenderBackend")
+                                    << "vkCreateGraphicsPipelines(offscreen deferred soften mode "
+                                    << i
+                                    << ", blend "
+                                    << blend_index
+                                    << ", depth "
+                                    << depth_index
+                                    << ", cull "
+                                    << cull_index
+                                    << ", color "
+                                    << color_index
+                                    << ") failed with result "
+                                    << deferred_soften_result
+                                    << LL_ENDL;
+                                return false;
+                            }
 
-                        LLVkGraphicsPipelineCreateInfo copy_pipeline_create_info = world_pipeline_create_info;
-                        copy_pipeline_create_info.pStages = copy_shader_stages;
-                        S32 copy_result = create_graphics_pipelines(
-                            context.mDevice,
-                            nullptr,
-                            1,
-                            &copy_pipeline_create_info,
-                            nullptr,
-                            &pipeline_set.mCopyPipelines[world_pipeline_index]);
-                        if (copy_result != LL_VK_SUCCESS ||
-                            !pipeline_set.mCopyPipelines[world_pipeline_index])
-                        {
-                            LL_WARNS("RenderBackend")
-                                << "vkCreateGraphicsPipelines(offscreen copy mode "
-                                << i
-                                << ", blend "
-                                << blend_index
-                                << ", depth "
-                                << depth_index
-                                << ", cull "
-                                << cull_index
-                                << ", color "
-                                << color_index
-                                << ") failed with result "
-                                << copy_result
-                                << LL_ENDL;
-                            return false;
-                        }
+                            LLVkGraphicsPipelineCreateInfo copy_pipeline_create_info = world_pipeline_create_info;
+                            copy_pipeline_create_info.pStages = copy_shader_stages;
+                            S32 copy_result = create_graphics_pipelines(
+                                context.mDevice,
+                                nullptr,
+                                1,
+                                &copy_pipeline_create_info,
+                                nullptr,
+                                &pipeline_set.mCopyPipelines[world_pipeline_index]);
+                            if (copy_result != LL_VK_SUCCESS ||
+                                !pipeline_set.mCopyPipelines[world_pipeline_index])
+                            {
+                                LL_WARNS("RenderBackend")
+                                    << "vkCreateGraphicsPipelines(offscreen copy mode "
+                                    << i
+                                    << ", blend "
+                                    << blend_index
+                                    << ", depth "
+                                    << depth_index
+                                    << ", cull "
+                                    << cull_index
+                                    << ", color "
+                                    << color_index
+                                    << ") failed with result "
+                                    << copy_result
+                                    << LL_ENDL;
+                                return false;
+                            }
 
-                        LLVkGraphicsPipelineCreateInfo final_composite_pipeline_create_info = world_pipeline_create_info;
-                        final_composite_pipeline_create_info.pStages = final_composite_shader_stages;
-                        S32 final_composite_result = create_graphics_pipelines(
-                            context.mDevice,
-                            nullptr,
-                            1,
-                            &final_composite_pipeline_create_info,
-                            nullptr,
-                            &pipeline_set.mFinalCompositePipelines[world_pipeline_index]);
-                        if (final_composite_result != LL_VK_SUCCESS ||
-                            !pipeline_set.mFinalCompositePipelines[world_pipeline_index])
-                        {
-                            LL_WARNS("RenderBackend")
-                                << "vkCreateGraphicsPipelines(offscreen final composite mode "
-                                << i
-                                << ", blend "
-                                << blend_index
-                                << ", depth "
-                                << depth_index
-                                << ", cull "
-                                << cull_index
-                                << ", color "
-                                << color_index
-                                << ") failed with result "
-                                << final_composite_result
-                                << LL_ENDL;
-                            return false;
+                            LLVkGraphicsPipelineCreateInfo final_composite_pipeline_create_info = world_pipeline_create_info;
+                            final_composite_pipeline_create_info.pStages = final_composite_shader_stages;
+                            S32 final_composite_result = create_graphics_pipelines(
+                                context.mDevice,
+                                nullptr,
+                                1,
+                                &final_composite_pipeline_create_info,
+                                nullptr,
+                                &pipeline_set.mFinalCompositePipelines[world_pipeline_index]);
+                            if (final_composite_result != LL_VK_SUCCESS ||
+                                !pipeline_set.mFinalCompositePipelines[world_pipeline_index])
+                            {
+                                LL_WARNS("RenderBackend")
+                                    << "vkCreateGraphicsPipelines(offscreen final composite mode "
+                                    << i
+                                    << ", blend "
+                                    << blend_index
+                                    << ", depth "
+                                    << depth_index
+                                    << ", cull "
+                                    << cull_index
+                                    << ", color "
+                                    << color_index
+                                    << ") failed with result "
+                                    << final_composite_result
+                                    << LL_ENDL;
+                                return false;
+                            }
                         }
 
                         auto create_local_light_pipeline =
@@ -15423,7 +15632,7 @@ bool create_vulkan_offscreen_pipeline_set(
                             return true;
                         };
 
-                        if (static_cast<LLRenderPrimitiveType>(i) == LLRenderPrimitiveType::TriangleFan)
+                        if (create_local_light_volume_pipelines)
                         {
                             if (!create_local_light_pipeline(
                                     "point light",
@@ -15443,7 +15652,7 @@ bool create_vulkan_offscreen_pipeline_set(
                                 }
                             }
                         }
-                        else if (static_cast<LLRenderPrimitiveType>(i) == LLRenderPrimitiveType::Triangles)
+                        else if (create_local_light_fullscreen_pipelines)
                         {
                             if (!create_local_light_pipeline(
                                     "multi-point light",
@@ -17221,8 +17430,31 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
                             { 0.f, 0.f, 0.f, 0.f }
                         };
 
+                        const LLRenderPrimitiveType primitive =
+                            static_cast<LLRenderPrimitiveType>(i);
                         U32 world_pipeline_index =
                             to_vulkan_world_pipeline_index(i, blend_pipeline, depth_pipeline, cull_pipeline, color_pipeline);
+                        const bool create_fullscreen_deferred_pipelines =
+                            is_vulkan_fullscreen_deferred_pipeline_variant(
+                                primitive,
+                                blend_pipeline,
+                                depth_pipeline,
+                                cull_pipeline,
+                                color_pipeline);
+                        const bool create_local_light_volume_pipelines =
+                            is_vulkan_local_light_volume_pipeline_variant(
+                                primitive,
+                                blend_pipeline,
+                                depth_pipeline,
+                                cull_pipeline,
+                                color_pipeline);
+                        const bool create_local_light_fullscreen_pipelines =
+                            is_vulkan_local_light_fullscreen_pipeline_variant(
+                                primitive,
+                                blend_pipeline,
+                                depth_pipeline,
+                                cull_pipeline,
+                                color_pipeline);
                         LLVkGraphicsPipelineCreateInfo world_pipeline_create_info = ui_pipeline_create_info;
                         world_pipeline_create_info.pStages = world_shader_stages;
                         world_pipeline_create_info.pVertexInputState = &world_vertex_input;
@@ -17656,179 +17888,182 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
                                 return false;
                             }
 
-                            LLVkGraphicsPipelineCreateInfo deferred_light_map_pipeline_create_info = world_pipeline_create_info;
-                            deferred_light_map_pipeline_create_info.pStages = deferred_light_map_shader_stages;
-                            result = create_graphics_pipelines(
-                                context.mDevice,
-                                nullptr,
-                                1,
-                                &deferred_light_map_pipeline_create_info,
-                                nullptr,
-                                &context.mDeferredLightMapPipelines[world_pipeline_index]);
-                            if (result != LL_VK_SUCCESS || !context.mDeferredLightMapPipelines[world_pipeline_index])
+                            if (create_fullscreen_deferred_pipelines)
                             {
-                                LL_WARNS("RenderBackend")
-                                    << "vkCreateGraphicsPipelines(deferred lightMap mode "
-                                    << i
-                                    << ", blend "
-                                    << blend_index
-                                    << ", depth "
-                                    << depth_index
-                                    << ", cull "
-                                    << cull_index
-                                    << ", color "
-                                    << color_index
-                                    << ") failed with result "
-                                    << result
-                                    << LL_ENDL;
-                                destroy_vulkan_graphics_pipelines(context);
-                                return false;
+                                LLVkGraphicsPipelineCreateInfo deferred_light_map_pipeline_create_info = world_pipeline_create_info;
+                                deferred_light_map_pipeline_create_info.pStages = deferred_light_map_shader_stages;
+                                result = create_graphics_pipelines(
+                                    context.mDevice,
+                                    nullptr,
+                                    1,
+                                    &deferred_light_map_pipeline_create_info,
+                                    nullptr,
+                                    &context.mDeferredLightMapPipelines[world_pipeline_index]);
+                                if (result != LL_VK_SUCCESS || !context.mDeferredLightMapPipelines[world_pipeline_index])
+                                {
+                                    LL_WARNS("RenderBackend")
+                                        << "vkCreateGraphicsPipelines(deferred lightMap mode "
+                                        << i
+                                        << ", blend "
+                                        << blend_index
+                                        << ", depth "
+                                        << depth_index
+                                        << ", cull "
+                                        << cull_index
+                                        << ", color "
+                                        << color_index
+                                        << ") failed with result "
+                                        << result
+                                        << LL_ENDL;
+                                    destroy_vulkan_graphics_pipelines(context);
+                                    return false;
+                                }
+
+                                LLVkGraphicsPipelineCreateInfo deferred_blur_light_pipeline_create_info = world_pipeline_create_info;
+                                deferred_blur_light_pipeline_create_info.pStages = deferred_blur_light_shader_stages;
+                                result = create_graphics_pipelines(
+                                    context.mDevice,
+                                    nullptr,
+                                    1,
+                                    &deferred_blur_light_pipeline_create_info,
+                                    nullptr,
+                                    &context.mDeferredBlurLightPipelines[world_pipeline_index]);
+                                if (result != LL_VK_SUCCESS || !context.mDeferredBlurLightPipelines[world_pipeline_index])
+                                {
+                                    LL_WARNS("RenderBackend")
+                                        << "vkCreateGraphicsPipelines(deferred blur light mode "
+                                        << i
+                                        << ", blend "
+                                        << blend_index
+                                        << ", depth "
+                                        << depth_index
+                                        << ", cull "
+                                        << cull_index
+                                        << ", color "
+                                        << color_index
+                                        << ") failed with result "
+                                        << result
+                                        << LL_ENDL;
+                                    destroy_vulkan_graphics_pipelines(context);
+                                    return false;
+                                }
+
+                                LLVkGraphicsPipelineCreateInfo composite_pipeline_create_info = world_pipeline_create_info;
+                                composite_pipeline_create_info.pStages = deferred_composite_shader_stages;
+                                result = create_graphics_pipelines(
+                                    context.mDevice,
+                                    nullptr,
+                                    1,
+                                    &composite_pipeline_create_info,
+                                    nullptr,
+                                    &context.mDeferredCompositePipelines[world_pipeline_index]);
+                                if (result != LL_VK_SUCCESS || !context.mDeferredCompositePipelines[world_pipeline_index])
+                                {
+                                    LL_WARNS("RenderBackend")
+                                        << "vkCreateGraphicsPipelines(deferred composite mode "
+                                        << i
+                                        << ", blend "
+                                        << blend_index
+                                        << ", depth "
+                                        << depth_index
+                                        << ", cull "
+                                        << cull_index
+                                        << ", color "
+                                        << color_index
+                                        << ") failed with result "
+                                        << result
+                                        << LL_ENDL;
+                                    destroy_vulkan_graphics_pipelines(context);
+                                    return false;
+                                }
+
+                                LLVkGraphicsPipelineCreateInfo deferred_soften_pipeline_create_info = world_pipeline_create_info;
+                                deferred_soften_pipeline_create_info.pStages = deferred_soften_shader_stages;
+                                result = create_graphics_pipelines(
+                                    context.mDevice,
+                                    nullptr,
+                                    1,
+                                    &deferred_soften_pipeline_create_info,
+                                    nullptr,
+                                    &context.mDeferredSoftenPipelines[world_pipeline_index]);
+                                if (result != LL_VK_SUCCESS || !context.mDeferredSoftenPipelines[world_pipeline_index])
+                                {
+                                    LL_WARNS("RenderBackend")
+                                        << "vkCreateGraphicsPipelines(deferred soften mode "
+                                        << i
+                                        << ", blend "
+                                        << blend_index
+                                        << ", depth "
+                                        << depth_index
+                                        << ", cull "
+                                        << cull_index
+                                        << ", color "
+                                        << color_index
+                                        << ") failed with result "
+                                        << result
+                                        << LL_ENDL;
+                                    destroy_vulkan_graphics_pipelines(context);
+                                    return false;
+                                }
+
+                                LLVkGraphicsPipelineCreateInfo copy_pipeline_create_info = world_pipeline_create_info;
+                                copy_pipeline_create_info.pStages = copy_shader_stages;
+                                result = create_graphics_pipelines(
+                                    context.mDevice,
+                                    nullptr,
+                                    1,
+                                    &copy_pipeline_create_info,
+                                    nullptr,
+                                    &context.mCopyPipelines[world_pipeline_index]);
+                                if (result != LL_VK_SUCCESS || !context.mCopyPipelines[world_pipeline_index])
+                                {
+                                    LL_WARNS("RenderBackend")
+                                        << "vkCreateGraphicsPipelines(copy mode "
+                                        << i
+                                        << ", blend "
+                                        << blend_index
+                                        << ", depth "
+                                        << depth_index
+                                        << ", cull "
+                                        << cull_index
+                                        << ", color "
+                                        << color_index
+                                        << ") failed with result "
+                                        << result
+                                        << LL_ENDL;
+                                    destroy_vulkan_graphics_pipelines(context);
+                                    return false;
+                                }
+
+                                LLVkGraphicsPipelineCreateInfo final_composite_pipeline_create_info = world_pipeline_create_info;
+                                final_composite_pipeline_create_info.pStages = final_composite_shader_stages;
+                                result = create_graphics_pipelines(
+                                    context.mDevice,
+                                    nullptr,
+                                    1,
+                                    &final_composite_pipeline_create_info,
+                                    nullptr,
+                                    &context.mFinalCompositePipelines[world_pipeline_index]);
+                                if (result != LL_VK_SUCCESS || !context.mFinalCompositePipelines[world_pipeline_index])
+                                {
+                                    LL_WARNS("RenderBackend")
+                                        << "vkCreateGraphicsPipelines(final composite mode "
+                                        << i
+                                        << ", blend "
+                                        << blend_index
+                                        << ", depth "
+                                        << depth_index
+                                        << ", cull "
+                                        << cull_index
+                                        << ", color "
+                                        << color_index
+                                        << ") failed with result "
+                                        << result
+                                        << LL_ENDL;
+                                    destroy_vulkan_graphics_pipelines(context);
+                                    return false;
+                                }
                             }
-
-                            LLVkGraphicsPipelineCreateInfo deferred_blur_light_pipeline_create_info = world_pipeline_create_info;
-                            deferred_blur_light_pipeline_create_info.pStages = deferred_blur_light_shader_stages;
-                            result = create_graphics_pipelines(
-                                context.mDevice,
-                                nullptr,
-                                1,
-                                &deferred_blur_light_pipeline_create_info,
-                                nullptr,
-                                &context.mDeferredBlurLightPipelines[world_pipeline_index]);
-                            if (result != LL_VK_SUCCESS || !context.mDeferredBlurLightPipelines[world_pipeline_index])
-                            {
-                                LL_WARNS("RenderBackend")
-                                    << "vkCreateGraphicsPipelines(deferred blur light mode "
-                                    << i
-                                    << ", blend "
-                                    << blend_index
-                                    << ", depth "
-                                    << depth_index
-                                    << ", cull "
-                                    << cull_index
-                                    << ", color "
-                                    << color_index
-                                    << ") failed with result "
-                                    << result
-                                    << LL_ENDL;
-                                destroy_vulkan_graphics_pipelines(context);
-                                return false;
-                            }
-
-                            LLVkGraphicsPipelineCreateInfo composite_pipeline_create_info = world_pipeline_create_info;
-                            composite_pipeline_create_info.pStages = deferred_composite_shader_stages;
-                        result = create_graphics_pipelines(
-                            context.mDevice,
-                            nullptr,
-                            1,
-                            &composite_pipeline_create_info,
-                            nullptr,
-                            &context.mDeferredCompositePipelines[world_pipeline_index]);
-                        if (result != LL_VK_SUCCESS || !context.mDeferredCompositePipelines[world_pipeline_index])
-                        {
-                            LL_WARNS("RenderBackend")
-                                << "vkCreateGraphicsPipelines(deferred composite mode "
-                                << i
-                                << ", blend "
-                                << blend_index
-                                << ", depth "
-                                << depth_index
-                                << ", cull "
-                                << cull_index
-                                << ", color "
-                                << color_index
-                                << ") failed with result "
-                                << result
-                                << LL_ENDL;
-                            destroy_vulkan_graphics_pipelines(context);
-                            return false;
-                        }
-
-                        LLVkGraphicsPipelineCreateInfo deferred_soften_pipeline_create_info = world_pipeline_create_info;
-                        deferred_soften_pipeline_create_info.pStages = deferred_soften_shader_stages;
-                        result = create_graphics_pipelines(
-                            context.mDevice,
-                            nullptr,
-                            1,
-                            &deferred_soften_pipeline_create_info,
-                            nullptr,
-                            &context.mDeferredSoftenPipelines[world_pipeline_index]);
-                        if (result != LL_VK_SUCCESS || !context.mDeferredSoftenPipelines[world_pipeline_index])
-                        {
-                            LL_WARNS("RenderBackend")
-                                << "vkCreateGraphicsPipelines(deferred soften mode "
-                                << i
-                                << ", blend "
-                                << blend_index
-                                << ", depth "
-                                << depth_index
-                                << ", cull "
-                                << cull_index
-                                << ", color "
-                                << color_index
-                                << ") failed with result "
-                                << result
-                                << LL_ENDL;
-                            destroy_vulkan_graphics_pipelines(context);
-                            return false;
-                        }
-
-                        LLVkGraphicsPipelineCreateInfo copy_pipeline_create_info = world_pipeline_create_info;
-                        copy_pipeline_create_info.pStages = copy_shader_stages;
-                        result = create_graphics_pipelines(
-                            context.mDevice,
-                            nullptr,
-                            1,
-                            &copy_pipeline_create_info,
-                            nullptr,
-                            &context.mCopyPipelines[world_pipeline_index]);
-                        if (result != LL_VK_SUCCESS || !context.mCopyPipelines[world_pipeline_index])
-                        {
-                            LL_WARNS("RenderBackend")
-                                << "vkCreateGraphicsPipelines(copy mode "
-                                << i
-                                << ", blend "
-                                << blend_index
-                                << ", depth "
-                                << depth_index
-                                << ", cull "
-                                << cull_index
-                                << ", color "
-                                << color_index
-                                << ") failed with result "
-                                << result
-                                << LL_ENDL;
-                            destroy_vulkan_graphics_pipelines(context);
-                            return false;
-                        }
-
-                        LLVkGraphicsPipelineCreateInfo final_composite_pipeline_create_info = world_pipeline_create_info;
-                        final_composite_pipeline_create_info.pStages = final_composite_shader_stages;
-                        result = create_graphics_pipelines(
-                            context.mDevice,
-                            nullptr,
-                            1,
-                            &final_composite_pipeline_create_info,
-                            nullptr,
-                            &context.mFinalCompositePipelines[world_pipeline_index]);
-                        if (result != LL_VK_SUCCESS || !context.mFinalCompositePipelines[world_pipeline_index])
-                        {
-                            LL_WARNS("RenderBackend")
-                                << "vkCreateGraphicsPipelines(final composite mode "
-                                << i
-                                << ", blend "
-                                << blend_index
-                                << ", depth "
-                                << depth_index
-                                << ", cull "
-                                << cull_index
-                                << ", color "
-                                << color_index
-                                << ") failed with result "
-                                << result
-                                << LL_ENDL;
-                            destroy_vulkan_graphics_pipelines(context);
-                            return false;
-                        }
 
                         auto create_local_light_pipeline =
                             [&](const char* label,
@@ -17875,7 +18110,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
                             return true;
                         };
 
-                        if (static_cast<LLRenderPrimitiveType>(i) == LLRenderPrimitiveType::TriangleFan)
+                        if (create_local_light_volume_pipelines)
                         {
                             if (!create_local_light_pipeline(
                                     "point light",
@@ -17895,7 +18130,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
                                 }
                             }
                         }
-                        else if (static_cast<LLRenderPrimitiveType>(i) == LLRenderPrimitiveType::Triangles)
+                        else if (create_local_light_fullscreen_pipelines)
                         {
                             if (!create_local_light_pipeline(
                                     "multi-point light",
@@ -21071,7 +21306,8 @@ bool record_vulkan_frame_command_buffer(
                 continue;
             }
         }
-        else if (use_deferred_soften_pipeline)
+        else if (use_deferred_soften_pipeline ||
+                 draw.mWorldShaderClass == LLRenderWorldShaderClass::Haze)
         {
             const LLVulkanDeferredSoftenUniforms uniforms =
                 make_vulkan_deferred_soften_uniforms(draw);
@@ -21213,7 +21449,8 @@ bool record_vulkan_frame_command_buffer(
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredBlurLight ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
-                draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite)
+                draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite ||
+                draw.mWorldShaderClass == LLRenderWorldShaderClass::Haze)
             {
                 push_constants.mNormalMatrix =
                     glm::make_mat4(draw.mMaterialParameters.mCompositeInverseProjection);
@@ -21245,7 +21482,8 @@ bool record_vulkan_frame_command_buffer(
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredBlurLight ||
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite ||
-                    draw.mWorldShaderClass == LLRenderWorldShaderClass::FinalComposite;
+                    draw.mWorldShaderClass == LLRenderWorldShaderClass::FinalComposite ||
+                    draw.mWorldShaderClass == LLRenderWorldShaderClass::Haze;
                 push_constants.mTerrainParameters = glm::vec4(
                     draw.mMaterialParameters.mBaseColorRed,
                     draw.mMaterialParameters.mBaseColorGreen,
@@ -21322,7 +21560,8 @@ bool record_vulkan_frame_command_buffer(
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredBlurLight ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
-                draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite)
+                draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite ||
+                draw.mWorldShaderClass == LLRenderWorldShaderClass::Haze)
             {
                 push_constants.mSceneLightDirection = glm::vec4(
                     draw.mMaterialParameters.mSceneLightDirectionX,
@@ -22030,6 +22269,9 @@ bool record_vulkan_frame_command_buffer(
             command_buffer,
             final_composite_average_textures);
     }
+    schedule_vulkan_pending_debug_texture_readbacks(
+        context,
+        command_buffer);
     if (is_vulkan_smoke_test_enabled())
     {
         schedule_vulkan_swapchain_average_readback(
@@ -22038,7 +22280,8 @@ bool record_vulkan_frame_command_buffer(
             image_index,
             "smoke final swapchain");
     }
-    else if (get_vulkan_boolean_env("MARE_VULKAN_DEBUG_SWAPCHAIN_AVERAGE") &&
+    else if ((get_vulkan_boolean_env("MARE_VULKAN_DEBUG_SWAPCHAIN_AVERAGE") ||
+            get_vulkan_debug_swapchain_screenshot_path()) &&
         (deferred_composite_draw_count > 0 ||
             final_composite_draw_count > 0 ||
             world_default_draw_count > 0))
@@ -24341,6 +24584,11 @@ public:
         draw.mModelview = gGL.getModelviewMatrix();
         draw.mModelviewProjection = gGL.getProjectionMatrix() * draw.mModelview;
         draw.mUseWorldVertexShader = gCurrentVulkanWorldDrawEnabled;
+        if (draw.mUseWorldVertexShader)
+        {
+            draw.mModelviewProjection =
+                convert_opengl_clip_depth_to_vulkan(draw.mModelviewProjection);
+        }
         draw.mWorldBlendPipeline = to_vulkan_world_blend_pipeline();
         draw.mWorldDepthPipeline = to_vulkan_world_depth_pipeline();
         draw.mWorldCullPipeline = to_vulkan_world_cull_pipeline();
@@ -24352,13 +24600,11 @@ public:
         draw.mWorldDeferredShaderLevel = gCurrentVulkanWorldDeferredShaderLevel;
         if (is_vulkan_default_world_overlay_draw(draw))
         {
-            draw.mModelviewProjection =
-                convert_opengl_clip_depth_to_vulkan(draw.mModelviewProjection);
             static U32 sLoggedOverlayDepthConversion = 0;
             if (sLoggedOverlayDepthConversion < 8)
             {
                 LL_INFOS("RenderBackend")
-                    << "Vulkan converted OpenGL clip depth for default-framebuffer world overlay draw "
+                    << "Vulkan uses OpenGL clip-depth conversion for default-framebuffer world overlay draw "
                     << sLoggedOverlayDepthConversion
                     << ": shader "
                     << get_vulkan_world_shader_class_name(draw.mWorldShaderClass)
@@ -24711,6 +24957,28 @@ public:
     U32 getErrorCode() override
     {
         return hasError() ? 1 : 0;
+    }
+
+    bool scheduleDebugTexturePPMReadback(
+        LLRenderTextureHandle texture,
+        const char* path,
+        const char* label) override
+    {
+        if (!texture ||
+            !path ||
+            !path[0])
+        {
+            return false;
+        }
+
+        LLVulkanPendingDebugTextureReadback request;
+        request.mTextureHandle = texture.asLegacyName();
+        request.mTextureSlot = 0;
+        request.mLabel =
+            (label && label[0]) ? label : "debug texture readback";
+        request.mPPMPath = path;
+        gPendingVulkanDebugTextureReadbacks.push_back(request);
+        return true;
     }
 
     void getInteger(LLRenderIntegerParameter parameter, S32* value) override

@@ -39,6 +39,7 @@ indra/out/*
 /*.log
 ca*.sh
 
+captures/
 indra/packages/*
 /indra/build-vc[0-9]*
 build-vc*-64*/

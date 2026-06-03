@@ -41,6 +41,13 @@ bool has_material_flag(uint flag)
     return (uint(pc.material_pbr.z + 0.5) & flag) != 0u;
 }
 
+vec4 encode_normal(vec3 n, float env, float gbuffer_flag)
+{
+    n = normalize(n);
+    float f = sqrt(8.0 * n.z + 8.0);
+    return vec4(n.xy / f + 0.5, env, gbuffer_flag);
+}
+
 vec4 diffuse_lookup(vec2 texcoord)
 {
     if (pc.params.y < 0.5)
@@ -79,8 +86,6 @@ void main()
     {
         n = vec3(0.0, 0.0, 1.0);
     }
-    vec3 encoded_normal = n * 0.5 + 0.5;
-
     frag_diffuse = vec4(max(color.rgb, vec3(0.0)), pc.material_legacy.a);
     if (has_material_flag(MATERIAL_AVATAR_IMPOSTOR))
     {
@@ -91,6 +96,6 @@ void main()
     else
     {
         frag_specular = vec4(0.04, 0.04, 0.04, 0.0);
-        frag_normal = vec4(encoded_normal.xyz, GBUFFER_FLAG_HAS_ATMOS);
+        frag_normal = encode_normal(n, 0.0, GBUFFER_FLAG_HAS_ATMOS);
     }
 }

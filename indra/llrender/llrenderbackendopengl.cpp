@@ -1529,6 +1529,20 @@ public:
         }
     }
 
+    void setFramebufferReadColorAttachment(U32 attachment) override
+    {
+        const LLRenderFramebufferAttachment framebuffer_attachment =
+            attachment == 1 ?
+                LLRenderFramebufferAttachment::Color1 :
+                (attachment == 2 ?
+                    LLRenderFramebufferAttachment::Color2 :
+                    (attachment == 3 ?
+                        LLRenderFramebufferAttachment::Color3 :
+                        LLRenderFramebufferAttachment::Color0));
+        LLGLContainment::setReadBuffer(
+            to_opengl_framebuffer_attachment(framebuffer_attachment));
+    }
+
     void restoreDefaultFramebufferBufferRouting() override
     {
         LLGLContainment::setReadBuffer(GL_BACK);

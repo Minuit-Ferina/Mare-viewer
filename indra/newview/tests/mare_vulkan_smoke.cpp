@@ -12,6 +12,7 @@
 #include "../llworldrendercommand.h"
 
 #include "mare_vulkan_smoke_macosx.h"
+#include "mare_vulkan_test_support.h"
 
 #include <algorithm>
 #include <array>
@@ -24,6 +25,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <sstream>
 #include <string>
@@ -35,6 +37,10 @@
 
 namespace
 {
+using mare_vulkan_test::compare_rgb_ppm_files;
+using mare_vulkan_test::write_rgb_ppm_file;
+using mare_vulkan_test::write_rgba_readback_as_rgb_ppm;
+
 enum class SmokeMode
 {
     DirectClear,
@@ -71,7 +77,34 @@ enum class SmokeMode
     ViewerDeferredProjectorLightProbe,
     ViewerDeferredPointLightVolumeProbe,
     ViewerDeferredSpotLightVolumeProbe,
+    ViewerDeferredLightMapShadowProbe,
+    ViewerDeferredLightMapSSAOProbe,
     ViewerDeferredLightMapBlurProbe,
+    ViewerDeferredHazeProbe,
+    ViewerDeferredSoftenSkipAtmosProbe,
+    ViewerDeferredSoftenLegacyProbe,
+    ViewerDeferredSoftenLegacyEmissiveProbe,
+    ViewerDeferredSoftenPBREmissiveProbe,
+    ViewerDeferredSoftenPBRBRDFProbe,
+    ViewerDeferredSoftenPBRProbe,
+    ViewerDeferredSoftenPBRSSRProbe,
+    ViewerDeferredSoftenLegacySpecularProbe,
+    ViewerDeferredSoftenLegacyLightMapProbe,
+    ViewerDeferredSoftenLegacyEnvProbe,
+};
+
+enum class SmokeSoftenSourceReferenceCase
+{
+    SkipAtmos,
+    Legacy,
+    LegacyEmissive,
+    PbrEmissive,
+    PbrBrdf,
+    PbrProbe,
+    PbrSSR,
+    LegacySpecular,
+    LegacyLightMap,
+    LegacyEnv,
 };
 
 enum class SmokeViewerStagedStop
@@ -112,6 +145,9 @@ struct SmokeOptions
     bool mShaderCaseExplicit = false;
     std::string mCapturePath;
     std::string mScreenshotPPMPath;
+    std::string mComparePPMPath;
+    F64 mComparePPMMeanTolerance = 1.0;
+    U32 mComparePPMMaxTolerance = 4;
     std::string mReferencePPMPath;
     std::string mOpenGLReferencePPMPath;
     std::string mShaderCase = "textured";
@@ -324,9 +360,74 @@ bool parse_smoke_mode_value(const char* value, SmokeMode& mode)
         mode = SmokeMode::ViewerDeferredSpotLightVolumeProbe;
         return true;
     }
+    if (std::strcmp(value, "viewer-deferred-lightmap-shadow-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredLightMapShadowProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-lightmap-ssao-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredLightMapSSAOProbe;
+        return true;
+    }
     if (std::strcmp(value, "viewer-deferred-lightmap-blur-probe") == 0)
     {
         mode = SmokeMode::ViewerDeferredLightMapBlurProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-haze-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredHazeProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-soften-skip-atmos-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredSoftenSkipAtmosProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-soften-legacy-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredSoftenLegacyProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-soften-legacy-emissive-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredSoftenLegacyEmissiveProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-soften-pbr-emissive-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredSoftenPBREmissiveProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-soften-pbr-brdf-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredSoftenPBRBRDFProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-soften-pbr-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredSoftenPBRProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-soften-pbr-ssr-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredSoftenPBRSSRProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-soften-legacy-specular-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredSoftenLegacySpecularProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-soften-legacy-lightmap-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredSoftenLegacyLightMapProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-soften-legacy-env-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredSoftenLegacyEnvProbe;
         return true;
     }
     return false;
@@ -399,8 +500,34 @@ const char* get_smoke_mode_name(SmokeMode mode)
         return "viewer-deferred-point-light-volume-probe";
     case SmokeMode::ViewerDeferredSpotLightVolumeProbe:
         return "viewer-deferred-spot-light-volume-probe";
+    case SmokeMode::ViewerDeferredLightMapShadowProbe:
+        return "viewer-deferred-lightmap-shadow-probe";
+    case SmokeMode::ViewerDeferredLightMapSSAOProbe:
+        return "viewer-deferred-lightmap-ssao-probe";
     case SmokeMode::ViewerDeferredLightMapBlurProbe:
         return "viewer-deferred-lightmap-blur-probe";
+    case SmokeMode::ViewerDeferredHazeProbe:
+        return "viewer-deferred-haze-probe";
+    case SmokeMode::ViewerDeferredSoftenSkipAtmosProbe:
+        return "viewer-deferred-soften-skip-atmos-probe";
+    case SmokeMode::ViewerDeferredSoftenLegacyProbe:
+        return "viewer-deferred-soften-legacy-probe";
+    case SmokeMode::ViewerDeferredSoftenLegacyEmissiveProbe:
+        return "viewer-deferred-soften-legacy-emissive-probe";
+    case SmokeMode::ViewerDeferredSoftenPBREmissiveProbe:
+        return "viewer-deferred-soften-pbr-emissive-probe";
+    case SmokeMode::ViewerDeferredSoftenPBRBRDFProbe:
+        return "viewer-deferred-soften-pbr-brdf-probe";
+    case SmokeMode::ViewerDeferredSoftenPBRProbe:
+        return "viewer-deferred-soften-pbr-probe";
+    case SmokeMode::ViewerDeferredSoftenPBRSSRProbe:
+        return "viewer-deferred-soften-pbr-ssr-probe";
+    case SmokeMode::ViewerDeferredSoftenLegacySpecularProbe:
+        return "viewer-deferred-soften-legacy-specular-probe";
+    case SmokeMode::ViewerDeferredSoftenLegacyLightMapProbe:
+        return "viewer-deferred-soften-legacy-lightmap-probe";
+    case SmokeMode::ViewerDeferredSoftenLegacyEnvProbe:
+        return "viewer-deferred-soften-legacy-env-probe";
     case SmokeMode::DeferredGraph:
         return "deferred-graph";
     case SmokeMode::ViewerDeferredDirect:
@@ -541,8 +668,34 @@ const char* get_smoke_mode_description(SmokeMode mode)
         return " rendered through the viewer-style deferred graph with a separate additive PointLight cube-volume pass before final composite. ";
     case SmokeMode::ViewerDeferredSpotLightVolumeProbe:
         return " rendered through the viewer-style deferred graph with a separate additive SpotLight cube-volume projector pass before final composite. ";
+    case SmokeMode::ViewerDeferredLightMapShadowProbe:
+        return " rendered through the viewer-style deferred graph with the real DeferredLightMap shadow pass and synthetic OpenGL-comparable shadow-map inputs. ";
+    case SmokeMode::ViewerDeferredLightMapSSAOProbe:
+        return " rendered through the viewer-style deferred graph with the real DeferredLightMap SSAO pass and synthetic OpenGL-comparable depth/noise inputs. ";
     case SmokeMode::ViewerDeferredLightMapBlurProbe:
         return " rendered through the viewer-style deferred graph with two DeferredBlurLight lightMap ping-pong passes. ";
+    case SmokeMode::ViewerDeferredHazeProbe:
+        return " rendered through the viewer-style deferred graph with an offscreen Haze pass composed into the deferredLight target. ";
+    case SmokeMode::ViewerDeferredSoftenSkipAtmosProbe:
+        return " rendered through the real DeferredSoften shader with synthetic OpenGL-comparable SKIP_ATMOS G-buffer inputs. ";
+    case SmokeMode::ViewerDeferredSoftenLegacyProbe:
+        return " rendered through the real DeferredSoften shader with synthetic OpenGL-comparable legacy G-buffer inputs. ";
+    case SmokeMode::ViewerDeferredSoftenLegacyEmissiveProbe:
+        return " rendered through the real DeferredSoften shader with synthetic OpenGL-comparable legacy G-buffer inputs plus a nonzero emissive attachment. ";
+    case SmokeMode::ViewerDeferredSoftenPBREmissiveProbe:
+        return " rendered through the real DeferredSoften shader with synthetic OpenGL-comparable PBR G-buffer inputs plus a nonzero emissive attachment. ";
+    case SmokeMode::ViewerDeferredSoftenPBRBRDFProbe:
+        return " rendered through the real DeferredSoften shader with synthetic OpenGL-comparable PBR G-buffer inputs plus nonzero BRDF/punctual lighting. ";
+    case SmokeMode::ViewerDeferredSoftenPBRProbe:
+        return " rendered through the real DeferredSoften shader with synthetic OpenGL-comparable PBR G-buffer inputs plus real reflection-probe radiance/irradiance textures. ";
+    case SmokeMode::ViewerDeferredSoftenPBRSSRProbe:
+        return " rendered through the real DeferredSoften shader with synthetic OpenGL-comparable PBR G-buffer inputs plus real reflection-probe and sceneMap SSR textures. ";
+    case SmokeMode::ViewerDeferredSoftenLegacySpecularProbe:
+        return " rendered through the real DeferredSoften shader with synthetic OpenGL-comparable legacy G-buffer inputs plus nonzero specular alpha. ";
+    case SmokeMode::ViewerDeferredSoftenLegacyLightMapProbe:
+        return " rendered through the real DeferredSoften shader with synthetic OpenGL-comparable legacy G-buffer inputs plus non-neutral shadow and SSAO lightMap channels. ";
+    case SmokeMode::ViewerDeferredSoftenLegacyEnvProbe:
+        return " rendered through the real DeferredSoften shader with synthetic OpenGL-comparable legacy G-buffer inputs plus nonzero legacy environment intensity. ";
     case SmokeMode::DirectClear:
     default:
         return ". ";
@@ -582,7 +735,20 @@ bool smoke_mode_uses_scene(SmokeMode mode)
     case SmokeMode::ViewerDeferredProjectorLightProbe:
     case SmokeMode::ViewerDeferredPointLightVolumeProbe:
     case SmokeMode::ViewerDeferredSpotLightVolumeProbe:
+    case SmokeMode::ViewerDeferredLightMapShadowProbe:
+    case SmokeMode::ViewerDeferredLightMapSSAOProbe:
     case SmokeMode::ViewerDeferredLightMapBlurProbe:
+    case SmokeMode::ViewerDeferredHazeProbe:
+    case SmokeMode::ViewerDeferredSoftenSkipAtmosProbe:
+    case SmokeMode::ViewerDeferredSoftenLegacyProbe:
+    case SmokeMode::ViewerDeferredSoftenLegacyEmissiveProbe:
+    case SmokeMode::ViewerDeferredSoftenPBREmissiveProbe:
+    case SmokeMode::ViewerDeferredSoftenPBRBRDFProbe:
+    case SmokeMode::ViewerDeferredSoftenPBRProbe:
+    case SmokeMode::ViewerDeferredSoftenPBRSSRProbe:
+    case SmokeMode::ViewerDeferredSoftenLegacySpecularProbe:
+    case SmokeMode::ViewerDeferredSoftenLegacyLightMapProbe:
+    case SmokeMode::ViewerDeferredSoftenLegacyEnvProbe:
         return true;
     case SmokeMode::DirectClear:
     case SmokeMode::OffscreenCopy:
@@ -623,7 +789,20 @@ bool smoke_mode_replays_capture(SmokeMode mode)
     case SmokeMode::ViewerDeferredProjectorLightProbe:
     case SmokeMode::ViewerDeferredPointLightVolumeProbe:
     case SmokeMode::ViewerDeferredSpotLightVolumeProbe:
+    case SmokeMode::ViewerDeferredLightMapShadowProbe:
+    case SmokeMode::ViewerDeferredLightMapSSAOProbe:
     case SmokeMode::ViewerDeferredLightMapBlurProbe:
+    case SmokeMode::ViewerDeferredHazeProbe:
+    case SmokeMode::ViewerDeferredSoftenSkipAtmosProbe:
+    case SmokeMode::ViewerDeferredSoftenLegacyProbe:
+    case SmokeMode::ViewerDeferredSoftenLegacyEmissiveProbe:
+    case SmokeMode::ViewerDeferredSoftenPBREmissiveProbe:
+    case SmokeMode::ViewerDeferredSoftenPBRBRDFProbe:
+    case SmokeMode::ViewerDeferredSoftenPBRProbe:
+    case SmokeMode::ViewerDeferredSoftenPBRSSRProbe:
+    case SmokeMode::ViewerDeferredSoftenLegacySpecularProbe:
+    case SmokeMode::ViewerDeferredSoftenLegacyLightMapProbe:
+    case SmokeMode::ViewerDeferredSoftenLegacyEnvProbe:
     default:
         return false;
     }
@@ -666,7 +845,20 @@ void print_smoke_usage(const char* executable)
         << "                             viewer-deferred-projector-light-probe,\n"
         << "                             viewer-deferred-point-light-volume-probe,\n"
         << "                             viewer-deferred-spot-light-volume-probe,\n"
-        << "                             viewer-deferred-lightmap-blur-probe\n"
+        << "                             viewer-deferred-lightmap-shadow-probe,\n"
+        << "                             viewer-deferred-lightmap-ssao-probe,\n"
+        << "                             viewer-deferred-lightmap-blur-probe,\n"
+        << "                             viewer-deferred-haze-probe,\n"
+        << "                             viewer-deferred-soften-skip-atmos-probe,\n"
+        << "                             viewer-deferred-soften-legacy-probe,\n"
+        << "                             viewer-deferred-soften-legacy-emissive-probe,\n"
+        << "                             viewer-deferred-soften-pbr-emissive-probe,\n"
+        << "                             viewer-deferred-soften-pbr-brdf-probe,\n"
+        << "                             viewer-deferred-soften-pbr-probe,\n"
+        << "                             viewer-deferred-soften-pbr-ssr-probe,\n"
+        << "                             viewer-deferred-soften-legacy-specular-probe,\n"
+        << "                             viewer-deferred-soften-legacy-lightmap-probe,\n"
+        << "                             viewer-deferred-soften-legacy-env-probe\n"
         << "  --scene <name>             basic, post-overlays-stress, two-prims,\n"
         << "                             replay-capture\n"
         << "  --capture <path>           Capture file for --scene replay-capture\n"
@@ -677,6 +869,11 @@ void print_smoke_usage(const char* executable)
         << "  --frame-diff-summary-only  Compare frame diffs but print only final summaries\n"
         << "  --screenshot-ppm <path>    Write the first eligible final swapchain readback as PPM\n"
         << "  --screenshot-min-frame <n> First frame eligible for --screenshot-ppm\n"
+        << "  --compare-ppm <path>       Compare --screenshot-ppm output against a P6 RGB PPM reference\n"
+        << "  --compare-ppm-mean-tolerance <value>\n"
+        << "                             Mean channel tolerance for --compare-ppm, default 1.0\n"
+        << "  --compare-ppm-max-tolerance <value>\n"
+        << "                             Max channel tolerance for --compare-ppm, default 4\n"
         << "  --reference-ppm <path>     Write a CPU reference PPM for modes that support it\n"
         << "  --opengl-reference-ppm <path>\n"
         << "                             Write a real OpenGL reference PPM for supported shader cases\n"
@@ -716,6 +913,29 @@ bool parse_nonnegative_int(
     }
 
     output = static_cast<int>(parsed);
+    return true;
+}
+
+bool parse_nonnegative_double(
+    const char* value,
+    const char* option,
+    F64& output)
+{
+    if (!value || !*value)
+    {
+        std::cerr << option << " requires a value.\n";
+        return false;
+    }
+
+    char* end = nullptr;
+    const F64 parsed = std::strtod(value, &end);
+    if (*end != '\0' || parsed < 0.0 || !std::isfinite(parsed))
+    {
+        std::cerr << "Invalid " << option << " value '" << value << "'.\n";
+        return false;
+    }
+
+    output = parsed;
     return true;
 }
 
@@ -886,6 +1106,51 @@ bool parse_smoke_options(int argc, char** argv, SmokeOptions& options)
             {
                 return false;
             }
+            continue;
+        }
+
+        if (argument == "--compare-ppm" ||
+            (value = value_after_equals(argument, "--compare-ppm")) != nullptr)
+        {
+            if (!value)
+            {
+                value = require_value(i, "--compare-ppm");
+            }
+            if (!value)
+            {
+                return false;
+            }
+            options.mComparePPMPath = value;
+            continue;
+        }
+
+        if (argument == "--compare-ppm-mean-tolerance" ||
+            (value = value_after_equals(argument, "--compare-ppm-mean-tolerance")) != nullptr)
+        {
+            if (!value)
+            {
+                value = require_value(i, "--compare-ppm-mean-tolerance");
+            }
+            if (!parse_nonnegative_double(value, "--compare-ppm-mean-tolerance", options.mComparePPMMeanTolerance))
+            {
+                return false;
+            }
+            continue;
+        }
+
+        if (argument == "--compare-ppm-max-tolerance" ||
+            (value = value_after_equals(argument, "--compare-ppm-max-tolerance")) != nullptr)
+        {
+            int max_tolerance = 0;
+            if (!value)
+            {
+                value = require_value(i, "--compare-ppm-max-tolerance");
+            }
+            if (!parse_nonnegative_int(value, "--compare-ppm-max-tolerance", max_tolerance))
+            {
+                return false;
+            }
+            options.mComparePPMMaxTolerance = static_cast<U32>(max_tolerance);
             continue;
         }
 
@@ -1576,6 +1841,33 @@ struct SmokeSSRResources
     LLRenderTextureHandle mSceneDepth;
     U32 mWidth = 0;
     U32 mHeight = 0;
+    bool mSolidReferenceScene = false;
+};
+
+struct SmokeLightMapShadowResources
+{
+    std::array<LLRenderTextureHandle, 6> mShadowMaps;
+    LLRenderTextureHandle mSSAONormal;
+    LLRenderTextureHandle mSSAODepth;
+    LLRenderTextureHandle mSSAONoise;
+    U32 mWidth = 0;
+    U32 mHeight = 0;
+    U32 mSSAOWidth = 0;
+    U32 mSSAOHeight = 0;
+};
+
+struct SmokeSoftenSkipAtmosResources
+{
+    LLRenderTextureHandle mDiffuse;
+    LLRenderTextureHandle mSpecular;
+    LLRenderTextureHandle mNormal;
+    LLRenderTextureHandle mEmissive;
+    LLRenderTextureHandle mDepth;
+    LLRenderTextureHandle mLightMap;
+    SmokeSoftenSourceReferenceCase mReferenceCase =
+        SmokeSoftenSourceReferenceCase::SkipAtmos;
+    U32 mWidth = 0;
+    U32 mHeight = 0;
 };
 
 struct SmokeReflectionProbeData
@@ -1875,6 +2167,284 @@ bool create_smoke_texture(
     return true;
 }
 
+bool create_smoke_depth_compare_texture(
+    LLRenderBackend& backend,
+    LLRenderTextureHandle& texture,
+    U32 width,
+    U32 height,
+    F32 depth)
+{
+    texture = backend.createTextureHandle();
+    if (!texture)
+    {
+        return false;
+    }
+
+    std::vector<F32> pixels(
+        static_cast<size_t>(width) * static_cast<size_t>(height),
+        llclamp(depth, 0.f, 1.f));
+
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, texture);
+    backend.setTextureImage2D(
+        LLRenderTextureTarget::Texture2D,
+        0,
+        LLRenderTextureFormat::DepthComponent,
+        static_cast<S32>(width),
+        static_cast<S32>(height),
+        0,
+        LLRenderPixelFormat::DepthComponent,
+        LLRenderPixelType::Float32,
+        pixels.data());
+    if (!backend.didLastTextureUploadSucceed())
+    {
+        backend.deleteTextureHandle(texture);
+        texture = {};
+        return false;
+    }
+
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Nearest,
+        LLRenderTextureFilter::Nearest);
+    backend.setTextureAddressMode(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureAddressMode::ClampToEdge);
+    backend.setTextureCompareMode(LLRenderTextureTarget::Texture2D, true);
+    return true;
+}
+
+std::vector<U8> make_smoke_shadow_rgba_pixels(
+    U32 width,
+    U32 height,
+    F32 depth)
+{
+    const U8 value = static_cast<U8>(to_color_byte(depth));
+    return make_solid_rgba_pixels(width, height, value, value, value, 255);
+}
+
+std::vector<U8> make_smoke_ssao_depth_pixels(
+    U32 width,
+    U32 height)
+{
+    std::vector<U8> pixels;
+    pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
+    for (U32 y = 0; y < height; ++y)
+    {
+        for (U32 x = 0; x < width; ++x)
+        {
+            const bool ridge =
+                ((x / 4U) + (y / 4U)) % 2U == 0U;
+            const F32 gradient =
+                static_cast<F32>(x) / static_cast<F32>(llmax(1U, width - 1U));
+            const F32 depth =
+                ridge ? 0.36f + 0.04f * gradient : 0.22f + 0.03f * gradient;
+            const U8 value = static_cast<U8>(to_color_byte(depth));
+            const size_t offset =
+                (static_cast<size_t>(y) * static_cast<size_t>(width) +
+                    static_cast<size_t>(x)) * 4U;
+            pixels[offset + 0] = value;
+            pixels[offset + 1] = value;
+            pixels[offset + 2] = value;
+            pixels[offset + 3] = 255;
+        }
+    }
+    return pixels;
+}
+
+std::vector<U8> make_smoke_ssao_noise_pixels(
+    U32 width,
+    U32 height)
+{
+    std::vector<U8> pixels;
+    pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
+    for (U32 y = 0; y < height; ++y)
+    {
+        for (U32 x = 0; x < width; ++x)
+        {
+            const U8 red =
+                static_cast<U8>((x * 53U + y * 17U + 64U) % 256U);
+            const U8 green =
+                static_cast<U8>((x * 11U + y * 71U + 192U) % 256U);
+            const size_t offset =
+                (static_cast<size_t>(y) * static_cast<size_t>(width) +
+                    static_cast<size_t>(x)) * 4U;
+            pixels[offset + 0] = red;
+            pixels[offset + 1] = green;
+            pixels[offset + 2] = 0;
+            pixels[offset + 3] = 255;
+        }
+    }
+    return pixels;
+}
+
+void release_smoke_lightmap_shadow_resources(
+    LLRenderBackend& backend,
+    SmokeLightMapShadowResources& resources)
+{
+    for (LLRenderTextureHandle& texture : resources.mShadowMaps)
+    {
+        if (texture)
+        {
+            backend.deleteTextureHandle(texture);
+            texture = {};
+        }
+    }
+    LLRenderTextureHandle* extra_textures[] =
+    {
+        &resources.mSSAONormal,
+        &resources.mSSAODepth,
+        &resources.mSSAONoise,
+    };
+    for (LLRenderTextureHandle* texture : extra_textures)
+    {
+        if (*texture)
+        {
+            backend.deleteTextureHandle(*texture);
+            *texture = {};
+        }
+    }
+    resources.mWidth = 0;
+    resources.mHeight = 0;
+    resources.mSSAOWidth = 0;
+    resources.mSSAOHeight = 0;
+}
+
+bool ensure_smoke_lightmap_shadow_resources(
+    LLRenderBackend& backend,
+    SmokeLightMapShadowResources& resources,
+    U32 width,
+    U32 height)
+{
+    const bool complete =
+        std::all_of(
+            resources.mShadowMaps.begin(),
+            resources.mShadowMaps.end(),
+            [](const LLRenderTextureHandle& texture)
+            {
+                return static_cast<bool>(texture);
+            });
+    if (complete &&
+        resources.mWidth == width &&
+        resources.mHeight == height)
+    {
+        return true;
+    }
+
+    release_smoke_lightmap_shadow_resources(backend, resources);
+    resources.mWidth = width;
+    resources.mHeight = height;
+
+    for (U32 i = 0; i < resources.mShadowMaps.size(); ++i)
+    {
+        const F32 depth =
+            i == 4 ? 0.75f : 0.25f;
+        if (!create_smoke_texture(
+                backend,
+                resources.mShadowMaps[i],
+                width,
+                height,
+                make_smoke_shadow_rgba_pixels(width, height, depth)))
+        {
+            release_smoke_lightmap_shadow_resources(backend, resources);
+            return false;
+        }
+        backend.setActiveTextureUnit(0);
+        backend.bindTexture(
+            LLRenderTextureTarget::Texture2D,
+            resources.mShadowMaps[i]);
+        backend.setTextureFilter(
+            LLRenderTextureTarget::Texture2D,
+            LLRenderTextureFilter::Nearest,
+            LLRenderTextureFilter::Nearest);
+    }
+    return true;
+}
+
+bool ensure_smoke_lightmap_ssao_resources(
+    LLRenderBackend& backend,
+    SmokeLightMapShadowResources& resources,
+    U32 width,
+    U32 height)
+{
+    if (resources.mSSAONormal &&
+        resources.mSSAODepth &&
+        resources.mSSAONoise &&
+        resources.mSSAOWidth == width &&
+        resources.mSSAOHeight == height &&
+        ensure_smoke_lightmap_shadow_resources(backend, resources, 4, 4))
+    {
+        return true;
+    }
+
+    if (!ensure_smoke_lightmap_shadow_resources(backend, resources, 4, 4))
+    {
+        return false;
+    }
+
+    if (resources.mSSAONormal)
+    {
+        backend.deleteTextureHandle(resources.mSSAONormal);
+        resources.mSSAONormal = {};
+    }
+    if (resources.mSSAODepth)
+    {
+        backend.deleteTextureHandle(resources.mSSAODepth);
+        resources.mSSAODepth = {};
+    }
+    if (resources.mSSAONoise)
+    {
+        backend.deleteTextureHandle(resources.mSSAONoise);
+        resources.mSSAONoise = {};
+    }
+
+    if (!create_smoke_texture(
+            backend,
+            resources.mSSAONormal,
+            width,
+            height,
+            make_solid_rgba_pixels(width, height, 128, 128, 255, 0)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mSSAODepth,
+            width,
+            height,
+            make_smoke_ssao_depth_pixels(width, height)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mSSAONoise,
+            16,
+            16,
+            make_smoke_ssao_noise_pixels(16, 16)))
+    {
+        release_smoke_lightmap_shadow_resources(backend, resources);
+        return false;
+    }
+    resources.mSSAOWidth = width;
+    resources.mSSAOHeight = height;
+
+    const LLRenderTextureHandle textures[] =
+    {
+        resources.mSSAONormal,
+        resources.mSSAODepth,
+        resources.mSSAONoise,
+    };
+    for (LLRenderTextureHandle texture : textures)
+    {
+        backend.setActiveTextureUnit(0);
+        backend.bindTexture(LLRenderTextureTarget::Texture2D, texture);
+        backend.setTextureFilter(
+            LLRenderTextureTarget::Texture2D,
+            LLRenderTextureFilter::Nearest,
+            LLRenderTextureFilter::Nearest);
+        backend.setTextureAddressMode(
+            LLRenderTextureTarget::Texture2D,
+            LLRenderTextureAddressMode::ClampToEdge);
+    }
+    backend.setActiveTextureUnit(0);
+    return true;
+}
+
 void release_smoke_ssr_resources(
     LLRenderBackend& backend,
     SmokeSSRResources& resources)
@@ -1891,10 +2461,19 @@ void release_smoke_ssr_resources(
     }
     resources.mWidth = 0;
     resources.mHeight = 0;
+    resources.mSolidReferenceScene = false;
 }
 
-std::vector<U8> make_smoke_ssr_scene_color_pixels(U32 width, U32 height)
+std::vector<U8> make_smoke_ssr_scene_color_pixels(
+    U32 width,
+    U32 height,
+    bool solid_reference_scene = false)
 {
+    if (solid_reference_scene)
+    {
+        return make_solid_rgba_pixels(width, height, 210, 64, 22, 255);
+    }
+
     std::vector<U8> pixels;
     pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
     for (U32 y = 0; y < height; ++y)
@@ -1920,12 +2499,14 @@ bool ensure_smoke_ssr_resources(
     LLRenderBackend& backend,
     SmokeSSRResources& resources,
     U32 width,
-    U32 height)
+    U32 height,
+    bool solid_reference_scene = false)
 {
     if (resources.mSceneColor &&
         resources.mSceneDepth &&
         resources.mWidth == width &&
-        resources.mHeight == height)
+        resources.mHeight == height &&
+        resources.mSolidReferenceScene == solid_reference_scene)
     {
         return true;
     }
@@ -1933,19 +2514,25 @@ bool ensure_smoke_ssr_resources(
     release_smoke_ssr_resources(backend, resources);
     resources.mWidth = width;
     resources.mHeight = height;
+    resources.mSolidReferenceScene = solid_reference_scene;
 
     if (!create_smoke_texture(
             backend,
             resources.mSceneColor,
             width,
             height,
-            make_smoke_ssr_scene_color_pixels(width, height)) ||
+            make_smoke_ssr_scene_color_pixels(
+                width,
+                height,
+                solid_reference_scene)) ||
         !create_smoke_texture(
             backend,
             resources.mSceneDepth,
             width,
             height,
-            make_solid_rgba_pixels(width, height, 13, 13, 13, 255)))
+            solid_reference_scene ?
+                make_solid_rgba_pixels(width, height, 0, 0, 0, 255) :
+                make_solid_rgba_pixels(width, height, 13, 13, 13, 255)))
     {
         release_smoke_ssr_resources(backend, resources);
         return false;
@@ -2313,6 +2900,32 @@ LLRenderWorldMaterialParameters make_world_pipeline_material(
     parameters.mSceneLightDirectionY = 0.45f;
     parameters.mSceneLightDirectionZ = 0.82f;
     parameters.mSceneLightDirectionValid = 1.f;
+    if ((flags & (LLRenderWorldMaterialParameters::AtmosphericHaze |
+                  LLRenderWorldMaterialParameters::WaterHaze)) != 0)
+    {
+        parameters.mCompositeClipPlane[0] = 0.f;
+        parameters.mCompositeClipPlane[1] = 0.f;
+        parameters.mCompositeClipPlane[2] = 1.f;
+        parameters.mCompositeClipPlane[3] = 1.f;
+        parameters.mCompositeSunDirection[0] = 0.35f;
+        parameters.mCompositeSunDirection[1] = 0.45f;
+        parameters.mCompositeSunDirection[2] = 0.82f;
+        parameters.mCompositeSunDirection[3] = 1.f;
+        parameters.mCompositeMoonDirection[0] = -0.25f;
+        parameters.mCompositeMoonDirection[1] = -0.15f;
+        parameters.mCompositeMoonDirection[2] = 0.95f;
+        parameters.mCompositeMoonDirection[3] = 0.f;
+        parameters.mCompositeSkySettings[0] = 0.f;
+        parameters.mCompositeSkySettings[1] = 1.f;
+        for (U32 i = 0; i < 16; ++i)
+        {
+            parameters.mCompositeInverseProjection[i] = 0.f;
+        }
+        parameters.mCompositeInverseProjection[0] = 24.f;
+        parameters.mCompositeInverseProjection[5] = 14.f;
+        parameters.mCompositeInverseProjection[14] = -64.f;
+        parameters.mCompositeInverseProjection[15] = 1.f;
+    }
     return parameters;
 }
 
@@ -2583,10 +3196,10 @@ std::array<SmokeShaderParityEntry, 15> make_shader_parity_entries()
             "class2/deferred/softenLightV.glsl",
             "class3/deferred/hazeF.glsl",
             "runtime haze owner: MareWorldPushConstants plus synthetic depth/color probe inputs",
-            "pending haze ABI: class2 soften-light varyings and class3 haze atmospheric/depth uniforms must be mapped exactly",
+            "pending haze ABI: viewer-style depth, normal, water-exclusion, and framebuffer/sRGB inputs must be mapped exactly",
             "OpenGL haze pass: fullscreen deferred pass using depth, color, water plane, and atmosphere uniforms",
-            "runtime owner is no longer active/haze.frag; shader-probe is visible with controlled depth/color inputs, but differs strongly from the OpenGL source-level reference",
-            "replace runtime haze approximation with the final class3 haze shader path and match depth/atmospheric inputs"
+            "runtime owner is no longer active/haze.frag; shader-probe is visible and source-compares within a uniform 1-2 RGB8 direct-to-swapchain delta",
+            "replace runtime haze approximation with the final class3 haze shader path after a viewer-style Haze probe exists"
         },
         {
             "Alpha",
@@ -4837,6 +5450,429 @@ void bind_deferred_graph_gbuffer_textures(
     backend.setActiveTextureUnit(0);
 }
 
+const char* get_soften_source_reference_label(
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    switch (reference_case)
+    {
+    case SmokeSoftenSourceReferenceCase::LegacyEnv:
+        return "legacy-env";
+    case SmokeSoftenSourceReferenceCase::LegacyLightMap:
+        return "legacy-lightmap";
+    case SmokeSoftenSourceReferenceCase::PbrBrdf:
+        return "pbr-brdf";
+    case SmokeSoftenSourceReferenceCase::PbrProbe:
+        return "pbr-probe";
+    case SmokeSoftenSourceReferenceCase::PbrSSR:
+        return "pbr-ssr";
+    case SmokeSoftenSourceReferenceCase::PbrEmissive:
+        return "pbr-emissive";
+    case SmokeSoftenSourceReferenceCase::LegacySpecular:
+        return "legacy-specular";
+    case SmokeSoftenSourceReferenceCase::LegacyEmissive:
+        return "legacy-emissive";
+    case SmokeSoftenSourceReferenceCase::Legacy:
+        return "legacy";
+    case SmokeSoftenSourceReferenceCase::SkipAtmos:
+    default:
+        return "SKIP_ATMOS";
+    }
+}
+
+bool is_soften_legacy_reference_case(
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    return
+        reference_case == SmokeSoftenSourceReferenceCase::Legacy ||
+        reference_case == SmokeSoftenSourceReferenceCase::LegacyEmissive ||
+        reference_case == SmokeSoftenSourceReferenceCase::LegacySpecular ||
+        reference_case == SmokeSoftenSourceReferenceCase::LegacyLightMap ||
+        reference_case == SmokeSoftenSourceReferenceCase::LegacyEnv;
+}
+
+bool is_soften_pbr_reference_case(
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    return
+        reference_case == SmokeSoftenSourceReferenceCase::PbrEmissive ||
+        reference_case == SmokeSoftenSourceReferenceCase::PbrBrdf ||
+        reference_case == SmokeSoftenSourceReferenceCase::PbrProbe ||
+        reference_case == SmokeSoftenSourceReferenceCase::PbrSSR;
+}
+
+bool is_soften_gbuffer_reference_case(
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    return
+        is_soften_legacy_reference_case(reference_case) ||
+        is_soften_pbr_reference_case(reference_case);
+}
+
+std::vector<U8> make_soften_reference_diffuse_pixels(
+    U32 width,
+    U32 height,
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    if (is_soften_pbr_reference_case(reference_case))
+    {
+        if (reference_case == SmokeSoftenSourceReferenceCase::PbrBrdf)
+        {
+            return make_solid_rgba_pixels(width, height, 184, 96, 42, 255);
+        }
+        if (reference_case == SmokeSoftenSourceReferenceCase::PbrProbe)
+        {
+            return make_solid_rgba_pixels(width, height, 184, 96, 42, 255);
+        }
+        if (reference_case == SmokeSoftenSourceReferenceCase::PbrSSR)
+        {
+            return make_solid_rgba_pixels(width, height, 184, 96, 42, 255);
+        }
+        return make_solid_rgba_pixels(width, height, 0, 0, 0, 0);
+    }
+    if (reference_case == SmokeSoftenSourceReferenceCase::LegacySpecular)
+    {
+        return make_solid_rgba_pixels(width, height, 0, 0, 0, 0);
+    }
+    if (reference_case == SmokeSoftenSourceReferenceCase::LegacyEnv)
+    {
+        return make_solid_rgba_pixels(width, height, 128, 82, 46, 128);
+    }
+    if (is_soften_legacy_reference_case(reference_case))
+    {
+        return make_solid_rgba_pixels(width, height, 128, 82, 46, 0);
+    }
+    return make_solid_rgba_pixels(width, height, 0, 0, 0, 255);
+}
+
+std::vector<U8> make_soften_reference_specular_pixels(
+    U32 width,
+    U32 height,
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    if (is_soften_pbr_reference_case(reference_case))
+    {
+        if (reference_case == SmokeSoftenSourceReferenceCase::PbrBrdf)
+        {
+            return make_solid_rgba_pixels(width, height, 255, 96, 128, 255);
+        }
+        if (reference_case == SmokeSoftenSourceReferenceCase::PbrProbe)
+        {
+            return make_solid_rgba_pixels(width, height, 255, 64, 128, 255);
+        }
+        if (reference_case == SmokeSoftenSourceReferenceCase::PbrSSR)
+        {
+            return make_solid_rgba_pixels(width, height, 255, 0, 128, 255);
+        }
+        return make_solid_rgba_pixels(width, height, 255, 255, 0, 255);
+    }
+    if (reference_case == SmokeSoftenSourceReferenceCase::LegacySpecular)
+    {
+        return make_solid_rgba_pixels(width, height, 190, 128, 84, 128);
+    }
+    const U8 alpha =
+        is_soften_legacy_reference_case(reference_case) ? 0 : 255;
+    return make_solid_rgba_pixels(width, height, 0, 0, 0, alpha);
+}
+
+std::vector<U8> make_soften_reference_normal_pixels(
+    U32 width,
+    U32 height,
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    // RGB encodes a forward-facing normal. Alpha carries the G-buffer family.
+    if (is_soften_pbr_reference_case(reference_case))
+    {
+        return make_solid_rgba_pixels(width, height, 128, 128, 255, 171);
+    }
+    if (is_soften_legacy_reference_case(reference_case))
+    {
+        return make_solid_rgba_pixels(width, height, 128, 128, 255, 87);
+    }
+    return make_solid_rgba_pixels(width, height, 128, 128, 255, 0);
+}
+
+std::vector<U8> make_soften_reference_emissive_pixels(
+    U32 width,
+    U32 height,
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    if (reference_case == SmokeSoftenSourceReferenceCase::PbrEmissive)
+    {
+        return make_solid_rgba_pixels(width, height, 72, 190, 106, 255);
+    }
+    if (reference_case == SmokeSoftenSourceReferenceCase::PbrBrdf)
+    {
+        return make_solid_rgba_pixels(width, height, 0, 0, 0, 255);
+    }
+    if (reference_case == SmokeSoftenSourceReferenceCase::PbrProbe)
+    {
+        return make_solid_rgba_pixels(width, height, 0, 0, 0, 255);
+    }
+    if (reference_case == SmokeSoftenSourceReferenceCase::PbrSSR)
+    {
+        return make_solid_rgba_pixels(width, height, 0, 0, 0, 255);
+    }
+    if (reference_case == SmokeSoftenSourceReferenceCase::LegacyEmissive)
+    {
+        return make_solid_rgba_pixels(width, height, 210, 72, 32, 255);
+    }
+    if (reference_case == SmokeSoftenSourceReferenceCase::Legacy)
+    {
+        return make_solid_rgba_pixels(width, height, 0, 0, 0, 255);
+    }
+    return make_solid_rgba_pixels(width, height, 64, 128, 230, 255);
+}
+
+std::vector<U8> make_soften_reference_lightmap_pixels(
+    U32 width,
+    U32 height,
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    if (reference_case == SmokeSoftenSourceReferenceCase::LegacyLightMap)
+    {
+        return make_solid_rgba_pixels(width, height, 92, 119, 0, 255);
+    }
+    return make_solid_rgba_pixels(width, height, 255, 255, 255, 255);
+}
+
+std::vector<U8> make_soften_reference_depth_pixels(
+    U32 width,
+    U32 height,
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    if (reference_case == SmokeSoftenSourceReferenceCase::LegacySpecular)
+    {
+        return make_solid_rgba_pixels(width, height, 0, 0, 0, 255);
+    }
+    if (reference_case == SmokeSoftenSourceReferenceCase::PbrSSR)
+    {
+        return make_solid_rgba_pixels(width, height, 0, 0, 0, 255);
+    }
+    return make_solid_rgba_pixels(width, height, 128, 128, 128, 255);
+}
+
+std::vector<U8> make_soften_skip_atmos_diffuse_pixels(U32 width, U32 height)
+{
+    return make_soften_reference_diffuse_pixels(
+        width,
+        height,
+        SmokeSoftenSourceReferenceCase::SkipAtmos);
+}
+
+std::vector<U8> make_soften_skip_atmos_specular_pixels(U32 width, U32 height)
+{
+    return make_soften_reference_specular_pixels(
+        width,
+        height,
+        SmokeSoftenSourceReferenceCase::SkipAtmos);
+}
+
+std::vector<U8> make_soften_skip_atmos_normal_pixels(U32 width, U32 height)
+{
+    return make_soften_reference_normal_pixels(
+        width,
+        height,
+        SmokeSoftenSourceReferenceCase::SkipAtmos);
+}
+
+std::vector<U8> make_soften_skip_atmos_emissive_pixels(U32 width, U32 height)
+{
+    return make_soften_reference_emissive_pixels(
+        width,
+        height,
+        SmokeSoftenSourceReferenceCase::SkipAtmos);
+}
+
+void release_smoke_soften_skip_atmos_resources(
+    LLRenderBackend& backend,
+    SmokeSoftenSkipAtmosResources& resources)
+{
+    LLRenderTextureHandle* textures[] =
+    {
+        &resources.mDiffuse,
+        &resources.mSpecular,
+        &resources.mNormal,
+        &resources.mEmissive,
+        &resources.mDepth,
+        &resources.mLightMap,
+    };
+    for (LLRenderTextureHandle* texture : textures)
+    {
+        if (*texture)
+        {
+            backend.deleteTextureHandle(*texture);
+            *texture = {};
+        }
+    }
+    resources.mWidth = 0;
+    resources.mHeight = 0;
+    resources.mReferenceCase = SmokeSoftenSourceReferenceCase::SkipAtmos;
+}
+
+bool ensure_smoke_soften_skip_atmos_resources(
+    LLRenderBackend& backend,
+    SmokeSoftenSkipAtmosResources& resources,
+    U32 width,
+    U32 height)
+{
+    if (resources.mDiffuse &&
+        resources.mSpecular &&
+        resources.mNormal &&
+        resources.mEmissive &&
+        resources.mDepth &&
+        resources.mLightMap &&
+        resources.mReferenceCase == SmokeSoftenSourceReferenceCase::SkipAtmos &&
+        resources.mWidth == width &&
+        resources.mHeight == height)
+    {
+        return true;
+    }
+
+    release_smoke_soften_skip_atmos_resources(backend, resources);
+    resources.mWidth = width;
+    resources.mHeight = height;
+    resources.mReferenceCase = SmokeSoftenSourceReferenceCase::SkipAtmos;
+
+    if (!create_smoke_texture(
+            backend,
+            resources.mDiffuse,
+            width,
+            height,
+            make_soften_skip_atmos_diffuse_pixels(width, height)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mSpecular,
+            width,
+            height,
+            make_soften_skip_atmos_specular_pixels(width, height)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mNormal,
+            width,
+            height,
+            make_soften_skip_atmos_normal_pixels(width, height)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mEmissive,
+            width,
+            height,
+            make_soften_skip_atmos_emissive_pixels(width, height)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mDepth,
+            width,
+            height,
+            make_solid_rgba_pixels(width, height, 128, 128, 128, 255)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mLightMap,
+            width,
+            height,
+            make_soften_reference_lightmap_pixels(
+                width,
+                height,
+                SmokeSoftenSourceReferenceCase::SkipAtmos)))
+    {
+        release_smoke_soften_skip_atmos_resources(backend, resources);
+        return false;
+    }
+
+    return true;
+}
+
+bool ensure_smoke_soften_reference_resources(
+    LLRenderBackend& backend,
+    SmokeSoftenSkipAtmosResources& resources,
+    U32 width,
+    U32 height,
+    SmokeSoftenSourceReferenceCase reference_case =
+        SmokeSoftenSourceReferenceCase::Legacy)
+{
+    if (!is_soften_gbuffer_reference_case(reference_case))
+    {
+        return false;
+    }
+
+    if (resources.mDiffuse &&
+        resources.mSpecular &&
+        resources.mNormal &&
+        resources.mEmissive &&
+        resources.mDepth &&
+        resources.mLightMap &&
+        resources.mReferenceCase == reference_case &&
+        resources.mWidth == width &&
+        resources.mHeight == height)
+    {
+        return true;
+    }
+
+    release_smoke_soften_skip_atmos_resources(backend, resources);
+    resources.mWidth = width;
+    resources.mHeight = height;
+    resources.mReferenceCase = reference_case;
+
+    if (!create_smoke_texture(
+            backend,
+            resources.mDiffuse,
+            width,
+            height,
+            make_soften_reference_diffuse_pixels(
+                width,
+                height,
+                reference_case)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mSpecular,
+            width,
+            height,
+            make_soften_reference_specular_pixels(
+                width,
+                height,
+                reference_case)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mNormal,
+            width,
+            height,
+            make_soften_reference_normal_pixels(
+                width,
+                height,
+                reference_case)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mEmissive,
+            width,
+            height,
+            make_soften_reference_emissive_pixels(
+                width,
+                height,
+                reference_case)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mDepth,
+            width,
+            height,
+            make_soften_reference_depth_pixels(
+                width,
+                height,
+                reference_case)) ||
+        !create_smoke_texture(
+            backend,
+            resources.mLightMap,
+            width,
+            height,
+            make_soften_reference_lightmap_pixels(
+                width,
+                height,
+                reference_case)))
+    {
+        release_smoke_soften_skip_atmos_resources(backend, resources);
+        return false;
+    }
+
+    return true;
+}
+
 void bind_deferred_graph_final_textures(
     LLRenderBackend& backend,
     const SmokeDeferredGraph& graph)
@@ -5121,6 +6157,162 @@ void log_deferred_soften_state_probe_reference()
     logged_reference = true;
 }
 
+void log_deferred_soften_skip_atmos_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-soften-skip-atmos-probe: seeding "
+        << "viewer-format G-buffer textures directly with a SKIP_ATMOS normal "
+        << "flag, a non-far depth value, and an emissive sky color. The probe "
+        << "runs the live DeferredSoften shader and copies its output directly "
+        << "to the swapchain for comparison against the OpenGL softenLightF "
+        << "source-reference path."
+        << std::endl;
+    logged_reference = true;
+}
+
+void log_deferred_soften_legacy_probe_reference(
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    static bool logged_legacy_reference = false;
+    static bool logged_legacy_emissive_reference = false;
+    static bool logged_legacy_specular_reference = false;
+    static bool logged_legacy_lightmap_reference = false;
+    static bool logged_legacy_env_reference = false;
+    bool& logged_reference =
+        reference_case == SmokeSoftenSourceReferenceCase::LegacyEnv ?
+            logged_legacy_env_reference :
+            (reference_case == SmokeSoftenSourceReferenceCase::LegacyLightMap ?
+            logged_legacy_lightmap_reference :
+            (reference_case == SmokeSoftenSourceReferenceCase::LegacySpecular ?
+            logged_legacy_specular_reference :
+            (reference_case == SmokeSoftenSourceReferenceCase::LegacyEmissive ?
+                logged_legacy_emissive_reference :
+                logged_legacy_reference)));
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan "
+        << (reference_case == SmokeSoftenSourceReferenceCase::LegacyEnv ?
+            "viewer-deferred-soften-legacy-env-probe" :
+            (reference_case == SmokeSoftenSourceReferenceCase::LegacyLightMap ?
+            "viewer-deferred-soften-legacy-lightmap-probe" :
+            (reference_case == SmokeSoftenSourceReferenceCase::LegacySpecular ?
+            "viewer-deferred-soften-legacy-specular-probe" :
+            (reference_case == SmokeSoftenSourceReferenceCase::LegacyEmissive ?
+                "viewer-deferred-soften-legacy-emissive-probe" :
+                "viewer-deferred-soften-legacy-probe"))))
+        << ": seeding "
+        << "viewer-format G-buffer textures directly with a legacy normal "
+        << "flag, "
+        << (reference_case == SmokeSoftenSourceReferenceCase::LegacyEnv ?
+            "sRGB legacy diffuse color, nonzero env intensity, controlled white environment fallback, " :
+            (reference_case == SmokeSoftenSourceReferenceCase::LegacyLightMap ?
+            "sRGB legacy diffuse color, non-neutral lightMap shadow/SSAO, classic-mode neutral atmosphere, " :
+            (reference_case == SmokeSoftenSourceReferenceCase::LegacySpecular ?
+            "black diffuse color, nonzero specular RGB/alpha, neutral env inputs, " :
+            "sRGB legacy diffuse color, neutral specular/env inputs, ")))
+        << (reference_case == SmokeSoftenSourceReferenceCase::LegacyEmissive ?
+            "a nonzero emissive attachment that OpenGL legacy soften ignores, " :
+            "a neutral emissive attachment, ")
+        << "neutral atmosphere, and a front-facing sun direction. "
+        << "The probe runs the live DeferredSoften shader and copies its "
+        << "output directly to the swapchain for comparison against the "
+        << "OpenGL softenLightF legacy source-reference path."
+        << std::endl;
+    logged_reference = true;
+}
+
+void log_deferred_soften_pbr_emissive_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-soften-pbr-emissive-probe: seeding "
+        << "viewer-format G-buffer textures directly with a PBR normal flag, "
+        << "black base color, neutral roughness/AO ORM, a nonzero emissive "
+        << "attachment, disabled probe inputs, and zero sun/ambient lighting. "
+        << "The probe runs the live DeferredSoften shader and copies its "
+        << "output directly to the swapchain for comparison against the "
+        << "OpenGL softenLightF PBR emissive source-reference path."
+        << std::endl;
+    logged_reference = true;
+}
+
+void log_deferred_soften_pbr_brdf_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-soften-pbr-brdf-probe: seeding "
+        << "viewer-format G-buffer textures directly with a PBR normal flag, "
+        << "nonzero base color, AO/roughness/metallic ORM values, zero "
+        << "emissive/probe/ambient inputs, and a front-facing sun direction. "
+        << "The probe runs the live DeferredSoften shader and copies its "
+        << "output directly to the swapchain for comparison against the "
+        << "OpenGL softenLightF PBR BRDF source-reference path."
+        << std::endl;
+    logged_reference = true;
+}
+
+void log_deferred_soften_pbr_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-soften-pbr-probe: seeding "
+        << "viewer-format G-buffer textures directly with a PBR normal flag, "
+        << "nonzero base color, AO/roughness/metallic ORM values, zero "
+        << "emissive/ambient/sun inputs, and real synthetic ReflectionProbes "
+        << "radiance plus irradiance cube arrays. The probe runs the live "
+        << "DeferredSoften shader and copies its output directly to the "
+        << "swapchain for comparison against the OpenGL softenLightF PBR "
+        << "probe source-reference path."
+        << std::endl;
+    logged_reference = true;
+}
+
+void log_deferred_soften_pbr_ssr_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-soften-pbr-ssr-probe: seeding "
+        << "viewer-format G-buffer textures directly with a glossy PBR normal "
+        << "flag, nonzero base color, zero roughness ORM values, synthetic "
+        << "ReflectionProbes radiance plus irradiance cube arrays, and "
+        << "deterministic sceneMap/sceneDepthMap SSR inputs. The probe runs "
+        << "the live DeferredSoften shader and copies its output directly to "
+        << "the swapchain for comparison against the OpenGL softenLightF SSR "
+        << "source-reference path."
+        << std::endl;
+    logged_reference = true;
+}
+
 void log_deferred_emissive_probe_reference()
 {
     static bool logged_reference = false;
@@ -5374,6 +6566,103 @@ LLRenderWorldMaterialParameters make_deferred_color_compare_composite_parameters
     return make_vulkan_deferred_composite_material_parameters(settings);
 }
 
+void set_smoke_lightmap_shadow_matrix(F32* matrix)
+{
+    for (U32 i = 0; i < 16; ++i)
+    {
+        matrix[i] = 0.f;
+    }
+    matrix[0] = 0.5f;
+    matrix[5] = 0.5f;
+    matrix[12] = 0.5f;
+    matrix[13] = 0.5f;
+    matrix[14] = 0.5f;
+    matrix[15] = 1.f;
+}
+
+LLRenderWorldMaterialParameters make_deferred_lightmap_shadow_probe_parameters(
+    U32 width,
+    U32 height)
+{
+    LLRenderWorldMaterialParameters parameters =
+        make_deferred_color_compare_composite_parameters(width, height);
+
+    for (U32 i = 0; i < 16; ++i)
+    {
+        parameters.mCompositeInverseProjection[i] = 0.f;
+    }
+    parameters.mCompositeInverseProjection[0] = 1.f;
+    parameters.mCompositeInverseProjection[5] = 1.f;
+    parameters.mCompositeInverseProjection[14] = -10.f;
+    parameters.mCompositeInverseProjection[15] = 1.f;
+
+    for (U32 shadow_index = 0; shadow_index < 6; ++shadow_index)
+    {
+        set_smoke_lightmap_shadow_matrix(
+            &parameters.mCompositeShadowMatrix[shadow_index * 16]);
+    }
+    parameters.mCompositeShadowClip[0] = 16.f;
+    parameters.mCompositeShadowClip[1] = 16.f;
+    parameters.mCompositeShadowClip[2] = 12.f;
+    parameters.mCompositeShadowClip[3] = 64.f;
+    parameters.mCompositeShadowSettings[0] = 0.f;
+    parameters.mCompositeShadowSettings[1] = 0.f;
+    parameters.mCompositeShadowSettings[2] = 0.f;
+    parameters.mCompositeShadowSettings[3] = 0.f;
+    parameters.mCompositeShadowResolution[0] = 4.f;
+    parameters.mCompositeShadowResolution[1] = 4.f;
+    parameters.mCompositeShadowResolution[2] = 4.f;
+    parameters.mCompositeShadowResolution[3] = 4.f;
+    parameters.mCompositeShadowRuntime[0] = 1.f;
+    parameters.mCompositeShadowRuntime[1] = 1.f;
+    parameters.mCompositeShadowRuntime[2] = 15.f;
+    parameters.mCompositeShadowRuntime[3] = 3.f;
+    parameters.mCompositeSunDirection[0] = 0.f;
+    parameters.mCompositeSunDirection[1] = 0.f;
+    parameters.mCompositeSunDirection[2] = 1.f;
+    parameters.mCompositeSunDirection[3] = 1.f;
+    parameters.mCompositeMoonDirection[0] = 0.f;
+    parameters.mCompositeMoonDirection[1] = 0.f;
+    parameters.mCompositeMoonDirection[2] = 1.f;
+    parameters.mCompositeMoonDirection[3] = 0.f;
+    parameters.mBaseColorAlpha = 1.f;
+    return parameters;
+}
+
+LLRenderWorldMaterialParameters make_deferred_lightmap_ssao_probe_parameters(
+    U32 width,
+    U32 height)
+{
+    LLVulkanDeferredCompositeSettings settings;
+    settings.mDeferredAttachmentCount = 4;
+    settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
+    settings.mScreenHeight = static_cast<F32>(llmax(1U, height));
+    settings.mSSAOEnabled = true;
+    settings.mSSAOScale = 12.f;
+    settings.mSSAOMaxScale = 32.f;
+    settings.mSSAOFactor = 1.5f;
+    settings.mSSAOEffect = 1.f;
+    settings.mSunDirectionX = 0.f;
+    settings.mSunDirectionY = 0.f;
+    settings.mSunDirectionZ = 1.f;
+    settings.mSunUpFactor = 1.f;
+    settings.mMoonDirectionX = 0.f;
+    settings.mMoonDirectionY = 0.f;
+    settings.mMoonDirectionZ = 1.f;
+
+    LLRenderWorldMaterialParameters parameters =
+        make_vulkan_deferred_composite_material_parameters(settings);
+    parameters.mCompositeShadowRuntime[0] = 0.f;
+    parameters.mCompositeShadowRuntime[1] = 0.f;
+    parameters.mCompositeShadowRuntime[2] = 0.f;
+    parameters.mCompositeShadowRuntime[3] = 0.f;
+    parameters.mCompositeShadowResolution[0] = 4.f;
+    parameters.mCompositeShadowResolution[1] = 4.f;
+    parameters.mCompositeShadowResolution[2] = 4.f;
+    parameters.mCompositeShadowResolution[3] = 4.f;
+    return parameters;
+}
+
 LLRenderWorldMaterialParameters make_deferred_soften_state_probe_parameters(
     U32 width,
     U32 height)
@@ -5437,6 +6726,408 @@ LLRenderWorldMaterialParameters make_deferred_soften_state_probe_parameters(
     settings.mSSAOEffectMatrix[7] = 0.05f;
     settings.mSSAOEffectMatrix[8] = 0.58f;
     return make_vulkan_deferred_composite_material_parameters(settings);
+}
+
+LLRenderWorldMaterialParameters make_deferred_soften_skip_atmos_probe_parameters(
+    U32 width,
+    U32 height)
+{
+    LLVulkanDeferredCompositeSettings settings;
+    settings.mDeferredAttachmentCount = 4;
+    settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
+    settings.mScreenHeight = static_cast<F32>(llmax(1U, height));
+    settings.mSunDirectionX = 0.35f;
+    settings.mSunDirectionY = 0.45f;
+    settings.mSunDirectionZ = 0.82f;
+    settings.mSunUpFactor = 1.f;
+    settings.mMoonDirectionX = -0.25f;
+    settings.mMoonDirectionY = -0.15f;
+    settings.mMoonDirectionZ = 0.95f;
+    settings.mClassicMode = 0.f;
+    settings.mSkyHDRScale = 1.45f;
+    settings.mWaterPlaneX = 0.f;
+    settings.mWaterPlaneY = 0.f;
+    settings.mWaterPlaneZ = 1.f;
+    settings.mWaterPlaneW = 1.f;
+    return make_vulkan_deferred_composite_material_parameters(settings);
+}
+
+LLRenderWorldMaterialParameters make_deferred_soften_legacy_probe_parameters(
+    U32 width,
+    U32 height)
+{
+    LLVulkanDeferredCompositeSettings settings;
+    settings.mDeferredAttachmentCount = 4;
+    settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
+    settings.mScreenHeight = static_cast<F32>(llmax(1U, height));
+    settings.mSunDirectionX = 0.f;
+    settings.mSunDirectionY = 0.f;
+    settings.mSunDirectionZ = 1.f;
+    settings.mSunUpFactor = 1.f;
+    settings.mMoonDirectionX = 0.f;
+    settings.mMoonDirectionY = 0.f;
+    settings.mMoonDirectionZ = 1.f;
+    settings.mClassicMode = 0.f;
+    settings.mSkyHDRScale = 1.f;
+    settings.mWaterPlaneX = 0.f;
+    settings.mWaterPlaneY = 0.f;
+    settings.mWaterPlaneZ = 1.f;
+    settings.mWaterPlaneW = 1.f;
+
+    settings.mAtmosBlueHorizonHaze[0] = 0.f;
+    settings.mAtmosBlueHorizonHaze[1] = 0.f;
+    settings.mAtmosBlueHorizonHaze[2] = 0.f;
+    settings.mAtmosBlueHorizonHaze[3] = 0.f;
+    settings.mAtmosBlueDensityHaze[0] = 0.f;
+    settings.mAtmosBlueDensityHaze[1] = 0.f;
+    settings.mAtmosBlueDensityHaze[2] = 0.f;
+    settings.mAtmosBlueDensityHaze[3] = 0.f;
+    settings.mAtmosDensity[0] = 0.f;
+    settings.mAtmosDensity[1] = 0.f;
+    settings.mAtmosDensity[2] = 0.f;
+    settings.mAtmosDensity[3] = 1.f;
+    settings.mAtmosGlow[0] = 0.f;
+    settings.mAtmosGlow[1] = 0.f;
+    settings.mAtmosGlow[2] = 1.f;
+    settings.mAtmosGlow[3] = 0.f;
+    settings.mAtmosSunlight[0] = 1.f;
+    settings.mAtmosSunlight[1] = 1.f;
+    settings.mAtmosSunlight[2] = 1.f;
+    settings.mAtmosSunlight[3] = 1.f;
+    settings.mAtmosMoonlight[0] = 1.f;
+    settings.mAtmosMoonlight[1] = 1.f;
+    settings.mAtmosMoonlight[2] = 1.f;
+    settings.mAtmosMoonlight[3] = 1.f;
+    settings.mAtmosAmbient[0] = 0.f;
+    settings.mAtmosAmbient[1] = 0.f;
+    settings.mAtmosAmbient[2] = 0.f;
+    settings.mAtmosAmbient[3] = 1.f;
+    settings.mAtmosLightNorm[0] = 0.f;
+    settings.mAtmosLightNorm[1] = 0.f;
+    settings.mAtmosLightNorm[2] = 1.f;
+    settings.mAtmosLightNorm[3] = 1.f;
+
+    return make_vulkan_deferred_composite_material_parameters(settings);
+}
+
+LLRenderWorldMaterialParameters make_deferred_soften_legacy_lightmap_probe_parameters(
+    U32 width,
+    U32 height)
+{
+    LLVulkanDeferredCompositeSettings settings;
+    settings.mDeferredAttachmentCount = 4;
+    settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
+    settings.mScreenHeight = static_cast<F32>(llmax(1U, height));
+    settings.mSunDirectionX = 0.f;
+    settings.mSunDirectionY = 0.f;
+    settings.mSunDirectionZ = 1.f;
+    settings.mSunUpFactor = 1.f;
+    settings.mMoonDirectionX = 0.f;
+    settings.mMoonDirectionY = 0.f;
+    settings.mMoonDirectionZ = 1.f;
+    settings.mClassicMode = 1.f;
+    settings.mSkyHDRScale = 1.f;
+    settings.mSSAOEnabled = true;
+    settings.mSSAOIrradianceScale = 0.6f;
+    settings.mSSAOIrradianceMax = 0.18f;
+    settings.mWaterPlaneX = 0.f;
+    settings.mWaterPlaneY = 0.f;
+    settings.mWaterPlaneZ = 1.f;
+    settings.mWaterPlaneW = 1.f;
+
+    settings.mAtmosBlueHorizonHaze[0] = 0.f;
+    settings.mAtmosBlueHorizonHaze[1] = 0.f;
+    settings.mAtmosBlueHorizonHaze[2] = 0.f;
+    settings.mAtmosBlueHorizonHaze[3] = 0.f;
+    settings.mAtmosBlueDensityHaze[0] = 0.f;
+    settings.mAtmosBlueDensityHaze[1] = 0.f;
+    settings.mAtmosBlueDensityHaze[2] = 0.f;
+    settings.mAtmosBlueDensityHaze[3] = 0.f;
+    settings.mAtmosDensity[0] = 0.f;
+    settings.mAtmosDensity[1] = 0.f;
+    settings.mAtmosDensity[2] = 0.f;
+    settings.mAtmosDensity[3] = 1.f;
+    settings.mAtmosGlow[0] = 0.f;
+    settings.mAtmosGlow[1] = 0.f;
+    settings.mAtmosGlow[2] = 1.f;
+    settings.mAtmosGlow[3] = 0.f;
+    settings.mAtmosSunlight[0] = 1.f;
+    settings.mAtmosSunlight[1] = 1.f;
+    settings.mAtmosSunlight[2] = 1.f;
+    settings.mAtmosSunlight[3] = 1.f;
+    settings.mAtmosMoonlight[0] = 1.f;
+    settings.mAtmosMoonlight[1] = 1.f;
+    settings.mAtmosMoonlight[2] = 1.f;
+    settings.mAtmosMoonlight[3] = 1.f;
+    settings.mAtmosAmbient[0] = 0.36f;
+    settings.mAtmosAmbient[1] = 0.27f;
+    settings.mAtmosAmbient[2] = 0.18f;
+    settings.mAtmosAmbient[3] = 1.f;
+    settings.mAtmosLightNorm[0] = 0.f;
+    settings.mAtmosLightNorm[1] = 1.f;
+    settings.mAtmosLightNorm[2] = 0.f;
+    settings.mAtmosLightNorm[3] = 1.f;
+
+    return make_vulkan_deferred_composite_material_parameters(settings);
+}
+
+LLRenderWorldMaterialParameters make_deferred_soften_legacy_env_probe_parameters(
+    U32 width,
+    U32 height)
+{
+    LLVulkanDeferredCompositeSettings settings;
+    settings.mDeferredAttachmentCount = 4;
+    settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
+    settings.mScreenHeight = static_cast<F32>(llmax(1U, height));
+    settings.mSunDirectionX = 0.f;
+    settings.mSunDirectionY = 0.f;
+    settings.mSunDirectionZ = 1.f;
+    settings.mSunUpFactor = 1.f;
+    settings.mMoonDirectionX = 0.f;
+    settings.mMoonDirectionY = 0.f;
+    settings.mMoonDirectionZ = 1.f;
+    settings.mClassicMode = 0.f;
+    settings.mSkyHDRScale = 1.f;
+    settings.mReflectionProbeAmbiance = 0.62f;
+    settings.mReflectionInputsValid = true;
+    settings.mMaxProbeLOD = 1.f;
+    settings.mWaterPlaneX = 0.f;
+    settings.mWaterPlaneY = 0.f;
+    settings.mWaterPlaneZ = 1.f;
+    settings.mWaterPlaneW = 1.f;
+
+    settings.mAtmosBlueHorizonHaze[0] = 0.f;
+    settings.mAtmosBlueHorizonHaze[1] = 0.f;
+    settings.mAtmosBlueHorizonHaze[2] = 0.f;
+    settings.mAtmosBlueHorizonHaze[3] = 0.f;
+    settings.mAtmosBlueDensityHaze[0] = 0.f;
+    settings.mAtmosBlueDensityHaze[1] = 0.f;
+    settings.mAtmosBlueDensityHaze[2] = 0.f;
+    settings.mAtmosBlueDensityHaze[3] = 0.f;
+    settings.mAtmosDensity[0] = 0.f;
+    settings.mAtmosDensity[1] = 0.f;
+    settings.mAtmosDensity[2] = 0.f;
+    settings.mAtmosDensity[3] = 1.f;
+    settings.mAtmosGlow[0] = 0.f;
+    settings.mAtmosGlow[1] = 0.f;
+    settings.mAtmosGlow[2] = 1.f;
+    settings.mAtmosGlow[3] = 0.f;
+    settings.mAtmosSunlight[0] = 1.f;
+    settings.mAtmosSunlight[1] = 1.f;
+    settings.mAtmosSunlight[2] = 1.f;
+    settings.mAtmosSunlight[3] = 1.f;
+    settings.mAtmosMoonlight[0] = 1.f;
+    settings.mAtmosMoonlight[1] = 1.f;
+    settings.mAtmosMoonlight[2] = 1.f;
+    settings.mAtmosMoonlight[3] = 1.f;
+    settings.mAtmosAmbient[0] = 0.f;
+    settings.mAtmosAmbient[1] = 0.f;
+    settings.mAtmosAmbient[2] = 0.f;
+    settings.mAtmosAmbient[3] = 1.f;
+    settings.mAtmosLightNorm[0] = 0.f;
+    settings.mAtmosLightNorm[1] = 0.f;
+    settings.mAtmosLightNorm[2] = 1.f;
+    settings.mAtmosLightNorm[3] = 1.f;
+
+    return make_vulkan_deferred_composite_material_parameters(settings);
+}
+
+LLRenderWorldMaterialParameters make_deferred_soften_pbr_emissive_probe_parameters(
+    U32 width,
+    U32 height)
+{
+    LLVulkanDeferredCompositeSettings settings;
+    settings.mDeferredAttachmentCount = 4;
+    settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
+    settings.mScreenHeight = static_cast<F32>(llmax(1U, height));
+    settings.mSunDirectionX = 0.f;
+    settings.mSunDirectionY = 0.f;
+    settings.mSunDirectionZ = 1.f;
+    settings.mSunUpFactor = 1.f;
+    settings.mMoonDirectionX = 0.f;
+    settings.mMoonDirectionY = 0.f;
+    settings.mMoonDirectionZ = 1.f;
+    settings.mClassicMode = 0.f;
+    settings.mReflectionProbeAmbiance = 0.f;
+    settings.mReflectionInputsValid = false;
+    settings.mSkyHDRScale = 1.f;
+    settings.mWaterPlaneX = 0.f;
+    settings.mWaterPlaneY = 0.f;
+    settings.mWaterPlaneZ = 1.f;
+    settings.mWaterPlaneW = 1.f;
+
+    settings.mAtmosBlueHorizonHaze[0] = 0.f;
+    settings.mAtmosBlueHorizonHaze[1] = 0.f;
+    settings.mAtmosBlueHorizonHaze[2] = 0.f;
+    settings.mAtmosBlueHorizonHaze[3] = 0.f;
+    settings.mAtmosBlueDensityHaze[0] = 0.f;
+    settings.mAtmosBlueDensityHaze[1] = 0.f;
+    settings.mAtmosBlueDensityHaze[2] = 0.f;
+    settings.mAtmosBlueDensityHaze[3] = 0.f;
+    settings.mAtmosDensity[0] = 0.f;
+    settings.mAtmosDensity[1] = 0.f;
+    settings.mAtmosDensity[2] = 0.f;
+    settings.mAtmosDensity[3] = 1.f;
+    settings.mAtmosGlow[0] = 0.f;
+    settings.mAtmosGlow[1] = 0.f;
+    settings.mAtmosGlow[2] = 1.f;
+    settings.mAtmosGlow[3] = 0.f;
+    settings.mAtmosSunlight[0] = 0.f;
+    settings.mAtmosSunlight[1] = 0.f;
+    settings.mAtmosSunlight[2] = 0.f;
+    settings.mAtmosSunlight[3] = 0.f;
+    settings.mAtmosMoonlight[0] = 1.f;
+    settings.mAtmosMoonlight[1] = 1.f;
+    settings.mAtmosMoonlight[2] = 1.f;
+    settings.mAtmosMoonlight[3] = 0.f;
+    settings.mAtmosAmbient[0] = 0.f;
+    settings.mAtmosAmbient[1] = 0.f;
+    settings.mAtmosAmbient[2] = 0.f;
+    settings.mAtmosAmbient[3] = 1.f;
+    settings.mAtmosLightNorm[0] = 0.f;
+    settings.mAtmosLightNorm[1] = 0.f;
+    settings.mAtmosLightNorm[2] = 1.f;
+    settings.mAtmosLightNorm[3] = 1.f;
+
+    return make_vulkan_deferred_composite_material_parameters(settings);
+}
+
+LLRenderWorldMaterialParameters make_deferred_soften_pbr_brdf_probe_parameters(
+    U32 width,
+    U32 height)
+{
+    LLVulkanDeferredCompositeSettings settings;
+    settings.mDeferredAttachmentCount = 4;
+    settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
+    settings.mScreenHeight = static_cast<F32>(llmax(1U, height));
+    settings.mSunDirectionX = 0.f;
+    settings.mSunDirectionY = 0.f;
+    settings.mSunDirectionZ = 1.f;
+    settings.mSunUpFactor = 1.f;
+    settings.mMoonDirectionX = 0.f;
+    settings.mMoonDirectionY = 0.f;
+    settings.mMoonDirectionZ = 1.f;
+    settings.mClassicMode = 0.f;
+    settings.mReflectionProbeAmbiance = 0.f;
+    settings.mReflectionInputsValid = false;
+    settings.mSkyHDRScale = 1.f;
+    settings.mWaterPlaneX = 0.f;
+    settings.mWaterPlaneY = 0.f;
+    settings.mWaterPlaneZ = 1.f;
+    settings.mWaterPlaneW = 1.f;
+
+    settings.mAtmosBlueHorizonHaze[0] = 0.f;
+    settings.mAtmosBlueHorizonHaze[1] = 0.f;
+    settings.mAtmosBlueHorizonHaze[2] = 0.f;
+    settings.mAtmosBlueHorizonHaze[3] = 0.f;
+    settings.mAtmosBlueDensityHaze[0] = 0.f;
+    settings.mAtmosBlueDensityHaze[1] = 0.f;
+    settings.mAtmosBlueDensityHaze[2] = 0.f;
+    settings.mAtmosBlueDensityHaze[3] = 0.f;
+    settings.mAtmosDensity[0] = 0.f;
+    settings.mAtmosDensity[1] = 0.f;
+    settings.mAtmosDensity[2] = 0.f;
+    settings.mAtmosDensity[3] = 1.f;
+    settings.mAtmosGlow[0] = 0.f;
+    settings.mAtmosGlow[1] = 0.f;
+    settings.mAtmosGlow[2] = 1.f;
+    settings.mAtmosGlow[3] = 0.f;
+    settings.mAtmosSunlight[0] = 1.f;
+    settings.mAtmosSunlight[1] = 1.f;
+    settings.mAtmosSunlight[2] = 1.f;
+    settings.mAtmosSunlight[3] = 1.f;
+    settings.mAtmosMoonlight[0] = 1.f;
+    settings.mAtmosMoonlight[1] = 1.f;
+    settings.mAtmosMoonlight[2] = 1.f;
+    settings.mAtmosMoonlight[3] = 0.f;
+    settings.mAtmosAmbient[0] = 0.f;
+    settings.mAtmosAmbient[1] = 0.f;
+    settings.mAtmosAmbient[2] = 0.f;
+    settings.mAtmosAmbient[3] = 1.f;
+    settings.mAtmosLightNorm[0] = 0.f;
+    settings.mAtmosLightNorm[1] = 0.f;
+    settings.mAtmosLightNorm[2] = 1.f;
+    settings.mAtmosLightNorm[3] = 1.f;
+
+    return make_vulkan_deferred_composite_material_parameters(settings);
+}
+
+LLRenderWorldMaterialParameters make_deferred_soften_pbr_probe_parameters(
+    U32 width,
+    U32 height)
+{
+    LLVulkanDeferredCompositeSettings settings;
+    settings.mDeferredAttachmentCount = 4;
+    settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
+    settings.mScreenHeight = static_cast<F32>(llmax(1U, height));
+    settings.mSunDirectionX = 0.f;
+    settings.mSunDirectionY = 0.f;
+    settings.mSunDirectionZ = 1.f;
+    settings.mSunUpFactor = 1.f;
+    settings.mMoonDirectionX = 0.f;
+    settings.mMoonDirectionY = 0.f;
+    settings.mMoonDirectionZ = 1.f;
+    settings.mClassicMode = 0.f;
+    settings.mReflectionProbeAmbiance = 0.f;
+    settings.mReflectionInputsValid = true;
+    settings.mMaxProbeLOD = 1.f;
+    settings.mSkyHDRScale = 1.f;
+    settings.mWaterPlaneX = 0.f;
+    settings.mWaterPlaneY = 0.f;
+    settings.mWaterPlaneZ = 1.f;
+    settings.mWaterPlaneW = 1.f;
+
+    settings.mAtmosBlueHorizonHaze[0] = 0.f;
+    settings.mAtmosBlueHorizonHaze[1] = 0.f;
+    settings.mAtmosBlueHorizonHaze[2] = 0.f;
+    settings.mAtmosBlueHorizonHaze[3] = 0.f;
+    settings.mAtmosBlueDensityHaze[0] = 0.f;
+    settings.mAtmosBlueDensityHaze[1] = 0.f;
+    settings.mAtmosBlueDensityHaze[2] = 0.f;
+    settings.mAtmosBlueDensityHaze[3] = 0.f;
+    settings.mAtmosDensity[0] = 0.f;
+    settings.mAtmosDensity[1] = 0.f;
+    settings.mAtmosDensity[2] = 0.f;
+    settings.mAtmosDensity[3] = 1.f;
+    settings.mAtmosGlow[0] = 0.f;
+    settings.mAtmosGlow[1] = 0.f;
+    settings.mAtmosGlow[2] = 1.f;
+    settings.mAtmosGlow[3] = 0.f;
+    settings.mAtmosSunlight[0] = 0.f;
+    settings.mAtmosSunlight[1] = 0.f;
+    settings.mAtmosSunlight[2] = 0.f;
+    settings.mAtmosSunlight[3] = 0.f;
+    settings.mAtmosMoonlight[0] = 1.f;
+    settings.mAtmosMoonlight[1] = 1.f;
+    settings.mAtmosMoonlight[2] = 1.f;
+    settings.mAtmosMoonlight[3] = 0.f;
+    settings.mAtmosAmbient[0] = 0.f;
+    settings.mAtmosAmbient[1] = 0.f;
+    settings.mAtmosAmbient[2] = 0.f;
+    settings.mAtmosAmbient[3] = 1.f;
+    settings.mAtmosLightNorm[0] = 0.f;
+    settings.mAtmosLightNorm[1] = 0.f;
+    settings.mAtmosLightNorm[2] = 1.f;
+    settings.mAtmosLightNorm[3] = 1.f;
+
+    return make_vulkan_deferred_composite_material_parameters(settings);
+}
+
+LLRenderWorldMaterialParameters make_deferred_soften_pbr_ssr_probe_parameters(
+    U32 width,
+    U32 height)
+{
+    LLRenderWorldMaterialParameters parameters =
+        make_deferred_soften_pbr_probe_parameters(width, height);
+    parameters.mCompositeSSR0[0] = 1.f;
+    parameters.mCompositeSSR0[1] = 8.f;
+    parameters.mCompositeSSR0[2] = 0.1f;
+    parameters.mCompositeSSR0[3] = 10.f;
+    parameters.mCompositeSSR1[0] = 0.f;
+    parameters.mCompositeSSR1[1] = 1.f;
+    parameters.mCompositeSSR1[2] = 1.25f;
+    parameters.mCompositeSSR1[3] = 0.f;
+    return parameters;
 }
 
 LLRenderWorldMaterialParameters make_deferred_local_light_probe_parameters(
@@ -5697,6 +7388,42 @@ void log_deferred_spot_light_volume_probe_reference()
         << "final composite. This guards the outside-camera projector volume "
         << "owner, point_light.vert ABI, cube/projection/noise/lightFunc "
         << "bindings, indexed TRIANGLE_FAN draw path, and final handoff."
+        << std::endl;
+    logged_reference = true;
+}
+
+void log_deferred_lightmap_shadow_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-lightmap-shadow-probe: using a "
+        << "synthetic normal/depth G-buffer and six constant shadow maps, "
+        << "then running the real DeferredLightMap pipeline. Directional and "
+        << "spot1 channels are intentionally shadowed while spot0 is lit, "
+        << "matching the OpenGL sunLight source-reference inputs."
+        << std::endl;
+    logged_reference = true;
+}
+
+void log_deferred_lightmap_ssao_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-lightmap-ssao-probe: using "
+        << "synthetic depth, normal, and noise textures, then running the "
+        << "real DeferredLightMap SSAO channel with shadows disabled. The "
+        << "green channel is compared against the OpenGL sunLightSSAOF/"
+        << "aoUtil.glsl source-reference path."
         << std::endl;
     logged_reference = true;
 }
@@ -6302,15 +8029,8 @@ bool render_deferred_graph_frame(
         return false;
     }
 
-    const U32 graph_width = llmax(64U, llmin(width, 960U));
-    const U32 graph_height = llmax(
-        64U,
-        llmin(
-            height,
-            static_cast<U32>(
-                static_cast<double>(graph_width) *
-                static_cast<double>(height) /
-                static_cast<double>(llmax(1U, width)))));
+    const U32 graph_width = llmax(64U, width);
+    const U32 graph_height = llmax(64U, height);
 
     if (!ensure_smoke_deferred_graph(
             backend,
@@ -6832,56 +8552,51 @@ void copy_smoke_target_to_swapchain(
     backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
 }
 
-bool write_rgb_ppm_file(
-    const std::string& path,
+void draw_smoke_texture_copy_quad(
+    LLRenderBackend& backend,
+    LLRenderTextureHandle source_texture,
+    const SmokeQuad& quad,
     U32 width,
-    U32 height,
-    const std::vector<U8>& rgb_pixels)
+    U32 height)
 {
-    if (path.empty())
-    {
-        return true;
-    }
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, source_texture);
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Linear,
+        LLRenderTextureFilter::Linear);
+    set_smoke_fullscreen_world_draw_state(
+        backend,
+        LLRenderWorldShaderClass::Copy,
+        LLRenderWorldMaterialParameters(),
+        width,
+        height);
+    bind_world_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+    reset_smoke_world_draw_state(backend);
+    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+}
 
-    const size_t expected_size =
-        static_cast<size_t>(width) * static_cast<size_t>(height) * 3U;
-    if (rgb_pixels.size() != expected_size)
-    {
-        std::cerr
-            << "Invalid PPM pixel buffer for "
-            << path
-            << ": expected "
-            << expected_size
-            << " bytes, got "
-            << rgb_pixels.size()
-            << ".\n";
-        return false;
-    }
-
-    std::ofstream output(path, std::ios::binary);
-    if (!output.is_open())
-    {
-        std::cerr << "Unable to open reference PPM file: " << path << ".\n";
-        return false;
-    }
-
-    output
-        << "P6\n"
-        << width
-        << " "
-        << height
-        << "\n255\n";
-    output.write(
-        reinterpret_cast<const char*>(rgb_pixels.data()),
-        static_cast<std::streamsize>(rgb_pixels.size()));
-    if (!output.good())
-    {
-        std::cerr << "Failed while writing reference PPM file: " << path << ".\n";
-        return false;
-    }
-
-    std::cout << "Wrote Mare smoke RGB PPM to " << path << ".\n";
-    return true;
+void copy_smoke_texture_to_swapchain(
+    LLRenderBackend& backend,
+    LLRenderTextureHandle source_texture,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(0.01f, 0.012f, 0.018f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    draw_smoke_texture_copy_quad(
+        backend,
+        source_texture,
+        quad,
+        width,
+        height);
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
 }
 
 std::string read_smoke_text_file(const std::string& path)
@@ -7008,36 +8723,43 @@ bool compile_opengl_reference_shader(
     return true;
 }
 
-bool write_rgba_readback_as_rgb_ppm(
-    const std::string& path,
-    U32 width,
-    U32 height,
-    const std::vector<U8>& rgba_pixels)
+bool compile_opengl_reference_shader_source(
+    LLRenderBackend& backend,
+    const std::string& label,
+    LLRenderShaderStage stage,
+    U32& shader,
+    const std::string& source,
+    const std::string& prefix = std::string())
 {
-    const size_t expected_size =
-        static_cast<size_t>(width) * static_cast<size_t>(height) * 4U;
-    if (rgba_pixels.size() != expected_size)
+    if (source.empty())
     {
-        std::cerr
-            << "Invalid RGBA readback size for "
-            << path
-            << ": expected "
-            << expected_size
-            << " bytes, got "
-            << rgba_pixels.size()
-            << ".\n";
+        std::cerr << "Empty OpenGL reference shader source: " << label << ".\n";
         return false;
     }
 
-    std::vector<U8> rgb_pixels;
-    rgb_pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 3U);
-    for (size_t rgba = 0, rgb = 0; rgba < rgba_pixels.size(); rgba += 4, rgb += 3)
+    shader = backend.createShader(stage);
+    if (!shader)
     {
-        rgb_pixels[rgb + 0] = rgba_pixels[rgba + 0];
-        rgb_pixels[rgb + 1] = rgba_pixels[rgba + 1];
-        rgb_pixels[rgb + 2] = rgba_pixels[rgba + 2];
+        std::cerr << "Unable to create OpenGL reference shader: " << label << ".\n";
+        return false;
     }
-    return write_rgb_ppm_file(path, width, height, rgb_pixels);
+
+    const std::string version = "#version 410 core\n";
+    const char* sources[] =
+    {
+        version.c_str(),
+        prefix.c_str(),
+        source.c_str(),
+    };
+    backend.setShaderSource(shader, 3, sources);
+    backend.compileShader(shader);
+    if (log_shader_compile_failure(backend, shader, label.c_str()))
+    {
+        backend.deleteShader(shader);
+        shader = 0;
+        return false;
+    }
+    return true;
 }
 
 bool render_opengl_copy_reference_ppm(
@@ -7227,7 +8949,7 @@ std::string get_opengl_haze_fragment_prefix()
         "    bvec3 cutoff = lessThanEqual(c, vec3(0.04045));\n"
         "    vec3 low = c / 12.92;\n"
         "    vec3 high = pow((c + vec3(0.055)) / 1.055, vec3(2.4));\n"
-        "    return mix(high, low, cutoff);\n"
+        "    return linear_to_srgb(mix(high, low, cutoff));\n"
         "}\n"
         "float getDepth(vec2 pos_screen)\n"
         "{\n"
@@ -7245,21 +8967,76 @@ std::string get_opengl_haze_fragment_prefix()
         "    float eye_depth = mix(2.0, 80.0, clamp(depth, 0.0, 1.0));\n"
         "    return vec4(ndc.x * 24.0, ndc.y * 14.0, -eye_depth, 1.0);\n"
         "}\n"
+        "vec3 safe_normalize(vec3 value)\n"
+        "{\n"
+        "    float len2 = dot(value, value);\n"
+        "    if (len2 <= 0.000001) return vec3(0.0, 0.0, 1.0);\n"
+        "    return value * inversesqrt(len2);\n"
+        "}\n"
+        "float ambientLighting(vec3 norm, vec3 light_dir)\n"
+        "{\n"
+        "    float ambient = min(abs(dot(norm.xyz, light_dir.xyz)), 1.0);\n"
+        "    ambient *= 0.5;\n"
+        "    ambient *= ambient;\n"
+        "    return 1.0 - ambient;\n"
+        "}\n"
         "void calcAtmosphericVarsLinear(\n"
         "    vec3 inPositionEye,\n"
         "    vec3 norm,\n"
         "    vec3 light_dir,\n"
         "    out vec3 sunlit,\n"
         "    out vec3 amblit,\n"
-        "    out vec3 atten,\n"
-        "    out vec3 additive)\n"
+        "    out vec3 additive,\n"
+        "    out vec3 atten)\n"
         "{\n"
-        "    float distance_factor = clamp(length(inPositionEye) / 80.0, 0.0, 1.0);\n"
-        "    float light_factor = clamp(dot(normalize(norm), normalize(light_dir)) * 0.5 + 0.5, 0.0, 1.0);\n"
-        "    sunlit = vec3(0.95, 0.92, 0.84) * light_factor;\n"
-        "    amblit = vec3(0.30, 0.36, 0.48);\n"
-        "    atten = vec3(mix(0.88, 0.32, smoothstep(0.1, 1.0, distance_factor)));\n"
-        "    additive = vec3(0.22, 0.34, 0.58) * (1.0 - atten) * (0.72 + light_factor * 0.28);\n"
+        "    vec3 rel_pos = inPositionEye;\n"
+        "    float max_y = 1605.0;\n"
+        "    if (abs(rel_pos.y) > max_y) rel_pos *= max_y / rel_pos.y;\n"
+        "    vec3 rel_pos_norm = safe_normalize(rel_pos);\n"
+        "    float rel_pos_len = length(rel_pos);\n"
+        "    vec3 lightnorm = vec3(0.0, 1.0, 0.0);\n"
+        "    vec3 sunlight = vec3(1.0);\n"
+        "    vec3 blue_horizon = vec3(0.4954, 0.4954, 0.6399);\n"
+        "    vec3 blue_density = vec3(0.2447, 0.4487, 0.7599);\n"
+        "    float haze_horizon = 0.19;\n"
+        "    float haze_density = 0.7;\n"
+        "    float cloud_shadow = 0.0;\n"
+        "    float density_multiplier = 0.0001;\n"
+        "    float distance_multiplier = 0.8;\n"
+        "    vec3 glow = vec3(18.0, 0.0, -0.01);\n"
+        "    float sun_moon_glow_factor = 1.0;\n"
+        "    vec3 light_atten = (blue_density + vec3(haze_density * 0.25)) * (density_multiplier * max_y);\n"
+        "    vec3 combined_haze = max(blue_density + vec3(haze_density), vec3(0.000001));\n"
+        "    vec3 blue_weight = blue_density / combined_haze;\n"
+        "    vec3 haze_weight = vec3(haze_density) / combined_haze;\n"
+        "    float above_horizon_factor = 1.0 / max(0.000001, lightnorm.y);\n"
+        "    sunlight *= exp(-light_atten * above_horizon_factor);\n"
+        "    float density_dist = rel_pos_len * density_multiplier;\n"
+        "    combined_haze = exp(-combined_haze * density_dist * distance_multiplier);\n"
+        "    atten = combined_haze.rgb;\n"
+        "    float haze_glow = dot(rel_pos_norm, lightnorm.xyz);\n"
+        "    haze_glow *= max(0.0, dot(light_dir, rel_pos_norm));\n"
+        "    haze_glow = 1.0 - haze_glow;\n"
+        "    haze_glow = max(haze_glow, 0.001);\n"
+        "    haze_glow *= glow.x;\n"
+        "    haze_glow = clamp(pow(haze_glow, glow.z), -100000.0, 100000.0);\n"
+        "    haze_glow += 0.25;\n"
+        "    haze_glow *= sun_moon_glow_factor;\n"
+        "    vec3 ambient_color = vec3(0.25);\n"
+        "    vec3 tmpAmbient = ambient_color + (vec3(1.0) - ambient_color) * cloud_shadow * 0.5;\n"
+        "    vec3 cs = sunlight.rgb * (1.0 - cloud_shadow);\n"
+        "    additive = (blue_horizon.rgb * blue_weight.rgb) * (cs + tmpAmbient.rgb) +\n"
+        "        (haze_horizon * haze_weight.rgb) * (cs * haze_glow + tmpAmbient.rgb);\n"
+        "    sunlit = sunlight.rgb;\n"
+        "    amblit = pow(tmpAmbient.rgb, vec3(0.9)) * 0.57;\n"
+        "    additive *= vec3(1.0 - combined_haze);\n"
+        "    additive = min(additive, vec3(10.0));\n"
+        "    amblit *= ambientLighting(norm, light_dir);\n"
+        "    amblit = srgb_to_linear(amblit);\n"
+        "    amblit = vec3(dot(amblit, vec3(0.2126, 0.7152, 0.0722)));\n"
+        "    sunlit = srgb_to_linear(sunlit);\n"
+        "    sunlit *= 1.5;\n"
+        "    amblit *= 1.5;\n"
         "}\n";
 }
 
@@ -7388,11 +9165,18 @@ bool render_opengl_haze_reference_ppm(
     backend.restoreDefaultFramebufferBufferRouting();
     backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
     backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
-    backend.setClearColor(0.f, 0.f, 0.f, 1.f);
+    backend.setClearColor(0.015f, 0.018f, 0.024f, 1.f);
     backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
     backend.setCapability(LLRenderCapability::DepthTest, false);
     backend.setDepthWriteEnabled(false);
-    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::Blend, true);
+    backend.setBlendState(
+        {
+            LLRenderBlendFactor::One,
+            LLRenderBlendFactor::SourceAlpha,
+            LLRenderBlendFactor::Zero,
+            LLRenderBlendFactor::SourceAlpha,
+        });
     backend.setCapability(LLRenderCapability::CullFace, false);
     backend.setColorMask({ true, true, true, true });
 
@@ -7784,6 +9568,1859 @@ bool render_opengl_alpha_reference_ppm(
     {
         std::cout
             << "Wrote Mare smoke OpenGL alpha source-reference PPM to "
+            << path
+            << " at "
+            << width
+            << "x"
+            << height
+            << ".\n";
+    }
+    cleanup();
+    return result;
+}
+
+std::string get_opengl_lightmap_shadow_fragment_prefix()
+{
+    std::string shadow_util =
+        read_smoke_text_file("indra/newview/app_settings/shaders/class1/deferred/shadowUtil.glsl");
+    if (shadow_util.empty())
+    {
+        return {};
+    }
+
+    return
+        "#define SUN_SHADOW 1\n"
+        "#define SPOT_SHADOW 1\n" +
+        shadow_util +
+        "\n"
+        "vec4 getNorm(vec2 pos_screen)\n"
+        "{\n"
+        "    vec3 encoded = texture(normalMap, pos_screen).rgb;\n"
+        "    return vec4(normalize(encoded * 2.0 - 1.0), 0.0);\n"
+        "}\n"
+        "vec4 getPosition(vec2 pos_screen)\n"
+        "{\n"
+        "    vec2 ndc = pos_screen * 2.0 - 1.0;\n"
+        "    return vec4(ndc.xy, -10.0, 1.0);\n"
+        "}\n";
+}
+
+bool render_opengl_lightmap_shadow_reference_ppm(
+    LLRenderBackend& backend,
+    const std::string& path,
+    U32 width,
+    U32 height)
+{
+    U32 vertex_shader = 0;
+    U32 fragment_shader = 0;
+    U32 program = 0;
+    LLRenderTextureHandle normal_texture;
+    std::array<LLRenderTextureHandle, 6> shadow_textures;
+    LLRenderVertexArrayHandle vertex_array;
+    SmokeQuad quad;
+
+    auto cleanup = [&]()
+    {
+        backend.useProgram(0);
+        if (quad.mVertexBuffer)
+        {
+            backend.deleteBufferHandle(quad.mVertexBuffer);
+            quad.mVertexBuffer = {};
+        }
+        if (vertex_array)
+        {
+            backend.bindVertexArray(0);
+            vertex_array = {};
+        }
+        if (normal_texture)
+        {
+            backend.deleteTextureHandle(normal_texture);
+            normal_texture = {};
+        }
+        for (LLRenderTextureHandle& texture : shadow_textures)
+        {
+            if (texture)
+            {
+                backend.deleteTextureHandle(texture);
+                texture = {};
+            }
+        }
+        if (program)
+        {
+            if (vertex_shader)
+            {
+                backend.detachShader(program, vertex_shader);
+            }
+            if (fragment_shader)
+            {
+                backend.detachShader(program, fragment_shader);
+            }
+            backend.deleteProgram(program);
+            program = 0;
+        }
+        if (vertex_shader)
+        {
+            backend.deleteShader(vertex_shader);
+            vertex_shader = 0;
+        }
+        if (fragment_shader)
+        {
+            backend.deleteShader(fragment_shader);
+            fragment_shader = 0;
+        }
+    };
+
+    const std::string fragment_prefix =
+        get_opengl_lightmap_shadow_fragment_prefix();
+    std::string fragment_source =
+        read_smoke_text_file("indra/newview/app_settings/shaders/class2/deferred/sunLightF.glsl");
+    const auto erase_all = [](std::string& text, const std::string& needle)
+    {
+        size_t position = 0;
+        while ((position = text.find(needle, position)) != std::string::npos)
+        {
+            text.erase(position, needle.size());
+        }
+    };
+    erase_all(fragment_source, "uniform vec3 sun_dir;\n");
+    erase_all(fragment_source, "uniform float shadow_bias;\n");
+    if (fragment_prefix.empty() ||
+        fragment_source.empty() ||
+        !compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class2/deferred/sunLightV.glsl",
+            LLRenderShaderStage::Vertex,
+            vertex_shader) ||
+        !compile_opengl_reference_shader_source(
+            backend,
+            "indra/newview/app_settings/shaders/class2/deferred/sunLightF.glsl",
+            LLRenderShaderStage::Fragment,
+            fragment_shader,
+            fragment_source,
+            fragment_prefix))
+    {
+        cleanup();
+        return false;
+    }
+
+    program = backend.createProgram();
+    if (!program)
+    {
+        cleanup();
+        return false;
+    }
+    backend.attachShader(program, vertex_shader);
+    backend.attachShader(program, fragment_shader);
+    backend.bindAttributeLocation(program, 0, "position");
+    backend.linkProgram(program);
+    if (log_program_link_failure(backend, program, "OpenGL lightMap shadow reference"))
+    {
+        cleanup();
+        return false;
+    }
+
+    if (!create_smoke_texture(
+            backend,
+            normal_texture,
+            4,
+            4,
+            make_solid_rgba_pixels(4, 4, 128, 128, 255, 0)) ||
+        !create_smoke_quad(backend, quad))
+    {
+        cleanup();
+        return false;
+    }
+
+    for (U32 i = 0; i < shadow_textures.size(); ++i)
+    {
+        const F32 depth =
+            i == 4 ? 0.75f : 0.25f;
+        if (!create_smoke_depth_compare_texture(
+                backend,
+                shadow_textures[i],
+                4,
+                4,
+                depth))
+        {
+            cleanup();
+            return false;
+        }
+    }
+
+    vertex_array = backend.createVertexArrayHandle();
+    if (!vertex_array)
+    {
+        cleanup();
+        return false;
+    }
+    backend.bindVertexArray(vertex_array);
+
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(1.f, 1.f, 1.f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+
+    backend.useProgram(program);
+    const auto set_int_uniform = [&](const char* name, S32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformInteger(location, value);
+        }
+    };
+    const auto set_float_uniform = [&](const char* name, F32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat(location, value);
+        }
+    };
+    const auto set_vec2_uniform = [&](const char* name, F32 x, F32 y)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat2(location, x, y);
+        }
+    };
+    const auto set_vec3_uniform = [&](const char* name, F32 x, F32 y, F32 z)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat3(location, x, y, z);
+        }
+    };
+    const auto set_vec4_uniform = [&](const char* name, F32 x, F32 y, F32 z, F32 w)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat4(location, x, y, z, w);
+        }
+    };
+    const auto set_mat4_array_uniform = [&](const char* name, const F32* values)
+    {
+        S32 location = backend.getUniformLocation(program, name);
+        if (location < 0)
+        {
+            location = backend.getUniformLocation(program, "shadow_matrix");
+        }
+        if (location >= 0)
+        {
+            backend.setUniformMatrix4(location, 6, false, values);
+        }
+    };
+
+    std::array<F32, 16 * 6> shadow_matrices = {};
+    for (U32 i = 0; i < 6; ++i)
+    {
+        set_smoke_lightmap_shadow_matrix(&shadow_matrices[i * 16]);
+    }
+
+    set_int_uniform("normalMap", 2);
+    for (U32 i = 0; i < shadow_textures.size(); ++i)
+    {
+        const std::string uniform_name =
+            std::string("shadowMap") + std::to_string(i);
+        set_int_uniform(uniform_name.c_str(), static_cast<S32>(9 + i));
+    }
+    set_int_uniform("sun_up_factor", 1);
+    set_float_uniform("shadow_bias", 0.f);
+    set_float_uniform("shadow_offset", 0.f);
+    set_float_uniform("spot_shadow_bias", 0.f);
+    set_float_uniform("spot_shadow_offset", 0.f);
+    set_vec2_uniform("screen_res", static_cast<F32>(width), static_cast<F32>(height));
+    set_vec2_uniform("shadow_res", 4.f, 4.f);
+    set_vec2_uniform("proj_shadow_res", 4.f, 4.f);
+    set_vec3_uniform("sun_dir", 0.f, 0.f, 1.f);
+    set_vec3_uniform("moon_dir", 0.f, 0.f, 1.f);
+    set_vec4_uniform("shadow_clip", 16.f, 16.f, 12.f, 64.f);
+    set_mat4_array_uniform("shadow_matrix[0]", shadow_matrices.data());
+    const glm::mat4 identity(1.f);
+    const S32 inv_proj_location = backend.getUniformLocation(program, "inv_proj");
+    if (inv_proj_location >= 0)
+    {
+        backend.setUniformMatrix4(
+            inv_proj_location,
+            1,
+            false,
+            glm::value_ptr(identity));
+    }
+
+    backend.setActiveTextureUnit(2);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, normal_texture);
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Nearest,
+        LLRenderTextureFilter::Nearest);
+    for (U32 i = 0; i < shadow_textures.size(); ++i)
+    {
+        backend.setActiveTextureUnit(static_cast<S32>(9 + i));
+        backend.bindTexture(
+            LLRenderTextureTarget::Texture2D,
+            shadow_textures[i]);
+        backend.setTextureFilter(
+            LLRenderTextureTarget::Texture2D,
+            LLRenderTextureFilter::Nearest,
+            LLRenderTextureFilter::Nearest);
+        backend.setTextureCompareMode(LLRenderTextureTarget::Texture2D, true);
+    }
+    backend.setActiveTextureUnit(0);
+    bind_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    std::vector<U8> rgba_pixels;
+    rgba_pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
+    backend.readPixels(
+        0,
+        0,
+        static_cast<S32>(width),
+        static_cast<S32>(height),
+        LLRenderPixelFormat::RGBA,
+        LLRenderPixelType::UnsignedByte,
+        rgba_pixels.data());
+
+    bool result = write_rgba_readback_as_rgb_ppm(path, width, height, rgba_pixels);
+    if (result)
+    {
+        std::cout
+            << "Wrote Mare smoke OpenGL lightMap shadow source-reference PPM to "
+            << path
+            << " at "
+            << width
+            << "x"
+            << height
+            << ".\n";
+    }
+    cleanup();
+    return result;
+}
+
+std::string get_opengl_lightmap_ssao_fragment_prefix()
+{
+    const std::string shadow_util =
+        read_smoke_text_file("indra/newview/app_settings/shaders/class1/deferred/shadowUtil.glsl");
+    std::string ao_util =
+        read_smoke_text_file("indra/newview/app_settings/shaders/class1/deferred/aoUtil.glsl");
+    if (shadow_util.empty() || ao_util.empty())
+    {
+        return {};
+    }
+
+    const auto erase_all = [](std::string& text, const std::string& needle)
+    {
+        size_t position = 0;
+        while ((position = text.find(needle, position)) != std::string::npos)
+        {
+            text.erase(position, needle.size());
+        }
+    };
+    erase_all(ao_util, "uniform mat4 inv_proj;\n");
+    erase_all(ao_util, "uniform vec2 screen_res;\n");
+
+    return
+        shadow_util +
+        "\n" +
+        ao_util +
+        "\n"
+        "vec4 getNorm(vec2 pos_screen)\n"
+        "{\n"
+        "    vec3 encoded = texture(normalMap, pos_screen).rgb;\n"
+        "    return vec4(normalize(encoded * 2.0 - 1.0), 0.0);\n"
+        "}\n"
+        "vec4 getPosition(vec2 pos_screen)\n"
+        "{\n"
+        "    return getPositionAo(pos_screen);\n"
+        "}\n";
+}
+
+bool render_opengl_lightmap_ssao_reference_ppm(
+    LLRenderBackend& backend,
+    const std::string& path,
+    U32 width,
+    U32 height)
+{
+    U32 vertex_shader = 0;
+    U32 fragment_shader = 0;
+    U32 program = 0;
+    LLRenderTextureHandle normal_texture;
+    LLRenderTextureHandle depth_texture;
+    LLRenderTextureHandle noise_texture;
+    LLRenderVertexArrayHandle vertex_array;
+    SmokeQuad quad;
+
+    auto cleanup = [&]()
+    {
+        backend.useProgram(0);
+        if (quad.mVertexBuffer)
+        {
+            backend.deleteBufferHandle(quad.mVertexBuffer);
+            quad.mVertexBuffer = {};
+        }
+        if (vertex_array)
+        {
+            backend.bindVertexArray(0);
+            vertex_array = {};
+        }
+        LLRenderTextureHandle* textures[] =
+        {
+            &normal_texture,
+            &depth_texture,
+            &noise_texture,
+        };
+        for (LLRenderTextureHandle* texture : textures)
+        {
+            if (*texture)
+            {
+                backend.deleteTextureHandle(*texture);
+                *texture = {};
+            }
+        }
+        if (program)
+        {
+            if (vertex_shader)
+            {
+                backend.detachShader(program, vertex_shader);
+            }
+            if (fragment_shader)
+            {
+                backend.detachShader(program, fragment_shader);
+            }
+            backend.deleteProgram(program);
+            program = 0;
+        }
+        if (vertex_shader)
+        {
+            backend.deleteShader(vertex_shader);
+            vertex_shader = 0;
+        }
+        if (fragment_shader)
+        {
+            backend.deleteShader(fragment_shader);
+            fragment_shader = 0;
+        }
+    };
+
+    const std::string fragment_prefix =
+        get_opengl_lightmap_ssao_fragment_prefix();
+    if (fragment_prefix.empty() ||
+        !compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class2/deferred/sunLightV.glsl",
+            LLRenderShaderStage::Vertex,
+            vertex_shader) ||
+        !compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class2/deferred/sunLightSSAOF.glsl",
+            LLRenderShaderStage::Fragment,
+            fragment_shader,
+            fragment_prefix))
+    {
+        cleanup();
+        return false;
+    }
+
+    program = backend.createProgram();
+    if (!program)
+    {
+        cleanup();
+        return false;
+    }
+    backend.attachShader(program, vertex_shader);
+    backend.attachShader(program, fragment_shader);
+    backend.bindAttributeLocation(program, 0, "position");
+    backend.linkProgram(program);
+    if (log_program_link_failure(backend, program, "OpenGL lightMap SSAO reference"))
+    {
+        cleanup();
+        return false;
+    }
+
+    if (!create_smoke_texture(
+            backend,
+            normal_texture,
+            width,
+            height,
+            make_solid_rgba_pixels(width, height, 128, 128, 255, 0)) ||
+        !create_smoke_texture(
+            backend,
+            depth_texture,
+            width,
+            height,
+            make_smoke_ssao_depth_pixels(width, height)) ||
+        !create_smoke_texture(
+            backend,
+            noise_texture,
+            16,
+            16,
+            make_smoke_ssao_noise_pixels(16, 16)) ||
+        !create_smoke_quad(backend, quad))
+    {
+        cleanup();
+        return false;
+    }
+
+    vertex_array = backend.createVertexArrayHandle();
+    if (!vertex_array)
+    {
+        cleanup();
+        return false;
+    }
+    backend.bindVertexArray(vertex_array);
+
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(1.f, 1.f, 1.f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+
+    backend.useProgram(program);
+    const auto set_int_uniform = [&](const char* name, S32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformInteger(location, value);
+        }
+    };
+    const auto set_float_uniform = [&](const char* name, F32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat(location, value);
+        }
+    };
+    const auto set_vec2_uniform = [&](const char* name, F32 x, F32 y)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat2(location, x, y);
+        }
+    };
+
+    set_int_uniform("normalMap", 2);
+    set_int_uniform("depthMap", 4);
+    set_int_uniform("noiseMap", 6);
+    set_float_uniform("ssao_radius", 12.f);
+    set_float_uniform("ssao_max_radius", 32.f);
+    set_float_uniform("ssao_factor", 1.5f);
+    set_float_uniform("ssao_factor_inv", 1.f / 1.5f);
+    set_vec2_uniform("screen_res", static_cast<F32>(width), static_cast<F32>(height));
+    const glm::mat4 identity(1.f);
+    const S32 inv_proj_location = backend.getUniformLocation(program, "inv_proj");
+    if (inv_proj_location >= 0)
+    {
+        backend.setUniformMatrix4(
+            inv_proj_location,
+            1,
+            false,
+            glm::value_ptr(identity));
+    }
+
+    const std::array<std::pair<S32, LLRenderTextureHandle>, 3> bindings =
+    {{
+        { 2, normal_texture },
+        { 4, depth_texture },
+        { 6, noise_texture },
+    }};
+    for (const auto& binding : bindings)
+    {
+        backend.setActiveTextureUnit(binding.first);
+        backend.bindTexture(LLRenderTextureTarget::Texture2D, binding.second);
+        backend.setTextureFilter(
+            LLRenderTextureTarget::Texture2D,
+            LLRenderTextureFilter::Nearest,
+            LLRenderTextureFilter::Nearest);
+        backend.setTextureAddressMode(
+            LLRenderTextureTarget::Texture2D,
+            LLRenderTextureAddressMode::ClampToEdge);
+    }
+    backend.setActiveTextureUnit(0);
+    bind_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    std::vector<U8> rgba_pixels;
+    rgba_pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
+    backend.readPixels(
+        0,
+        0,
+        static_cast<S32>(width),
+        static_cast<S32>(height),
+        LLRenderPixelFormat::RGBA,
+        LLRenderPixelType::UnsignedByte,
+        rgba_pixels.data());
+
+    bool result = write_rgba_readback_as_rgb_ppm(path, width, height, rgba_pixels);
+    if (result)
+    {
+        std::cout
+            << "Wrote Mare smoke OpenGL lightMap SSAO source-reference PPM to "
+            << path
+            << " at "
+            << width
+            << "x"
+            << height
+            << ".\n";
+    }
+    cleanup();
+    return result;
+}
+
+std::string get_opengl_lightmap_blur_fragment_prefix()
+{
+    return
+        "uniform sampler2D normalMap;\n"
+        "uniform sampler2D depthMap;\n"
+        "vec4 getNorm(vec2 pos_screen)\n"
+        "{\n"
+        "    return vec4(0.0, 0.0, 1.0, 0.0);\n"
+        "}\n"
+        "vec4 getPosition(vec2 pos_screen)\n"
+        "{\n"
+        "    vec2 ndc = pos_screen * 2.0 - 1.0;\n"
+        "    return vec4(ndc.xy, 0.0, 1.0);\n"
+        "}\n";
+}
+
+std::array<LLVector3, 4> make_smoke_blur_kernel()
+{
+    std::array<LLVector3, 4> kernel;
+    const LLVector3 gaussian(3.f, 2.f, 0.f);
+    F32 x = 0.f;
+    for (LLVector3& entry : kernel)
+    {
+        entry.mV[VX] = llgaussian(x, gaussian.mV[VX]);
+        entry.mV[VY] = llgaussian(x, gaussian.mV[VY]);
+        entry.mV[VZ] = x;
+        x += 1.f;
+    }
+    return kernel;
+}
+
+std::vector<U8> make_smoke_deferred_lightmap_band_pixels(U32 width, U32 height);
+
+bool draw_opengl_lightmap_blur_reference_pass(
+    LLRenderBackend& backend,
+    U32 program,
+    LLRenderTextureHandle light_map,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height,
+    const LLVector2& delta)
+{
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+
+    backend.useProgram(program);
+    const auto set_int_uniform = [&](const char* name, S32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformInteger(location, value);
+        }
+    };
+    const auto set_float_uniform = [&](const char* name, F32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat(location, value);
+        }
+    };
+    const auto set_vec2_uniform = [&](const char* name, F32 x, F32 y)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat2(location, x, y);
+        }
+    };
+    const auto set_vec3_array_uniform = [&](const char* name, const F32* values)
+    {
+        S32 location = backend.getUniformLocation(program, name);
+        if (location < 0)
+        {
+            location = backend.getUniformLocation(program, "kern");
+        }
+        if (location >= 0)
+        {
+            backend.setUniformFloatVector3(location, 4, values);
+        }
+    };
+
+    const std::array<LLVector3, 4> kernel = make_smoke_blur_kernel();
+    const F32 kernel_scale = 1.4f * (4.f / 2.f - 0.5f);
+    set_int_uniform("lightMap", 0);
+    set_int_uniform("normalMap", 2);
+    set_int_uniform("depthMap", 4);
+    set_float_uniform("dist_factor", 0.f);
+    set_float_uniform("blur_size", 1.4f);
+    set_vec2_uniform("delta", delta.mV[VX], delta.mV[VY]);
+    set_vec2_uniform("screen_res", static_cast<F32>(width), static_cast<F32>(height));
+    set_vec3_array_uniform("kern[0]", kernel[0].mV);
+    set_float_uniform("kern_scale", kernel_scale);
+
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, light_map);
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Linear,
+        LLRenderTextureFilter::Linear);
+    backend.setTextureAddressMode(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureAddressMode::ClampToEdge);
+    backend.setActiveTextureUnit(0);
+    bind_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+    return true;
+}
+
+bool render_opengl_lightmap_blur_reference_ppm(
+    LLRenderBackend& backend,
+    const std::string& path,
+    U32 width,
+    U32 height)
+{
+    U32 vertex_shader = 0;
+    U32 fragment_shader = 0;
+    U32 program = 0;
+    U32 copy_vertex_shader = 0;
+    U32 copy_fragment_shader = 0;
+    U32 copy_program = 0;
+    LLRenderTextureHandle light_map_texture;
+    LLRenderVertexArrayHandle vertex_array;
+    LLRenderTarget screen_target;
+    LLRenderTarget final_target;
+    SmokeQuad quad;
+
+    auto cleanup = [&]()
+    {
+        backend.useProgram(0);
+        final_target.release();
+        screen_target.release();
+        if (quad.mVertexBuffer)
+        {
+            backend.deleteBufferHandle(quad.mVertexBuffer);
+            quad.mVertexBuffer = {};
+        }
+        if (vertex_array)
+        {
+            backend.bindVertexArray(0);
+            vertex_array = {};
+        }
+        if (light_map_texture)
+        {
+            backend.deleteTextureHandle(light_map_texture);
+            light_map_texture = {};
+        }
+        if (program)
+        {
+            if (vertex_shader)
+            {
+                backend.detachShader(program, vertex_shader);
+            }
+            if (fragment_shader)
+            {
+                backend.detachShader(program, fragment_shader);
+            }
+            backend.deleteProgram(program);
+            program = 0;
+        }
+        if (copy_program)
+        {
+            if (copy_vertex_shader)
+            {
+                backend.detachShader(copy_program, copy_vertex_shader);
+            }
+            if (copy_fragment_shader)
+            {
+                backend.detachShader(copy_program, copy_fragment_shader);
+            }
+            backend.deleteProgram(copy_program);
+            copy_program = 0;
+        }
+        if (vertex_shader)
+        {
+            backend.deleteShader(vertex_shader);
+            vertex_shader = 0;
+        }
+        if (fragment_shader)
+        {
+            backend.deleteShader(fragment_shader);
+            fragment_shader = 0;
+        }
+        if (copy_vertex_shader)
+        {
+            backend.deleteShader(copy_vertex_shader);
+            copy_vertex_shader = 0;
+        }
+        if (copy_fragment_shader)
+        {
+            backend.deleteShader(copy_fragment_shader);
+            copy_fragment_shader = 0;
+        }
+    };
+
+    if (!compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class1/deferred/blurLightV.glsl",
+            LLRenderShaderStage::Vertex,
+            vertex_shader) ||
+        !compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class1/deferred/blurLightF.glsl",
+            LLRenderShaderStage::Fragment,
+            fragment_shader,
+            get_opengl_lightmap_blur_fragment_prefix()) ||
+        !compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class1/interface/copyV.glsl",
+            LLRenderShaderStage::Vertex,
+            copy_vertex_shader) ||
+        !compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class1/interface/copyF.glsl",
+            LLRenderShaderStage::Fragment,
+            copy_fragment_shader))
+    {
+        cleanup();
+        return false;
+    }
+
+    program = backend.createProgram();
+    if (!program)
+    {
+        cleanup();
+        return false;
+    }
+    backend.attachShader(program, vertex_shader);
+    backend.attachShader(program, fragment_shader);
+    backend.bindAttributeLocation(program, 0, "position");
+    backend.linkProgram(program);
+    if (log_program_link_failure(backend, program, "OpenGL lightMap blur reference"))
+    {
+        cleanup();
+        return false;
+    }
+
+    copy_program = backend.createProgram();
+    if (!copy_program)
+    {
+        cleanup();
+        return false;
+    }
+    backend.attachShader(copy_program, copy_vertex_shader);
+    backend.attachShader(copy_program, copy_fragment_shader);
+    backend.bindAttributeLocation(copy_program, 0, "position");
+    backend.linkProgram(copy_program);
+    if (log_program_link_failure(backend, copy_program, "OpenGL lightMap blur copy reference"))
+    {
+        cleanup();
+        return false;
+    }
+
+    const U32 graph_width = llmax(64U, llmin(width, 960U));
+    const U32 graph_height = llmax(
+        64U,
+        llmin(
+            height,
+            static_cast<U32>(
+                static_cast<double>(graph_width) *
+                static_cast<double>(height) /
+                static_cast<double>(llmax(1U, width)))));
+
+    if (!create_smoke_texture(
+            backend,
+            light_map_texture,
+            graph_width,
+            graph_height,
+            make_smoke_deferred_lightmap_band_pixels(graph_width, graph_height)) ||
+        !screen_target.allocate(graph_width, graph_height, LLRenderTextureFormat::RGBA16F) ||
+        !final_target.allocate(graph_width, graph_height, LLRenderTextureFormat::RGBA16F) ||
+        !create_smoke_quad(backend, quad))
+    {
+        cleanup();
+        return false;
+    }
+
+    vertex_array = backend.createVertexArrayHandle();
+    if (!vertex_array)
+    {
+        cleanup();
+        return false;
+    }
+    backend.bindVertexArray(vertex_array);
+
+    screen_target.bindTarget();
+    backend.setClearColor(1.f, 1.f, 1.f, 1.f);
+    screen_target.clear(LL_RENDER_CLEAR_COLOR);
+    draw_opengl_lightmap_blur_reference_pass(
+        backend,
+        program,
+        light_map_texture,
+        quad,
+        graph_width,
+        graph_height,
+        LLVector2(1.f, 0.f));
+    screen_target.flush();
+
+    final_target.bindTarget();
+    backend.setClearColor(1.f, 1.f, 1.f, 1.f);
+    final_target.clear(LL_RENDER_CLEAR_COLOR);
+    draw_opengl_lightmap_blur_reference_pass(
+        backend,
+        program,
+        LLRenderTextureHandle(screen_target.getTexture(0)),
+        quad,
+        graph_width,
+        graph_height,
+        LLVector2(0.f, 1.f));
+    final_target.flush();
+
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(0.01f, 0.012f, 0.018f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+
+    backend.useProgram(copy_program);
+    const S32 diffuse_location =
+        backend.getUniformLocation(copy_program, "diffuseMap");
+    if (diffuse_location >= 0)
+    {
+        backend.setUniformInteger(diffuse_location, 0);
+    }
+    final_target.bindTexture(0, 0, LLTexUnit::TFO_BILINEAR);
+    bind_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+
+    std::vector<U8> rgba_pixels;
+    rgba_pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
+    backend.readPixels(
+        0,
+        0,
+        static_cast<S32>(width),
+        static_cast<S32>(height),
+        LLRenderPixelFormat::RGBA,
+        LLRenderPixelType::UnsignedByte,
+        rgba_pixels.data());
+
+    bool result = write_rgba_readback_as_rgb_ppm(path, width, height, rgba_pixels);
+    if (result)
+    {
+        std::cout
+            << "Wrote Mare smoke OpenGL lightMap blur source-reference PPM to "
+            << path
+            << " at "
+            << width
+            << "x"
+            << height
+            << ".\n";
+    }
+    cleanup();
+    return result;
+}
+
+std::string get_opengl_soften_skip_atmos_fragment_prefix(
+    SmokeSoftenSourceReferenceCase reference_case =
+        SmokeSoftenSourceReferenceCase::SkipAtmos)
+{
+    const bool lightmap_case =
+        reference_case == SmokeSoftenSourceReferenceCase::LegacyLightMap;
+    const bool legacy_env_case =
+        reference_case == SmokeSoftenSourceReferenceCase::LegacyEnv;
+    const bool pbr_brdf_case =
+        reference_case == SmokeSoftenSourceReferenceCase::PbrBrdf;
+    const bool pbr_probe_case =
+        reference_case == SmokeSoftenSourceReferenceCase::PbrProbe;
+    const bool pbr_ssr_case =
+        reference_case == SmokeSoftenSourceReferenceCase::PbrSSR;
+    const bool pbr_full_case =
+        pbr_brdf_case || pbr_probe_case || pbr_ssr_case;
+    const std::string lightmap_defines =
+        lightmap_case ?
+            "#define HAS_SUN_SHADOW 1\n"
+            "#define HAS_SSAO 1\n" :
+            "";
+    const std::string default_sunlit =
+        (pbr_probe_case || pbr_ssr_case) ? "vec3(0.0)" : "vec3(1.0)";
+    const std::string atmos_function =
+        lightmap_case ?
+            "void calcAtmosphericVarsLinear(vec3 inPositionEye, vec3 norm, vec3 light_dir, out vec3 sunlit, out vec3 amblit, out vec3 atten, out vec3 additive)\n"
+            "{\n"
+            "    sunlit = vec3(1.0);\n"
+            "    vec3 ambient_color = vec3(0.36, 0.27, 0.18);\n"
+            "    float ambient = min(abs(dot(norm.xyz, light_dir.xyz)), 1.0);\n"
+            "    ambient *= 0.5;\n"
+            "    ambient *= ambient;\n"
+            "    amblit = pow(ambient_color, vec3(0.9)) * 0.57 * (1.0 - ambient);\n"
+            "    atten = vec3(1.0);\n"
+            "    additive = vec3(0.0);\n"
+            "}\n" :
+            "void calcAtmosphericVarsLinear(vec3 inPositionEye, vec3 norm, vec3 light_dir, out vec3 sunlit, out vec3 amblit, out vec3 atten, out vec3 additive)\n"
+            "{\n"
+            "    sunlit = " +
+            default_sunlit +
+            ";\n"
+            "    amblit = vec3(0.0);\n"
+            "    atten = vec3(1.0);\n"
+            "    additive = vec3(0.0);\n"
+            "}\n";
+    const std::string pbr_function_block =
+        pbr_full_case ?
+            "vec2 BRDF(float NoV, float roughness)\n"
+            "{\n"
+            "    return texture(brdfLut, vec2(NoV, roughness)).rg;\n"
+            "}\n"
+            "void pbrIbl(vec3 diffuseColor, vec3 specularColor, vec3 radiance, vec3 irradiance, float ao, float nv, float perceptualRough, out vec3 diffuseOut, out vec3 specularOut)\n"
+            "{\n"
+            "    vec2 brdf = BRDF(clamp(nv, 0.0, 1.0), 1.0 - perceptualRough);\n"
+            "    vec3 diffuse = irradiance * diffuseColor;\n"
+            "    vec3 specular = radiance * (specularColor * brdf.x + brdf.y);\n"
+            "    diffuseOut = diffuse * ao;\n"
+            "    specularOut = specular * ao;\n"
+            "}\n"
+            "struct PBRInfo\n"
+            "{\n"
+            "    float NdotL;\n"
+            "    float NdotV;\n"
+            "    float NdotH;\n"
+            "    float LdotH;\n"
+            "    float VdotH;\n"
+            "    float perceptualRoughness;\n"
+            "    float metalness;\n"
+            "    vec3 reflectance0;\n"
+            "    vec3 reflectance90;\n"
+            "    float alphaRoughness;\n"
+            "    vec3 diffuseColor;\n"
+            "    vec3 specularColor;\n"
+            "};\n"
+            "vec3 diffuse(PBRInfo pbrInputs)\n"
+            "{\n"
+            "    return pbrInputs.diffuseColor / 3.14159265;\n"
+            "}\n"
+            "vec3 specularReflection(PBRInfo pbrInputs)\n"
+            "{\n"
+            "    return pbrInputs.reflectance0 + (pbrInputs.reflectance90 - pbrInputs.reflectance0) * pow(clamp(1.0 - pbrInputs.VdotH, 0.0, 1.0), 5.0);\n"
+            "}\n"
+            "float geometricOcclusion(PBRInfo pbrInputs)\n"
+            "{\n"
+            "    float NdotL = pbrInputs.NdotL;\n"
+            "    float NdotV = pbrInputs.NdotV;\n"
+            "    float r = pbrInputs.alphaRoughness;\n"
+            "    float attenuationL = 2.0 * NdotL / (NdotL + sqrt(r * r + (1.0 - r * r) * (NdotL * NdotL)));\n"
+            "    float attenuationV = 2.0 * NdotV / (NdotV + sqrt(r * r + (1.0 - r * r) * (NdotV * NdotV)));\n"
+            "    return attenuationL * attenuationV;\n"
+            "}\n"
+            "float microfacetDistribution(PBRInfo pbrInputs)\n"
+            "{\n"
+            "    float roughnessSq = pbrInputs.alphaRoughness * pbrInputs.alphaRoughness;\n"
+            "    float f = (pbrInputs.NdotH * roughnessSq - pbrInputs.NdotH) * pbrInputs.NdotH + 1.0;\n"
+            "    return roughnessSq / (3.14159265 * f * f);\n"
+            "}\n"
+            "void pbrPunctual(vec3 diffuseColor, vec3 specularColor, float perceptualRoughness, float metallic, vec3 n, vec3 v, vec3 l, out float nl, out vec3 diff, out vec3 spec)\n"
+            "{\n"
+            "    perceptualRoughness = max(perceptualRoughness, 8.0 / 255.0);\n"
+            "    float alphaRoughness = perceptualRoughness * perceptualRoughness;\n"
+            "    float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b);\n"
+            "    float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);\n"
+            "    vec3 specularEnvironmentR0 = specularColor.rgb;\n"
+            "    vec3 specularEnvironmentR90 = vec3(1.0) * reflectance90;\n"
+            "    vec3 h = normalize(l + v);\n"
+            "    float NdotL = clamp(dot(n, l), 0.001, 1.0);\n"
+            "    float NdotV = clamp(abs(dot(n, v)), 0.001, 1.0);\n"
+            "    float NdotH = clamp(dot(n, h), 0.0, 1.0);\n"
+            "    float LdotH = clamp(dot(l, h), 0.0, 1.0);\n"
+            "    float VdotH = clamp(dot(v, h), 0.0, 1.0);\n"
+            "    PBRInfo pbrInputs = PBRInfo(NdotL, NdotV, NdotH, LdotH, VdotH, perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90, alphaRoughness, diffuseColor, specularColor);\n"
+            "    vec3 F = specularReflection(pbrInputs);\n"
+            "    float G = geometricOcclusion(pbrInputs);\n"
+            "    float D = microfacetDistribution(pbrInputs);\n"
+            "    vec3 diffuseContrib = (1.0 - F) * diffuse(pbrInputs);\n"
+            "    vec3 specContrib = F * G * D / (4.0 * NdotL * NdotV);\n"
+            "    nl = NdotL;\n"
+            "    diff = diffuseContrib;\n"
+            "    spec = specContrib;\n"
+            "}\n"
+            "void calcDiffuseSpecular(vec3 baseColor, float metallic, inout vec3 diffuseColor, inout vec3 specularColor)\n"
+            "{\n"
+            "    vec3 f0 = vec3(0.04);\n"
+            "    diffuseColor = baseColor * (vec3(1.0) - f0);\n"
+            "    diffuseColor *= 1.0 - metallic;\n"
+            "    specularColor = mix(f0, baseColor, metallic);\n"
+            "}\n"
+            "vec3 pbrBaseLight(vec3 diffuseColor, vec3 specularColor, float metallic, vec3 v, vec3 norm, float perceptualRoughness, vec3 light_dir, vec3 sunlit, float scol, vec3 radiance, vec3 irradiance, vec3 colorEmissive, float ao, vec3 additive, vec3 atten)\n"
+            "{\n"
+            "    vec3 color = vec3(0.0);\n"
+            "    float NdotV = clamp(abs(dot(norm, v)), 0.001, 1.0);\n"
+            "    vec3 iblDiff = vec3(0.0);\n"
+            "    vec3 iblSpec = vec3(0.0);\n"
+            "    pbrIbl(diffuseColor, specularColor, radiance, irradiance, ao, NdotV, perceptualRoughness, iblDiff, iblSpec);\n"
+            "    color += iblDiff;\n"
+            "    float nl = 0.0;\n"
+            "    vec3 diffPunc = vec3(0.0);\n"
+            "    vec3 specPunc = vec3(0.0);\n"
+            "    pbrPunctual(diffuseColor, specularColor, perceptualRoughness, metallic, norm, v, normalize(light_dir), nl, diffPunc, specPunc);\n"
+            "    color += clamp(nl * (diffPunc + specPunc), vec3(0.0), vec3(10.0)) * sunlit * 3.0 * scol;\n"
+            "    color.rgb += iblSpec.rgb;\n"
+            "    color += colorEmissive;\n"
+            "    return color;\n"
+            "}\n" :
+            "void calcDiffuseSpecular(vec3 baseColor, float metallic, inout vec3 diffuseColor, inout vec3 specularColor)\n"
+            "{\n"
+            "    diffuseColor = baseColor * (1.0 - metallic);\n"
+            "    specularColor = mix(vec3(0.04), baseColor, metallic);\n"
+            "}\n"
+            "vec3 pbrBaseLight(vec3 diffuseColor, vec3 specularColor, float metallic, vec3 pos, vec3 norm, float perceptualRoughness, vec3 light_dir, vec3 sunlit, float scol, vec3 radiance, vec3 irradiance, vec3 colorEmissive, float ao, vec3 additive, vec3 atten)\n"
+            "{\n"
+            "    return diffuseColor * irradiance + colorEmissive;\n"
+            "}\n";
+    const std::string ssr_function_block =
+        pbr_ssr_case ?
+            "uniform sampler2D sceneMap;\n"
+            "uniform sampler2D sceneDepth;\n"
+            "uniform mat4 projection_matrix;\n"
+            "uniform mat4 modelview_delta;\n"
+            "uniform mat4 inv_modelview_delta;\n"
+            "uniform float iterationCount;\n"
+            "uniform float rayStep;\n"
+            "uniform float distanceBias;\n"
+            "uniform float depthRejectBias;\n"
+            "uniform float glossySampleCount;\n"
+            "uniform float adaptiveStepMultiplier;\n"
+            "float random(vec2 uv)\n"
+            "{\n"
+            "    return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453123);\n"
+            "}\n"
+            "vec3 getPoissonSample(int i)\n"
+            "{\n"
+            "    return vec3(0.0866288, -0.7755692, -0.4997218);\n"
+            "}\n"
+            "vec2 generateProjectedPosition(vec3 pos)\n"
+            "{\n"
+            "    vec4 samplePosition = projection_matrix * vec4(pos, 1.0);\n"
+            "    samplePosition.xy = (samplePosition.xy / samplePosition.w) * 0.5 + 0.5;\n"
+            "    return samplePosition.xy;\n"
+            "}\n"
+            "float getLinearDepth(vec2 tc)\n"
+            "{\n"
+            "    float depth = texture(sceneDepth, tc).r;\n"
+            "    vec4 pos = getPositionWithDepth(tc, depth);\n"
+            "    return -pos.z;\n"
+            "}\n"
+            "bool traceScreenRay(vec3 position, vec3 reflection, out vec4 hitColor, out float hitDepth, float depth, sampler2D textureFrame)\n"
+            "{\n"
+            "    reflection += position;\n"
+            "    position = (inv_modelview_delta * vec4(position, 1.0)).xyz;\n"
+            "    reflection = (inv_modelview_delta * vec4(reflection, 1.0)).xyz;\n"
+            "    reflection -= position;\n"
+            "    depth = -position.z;\n"
+            "    vec3 step = rayStep * reflection;\n"
+            "    vec3 marchingPosition = position + step;\n"
+            "    float delta = 0.0;\n"
+            "    float depthFromScreen = 0.0;\n"
+            "    vec2 screenPosition = vec2(0.0);\n"
+            "    bool hit = false;\n"
+            "    hitColor = vec4(0.0);\n"
+            "    int i = 0;\n"
+            "    if (depth > depthRejectBias)\n"
+            "    {\n"
+            "        for (; i < int(iterationCount) && !hit; ++i)\n"
+            "        {\n"
+            "            screenPosition = generateProjectedPosition(marchingPosition);\n"
+            "            if (screenPosition.x > 1.0 || screenPosition.x < 0.0 || screenPosition.y > 1.0 || screenPosition.y < 0.0)\n"
+            "            {\n"
+            "                hit = false;\n"
+            "                break;\n"
+            "            }\n"
+            "            depthFromScreen = getLinearDepth(screenPosition);\n"
+            "            delta = abs(marchingPosition.z) - depthFromScreen;\n"
+            "            if (depth < depthFromScreen + 0.1 && depth > depthFromScreen - 0.1)\n"
+            "            {\n"
+            "                break;\n"
+            "            }\n"
+            "            if (abs(delta) < distanceBias)\n"
+            "            {\n"
+            "                hitColor = texture(sceneMap, screenPosition);\n"
+            "                hitDepth = depthFromScreen;\n"
+            "                hit = true;\n"
+            "                break;\n"
+            "            }\n"
+            "            if (delta > 0.0)\n"
+            "            {\n"
+            "                break;\n"
+            "            }\n"
+            "            float directionSign = sign(abs(marchingPosition.z) - depthFromScreen);\n"
+            "            step = step * (1.0 - rayStep * max(directionSign, 0.0));\n"
+            "            marchingPosition += step * (-directionSign);\n"
+            "            step *= adaptiveStepMultiplier;\n"
+            "        }\n"
+            "        for (; i < int(iterationCount) && !hit; ++i)\n"
+            "        {\n"
+            "            step *= 0.5;\n"
+            "            marchingPosition = marchingPosition - step * sign(delta);\n"
+            "            screenPosition = generateProjectedPosition(marchingPosition);\n"
+            "            if (screenPosition.x > 1.0 || screenPosition.x < 0.0 || screenPosition.y > 1.0 || screenPosition.y < 0.0)\n"
+            "            {\n"
+            "                hit = false;\n"
+            "                break;\n"
+            "            }\n"
+            "            depthFromScreen = getLinearDepth(screenPosition);\n"
+            "            delta = abs(marchingPosition.z) - depthFromScreen;\n"
+            "            if (depth < depthFromScreen + 0.1 && depth > depthFromScreen - 0.1)\n"
+            "            {\n"
+            "                break;\n"
+            "            }\n"
+            "            if (abs(delta) < distanceBias && depthFromScreen != (depth - distanceBias))\n"
+            "            {\n"
+            "                hitColor = texture(sceneMap, screenPosition);\n"
+            "                hitDepth = depthFromScreen;\n"
+            "                hit = true;\n"
+            "                break;\n"
+            "            }\n"
+            "        }\n"
+            "    }\n"
+            "    return hit;\n"
+            "}\n"
+            "float tapScreenSpaceReflection(int totalSamples, vec2 tc, vec3 viewPos, vec3 n, inout vec4 collectedColor, sampler2D source, float glossiness)\n"
+            "{\n"
+            "    collectedColor = vec4(0.0);\n"
+            "    int hits = 0;\n"
+            "    float depth = -viewPos.z;\n"
+            "    vec3 rayDirection = normalize(reflect(viewPos, normalize(n)));\n"
+            "    vec2 screenpos = 1.0 - abs(tc * 2.0 - 1.0);\n"
+            "    float vignette = clamp((abs(screenpos.x) * abs(screenpos.y)) * 16.0, 0.0, 1.0);\n"
+            "    vignette *= clamp((dot(normalize(viewPos), n) * 0.5 + 0.5) * 5.5 - 0.8, 0.0, 1.0);\n"
+            "    vignette *= clamp(1.0 + (viewPos.z / 128.0), 0.0, 1.0);\n"
+            "    vignette *= clamp(glossiness * 3.0 - 1.7, 0.0, 1.0);\n"
+            "    glossiness = 1.0 - glossiness;\n"
+            "    totalSamples = int(max(glossySampleCount, glossySampleCount * glossiness * vignette));\n"
+            "    totalSamples = max(totalSamples, 1);\n"
+            "    if (glossiness < 0.35 && vignette > 0.0)\n"
+            "    {\n"
+            "        for (int i = 0; i < totalSamples; ++i)\n"
+            "        {\n"
+            "            vec3 firstBasis = normalize(cross(getPoissonSample(i), rayDirection));\n"
+            "            vec3 secondBasis = normalize(cross(rayDirection, firstBasis));\n"
+            "            vec2 coeffs = vec2(random(tc + vec2(0.0, float(i))) + random(tc + vec2(float(i), 0.0)));\n"
+            "            vec3 randomizedDirection = rayDirection + ((firstBasis * coeffs.x + secondBasis * coeffs.y) * glossiness);\n"
+            "            vec4 hitpoint = vec4(0.0);\n"
+            "            float hitDepth = 0.0;\n"
+            "            bool hit = traceScreenRay(viewPos, normalize(randomizedDirection), hitpoint, hitDepth, depth, source);\n"
+            "            hitpoint.a = 0.0;\n"
+            "            if (hit)\n"
+            "            {\n"
+            "                ++hits;\n"
+            "                collectedColor += hitpoint;\n"
+            "                collectedColor.a += 1.0;\n"
+            "            }\n"
+            "        }\n"
+            "        if (hits > 0)\n"
+            "        {\n"
+            "            collectedColor /= float(hits);\n"
+            "        }\n"
+            "        else\n"
+            "        {\n"
+            "            collectedColor = vec4(0.0);\n"
+            "        }\n"
+            "    }\n"
+            "    collectedColor.a = (float(hits) / float(totalSamples)) * vignette;\n"
+            "    return float(hits);\n"
+            "}\n" :
+            "";
+    return
+        "#define HAS_EMISSIVE 1\n"
+        + lightmap_defines +
+        "#define GBUFFER_FLAG_SKIP_ATMOS 0.0\n"
+        "#define GBUFFER_FLAG_HAS_PBR 0.67\n"
+        "#define GBUFFER_FLAG_HAS_HDRI 1.0\n"
+        "#define GET_GBUFFER_FLAG(data, flag) (abs((data) - (flag)) < 0.1)\n"
+        "uniform sampler2D diffuseRect;\n"
+        "uniform sampler2D specularRect;\n"
+        "uniform sampler2D normalMap;\n"
+        "uniform sampler2D emissiveRect;\n"
+        "uniform sampler2D depthMap;\n"
+        "uniform sampler2D brdfLut;\n"
+        "struct GBufferInfo\n"
+        "{\n"
+        "    vec4 albedo;\n"
+        "    vec4 specular;\n"
+        "    vec3 normal;\n"
+        "    vec4 emissive;\n"
+        "    float gbufferFlag;\n"
+        "    float envIntensity;\n"
+        "};\n"
+        "vec3 linear_to_srgb(vec3 c)\n"
+        "{\n"
+        "    bvec3 cutoff = lessThanEqual(c, vec3(0.0031308));\n"
+        "    vec3 low = c * 12.92;\n"
+        "    vec3 high = 1.055 * pow(max(c, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055;\n"
+        "    return mix(high, low, cutoff);\n"
+        "}\n"
+        "vec3 srgb_to_linear(vec3 c)\n"
+        "{\n"
+        "    bvec3 cutoff = lessThanEqual(c, vec3(0.04045));\n"
+        "    vec3 low = c / 12.92;\n"
+        "    vec3 high = pow((c + vec3(0.055)) / 1.055, vec3(2.4));\n"
+        "    return mix(high, low, cutoff);\n"
+        "}\n"
+        "vec3 clampHDRRange(vec3 color)\n"
+        "{\n"
+        "    return clamp(color, vec3(0.0), vec3(11.2));\n"
+        "}\n"
+        "float getDepth(vec2 pos_screen)\n"
+        "{\n"
+        "    return texture(depthMap, pos_screen).r;\n"
+        "}\n"
+        "vec4 getPositionWithDepth(vec2 pos_screen, float depth)\n"
+        "{\n"
+        "    vec2 ndc = pos_screen * 2.0 - 1.0;\n"
+        "    return vec4(ndc.xy, depth * 2.0 - 1.0, 1.0);\n"
+        "}\n"
+        "vec4 getNorm(vec2 pos_screen)\n"
+        "{\n"
+        "    vec4 encoded = texture(normalMap, pos_screen);\n"
+        "    vec3 normal = normalize(encoded.rgb * 2.0 - 1.0);\n"
+        "    return vec4(normal, encoded.a);\n"
+        "}\n"
+        "GBufferInfo getGBuffer(vec2 screenpos)\n"
+        "{\n"
+        "    GBufferInfo gb;\n"
+        "    gb.albedo = texture(diffuseRect, screenpos);\n"
+        "    gb.specular = texture(specularRect, screenpos);\n"
+        "    vec4 normal_info = texture(normalMap, screenpos);\n"
+        "    gb.normal = normalize(normal_info.rgb * 2.0 - 1.0);\n"
+        "    gb.emissive = texture(emissiveRect, screenpos);\n"
+        "    gb.gbufferFlag = normal_info.a;\n"
+        "    gb.envIntensity = "
+        + std::string(legacy_env_case ? "gb.albedo.a" : "0.0") +
+        ";\n"
+        "    return gb;\n"
+        "}\n"
+        + atmos_function +
+        ssr_function_block +
+        "vec3 atmosFragLightingLinear(vec3 l, vec3 additive, vec3 atten) { return l * atten + additive; }\n"
+        "vec3 scaleSoftClipFragLinear(vec3 l) { return l; }\n"
+        "void sampleReflectionProbes(inout vec3 ambenv, inout vec3 glossenv, vec2 tc, vec3 pos, vec3 norm, float glossiness, bool transparent, vec3 amblit_linear)\n"
+        "{\n"
+        "    ambenv = "
+        + std::string((pbr_probe_case || pbr_ssr_case) ? "vec3(1.0, 0.5019608, 0.1647059)" : "amblit_linear") +
+        ";\n"
+        "    glossenv = "
+        + std::string((pbr_probe_case || pbr_ssr_case) ? "vec3(0.1882353, 0.5176471, 1.0)" : "vec3(0.0)") +
+        ";\n"
+        + std::string(
+            pbr_ssr_case ?
+            "    vec4 ssr = vec4(0.0);\n"
+            "    tapScreenSpaceReflection(1, tc, pos, norm, ssr, sceneMap, glossiness);\n"
+            "    glossenv = mix(glossenv, ssr.rgb, ssr.a);\n" :
+            "") +
+        "}\n"
+        "void sampleReflectionProbesLegacy(inout vec3 ambenv, inout vec3 glossenv, inout vec3 legacyenv, vec2 tc, vec3 pos, vec3 norm, float glossiness, float envIntensity, bool transparent, vec3 amblit_linear)\n"
+        "{\n"
+        "    ambenv = amblit_linear;\n"
+        "    glossenv = vec3(0.0);\n"
+        "    legacyenv = "
+        + std::string(legacy_env_case ? "vec3(0.62)" : "vec3(0.0)") +
+        ";\n"
+        "}\n"
+        "void applyGlossEnv(inout vec3 color, vec3 glossenv, vec4 spec, vec3 pos, vec3 norm) {}\n"
+        "void applyLegacyEnv(inout vec3 color, vec3 legacyenv, vec4 spec, vec3 pos, vec3 norm, float envIntensity)\n"
+        "{\n"
+        "    vec3 reflected_color = legacyenv;\n"
+        "    vec3 lookAt = normalize(pos);\n"
+        "    float fresnel = 1.0 + dot(lookAt, norm.xyz);\n"
+        "    fresnel *= fresnel;\n"
+        "    fresnel = min(fresnel + envIntensity, 1.0);\n"
+        "    reflected_color *= envIntensity * fresnel;\n"
+        "    color = mix(color.rgb, reflected_color * 0.5, envIntensity);\n"
+        "}\n"
+        "void calcHalfVectors(vec3 lv, vec3 n, vec3 v, out vec3 h, out vec3 l, out float nh, out float nl, out float nv, out float vh, out float lightDist)\n"
+        "{\n"
+        "    l = normalize(lv);\n"
+        "    h = normalize(l + v);\n"
+        "    nh = max(dot(n, h), 0.0);\n"
+        "    nl = max(dot(n, l), 0.0);\n"
+        "    nv = max(dot(n, v), 0.0);\n"
+        "    vh = max(dot(v, h), 0.0001);\n"
+        "    lightDist = 1.0;\n"
+        "}\n"
+        + pbr_function_block;
+}
+
+bool render_opengl_soften_skip_atmos_reference_ppm(
+    LLRenderBackend& backend,
+    const std::string& path,
+    U32 width,
+    U32 height,
+    SmokeSoftenSourceReferenceCase reference_case =
+        SmokeSoftenSourceReferenceCase::SkipAtmos)
+{
+    const char* reference_label =
+        get_soften_source_reference_label(reference_case);
+    U32 vertex_shader = 0;
+    U32 fragment_shader = 0;
+    U32 program = 0;
+    LLRenderTextureHandle diffuse_texture;
+    LLRenderTextureHandle specular_texture;
+    LLRenderTextureHandle normal_texture;
+    LLRenderTextureHandle emissive_texture;
+    LLRenderTextureHandle depth_texture;
+    LLRenderTextureHandle light_map_texture;
+    LLRenderTextureHandle light_func_texture;
+    LLRenderTextureHandle brdf_lut_texture;
+    LLRenderTextureHandle scene_color_texture;
+    LLRenderTextureHandle scene_depth_texture;
+    LLRenderVertexArrayHandle vertex_array;
+    SmokeQuad quad;
+
+    auto cleanup = [&]()
+    {
+        backend.useProgram(0);
+        if (quad.mVertexBuffer)
+        {
+            backend.deleteBufferHandle(quad.mVertexBuffer);
+            quad.mVertexBuffer = {};
+        }
+        if (vertex_array)
+        {
+            backend.bindVertexArray(0);
+            vertex_array = {};
+        }
+        LLRenderTextureHandle* textures[] =
+        {
+            &diffuse_texture,
+            &specular_texture,
+            &normal_texture,
+            &emissive_texture,
+            &depth_texture,
+            &light_map_texture,
+            &light_func_texture,
+            &brdf_lut_texture,
+            &scene_color_texture,
+            &scene_depth_texture,
+        };
+        for (LLRenderTextureHandle* texture : textures)
+        {
+            if (*texture)
+            {
+                backend.deleteTextureHandle(*texture);
+                *texture = {};
+            }
+        }
+        if (program)
+        {
+            if (vertex_shader)
+            {
+                backend.detachShader(program, vertex_shader);
+            }
+            if (fragment_shader)
+            {
+                backend.detachShader(program, fragment_shader);
+            }
+            backend.deleteProgram(program);
+            program = 0;
+        }
+        if (vertex_shader)
+        {
+            backend.deleteShader(vertex_shader);
+            vertex_shader = 0;
+        }
+        if (fragment_shader)
+        {
+            backend.deleteShader(fragment_shader);
+            fragment_shader = 0;
+        }
+    };
+
+    if (!compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class2/deferred/softenLightV.glsl",
+            LLRenderShaderStage::Vertex,
+            vertex_shader,
+            get_opengl_haze_vertex_prefix()) ||
+        !compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class3/deferred/softenLightF.glsl",
+            LLRenderShaderStage::Fragment,
+            fragment_shader,
+            get_opengl_soften_skip_atmos_fragment_prefix(reference_case)))
+    {
+        cleanup();
+        return false;
+    }
+
+    program = backend.createProgram();
+    if (!program)
+    {
+        cleanup();
+        return false;
+    }
+    backend.attachShader(program, vertex_shader);
+    backend.attachShader(program, fragment_shader);
+    backend.bindAttributeLocation(program, 0, "position");
+    backend.linkProgram(program);
+    const std::string link_label =
+        std::string("OpenGL soften ") + reference_label + " reference";
+    if (log_program_link_failure(backend, program, link_label.c_str()))
+    {
+        cleanup();
+        return false;
+    }
+
+    if (!create_smoke_texture(
+            backend,
+            diffuse_texture,
+            width,
+            height,
+            make_soften_reference_diffuse_pixels(
+                width,
+                height,
+                reference_case)) ||
+        !create_smoke_texture(
+            backend,
+            specular_texture,
+            width,
+            height,
+            make_soften_reference_specular_pixels(
+                width,
+                height,
+                reference_case)) ||
+        !create_smoke_texture(
+            backend,
+            normal_texture,
+            width,
+            height,
+            make_soften_reference_normal_pixels(
+                width,
+                height,
+                reference_case)) ||
+        !create_smoke_texture(
+            backend,
+            emissive_texture,
+            width,
+            height,
+            make_soften_reference_emissive_pixels(
+                width,
+                height,
+                reference_case)) ||
+        !create_smoke_texture(
+            backend,
+            depth_texture,
+            width,
+            height,
+            make_soften_reference_depth_pixels(
+                width,
+                height,
+                reference_case)) ||
+        !create_smoke_texture(
+            backend,
+            light_map_texture,
+            width,
+            height,
+            make_soften_reference_lightmap_pixels(
+                width,
+                height,
+                reference_case)) ||
+        !create_smoke_texture(
+            backend,
+            light_func_texture,
+            4,
+            4,
+            make_solid_rgba_pixels(4, 4, 255, 255, 255, 255)) ||
+        !create_smoke_texture(
+            backend,
+            brdf_lut_texture,
+            4,
+            4,
+            make_solid_rgba_pixels(4, 4, 255, 255, 255, 255)) ||
+        (reference_case == SmokeSoftenSourceReferenceCase::PbrSSR &&
+            (!create_smoke_texture(
+                backend,
+                scene_color_texture,
+                width,
+                height,
+                make_smoke_ssr_scene_color_pixels(width, height, true)) ||
+            !create_smoke_texture(
+                backend,
+                scene_depth_texture,
+                width,
+                height,
+                make_solid_rgba_pixels(width, height, 0, 0, 0, 255)))) ||
+        !create_smoke_quad(backend, quad))
+    {
+        cleanup();
+        return false;
+    }
+
+    vertex_array = backend.createVertexArrayHandle();
+    if (!vertex_array)
+    {
+        cleanup();
+        return false;
+    }
+    backend.bindVertexArray(vertex_array);
+
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(0.f, 0.f, 0.f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setDepthWriteEnabled(false);
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+
+    backend.useProgram(program);
+    const auto set_int_uniform = [&](const char* name, S32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformInteger(location, value);
+        }
+    };
+    const auto set_float_uniform = [&](const char* name, F32 value)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat(location, value);
+        }
+    };
+    const auto set_vec2_uniform = [&](const char* name, F32 x, F32 y)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat2(location, x, y);
+        }
+    };
+    const auto set_vec3_uniform = [&](const char* name, F32 x, F32 y, F32 z)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat3(location, x, y, z);
+        }
+    };
+    const auto set_vec4_uniform = [&](const char* name, F32 x, F32 y, F32 z, F32 w)
+    {
+        const S32 location = backend.getUniformLocation(program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat4(location, x, y, z, w);
+        }
+    };
+
+    set_int_uniform("diffuseRect", 0);
+    set_int_uniform("specularRect", 1);
+    set_int_uniform("normalMap", 2);
+    set_int_uniform("emissiveRect", 3);
+    set_int_uniform("depthMap", 4);
+    set_int_uniform("lightFunc", 5);
+    set_int_uniform("lightMap", 6);
+    set_int_uniform("brdfLut", 7);
+    if (reference_case == SmokeSoftenSourceReferenceCase::PbrSSR)
+    {
+        set_int_uniform("sceneMap", 8);
+        set_int_uniform("sceneDepth", 9);
+    }
+    set_int_uniform("sun_up_factor", 1);
+    set_int_uniform(
+        "classic_mode",
+        reference_case == SmokeSoftenSourceReferenceCase::LegacyLightMap ?
+            1 :
+            0);
+    set_float_uniform("ssao_irradiance_scale", 0.6f);
+    set_float_uniform("ssao_irradiance_max", 0.18f);
+    set_float_uniform(
+        "sky_hdr_scale",
+        reference_case == SmokeSoftenSourceReferenceCase::SkipAtmos ? 1.45f : 1.f);
+    set_float_uniform("blur_size", 1.4f);
+    set_float_uniform("blur_fidelity", 4.f);
+    set_float_uniform("iterationCount", 8.f);
+    set_float_uniform("rayStep", 0.1f);
+    set_float_uniform("distanceBias", 10.f);
+    set_float_uniform("depthRejectBias", 0.f);
+    set_float_uniform("glossySampleCount", 1.f);
+    set_float_uniform("adaptiveStepMultiplier", 1.25f);
+    set_vec2_uniform("screen_res", static_cast<F32>(width), static_cast<F32>(height));
+    if (is_soften_gbuffer_reference_case(reference_case))
+    {
+        set_vec3_uniform("sun_dir", 0.f, 0.f, 1.f);
+        set_vec3_uniform("moon_dir", 0.f, 0.f, 1.f);
+    }
+    else
+    {
+        set_vec3_uniform("sun_dir", 0.35f, 0.45f, 0.82f);
+        set_vec3_uniform("moon_dir", -0.25f, -0.15f, 0.95f);
+    }
+    set_vec4_uniform("waterPlane", 0.f, 0.f, 1.f, 1.f);
+    set_vec4_uniform("clipPlane", 0.f, 0.f, 0.f, 0.f);
+    const glm::mat4 identity4(1.f);
+    const glm::mat3 identity3(1.f);
+    const S32 inv_proj_location = backend.getUniformLocation(program, "inv_proj");
+    if (inv_proj_location >= 0)
+    {
+        backend.setUniformMatrix4(
+            inv_proj_location,
+            1,
+            false,
+            glm::value_ptr(identity4));
+    }
+    const S32 projection_location =
+        backend.getUniformLocation(program, "projection_matrix");
+    if (projection_location >= 0)
+    {
+        backend.setUniformMatrix4(
+            projection_location,
+            1,
+            false,
+            glm::value_ptr(identity4));
+    }
+    const S32 modelview_delta_location =
+        backend.getUniformLocation(program, "modelview_delta");
+    if (modelview_delta_location >= 0)
+    {
+        backend.setUniformMatrix4(
+            modelview_delta_location,
+            1,
+            false,
+            glm::value_ptr(identity4));
+    }
+    const S32 inv_modelview_delta_location =
+        backend.getUniformLocation(program, "inv_modelview_delta");
+    if (inv_modelview_delta_location >= 0)
+    {
+        backend.setUniformMatrix4(
+            inv_modelview_delta_location,
+            1,
+            false,
+            glm::value_ptr(identity4));
+    }
+    const S32 env_mat_location = backend.getUniformLocation(program, "env_mat");
+    if (env_mat_location >= 0)
+    {
+        backend.setUniformMatrix3(
+            env_mat_location,
+            1,
+            false,
+            glm::value_ptr(identity3));
+    }
+    const S32 ssao_mat_location = backend.getUniformLocation(program, "ssao_effect_mat");
+    if (ssao_mat_location >= 0)
+    {
+        backend.setUniformMatrix3(
+            ssao_mat_location,
+            1,
+            false,
+            glm::value_ptr(identity3));
+    }
+
+    const std::array<std::pair<S32, LLRenderTextureHandle>, 8> bindings =
+    {{
+        { 0, diffuse_texture },
+        { 1, specular_texture },
+        { 2, normal_texture },
+        { 3, emissive_texture },
+        { 4, depth_texture },
+        { 5, light_func_texture },
+        { 6, light_map_texture },
+        { 7, brdf_lut_texture },
+    }};
+    for (const auto& binding : bindings)
+    {
+        backend.setActiveTextureUnit(binding.first);
+        backend.bindTexture(LLRenderTextureTarget::Texture2D, binding.second);
+        backend.setTextureFilter(
+            LLRenderTextureTarget::Texture2D,
+            binding.first == 0 || binding.first == 3 || binding.first == 5 ?
+                LLRenderTextureFilter::Linear :
+                LLRenderTextureFilter::Nearest,
+            binding.first == 0 || binding.first == 3 || binding.first == 5 ?
+                LLRenderTextureFilter::Linear :
+                LLRenderTextureFilter::Nearest);
+        backend.setTextureAddressMode(
+            LLRenderTextureTarget::Texture2D,
+            LLRenderTextureAddressMode::ClampToEdge);
+    }
+    if (reference_case == SmokeSoftenSourceReferenceCase::PbrSSR)
+    {
+        const std::array<std::pair<S32, LLRenderTextureHandle>, 2> ssr_bindings =
+        {{
+            { 8, scene_color_texture },
+            { 9, scene_depth_texture },
+        }};
+        for (const auto& binding : ssr_bindings)
+        {
+            backend.setActiveTextureUnit(binding.first);
+            backend.bindTexture(LLRenderTextureTarget::Texture2D, binding.second);
+            backend.setTextureFilter(
+                LLRenderTextureTarget::Texture2D,
+                LLRenderTextureFilter::Nearest,
+                LLRenderTextureFilter::Nearest);
+            backend.setTextureAddressMode(
+                LLRenderTextureTarget::Texture2D,
+                LLRenderTextureAddressMode::ClampToEdge);
+        }
+    }
+    backend.setActiveTextureUnit(0);
+    bind_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    std::vector<U8> rgba_pixels;
+    rgba_pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
+    backend.readPixels(
+        0,
+        0,
+        static_cast<S32>(width),
+        static_cast<S32>(height),
+        LLRenderPixelFormat::RGBA,
+        LLRenderPixelType::UnsignedByte,
+        rgba_pixels.data());
+
+    bool result = write_rgba_readback_as_rgb_ppm(path, width, height, rgba_pixels);
+    if (result)
+    {
+        std::cout
+            << "Wrote Mare smoke OpenGL soften "
+            << reference_label
+            << " source-reference PPM to "
             << path
             << " at "
             << width
@@ -8321,6 +11958,316 @@ bool draw_smoke_deferred_soften_stage(
         reflection_probe_resources,
         ssr_resources);
     return true;
+}
+
+void bind_smoke_deferred_soften_graph_textures(
+    LLRenderBackend& backend,
+    const SmokeSoftenSkipAtmosResources& inputs,
+    LLRenderTextureHandle light_map_texture,
+    const SmokeDeferredTextures& material_textures,
+    const SmokeReflectionProbeResources* reflection_probe_resources = nullptr,
+    const SmokeSSRResources* ssr_resources = nullptr)
+{
+    const LLRenderTextureHandle bindings[] =
+    {
+        inputs.mDiffuse,
+        inputs.mSpecular,
+        inputs.mNormal,
+        inputs.mEmissive,
+        inputs.mDepth,
+        light_map_texture ? light_map_texture : material_textures.mWhite,
+        material_textures.mCubeWhite,
+    };
+    const LLRenderTextureTarget targets[] =
+    {
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureTarget::TextureCubeMap,
+    };
+    const S32 binding_count =
+        static_cast<S32>(sizeof(bindings) / sizeof(bindings[0]));
+    for (S32 unit = 0; unit < binding_count; ++unit)
+    {
+        backend.setActiveTextureUnit(unit);
+        backend.bindTexture(targets[unit], bindings[unit]);
+        const bool linear_filter =
+            unit == 0 || unit == 3 || unit == 5;
+        backend.setTextureFilter(
+            targets[unit],
+            linear_filter ?
+                LLRenderTextureFilter::Linear :
+                LLRenderTextureFilter::Nearest,
+            linear_filter ?
+                LLRenderTextureFilter::Linear :
+                LLRenderTextureFilter::Nearest);
+    }
+
+    if (reflection_probe_resources)
+    {
+        backend.setActiveTextureUnit(7);
+        backend.bindTexture(
+            LLRenderTextureTarget::TextureCubeMapArray,
+            reflection_probe_resources->mReflectionCubeArray);
+        backend.setActiveTextureUnit(8);
+        backend.bindTexture(
+            LLRenderTextureTarget::TextureCubeMapArray,
+            reflection_probe_resources->mIrradianceCubeArray);
+        backend.setActiveTextureUnit(9);
+        backend.bindTexture(
+            LLRenderTextureTarget::TextureCubeMapArray,
+            reflection_probe_resources->mHeroCubeArray);
+        backend.bindBufferBase(
+            LLRenderBufferTarget::Uniform,
+            LLGLSLShader::UB_REFLECTION_PROBES,
+            reflection_probe_resources->mProbeUniformBuffer);
+    }
+    else
+    {
+        for (S32 unit = 7; unit <= 9; ++unit)
+        {
+            gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_TEXTURE);
+            gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_CUBE_MAP);
+        }
+    }
+
+    backend.setActiveTextureUnit(10);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, material_textures.mWhite);
+    backend.setActiveTextureUnit(11);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, material_textures.mWhite);
+    backend.setActiveTextureUnit(12);
+    backend.bindTexture(
+        LLRenderTextureTarget::Texture2D,
+        ssr_resources && ssr_resources->mSceneColor ?
+            ssr_resources->mSceneColor :
+            inputs.mDiffuse);
+    backend.setActiveTextureUnit(13);
+    backend.bindTexture(
+        LLRenderTextureTarget::Texture2D,
+        ssr_resources && ssr_resources->mSceneDepth ?
+            ssr_resources->mSceneDepth :
+            inputs.mDepth);
+    backend.setActiveTextureUnit(0);
+}
+
+void unbind_smoke_deferred_soften_graph_textures(LLRenderBackend& backend)
+{
+    for (S32 unit = 0; unit <= 13; ++unit)
+    {
+        gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_TEXTURE);
+        gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_CUBE_MAP);
+    }
+    backend.bindBufferBase(
+        LLRenderBufferTarget::Uniform,
+        LLGLSLShader::UB_REFLECTION_PROBES,
+        LLRenderBufferHandle());
+    backend.setActiveTextureUnit(0);
+}
+
+bool draw_smoke_deferred_soften_graph_stage(
+    LLRenderBackend& backend,
+    SmokeDeferredGraph& graph,
+    const SmokeSoftenSkipAtmosResources& inputs,
+    const SmokeDeferredTextures& material_textures,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height,
+    const LLRenderWorldMaterialParameters& parameters,
+    const SmokeReflectionProbeResources* reflection_probe_resources = nullptr,
+    const SmokeSSRResources* ssr_resources = nullptr)
+{
+    backend.bindReadWriteFramebuffer(graph.mDeferredFramebuffer);
+    backend.setFramebufferBufferRouting(1);
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(0.f, 0.f, 0.f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR);
+
+    bind_smoke_deferred_soften_graph_textures(
+        backend,
+        inputs,
+        inputs.mLightMap ? inputs.mLightMap : material_textures.mWhite,
+        material_textures,
+        reflection_probe_resources,
+        ssr_resources);
+    set_smoke_fullscreen_world_draw_state(
+        backend,
+        LLRenderWorldShaderClass::DeferredSoften,
+        parameters,
+        width,
+        height);
+    bind_world_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+    reset_smoke_world_draw_state(backend);
+    unbind_smoke_deferred_soften_graph_textures(backend);
+
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    return true;
+}
+
+void bind_smoke_lightmap_shadow_textures(
+    LLRenderBackend& backend,
+    LLRenderTarget& deferred_screen,
+    const SmokeDeferredTextures& material_textures,
+    const SmokeLightMapShadowResources& shadow_resources)
+{
+    if (deferred_screen.getNumTextures() > 2)
+    {
+        deferred_screen.bindTexture(2, 2, LLTexUnit::TFO_POINT);
+    }
+    if (deferred_screen.getDepthHandle())
+    {
+        gGL.getTexUnit(4)->bind(&deferred_screen, true);
+        gGL.getTexUnit(4)->setTextureFilteringOption(LLTexUnit::TFO_POINT);
+    }
+    backend.setActiveTextureUnit(6);
+    backend.bindTexture(
+        LLRenderTextureTarget::Texture2D,
+        material_textures.mWhite);
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Nearest,
+        LLRenderTextureFilter::Nearest);
+
+    for (U32 i = 0; i < shadow_resources.mShadowMaps.size(); ++i)
+    {
+        backend.setActiveTextureUnit(static_cast<S32>(9 + i));
+        backend.bindTexture(
+            LLRenderTextureTarget::Texture2D,
+            shadow_resources.mShadowMaps[i]);
+        backend.setTextureFilter(
+            LLRenderTextureTarget::Texture2D,
+            LLRenderTextureFilter::Nearest,
+            LLRenderTextureFilter::Nearest);
+    }
+    backend.setActiveTextureUnit(0);
+}
+
+void draw_smoke_deferred_lightmap_shadow_quad(
+    LLRenderBackend& backend,
+    LLRenderTarget& deferred_screen,
+    LLRenderTarget& destination,
+    const SmokeDeferredTextures& material_textures,
+    const SmokeLightMapShadowResources& shadow_resources,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    destination.bindTarget();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(1.f, 1.f, 1.f, 1.f);
+    destination.clear(LL_RENDER_CLEAR_COLOR);
+
+    bind_smoke_lightmap_shadow_textures(
+        backend,
+        deferred_screen,
+        material_textures,
+        shadow_resources);
+
+    LLRenderWorldMaterialParameters parameters =
+        make_deferred_lightmap_shadow_probe_parameters(width, height);
+    set_smoke_fullscreen_world_draw_state(
+        backend,
+        LLRenderWorldShaderClass::DeferredLightMap,
+        parameters,
+        width,
+        height);
+    bind_world_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+    reset_smoke_world_draw_state(backend);
+
+    gGL.getTexUnit(2)->unbind(LLTexUnit::TT_TEXTURE);
+    gGL.getTexUnit(4)->unbind(LLTexUnit::TT_TEXTURE);
+    for (S32 unit = 6; unit <= 14; ++unit)
+    {
+        gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_TEXTURE);
+    }
+    backend.setActiveTextureUnit(0);
+    destination.flush();
+}
+
+void bind_smoke_lightmap_ssao_textures(
+    LLRenderBackend& backend,
+    const SmokeLightMapShadowResources& resources)
+{
+    backend.setActiveTextureUnit(2);
+    backend.bindTexture(
+        LLRenderTextureTarget::Texture2D,
+        resources.mSSAONormal);
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Nearest,
+        LLRenderTextureFilter::Nearest);
+    backend.setActiveTextureUnit(4);
+    backend.bindTexture(
+        LLRenderTextureTarget::Texture2D,
+        resources.mSSAODepth);
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Nearest,
+        LLRenderTextureFilter::Nearest);
+    backend.setActiveTextureUnit(6);
+    backend.bindTexture(
+        LLRenderTextureTarget::Texture2D,
+        resources.mSSAONoise);
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Nearest,
+        LLRenderTextureFilter::Nearest);
+
+    for (U32 i = 0; i < resources.mShadowMaps.size(); ++i)
+    {
+        backend.setActiveTextureUnit(static_cast<S32>(9 + i));
+        backend.bindTexture(
+            LLRenderTextureTarget::Texture2D,
+            resources.mShadowMaps[i]);
+        backend.setTextureFilter(
+            LLRenderTextureTarget::Texture2D,
+            LLRenderTextureFilter::Nearest,
+            LLRenderTextureFilter::Nearest);
+    }
+    backend.setActiveTextureUnit(0);
+}
+
+void draw_smoke_deferred_lightmap_ssao_quad(
+    LLRenderBackend& backend,
+    LLRenderTarget& destination,
+    const SmokeLightMapShadowResources& resources,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    destination.bindTarget();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(1.f, 1.f, 1.f, 1.f);
+    destination.clear(LL_RENDER_CLEAR_COLOR);
+
+    bind_smoke_lightmap_ssao_textures(backend, resources);
+
+    LLRenderWorldMaterialParameters parameters =
+        make_deferred_lightmap_ssao_probe_parameters(width, height);
+    set_smoke_fullscreen_world_draw_state(
+        backend,
+        LLRenderWorldShaderClass::DeferredLightMap,
+        parameters,
+        width,
+        height);
+    bind_world_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+    reset_smoke_world_draw_state(backend);
+
+    for (S32 unit : { 2, 4, 6, 9, 10, 11, 12, 13, 14 })
+    {
+        gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_TEXTURE);
+    }
+    backend.setActiveTextureUnit(0);
+    destination.flush();
 }
 
 void draw_smoke_deferred_lightmap_blur_quad(
@@ -9501,6 +13448,492 @@ bool render_viewer_deferred_lightmap_blur_probe_frame(
     return true;
 }
 
+bool render_viewer_deferred_lightmap_shadow_probe_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& material_textures,
+    SmokeViewerRenderTargetGraph& graph,
+    SmokeLightMapShadowResources& shadow_resources,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    if (!ensure_smoke_deferred_textures(backend, material_textures))
+    {
+        return false;
+    }
+
+    const U32 graph_width = llmax(64U, llmin(width, 960U));
+    const U32 graph_height = llmax(
+        64U,
+        llmin(
+            height,
+            static_cast<U32>(
+                static_cast<double>(graph_width) *
+                static_cast<double>(height) /
+                static_cast<double>(llmax(1U, width)))));
+
+    if (!ensure_smoke_viewer_render_target_graph(
+            backend,
+            graph,
+            graph_width,
+            graph_height,
+            4,
+            true))
+    {
+        return false;
+    }
+    if (!ensure_smoke_lightmap_shadow_resources(
+            backend,
+            shadow_resources,
+            4,
+            4))
+    {
+        return false;
+    }
+
+    graph.mDeferredScreen.bindTarget();
+    backend.setViewport(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setScissor(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setClearColor(0.f, 0.f, 0.f, 0.f);
+    graph.mDeferredScreen.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    draw_deferred_color_compare_gbuffer_scene(
+        backend,
+        material_textures,
+        quad,
+        graph_width,
+        graph_height);
+    graph.mDeferredScreen.flush();
+
+    log_deferred_lightmap_shadow_probe_reference();
+    draw_smoke_deferred_lightmap_shadow_quad(
+        backend,
+        graph.mDeferredScreen,
+        graph.mDeferredLight,
+        material_textures,
+        shadow_resources,
+        quad,
+        graph_width,
+        graph_height);
+
+    copy_smoke_target_to_swapchain(
+        backend,
+        graph.mDeferredLight,
+        quad,
+        width,
+        height);
+    return true;
+}
+
+bool render_viewer_deferred_lightmap_ssao_probe_frame(
+    LLRenderBackend& backend,
+    SmokeViewerRenderTargetGraph& graph,
+    SmokeLightMapShadowResources& resources,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    const U32 graph_width = llmax(64U, width);
+    const U32 graph_height = llmax(64U, height);
+
+    if (!ensure_smoke_viewer_render_target_graph(
+            backend,
+            graph,
+            graph_width,
+            graph_height,
+            4,
+            true))
+    {
+        return false;
+    }
+    if (!ensure_smoke_lightmap_ssao_resources(
+            backend,
+            resources,
+            graph_width,
+            graph_height))
+    {
+        return false;
+    }
+
+    log_deferred_lightmap_ssao_probe_reference();
+    draw_smoke_deferred_lightmap_ssao_quad(
+        backend,
+        graph.mDeferredLight,
+        resources,
+        quad,
+        graph_width,
+        graph_height);
+
+    copy_smoke_target_to_swapchain(
+        backend,
+        graph.mDeferredLight,
+        quad,
+        width,
+        height);
+    return true;
+}
+
+void bind_smoke_haze_graph_textures(
+    LLRenderBackend& backend,
+    SmokeViewerRenderTargetGraph& graph,
+    const SmokeDeferredTextures& material_textures)
+{
+    bind_world_pipeline_smoke_textures(backend, material_textures);
+    if (graph.mDeferredScreen.getDepthHandle())
+    {
+        gGL.getTexUnit(8)->bind(&graph.mDeferredScreen, true);
+        gGL.getTexUnit(8)->setTextureFilteringOption(LLTexUnit::TFO_POINT);
+    }
+    graph.mDeferredScreen.bindTexture(0, 9, LLTexUnit::TFO_BILINEAR);
+    backend.setActiveTextureUnit(0);
+}
+
+void unbind_smoke_haze_graph_textures(LLRenderBackend& backend)
+{
+    for (S32 unit = 0; unit <= 12; ++unit)
+    {
+        gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_TEXTURE);
+        gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_CUBE_MAP);
+    }
+    backend.setActiveTextureUnit(0);
+}
+
+bool render_viewer_deferred_haze_probe_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& material_textures,
+    SmokeViewerRenderTargetGraph& graph,
+    const SmokeQuad& quad,
+    SmokeScene scene,
+    U32 width,
+    U32 height)
+{
+    if (!ensure_smoke_deferred_textures(backend, material_textures))
+    {
+        return false;
+    }
+
+    const U32 graph_width = llmax(64U, llmin(width, 960U));
+    const U32 graph_height = llmax(
+        64U,
+        llmin(
+            height,
+            static_cast<U32>(
+                static_cast<double>(graph_width) *
+                static_cast<double>(height) /
+                static_cast<double>(llmax(1U, width)))));
+
+    if (!ensure_smoke_viewer_render_target_graph(
+            backend,
+            graph,
+            graph_width,
+            graph_height,
+            4,
+            true))
+    {
+        return false;
+    }
+
+    graph.mDeferredScreen.bindTarget();
+    backend.setViewport(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setScissor(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setClearColor(0.f, 0.f, 0.f, 0.f);
+    graph.mDeferredScreen.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    bind_deferred_graph_material_textures(backend, material_textures);
+    draw_deferred_graph_gbuffer_tiles(
+        backend,
+        material_textures,
+        quad,
+        scene,
+        graph_width,
+        graph_height);
+    graph.mDeferredScreen.flush();
+
+    graph.mDeferredLight.bindTarget();
+    backend.setViewport(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setScissor(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setClearColor(0.015f, 0.018f, 0.024f, 1.f);
+    graph.mDeferredLight.clear(LL_RENDER_CLEAR_COLOR);
+
+    constexpr U32 haze_flags =
+        LLRenderWorldMaterialParameters::AtmosphericHaze |
+        LLRenderWorldMaterialParameters::PostDeferred |
+        LLRenderWorldMaterialParameters::SceneDepth |
+        LLRenderWorldMaterialParameters::SceneColor;
+    const SmokeWorldPipelineEntry entry =
+        { LLRenderWorldShaderClass::Haze, "Haze", 0.72f, 0.78f, 0.86f, haze_flags, true };
+
+    bind_smoke_haze_graph_textures(backend, graph, material_textures);
+    backend.setWorldTextureTransform({});
+    backend.setWorldTerrainParameters(make_world_pipeline_terrain_parameters());
+    backend.setWorldSkinningMatrixPalette(0, nullptr);
+    backend.setWorldDrawEnabled(true);
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Haze);
+    backend.setWorldMaterialParameters(
+        make_world_pipeline_material(
+            entry.mRed,
+            entry.mGreen,
+            entry.mBlue,
+            0.72f,
+            entry.mFlags));
+    apply_smoke_world_pipeline_entry_state(backend, entry);
+    bind_world_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setWorldDrawEnabled(false);
+    backend.setWorldShaderClass(LLRenderWorldShaderClass::Textured);
+    backend.setWorldMaterialParameters({});
+    backend.setWorldTerrainParameters({});
+    backend.setWorldTextureTransform({});
+    backend.setWorldSkinningMatrixPalette(0, nullptr);
+    backend.setAlphaMaskCutoff(-1.f);
+    backend.setColorMask({ true, true, true, true });
+    unbind_smoke_haze_graph_textures(backend);
+    graph.mDeferredLight.flush();
+
+    copy_smoke_target_to_swapchain(
+        backend,
+        graph.mDeferredLight,
+        quad,
+        width,
+        height);
+    return true;
+}
+
+bool render_viewer_deferred_soften_skip_atmos_probe_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& material_textures,
+    SmokeDeferredGraph& graph,
+    SmokeSoftenSkipAtmosResources& inputs,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    if (!ensure_smoke_deferred_textures(backend, material_textures))
+    {
+        return false;
+    }
+
+    const U32 graph_width = llmax(64U, width);
+    const U32 graph_height = llmax(64U, height);
+
+    if (!ensure_smoke_deferred_graph(
+            backend,
+            graph,
+            graph_width,
+            graph_height,
+            4,
+            true))
+    {
+        return false;
+    }
+
+    if (!ensure_smoke_soften_skip_atmos_resources(
+            backend,
+            inputs,
+            graph_width,
+            graph_height))
+    {
+        return false;
+    }
+
+    log_deferred_soften_skip_atmos_probe_reference();
+    const LLRenderWorldMaterialParameters parameters =
+        make_deferred_soften_skip_atmos_probe_parameters(
+            graph_width,
+            graph_height);
+    if (!draw_smoke_deferred_soften_graph_stage(
+            backend,
+            graph,
+            inputs,
+            material_textures,
+            quad,
+            graph_width,
+            graph_height,
+            parameters))
+    {
+        return false;
+    }
+
+    copy_smoke_texture_to_swapchain(
+        backend,
+        graph.mDeferredColor,
+        quad,
+        width,
+        height);
+    return true;
+}
+
+bool render_viewer_deferred_soften_legacy_probe_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& material_textures,
+    SmokeDeferredGraph& graph,
+    SmokeSoftenSkipAtmosResources& inputs,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height,
+    SmokeSoftenSourceReferenceCase reference_case =
+        SmokeSoftenSourceReferenceCase::Legacy,
+    SmokeReflectionProbeResources* reflection_probe_resources = nullptr,
+    SmokeSSRResources* ssr_resources = nullptr)
+{
+    if (!ensure_smoke_deferred_textures(backend, material_textures))
+    {
+        return false;
+    }
+
+    const U32 graph_width = llmax(64U, width);
+    const U32 graph_height = llmax(64U, height);
+
+    if (!ensure_smoke_deferred_graph(
+            backend,
+            graph,
+            graph_width,
+            graph_height,
+            4,
+            true))
+    {
+        return false;
+    }
+
+    if (!ensure_smoke_soften_reference_resources(
+            backend,
+            inputs,
+            graph_width,
+            graph_height,
+            reference_case))
+    {
+        return false;
+    }
+
+    if (is_soften_pbr_reference_case(reference_case))
+    {
+        if (reference_case == SmokeSoftenSourceReferenceCase::PbrBrdf)
+        {
+            log_deferred_soften_pbr_brdf_probe_reference();
+        }
+        else if (reference_case == SmokeSoftenSourceReferenceCase::PbrSSR)
+        {
+            log_deferred_soften_pbr_ssr_probe_reference();
+        }
+        else if (reference_case == SmokeSoftenSourceReferenceCase::PbrProbe)
+        {
+            log_deferred_soften_pbr_probe_reference();
+        }
+        else
+        {
+            log_deferred_soften_pbr_emissive_probe_reference();
+        }
+    }
+    else
+    {
+        log_deferred_soften_legacy_probe_reference(reference_case);
+    }
+    const LLRenderWorldMaterialParameters parameters =
+        reference_case == SmokeSoftenSourceReferenceCase::PbrSSR ?
+            make_deferred_soften_pbr_ssr_probe_parameters(
+                graph_width,
+                graph_height) :
+        reference_case == SmokeSoftenSourceReferenceCase::PbrProbe ?
+            make_deferred_soften_pbr_probe_parameters(
+                graph_width,
+                graph_height) :
+        reference_case == SmokeSoftenSourceReferenceCase::PbrBrdf ?
+            make_deferred_soften_pbr_brdf_probe_parameters(
+                graph_width,
+                graph_height) :
+        is_soften_pbr_reference_case(reference_case) ?
+            make_deferred_soften_pbr_emissive_probe_parameters(
+                graph_width,
+                graph_height) :
+            (reference_case == SmokeSoftenSourceReferenceCase::LegacyLightMap ?
+                make_deferred_soften_legacy_lightmap_probe_parameters(
+                    graph_width,
+                    graph_height) :
+            (reference_case == SmokeSoftenSourceReferenceCase::LegacyEnv ?
+                make_deferred_soften_legacy_env_probe_parameters(
+                    graph_width,
+                    graph_height) :
+            make_deferred_soften_legacy_probe_parameters(
+                graph_width,
+                graph_height)));
+    if (reference_case == SmokeSoftenSourceReferenceCase::PbrProbe ||
+        reference_case == SmokeSoftenSourceReferenceCase::PbrSSR)
+    {
+        if (!reflection_probe_resources ||
+            !ensure_smoke_reflection_probe_resources(
+                backend,
+                *reflection_probe_resources,
+                false))
+        {
+            return false;
+        }
+    }
+    if (reference_case == SmokeSoftenSourceReferenceCase::PbrSSR)
+    {
+        if (!ssr_resources ||
+            !ensure_smoke_ssr_resources(
+                backend,
+                *ssr_resources,
+                graph_width,
+                graph_height,
+                true))
+        {
+            return false;
+        }
+    }
+    if (!draw_smoke_deferred_soften_graph_stage(
+            backend,
+            graph,
+            inputs,
+            material_textures,
+            quad,
+            graph_width,
+            graph_height,
+            parameters,
+            (reference_case == SmokeSoftenSourceReferenceCase::PbrProbe ||
+                reference_case == SmokeSoftenSourceReferenceCase::PbrSSR) ?
+                reflection_probe_resources :
+                nullptr,
+            reference_case == SmokeSoftenSourceReferenceCase::PbrSSR ?
+                ssr_resources :
+                nullptr))
+    {
+        return false;
+    }
+
+    copy_smoke_texture_to_swapchain(
+        backend,
+        graph.mDeferredColor,
+        quad,
+        width,
+        height);
+    return true;
+}
+
 bool render_terrain_final_probe_frame(
     LLRenderBackend& backend,
     SmokeDeferredTextures& material_textures,
@@ -10381,11 +14814,33 @@ int run_opengl_shader_reference_ppm(const SmokeOptions& options)
     if (!options.mShaderCaseExplicit ||
         (shader_case != "copy" &&
             shader_case != "haze" &&
-            shader_case != "alpha"))
+            shader_case != "alpha" &&
+            shader_case != "lightmapshadow" &&
+            shader_case != "lightmapssao" &&
+            shader_case != "lightmapblur" &&
+            shader_case != "softenskipatmos" &&
+            shader_case != "softenlegacy" &&
+            shader_case != "softenlegacyemissive" &&
+            shader_case != "softenpbremissive" &&
+            shader_case != "softenpbrbrdf" &&
+            shader_case != "softenpbrprobe" &&
+            shader_case != "softenpbrssr" &&
+            shader_case != "softenlegacyspecular" &&
+            shader_case != "softenlegacylightmap" &&
+            shader_case != "softenlegacyenv"))
     {
         std::cerr
             << "--opengl-reference-ppm currently supports only "
-            << "--shader-case copy, --shader-case haze, or --shader-case alpha.\n";
+            << "--shader-case copy, --shader-case haze, --shader-case alpha, "
+            << "--shader-case lightmap-shadow, --shader-case lightmap-ssao, "
+            << "--shader-case lightmap-blur, --shader-case "
+            << "soften-skip-atmos, --shader-case soften-legacy, "
+            << "--shader-case soften-legacy-emissive, --shader-case "
+            << "soften-pbr-emissive, --shader-case soften-pbr-brdf, "
+            << "--shader-case soften-pbr-probe, --shader-case "
+            << "soften-pbr-ssr, --shader-case soften-legacy-specular, "
+            << "--shader-case soften-legacy-lightmap, "
+            << "or --shader-case soften-legacy-env.\n";
         return 1;
     }
 
@@ -10463,6 +14918,132 @@ int run_opengl_shader_reference_ppm(const SmokeOptions& options)
                 options.mOpenGLReferencePPMPath,
                 width,
                 height);
+    }
+    else if (shader_case == "lightmapshadow")
+    {
+        rendered =
+            render_opengl_lightmap_shadow_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height);
+    }
+    else if (shader_case == "lightmapssao")
+    {
+        rendered =
+            render_opengl_lightmap_ssao_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height);
+    }
+    else if (shader_case == "lightmapblur")
+    {
+        rendered =
+            render_opengl_lightmap_blur_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height);
+    }
+    else if (shader_case == "softenskipatmos")
+    {
+        rendered =
+            render_opengl_soften_skip_atmos_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height);
+    }
+    else if (shader_case == "softenlegacy")
+    {
+        rendered =
+            render_opengl_soften_skip_atmos_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height,
+                SmokeSoftenSourceReferenceCase::Legacy);
+    }
+    else if (shader_case == "softenlegacyemissive")
+    {
+        rendered =
+            render_opengl_soften_skip_atmos_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height,
+                SmokeSoftenSourceReferenceCase::LegacyEmissive);
+    }
+    else if (shader_case == "softenpbremissive")
+    {
+        rendered =
+            render_opengl_soften_skip_atmos_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height,
+                SmokeSoftenSourceReferenceCase::PbrEmissive);
+    }
+    else if (shader_case == "softenpbrbrdf")
+    {
+        rendered =
+            render_opengl_soften_skip_atmos_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height,
+                SmokeSoftenSourceReferenceCase::PbrBrdf);
+    }
+    else if (shader_case == "softenpbrprobe")
+    {
+        rendered =
+            render_opengl_soften_skip_atmos_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height,
+                SmokeSoftenSourceReferenceCase::PbrProbe);
+    }
+    else if (shader_case == "softenpbrssr")
+    {
+        rendered =
+            render_opengl_soften_skip_atmos_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height,
+                SmokeSoftenSourceReferenceCase::PbrSSR);
+    }
+    else if (shader_case == "softenlegacyspecular")
+    {
+        rendered =
+            render_opengl_soften_skip_atmos_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height,
+                SmokeSoftenSourceReferenceCase::LegacySpecular);
+    }
+    else if (shader_case == "softenlegacylightmap")
+    {
+        rendered =
+            render_opengl_soften_skip_atmos_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height,
+                SmokeSoftenSourceReferenceCase::LegacyLightMap);
+    }
+    else if (shader_case == "softenlegacyenv")
+    {
+        rendered =
+            render_opengl_soften_skip_atmos_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height,
+                SmokeSoftenSourceReferenceCase::LegacyEnv);
     }
     else
     {
@@ -10689,134 +15270,155 @@ int main(int argc, char** argv)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.6978f, 0.5708f, 0.4602f });
+            { 0.7320f, 0.4986f, 0.6722f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.03",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.8549f, 0.7804f, 0.7098f });
+            { 0.8636f, 0.7313f, 0.8019f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredEmissiveProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.7534f, 1.6709f, 0.5703f });
+            { 0.7508f, 0.8675f, 0.7092f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.8824f, 1.0000f, 0.7804f });
+            { 0.8734f, 0.8026f, 0.8257f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredReflectionProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.6040f, 0.6313f, 0.7041f });
+            { 0.6923f, 0.5141f, 0.7521f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.8000f, 0.8157f, 0.8549f });
+            { 0.8429f, 0.7410f, 0.8501f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredRealReflectionProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.3252f, 0.9336f, 2.0098f });
+            { 0.5979f, 0.6165f, 1.1940f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.6039f, 0.9686f, 1.0000f });
+            { 0.7773f, 0.7934f, 0.9007f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredHeroProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.3994f, 1.5303f, 1.4961f });
+            { 0.6231f, 0.8193f, 1.0196f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.6667f, 1.0000f, 1.0000f });
+            { 0.7978f, 0.8051f, 0.8993f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredSSRProbe)
     {
-        unsetenv("MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB");
-        unsetenv("MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE");
-        unsetenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB");
-        unsetenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE");
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
+            { 1.1776f, 0.3669f, 0.6120f });
+        setenv(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
+            "0.05",
+            1);
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 0.9319f, 0.6055f, 0.6643f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredLocalLightProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.8725f, 0.6628f, 0.5037f });
+            { 0.9067f, 0.5907f, 0.7156f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.9347f, 0.8322f, 0.7374f });
+            { 0.9494f, 0.7870f, 0.8232f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredProjectorLightProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.7443f, 0.6649f, 0.6097f });
+            { 0.7785f, 0.5927f, 0.8216f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.8777f, 0.8324f, 0.7935f });
+            { 0.8839f, 0.7881f, 0.8413f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredPointLightVolumeProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.7240f, 0.5697f, 0.4683f });
+            { 0.6440f, 0.3987f, 0.6028f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.8554f, 0.7788f, 0.7139f });
+            { 0.7884f, 0.6551f, 0.7521f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredSpotLightVolumeProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.7217f, 0.6177f, 0.6861f });
+            { 0.6418f, 0.4467f, 0.8208f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.8653f, 0.8027f, 0.7667f });
+            { 0.8004f, 0.6872f, 0.7697f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
+    }
+    else if (options.mMode == SmokeMode::ViewerDeferredLightMapShadowProbe)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 0.0000f, 1.0000f, 1.0000f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.04", 1);
+    }
+    else if (options.mMode == SmokeMode::ViewerDeferredLightMapSSAOProbe)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 1.0000f, 0.8500f, 1.0000f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.20", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredLightMapBlurProbe)
     {
@@ -10830,6 +15432,13 @@ int main(int argc, char** argv)
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
             { 0.4000f, 0.6431f, 0.4902f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.02", 1);
+    }
+    else if (options.mMode == SmokeMode::ViewerDeferredHazeProbe)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 0.0157f, 0.0196f, 0.0235f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.02", 1);
     }
     if (!options.mScreenshotPPMPath.empty())
@@ -10876,7 +15485,20 @@ int main(int argc, char** argv)
         smoke_mode == SmokeMode::ViewerDeferredProjectorLightProbe ||
         smoke_mode == SmokeMode::ViewerDeferredPointLightVolumeProbe ||
         smoke_mode == SmokeMode::ViewerDeferredSpotLightVolumeProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredLightMapShadowProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredLightMapSSAOProbe ||
         smoke_mode == SmokeMode::ViewerDeferredLightMapBlurProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredHazeProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredSoftenSkipAtmosProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyEmissiveProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredSoftenPBREmissiveProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredSoftenPBRBRDFProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredSoftenPBRProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredSoftenPBRSSRProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredSoftenLegacySpecularProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyLightMapProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyEnvProbe ||
         options.mRenderUI ||
         options.mRenderSceneMarker)
     {
@@ -10905,8 +15527,11 @@ int main(int argc, char** argv)
     SmokeDeferredTextures smoke_deferred_textures;
     SmokeDeferredGraph smoke_deferred_graph;
     SmokeViewerRenderTargetGraph smoke_viewer_render_target_graph;
+    SmokeSoftenSkipAtmosResources smoke_soften_skip_atmos_resources;
+    SmokeSoftenSkipAtmosResources smoke_soften_legacy_resources;
     SmokeReflectionProbeResources smoke_reflection_probe_resources;
     SmokeSSRResources smoke_ssr_resources;
+    SmokeLightMapShadowResources smoke_lightmap_shadow_resources;
     SmokeCopyChainGraph smoke_copy_chain_graph;
     SmokeUIOverlay smoke_ui_overlay;
     if ((smoke_mode == SmokeMode::OffscreenCopy ||
@@ -10942,7 +15567,20 @@ int main(int argc, char** argv)
             smoke_mode == SmokeMode::ViewerDeferredProjectorLightProbe ||
             smoke_mode == SmokeMode::ViewerDeferredPointLightVolumeProbe ||
             smoke_mode == SmokeMode::ViewerDeferredSpotLightVolumeProbe ||
-            smoke_mode == SmokeMode::ViewerDeferredLightMapBlurProbe) &&
+            smoke_mode == SmokeMode::ViewerDeferredLightMapShadowProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredLightMapSSAOProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredLightMapBlurProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredHazeProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenSkipAtmosProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyEmissiveProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenPBREmissiveProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenPBRBRDFProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenPBRProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenPBRSSRProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenLegacySpecularProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyLightMapProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyEnvProbe) &&
         !create_smoke_quad(
             backend,
             smoke_quad,
@@ -11352,6 +15990,41 @@ int main(int argc, char** argv)
                 break;
             }
         }
+        else if (smoke_mode == SmokeMode::ViewerDeferredLightMapShadowProbe)
+        {
+            if (!render_viewer_deferred_lightmap_shadow_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_viewer_render_target_graph,
+                    smoke_lightmap_shadow_resources,
+                    smoke_quad,
+                    width,
+                    height))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredLightMapSSAOProbe)
+        {
+            if (!render_viewer_deferred_lightmap_ssao_probe_frame(
+                    backend,
+                    smoke_viewer_render_target_graph,
+                    smoke_lightmap_shadow_resources,
+                    smoke_quad,
+                    width,
+                    height))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
         else if (smoke_mode == SmokeMode::ViewerDeferredLightMapBlurProbe)
         {
             if (!render_viewer_deferred_lightmap_blur_probe_frame(
@@ -11361,6 +16034,215 @@ int main(int argc, char** argv)
                     smoke_quad,
                     width,
                     height))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredHazeProbe)
+        {
+            if (!render_viewer_deferred_haze_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_viewer_render_target_graph,
+                    smoke_quad,
+                    smoke_scene,
+                    width,
+                    height))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredSoftenSkipAtmosProbe)
+        {
+            if (!render_viewer_deferred_soften_skip_atmos_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_deferred_graph,
+                    smoke_soften_skip_atmos_resources,
+                    smoke_quad,
+                    width,
+                    height))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyProbe)
+        {
+            if (!render_viewer_deferred_soften_legacy_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_deferred_graph,
+                    smoke_soften_legacy_resources,
+                    smoke_quad,
+                    width,
+                    height))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyEmissiveProbe)
+        {
+            if (!render_viewer_deferred_soften_legacy_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_deferred_graph,
+                    smoke_soften_legacy_resources,
+                    smoke_quad,
+                    width,
+                    height,
+                    SmokeSoftenSourceReferenceCase::LegacyEmissive))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredSoftenPBREmissiveProbe)
+        {
+            if (!render_viewer_deferred_soften_legacy_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_deferred_graph,
+                    smoke_soften_legacy_resources,
+                    smoke_quad,
+                    width,
+                    height,
+                    SmokeSoftenSourceReferenceCase::PbrEmissive))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredSoftenPBRBRDFProbe)
+        {
+            if (!render_viewer_deferred_soften_legacy_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_deferred_graph,
+                    smoke_soften_legacy_resources,
+                    smoke_quad,
+                    width,
+                    height,
+                    SmokeSoftenSourceReferenceCase::PbrBrdf))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredSoftenPBRProbe)
+        {
+            if (!render_viewer_deferred_soften_legacy_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_deferred_graph,
+                    smoke_soften_legacy_resources,
+                    smoke_quad,
+                    width,
+                    height,
+                    SmokeSoftenSourceReferenceCase::PbrProbe,
+                    &smoke_reflection_probe_resources))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredSoftenPBRSSRProbe)
+        {
+            if (!render_viewer_deferred_soften_legacy_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_deferred_graph,
+                    smoke_soften_legacy_resources,
+                    smoke_quad,
+                    width,
+                    height,
+                    SmokeSoftenSourceReferenceCase::PbrSSR,
+                    &smoke_reflection_probe_resources,
+                    &smoke_ssr_resources))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredSoftenLegacySpecularProbe)
+        {
+            if (!render_viewer_deferred_soften_legacy_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_deferred_graph,
+                    smoke_soften_legacy_resources,
+                    smoke_quad,
+                    width,
+                    height,
+                    SmokeSoftenSourceReferenceCase::LegacySpecular))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyLightMapProbe)
+        {
+            if (!render_viewer_deferred_soften_legacy_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_deferred_graph,
+                    smoke_soften_legacy_resources,
+                    smoke_quad,
+                    width,
+                    height,
+                    SmokeSoftenSourceReferenceCase::LegacyLightMap))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
+        else if (smoke_mode == SmokeMode::ViewerDeferredSoftenLegacyEnvProbe)
+        {
+            if (!render_viewer_deferred_soften_legacy_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_deferred_graph,
+                    smoke_soften_legacy_resources,
+                    smoke_quad,
+                    width,
+                    height,
+                    SmokeSoftenSourceReferenceCase::LegacyEnv))
             {
                 std::cerr
                     << "Failed to render Vulkan smoke "
@@ -11540,10 +16422,33 @@ int main(int argc, char** argv)
     }
 
     flushVulkanSmokeFrameDiffSummaries();
+    bool ppm_compare_failed = false;
+    if (!options.mComparePPMPath.empty())
+    {
+        if (options.mScreenshotPPMPath.empty())
+        {
+            std::cerr
+                << "--compare-ppm requires --screenshot-ppm so the candidate "
+                << "image is available after rendering.\n";
+            ppm_compare_failed = true;
+        }
+        else
+        {
+            ppm_compare_failed =
+                !compare_rgb_ppm_files(
+                    options.mComparePPMPath,
+                    options.mScreenshotPPMPath,
+                    options.mComparePPMMeanTolerance,
+                    options.mComparePPMMaxTolerance);
+        }
+    }
 
     release_smoke_copy_chain_graph(smoke_copy_chain_graph);
     release_smoke_reflection_probe_resources(backend, smoke_reflection_probe_resources);
     release_smoke_ssr_resources(backend, smoke_ssr_resources);
+    release_smoke_lightmap_shadow_resources(backend, smoke_lightmap_shadow_resources);
+    release_smoke_soften_skip_atmos_resources(backend, smoke_soften_skip_atmos_resources);
+    release_smoke_soften_skip_atmos_resources(backend, smoke_soften_legacy_resources);
     release_smoke_viewer_render_target_graph(backend, smoke_viewer_render_target_graph);
     release_smoke_deferred_graph(backend, smoke_deferred_graph);
     release_smoke_deferred_textures(backend, smoke_deferred_textures);
@@ -11560,5 +16465,6 @@ int main(int argc, char** argv)
     }
     backend.destroyNativeContext(context);
     mare_vulkan_smoke_destroy_window(window);
-    return std::getenv("MARE_VULKAN_SMOKE_VALIDATION_FAILED") ? 6 : 0;
+    return ppm_compare_failed ||
+        std::getenv("MARE_VULKAN_SMOKE_VALIDATION_FAILED") ? 6 : 0;
 }

@@ -165,6 +165,13 @@ public:
     U32 probeCount();
     U32 probeMemory();
 
+    F32 getMaxProbeLOD() const { return mMaxProbeLOD; }
+    bool bindReflectionTexture(S32 channel);
+    bool bindIrradianceTexture(S32 channel);
+    void unbindReflectionTexture();
+    void unbindIrradianceTexture();
+    void bindUniforms();
+
 private:
     friend class LLPipeline;
     friend class LLHeroProbeManager;

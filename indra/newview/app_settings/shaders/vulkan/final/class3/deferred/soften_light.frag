@@ -19,7 +19,9 @@ layout(set = 0, binding = 13) uniform sampler2D sceneDepthMap;
 #define REF_SAMPLE_COUNT 32
 
 const float M_PI = 3.14159265;
+const float GBUFFER_FLAG_SKIP_ATMOS = 0.0;
 const float GBUFFER_FLAG_HAS_PBR = 0.67;
+const float GBUFFER_FLAG_HAS_HDRI = 1.0;
 
 layout(std140, set = 2, binding = 0) uniform ReflectionProbes
 {
@@ -106,12 +108,15 @@ vec3 clamp_hdr_range(vec3 color)
 
 vec3 decode_gbuffer_normal(vec4 encoded)
 {
-    vec3 normal = normalize(encoded.xyz * 2.0 - 1.0);
+    vec2 fenc = encoded.xy * 4.0 - 2.0;
+    float f = dot(fenc, fenc);
+    float g = sqrt(max(1.0 - f / 4.0, 0.0));
+    vec3 normal = vec3(fenc * g, 1.0 - f / 2.0);
     if (dot(normal, normal) <= 0.0001)
     {
         return vec3(0.0, 0.0, 1.0);
     }
-    return normal;
+    return normalize(normal);
 }
 
 bool get_gbuffer_flag(float data, float flag)
@@ -1452,22 +1457,6 @@ void main()
         vec3(0.0);
     float scene_depth = texture(depthMap, tc).r;
 
-    if (scene_depth >= 0.99999)
-    {
-        vec3 sky_or_color = max(diffuse.rgb, vec3(0.0));
-        vec3 sky_fallback = fallback_sky_color(tc);
-        if (scene_depth >= 0.99999)
-        {
-            sky_or_color = mix(sky_or_color, sky_fallback, 0.7);
-        }
-        if (max(max(sky_or_color.r, sky_or_color.g), sky_or_color.b) < 0.002)
-        {
-            sky_or_color = sky_fallback;
-        }
-        frag_color = vec4((sky_or_color + emissive) * vertex_color.rgb, 0.0);
-        return;
-    }
-
     vec2 shadow_ao = texture(lightMap, tc).rg;
     float sun_shadow = max(shadow_ao.r, diffuse.a);
     float ambient_occlusion = clamp(shadow_ao.g, 0.0, 1.0);
@@ -1478,8 +1467,29 @@ void main()
     bool classic_mode = pc.composite_moon_direction.w > 0.5;
     vec3 view_dir = -safe_normalize(view_position);
 
+    bool hdri = get_gbuffer_flag(encoded_normal.a, GBUFFER_FLAG_HAS_HDRI);
+    bool skip_atmos = get_gbuffer_flag(encoded_normal.a, GBUFFER_FLAG_SKIP_ATMOS);
     bool pbr = get_gbuffer_flag(encoded_normal.a, GBUFFER_FLAG_HAS_PBR);
     vec3 base_color = max(diffuse.rgb, vec3(0.0));
+
+    if (hdri)
+    {
+        frag_color = vec4(max(emissive, vec3(0.0)) * vertex_color.rgb, 0.0);
+        return;
+    }
+
+    if (skip_atmos)
+    {
+        vec3 sky_color =
+            pc.composite_features.x > 3.5 ?
+                max(emissive, vec3(0.0)) :
+                base_color;
+        sky_color =
+            srgb_to_linear(sky_color) *
+            max(pc.composite_sky_settings.y, 0.0);
+        frag_color = vec4(clamp_hdr_range(sky_color) * vertex_color.rgb, 0.0);
+        return;
+    }
 
     float probe_ambiance = clamp(pc.scene_reflection.x, 0.0, 1.0);
     vec3 sunlit_linear = vec3(0.0);
@@ -1548,7 +1558,7 @@ void main()
         base_color = srgb_to_linear(base_color);
         vec4 spec = specular_or_orm;
         spec.rgb = srgb_to_linear(max(spec.rgb, vec3(0.0)));
-        float env_intensity = clamp(diffuse.a, 0.0, 1.0);
+        float env_intensity = clamp(encoded_normal.b, 0.0, 1.0);
 
         float da = clamp(dot(normal, light_dir), 0.0, 1.0);
         vec3 irradiance = ambient_color;
@@ -1650,8 +1660,6 @@ void main()
         {
             apply_legacy_env(color, legacyenv, spec, view_position, normal, env_intensity);
         }
-
-        color += emissive;
     }
 
     float final_scale = classic_mode ? 1.1 : 1.0;

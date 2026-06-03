@@ -1,8 +1,11 @@
 #import <Cocoa/Cocoa.h>
 
 #include "mare_vulkan_smoke_macosx.h"
+#include "mare_vulkan_test_support.h"
 
-void* mare_vulkan_smoke_create_window(int width, int height, const char* title)
+namespace mare_vulkan_test
+{
+void* create_window(int width, int height, const char* title)
 {
     @autoreleasepool
     {
@@ -38,7 +41,7 @@ void* mare_vulkan_smoke_create_window(int width, int height, const char* title)
     }
 }
 
-bool mare_vulkan_smoke_pump_events(void* window)
+bool pump_events(void* window)
 {
     @autoreleasepool
     {
@@ -61,7 +64,7 @@ bool mare_vulkan_smoke_pump_events(void* window)
     }
 }
 
-void mare_vulkan_smoke_get_view_size(void* view, unsigned int* width, unsigned int* height)
+void get_view_size(void* view, std::uint32_t* width, std::uint32_t* height)
 {
     @autoreleasepool
     {
@@ -86,12 +89,12 @@ void mare_vulkan_smoke_get_view_size(void* view, unsigned int* width, unsigned i
             (unsigned int)(bounds.size.width * backing_scale) :
             1U;
         *height = bounds.size.height > 1.0 ?
-            (unsigned int)(bounds.size.height * backing_scale) :
+            static_cast<std::uint32_t>(bounds.size.height * backing_scale) :
             1U;
     }
 }
 
-void mare_vulkan_smoke_destroy_window(void* window)
+void destroy_window(void* window)
 {
     @autoreleasepool
     {
@@ -101,4 +104,34 @@ void mare_vulkan_smoke_destroy_window(void* window)
             [(NSWindow*)window release];
         }
     }
+}
+}
+
+void* mare_vulkan_smoke_create_window(int width, int height, const char* title)
+{
+    return mare_vulkan_test::create_window(width, height, title);
+}
+
+bool mare_vulkan_smoke_pump_events(void* window)
+{
+    return mare_vulkan_test::pump_events(window);
+}
+
+void mare_vulkan_smoke_get_view_size(void* view, unsigned int* width, unsigned int* height)
+{
+    if (!width || !height)
+    {
+        return;
+    }
+
+    std::uint32_t view_width = 1;
+    std::uint32_t view_height = 1;
+    mare_vulkan_test::get_view_size(view, &view_width, &view_height);
+    *width = view_width;
+    *height = view_height;
+}
+
+void mare_vulkan_smoke_destroy_window(void* window)
+{
+    mare_vulkan_test::destroy_window(window);
 }

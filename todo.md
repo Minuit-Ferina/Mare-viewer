@@ -151,6 +151,82 @@ filled in.
       outgoing dependency instead of the offscreen shader-read dependency.
       Next validation should use the real viewer without debug readbacks, then
       remove this item only after the live glitches are gone.
+- [ ] Add asynchronous Vulkan pipeline prewarm after the login screen is live.
+      The `.spv` shader files are built ahead of time, but MoltenVK still pays
+      the expensive `vkCreateGraphicsPipelines` translation to Metal runtime
+      pipelines. Start prewarming world, deferred, post, and local-light
+      pipeline sets once the Vulkan device, render passes, layouts, and shader
+      modules exist, while the login UI remains responsive. Build pipeline sets
+      in a worker-owned local structure, publish only complete immutable sets
+      back to the render thread, and guard any shared `VkPipelineCache` access.
+      Persist the `VkPipelineCache` on disk in a local, non-portable cache key
+      that includes device/vendor/driver identifiers plus shader ABI, render
+      pass, descriptor-layout, and pipeline-layout versions. Load that cache
+      before prewarm, pass it into every `vkCreateGraphicsPipelines` call, then
+      save it atomically with `vkGetPipelineCacheData()` after prewarm or
+      shutdown. If worker threads build independent caches, merge them before
+      saving rather than sharing mutable cache state unsafely.
+      The first containment step is to avoid creating impossible
+      fullscreen/deferred/local-light state variants, so the future prewarm has
+      less work and fewer synchronization cases.
+- [x] Split Vulkan test support out of the oversized smoke executable before
+      adding the synthetic renderer-parity scene.
+      First extraction target: native test window helpers and PPM/readback
+      comparison utilities in a small `mare-vulkan-test-support` library.
+      `mare-vulkan-smoke` now links that support library instead of owning the
+      native window implementation and local PPM helpers directly.
+- [ ] Grow the new `mare-vulkan-scene-test` executable into the renderer-parity
+      synthetic scene test.
+      The initial target is intentionally small: backend selection,
+      native-window/context setup, deterministic clear, and frame logging. Next
+      step started: `--scene primitives` renders a deterministic Vulkan
+      immediate/UI-bridge scene with a gridded ground band, opaque geometry,
+      alpha-blended geometry, a repeated GPU checker texture, and a small
+      marker. It validates as non-black through the existing Vulkan smoke
+      final-output readback, and `--screenshot-ppm` can write a frame capture.
+      Keep this immediate scene alongside the deferred smoke tests: immediate
+      isolates viewport, scissor, texture upload, alpha, and UI-bridge state,
+      while deferred remains the final world-renderer parity path.
+      `mare-vulkan-scene-test` now accepts `--quality class1|class2|class3`
+      and maps it to the backend deferred shader level so future synthetic
+      deferred scenes can follow the same user quality tiers as the viewer.
+      `--scene complete` now adds a richer immediate diagnostic scene with
+      sky/horizon, terrain, water, road/projection textures, opaque geometry,
+      alpha-textured geometry, avatar-like shapes, and HUD overlays. This is
+      still a bridge/state test, not the final deferred parity scene.
+      It also accepts `--render-path immediate|deferred`; `immediate` keeps the
+      direct bridge scene, while `deferred` renders the same logical scene
+      through a local G-buffer, deferred composite, final composite, then a HUD
+      overlay. The deferred variant uses a full-screen world quad clipped by
+      scissor per scene element, so it is a pipeline/state parity test rather
+      than true 3D scene geometry.
+      The first capture showed local per-rectangle scissor state distorting the
+      diagnostic scene, so the current primitives scene leaves rectangle-local
+      scissor disabled until scissor/viewport parity is tested separately.
+      Remaining work: add standalone OpenGL shader setup for the same scene,
+      real explicit PPM readback/comparison, and then class1/class2/class3
+      coverage for terrain, sky, water, legacy material, PBR, alpha, glow,
+      lights, shadows, reflection probes, and final composite.
+      Keep shader/deferred scene logic in `mare-vulkan-smoke` until the next
+      extraction has a clear API for scene setup, backend selection, readback,
+      and OpenGL/Vulkan comparison across class1/class2/class3.
+- [x] Add a local real-viewer pipeline scene test for deferred renderer
+      debugging without login.
+      `MARE_VIEWER_PIPELINE_SCENE_TEST=1` now renders synthetic `LLDrawInfo`
+      entries through the real viewer `LLPipeline` path, not through the smoke
+      executable's simplified scene code. The fixture currently covers simple,
+      alpha-mask, fullbright, fullbright-alpha-mask, bump, post-bump,
+      fullbright-shiny, legacy material, specmap, normmap, and normspec render
+      maps, with vertex/normal/tangent/color/texcoord0/texcoord1/texcoord2
+      attributes. `MARE_VIEWER_PIPELINE_SCENE_TEST_CAPTURE=<path>` writes an
+      OpenGL PPM through `readPixels`; Vulkan writes the same capture path from
+      the swapchain readback because the Vulkan `readPixels` bridge is not the
+      final framebuffer source. `MARE_VIEWER_PIPELINE_SCENE_TEST_SHADER_LEVEL`
+      can force class1/class2/class3 for Vulkan test runs; when unset, the
+      Vulkan test defaults to class3 if the OpenGL shader manager level is not
+      initialized. Remaining work: add true alpha-blend groups, terrain, sky,
+      water, PBR/GLTF materials, lights, shadows, reflection probes, and
+      automated OpenGL/Vulkan image comparison.
 
 ## OpenGL Shader Inventory
 
@@ -331,11 +407,23 @@ Validation status:
       `calcAtmosphericVarsLinear`). This is a real OpenGL-rendered source
       reference for a controlled Haze input, not yet the full viewer
       `gHazeProgram` render graph with real EEP, water, shadow, and depth
-      target bindings. The matching Vulkan `shader-probe --shader-case haze`
-      now binds synthetic scene depth/color inputs and no longer renders black;
-      the first strict PPM comparison against the OpenGL source-level reference
-      still fails strongly, with mean abs diff 124.5276 and max channel diff
-      142, confirming that active Vulkan Haze remains an approximation.
+      target bindings. The runtime Vulkan Haze owner is no longer gated behind
+      `MARE_VULKAN_ENABLE_APPROXIMATE_HAZE`: AtmosphericHaze commands now
+      receive the same atmospheric UBO/composite push-constant contract as
+      `DeferredSoften`, reconstruct view position from scene depth, and use an
+      OpenGL-derived `calcAtmosphericVarsLinear()` path. The matching Vulkan
+      `shader-probe --shader-case haze` now samples fullscreen screen
+      coordinates like OpenGL `softenLightV` and no longer renders black. The
+      current strict PPM comparison against the OpenGL source-level reference is
+      close but red with mean abs diff `1.3333` and max channel diff `2`
+      (`5,6,8` OpenGL versus `4,5,6` Vulkan), and passes with
+      `--compare-ppm-mean-tolerance 2 --compare-ppm-max-tolerance 4`.
+      `viewer-deferred-haze-probe` now adds the offscreen guardrail: it seeds a
+      viewer-style `deferredScreen`, composes Haze into `deferredLight`, copies
+      to the swapchain, and compares against the same OpenGL Haze source
+      reference with the same 8-bit tolerance. This is still not complete
+      live-scene Haze/water-haze parity; next steps are the final class3 Haze
+      interface, captured/live water-exclusion inputs, and water-haze behavior.
 - [x] Add a true OpenGL-rendered Alpha reference harness.
       `mare-vulkan-smoke --opengl-reference-ppm <path> --shader-case alpha`
       starts OpenGL, compiles the real `class1/deferred/alphaV.glsl` and
@@ -458,6 +546,13 @@ Validation status:
       high-gloss reflection-probe radiance instead of the earlier single-ray
       tap, and the backend transports the OpenGL `inv_modelview_delta`
       camera-delta matrix through a dedicated `DeferredSoften` uniform block.
+      Smoke guard progress: `viewer-deferred-ssr-probe` now drives the real
+      `DeferredSoften` SSR path with deterministic sceneMap/sceneDepthMap
+      inputs and validates both the deferred composite target and final
+      swapchain RGB against stable expected values. The direct
+      `soften-pbr-ssr` source-reference probe now compares OpenGL
+      `softenLightF` SSR raymarch output against the live Vulkan
+      `DeferredSoften` owner with strict mean `0.0000`, max `0` PPM diff.
       Remaining SSR parity work is to validate moving-camera imagery plus
       water/debug probe variants.
       Reflection-probe backend progress: Vulkan now has a native
@@ -541,6 +636,80 @@ Validation status:
       sun/moon colors, cloud shadow, ambient, HDR sunlight/ambient scales,
       sun/moon glow, and lightnorm) and uses a local port of
       `calcAtmosphericVarsLinear()` for its sunlit/ambient lighting inputs.
+      Runtime Haze progress: Vulkan AtmosphericHaze commands now use the same
+      atmospheric UBO/composite push-constant transport instead of requiring
+      `MARE_VULKAN_ENABLE_APPROXIMATE_HAZE`, and `haze_runtime.frag`
+      reconstructs view position from scene depth before applying the
+      OpenGL-derived atmospheric calculation. WaterHaze still uses the older
+      runtime approximation. The current Haze OpenGL source-reference compare
+      is reduced to a uniform 8-bit direct-to-swapchain delta
+      (`shader-probe --shader-case haze`: strict mean diff `1.3333`, max diff
+      `2`; pass with `--compare-ppm-mean-tolerance 2 --compare-ppm-max-tolerance
+      4`). `viewer-deferred-haze-probe` now runs the same runtime Haze owner
+      through an offscreen `deferredScreen -> deferredLight -> swapchain`
+      graph and passes the same OpenGL source-reference comparison. The
+      remaining work is final class3 Haze ownership plus captured/live
+      water-exclusion and water-haze inputs before this can be claimed as
+      visual parity.
+      `DeferredSoften` now also mirrors OpenGL's early
+      `GBUFFER_FLAG_HAS_HDRI` and `GBUFFER_FLAG_SKIP_ATMOS` branches, so sky,
+      moon, sun-disc, cloud, and other atmosphere-skipping G-buffer pixels are
+      copied/scaled before the legacy/PBR lighting branches instead of being
+      incorrectly lit as ordinary legacy surfaces. The existing
+      `viewer-deferred-soften-state-probe` still passes after this change.
+      Source-reference validation now exists for the SKIP_ATMOS/emissive,
+      neutral legacy diffuse, legacy-diffuse-with-emissive-input, PBR
+      emissive-only, legacy specular/lightFunc, legacy lightMap
+      shadow+SSAO, and legacy environment-mix branches:
+      `mare-vulkan-smoke --shader-case soften-skip-atmos
+      --opengl-reference-ppm <path>` plus `--mode
+      viewer-deferred-soften-skip-atmos-probe --compare-ppm <opengl.ppm>`,
+      `--shader-case soften-legacy` plus `--mode
+      viewer-deferred-soften-legacy-probe --compare-ppm <opengl.ppm>`, and
+      `--shader-case soften-legacy-emissive` plus `--mode
+      viewer-deferred-soften-legacy-emissive-probe --compare-ppm
+      <opengl.ppm>`, plus `--shader-case soften-pbr-emissive` with `--mode
+      viewer-deferred-soften-pbr-emissive-probe --compare-ppm <opengl.ppm>`,
+      and `--shader-case soften-legacy-specular` with `--mode
+      viewer-deferred-soften-legacy-specular-probe --compare-ppm
+      <opengl.ppm>`, plus `--shader-case soften-legacy-lightmap` with
+      `--mode viewer-deferred-soften-legacy-lightmap-probe --compare-ppm
+      <opengl.ppm>`, and `--shader-case soften-legacy-env` with `--mode
+      viewer-deferred-soften-legacy-env-probe --compare-ppm <opengl.ppm>`,
+      plus `--shader-case soften-pbr-brdf` with `--mode
+      viewer-deferred-soften-pbr-brdf-probe --compare-ppm <opengl.ppm>`,
+      plus `--shader-case soften-pbr-probe` with `--mode
+      viewer-deferred-soften-pbr-probe --compare-ppm <opengl.ppm>`, plus
+      `--shader-case soften-pbr-ssr` with `--mode
+      viewer-deferred-soften-pbr-ssr-probe --compare-ppm <opengl.ppm>`.
+      These compile the real `softenLightV/F.glsl` OpenGL sources and feed
+      synthetic G-buffer textures into the live Vulkan `DeferredSoften` owner.
+      Current strict PPM diff is `0.0000` mean and `0` max for the first four
+      probes; legacy specular/lightFunc passes with mean `0.0193` and max `1`.
+      Legacy lightMap shadow+SSAO consumption passes with mean `0.3333` and
+      max `1`; this probe caught that the synthetic Vulkan parameters must
+      set the runtime SSAO feature flag when comparing an OpenGL
+      `HAS_SSAO` source-reference build.
+      Legacy environment mix passes with mean `0.0000` and max `0` using a
+      controlled nonzero env intensity and white environment fallback.
+      PBR non-classic BRDF/punctual lighting passes with mean `0.0095` and
+      max `1` using nonzero base color plus AO/roughness/metallic G-buffer
+      inputs and zero probe/ambient/emissive inputs.
+      PBR radiance/irradiance probe lighting passes with mean `0.0000` and
+      max `0` through the real synthetic `ReflectionProbes` UBO plus
+      radiance/irradiance cube-array bindings; this probe caught that the
+      OpenGL source-reference prefix must also disable direct sunlight when
+      isolating probe-only PBR lighting.
+      PBR SSR sceneMap/sceneDepthMap mixing passes with mean `0.0000` and
+      max `0` through a controlled constant sceneMap, constant sceneDepthMap,
+      real synthetic reflection probes, and OpenGL-derived SSR raymarch
+      source-reference logic; this probe caught that new direct soften smoke
+      modes must be added to the gGL/quad initialization lists before their
+      shader results are meaningful.
+      Vulkan now ignores the emissive attachment in the legacy diffuse branch,
+      matching OpenGL, and consumes it in the PBR branch. Remaining validation
+      work is to expand SSR validation from the constant source-reference
+      scene to moving-camera/viewer captures.
       It also transports the full OpenGL `ssao_effect_mat` into the
       `DeferredSoften` UBO and applies it to irradiance in `adjust_irradiance`
       instead of using the older Vulkan-only scalar SSAO irradiance
@@ -608,6 +777,12 @@ Validation status:
       catches regressions in the indexed cube-volume owner, additive blend state,
       G-buffer/depth/lightFunc bindings, and final handoff without requiring a
       viewer login.
+      Deferred fullscreen guard progress: after separating fullscreen deferred
+      quads from the textured-world vertex transform path, the emissive,
+      reflection, hero-probe, SSR, fullscreen local/projector, and cube-volume
+      point/spot probes were recalibrated to the corrected raw-screen-UV
+      output, so they now fail on drift from the current Composite/lighting
+      graph instead of preserving the old corrupted fullscreen transform.
       This is not full water parity yet; final class3 water fragment graph
       ownership, reflection-target visual/depth parity, shadow, PBR water
       lighting, and water-fog visual parity still need to be wired and
@@ -675,6 +850,26 @@ Validation status:
       view-space shadow sample position (`spos.xy`) to `pcfSpotShadow()`
       instead of framebuffer coordinates. Remaining PCF work is visual
       validation/tuning against OpenGL shadow softness and acne bias.
+      OpenGL comparison progress: `mare-vulkan-smoke --shader-case
+      lightmap-shadow --opengl-reference-ppm <path>` now renders a real
+      OpenGL `sunLightV/F` source-reference PPM with synthetic depth-compare
+      shadow maps. `mare-vulkan-smoke --mode
+      viewer-deferred-lightmap-shadow-probe --screenshot-ppm <path>
+      --compare-ppm <opengl.ppm>` now runs the live Vulkan `DeferredLightMap`
+      path against that reference. This caught and fixed the Vulkan PCF
+      edge-sampling mismatch where out-of-range shadow XY samples were treated
+      as lit instead of clamping like OpenGL `CLAMP_TO_EDGE`.
+      SSAO comparison progress: `mare-vulkan-smoke --shader-case
+      lightmap-ssao --opengl-reference-ppm <path>` now renders a real
+      OpenGL `sunLightSSAOF/aoUtil.glsl` source-reference PPM with synthetic
+      depth/normal/noise inputs. `mare-vulkan-smoke --mode
+      viewer-deferred-lightmap-ssao-probe --screenshot-ppm <path>
+      --compare-ppm <opengl.ppm>` now runs the live Vulkan
+      `DeferredLightMap` SSAO channel against that reference. The test uses
+      matching full-resolution shader inputs and normalizes framebuffer
+      readback origin during comparison; after fixing the Vulkan SSAO sample
+      position reconstruction to match OpenGL's unclamped screen-coordinate
+      path, the source-reference diff is exactly zero.
       Local-light validation progress: `mare-vulkan-smoke --mode
       viewer-deferred-local-light-probe` now renders the synthetic three-band
       G-buffer, runs the live `DeferredSoften` path, adds a separate additive
@@ -1106,7 +1301,7 @@ Validation status:
 - [x] indra/newview/app_settings/shaders/class2/interface/reflectionprobeF.glsl - port: vulkan/final/class2/interface/reflectionprobe.frag
 - [x] indra/newview/app_settings/shaders/class2/interface/reflectionprobeV.glsl - port: vulkan/final/class2/interface/reflectionprobe.vert
 - [x] indra/newview/app_settings/shaders/class3/deferred/fullbrightShinyF.glsl - port: vulkan/final/class3/deferred/fullbright_shiny.frag
-- [ ] indra/newview/app_settings/shaders/class3/deferred/hazeF.glsl - port: vulkan/final/class3/deferred/haze.frag exists, but is a generated placeholder; needs faithful port of depth/normal/position reconstruction, EEP atmospheric uniforms, water-plane masking, and OpenGL haze blend semantics.
+- [ ] indra/newview/app_settings/shaders/class3/deferred/hazeF.glsl - port: vulkan/final/class3/deferred/haze.frag exists, but is a generated placeholder; the active runtime owner `haze_runtime.frag` now covers AtmosphericHaze with OpenGL-derived atmosphere inputs and both direct/offscreen smoke comparisons. Remaining work is to promote this into the final class3 Haze interface and validate captured/live water-exclusion, water-plane masking, framebuffer/sRGB behavior, and water-haze parity.
 - [x] indra/newview/app_settings/shaders/class3/deferred/materialF.glsl - port: vulkan/final/class3/deferred/material.frag
 - [x] indra/newview/app_settings/shaders/class3/deferred/multiPointLightF.glsl - port: vulkan/final/class3/deferred/multi_point_light.frag
 - [x] indra/newview/app_settings/shaders/class3/deferred/multiPointLightV.glsl - port: vulkan/final/class3/deferred/multi_point_light.vert
@@ -2056,7 +2251,13 @@ Known missing runtime coverage:
       bindings.
       The OpenGL-equivalent two-pass `blurLightF` lightMap blur is now a live
       Vulkan `DeferredBlurLight` runtime owner and runs before
-      `DeferredSoften`; remaining work is visual parity validation/tuning.
+      `DeferredSoften`. Source-reference validation now exists:
+      `mare-vulkan-smoke --shader-case lightmap-blur --opengl-reference-ppm
+      <path>` plus `--mode viewer-deferred-lightmap-blur-probe --compare-ppm
+      <opengl.ppm> --compare-ppm-max-tolerance 16` compares the live Vulkan
+      blur path against OpenGL `blurLightV/F`. Current diff is mean `0.0957`,
+      max `13`, localized at synthetic band/upscale transitions; remaining
+      work is live-scene blur softness and depth/normal edge rejection.
       Emissive, the sky environment cube-map, BRDF LUT, `lightFunc`,
       reflection-probe cubemap arrays, probe parallax/selection state, and
       OpenGL-derived glossy sceneMap/depth SSR sampling with camera-delta
@@ -2290,6 +2491,18 @@ Known missing runtime coverage:
       corruption in a static scene. `mare-vulkan-smoke --mode
       viewer-staged-reused-light-overlays --scene basic --frames 300
       --frame-diff` is now stable at `0.0000%` changed pixels through frame 300.
+- [ ] Retire Vulkan deferred dependence on legacy global matrix setup helpers.
+      The deferred graph legitimately alternates between 3D world passes,
+      fullscreen composite passes, and post-deferred 3D world overlays. The
+      current Vulkan implementation still performs that transition through
+      legacy global helpers such as `gViewerWindow->setup2DRender()` and
+      `gViewerWindow->setup3DRender()`, which mutate shared `gGL` matrix state.
+      This is fragile for the viewer-pipeline scene test because the test uses
+      a synthetic orthographic camera; after a fullscreen composite, Vulkan must
+      restore the test camera rather than the real viewer camera. Long term,
+      Vulkan deferred passes should carry explicit view/projection/fullscreen
+      state per pass and avoid relying on global `setup2DRender()` /
+      `setup3DRender()` side effects except as a temporary bridge.
 
 Near-term parity order:
 

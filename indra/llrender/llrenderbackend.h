@@ -302,6 +302,7 @@ public:
     }
 
     virtual void setFramebufferBufferRouting(U32 color_attachment_count) = 0;
+    virtual void setFramebufferReadColorAttachment(U32) {}
     virtual void restoreDefaultFramebufferBufferRouting() = 0;
     virtual bool hasError() = 0;
     virtual U32 getErrorCode() = 0;
@@ -824,6 +825,10 @@ public:
     virtual void pushMatrix() = 0;
     virtual void popMatrix() = 0;
     virtual const char* getInfoString(LLRenderInfoString parameter) = 0;
+    virtual bool scheduleDebugTexturePPMReadback(
+        LLRenderTextureHandle texture,
+        const char* path,
+        const char* label);
     virtual U64 getTextureMemoryAllocatedBytes() const;
     virtual U64 getTextureMemoryBudgetBytes() const;
     virtual U64 getBufferMemoryAllocatedBytes() const;

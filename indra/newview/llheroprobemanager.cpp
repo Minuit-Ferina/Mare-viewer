@@ -544,6 +544,25 @@ void LLHeroProbeManager::updateUniforms()
     mHeroData.heroMipCount = S32(mMipChain.size());
 }
 
+bool LLHeroProbeManager::bindTexture(S32 channel)
+{
+    if (mTexture.isNull())
+    {
+        return false;
+    }
+
+    mTexture->bind(channel);
+    return true;
+}
+
+void LLHeroProbeManager::unbindTexture()
+{
+    if (mTexture.notNull())
+    {
+        mTexture->unbind();
+    }
+}
+
 void LLHeroProbeManager::renderDebug()
 {
     gDebugProgram.bind();

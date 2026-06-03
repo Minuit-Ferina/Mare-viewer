@@ -1369,6 +1369,49 @@ void LLReflectionMapManager::setUniforms()
         mUBO);
 }
 
+bool LLReflectionMapManager::bindReflectionTexture(S32 channel)
+{
+    if (mTexture.isNull())
+    {
+        return false;
+    }
+
+    mTexture->bind(channel);
+    return true;
+}
+
+bool LLReflectionMapManager::bindIrradianceTexture(S32 channel)
+{
+    if (mIrradianceMaps.isNull())
+    {
+        return false;
+    }
+
+    mIrradianceMaps->bind(channel);
+    return true;
+}
+
+void LLReflectionMapManager::unbindReflectionTexture()
+{
+    if (mTexture.notNull())
+    {
+        mTexture->unbind();
+    }
+}
+
+void LLReflectionMapManager::unbindIrradianceTexture()
+{
+    if (mIrradianceMaps.notNull())
+    {
+        mIrradianceMaps->unbind();
+    }
+}
+
+void LLReflectionMapManager::bindUniforms()
+{
+    setUniforms();
+}
+
 void renderReflectionProbe(LLReflectionMap* probe)
 {
     if (probe->isRelevant())

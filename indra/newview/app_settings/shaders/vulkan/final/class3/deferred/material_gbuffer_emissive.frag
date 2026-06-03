@@ -49,6 +49,13 @@ bool has_material_flag(uint flag)
     return (uint(pc.material_pbr.z + 0.5) & flag) != 0u;
 }
 
+vec4 encode_normal(vec3 n, float env, float gbuffer_flag)
+{
+    n = normalize(n);
+    float f = sqrt(8.0 * n.z + 8.0);
+    return vec4(n.xy / f + 0.5, env, gbuffer_flag);
+}
+
 vec2 apply_slot_texture_transform(vec2 texcoord, vec2 scale, float rotation, vec2 offset)
 {
     texcoord.y = 1.0 - texcoord.y;
@@ -185,9 +192,12 @@ void main()
         emissive *= texture(tex3, emissive_texture_texcoord(vary_material_texcoord0.xy)).rgb;
     }
 
-    vec3 encoded_normal = normalize(material_normal(vary_material_texcoord0.xy)) * 0.5 + 0.5;
-    frag_diffuse = vec4(max(color.rgb, vec3(0.0)), pc.material_legacy.a);
+    float emissive_mix = clamp(max(max(emissive.r, emissive.g), emissive.b), 0.0, 1.0);
+    frag_diffuse = vec4(max(color.rgb, vec3(0.0)), emissive_mix);
     frag_specular = vec4(max(specular.rgb, vec3(0.0)), legacy_shiny);
-    frag_normal = vec4(encoded_normal.xyz, GBUFFER_FLAG_HAS_ATMOS);
+    frag_normal = encode_normal(
+        material_normal(vary_material_texcoord0.xy),
+        pc.material_legacy.a,
+        GBUFFER_FLAG_HAS_ATMOS);
     frag_emissive = vec4(max(emissive, vec3(0.0)), 0.0);
 }

@@ -24,10 +24,13 @@ layout(location = 0) out vec4 frag_diffuse;
 layout(location = 1) out vec4 frag_specular;
 layout(location = 2) out vec4 frag_normal;
 
+const float GBUFFER_FLAG_HAS_ATMOS = 0.34;
+
 vec4 encode_normal(vec3 n, float env, float gbuffer_flag)
 {
-    vec3 encoded = normalize(n) * 0.5 + 0.5;
-    return vec4(encoded.xy, env, gbuffer_flag);
+    n = normalize(n);
+    float f = sqrt(8.0 * n.z + 8.0);
+    return vec4(n.xy / f + 0.5, env, gbuffer_flag);
 }
 
 vec4 diffuse_lookup(vec2 texcoord)
@@ -57,5 +60,5 @@ void main()
 
     frag_diffuse = vec4(color.rgb, 0.0);
     frag_specular = vec4(0.0);
-    frag_normal = encode_normal(vary_normal, 0.0, 1.0);
+    frag_normal = encode_normal(vary_normal, 0.0, GBUFFER_FLAG_HAS_ATMOS);
 }

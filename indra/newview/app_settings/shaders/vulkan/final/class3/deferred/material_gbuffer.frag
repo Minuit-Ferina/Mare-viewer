@@ -48,6 +48,13 @@ bool has_material_flag(uint flag)
     return (uint(pc.material_pbr.z + 0.5) & flag) != 0u;
 }
 
+vec4 encode_normal(vec3 n, float env, float gbuffer_flag)
+{
+    n = normalize(n);
+    float f = sqrt(8.0 * n.z + 8.0);
+    return vec4(n.xy / f + 0.5, env, gbuffer_flag);
+}
+
 vec2 apply_slot_texture_transform(vec2 texcoord, vec2 scale, float rotation, vec2 offset)
 {
     texcoord.y = 1.0 - texcoord.y;
@@ -169,8 +176,10 @@ void main()
     }
     float legacy_shiny = clamp(pc.material_modes.w / 6.0, 0.0, 0.49);
 
-    vec3 encoded_normal = normalize(material_normal(vary_material_texcoord0.xy)) * 0.5 + 0.5;
-    frag_diffuse = vec4(max(color.rgb, vec3(0.0)), pc.material_legacy.a);
+    frag_diffuse = vec4(max(color.rgb, vec3(0.0)), 0.0);
     frag_specular = vec4(max(specular.rgb, vec3(0.0)), legacy_shiny);
-    frag_normal = vec4(encoded_normal.xyz, GBUFFER_FLAG_HAS_ATMOS);
+    frag_normal = encode_normal(
+        material_normal(vary_material_texcoord0.xy),
+        pc.material_legacy.a,
+        GBUFFER_FLAG_HAS_ATMOS);
 }

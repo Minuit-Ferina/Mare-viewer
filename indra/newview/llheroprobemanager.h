@@ -88,6 +88,9 @@ public:
 
     bool isMirrorPass() const { return mRenderingMirror; }
 
+    bool bindTexture(S32 channel);
+    void unbindTexture();
+
     LLVector3 mMirrorPosition;
     LLVector3     mMirrorNormal;
     HeroProbeData mHeroData;

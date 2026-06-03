@@ -25,6 +25,7 @@
 
 #include "lldrawable.h"
 #include "lldrawpool.h"
+#include "lldrawpoolalpha.h"
 #include "llface.h"
 #include "llfetchedgltfmaterial.h"
 #include "llframetimer.h"
@@ -42,6 +43,7 @@
 #include "llvoavatar.h"
 #include "llviewercamera.h"
 #include "llviewerregion.h"
+#include "llviewercontrol.h"
 #include "llviewershadermgr.h"
 #include "llworld.h"
 #include "pipeline.h"
@@ -51,11 +53,14 @@
 #include <iomanip>
 #include <string>
 
+extern bool gCubeSnapshot;
+
 namespace
 {
 constexpr F32 WORLD_RENDER_MINIMUM_ALPHA = 0.004f;
 constexpr F32 AVATAR_RENDER_MINIMUM_ALPHA = 0.2f;
 constexpr F32 WORLD_RENDER_SHADOW_ALPHA_BLEND_CUTOFF = 0.598f;
+constexpr F32 WORLD_RENDER_WATER_FOG_LIGHT_CLAMP = 0.3f;
 constexpr U32 WORLD_RENDER_SCENE_DEPTH_TEXTURE_UNIT = 8;
 constexpr U32 WORLD_RENDER_SCENE_COLOR_TEXTURE_UNIT = 9;
 constexpr U32 WORLD_RENDER_REFLECTION_PROBES_TEXTURE_UNIT = 10;
@@ -181,12 +186,154 @@ void set_world_water_parameters(LLRenderWorldMaterialParameters& parameters)
 
     const LLVector4 light_direction = environment.getClampedLightNorm();
     parameters.mWaterFogKS =
-        1.f / llmax(light_direction.mV[VZ], LLSettingsVOWater::WATER_FOG_LIGHT_CLAMP);
+        1.f / llmax(light_direction.mV[VZ], WORLD_RENDER_WATER_FOG_LIGHT_CLAMP);
     const bool underwater = eye_vec.mV[VZ] - water_height <= 0.f;
     parameters.mWaterFogColorDensity[0] = water->getWaterFogColor().mV[VRED];
     parameters.mWaterFogColorDensity[1] = water->getWaterFogColor().mV[VGREEN];
     parameters.mWaterFogColorDensity[2] = water->getWaterFogColor().mV[VBLUE];
     parameters.mWaterFogColorDensity[3] = water->getModifiedWaterFogDensity(underwater);
+}
+
+void set_world_haze_composite_parameters(LLRenderWorldMaterialParameters& parameters)
+{
+    LLEnvironment& environment = LLEnvironment::instance();
+    LLSettingsSky::ptr_t sky = environment.getCurrentSky();
+
+    static LLCachedControl<bool> should_auto_adjust(gSavedSettings, "RenderSkyAutoAdjustLegacy", false);
+    static LLCachedControl<bool> hdr(gSavedSettings, "RenderHDREnabled", false);
+    static LLCachedControl<F32> auto_adjust_ambient_scale(gSavedSettings, "RenderSkyAutoAdjustAmbientScale", 0.75f);
+    static LLCachedControl<F32> auto_adjust_hdr_scale(gSavedSettings, "RenderSkyAutoAdjustHDRScale", 2.f);
+    static LLCachedControl<F32> auto_adjust_blue_horizon_scale(gSavedSettings, "RenderSkyAutoAdjustBlueHorizonScale", 1.f);
+    static LLCachedControl<F32> auto_adjust_blue_density_scale(gSavedSettings, "RenderSkyAutoAdjustBlueDensityScale", 1.f);
+    static LLCachedControl<F32> auto_adjust_sun_color_scale(gSavedSettings, "RenderSkyAutoAdjustSunColorScale", 1.f);
+    static LLCachedControl<F32> sunlight_scale(gSavedSettings, "RenderSkySunlightScale", 1.5f);
+    static LLCachedControl<F32> sunlight_hdr_scale(gSavedSettings, "RenderHDRSkySunlightScale", 1.5f);
+    static LLCachedControl<F32> ambient_scale(gSavedSettings, "RenderSkyAmbientScale", 1.5f);
+
+    LLColor3 atmos_ambient_color(0.25f, 0.25f, 0.25f);
+    LLColor3 atmos_blue_horizon(0.4954f, 0.4954f, 0.6399f);
+    LLColor3 atmos_blue_density(0.2447f, 0.4487f, 0.7599f);
+    LLColor3 atmos_glow(18.f, 0.f, -0.01f);
+    LLColor3 atmos_sunlight_color(1.f, 1.f, 1.f);
+    LLColor3 atmos_moonlight_color(1.f, 1.f, 1.f);
+    F32 atmos_haze_horizon = 0.19f;
+    F32 atmos_haze_density = 0.7f;
+    F32 atmos_cloud_shadow = 0.f;
+    F32 atmos_density_multiplier = 0.0001f;
+    F32 atmos_distance_multiplier = 0.8f;
+    F32 atmos_max_y = 1605.f;
+    F32 atmos_scene_light_strength = 1.f;
+    F32 atmos_sun_moon_glow_factor = 1.f;
+    F32 atmos_sky_sunlight_scale = hdr() ? sunlight_hdr_scale() : sunlight_scale();
+    F32 atmos_sky_ambient_scale = ambient_scale();
+    F32 sky_hdr_scale = 1.f;
+    bool classic_mode = false;
+
+    if (sky)
+    {
+        LLColor4 ambient = sky->getTotalAmbient();
+        const F32 cloud_shadow = llclamp(sky->getCloudShadow(), 0.f, 1.f);
+        atmos_ambient_color = LLColor3(ambient);
+        atmos_blue_horizon = sky->getBlueHorizon();
+        atmos_blue_density = sky->getBlueDensity();
+        atmos_glow = sky->getGlow();
+        atmos_sunlight_color = sky->getSunlightColor();
+        atmos_moonlight_color = sky->getMoonlightColor();
+        atmos_haze_horizon = sky->getHazeHorizon();
+        atmos_haze_density = sky->getHazeDensity();
+        atmos_cloud_shadow = cloud_shadow;
+        atmos_density_multiplier = sky->getDensityMultiplier();
+        atmos_distance_multiplier = sky->getDistanceMultiplier();
+        atmos_max_y = sky->getMaxY();
+        atmos_sun_moon_glow_factor = sky->getSunMoonGlowFactor();
+        const F32 sun_dp = llmax(sky->getSunDirection().mV[VZ], 0.f);
+        atmos_scene_light_strength = 2.f * (0.75f + sun_dp);
+        classic_mode = sky->canAutoAdjust() && !should_auto_adjust();
+        if (sky->getReflectionProbeAmbiance() != 0.f)
+        {
+            sky_hdr_scale = sqrtf(sky->getGamma()) * 2.f;
+        }
+        else if (sky->canAutoAdjust() && should_auto_adjust)
+        {
+            sky_hdr_scale = auto_adjust_hdr_scale();
+            atmos_ambient_color *= auto_adjust_ambient_scale();
+            atmos_blue_horizon *= auto_adjust_blue_horizon_scale();
+            atmos_blue_density *= auto_adjust_blue_density_scale();
+            atmos_sunlight_color *= auto_adjust_sun_color_scale();
+        }
+    }
+
+    const glm::mat4 modelview = get_current_modelview();
+    const glm::vec4 sun_dir =
+        modelview *
+        glm::vec4(
+            gPipeline.mSunDir.mV[VX],
+            gPipeline.mSunDir.mV[VY],
+            gPipeline.mSunDir.mV[VZ],
+            0.f);
+    const glm::vec4 moon_dir =
+        modelview *
+        glm::vec4(
+            gPipeline.mMoonDir.mV[VX],
+            gPipeline.mMoonDir.mV[VY],
+            gPipeline.mMoonDir.mV[VZ],
+            0.f);
+    const LLVector4 atmos_light_norm = environment.getClampedLightNorm();
+
+    parameters.mCompositeClipPlane[0] = LLDrawPoolAlpha::sWaterPlane.mV[VX];
+    parameters.mCompositeClipPlane[1] = LLDrawPoolAlpha::sWaterPlane.mV[VY];
+    parameters.mCompositeClipPlane[2] = LLDrawPoolAlpha::sWaterPlane.mV[VZ];
+    parameters.mCompositeClipPlane[3] = LLDrawPoolAlpha::sWaterPlane.mV[VW];
+    parameters.mCompositeSunDirection[0] = sun_dir.x;
+    parameters.mCompositeSunDirection[1] = sun_dir.y;
+    parameters.mCompositeSunDirection[2] = sun_dir.z;
+    parameters.mCompositeSunDirection[3] = environment.getIsSunUp() ? 1.f : 0.f;
+    parameters.mCompositeMoonDirection[0] = moon_dir.x;
+    parameters.mCompositeMoonDirection[1] = moon_dir.y;
+    parameters.mCompositeMoonDirection[2] = moon_dir.z;
+    parameters.mCompositeMoonDirection[3] = classic_mode ? 1.f : 0.f;
+    parameters.mCompositeSkySettings[0] = gCubeSnapshot ? 1.f : 0.f;
+    parameters.mCompositeSkySettings[1] = sky_hdr_scale;
+
+    const glm::mat4 inverse_projection = glm::inverse(get_current_projection());
+    const F32* inverse_projection_values = glm::value_ptr(inverse_projection);
+    for (U32 i = 0; i < 16; ++i)
+    {
+        parameters.mCompositeInverseProjection[i] = inverse_projection_values[i];
+    }
+
+    parameters.mCompositeAtmosBlueHorizonHaze[0] = atmos_blue_horizon.mV[VRED];
+    parameters.mCompositeAtmosBlueHorizonHaze[1] = atmos_blue_horizon.mV[VGREEN];
+    parameters.mCompositeAtmosBlueHorizonHaze[2] = atmos_blue_horizon.mV[VBLUE];
+    parameters.mCompositeAtmosBlueHorizonHaze[3] = atmos_haze_horizon;
+    parameters.mCompositeAtmosBlueDensityHaze[0] = atmos_blue_density.mV[VRED];
+    parameters.mCompositeAtmosBlueDensityHaze[1] = atmos_blue_density.mV[VGREEN];
+    parameters.mCompositeAtmosBlueDensityHaze[2] = atmos_blue_density.mV[VBLUE];
+    parameters.mCompositeAtmosBlueDensityHaze[3] = atmos_haze_density;
+    parameters.mCompositeAtmosDensity[0] = atmos_cloud_shadow;
+    parameters.mCompositeAtmosDensity[1] = atmos_density_multiplier;
+    parameters.mCompositeAtmosDensity[2] = atmos_distance_multiplier;
+    parameters.mCompositeAtmosDensity[3] = atmos_max_y;
+    parameters.mCompositeAtmosGlow[0] = atmos_glow.mV[VRED];
+    parameters.mCompositeAtmosGlow[1] = atmos_glow.mV[VGREEN];
+    parameters.mCompositeAtmosGlow[2] = atmos_glow.mV[VBLUE];
+    parameters.mCompositeAtmosGlow[3] = atmos_sun_moon_glow_factor;
+    parameters.mCompositeAtmosSunlight[0] = atmos_sunlight_color.mV[VRED];
+    parameters.mCompositeAtmosSunlight[1] = atmos_sunlight_color.mV[VGREEN];
+    parameters.mCompositeAtmosSunlight[2] = atmos_sunlight_color.mV[VBLUE];
+    parameters.mCompositeAtmosSunlight[3] = atmos_sky_sunlight_scale;
+    parameters.mCompositeAtmosMoonlight[0] = atmos_moonlight_color.mV[VRED];
+    parameters.mCompositeAtmosMoonlight[1] = atmos_moonlight_color.mV[VGREEN];
+    parameters.mCompositeAtmosMoonlight[2] = atmos_moonlight_color.mV[VBLUE];
+    parameters.mCompositeAtmosMoonlight[3] = atmos_sky_ambient_scale;
+    parameters.mCompositeAtmosAmbient[0] = atmos_ambient_color.mV[VRED];
+    parameters.mCompositeAtmosAmbient[1] = atmos_ambient_color.mV[VGREEN];
+    parameters.mCompositeAtmosAmbient[2] = atmos_ambient_color.mV[VBLUE];
+    parameters.mCompositeAtmosAmbient[3] = atmos_scene_light_strength;
+    parameters.mCompositeAtmosLightNorm[0] = atmos_light_norm.mV[VX];
+    parameters.mCompositeAtmosLightNorm[1] = atmos_light_norm.mV[VY];
+    parameters.mCompositeAtmosLightNorm[2] = atmos_light_norm.mV[VZ];
+    parameters.mCompositeAtmosLightNorm[3] = sky ? 1.f : 0.f;
 }
 
 void classify_world_render_command(LLWorldRenderCommand& command)
@@ -1144,6 +1291,11 @@ LLRenderWorldMaterialParameters get_world_material_parameters(
         set_world_mirror_clip_plane(parameters);
         set_world_water_parameters(parameters);
         parameters.mWaterBlendFactor = command.mWaterBlendFactor;
+    }
+    if (command.mMaterialClass == LLWorldRenderMaterialClass::AtmosphericHaze ||
+        command.mMaterialClass == LLWorldRenderMaterialClass::WaterHaze)
+    {
+        set_world_haze_composite_parameters(parameters);
     }
     return parameters;
 }
@@ -2484,30 +2636,23 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
                 0);
             if (LLPipeline::sReflectionProbesEnabled)
             {
-                if (gPipeline.mReflectionMapManager.mTexture.notNull())
-                {
-                    gPipeline.mReflectionMapManager.mTexture->bind(
+                water_reflection_probes_bound =
+                    gPipeline.mReflectionMapManager.bindReflectionTexture(
                         WORLD_RENDER_REFLECTION_PROBES_TEXTURE_UNIT);
-                    water_reflection_probes_bound = true;
-                }
-                if (gPipeline.mReflectionMapManager.mIrradianceMaps.notNull())
-                {
-                    gPipeline.mReflectionMapManager.mIrradianceMaps->bind(
+                water_irradiance_probes_bound =
+                    gPipeline.mReflectionMapManager.bindIrradianceTexture(
                         WORLD_RENDER_IRRADIANCE_PROBES_TEXTURE_UNIT);
-                    water_irradiance_probes_bound = true;
-                }
                 if (LLPipeline::RenderMirrors &&
-                    gPipeline.mHeroProbeManager.mTexture.notNull())
+                    gPipeline.mHeroProbeManager.bindTexture(
+                        WORLD_RENDER_HERO_PROBES_TEXTURE_UNIT))
                 {
-                    gPipeline.mHeroProbeManager.mTexture->bind(
-                        WORLD_RENDER_HERO_PROBES_TEXTURE_UNIT);
                     water_hero_probes_bound = true;
                 }
                 if (water_reflection_probes_bound ||
                     water_irradiance_probes_bound ||
                     water_hero_probes_bound)
                 {
-                    gPipeline.mReflectionMapManager.setUniforms();
+                    gPipeline.mReflectionMapManager.bindUniforms();
                 }
             }
         }
@@ -2538,15 +2683,15 @@ void submit_vulkan_world_commands(const LLWorldRenderCommandBuffer& command_buff
         }
         if (water_reflection_probes_bound)
         {
-            gPipeline.mReflectionMapManager.mTexture->unbind();
+            gPipeline.mReflectionMapManager.unbindReflectionTexture();
         }
         if (water_irradiance_probes_bound)
         {
-            gPipeline.mReflectionMapManager.mIrradianceMaps->unbind();
+            gPipeline.mReflectionMapManager.unbindIrradianceTexture();
         }
         if (water_hero_probes_bound)
         {
-            gPipeline.mHeroProbeManager.mTexture->unbind();
+            gPipeline.mHeroProbeManager.unbindTexture();
         }
         if (command.mMaterialClass == LLWorldRenderMaterialClass::Water)
         {
