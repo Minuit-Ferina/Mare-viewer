@@ -174,12 +174,26 @@ void main()
     {
         specular = texture(tex2, legacy_specular_sample_texcoord());
     }
+    if (has_material_flag(MATERIAL_LEGACY_BUMP))
+    {
+        specular = vertex_color.aaaa;
+    }
     float legacy_shiny = clamp(pc.material_modes.w / 6.0, 0.0, 0.49);
+    float specular_exponent = legacy_shiny;
+    if (has_material_flag(MATERIAL_LEGACY_BUMP))
+    {
+        specular_exponent = vertex_color.a;
+    }
+    float env_intensity = pc.material_legacy.a;
+    if (has_material_flag(MATERIAL_LEGACY_BUMP))
+    {
+        env_intensity = vertex_color.a;
+    }
 
     frag_diffuse = vec4(max(color.rgb, vec3(0.0)), 0.0);
-    frag_specular = vec4(max(specular.rgb, vec3(0.0)), legacy_shiny);
+    frag_specular = vec4(max(specular.rgb, vec3(0.0)), specular_exponent);
     frag_normal = encode_normal(
         material_normal(vary_material_texcoord0.xy),
-        pc.material_legacy.a,
+        env_intensity,
         GBUFFER_FLAG_HAS_ATMOS);
 }

@@ -6964,10 +6964,15 @@ bool decode_vulkan_color_sample(
         alpha = decode_vulkan_half_float(read_vulkan_u16(bytes + 6));
         return true;
     case LL_VK_FORMAT_R32_SFLOAT:
-    case LL_VK_FORMAT_D32_SFLOAT:
         red = read_vulkan_f32(bytes);
         green = 0.f;
         blue = 0.f;
+        alpha = 1.f;
+        return true;
+    case LL_VK_FORMAT_D32_SFLOAT:
+        red = read_vulkan_f32(bytes);
+        green = red;
+        blue = red;
         alpha = 1.f;
         return true;
     case LL_VK_FORMAT_R32G32_SFLOAT:

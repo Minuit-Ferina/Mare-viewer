@@ -1151,7 +1151,9 @@ F32 get_world_material_flags(const LLWorldRenderCommand& command)
     {
         flags |= LLRenderWorldMaterialParameters::DoubleSided;
     }
-    if (command.mBump != 0)
+    if (command.mBump != 0 &&
+        (command.mMaterialClass == LLWorldRenderMaterialClass::Bump ||
+            command.mMaterialClass == LLWorldRenderMaterialClass::PostBump))
     {
         flags |= LLRenderWorldMaterialParameters::LegacyBump;
     }

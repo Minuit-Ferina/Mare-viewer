@@ -168,6 +168,9 @@ static bool use_vulkan_world_path()
         getRenderBackend().isReady();
 }
 
+static bool sMareViewerPipelineSceneVulkanGBufferCaptureArmed = false;
+static bool sMareViewerPipelineSceneVulkanGBufferCaptureScheduled = false;
+
 static bool use_vulkan_smoke_sky_scene()
 {
     static const bool enabled =
@@ -776,6 +779,57 @@ static bool render_vulkan_world_to_deferred_screen(const LLColor4& clear_color)
     render_vulkan_existing_world_geometry();
 
     gPipeline.mRT->deferredScreen.flush();
+    if (sMareViewerPipelineSceneVulkanGBufferCaptureArmed &&
+        use_mare_viewer_pipeline_scene_test())
+    {
+        const std::string& capture_path =
+            get_mare_viewer_pipeline_scene_test_capture_path();
+        const bool request_depth =
+            use_mare_viewer_pipeline_scene_test_gbuffer_depth_capture_stage();
+        const U32 attachment =
+            get_mare_viewer_pipeline_scene_test_gbuffer_attachment();
+        const LLRenderTextureHandle capture_texture =
+            request_depth ?
+                gPipeline.mRT->deferredScreen.getDepthHandle() :
+                gPipeline.mRT->deferredScreen.getTextureHandle(attachment);
+
+        const char* capture_label = "viewer pipeline scene gbuffer color";
+        if (request_depth)
+        {
+            capture_label = "viewer pipeline scene gbuffer depth";
+        }
+        else if (attachment == 1)
+        {
+            capture_label = "viewer pipeline scene gbuffer specular";
+        }
+        else if (attachment == 2)
+        {
+            capture_label =
+                use_mare_viewer_pipeline_scene_test_gbuffer_alpha_capture_stage() ?
+                    "viewer pipeline scene gbuffer normal alpha" :
+                    "viewer pipeline scene gbuffer normal";
+        }
+        else if (attachment == 3)
+        {
+            capture_label = "viewer pipeline scene gbuffer emissive";
+        }
+
+        sMareViewerPipelineSceneVulkanGBufferCaptureScheduled =
+            capture_texture &&
+            getRenderBackend().scheduleDebugTexturePPMReadback(
+                capture_texture,
+                capture_path.c_str(),
+                capture_label);
+        if (!sMareViewerPipelineSceneVulkanGBufferCaptureScheduled)
+        {
+            LL_WARNS("RenderBackend")
+                << "Unable to schedule Vulkan Mare viewer pipeline scene capture for "
+                << capture_label
+                << " at the deferredScreen G-buffer point."
+                << LL_ENDL;
+        }
+        sMareViewerPipelineSceneVulkanGBufferCaptureArmed = false;
+    }
     return true;
 }
 
@@ -3307,6 +3361,16 @@ static void render_vulkan_world_frame()
 
     if (rendered_deferred_screen)
     {
+        if (use_mare_viewer_pipeline_scene_test() &&
+            (use_mare_viewer_pipeline_scene_test_gbuffer_capture_stage() ||
+                use_mare_viewer_pipeline_scene_test_gbuffer_depth_capture_stage()))
+        {
+            LL_INFOS_ONCE("RenderBackend")
+                << "Vulkan viewer-pipeline scene test stopped after deferredScreen G-buffer capture to preserve intermediate G-buffer attachments."
+                << LL_ENDL;
+            return;
+        }
+
         if (use_vulkan_debug_show_copy_stage("deferred-screen"))
         {
             LL_INFOS_ONCE("RenderBackend")
@@ -4133,8 +4197,20 @@ static void render_mare_viewer_pipeline_scene_test_frame()
 
     if (use_vulkan_world_path())
     {
+        sMareViewerPipelineSceneVulkanGBufferCaptureScheduled = false;
+        sMareViewerPipelineSceneVulkanGBufferCaptureArmed =
+            should_capture &&
+            (request_gbuffer_capture || request_gbuffer_depth_capture);
         render_vulkan_world_frame();
-        if (should_capture)
+        if (request_gbuffer_capture || request_gbuffer_depth_capture)
+        {
+            captured =
+                sMareViewerPipelineSceneVulkanGBufferCaptureScheduled;
+        }
+        sMareViewerPipelineSceneVulkanGBufferCaptureArmed = false;
+        if (should_capture &&
+            !request_gbuffer_capture &&
+            !request_gbuffer_depth_capture)
         {
             LLRenderTarget* capture_target = nullptr;
             const char* capture_label = nullptr;
