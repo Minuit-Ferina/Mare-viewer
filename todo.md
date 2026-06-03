@@ -413,13 +413,15 @@ Validation status:
       `softenLight` state as an approximation. A first attempt made the live
       world rendering fragile; keep the current stable runtime composite until
       the faithful `soften_light.frag` owner and its inputs are validated.
-	      Smoke progress: `mare-vulkan-smoke --mode
-	      viewer-deferred-soften-state-probe` reuses the viewer-style synthetic
-	      G-buffer/deferred/final graph with non-neutral softenLight state so
-	      future shader changes can be tested without logging into a region. The
-	      probe now validates both the `DeferredSoften` output target and the
-	      final swapchain RGB against stable expected values and returns non-zero
-	      if either drifts outside tolerance.
+      Smoke progress: `mare-vulkan-smoke --mode
+      viewer-deferred-soften-state-probe` reuses the viewer-style synthetic
+      G-buffer/deferred/final graph with non-neutral softenLight state, binds a
+      deterministic lightMap plus fallback reflection-probe inputs, and now
+      executes the real `LLRenderWorldShaderClass::DeferredSoften` pipeline
+      instead of the bootstrap deferred-composite shader. The probe validates
+      both the `DeferredSoften` output target and the final swapchain RGB
+      against stable expected values and returns non-zero if either drifts
+      outside tolerance.
 	      Runtime progress: the active/runtime Vulkan deferred composite now
       consumes the transported OpenGL soften state for selected sun/moon light
       direction, classic-mode light shaping, and sky HDR fallback scale. It is
@@ -684,11 +686,18 @@ Validation status:
       Emissive validation progress: `mare-vulkan-smoke --mode
       viewer-deferred-emissive-probe` now exercises a PBR G-buffer emissive
       variant by writing a bright emissive value into attachment 3, then
-      validates that the deferred composite output and final swapchain include
-      that emissive contribution. This is a local guardrail for the G-buffer
-      emissive attachment, composite `emissiveMap` binding, and final handoff;
-      full live-viewer `DeferredSoften` visual parity still needs scene
-      comparison.
+      runs the real `DeferredSoften` pass with synthetic lightMap/probe inputs
+      and validates that the soften output plus final swapchain include that
+      emissive contribution. This is a local guardrail for the G-buffer
+      emissive attachment, `DeferredSoften` `emissiveMap` binding, and final
+      handoff; full live-viewer visual parity still needs scene comparison.
+      Reflection/probe diagnostic progress: `mare-vulkan-smoke --mode
+      viewer-deferred-reflection-probe` now creates a glossy metallic PBR band
+      and routes it through the same real `DeferredSoften` stage with
+      synthetic lightMap/probe inputs. The mode is wired for local debugging of
+      environment/probe, BRDF LUT, and scene-reflection bindings, but it is not
+      yet a parity guardrail because the current synthetic output is near
+      black and still needs faithful OpenGL/Vulkan expectation work.
       Projector validation progress: `mare-vulkan-smoke --mode
       viewer-deferred-projector-light-probe` now adds a white cube-map fixture
       and renders a fullscreen `MultiSpotLight` projector pass with real cube,
