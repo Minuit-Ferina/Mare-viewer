@@ -658,6 +658,20 @@ Validation status:
       view-space shadow sample position (`spos.xy`) to `pcfSpotShadow()`
       instead of framebuffer coordinates. Remaining PCF work is visual
       validation/tuning against OpenGL shadow softness and acne bias.
+      Local-light validation progress: `mare-vulkan-smoke --mode
+      viewer-deferred-local-light-probe` now renders the synthetic three-band
+      G-buffer, runs the live `DeferredSoften` path, adds a separate additive
+      `MultiPointLight` pass into the deferred light target, then runs
+      `FinalComposite`. The smoke validates both the light target RGB and the
+      final swapchain RGB, so regressions in the local-light owner, G-buffer/
+      depth/lightFunc bindings, additive blend state, or final handoff fail
+      without requiring a login.
+      Projector validation progress: `mare-vulkan-smoke --mode
+      viewer-deferred-projector-light-probe` now adds a white cube-map fixture
+      and renders a fullscreen `MultiSpotLight` projector pass with real cube,
+      projection, noise, and lightFunc bindings before the same final handoff.
+      It validates the light target and final swapchain RGB, covering the
+      nearby projector/spotlight owner separately from the point-light batch.
       LightMap blur progress: OpenGL runs `sunLightF`/`sunLightSSAOF` into
       `deferredLight`, then applies the two-pass `blurLightF` graph
       (`deferredLight -> screen -> deferredLight`) before `softenLightF`
