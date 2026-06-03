@@ -57,6 +57,7 @@
 	<string name="AboutOGL">
 		OpenGL版本：[OPENGL_VERSION]
 	</string>
+	<string name="AboutRenderBackend">Render Backend: [RENDER_BACKEND] [RENDER_BACKEND_VERSION]</string>
 	<string name="AboutSettings">
 		視窗大小：[WINDOW_WIDTH]x[WINDOW_HEIGHT]
 字體大小調整：[FONT_SIZE_ADJUSTMENT]點

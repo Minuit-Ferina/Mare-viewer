@@ -2048,6 +2048,7 @@ if (WINDOWS)
       ${CMAKE_CURRENT_SOURCE_DIR}/licenses-win32.txt
       ${CMAKE_CURRENT_SOURCE_DIR}/featuretable.txt
       ${viewer_APPSETTINGS_FILES}
+      ${MARE_VULKAN_BRIDGE_SHADER_SPV}
       SLPlugin
       media_plugin_cef
       media_plugin_libvlc
@@ -2084,6 +2085,22 @@ if (WINDOWS)
            ${SHARED_LIB_STAGING_DIR}/OpenAL32.dll
            ${SHARED_LIB_STAGING_DIR}/alut.dll
           )
+    endif ()
+
+    set(VULKAN_RUNTIME_LIBRARY "")
+    file(TO_CMAKE_PATH "$ENV{VULKAN_SDK}" VULKAN_SDK_PATH)
+    file(TO_CMAKE_PATH "$ENV{WINDIR}" WINDOWS_DIRECTORY)
+    if (VULKAN_SDK_PATH AND EXISTS "${VULKAN_SDK_PATH}/Bin/vulkan-1.dll")
+      set(VULKAN_RUNTIME_LIBRARY "${VULKAN_SDK_PATH}/Bin/vulkan-1.dll")
+    elseif (ADDRESS_SIZE EQUAL 64 AND WINDOWS_DIRECTORY AND EXISTS "${WINDOWS_DIRECTORY}/Sysnative/vulkan-1.dll")
+      set(VULKAN_RUNTIME_LIBRARY "${WINDOWS_DIRECTORY}/Sysnative/vulkan-1.dll")
+    elseif (ADDRESS_SIZE EQUAL 64 AND WINDOWS_DIRECTORY AND EXISTS "${WINDOWS_DIRECTORY}/System32/vulkan-1.dll")
+      set(VULKAN_RUNTIME_LIBRARY "${WINDOWS_DIRECTORY}/System32/vulkan-1.dll")
+    elseif (WINDOWS_DIRECTORY AND EXISTS "${WINDOWS_DIRECTORY}/SysWOW64/vulkan-1.dll")
+      set(VULKAN_RUNTIME_LIBRARY "${WINDOWS_DIRECTORY}/SysWOW64/vulkan-1.dll")
+    endif ()
+    if (VULKAN_RUNTIME_LIBRARY)
+      list(APPEND COPY_INPUT_DEPENDENCIES ${VULKAN_RUNTIME_LIBRARY})
     endif ()
 
     add_custom_command(

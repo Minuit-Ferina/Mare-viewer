@@ -39,8 +39,12 @@ namespace
 {
 bool use_vulkan_relative_font_origin()
 {
+#if LL_WINDOWS
+    return false;
+#else
     return getRenderBackend().getType() == LLRenderBackendType::Vulkan &&
         getRenderBackend().isReady();
+#endif
 }
 
 class LLScopedVulkanFontViewport
@@ -330,4 +334,3 @@ void LLFontVertexBuffer::renderBuffers()
     }
     gGL.popUIMatrix();
 }
-

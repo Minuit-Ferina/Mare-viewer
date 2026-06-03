@@ -34,10 +34,13 @@
 #include "llwindow.h"
 #include "llwindowcallbacks.h"
 #include "lldragdropwin32.h"
+#include "llrenderbackend.h"
 #include "llthread.h"
 #include "llthreadsafequeue.h"
 #include "llmutex.h"
 #include "workqueue.h"
+
+#include <atomic>
 
 // Hack for async host by name
 #define LL_WM_HOST_RESOLVED      (WM_APP + 1)
@@ -95,6 +98,7 @@ public:
     void gatherInput() override;
     void delayInputProcessing() override;
     void swapBuffers() override;
+    bool isInteractiveMoveResize() const override { return mInInteractiveMoveResize.load(std::memory_order_relaxed); }
 
     // handy coordinate space conversion routines
     bool convertCoords(LLCoordScreen from, LLCoordWindow *to) override;
@@ -196,6 +200,7 @@ protected:
     LLRenderNativeContext mRenderContext;
     HGLRC       mhRC = 0;           // OpenGL rendering context
     HDC         mhDC = 0;           // Windows Device context handle
+    LLRenderNativeContext mRenderContext;
     HINSTANCE   mhInstance;     // handle to application instance
     RECT        mOldMouseClip;  // Screen rect to which the mouse cursor was globally constrained before we changed it in clipMouse()
     WPARAM      mLastSizeWParam;
@@ -256,6 +261,7 @@ protected:
     void updateWindowRect();
     RECT mRect;
     RECT mClientRect;
+    std::atomic_bool mInInteractiveMoveResize { false };
 
     void updateWindowTheme();
     bool isSystemAppDarkMode();

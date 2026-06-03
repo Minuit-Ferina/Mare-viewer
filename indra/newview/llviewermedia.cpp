@@ -104,6 +104,18 @@ template <typename T>
 {
     return const_cast<LLView*>(owner)->getChildView(name, recurse);
 }
+
+bool should_defer_vulkan_media_texture_update_for_window_move()
+{
+#if LL_WINDOWS
+    LLWindow* window = gViewerWindow ? gViewerWindow->getWindow() : nullptr;
+    return window &&
+        window->isInteractiveMoveResize() &&
+        getRenderBackend().getType() == LLRenderBackendType::Vulkan;
+#else
+    return false;
+#endif
+}
 }
 
 extern bool gCubeSnapshot;
@@ -3029,6 +3041,11 @@ void LLViewerMediaImpl::update()
     }
 
     if(mSuspendUpdates || !mVisible)
+    {
+        return;
+    }
+
+    if(should_defer_vulkan_media_texture_update_for_window_move())
     {
         return;
     }

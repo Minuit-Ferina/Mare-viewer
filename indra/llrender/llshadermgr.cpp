@@ -1178,7 +1178,7 @@ bool LLShaderMgr::saveCachedProgramBinary(LLGLSLShader* shader)
         program_binary.resize(binary_info.mBinaryLength);
 
         LLGLenum error = getRenderBackend().getErrorCode(); // Clear current error
-        getRenderBackend().getProgramBinary(shader->mProgramObject, program_binary.size() * sizeof(U8), nullptr, &binary_info.mBinaryFormat, program_binary.data());
+        getRenderBackend().getProgramBinary(shader->mProgramObject, binary_info.mBinaryLength, nullptr, &binary_info.mBinaryFormat, program_binary.data());
         error = getRenderBackend().getErrorCode();
         if (error == GL_NO_ERROR)
         {

@@ -56,6 +56,7 @@ Grafikkarte: [GRAPHICS_CARD]
 	<string name="AboutOGL">
 		OpenGL-Version: [OPENGL_VERSION]
 	</string>
+	<string name="AboutRenderBackend">Render Backend: [RENDER_BACKEND] [RENDER_BACKEND_VERSION]</string>
 	<string name="AboutSettings">
 		Fenstergröße: [WINDOW_WIDTH]x[WINDOW_HEIGHT]
 Schriftgrößenanpassung: [FONT_SIZE_ADJUSTMENT] pt

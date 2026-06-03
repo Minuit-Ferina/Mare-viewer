@@ -50,6 +50,7 @@ Karta graficzna (Graphics Card): [GRAPHICS_CARD]
 	<string name="AboutOGL">
 		Wersja OpenGL: [OPENGL_VERSION]
 	</string>
+	<string name="AboutRenderBackend">Render Backend: [RENDER_BACKEND] [RENDER_BACKEND_VERSION]</string>
 	<string name="AboutSettings">
 		Rozmiar okna (Window size): [WINDOW_WIDTH]x[WINDOW_HEIGHT]
 Dostrojenie rozmiaru czcionki: [FONT_SIZE_ADJUSTMENT]pt

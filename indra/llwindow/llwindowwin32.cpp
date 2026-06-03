@@ -40,6 +40,7 @@
 #include "llerror.h"
 #include "llexception.h"
 #include "llfasttimer.h"
+#include "llglheaders.h"
 
 #include "llrenderbackend.h"
 #include "llstring.h"
@@ -48,6 +49,7 @@
 #include "llsys.h"
 #include "llglslshader.h"
 #include "llthreadsafequeue.h"
+#include "threadpool.h"
 #include "stringize.h"
 #include "llframetimer.h"
 #include "llwatchdog.h"
@@ -1026,7 +1028,7 @@ void LLWindowWin32::close()
 
     if (mRenderContext.mContext)
     {
-        LL_INFOS("Window") << "Releasing native render backend context" << LL_ENDL;
+        getRenderBackend().clearCurrentNativeContext();
         getRenderBackend().destroyNativeContext(mRenderContext);
     }
 
@@ -1186,6 +1188,8 @@ bool LLWindowWin32::setSizeImpl(const LLCoordWindow size)
 bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bool enable_vsync, const LLCoordScreen* const posp)
 {
     //called from main thread
+    const bool use_native_render_context =
+        getRenderBackend().getType() != LLRenderBackendType::OpenGL;
     U32  pixel_format;
     DEVMODE dev_mode;
     ::ZeroMemory(&dev_mode, sizeof(DEVMODE));
@@ -1217,6 +1221,7 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
     getRenderBackend().shutdownContextCapabilities();
     if (mRenderContext.mContext)
     {
+        getRenderBackend().clearCurrentNativeContext();
         getRenderBackend().destroyNativeContext(mRenderContext);
     }
 
@@ -1342,6 +1347,14 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
     if (mWindowHandle)
     {
         LL_INFOS("Window") << "window is created." << LL_ENDL ;
+        RECT rect;
+        RECT client_rect;
+        if (GetWindowRect(mWindowHandle, &rect) &&
+            GetClientRect(mWindowHandle, &client_rect))
+        {
+            mRect = rect;
+            mClientRect = client_rect;
+        }
     }
     else
     {
@@ -1457,6 +1470,80 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
     }
 
     LL_INFOS("Window") << "Device context retrieved." << LL_ENDL ;
+
+    if (use_native_render_context)
+    {
+        LLRenderNativeContextDesc desc;
+        desc.mWindow = mWindowHandle;
+        desc.mSamples = mFSAASamples;
+        desc.mEnableVSync = enable_vsync;
+
+        if (!getRenderBackend().createNativeContext(desc, mRenderContext))
+        {
+            OSMessageBox(
+                std::string("Can't create ") + getRenderBackend().getName() + " rendering context",
+                mCallbacks->translateString("MBError"),
+                OSMB_OK);
+            close();
+            return false;
+        }
+
+        if (!getRenderBackend().makeNativeContextCurrent(mRenderContext.mContext))
+        {
+            OSMessageBox(
+                std::string("Can't activate ") + getRenderBackend().getName() + " rendering context",
+                mCallbacks->translateString("MBError"),
+                OSMB_OK);
+            close();
+            return false;
+        }
+
+        gGLManager.mVRAM = mRenderContext.mVRAM;
+
+        if (!getRenderBackend().initContextCapabilities())
+        {
+            if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+            {
+                OSMessageBox(
+                    "Mare Viewer stopped during the experimental Vulkan backend bootstrap.\n"
+                    "Vulkan reached native context, swapchain, render pass, framebuffers,\n"
+                    "pipeline setup, and command buffers. Real scene rendering is not implemented yet.\n"
+                    "Set MARE_VULKAN_CONTINUE_AFTER_PROBE=1 only to probe the next startup blocker.\n"
+                    "Unset MARE_RENDER_BACKEND to run with the default OpenGL backend.",
+                    "Vulkan backend incomplete",
+                    OSMB_OK);
+            }
+            else
+            {
+                LLError::LLUserWarningMsg::show(mCallbacks->translateString("MBVideoDrvErr"), 8/*LAST_EXEC_GRAPHICS_INIT*/);
+            }
+            close();
+            return false;
+        }
+
+        toggleVSync(enable_vsync);
+
+        SetWindowLongPtr(mWindowHandle, GWLP_USERDATA, (LONG_PTR)this);
+        DragAcceptFiles( mWindowHandle, TRUE );
+        mDragDrop->init( mWindowHandle );
+        SetTimer( mWindowHandle, 0, 1000 / 30, NULL );
+        mPostQuit = true;
+
+        mWindowThread->post([=]()
+        {
+            mWindowThread->glReady();
+        });
+
+        if (auto_show)
+        {
+            show();
+            getRenderBackend().setClearColor(0.0f, 0.0f, 0.0f, 0.f);
+            getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
+            swapBuffers();
+        }
+
+        return true;
+    }
 
     try
     {
@@ -1951,7 +2038,7 @@ void LLWindowWin32::recreateWindow(RECT window_rect, DWORD dw_ex_style, DWORD dw
 
 void* LLWindowWin32::createSharedContext()
 {
-    if (mRenderContext.mContext)
+    if (getRenderBackend().getType() != LLRenderBackendType::OpenGL)
     {
         return getRenderBackend().createSharedNativeContext(
             mRenderContext.mPixelFormat,
@@ -2015,9 +2102,10 @@ void* LLWindowWin32::createSharedContext()
 
 void LLWindowWin32::makeContextCurrent(void* contextPtr)
 {
-    if (mRenderContext.mContext)
+    if (getRenderBackend().getType() != LLRenderBackendType::OpenGL)
     {
-        getRenderBackend().makeNativeContextCurrent(contextPtr ? contextPtr : mRenderContext.mContext);
+        getRenderBackend().makeNativeContextCurrent(contextPtr);
+        LL_PROFILER_GPU_CONTEXT;
         return;
     }
 
@@ -2027,7 +2115,7 @@ void LLWindowWin32::makeContextCurrent(void* contextPtr)
 
 void LLWindowWin32::destroySharedContext(void* contextPtr)
 {
-    if (mRenderContext.mContext)
+    if (getRenderBackend().getType() != LLRenderBackendType::OpenGL)
     {
         getRenderBackend().destroySharedNativeContext(contextPtr);
         return;
@@ -2038,7 +2126,7 @@ void LLWindowWin32::destroySharedContext(void* contextPtr)
 
 void LLWindowWin32::toggleVSync(bool enable_vsync)
 {
-    if (mRenderContext.mContext)
+    if (getRenderBackend().getType() != LLRenderBackendType::OpenGL)
     {
         getRenderBackend().setNativeVSync(mRenderContext.mContext, enable_vsync);
         return;
@@ -3089,6 +3177,19 @@ LRESULT CALLBACK LLWindowWin32::mainWindowProc(HWND h_wnd, UINT u_msg, WPARAM w_
             return 0;
         }
 
+        case WM_ENTERSIZEMOVE:
+        {
+            window_imp->mInInteractiveMoveResize.store(true, std::memory_order_relaxed);
+            return 0;
+        }
+
+        case WM_EXITSIZEMOVE:
+        {
+            window_imp->mInInteractiveMoveResize.store(false, std::memory_order_relaxed);
+            window_imp->updateWindowRect();
+            return 0;
+        }
+
         case WM_MOVE:
         {
             window_imp->updateWindowRect();
@@ -3799,19 +3900,18 @@ bool LLWindowWin32::resetDisplayResolution()
 
 void LLWindowWin32::swapBuffers()
 {
+    if (getRenderBackend().getType() != LLRenderBackendType::OpenGL)
     {
-        LL_PROFILE_ZONE_SCOPED_CATEGORY_WIN32;
-        if (mRenderContext.mContext)
-        {
-            getRenderBackend().swapNativeBuffers(mRenderContext.mContext);
-        }
-        else
-        {
-            SwapBuffers(mhDC);
-        }
+        getRenderBackend().swapNativeBuffers(mRenderContext.mContext);
+        LL_PROFILER_GPU_COLLECT;
+        return;
     }
 
-    if (!mRenderContext.mContext)
+    {
+        LL_PROFILE_ZONE_SCOPED_CATEGORY_WIN32;
+        SwapBuffers(mhDC);
+    }
+
     {
         LL_PROFILE_ZONE_NAMED_CATEGORY_WIN32("GPU Collect");
         LL_PROFILER_GPU_COLLECT;

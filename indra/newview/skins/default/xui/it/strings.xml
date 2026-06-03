@@ -54,6 +54,7 @@ Scheda grafica: [GRAPHICS_CARD]
 	<string name="AboutOGL">
 		Versione OpenGL: [OPENGL_VERSION]
 	</string>
+	<string name="AboutRenderBackend">Render Backend: [RENDER_BACKEND] [RENDER_BACKEND_VERSION]</string>
 	<string name="AboutSettings">
 		Dimensione finestra: [WINDOW_WIDTH]x[WINDOW_HEIGHT]
 Regolazione dimensioni carattere: [FONT_SIZE_ADJUSTMENT]pt

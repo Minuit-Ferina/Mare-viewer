@@ -146,6 +146,7 @@ public:
     virtual void gatherInput() = 0;
     virtual void delayInputProcessing() = 0;
     virtual void swapBuffers() = 0;
+    virtual bool isInteractiveMoveResize() const { return false; }
     virtual void bringToFront() = 0;
     virtual void focusClient() { };     // this may not have meaning or be required on other platforms, therefore, it's not abstract
     // handy coordinate space conversion routines

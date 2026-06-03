@@ -58,6 +58,7 @@ OSのバージョン：[OS_VERSION]
 	<string name="AboutOGL">
 		OpenGLバージョン：[OPENGL_VERSION]
 	</string>
+	<string name="AboutRenderBackend">Render Backend: [RENDER_BACKEND] [RENDER_BACKEND_VERSION]</string>
 	<string name="AboutSettings">
 		ウィンドウサイズ:[WINDOW_WIDTH]x[WINDOW_HEIGHT]
 フォントサイズ調整：[FONT_SIZE_ADJUSTMENT]pt

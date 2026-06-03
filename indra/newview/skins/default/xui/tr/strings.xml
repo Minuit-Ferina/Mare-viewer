@@ -57,6 +57,7 @@ Grafik Kartı: [GRAPHICS_CARD]
 	<string name="AboutOGL">
 		OpenGL Sürümü: [OPENGL_VERSION]
 	</string>
+	<string name="AboutRenderBackend">Render Backend: [RENDER_BACKEND] [RENDER_BACKEND_VERSION]</string>
 	<string name="AboutSettings">
 		Pencere boyutu: [WINDOW_WIDTH]x[WINDOW_HEIGHT]
 Yazı Tipi Boyutu Ayarı: [FONT_SIZE_ADJUSTMENT]pt

@@ -44,6 +44,7 @@
 #include <tchar.h>      // For TCHAR support
 
 #include "llviewercontrol.h"
+#include "llrendercontext.h"
 #include "lldxhardware.h"
 
 #include "nvapi/nvapi.h"
@@ -79,7 +80,6 @@
 #include "llstartup.h"
 #include "llviewerregion.h"
 #include "llvoavatarself.h"         // for agent name
-#include "llrendercontext.h"
 namespace Kokua
 {
     std::wstring LogfileIn;

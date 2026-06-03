@@ -65,6 +65,19 @@ class ViewerManifest(LLManifest):
         # and copy_l_viewer_manifest targets)
         return 'package' in self.args['actions']
 
+    def copy_vulkan_bridge_shaders(self):
+        vulkan_bridge_shader_dir = os.path.join(
+            self.args['build'],
+            "generated",
+            "shaders",
+            "vulkan",
+            "bridge")
+        if os.path.isdir(vulkan_bridge_shader_dir):
+            with self.prefix(
+                    src=vulkan_bridge_shader_dir,
+                    dst="app_settings/shaders/vulkan/bridge"):
+                self.path("*.spv")
+
     def construct(self):
         super(ViewerManifest, self).construct()
         self.path(src="../../scripts/messages/message_template.msg", dst="app_settings/message_template.msg")
@@ -214,6 +227,8 @@ class ViewerManifest(LLManifest):
             #return code for free.
             if not self.path2basename(os.pardir, "build_data.json"):
                 print("No build_data.json file")
+
+        self.copy_vulkan_bridge_shaders()
 
     def finish_build_data_dict(self, build_data_dict):
         return build_data_dict
@@ -462,6 +477,31 @@ class WindowsManifest(ViewerManifest):
         build_data_dict['AppName']    = self.app_name()
         return build_data_dict
 
+    def get_vulkan_loader_path(self):
+        candidates = []
+
+        vulkan_sdk = os.environ.get("VULKAN_SDK", "").strip()
+        if vulkan_sdk and os.path.isdir(vulkan_sdk):
+            candidates.append(os.path.join(vulkan_sdk, "Bin", "vulkan-1.dll"))
+
+        windir = os.environ.get("WINDIR", r"C:\Windows")
+        if self.address_size == 64:
+            candidates.append(os.path.join(windir, "Sysnative", "vulkan-1.dll"))
+            candidates.append(os.path.join(windir, "System32", "vulkan-1.dll"))
+        else:
+            candidates.append(os.path.join(windir, "SysWOW64", "vulkan-1.dll"))
+
+        for loader in candidates:
+            if os.path.isfile(loader):
+                return loader
+
+        raise RuntimeError(
+            "vulkan-1.dll is required but was not found. Install the Vulkan Runtime "
+            "or set VULKAN_SDK to an SDK that provides Bin\\vulkan-1.dll.")
+
+    def copy_vulkan_runtime_libraries(self):
+        self.path(self.get_vulkan_loader_path(), "vulkan-1.dll")
+
     def test_msvcrt_and_copy_action(self, src, dst):
         # This is used to test a dll manifest.
         # It is used as a temporary override during the construct method
@@ -598,6 +638,8 @@ class WindowsManifest(ViewerManifest):
             if self.manifest_bool('tracy'):
                 with self.prefix(src=os.path.join(pkgdir, 'bin')):
                     self.path("tracy-profiler.exe")
+
+        self.copy_vulkan_runtime_libraries()
 
         self.path(src="licenses-win32.txt", dst="licenses.txt")
         self.path("featuretable.txt")

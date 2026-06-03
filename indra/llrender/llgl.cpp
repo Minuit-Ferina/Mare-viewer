@@ -2613,13 +2613,16 @@ LLGLState::~LLGLState()
     {
         if (gDebugGL)
         {
+            const bool expected = sStateMap[mState] != GL_FALSE;
+            const bool actual = getRenderBackend().isLegacyCapabilityEnabled(mState);
+
             if (!gDebugSession)
             {
-                llassert_always(sStateMap[mState] == getRenderBackend().isLegacyCapabilityEnabled(mState));
+                llassert_always(expected == actual);
             }
             else
             {
-                if (sStateMap[mState] != getRenderBackend().isLegacyCapabilityEnabled(mState))
+                if (expected != actual)
                 {
                     ll_fail("GL enabled state does not match expected");
                 }
@@ -2933,8 +2936,8 @@ void LLGLDepthTest::checkState()
         getRenderBackend().getLegacyInteger(GL_DEPTH_FUNC, &func);
         getRenderBackend().getLegacyBoolean(GL_DEPTH_WRITEMASK, &mask);
 
-        if (getRenderBackend().isLegacyCapabilityEnabled(GL_DEPTH_TEST) != sDepthEnabled ||
-            sWriteEnabled != mask ||
+        if (getRenderBackend().isLegacyCapabilityEnabled(GL_DEPTH_TEST) != (sDepthEnabled != GL_FALSE) ||
+            (sWriteEnabled != GL_FALSE) != (mask != GL_FALSE) ||
             sDepthFunc != func)
         {
             if (gDebugSession)

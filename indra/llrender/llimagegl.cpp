@@ -1453,6 +1453,11 @@ U32 type_width_from_pixtype(U32 pixtype)
 
 bool should_stagger_image_set(bool compressed)
 {
+    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
+    {
+        return false;
+    }
+
 #if LL_DARWIN
     return !compressed && on_main_thread() && gGLManager.mIsAMD;
 #else
