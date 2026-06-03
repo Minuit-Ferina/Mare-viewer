@@ -5017,8 +5017,8 @@ LLRenderWorldMaterialParameters make_deferred_point_light_volume_probe_parameter
         force_smoke_volume_light_output() ? 1.f : 0.f;
     parameters.mLocalLightCenterSize[0] = 0.f;
     parameters.mLocalLightCenterSize[1] = 0.f;
-    parameters.mLocalLightCenterSize[2] = 0.55f;
-    parameters.mLocalLightCenterSize[3] = 0.45f;
+    parameters.mLocalLightCenterSize[2] = 0.5f;
+    parameters.mLocalLightCenterSize[3] = 0.5f;
     parameters.mLocalLightColor[0] = 0.52f;
     parameters.mLocalLightColor[1] = 0.30f;
     parameters.mLocalLightColor[2] = 0.10f;
@@ -5040,8 +5040,8 @@ LLRenderWorldMaterialParameters make_deferred_spot_light_volume_probe_parameters
         make_deferred_projector_light_probe_parameters(width, height);
     parameters.mLocalLightCenterSize[0] = 0.f;
     parameters.mLocalLightCenterSize[1] = 0.f;
-    parameters.mLocalLightCenterSize[2] = 0.55f;
-    parameters.mLocalLightCenterSize[3] = 0.45f;
+    parameters.mLocalLightCenterSize[2] = 0.5f;
+    parameters.mLocalLightCenterSize[3] = 0.5f;
     parameters.mLocalLightColor[0] = 0.16f;
     parameters.mLocalLightColor[1] = 0.40f;
     parameters.mLocalLightColor[2] = 0.68f;
@@ -8278,7 +8278,7 @@ bool render_viewer_deferred_volume_light_probe_frame(
         quad,
         graph_width,
         graph_height,
-        0.5f);
+        0.7f);
     if (spot_volume)
     {
         log_deferred_spot_light_volume_probe_reference();

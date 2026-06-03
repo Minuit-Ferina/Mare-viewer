@@ -593,11 +593,13 @@ Validation status:
       scaling instead of the earlier one-dot Fresnel approximation.
       Local-light smoke validation: the point/spot cube-volume probes now
       place their synthetic volume in Vulkan clip space instead of applying an
-      extra OpenGL depth remap, and `--force-volume-light-output` confirms both
-      `PointLight` and `SpotLight` `TRIANGLE_FAN` paths write into
-      `DeferredLightMap`/`deferredLight`. The earlier black/no-op volume probe
-      was a smoke-scene setup error, not evidence that the backend volume
-      topology or additive render-target path was dead.
+      extra OpenGL depth remap, and pair that volume with a G-buffer depth that
+      reconstructs inside the test light. `--force-volume-light-output`
+      confirms both `PointLight` and `SpotLight` `TRIANGLE_FAN` paths write
+      into `DeferredLightMap`/`deferredLight`; the normal, non-forced probes
+      also produce real point and spot shader contributions. The earlier
+      black/no-op volume probe was a smoke-scene setup error, not evidence that
+      the backend volume topology or additive render-target path was dead.
       This is not full water parity yet; final class3 water fragment graph
       ownership, reflection-target visual/depth parity, shadow, PBR water
       lighting, and water-fog visual parity still need to be wired and
