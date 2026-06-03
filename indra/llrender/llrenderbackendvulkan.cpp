@@ -19833,7 +19833,9 @@ bool record_vulkan_frame_command_buffer(
                 ++world_shader_gbuffer_counts[shader_index];
             }
         }
-        if (use_deferred_composite_pipeline || use_deferred_soften_pipeline)
+        if (use_deferred_composite_pipeline ||
+            use_deferred_soften_pipeline ||
+            use_deferred_blur_light_pipeline)
         {
             if (!has_deferred_composite_average_textures)
             {
@@ -19849,7 +19851,9 @@ bool record_vulkan_frame_command_buffer(
                 has_final_composite_average_textures = true;
             }
         }
-        if (use_deferred_composite_pipeline || use_deferred_soften_pipeline)
+        if (use_deferred_composite_pipeline ||
+            use_deferred_soften_pipeline ||
+            use_deferred_blur_light_pipeline)
         {
             ++deferred_composite_draw_count;
             active_pass.mSawDeferredCompositeDraw = true;

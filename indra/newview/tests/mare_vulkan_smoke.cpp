@@ -66,6 +66,7 @@ enum class SmokeMode
     ViewerDeferredProjectorLightProbe,
     ViewerDeferredPointLightVolumeProbe,
     ViewerDeferredSpotLightVolumeProbe,
+    ViewerDeferredLightMapBlurProbe,
 };
 
 enum class SmokeViewerStagedStop
@@ -293,6 +294,11 @@ bool parse_smoke_mode_value(const char* value, SmokeMode& mode)
         mode = SmokeMode::ViewerDeferredSpotLightVolumeProbe;
         return true;
     }
+    if (std::strcmp(value, "viewer-deferred-lightmap-blur-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredLightMapBlurProbe;
+        return true;
+    }
     return false;
 }
 
@@ -353,6 +359,8 @@ const char* get_smoke_mode_name(SmokeMode mode)
         return "viewer-deferred-point-light-volume-probe";
     case SmokeMode::ViewerDeferredSpotLightVolumeProbe:
         return "viewer-deferred-spot-light-volume-probe";
+    case SmokeMode::ViewerDeferredLightMapBlurProbe:
+        return "viewer-deferred-lightmap-blur-probe";
     case SmokeMode::DeferredGraph:
         return "deferred-graph";
     case SmokeMode::ViewerDeferredDirect:
@@ -483,6 +491,8 @@ const char* get_smoke_mode_description(SmokeMode mode)
         return " rendered through the viewer-style deferred graph with a separate additive PointLight cube-volume pass before final composite. ";
     case SmokeMode::ViewerDeferredSpotLightVolumeProbe:
         return " rendered through the viewer-style deferred graph with a separate additive SpotLight cube-volume projector pass before final composite. ";
+    case SmokeMode::ViewerDeferredLightMapBlurProbe:
+        return " rendered through the viewer-style deferred graph with two DeferredBlurLight lightMap ping-pong passes. ";
     case SmokeMode::DirectClear:
     default:
         return ". ";
@@ -517,6 +527,7 @@ bool smoke_mode_uses_scene(SmokeMode mode)
     case SmokeMode::ViewerDeferredProjectorLightProbe:
     case SmokeMode::ViewerDeferredPointLightVolumeProbe:
     case SmokeMode::ViewerDeferredSpotLightVolumeProbe:
+    case SmokeMode::ViewerDeferredLightMapBlurProbe:
         return true;
     case SmokeMode::DirectClear:
     case SmokeMode::OffscreenCopy:
@@ -555,6 +566,7 @@ bool smoke_mode_replays_capture(SmokeMode mode)
     case SmokeMode::ViewerDeferredProjectorLightProbe:
     case SmokeMode::ViewerDeferredPointLightVolumeProbe:
     case SmokeMode::ViewerDeferredSpotLightVolumeProbe:
+    case SmokeMode::ViewerDeferredLightMapBlurProbe:
     default:
         return false;
     }
@@ -591,7 +603,8 @@ void print_smoke_usage(const char* executable)
         << "                             viewer-deferred-local-light-probe,\n"
         << "                             viewer-deferred-projector-light-probe,\n"
         << "                             viewer-deferred-point-light-volume-probe,\n"
-        << "                             viewer-deferred-spot-light-volume-probe\n"
+        << "                             viewer-deferred-spot-light-volume-probe,\n"
+        << "                             viewer-deferred-lightmap-blur-probe\n"
         << "  --scene <name>             basic, post-overlays-stress, two-prims,\n"
         << "                             replay-capture\n"
         << "  --capture <path>           Capture file for --scene replay-capture\n"
@@ -3988,6 +4001,7 @@ struct SmokeViewerRenderTargetGraph
     LLRenderTarget mScreen;
     LLRenderTarget mPostPing;
     LLRenderTarget mExposureMap;
+    LLRenderTextureHandle mLightMapSource;
     U32 mWidth = 0;
     U32 mHeight = 0;
     U32 mColorAttachmentCount = 0;
@@ -4045,8 +4059,14 @@ void release_smoke_deferred_graph(
 }
 
 void release_smoke_viewer_render_target_graph(
+    LLRenderBackend& backend,
     SmokeViewerRenderTargetGraph& graph)
 {
+    if (graph.mLightMapSource)
+    {
+        backend.deleteTextureHandle(graph.mLightMapSource);
+        graph.mLightMapSource = {};
+    }
     graph.mExposureMap.release();
     graph.mPostPing.release();
     graph.mDeferredLight.release();
@@ -4099,7 +4119,7 @@ bool ensure_smoke_viewer_render_target_graph(
         return true;
     }
 
-    release_smoke_viewer_render_target_graph(graph);
+    release_smoke_viewer_render_target_graph(backend, graph);
     graph.mWidth = width;
     graph.mHeight = height;
     graph.mColorAttachmentCount = color_attachment_count;
@@ -4111,21 +4131,21 @@ bool ensure_smoke_viewer_render_target_graph(
             LLRenderTextureFormat::RGBA,
             true))
     {
-        release_smoke_viewer_render_target_graph(graph);
+        release_smoke_viewer_render_target_graph(backend, graph);
         return false;
     }
 
     if (!graph.mDeferredScreen.addColorAttachment(LLRenderTextureFormat::RGBA) ||
         !graph.mDeferredScreen.addColorAttachment(LLRenderTextureFormat::RGBA16))
     {
-        release_smoke_viewer_render_target_graph(graph);
+        release_smoke_viewer_render_target_graph(backend, graph);
         return false;
     }
 
     if (color_attachment_count >= 4U &&
         !graph.mDeferredScreen.addColorAttachment(LLRenderTextureFormat::RGB16F))
     {
-        release_smoke_viewer_render_target_graph(graph);
+        release_smoke_viewer_render_target_graph(backend, graph);
         return false;
     }
 
@@ -4135,7 +4155,7 @@ bool ensure_smoke_viewer_render_target_graph(
             !graph.mScreen.allocate(width, height, LLRenderTextureFormat::RGBA16F) ||
             !graph.mPostPing.allocate(width, height, LLRenderTextureFormat::RGBA))
         {
-            release_smoke_viewer_render_target_graph(graph);
+            release_smoke_viewer_render_target_graph(backend, graph);
             return false;
         }
 
@@ -4144,7 +4164,7 @@ bool ensure_smoke_viewer_render_target_graph(
 
     if (!graph.mExposureMap.allocate(1, 1, LLRenderTextureFormat::RGBA))
     {
-        release_smoke_viewer_render_target_graph(graph);
+        release_smoke_viewer_render_target_graph(backend, graph);
         return false;
     }
     graph.mExposureMap.bindTarget();
@@ -5053,6 +5073,37 @@ LLRenderWorldMaterialParameters make_deferred_spot_light_volume_probe_parameters
     return parameters;
 }
 
+void set_smoke_deferred_blur_parameters(
+    LLRenderWorldMaterialParameters& parameters,
+    const LLVector2& delta,
+    U32 width,
+    U32 height)
+{
+    constexpr U32 kern_length = 4;
+    const LLVector3 gaussian(3.f, 2.f, 0.f);
+    F32 x = 0.f;
+
+    parameters.mCompositeBlurSettings[0] = delta.mV[VX];
+    parameters.mCompositeBlurSettings[1] = delta.mV[VY];
+    parameters.mCompositeBlurSettings[2] = 0.f;
+    parameters.mCompositeBlurSettings[3] = 1.4f * (kern_length / 2.f - 0.5f);
+    parameters.mCompositeBlurScreen[0] = static_cast<F32>(llmax(1U, width));
+    parameters.mCompositeBlurScreen[1] = static_cast<F32>(llmax(1U, height));
+    parameters.mCompositeBlurScreen[2] = 1.4f;
+    parameters.mCompositeBlurScreen[3] = static_cast<F32>(kern_length);
+
+    for (U32 i = 0; i < kern_length; ++i)
+    {
+        parameters.mCompositeBlurKernel[i * 4 + 0] =
+            llgaussian(x, gaussian.mV[VX]);
+        parameters.mCompositeBlurKernel[i * 4 + 1] =
+            llgaussian(x, gaussian.mV[VY]);
+        parameters.mCompositeBlurKernel[i * 4 + 2] = x;
+        parameters.mCompositeBlurKernel[i * 4 + 3] = 0.f;
+        x += 1.f;
+    }
+}
+
 void log_deferred_local_light_probe_reference()
 {
     static bool logged_reference = false;
@@ -5124,6 +5175,25 @@ void log_deferred_spot_light_volume_probe_reference()
         << "final composite. This guards the outside-camera projector volume "
         << "owner, point_light.vert ABI, cube/projection/noise/lightFunc "
         << "bindings, indexed TRIANGLE_FAN draw path, and final handoff."
+        << std::endl;
+    logged_reference = true;
+}
+
+void log_deferred_lightmap_blur_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-lightmap-blur-probe: seeding a "
+        << "three-band synthetic lightMap, then running DeferredBlurLight "
+        << "horizontal and vertical ping-pong passes with the viewer default "
+        << "RenderShadowGaussian/RenderShadowBlurSize values. This guards the "
+        << "OpenGL-style blurLightF lightMap owner, normal/depth edge inputs, "
+        << "and post-blur handoff before DeferredSoften consumes lightMap."
         << std::endl;
     logged_reference = true;
 }
@@ -7450,6 +7520,119 @@ void draw_smoke_deferred_screen_composite_quad(
     }
 }
 
+std::vector<U8> make_smoke_deferred_lightmap_band_pixels(
+    U32 width,
+    U32 height)
+{
+    struct Band
+    {
+        U8 mRed;
+        U8 mGreen;
+        U8 mBlue;
+        U8 mAlpha;
+    };
+    const Band bands[] =
+    {
+        { 20, 46, 209, 255 },
+        { 235, 204, 51, 255 },
+        { 51, 242, 115, 255 },
+    };
+
+    std::vector<U8> pixels;
+    pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
+    for (U32 y = 0; y < height; ++y)
+    {
+        for (U32 x = 0; x < width; ++x)
+        {
+            const U32 band_index = llmin(2U, (x * 3U) / llmax(1U, width));
+            const Band& band = bands[band_index];
+            const size_t offset =
+                (static_cast<size_t>(y) * width + x) * 4U;
+            pixels[offset + 0] = band.mRed;
+            pixels[offset + 1] = band.mGreen;
+            pixels[offset + 2] = band.mBlue;
+            pixels[offset + 3] = band.mAlpha;
+        }
+    }
+    return pixels;
+}
+
+bool ensure_smoke_deferred_lightmap_source(
+    LLRenderBackend& backend,
+    SmokeViewerRenderTargetGraph& graph,
+    U32 width,
+    U32 height)
+{
+    if (graph.mLightMapSource)
+    {
+        return true;
+    }
+
+    return create_smoke_texture(
+        backend,
+        graph.mLightMapSource,
+        width,
+        height,
+        make_smoke_deferred_lightmap_band_pixels(width, height));
+}
+
+void draw_smoke_deferred_lightmap_blur_quad(
+    LLRenderBackend& backend,
+    LLRenderTextureHandle source_texture,
+    LLRenderTarget& destination,
+    LLRenderTarget& deferred_screen,
+    const SmokeQuad& quad,
+    const LLVector2& delta,
+    U32 width,
+    U32 height)
+{
+    destination.bindTarget();
+    backend.setClearColor(1.f, 1.f, 1.f, 1.f);
+    destination.clear(LL_RENDER_CLEAR_COLOR);
+
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, source_texture);
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Linear,
+        LLRenderTextureFilter::Linear);
+    if (deferred_screen.getNumTextures() > 2)
+    {
+        deferred_screen.bindTexture(2, 2, LLTexUnit::TFO_BILINEAR);
+    }
+
+    bool depth_bound = false;
+    if (deferred_screen.getDepthHandle())
+    {
+        depth_bound =
+            gGL.getTexUnit(4)->bind(&deferred_screen, true);
+    }
+
+    LLRenderWorldMaterialParameters parameters;
+    set_smoke_deferred_blur_parameters(parameters, delta, width, height);
+
+    set_smoke_fullscreen_world_draw_state(
+        backend,
+        LLRenderWorldShaderClass::DeferredBlurLight,
+        parameters,
+        width,
+        height);
+    bind_world_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+    reset_smoke_world_draw_state(backend);
+    destination.flush();
+
+    gGL.getTexUnit(0)->unbind(LLTexUnit::TT_TEXTURE);
+    if (deferred_screen.getNumTextures() > 2)
+    {
+        gGL.getTexUnit(2)->unbind(LLTexUnit::TT_TEXTURE);
+    }
+    if (depth_bound)
+    {
+        gGL.getTexUnit(4)->unbind(LLTexUnit::TT_TEXTURE);
+    }
+}
+
 void draw_smoke_deferred_local_light_quad(
     LLRenderBackend& backend,
     LLRenderTarget& deferred_screen,
@@ -8359,6 +8542,99 @@ bool render_viewer_deferred_volume_light_probe_frame(
     copy_smoke_target_to_swapchain(
         backend,
         graph.mPostPing,
+        quad,
+        width,
+        height);
+    return true;
+}
+
+bool render_viewer_deferred_lightmap_blur_probe_frame(
+    LLRenderBackend& backend,
+    SmokeDeferredTextures& material_textures,
+    SmokeViewerRenderTargetGraph& graph,
+    const SmokeQuad& quad,
+    U32 width,
+    U32 height)
+{
+    if (!ensure_smoke_deferred_textures(backend, material_textures))
+    {
+        return false;
+    }
+
+    const U32 graph_width = llmax(64U, llmin(width, 960U));
+    const U32 graph_height = llmax(
+        64U,
+        llmin(
+            height,
+            static_cast<U32>(
+                static_cast<double>(graph_width) *
+                static_cast<double>(height) /
+                static_cast<double>(llmax(1U, width)))));
+
+    if (!ensure_smoke_viewer_render_target_graph(
+            backend,
+            graph,
+            graph_width,
+            graph_height,
+            4,
+            true))
+    {
+        return false;
+    }
+
+    graph.mDeferredScreen.bindTarget();
+    backend.setViewport(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setScissor(
+        0,
+        0,
+        static_cast<S32>(graph_width),
+        static_cast<S32>(graph_height));
+    backend.setClearColor(0.f, 0.f, 0.f, 0.f);
+    graph.mDeferredScreen.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    draw_deferred_color_compare_gbuffer_scene(
+        backend,
+        material_textures,
+        quad,
+        graph_width,
+        graph_height);
+    log_deferred_lightmap_blur_probe_reference();
+    graph.mDeferredScreen.flush();
+
+    if (!ensure_smoke_deferred_lightmap_source(
+            backend,
+            graph,
+            graph_width,
+            graph_height))
+    {
+        return false;
+    }
+
+    draw_smoke_deferred_lightmap_blur_quad(
+        backend,
+        graph.mLightMapSource,
+        graph.mScreen,
+        graph.mDeferredScreen,
+        quad,
+        LLVector2(1.f, 0.f),
+        graph_width,
+        graph_height);
+    draw_smoke_deferred_lightmap_blur_quad(
+        backend,
+        LLRenderTextureHandle(graph.mScreen.getTexture(0)),
+        graph.mDeferredLight,
+        graph.mDeferredScreen,
+        quad,
+        LLVector2(0.f, 1.f),
+        graph_width,
+        graph_height);
+
+    copy_smoke_target_to_swapchain(
+        backend,
+        graph.mDeferredLight,
         quad,
         width,
         height);
@@ -9630,6 +9906,7 @@ int main(int argc, char** argv)
         smoke_mode == SmokeMode::ViewerDeferredProjectorLightProbe ||
         smoke_mode == SmokeMode::ViewerDeferredPointLightVolumeProbe ||
         smoke_mode == SmokeMode::ViewerDeferredSpotLightVolumeProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredLightMapBlurProbe ||
         options.mRenderUI ||
         options.mRenderSceneMarker)
     {
@@ -9687,7 +9964,8 @@ int main(int argc, char** argv)
             smoke_mode == SmokeMode::ViewerDeferredLocalLightProbe ||
             smoke_mode == SmokeMode::ViewerDeferredProjectorLightProbe ||
             smoke_mode == SmokeMode::ViewerDeferredPointLightVolumeProbe ||
-            smoke_mode == SmokeMode::ViewerDeferredSpotLightVolumeProbe) &&
+            smoke_mode == SmokeMode::ViewerDeferredSpotLightVolumeProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredLightMapBlurProbe) &&
         !create_smoke_quad(backend, smoke_quad))
     {
         std::cerr << "Failed to create Vulkan smoke quad.\n";
@@ -10050,6 +10328,23 @@ int main(int argc, char** argv)
                 break;
             }
         }
+        else if (smoke_mode == SmokeMode::ViewerDeferredLightMapBlurProbe)
+        {
+            if (!render_viewer_deferred_lightmap_blur_probe_frame(
+                    backend,
+                    smoke_deferred_textures,
+                    smoke_viewer_render_target_graph,
+                    smoke_quad,
+                    width,
+                    height))
+            {
+                std::cerr
+                    << "Failed to render Vulkan smoke "
+                    << get_smoke_mode_name(smoke_mode)
+                    << " frame.\n";
+                break;
+            }
+        }
         else if (smoke_mode == SmokeMode::CopyChain ||
             smoke_mode == SmokeMode::CopyMRTChain)
         {
@@ -10223,7 +10518,7 @@ int main(int argc, char** argv)
     flushVulkanSmokeFrameDiffSummaries();
 
     release_smoke_copy_chain_graph(smoke_copy_chain_graph);
-    release_smoke_viewer_render_target_graph(smoke_viewer_render_target_graph);
+    release_smoke_viewer_render_target_graph(backend, smoke_viewer_render_target_graph);
     release_smoke_deferred_graph(backend, smoke_deferred_graph);
     release_smoke_deferred_textures(backend, smoke_deferred_textures);
     release_smoke_ui_overlay(backend, smoke_ui_overlay);
