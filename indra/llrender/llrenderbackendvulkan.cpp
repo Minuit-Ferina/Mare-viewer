@@ -8657,7 +8657,7 @@ LLVulkanPointLightUniforms make_vulkan_point_light_uniforms(
         parameters.mLocalLightScreenSettings[0],
         parameters.mLocalLightScreenSettings[1],
         parameters.mLocalLightSunWashAndCount[0],
-        0.f);
+        parameters.mLocalLightSunWashAndCount[3]);
     uniforms.mViewport = make_vulkan_local_light_vec4(parameters.mLocalLightViewport);
     uniforms.mEnvironmentMatrix0 = make_vulkan_local_light_env_row(parameters, 0);
     uniforms.mEnvironmentMatrix1 = make_vulkan_local_light_env_row(parameters, 1);
@@ -8737,7 +8737,7 @@ LLVulkanSpotLightClass1Uniforms make_vulkan_spot_light_class1_uniforms(
         parameters.mLocalLightScreenSettings[0],
         parameters.mLocalLightScreenSettings[1],
         parameters.mLocalLightScreenSettings[3],
-        0.f);
+        parameters.mLocalLightSunWashAndCount[3]);
     return uniforms;
 }
 
@@ -8766,7 +8766,7 @@ LLVulkanSpotLightClass3Uniforms make_vulkan_spot_light_class3_uniforms(
         parameters.mLocalLightScreenSettings[0],
         parameters.mLocalLightScreenSettings[1],
         parameters.mLocalLightScreenSettings[3],
-        0.f);
+        parameters.mLocalLightSunWashAndCount[3]);
     return uniforms;
 }
 

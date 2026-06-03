@@ -124,6 +124,12 @@ vec2 getScreenCoord(vec4 clip)
 
 void main()
 {
+    if (u.screen_res.w > 0.5)
+    {
+        frag_color = vec4(0.1, 0.45, 0.9, 0.0);
+        return;
+    }
+
     vec3 col = vec3(0.0);
 
 #if defined(LOCAL_LIGHT_KILL)

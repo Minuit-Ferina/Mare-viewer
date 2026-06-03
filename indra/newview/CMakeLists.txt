@@ -2488,6 +2488,18 @@ if (DARWIN)
   set(VIEWER_APP_BUNDLE "${CMAKE_CURRENT_BINARY_DIR}/$<IF:$<BOOL:${LL_GENERATOR_IS_MULTI_CONFIG}>,$<CONFIG>,>/${product}.app")
   set(VIEWER_APP_EXE "${VIEWER_APP_BUNDLE}/Contents/MacOS/${product}")
 
+  if (TARGET mare-vulkan-smoke)
+    add_custom_command(
+      TARGET mare-vulkan-smoke POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory
+        "${VIEWER_APP_BUNDLE}/Contents/Resources/app_settings/shaders/vulkan/final"
+      COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/shaders/vulkan/final"
+        "${VIEWER_APP_BUNDLE}/Contents/Resources/app_settings/shaders/vulkan/final"
+      COMMENT "Staging Mare Vulkan final shaders for mare-vulkan-smoke"
+      VERBATIM)
+  endif ()
+
   configure_file(
      "${CMAKE_CURRENT_SOURCE_DIR}/Info-SecondLife.plist"
      "${VIEWER_APP_BUNDLE}/Contents/Info.plist"

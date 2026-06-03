@@ -98,6 +98,7 @@ struct SmokeOptions
     bool mRenderUI = false;
     bool mRenderViewerUISequence = false;
     bool mRenderSceneMarker = false;
+    bool mForceVolumeLightOutput = false;
     bool mHelp = false;
     bool mListShaderCases = false;
     bool mListShaderParity = false;
@@ -111,6 +112,8 @@ struct SmokeOptions
     int mScreenshotMinFrame = 0;
     std::string mVulkanSDK;
 };
+
+bool gForceSmokeVolumeLightOutput = false;
 
 class SmokeMatrixScope
 {
@@ -612,6 +615,8 @@ void print_smoke_usage(const char* executable)
         << "  --ui                       Draw a synthetic UI layer after the world/deferred pass\n"
         << "  --ui-viewer-sequence       Draw a stronger viewer-style UI sequence after the world/deferred pass\n"
         << "  --scene-marker             Draw a small scene-identification marker\n"
+        << "  --force-volume-light-output\n"
+        << "                             Force local light volume shaders to output a constant color\n"
         << "  --vulkan-sdk <path>        Sets VULKAN_SDK before creating the Vulkan context\n"
         << "  -h, --help                 Show this help\n";
 }
@@ -896,6 +901,12 @@ bool parse_smoke_options(int argc, char** argv, SmokeOptions& options)
         if (argument == "--scene-marker")
         {
             options.mRenderSceneMarker = true;
+            continue;
+        }
+
+        if (argument == "--force-volume-light-output")
+        {
+            options.mForceVolumeLightOutput = true;
             continue;
         }
 
@@ -4926,6 +4937,11 @@ LLRenderWorldMaterialParameters make_deferred_local_light_probe_parameters(
     return parameters;
 }
 
+bool force_smoke_volume_light_output()
+{
+    return gForceSmokeVolumeLightOutput;
+}
+
 LLRenderWorldMaterialParameters make_deferred_projector_light_probe_parameters(
     U32 width,
     U32 height)
@@ -4938,6 +4954,8 @@ LLRenderWorldMaterialParameters make_deferred_projector_light_probe_parameters(
         static_cast<F32>(llmax(1U, height));
     parameters.mLocalLightScreenSettings[2] = -1.f;
     parameters.mLocalLightScreenSettings[3] = 0.f;
+    parameters.mLocalLightSunWashAndCount[3] =
+        force_smoke_volume_light_output() ? 1.f : 0.f;
     parameters.mLocalLight[0] = 0.f;
     parameters.mLocalLight[1] = 0.f;
     parameters.mLocalLight[2] = 1.25f;
@@ -5006,6 +5024,8 @@ LLRenderWorldMaterialParameters make_deferred_point_light_volume_probe_parameter
     parameters.mLocalLightScreenSettings[1] =
         static_cast<F32>(llmax(1U, height));
     parameters.mLocalLightScreenSettings[3] = 0.f;
+    parameters.mLocalLightSunWashAndCount[3] =
+        force_smoke_volume_light_output() ? 1.f : 0.f;
     parameters.mLocalLightCenterSize[0] = 0.f;
     parameters.mLocalLightCenterSize[1] = 0.f;
     parameters.mLocalLightCenterSize[2] = 1.25f;
@@ -9355,6 +9375,7 @@ int main(int argc, char** argv)
         print_smoke_usage(argv[0] ? argv[0] : "mare-vulkan-smoke");
         return 1;
     }
+    gForceSmokeVolumeLightOutput = options.mForceVolumeLightOutput;
     if (options.mHelp)
     {
         print_smoke_usage(argv[0] ? argv[0] : "mare-vulkan-smoke");

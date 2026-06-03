@@ -232,6 +232,12 @@ void pbrPunctual(vec3 diffuseColor, vec3 specularColor,
 
 void main()
 {
+    if (u.screen_res_sun_wash.w > 0.5)
+    {
+        frag_color = vec4(0.8, 0.2, 0.05, 0.0);
+        return;
+    }
+
     vec3 final_color = vec3(0.0);
     vec2 tc = getScreenCoord(vary_fragcoord);
     vec3 pos = getPosition(tc).xyz;
