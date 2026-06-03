@@ -6597,6 +6597,149 @@ bool is_vulkan_smoke_frame_diff_summary_only_enabled()
     return get_vulkan_boolean_env("MARE_VULKAN_SMOKE_FRAME_DIFF_SUMMARY_ONLY");
 }
 
+bool parse_vulkan_smoke_expected_rgb(
+    const char* environment_key,
+    double& expected_r,
+    double& expected_g,
+    double& expected_b)
+{
+    const char* value = std::getenv(environment_key);
+    if (!value || !*value)
+    {
+        return false;
+    }
+
+    char* end = nullptr;
+    expected_r = std::strtod(value, &end);
+    if (end == value || *end != ',')
+    {
+        return false;
+    }
+
+    value = end + 1;
+    expected_g = std::strtod(value, &end);
+    if (end == value || *end != ',')
+    {
+        return false;
+    }
+
+    value = end + 1;
+    expected_b = std::strtod(value, &end);
+    return end != value && *end == '\0';
+}
+
+double get_vulkan_smoke_expected_rgb_tolerance(const char* environment_key)
+{
+    double tolerance = 0.02;
+    if (const char* value = std::getenv(environment_key))
+    {
+        char* end = nullptr;
+        const double parsed = std::strtod(value, &end);
+        if (end != value && parsed >= 0.0)
+        {
+            tolerance = parsed;
+        }
+    }
+    return tolerance;
+}
+
+void set_vulkan_smoke_validation_failed()
+{
+#if LL_WINDOWS
+    _putenv_s("MARE_VULKAN_SMOKE_VALIDATION_FAILED", "1");
+#else
+    setenv("MARE_VULKAN_SMOKE_VALIDATION_FAILED", "1", 1);
+#endif
+}
+
+void validate_vulkan_smoke_expected_final_rgb(
+    const std::string& label,
+    double avg_r,
+    double avg_g,
+    double avg_b)
+{
+    const bool validate_final_swapchain = label == "smoke final swapchain";
+    const bool validate_deferred_composite =
+        label.find("deferred composite output color") == 0;
+    if (!validate_final_swapchain && !validate_deferred_composite)
+    {
+        return;
+    }
+
+    const char* expected_key = validate_final_swapchain ?
+        "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB" :
+        "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB";
+    const char* tolerance_key = validate_final_swapchain ?
+        "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE" :
+        "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE";
+
+    double expected_r = 0.0;
+    double expected_g = 0.0;
+    double expected_b = 0.0;
+    if (!parse_vulkan_smoke_expected_rgb(
+            expected_key,
+            expected_r,
+            expected_g,
+            expected_b))
+    {
+        return;
+    }
+
+    const double tolerance = get_vulkan_smoke_expected_rgb_tolerance(tolerance_key);
+    const double delta_r = std::fabs(avg_r - expected_r);
+    const double delta_g = std::fabs(avg_g - expected_g);
+    const double delta_b = std::fabs(avg_b - expected_b);
+    const double max_delta = llmax(delta_r, llmax(delta_g, delta_b));
+    if (max_delta > tolerance)
+    {
+        set_vulkan_smoke_validation_failed();
+        LL_WARNS("RenderBackend")
+            << "Vulkan smoke "
+            << label
+            << " RGB validation FAIL: avg "
+            << avg_r
+            << ","
+            << avg_g
+            << ","
+            << avg_b
+            << ", expected "
+            << expected_r
+            << ","
+            << expected_g
+            << ","
+            << expected_b
+            << ", max delta "
+            << max_delta
+            << ", tolerance "
+            << tolerance
+            << "."
+            << LL_ENDL;
+        return;
+    }
+
+    LL_INFOS("RenderBackend")
+        << "Vulkan smoke "
+        << label
+        << " RGB validation PASS: avg "
+        << avg_r
+        << ","
+        << avg_g
+        << ","
+        << avg_b
+        << ", expected "
+        << expected_r
+        << ","
+        << expected_g
+        << ","
+        << expected_b
+        << ", max delta "
+        << max_delta
+        << ", tolerance "
+        << tolerance
+        << "."
+        << LL_ENDL;
+}
+
 U32 get_vulkan_format_byte_size(S32 format)
 {
     switch (format)
@@ -7522,6 +7665,11 @@ void log_and_destroy_vulkan_buffer_average_readbacks(LLVulkanNativeContext& cont
             const double avg_r = stats.mSumR / sample_count;
             const double avg_g = stats.mSumG / sample_count;
             const double avg_b = stats.mSumB / sample_count;
+            validate_vulkan_smoke_expected_final_rgb(
+                readback.mLabel,
+                avg_r,
+                avg_g,
+                avg_b);
             const double luminance =
                 avg_r * 0.2126 +
                 avg_g * 0.7152 +

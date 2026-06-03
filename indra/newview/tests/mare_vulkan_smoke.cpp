@@ -4487,9 +4487,7 @@ void log_deferred_soften_state_probe_reference()
         << "but with non-neutral deferred soften state: moon-selected light, "
         << "classic mode enabled, direct light enabled, sky HDR scale > 1, "
         << "and non-identity environment/SSAO matrices. This is a guardrail "
-        << "for future deferred composite work; the current live shader still "
-        << "uses the stable runtime approximation until the faithful "
-        << "softenLight port is validated."
+        << "for the live DeferredSoften owner and final composite handoff."
         << std::endl;
     logged_reference = true;
 }
@@ -8419,6 +8417,45 @@ int main(int argc, char** argv)
         "MARE_VULKAN_DEBUG_BUFFER_AVERAGE_FRAMES",
         readback_frame_limit.c_str(),
         1);
+    unsetenv("MARE_VULKAN_SMOKE_VALIDATION_FAILED");
+    unsetenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB");
+    unsetenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE");
+    unsetenv("MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB");
+    unsetenv("MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE");
+    auto set_expected_rgb = [](const char* key, SmokeRGB rgb)
+    {
+        std::ostringstream expected_rgb;
+        expected_rgb
+            << std::fixed
+            << std::setprecision(6)
+            << rgb.mRed
+            << ","
+            << rgb.mGreen
+            << ","
+            << rgb.mBlue;
+        setenv(key, expected_rgb.str().c_str(), 1);
+    };
+    if (options.mMode == SmokeMode::FinalColorCompare)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            smoke_linear_to_srgb({ 0.18f, 0.36f, 0.72f }));
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.02", 1);
+    }
+    else if (options.mMode == SmokeMode::ViewerDeferredSoftenStateProbe)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
+            { 1.1602f, 0.6538f, 0.2266f });
+        setenv(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
+            "0.05",
+            1);
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 1.0000f, 0.8275f, 0.5137f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
+    }
     if (!options.mScreenshotPPMPath.empty())
     {
         setenv("MARE_VULKAN_SMOKE_SCREENSHOT_PPM", options.mScreenshotPPMPath.c_str(), 1);
@@ -8995,5 +9032,5 @@ int main(int argc, char** argv)
     }
     backend.destroyNativeContext(context);
     mare_vulkan_smoke_destroy_window(window);
-    return 0;
+    return std::getenv("MARE_VULKAN_SMOKE_VALIDATION_FAILED") ? 6 : 0;
 }

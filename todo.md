@@ -413,11 +413,14 @@ Validation status:
       `softenLight` state as an approximation. A first attempt made the live
       world rendering fragile; keep the current stable runtime composite until
       the faithful `soften_light.frag` owner and its inputs are validated.
-      Smoke progress: `mare-vulkan-smoke --mode
-      viewer-deferred-soften-state-probe` reuses the viewer-style synthetic
-      G-buffer/deferred/final graph with non-neutral softenLight state so
-      future shader changes can be tested without logging into a region.
-      Runtime progress: the active/runtime Vulkan deferred composite now
+	      Smoke progress: `mare-vulkan-smoke --mode
+	      viewer-deferred-soften-state-probe` reuses the viewer-style synthetic
+	      G-buffer/deferred/final graph with non-neutral softenLight state so
+	      future shader changes can be tested without logging into a region. The
+	      probe now validates both the `DeferredSoften` output target and the
+	      final swapchain RGB against stable expected values and returns non-zero
+	      if either drifts outside tolerance.
+	      Runtime progress: the active/runtime Vulkan deferred composite now
       consumes the transported OpenGL soften state for selected sun/moon light
       direction, classic-mode light shaping, and sky HDR fallback scale. It is
       still not the faithful `softenLightF.glsl` pass; local lights,
@@ -685,11 +688,14 @@ Validation status:
       the live `FinalComposite` pass now binds the viewer `mExposureMap` and
       multiplies `RenderExposure` by `exposureMap.r` like the OpenGL tonemap
       shader; smoke graphs bind a neutral 1x1 exposure texture for deterministic
-      tests. Runtime work remains: split the current inline final-composite
-      approximation into the separate source-level post passes, bind the full
-      depth/exposure/glow/CoF chain, compile the needed NO_POST, GAMMA_CORRECT,
-      LEGACY_GAMMA, and HAS_NOISE permutations, and replace the inline logic
-      still present in `active/final_composite.frag`.
+      tests. The `final-color-compare` smoke now also sets an OpenGL-style
+      expected final RGB value and returns non-zero if the swapchain readback
+      drifts outside tolerance, so gamma/exposure regressions are caught without
+      logging into the viewer. Runtime work remains: split the current inline
+      final-composite approximation into the separate source-level post passes,
+      bind the full depth/exposure/glow/CoF chain, compile the needed NO_POST,
+      GAMMA_CORRECT, LEGACY_GAMMA, and HAS_NOISE permutations, and replace the
+      inline logic still present in `active/final_composite.frag`.
 - [ ] Water:
       keep both OpenGL source tiers: `class1/environment/waterF.glsl` as the
       magenta error/fallback shader and `class3/environment/waterF.glsl` as
