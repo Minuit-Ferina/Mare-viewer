@@ -4972,6 +4972,7 @@ LLRenderWorldMaterialParameters make_deferred_soften_state_probe_parameters(
     settings.mDominantLightScreenY = 1.f;
     settings.mDominantLightRadius = 0.f;
     settings.mReflectionProbeAmbiance = 0.35f;
+    settings.mReflectionInputsValid = true;
     settings.mTonemapMix = 0.25f;
     settings.mSkyLightingValid = 1.f;
     settings.mScreenWidth = static_cast<F32>(llmax(1U, width));
@@ -10105,84 +10106,98 @@ int main(int argc, char** argv)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.2454f, 0.1400f, 0.0490f });
+            { 0.6978f, 0.5708f, 0.4602f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.03",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.5333f, 0.4118f, 0.2471f });
+            { 0.8549f, 0.7804f, 0.7098f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredEmissiveProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.3013f, 1.2393f, 0.1594f });
+            { 0.7534f, 1.6709f, 0.5703f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.5843f, 1.0000f, 0.4353f });
+            { 0.8824f, 1.0000f, 0.7804f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
+    }
+    else if (options.mMode == SmokeMode::ViewerDeferredReflectionProbe)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
+            { 0.6040f, 0.6313f, 0.7041f });
+        setenv(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
+            "0.05",
+            1);
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 0.8000f, 0.8157f, 0.8549f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredLocalLightProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.4202f, 0.2322f, 0.0927f });
+            { 0.8725f, 0.6628f, 0.5037f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.6743f, 0.5109f, 0.3304f });
+            { 0.9347f, 0.8322f, 0.7374f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredProjectorLightProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.2921f, 0.2343f, 0.1986f });
+            { 0.7443f, 0.6649f, 0.6097f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.5749f, 0.5100f, 0.4360f });
+            { 0.8777f, 0.8324f, 0.7935f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredPointLightVolumeProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.2722f, 0.1393f, 0.0572f });
+            { 0.7240f, 0.5697f, 0.4683f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.5411f, 0.4049f, 0.2521f });
+            { 0.8554f, 0.7788f, 0.7139f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredSpotLightVolumeProbe)
     {
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
-            { 0.2699f, 0.1874f, 0.2752f });
+            { 0.7217f, 0.6177f, 0.6861f });
         setenv(
             "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
             "0.05",
             1);
         set_expected_rgb(
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
-            { 0.5516f, 0.4506f, 0.3810f });
+            { 0.8653f, 0.8027f, 0.7667f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
     else if (options.mMode == SmokeMode::ViewerDeferredLightMapBlurProbe)

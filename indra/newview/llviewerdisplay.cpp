@@ -1520,10 +1520,11 @@ static void render_vulkan_deferred_screen_composite_quad(
                                 gGL.getTexUnit(13)->bind(&gPipeline.mSceneMap, true);
                         }
                     }
-                    deferred_composite_parameters.mSceneAmbientGreen =
-                        (deferred_environment_bound ||
-                         deferred_reflection_probes_bound ||
-                         deferred_irradiance_probes_bound) ? 1.f : 0.f;
+                    set_vulkan_deferred_reflection_inputs_valid(
+                        deferred_composite_parameters,
+                        deferred_environment_bound ||
+                            deferred_reflection_probes_bound ||
+                            deferred_irradiance_probes_bound);
                 }
                 if (use_deferred_soften_pass)
                 {

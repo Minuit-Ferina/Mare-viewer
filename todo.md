@@ -691,13 +691,15 @@ Validation status:
       emissive contribution. This is a local guardrail for the G-buffer
       emissive attachment, `DeferredSoften` `emissiveMap` binding, and final
       handoff; full live-viewer visual parity still needs scene comparison.
-      Reflection/probe diagnostic progress: `mare-vulkan-smoke --mode
-      viewer-deferred-reflection-probe` now creates a glossy metallic PBR band
-      and routes it through the same real `DeferredSoften` stage with
-      synthetic lightMap/probe inputs. The mode is wired for local debugging of
-      environment/probe, BRDF LUT, and scene-reflection bindings, but it is not
-      yet a parity guardrail because the current synthetic output is near
-      black and still needs faithful OpenGL/Vulkan expectation work.
+      Reflection/probe validation progress: `mare-vulkan-smoke --mode
+      viewer-deferred-reflection-probe` now creates a glossy metallic PBR band,
+      declares the synthetic environment/probe inputs valid through an explicit
+      `ReflectionInputsValid` composite setting, and validates the real
+      `DeferredSoften` environment fallback, BRDF LUT, lightMap, and final
+      handoff against stable RGB expectations. This guards the local
+      no-region reflection path; full live-viewer probe parity still needs
+      scene comparison with populated reflection/irradiance cube arrays,
+      parallax/probe selection, hero probes, and SSR.
       Projector validation progress: `mare-vulkan-smoke --mode
       viewer-deferred-projector-light-probe` now adds a white cube-map fixture
       and renders a fullscreen `MultiSpotLight` projector pass with real cube,

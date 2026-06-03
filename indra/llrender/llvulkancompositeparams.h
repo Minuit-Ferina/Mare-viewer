@@ -52,6 +52,8 @@ struct LLVulkanDeferredCompositeSettings
     F32 mLocalLightBlue = 0.f;
     F32 mLocalLightStrength = 0.f;
     F32 mReflectionProbeAmbiance = 0.f;
+    // True only when environment/probe descriptors are bound for DeferredSoften.
+    bool mReflectionInputsValid = false;
     F32 mMaxProbeLOD = 6.f;
     F32 mTonemapMix = 0.f;
     F32 mSkyLightingValid = 0.f;
@@ -241,7 +243,7 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
     parameters.mBump = settings.mLocalLightBlue;
     parameters.mShiny = settings.mLocalLightStrength;
     parameters.mSceneAmbientRed = settings.mReflectionProbeAmbiance;
-    parameters.mSceneAmbientGreen = settings.mTonemapMix;
+    parameters.mSceneAmbientGreen = settings.mReflectionInputsValid ? 1.f : 0.f;
     parameters.mSceneAmbientBlue = llmax(settings.mMaxProbeLOD, 0.f);
     parameters.mSceneDirectScale = settings.mSkyLightingValid;
     parameters.mSceneDirectRed = llmax(settings.mScreenWidth, 1.f);
@@ -332,6 +334,13 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
     }
 
     return parameters;
+}
+
+inline void set_vulkan_deferred_reflection_inputs_valid(
+    LLRenderWorldMaterialParameters& parameters,
+    bool valid)
+{
+    parameters.mSceneAmbientGreen = valid ? 1.f : 0.f;
 }
 
 inline LLRenderWorldMaterialParameters make_vulkan_final_composite_material_parameters(
