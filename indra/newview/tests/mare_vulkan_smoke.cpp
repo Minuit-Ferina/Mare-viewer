@@ -5008,17 +5008,6 @@ LLRenderWorldMaterialParameters make_deferred_point_light_volume_probe_parameter
     U32 height)
 {
     LLRenderWorldMaterialParameters parameters;
-    const F32 opengl_to_vulkan_clip_depth[16] =
-    {
-        1.f, 0.f, 0.f, 0.f,
-        0.f, 1.f, 0.f, 0.f,
-        0.f, 0.f, 0.5f, 0.f,
-        0.f, 0.f, 0.5f, 1.f,
-    };
-    std::copy(
-        std::begin(opengl_to_vulkan_clip_depth),
-        std::end(opengl_to_vulkan_clip_depth),
-        parameters.mLocalLightModelviewProjection);
     parameters.mLocalLightScreenSettings[0] =
         static_cast<F32>(llmax(1U, width));
     parameters.mLocalLightScreenSettings[1] =
@@ -5028,8 +5017,8 @@ LLRenderWorldMaterialParameters make_deferred_point_light_volume_probe_parameter
         force_smoke_volume_light_output() ? 1.f : 0.f;
     parameters.mLocalLightCenterSize[0] = 0.f;
     parameters.mLocalLightCenterSize[1] = 0.f;
-    parameters.mLocalLightCenterSize[2] = 1.25f;
-    parameters.mLocalLightCenterSize[3] = 2.5f;
+    parameters.mLocalLightCenterSize[2] = 0.55f;
+    parameters.mLocalLightCenterSize[3] = 0.45f;
     parameters.mLocalLightColor[0] = 0.52f;
     parameters.mLocalLightColor[1] = 0.30f;
     parameters.mLocalLightColor[2] = 0.10f;
@@ -5049,21 +5038,10 @@ LLRenderWorldMaterialParameters make_deferred_spot_light_volume_probe_parameters
 {
     LLRenderWorldMaterialParameters parameters =
         make_deferred_projector_light_probe_parameters(width, height);
-    const F32 opengl_to_vulkan_clip_depth[16] =
-    {
-        1.f, 0.f, 0.f, 0.f,
-        0.f, 1.f, 0.f, 0.f,
-        0.f, 0.f, 0.5f, 0.f,
-        0.f, 0.f, 0.5f, 1.f,
-    };
-    std::copy(
-        std::begin(opengl_to_vulkan_clip_depth),
-        std::end(opengl_to_vulkan_clip_depth),
-        parameters.mLocalLightModelviewProjection);
     parameters.mLocalLightCenterSize[0] = 0.f;
     parameters.mLocalLightCenterSize[1] = 0.f;
-    parameters.mLocalLightCenterSize[2] = 1.25f;
-    parameters.mLocalLightCenterSize[3] = 2.5f;
+    parameters.mLocalLightCenterSize[2] = 0.55f;
+    parameters.mLocalLightCenterSize[3] = 0.45f;
     parameters.mLocalLightColor[0] = 0.16f;
     parameters.mLocalLightColor[1] = 0.40f;
     parameters.mLocalLightColor[2] = 0.68f;
