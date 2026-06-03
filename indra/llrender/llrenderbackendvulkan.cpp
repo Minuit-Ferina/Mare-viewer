@@ -7679,13 +7679,13 @@ void log_and_destroy_vulkan_buffer_average_readbacks(LLVulkanNativeContext& cont
                 luminance >= 0.05;
             if (pass)
             {
-                LL_INFOS("RenderBackend")
+                std::cout
                     << "Vulkan smoke scene final output PASS: avg luminance "
                     << luminance
                     << ", nonzero rgb "
                     << nonzero_percent
                     << "%."
-                    << LL_ENDL;
+                    << std::endl;
             }
             else
             {
@@ -19454,6 +19454,34 @@ bool record_vulkan_frame_command_buffer(
                 active_pass.mHasDepthAttachment);
             continue;
         }
+        if (draw.mWorldShaderClass == LLRenderWorldShaderClass::PointLight ||
+            draw.mWorldShaderClass == LLRenderWorldShaderClass::SpotLight)
+        {
+            static U32 sLoggedRecordLocalLightVolumeInputs = 0;
+            if (sLoggedRecordLocalLightVolumeInputs < 16)
+            {
+                std::cout
+                    << "Vulkan local light volume reached record loop "
+                    << sLoggedRecordLocalLightVolumeInputs
+                    << ": shader "
+                    << get_vulkan_world_shader_class_name(draw.mWorldShaderClass)
+                    << ", framebuffer "
+                    << draw.mFramebuffer
+                    << ", mode "
+                    << static_cast<U32>(draw.mMode)
+                    << ", indexed "
+                    << draw.mIndexed
+                    << ", first "
+                    << draw.mFirst
+                    << ", count "
+                    << draw.mCount
+                    << ", use world "
+                    << draw.mUseWorldVertexShader
+                    << "."
+                    << std::endl;
+                ++sLoggedRecordLocalLightVolumeInputs;
+            }
+        }
         if (draw.mFramebuffer != 0)
         {
             ++offscreen_tagged_draw_count;
@@ -19770,6 +19798,11 @@ bool record_vulkan_frame_command_buffer(
             draw.mWorldShaderClass == LLRenderWorldShaderClass::SpotLight;
         const bool use_multi_spot_light_pipeline =
             draw.mWorldShaderClass == LLRenderWorldShaderClass::MultiSpotLight;
+        const bool use_local_light_pipeline =
+            use_point_light_pipeline ||
+            use_multi_point_light_pipeline ||
+            use_spot_light_pipeline ||
+            use_multi_spot_light_pipeline;
         const bool use_shadow_pipeline =
             draw.mWorldShaderClass == LLRenderWorldShaderClass::Shadow;
         const bool use_shadow_alpha_mask_pipeline =
@@ -20209,6 +20242,41 @@ bool record_vulkan_frame_command_buffer(
 
         if (!pipeline_layout || !pipeline)
         {
+            if (use_point_light_pipeline || use_spot_light_pipeline)
+            {
+                static U32 sLoggedMissingLocalLightVolumePipelines = 0;
+                if (sLoggedMissingLocalLightVolumePipelines < 16)
+                {
+                    std::cout
+                        << "Vulkan local light volume skipped before record "
+                        << sLoggedMissingLocalLightVolumePipelines
+                        << ": shader "
+                        << get_vulkan_world_shader_class_name(draw.mWorldShaderClass)
+                        << ", framebuffer "
+                        << draw.mFramebuffer
+                        << ", mode "
+                        << static_cast<U32>(draw.mMode)
+                        << ", indexed "
+                        << draw.mIndexed
+                        << ", first "
+                        << draw.mFirst
+                        << ", count "
+                        << draw.mCount
+                        << ", depth "
+                        << get_vulkan_world_depth_pipeline_name(draw.mWorldDepthPipeline)
+                        << ", blend "
+                        << get_vulkan_world_blend_pipeline_name(draw.mWorldBlendPipeline)
+                        << ", cull "
+                        << static_cast<U32>(draw.mWorldCullPipeline)
+                        << ", pipeline layout "
+                        << pipeline_layout
+                        << ", pipeline "
+                        << pipeline
+                        << "."
+                        << std::endl;
+                    ++sLoggedMissingLocalLightVolumePipelines;
+                }
+            }
             ++missing_attribute_count;
             continue;
         }
@@ -20235,13 +20303,14 @@ bool record_vulkan_frame_command_buffer(
             buffer_iter->second.mBuffer :
             context.mDefaultJointBuffer.mBuffer;
 
-        if (!texcoord_buffer ||
-            !color_buffer ||
-            !texcoord1_buffer ||
-            !texcoord2_buffer ||
-            !normal_buffer ||
-            !tangent_buffer ||
-            !joint_buffer)
+        if (!use_local_light_pipeline &&
+            (!texcoord_buffer ||
+                !color_buffer ||
+                !texcoord1_buffer ||
+                !texcoord2_buffer ||
+                !normal_buffer ||
+                !tangent_buffer ||
+                !joint_buffer))
         {
             ++missing_attribute_count;
             continue;
@@ -20280,7 +20349,8 @@ bool record_vulkan_frame_command_buffer(
         LLVkBuffer weight_buffer = draw.mAttributes[9].mEnabled ?
             buffer_iter->second.mBuffer :
             context.mDefaultColorBuffer.mBuffer;
-        if (!weight_buffer)
+        if (!use_local_light_pipeline &&
+            !weight_buffer)
         {
             ++missing_attribute_count;
             continue;
@@ -20323,6 +20393,83 @@ bool record_vulkan_frame_command_buffer(
 
         LLVkDescriptorSet descriptor_set =
             get_vulkan_texture_descriptor_set(context, draw.mTextures, &draw);
+        if (use_point_light_pipeline || use_spot_light_pipeline)
+        {
+            static U32 sLoggedLocalLightVolumeDraws = 0;
+            if (sLoggedLocalLightVolumeDraws < 16)
+            {
+                const LLVulkanDrawBounds raw_bounds =
+                    compute_vulkan_draw_bounds(draw, buffer_iter->second, index_resource);
+                const LLVulkanDrawClipBounds clip_bounds =
+                    compute_vulkan_draw_clip_bounds(draw, buffer_iter->second, index_resource);
+                std::cout
+                    << "Vulkan local light volume draw "
+                    << sLoggedLocalLightVolumeDraws
+                    << ": shader "
+                    << get_vulkan_world_shader_class_name(draw.mWorldShaderClass)
+                    << ", framebuffer "
+                    << draw.mFramebuffer
+                    << ", active pass attachments "
+                    << active_pass.mColorAttachmentCount
+                    << ", mode "
+                    << static_cast<U32>(draw.mMode)
+                    << ", indexed "
+                    << draw.mIndexed
+                    << ", first "
+                    << draw.mFirst
+                    << ", count "
+                    << draw.mCount
+                    << ", depth "
+                    << get_vulkan_world_depth_pipeline_name(draw.mWorldDepthPipeline)
+                    << ", blend "
+                    << get_vulkan_world_blend_pipeline_name(draw.mWorldBlendPipeline)
+                    << ", cull "
+                    << static_cast<U32>(draw.mWorldCullPipeline)
+                    << ", pipeline "
+                    << pipeline
+                    << ", descriptor set "
+                    << descriptor_set
+                    << ", raw valid "
+                    << raw_bounds.mValid
+                    << " x "
+                    << raw_bounds.mMinX
+                    << ".."
+                    << raw_bounds.mMaxX
+                    << " y "
+                    << raw_bounds.mMinY
+                    << ".."
+                    << raw_bounds.mMaxY
+                    << ", clip valid "
+                    << clip_bounds.mValid
+                    << " x "
+                    << clip_bounds.mMinX
+                    << ".."
+                    << clip_bounds.mMaxX
+                    << " y "
+                    << clip_bounds.mMinY
+                    << ".."
+                    << clip_bounds.mMaxY
+                    << " z "
+                    << clip_bounds.mMinZ
+                    << ".."
+                    << clip_bounds.mMaxZ
+                    << " w "
+                    << clip_bounds.mMinW
+                    << ".."
+                    << clip_bounds.mMaxW
+                    << ", center "
+                    << draw.mMaterialParameters.mLocalLightCenterSize[0]
+                    << ","
+                    << draw.mMaterialParameters.mLocalLightCenterSize[1]
+                    << ","
+                    << draw.mMaterialParameters.mLocalLightCenterSize[2]
+                    << " size "
+                    << draw.mMaterialParameters.mLocalLightCenterSize[3]
+                    << "."
+                    << std::endl;
+                ++sLoggedLocalLightVolumeDraws;
+            }
+        }
         if (saw_default_world_draw &&
             !draw.mUseWorldVertexShader &&
             draw.mFramebuffer == 0 &&
@@ -21343,7 +21490,7 @@ bool record_vulkan_frame_command_buffer(
         }
         const U32 vertex_buffer_count =
             draw.mUseWorldVertexShader ?
-            11U :
+            (use_local_light_pipeline ? 1U : 11U) :
             5U;
         context.mCmdBindVertexBuffers(
             command_buffer,
@@ -24009,6 +24156,23 @@ public:
             gVulkanBuffers.find(gBoundVulkanVertexBuffer) == gVulkanBuffers.end() ||
             count <= 0)
         {
+            if (gCurrentVulkanWorldShaderClass == LLRenderWorldShaderClass::PointLight ||
+                gCurrentVulkanWorldShaderClass == LLRenderWorldShaderClass::SpotLight)
+            {
+                std::cout
+                    << "Vulkan local light volume queue skipped before vertex validation: shader "
+                    << get_vulkan_world_shader_class_name(gCurrentVulkanWorldShaderClass)
+                    << ", has context "
+                    << (gCurrentVulkanContext != nullptr)
+                    << ", bound vertex buffer "
+                    << gBoundVulkanVertexBuffer
+                    << ", known buffer "
+                    << (gVulkanBuffers.find(gBoundVulkanVertexBuffer) != gVulkanBuffers.end())
+                    << ", count "
+                    << count
+                    << "."
+                    << std::endl;
+            }
             static bool logged_skipped_draw_arrays = false;
             if (!logged_skipped_draw_arrays)
             {
@@ -24036,6 +24200,21 @@ public:
             index_buffer = gBoundVulkanIndexBuffer;
             if (!index_buffer || gVulkanBuffers.find(index_buffer) == gVulkanBuffers.end())
             {
+                if (gCurrentVulkanWorldShaderClass == LLRenderWorldShaderClass::PointLight ||
+                    gCurrentVulkanWorldShaderClass == LLRenderWorldShaderClass::SpotLight)
+                {
+                    std::cout
+                        << "Vulkan local light volume queue skipped before index validation: shader "
+                        << get_vulkan_world_shader_class_name(gCurrentVulkanWorldShaderClass)
+                        << ", bound index buffer "
+                        << index_buffer
+                        << ", known buffer "
+                        << (gVulkanBuffers.find(index_buffer) != gVulkanBuffers.end())
+                        << ", count "
+                        << count
+                        << "."
+                        << std::endl;
+                }
                 static bool logged_skipped_indexed_draw = false;
                 if (!logged_skipped_indexed_draw)
                 {
@@ -24077,6 +24256,34 @@ public:
                 << "."
                 << LL_ENDL;
             logged_queued_draw = true;
+        }
+        if (gCurrentVulkanWorldShaderClass == LLRenderWorldShaderClass::PointLight ||
+            gCurrentVulkanWorldShaderClass == LLRenderWorldShaderClass::SpotLight)
+        {
+            static U32 sLoggedQueuedLocalLightVolumes = 0;
+            if (sLoggedQueuedLocalLightVolumes < 16)
+            {
+                std::cout
+                    << "Vulkan local light volume queued draw "
+                    << sLoggedQueuedLocalLightVolumes
+                    << ": shader "
+                    << get_vulkan_world_shader_class_name(gCurrentVulkanWorldShaderClass)
+                    << ", mode "
+                    << static_cast<U32>(mode)
+                    << ", indexed "
+                    << indexed
+                    << ", first "
+                    << (indexed ? first_index : first)
+                    << ", count "
+                    << count
+                    << ", vertex buffer "
+                    << gBoundVulkanVertexBuffer
+                    << ", index buffer "
+                    << index_buffer
+                    << "."
+                    << std::endl;
+                ++sLoggedQueuedLocalLightVolumes;
+            }
         }
 
         LLVulkanPendingDraw draw;
