@@ -696,10 +696,20 @@ Validation status:
       declares the synthetic environment/probe inputs valid through an explicit
       `ReflectionInputsValid` composite setting, and validates the real
       `DeferredSoften` environment fallback, BRDF LUT, lightMap, and final
-      handoff against stable RGB expectations. This guards the local
-      no-region reflection path; full live-viewer probe parity still needs
-      scene comparison with populated reflection/irradiance cube arrays,
-      parallax/probe selection, hero probes, and SSR.
+      handoff against stable RGB expectations. `mare-vulkan-smoke --mode
+      viewer-deferred-real-reflection-probe` now pre-creates a synthetic
+      `ReflectionProbes` UBO plus real Vulkan `TextureCubeMapArray`
+      radiance/irradiance/hero inputs, fills the cube-array layers through the
+      backend framebuffer-to-layer copy path, binds them to `DeferredSoften`,
+      and validates distinct deferred/final RGB expectations. `mare-vulkan-smoke
+      --mode viewer-deferred-hero-probe` now enables `heroProbeCount=1` in the
+      synthetic UBO, uses a distinct hero cube-array color, and validates that
+      the OpenGL-style high-gloss hero probe mix changes the `DeferredSoften`
+      and final outputs. This guards the local no-region fallback, the actual
+      cube-array/probe descriptor route, and the hero-probe mix without
+      requiring a login; full live-viewer probe parity still needs scene
+      comparison with populated viewer-managed reflection/irradiance arrays,
+      parallax/probe selection, moving-camera SSR, and water/debug variants.
       Projector validation progress: `mare-vulkan-smoke --mode
       viewer-deferred-projector-light-probe` now adds a white cube-map fixture
       and renders a fullscreen `MultiSpotLight` projector pass with real cube,

@@ -64,6 +64,8 @@ enum class SmokeMode
     ViewerDeferredSoftenStateProbe,
     ViewerDeferredEmissiveProbe,
     ViewerDeferredReflectionProbe,
+    ViewerDeferredRealReflectionProbe,
+    ViewerDeferredHeroProbe,
     ViewerDeferredLocalLightProbe,
     ViewerDeferredProjectorLightProbe,
     ViewerDeferredPointLightVolumeProbe,
@@ -286,6 +288,16 @@ bool parse_smoke_mode_value(const char* value, SmokeMode& mode)
         mode = SmokeMode::ViewerDeferredReflectionProbe;
         return true;
     }
+    if (std::strcmp(value, "viewer-deferred-real-reflection-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredRealReflectionProbe;
+        return true;
+    }
+    if (std::strcmp(value, "viewer-deferred-hero-probe") == 0)
+    {
+        mode = SmokeMode::ViewerDeferredHeroProbe;
+        return true;
+    }
     if (std::strcmp(value, "viewer-deferred-local-light-probe") == 0)
     {
         mode = SmokeMode::ViewerDeferredLocalLightProbe;
@@ -367,6 +379,10 @@ const char* get_smoke_mode_name(SmokeMode mode)
         return "viewer-deferred-emissive-probe";
     case SmokeMode::ViewerDeferredReflectionProbe:
         return "viewer-deferred-reflection-probe";
+    case SmokeMode::ViewerDeferredRealReflectionProbe:
+        return "viewer-deferred-real-reflection-probe";
+    case SmokeMode::ViewerDeferredHeroProbe:
+        return "viewer-deferred-hero-probe";
     case SmokeMode::ViewerDeferredLocalLightProbe:
         return "viewer-deferred-local-light-probe";
     case SmokeMode::ViewerDeferredProjectorLightProbe:
@@ -503,6 +519,10 @@ const char* get_smoke_mode_description(SmokeMode mode)
         return " rendered through the viewer-style deferred graph with a PBR emissive G-buffer band consumed by the real DeferredSoften shader before final composite. ";
     case SmokeMode::ViewerDeferredReflectionProbe:
         return " rendered through the viewer-style deferred graph with a glossy metallic PBR band consumed by the real DeferredSoften environment/probe inputs before final composite. ";
+    case SmokeMode::ViewerDeferredRealReflectionProbe:
+        return " rendered through the viewer-style deferred graph with a synthetic ReflectionProbes UBO and real cube-array radiance/irradiance inputs consumed by DeferredSoften before final composite. ";
+    case SmokeMode::ViewerDeferredHeroProbe:
+        return " rendered through the viewer-style deferred graph with a synthetic hero probe mixed by DeferredSoften over the regular reflection-probe cube arrays before final composite. ";
     case SmokeMode::ViewerDeferredLocalLightProbe:
         return " rendered through the viewer-style deferred graph with a separate additive MultiPointLight pass before final composite. ";
     case SmokeMode::ViewerDeferredProjectorLightProbe:
@@ -545,6 +565,8 @@ bool smoke_mode_uses_scene(SmokeMode mode)
     case SmokeMode::ViewerDeferredSoftenStateProbe:
     case SmokeMode::ViewerDeferredEmissiveProbe:
     case SmokeMode::ViewerDeferredReflectionProbe:
+    case SmokeMode::ViewerDeferredRealReflectionProbe:
+    case SmokeMode::ViewerDeferredHeroProbe:
     case SmokeMode::ViewerDeferredLocalLightProbe:
     case SmokeMode::ViewerDeferredProjectorLightProbe:
     case SmokeMode::ViewerDeferredPointLightVolumeProbe:
@@ -626,6 +648,8 @@ void print_smoke_usage(const char* executable)
         << "                             viewer-deferred-soften-state-probe,\n"
         << "                             viewer-deferred-emissive-probe,\n"
         << "                             viewer-deferred-reflection-probe,\n"
+        << "                             viewer-deferred-real-reflection-probe,\n"
+        << "                             viewer-deferred-hero-probe,\n"
         << "                             viewer-deferred-local-light-probe,\n"
         << "                             viewer-deferred-projector-light-probe,\n"
         << "                             viewer-deferred-point-light-volume-probe,\n"
@@ -1521,6 +1545,251 @@ struct SmokeDeferredTextures
     LLRenderTextureHandle mWhite;
     LLRenderTextureHandle mCubeWhite;
 };
+
+struct SmokeReflectionProbeResources
+{
+    LLRenderTextureHandle mReflectionCubeArray;
+    LLRenderTextureHandle mIrradianceCubeArray;
+    LLRenderTextureHandle mHeroCubeArray;
+    LLRenderBufferHandle mProbeUniformBuffer;
+    SmokeOffscreen mCopySource;
+    bool mHeroProbeEnabled = false;
+};
+
+struct SmokeReflectionProbeData
+{
+    std::array<glm::mat4, 256> mRefBox;
+    glm::mat4 mHeroBox;
+    std::array<glm::vec4, 256> mRefSphere;
+    std::array<glm::vec4, 256> mRefParams;
+    glm::vec4 mHeroSphere;
+    std::array<glm::ivec4, 256> mRefIndex;
+    std::array<glm::ivec4, 1024> mRefNeighbor;
+    std::array<glm::ivec4, 256> mRefBucket;
+    S32 mRefmapCount;
+    S32 mHeroShape;
+    S32 mHeroMipCount;
+    S32 mHeroProbeCount;
+};
+
+static_assert(
+    sizeof(SmokeReflectionProbeData) == 49248,
+    "Smoke ReflectionProbes UBO must match the shader/std140 layout");
+
+void release_smoke_reflection_probe_resources(
+    LLRenderBackend& backend,
+    SmokeReflectionProbeResources& resources)
+{
+    if (resources.mProbeUniformBuffer)
+    {
+        backend.deleteBufferHandle(resources.mProbeUniformBuffer);
+    resources.mProbeUniformBuffer = {};
+    }
+    if (resources.mReflectionCubeArray)
+    {
+        backend.deleteTextureHandle(resources.mReflectionCubeArray);
+        resources.mReflectionCubeArray = {};
+    }
+    if (resources.mIrradianceCubeArray)
+    {
+        backend.deleteTextureHandle(resources.mIrradianceCubeArray);
+        resources.mIrradianceCubeArray = {};
+    }
+    if (resources.mHeroCubeArray)
+    {
+        backend.deleteTextureHandle(resources.mHeroCubeArray);
+        resources.mHeroCubeArray = {};
+    }
+    release_smoke_offscreen(backend, resources.mCopySource);
+    resources.mHeroProbeEnabled = false;
+}
+
+bool upload_smoke_reflection_probe_source_pixel(
+    LLRenderBackend& backend,
+    SmokeOffscreen& source,
+    const std::array<U8, 4>& color)
+{
+    if (!ensure_smoke_offscreen(backend, source, 1, 1))
+    {
+        return false;
+    }
+
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, source.mColorTexture);
+    backend.setTextureSubImage2D(
+        LLRenderTextureTarget::Texture2D,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0x1908, // GL_RGBA
+        0x1401, // GL_UNSIGNED_BYTE
+        color.data());
+    return backend.didLastTextureUploadSucceed();
+}
+
+bool create_smoke_cube_array_texture(
+    LLRenderBackend& backend,
+    SmokeOffscreen& source,
+    LLRenderTextureHandle& texture,
+    const std::array<U8, 4>& color)
+{
+    texture = backend.createTextureHandle();
+    if (!texture)
+    {
+        return false;
+    }
+
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::TextureCubeMapArray, texture);
+    backend.setTextureImage3D(
+        LLRenderTextureTarget::TextureCubeMapArray,
+        0,
+        0,
+        1,
+        1,
+        6,
+        0,
+        0x1908, // GL_RGBA
+        0x1401, // GL_UNSIGNED_BYTE
+        nullptr);
+    if (!backend.didLastTextureUploadSucceed())
+    {
+        backend.deleteTextureHandle(texture);
+        texture = {};
+        return false;
+    }
+
+    backend.setTextureFilter(
+        LLRenderTextureTarget::TextureCubeMapArray,
+        LLRenderTextureFilter::Linear,
+        LLRenderTextureFilter::Linear);
+    backend.setTextureAddressMode(
+        LLRenderTextureTarget::TextureCubeMapArray,
+        LLRenderTextureAddressMode::ClampToEdge);
+
+    if (!upload_smoke_reflection_probe_source_pixel(backend, source, color))
+    {
+        backend.deleteTextureHandle(texture);
+        texture = {};
+        return false;
+    }
+
+    backend.bindFramebuffer(
+        LLRenderFramebufferBindPoint::Read,
+        source.mFramebuffer);
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::TextureCubeMapArray, texture);
+    for (S32 layer = 0; layer < 6; ++layer)
+    {
+        backend.copyTextureSubImage3D(
+            LLRenderTextureTarget::TextureCubeMapArray,
+            0,
+            0,
+            0,
+            layer,
+            0,
+            0,
+            1,
+            1);
+    }
+    backend.bindFramebuffer(
+        LLRenderFramebufferBindPoint::Read,
+        LLRenderFramebufferHandle());
+    return true;
+}
+
+SmokeReflectionProbeData make_smoke_reflection_probe_data(bool hero_probe)
+{
+    SmokeReflectionProbeData data = {};
+
+    data.mRefSphere[0] = glm::vec4(0.f, 0.f, -1.f, 16.f);
+    data.mRefIndex[0] = glm::ivec4(0, -1, -1, 0);
+
+    data.mRefSphere[1] = glm::vec4(0.f, 0.f, -1.f, 16.f);
+    data.mRefParams[1] = glm::vec4(1.f, 1.f, 1.f, 0.f);
+    data.mRefIndex[1] = glm::ivec4(0, -1, -1, 1);
+
+    for (glm::ivec4& bucket : data.mRefBucket)
+    {
+        bucket = glm::ivec4(1, 0, 0, 0);
+    }
+
+    data.mRefmapCount = 2;
+    if (hero_probe)
+    {
+        data.mHeroSphere = glm::vec4(0.f, 0.f, -1.f, 16.f);
+        data.mHeroShape = 1;
+        data.mHeroMipCount = 1;
+        data.mHeroProbeCount = 1;
+    }
+    else
+    {
+        data.mHeroShape = 0;
+        data.mHeroMipCount = 0;
+        data.mHeroProbeCount = 0;
+    }
+    return data;
+}
+
+bool ensure_smoke_reflection_probe_resources(
+    LLRenderBackend& backend,
+    SmokeReflectionProbeResources& resources,
+    bool hero_probe = false)
+{
+    if (resources.mReflectionCubeArray &&
+        resources.mIrradianceCubeArray &&
+        resources.mHeroCubeArray &&
+        resources.mProbeUniformBuffer &&
+        resources.mHeroProbeEnabled == hero_probe)
+    {
+        return true;
+    }
+
+    release_smoke_reflection_probe_resources(backend, resources);
+
+    if (!create_smoke_cube_array_texture(
+            backend,
+            resources.mCopySource,
+            resources.mReflectionCubeArray,
+            { 48, 132, 255, 255 }) ||
+        !create_smoke_cube_array_texture(
+            backend,
+            resources.mCopySource,
+            resources.mIrradianceCubeArray,
+            { 255, 128, 42, 255 }) ||
+        !create_smoke_cube_array_texture(
+            backend,
+            resources.mCopySource,
+            resources.mHeroCubeArray,
+            { 64, 255, 160, 255 }))
+    {
+        release_smoke_reflection_probe_resources(backend, resources);
+        return false;
+    }
+
+    const SmokeReflectionProbeData data =
+        make_smoke_reflection_probe_data(hero_probe);
+    resources.mProbeUniformBuffer = backend.createBufferHandle();
+    if (!resources.mProbeUniformBuffer)
+    {
+        release_smoke_reflection_probe_resources(backend, resources);
+        return false;
+    }
+
+    backend.bindBuffer(
+        LLRenderBufferTarget::Uniform,
+        resources.mProbeUniformBuffer);
+    backend.allocateBufferStorage(
+        LLRenderBufferTarget::Uniform,
+        sizeof(data),
+        &data,
+        LLRenderBufferUsage::StreamDraw);
+    backend.bindBuffer(LLRenderBufferTarget::Uniform, LLRenderBufferHandle());
+    resources.mHeroProbeEnabled = hero_probe;
+    return true;
+}
 
 std::vector<U8> make_solid_rgba_pixels(
     U32 width,
@@ -4789,6 +5058,43 @@ void log_deferred_reflection_probe_reference()
     logged_reference = true;
 }
 
+void log_deferred_real_reflection_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-real-reflection-probe: using the same "
+        << "glossy metallic PBR band as viewer-deferred-reflection-probe, "
+        << "but binding a synthetic ReflectionProbes UBO plus real Vulkan "
+        << "TextureCubeMapArray radiance and irradiance inputs. This validates "
+        << "the DeferredSoften cube-array/probe descriptor path without "
+        << "requiring a live region."
+        << std::endl;
+    logged_reference = true;
+}
+
+void log_deferred_hero_probe_reference()
+{
+    static bool logged_reference = false;
+    if (logged_reference)
+    {
+        return;
+    }
+
+    std::cout
+        << "Mare Vulkan viewer-deferred-hero-probe: using a synthetic "
+        << "ReflectionProbes UBO with heroProbeCount=1 and a distinct hero "
+        << "TextureCubeMapArray color. This validates the OpenGL-style "
+        << "high-gloss hero probe mix inside DeferredSoften without requiring "
+        << "a live hero-probe render pass."
+        << std::endl;
+    logged_reference = true;
+}
+
 void log_terrain_final_probe_reference()
 {
     static bool logged_reference = false;
@@ -7637,7 +7943,8 @@ void draw_smoke_deferred_soften_quad(
     const SmokeQuad& quad,
     U32 width,
     U32 height,
-    const LLRenderWorldMaterialParameters& parameters)
+    const LLRenderWorldMaterialParameters& parameters,
+    const SmokeReflectionProbeResources* reflection_probe_resources = nullptr)
 {
     const U32 attachment_count =
         llmin(deferred_screen.getNumTextures(), 4U);
@@ -7670,10 +7977,32 @@ void draw_smoke_deferred_soften_quad(
         LLRenderTextureTarget::TextureCubeMap,
         material_textures.mCubeWhite);
 
-    for (S32 unit = 7; unit <= 9; ++unit)
+    if (reflection_probe_resources)
     {
-        gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_TEXTURE);
-        gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_CUBE_MAP);
+        backend.setActiveTextureUnit(7);
+        backend.bindTexture(
+            LLRenderTextureTarget::TextureCubeMapArray,
+            reflection_probe_resources->mReflectionCubeArray);
+        backend.setActiveTextureUnit(8);
+        backend.bindTexture(
+            LLRenderTextureTarget::TextureCubeMapArray,
+            reflection_probe_resources->mIrradianceCubeArray);
+        backend.setActiveTextureUnit(9);
+        backend.bindTexture(
+            LLRenderTextureTarget::TextureCubeMapArray,
+            reflection_probe_resources->mHeroCubeArray);
+        backend.bindBufferBase(
+            LLRenderBufferTarget::Uniform,
+            LLGLSLShader::UB_REFLECTION_PROBES,
+            reflection_probe_resources->mProbeUniformBuffer);
+    }
+    else
+    {
+        for (S32 unit = 7; unit <= 9; ++unit)
+        {
+            gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_TEXTURE);
+            gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_CUBE_MAP);
+        }
     }
 
     backend.setActiveTextureUnit(10);
@@ -7715,6 +8044,13 @@ void draw_smoke_deferred_soften_quad(
     {
         gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_TEXTURE);
         gGL.getTexUnit(unit)->unbind(LLTexUnit::TT_CUBE_MAP);
+    }
+    if (reflection_probe_resources)
+    {
+        backend.bindBufferBase(
+            LLRenderBufferTarget::Uniform,
+            LLGLSLShader::UB_REFLECTION_PROBES,
+            LLRenderBufferHandle());
     }
     gGL.getTexUnit(10)->unbind(LLTexUnit::TT_TEXTURE);
     gGL.getTexUnit(11)->unbind(LLTexUnit::TT_TEXTURE);
@@ -7788,7 +8124,8 @@ bool draw_smoke_deferred_soften_stage(
     const SmokeQuad& quad,
     U32 width,
     U32 height,
-    const LLRenderWorldMaterialParameters& parameters)
+    const LLRenderWorldMaterialParameters& parameters,
+    const SmokeReflectionProbeResources* reflection_probe_resources = nullptr)
 {
     if (!ensure_smoke_deferred_lightmap_source(
             backend,
@@ -7807,7 +8144,8 @@ bool draw_smoke_deferred_soften_stage(
         quad,
         width,
         height,
-        parameters);
+        parameters,
+        reflection_probe_resources);
     return true;
 }
 
@@ -8292,7 +8630,9 @@ bool render_viewer_deferred_color_compare_frame(
     U32 height,
     bool soften_state_probe = false,
     bool emissive_probe = false,
-    bool reflection_probe = false)
+    bool reflection_probe = false,
+    SmokeReflectionProbeResources* reflection_probe_resources = nullptr,
+    bool hero_probe = false)
 {
     if (!ensure_smoke_deferred_textures(backend, material_textures))
     {
@@ -8352,7 +8692,21 @@ bool render_viewer_deferred_color_compare_frame(
     }
     if (reflection_probe)
     {
-        log_deferred_reflection_probe_reference();
+        if (reflection_probe_resources)
+        {
+            if (hero_probe)
+            {
+                log_deferred_hero_probe_reference();
+            }
+            else
+            {
+                log_deferred_real_reflection_probe_reference();
+            }
+        }
+        else
+        {
+            log_deferred_reflection_probe_reference();
+        }
     }
     graph.mDeferredScreen.flush();
 
@@ -8367,8 +8721,20 @@ bool render_viewer_deferred_color_compare_frame(
             make_deferred_color_compare_composite_parameters(
                 graph_width,
                 graph_height);
+    if (hero_probe)
+    {
+        deferred_parameters.mCompositeClipPlane[3] = 1.f;
+    }
     if (soften_state_probe || emissive_probe || reflection_probe)
     {
+        if (reflection_probe_resources &&
+            !ensure_smoke_reflection_probe_resources(
+                backend,
+                *reflection_probe_resources,
+                hero_probe))
+        {
+            return false;
+        }
         if (!draw_smoke_deferred_soften_stage(
             backend,
             graph,
@@ -8376,7 +8742,8 @@ bool render_viewer_deferred_color_compare_frame(
             quad,
             graph_width,
             graph_height,
-            deferred_parameters))
+            deferred_parameters,
+            reflection_probe_resources))
         {
             return false;
         }
@@ -10144,6 +10511,34 @@ int main(int argc, char** argv)
             { 0.8000f, 0.8157f, 0.8549f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
     }
+    else if (options.mMode == SmokeMode::ViewerDeferredRealReflectionProbe)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
+            { 0.3252f, 0.9336f, 2.0098f });
+        setenv(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
+            "0.05",
+            1);
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 0.6039f, 0.9686f, 1.0000f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
+    }
+    else if (options.mMode == SmokeMode::ViewerDeferredHeroProbe)
+    {
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB",
+            { 0.3994f, 1.5303f, 1.4961f });
+        setenv(
+            "MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE",
+            "0.05",
+            1);
+        set_expected_rgb(
+            "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
+            { 0.6667f, 1.0000f, 1.0000f });
+        setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.03", 1);
+    }
     else if (options.mMode == SmokeMode::ViewerDeferredLocalLightProbe)
     {
         set_expected_rgb(
@@ -10251,6 +10646,8 @@ int main(int argc, char** argv)
         smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe ||
         smoke_mode == SmokeMode::ViewerDeferredEmissiveProbe ||
         smoke_mode == SmokeMode::ViewerDeferredReflectionProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredRealReflectionProbe ||
+        smoke_mode == SmokeMode::ViewerDeferredHeroProbe ||
         smoke_mode == SmokeMode::ViewerDeferredLocalLightProbe ||
         smoke_mode == SmokeMode::ViewerDeferredProjectorLightProbe ||
         smoke_mode == SmokeMode::ViewerDeferredPointLightVolumeProbe ||
@@ -10284,6 +10681,7 @@ int main(int argc, char** argv)
     SmokeDeferredTextures smoke_deferred_textures;
     SmokeDeferredGraph smoke_deferred_graph;
     SmokeViewerRenderTargetGraph smoke_viewer_render_target_graph;
+    SmokeReflectionProbeResources smoke_reflection_probe_resources;
     SmokeCopyChainGraph smoke_copy_chain_graph;
     SmokeUIOverlay smoke_ui_overlay;
     if ((smoke_mode == SmokeMode::OffscreenCopy ||
@@ -10312,6 +10710,8 @@ int main(int argc, char** argv)
             smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe ||
             smoke_mode == SmokeMode::ViewerDeferredEmissiveProbe ||
             smoke_mode == SmokeMode::ViewerDeferredReflectionProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredRealReflectionProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredHeroProbe ||
             smoke_mode == SmokeMode::ViewerDeferredLocalLightProbe ||
             smoke_mode == SmokeMode::ViewerDeferredProjectorLightProbe ||
             smoke_mode == SmokeMode::ViewerDeferredPointLightVolumeProbe ||
@@ -10329,6 +10729,21 @@ int main(int argc, char** argv)
         !create_smoke_cube(backend, smoke_cube))
     {
         std::cerr << "Failed to create Vulkan smoke cube.\n";
+        backend.destroyNativeContext(context);
+        mare_vulkan_smoke_destroy_window(window);
+        return 5;
+    }
+    if ((smoke_mode == SmokeMode::ViewerDeferredRealReflectionProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredHeroProbe) &&
+        !ensure_smoke_reflection_probe_resources(
+            backend,
+            smoke_reflection_probe_resources,
+            smoke_mode == SmokeMode::ViewerDeferredHeroProbe))
+    {
+        std::cerr << "Failed to create Vulkan smoke reflection-probe resources.\n";
+        release_smoke_reflection_probe_resources(
+            backend,
+            smoke_reflection_probe_resources);
         backend.destroyNativeContext(context);
         mare_vulkan_smoke_destroy_window(window);
         return 5;
@@ -10609,8 +11024,19 @@ int main(int argc, char** argv)
         else if (smoke_mode == SmokeMode::ViewerDeferredColorCompare ||
             smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe ||
             smoke_mode == SmokeMode::ViewerDeferredEmissiveProbe ||
-            smoke_mode == SmokeMode::ViewerDeferredReflectionProbe)
+            smoke_mode == SmokeMode::ViewerDeferredReflectionProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredRealReflectionProbe ||
+            smoke_mode == SmokeMode::ViewerDeferredHeroProbe)
         {
+            const bool reflection_probe_mode =
+                smoke_mode == SmokeMode::ViewerDeferredReflectionProbe ||
+                smoke_mode == SmokeMode::ViewerDeferredRealReflectionProbe ||
+                smoke_mode == SmokeMode::ViewerDeferredHeroProbe;
+            const bool real_probe_resources =
+                smoke_mode == SmokeMode::ViewerDeferredRealReflectionProbe ||
+                smoke_mode == SmokeMode::ViewerDeferredHeroProbe;
+            const bool hero_probe =
+                smoke_mode == SmokeMode::ViewerDeferredHeroProbe;
             if (!render_viewer_deferred_color_compare_frame(
                     backend,
                     smoke_deferred_textures,
@@ -10620,7 +11046,11 @@ int main(int argc, char** argv)
                     height,
                     smoke_mode == SmokeMode::ViewerDeferredSoftenStateProbe,
                     smoke_mode == SmokeMode::ViewerDeferredEmissiveProbe,
-                    smoke_mode == SmokeMode::ViewerDeferredReflectionProbe))
+                    reflection_probe_mode,
+                    real_probe_resources ?
+                        &smoke_reflection_probe_resources :
+                        nullptr,
+                    hero_probe))
             {
                 std::cerr
                     << "Failed to render Vulkan smoke "
@@ -10873,6 +11303,7 @@ int main(int argc, char** argv)
     flushVulkanSmokeFrameDiffSummaries();
 
     release_smoke_copy_chain_graph(smoke_copy_chain_graph);
+    release_smoke_reflection_probe_resources(backend, smoke_reflection_probe_resources);
     release_smoke_viewer_render_target_graph(backend, smoke_viewer_render_target_graph);
     release_smoke_deferred_graph(backend, smoke_deferred_graph);
     release_smoke_deferred_textures(backend, smoke_deferred_textures);
