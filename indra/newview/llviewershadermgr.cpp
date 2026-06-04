@@ -26,6 +26,8 @@
 
 #include "llviewerprecompiledheaders.h"
 
+#include <cstdlib>
+
 #include <boost/lexical_cast.hpp>
 
 #include "llfeaturemanager.h"
@@ -67,6 +69,16 @@ using std::vector;
 using std::pair;
 using std::make_pair;
 using std::string;
+
+static bool use_mare_viewer_pipeline_scene_test_emissive_buffer()
+{
+    const char* scene_test = std::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST");
+    const char* emissive_buffer =
+        std::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_ENABLE_EMISSIVE_BUFFER");
+    return scene_test && scene_test[0] != '\0' &&
+        emissive_buffer && emissive_buffer[0] != '\0' &&
+        emissive_buffer[0] != '0';
+}
 
 bool                LLViewerShaderMgr::sInitialized = false;
 bool                LLViewerShaderMgr::sSkipReload = false;
@@ -283,7 +295,7 @@ static void add_common_permutations(LLGLSLShader* shader)
 {
     static LLCachedControl<bool> emissive(gSavedSettings, "RenderEnableEmissiveBuffer", false);
 
-    if (emissive)
+    if (emissive || use_mare_viewer_pipeline_scene_test_emissive_buffer())
     {
         shader->addPermutation("HAS_EMISSIVE", "1");
     }
@@ -855,7 +867,7 @@ std::string LLViewerShaderMgr::loadBasicShaders()
 
     static LLCachedControl<bool> emissive(gSavedSettings, "RenderEnableEmissiveBuffer", false);
 
-    if (emissive)
+    if (emissive || use_mare_viewer_pipeline_scene_test_emissive_buffer())
     {
         attribs["HAS_EMISSIVE"] = "1";
     }

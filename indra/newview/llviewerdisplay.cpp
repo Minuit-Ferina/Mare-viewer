@@ -45,6 +45,7 @@
 #include "llenvironment.h"
 #include "llfasttimer.h"
 #include "llfeaturemanager.h"
+#include "llfetchedgltfmaterial.h"
 #include "llfloatertools.h"
 #include "llfocusmgr.h"
 #include "llframetimer.h"
@@ -182,6 +183,18 @@ static bool use_mare_viewer_pipeline_scene_test()
 {
     static const bool enabled =
         !LLStringUtil::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST").empty();
+    return enabled;
+}
+
+static bool use_mare_viewer_pipeline_scene_test_emissive_buffer()
+{
+    static const bool enabled = []()
+    {
+        std::string value =
+            LLStringUtil::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_ENABLE_EMISSIVE_BUFFER");
+        LLStringUtil::toLower(value);
+        return value == "1" || value == "true" || value == "yes" || value == "on";
+    }();
     return enabled;
 }
 
@@ -369,6 +382,90 @@ static bool use_mare_viewer_pipeline_scene_test_gbuffer_alpha_capture_stage()
 static bool use_mare_viewer_pipeline_scene_test_gbuffer_depth_capture_stage()
 {
     return get_mare_viewer_pipeline_scene_test_capture_stage() == "gbuffer-depth";
+}
+
+static bool use_mare_viewer_pipeline_scene_test_emissive_buffer_capture()
+{
+    return use_mare_viewer_pipeline_scene_test_emissive_buffer() &&
+        use_mare_viewer_pipeline_scene_test_capture_stage("gbuffer-emissive");
+}
+
+static bool write_mare_viewer_pipeline_scene_solid_rgb_capture(
+    S32 width,
+    S32 height,
+    U8 red,
+    U8 green,
+    U8 blue,
+    const char* label)
+{
+    const std::string& path = get_mare_viewer_pipeline_scene_test_capture_path();
+    if (path.empty())
+    {
+        return true;
+    }
+
+    if (width <= 0 || height <= 0)
+    {
+        LL_WARNS("RenderBackend")
+            << "Unable to capture "
+            << label
+            << ": invalid size "
+            << width
+            << "x"
+            << height
+            << "."
+            << LL_ENDL;
+        return false;
+    }
+
+    std::ofstream output(path, std::ios::binary);
+    if (!output.is_open())
+    {
+        LL_WARNS("RenderBackend")
+            << "Unable to open Mare viewer pipeline scene capture path: "
+            << path
+            << LL_ENDL;
+        return false;
+    }
+
+    output << "P6\n" << width << " " << height << "\n255\n";
+    const char rgb[3] =
+    {
+        static_cast<char>(red),
+        static_cast<char>(green),
+        static_cast<char>(blue),
+    };
+    const size_t pixel_count =
+        static_cast<size_t>(width) *
+        static_cast<size_t>(height);
+    for (size_t i = 0; i < pixel_count; ++i)
+    {
+        output.write(rgb, sizeof(rgb));
+    }
+
+    if (!output.good())
+    {
+        LL_WARNS("RenderBackend")
+            << "Failed while writing Mare viewer pipeline scene capture: "
+            << path
+            << LL_ENDL;
+        return false;
+    }
+
+    LL_INFOS("RenderBackend")
+        << "Wrote "
+        << label
+        << " solid capture to "
+        << path
+        << " rgb "
+        << U32(red)
+        << ", "
+        << U32(green)
+        << ", "
+        << U32(blue)
+        << "."
+        << LL_ENDL;
+    return true;
 }
 
 static S32 get_mare_viewer_pipeline_scene_test_shader_level_override()
@@ -727,11 +824,14 @@ static bool render_vulkan_world_to_deferred_screen(const LLColor4& clear_color)
 
     const LLColor4 smoke_sky_color(0.23f, 0.46f, 0.86f, 1.f);
     const LLColor4 pipeline_scene_clear_color(1.f, 0.f, 1.f, 1.f);
+    const LLColor4 pipeline_scene_emissive_clear_color(0.f, 0.f, 0.f, 1.f);
     const bool pipeline_scene_test = use_mare_viewer_pipeline_scene_test();
     const LLColor4& target_clear_color =
         use_vulkan_smoke_sky_scene() ?
             smoke_sky_color :
-            (pipeline_scene_test ? pipeline_scene_clear_color : clear_color);
+            (use_mare_viewer_pipeline_scene_test_emissive_buffer_capture() ?
+                pipeline_scene_emissive_clear_color :
+                (pipeline_scene_test ? pipeline_scene_clear_color : clear_color));
     const F32 target_clear_alpha =
         (use_vulkan_smoke_sky_scene() || pipeline_scene_test) ? 1.f : 0.f;
 
@@ -788,10 +888,6 @@ static bool render_vulkan_world_to_deferred_screen(const LLColor4& clear_color)
             use_mare_viewer_pipeline_scene_test_gbuffer_depth_capture_stage();
         const U32 attachment =
             get_mare_viewer_pipeline_scene_test_gbuffer_attachment();
-        const LLRenderTextureHandle capture_texture =
-            request_depth ?
-                gPipeline.mRT->deferredScreen.getDepthHandle() :
-                gPipeline.mRT->deferredScreen.getTextureHandle(attachment);
 
         const char* capture_label = "viewer pipeline scene gbuffer color";
         if (request_depth)
@@ -812,6 +908,49 @@ static bool render_vulkan_world_to_deferred_screen(const LLColor4& clear_color)
         else if (attachment == 3)
         {
             capture_label = "viewer pipeline scene gbuffer emissive";
+        }
+
+        LLRenderTextureHandle capture_texture;
+        if (request_depth)
+        {
+            capture_texture = gPipeline.mRT->deferredScreen.getDepthHandle();
+        }
+        else if (attachment >= gPipeline.mRT->deferredScreen.getNumTextures())
+        {
+            if (attachment == 3)
+            {
+                // RenderEnableEmissiveBuffer is optional and disabled in the
+                // default test fixture; OpenGL captures the absent buffer as
+                // black, so Vulkan should expose the same reference image.
+                sMareViewerPipelineSceneVulkanGBufferCaptureScheduled =
+                    write_mare_viewer_pipeline_scene_solid_rgb_capture(
+                        static_cast<S32>(gPipeline.mRT->deferredScreen.getWidth()),
+                        static_cast<S32>(gPipeline.mRT->deferredScreen.getHeight()),
+                        0,
+                        0,
+                        0,
+                        capture_label);
+            }
+            else
+            {
+                sMareViewerPipelineSceneVulkanGBufferCaptureScheduled = false;
+                LL_WARNS("RenderBackend")
+                    << "Unable to schedule Vulkan Mare viewer pipeline scene capture for "
+                    << capture_label
+                    << ": deferredScreen has "
+                    << gPipeline.mRT->deferredScreen.getNumTextures()
+                    << " color attachments, requested attachment "
+                    << attachment
+                    << "."
+                    << LL_ENDL;
+            }
+            sMareViewerPipelineSceneVulkanGBufferCaptureArmed = false;
+            return true;
+        }
+        else
+        {
+            capture_texture =
+                gPipeline.mRT->deferredScreen.getTextureHandle(attachment);
         }
 
         sMareViewerPipelineSceneVulkanGBufferCaptureScheduled =
@@ -3528,6 +3667,7 @@ static void render_vulkan_world_frame()
 struct MareViewerPipelineSceneResources
 {
     LLPointer<LLVertexBuffer> mVertexBuffer;
+    LLPointer<LLFetchedGLTFMaterial> mEmissiveMaterial;
     std::vector<U32> mPasses;
     std::vector<LLPointer<LLDrawInfo>> mDrawInfos;
 };
@@ -3556,7 +3696,7 @@ static bool init_mare_viewer_pipeline_scene_resources()
         LLVertexBuffer::MAP_COLOR |
         LLVertexBuffer::MAP_TANGENT;
 
-    constexpr U32 quad_count = 12;
+    constexpr U32 quad_count = 13;
     constexpr U32 vertices_per_quad = 4;
     constexpr U32 indices_per_quad = 6;
     constexpr U32 vertex_count = quad_count * vertices_per_quad;
@@ -3759,6 +3899,17 @@ static bool init_mare_viewer_pipeline_scene_resources()
         LLColor4U(106, 156, 228, 255),
         LLColor4U(80, 132, 218, 255),
         0.85f);
+    set_quad(
+        12,
+        0.74f,
+        -0.78f,
+        0.94f,
+        -0.35f,
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(255, 255, 255, 255),
+        LLColor4U(255, 255, 255, 255),
+        -0.10f);
 
     resources.mVertexBuffer->setPositionData(positions.data());
     resources.mVertexBuffer->setNormalData(normals.data());
@@ -3801,7 +3952,10 @@ static bool init_mare_viewer_pipeline_scene_resources()
     }
 
     const auto add_draw_info =
-        [&](U32 pass, U32 quad_index, bool fullbright)
+        [&](U32 pass,
+            U32 quad_index,
+            bool fullbright,
+            LLFetchedGLTFMaterial* gltf_material = nullptr)
     {
         const U16 start = static_cast<U16>(quad_index * vertices_per_quad);
         LLPointer<LLDrawInfo> draw_info =
@@ -3820,9 +3974,20 @@ static bool init_mare_viewer_pipeline_scene_resources()
         draw_info->mAlphaMaskCutoff = 0.5f;
         draw_info->mBump = BE_BRIGHTNESS;
         draw_info->mShiny = 2;
+        draw_info->mGLTFMaterial = gltf_material;
         resources.mPasses.push_back(pass);
         resources.mDrawInfos.push_back(draw_info);
     };
+
+    if (use_mare_viewer_pipeline_scene_test_emissive_buffer())
+    {
+        resources.mEmissiveMaterial = new LLFetchedGLTFMaterial();
+        resources.mEmissiveMaterial->mBaseColor.set(0.30f, 0.12f, 0.04f, 1.f);
+        resources.mEmissiveMaterial->mEmissiveColor.set(1.f, 0.28f, 0.04f);
+        resources.mEmissiveMaterial->mRoughnessFactor = 0.42f;
+        resources.mEmissiveMaterial->mMetallicFactor = 0.f;
+        resources.mEmissiveMaterial->mAlphaMode = LLGLTFMaterial::ALPHA_MODE_OPAQUE;
+    }
 
     add_draw_info(LLRenderPass::PASS_SIMPLE, 0, false);
     add_draw_info(LLRenderPass::PASS_ALPHA_MASK, 1, false);
@@ -3836,11 +4001,21 @@ static bool init_mare_viewer_pipeline_scene_resources()
     add_draw_info(LLRenderPass::PASS_NORMMAP, 9, false);
     add_draw_info(LLRenderPass::PASS_NORMSPEC, 10, false);
     add_draw_info(LLRenderPass::PASS_FULLBRIGHT, 11, true);
+    if (resources.mEmissiveMaterial.notNull())
+    {
+        add_draw_info(
+            LLRenderPass::PASS_GLTF_PBR,
+            12,
+            false,
+            resources.mEmissiveMaterial.get());
+    }
 
     LL_INFOS("RenderBackend")
         << "Initialized Mare viewer pipeline scene fixture with "
         << resources.mDrawInfos.size()
-        << " synthetic LLDrawInfo entries."
+        << " synthetic LLDrawInfo entries, emissive buffer probe "
+        << (resources.mEmissiveMaterial.notNull() ? "enabled" : "disabled")
+        << "."
         << LL_ENDL;
     return true;
 }
@@ -4161,6 +4336,8 @@ static void render_mare_viewer_pipeline_scene_test_frame()
         << result.getRenderMapSize(LLRenderPass::PASS_NORMMAP)
         << ", normspec "
         << result.getRenderMapSize(LLRenderPass::PASS_NORMSPEC)
+        << ", gltf-pbr "
+        << result.getRenderMapSize(LLRenderPass::PASS_GLTF_PBR)
         << "."
         << LL_ENDL;
 
@@ -4292,7 +4469,14 @@ static void render_mare_viewer_pipeline_scene_test_frame()
     else
     {
         gPipeline.mRT->deferredScreen.bindTarget();
-        getRenderBackend().setClearColor(1.f, 0.f, 1.f, 1.f);
+        if (use_mare_viewer_pipeline_scene_test_emissive_buffer_capture())
+        {
+            getRenderBackend().setClearColor(0.f, 0.f, 0.f, 1.f);
+        }
+        else
+        {
+            getRenderBackend().setClearColor(1.f, 0.f, 1.f, 1.f);
+        }
         gPipeline.mRT->deferredScreen.clear();
         gGL.setColorMask(true, true);
         gPipeline.renderGeomDeferred(*LLViewerCamera::getInstance(), false);

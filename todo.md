@@ -227,6 +227,18 @@ filled in.
       initialized. Remaining work: add true alpha-blend groups, terrain, sky,
       water, PBR/GLTF materials, lights, shadows, reflection probes, and
       automated OpenGL/Vulkan image comparison.
+      Current G-buffer capture coverage includes strict OpenGL/Vulkan parity
+      for depth, normal-alpha, and the default emissive-buffer-absent case:
+      `gbuffer-emissive` writes a black Vulkan reference when the optional
+      `RenderEnableEmissiveBuffer` attachment is not allocated, matching the
+      current OpenGL fixture. The same fixture can now force a live emissive
+      attachment with `MARE_VIEWER_PIPELINE_SCENE_TEST_ENABLE_EMISSIVE_BUFFER=1`
+      and adds a nonzero PBR emissive draw. OpenGL and Vulkan
+      `gbuffer-emissive` captures are strict zero-diff in both modes. This also
+      fixed the Vulkan PBR G-buffer emissive color-space contract: material
+      emissive factor stays linear and only the emissive texture sample is
+      converted from sRGB. Remaining emissive work is mapped emissive textures
+      and legacy-material emissive probes.
 
 ## OpenGL Shader Inventory
 

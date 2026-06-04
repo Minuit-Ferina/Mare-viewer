@@ -182,9 +182,8 @@ void main()
     vec3 emissive = pc.material_extra.rgb;
     if (pc.material_extra.a > 0.5)
     {
-        emissive *= texture(tex3, emissive_texture_texcoord(vary_material_texcoord0.xy)).rgb;
+        emissive *= srgb_to_linear(texture(tex3, emissive_texture_texcoord(vary_material_texcoord0.xy)).rgb);
     }
-    emissive = srgb_to_linear(max(emissive, vec3(0.0)));
 
     vec3 pbr_normal = normalize(material_normal(vary_material_texcoord0.xy));
     float encoded_normal_f = sqrt(8.0 * pbr_normal.z + 8.0);

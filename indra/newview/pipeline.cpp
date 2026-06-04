@@ -602,6 +602,16 @@ void validate_framebuffer_object();
 
 // Add color attachments for deferred rendering
 // target -- RenderTarget to add attachments to
+static bool use_mare_viewer_pipeline_scene_test_emissive_buffer()
+{
+    const char* scene_test = std::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST");
+    const char* emissive_buffer =
+        std::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_ENABLE_EMISSIVE_BUFFER");
+    return scene_test && scene_test[0] != '\0' &&
+        emissive_buffer && emissive_buffer[0] != '\0' &&
+        emissive_buffer[0] != '0';
+}
+
 bool addDeferredAttachments(LLRenderTarget& target, bool for_impostor = false)
 {
     LLRenderTextureFormat orm = LLRenderTextureFormat::RGBA;
@@ -621,7 +631,7 @@ bool addDeferredAttachments(LLRenderTarget& target, bool for_impostor = false)
     bool valid = true;
     valid      = valid && target.addColorAttachment(orm);    // frag-data[1] specular OR PBR ORM
     valid      = valid && target.addColorAttachment(norm);
-    if (has_emissive)
+    if (has_emissive || use_mare_viewer_pipeline_scene_test_emissive_buffer())
     {
         valid = valid && target.addColorAttachment(emissive); // frag_data[3] PBR emissive OR material env intensity
     }
