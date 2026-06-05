@@ -1202,7 +1202,7 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
     S32 height = size.mY;
     bool auto_show = false;
 
-    if (mhRC || mRenderContext.mContext)
+    if (mhRC)
     {
         auto_show = true;
         resetDisplayResolution();
@@ -1359,83 +1359,6 @@ bool LLWindowWin32::switchContext(bool fullscreen, const LLCoordScreen& size, bo
     else
     {
         LL_WARNS("Window") << "Window creation failed, code: " << GetLastError() << LL_ENDL;
-    }
-
-    auto finish_window_context_setup = [&]() -> bool
-    {
-        SetWindowLongPtr(mWindowHandle, GWLP_USERDATA, (LONG_PTR)this);
-
-        // register this window as handling drag/drop events from the OS
-        DragAcceptFiles( mWindowHandle, TRUE );
-
-        mDragDrop->init( mWindowHandle );
-
-        //register joystick timer callback
-        SetTimer( mWindowHandle, 0, 1000 / 30, NULL ); // 30 fps timer
-
-        // ok to post quit messages now
-        mPostQuit = true;
-
-        // *HACK: Attempt to prevent startup crashes by deferring memory accounting
-        // until after some graphics setup. See SL-20177. -Cosmic,2023-09-18
-        mWindowThread->post([=]()
-        {
-            mWindowThread->glReady();
-        });
-
-        if (auto_show)
-        {
-            show();
-            getRenderBackend().setClearColor(0.0f, 0.0f, 0.0f, 0.f);
-            getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
-            swapBuffers();
-        }
-
-        return true;
-    };
-
-    if (getRenderBackend().getType() == LLRenderBackendType::Vulkan)
-    {
-        if (!mWindowHandle)
-        {
-            close();
-            return false;
-        }
-
-        LLRenderNativeContextDesc desc;
-        desc.mWindow = mWindowHandle;
-        desc.mSamples = mFSAASamples;
-        desc.mEnableVSync = enable_vsync;
-
-        if (!getRenderBackend().createNativeContext(desc, mRenderContext))
-        {
-            OSMessageBox(
-                std::string("Can't create ") + getRenderBackend().getName() + " rendering context",
-                mCallbacks->translateString("MBError"),
-                OSMB_OK);
-            close();
-            return false;
-        }
-
-        if (!getRenderBackend().makeNativeContextCurrent(mRenderContext.mContext))
-        {
-            OSMessageBox(
-                std::string("Can't activate ") + getRenderBackend().getName() + " rendering context",
-                mCallbacks->translateString("MBError"),
-                OSMB_OK);
-            close();
-            return false;
-        }
-
-        gGLManager.mVRAM = mRenderContext.mVRAM;
-        if (!getRenderBackend().initContextCapabilities())
-        {
-            LLError::LLUserWarningMsg::show(mCallbacks->translateString("MBVideoDrvErr"), 8/*LAST_EXEC_GRAPHICS_INIT*/);
-            close();
-            return false;
-        }
-
-        return finish_window_context_setup();
     }
 
     //-----------------------------------------------------------------------
@@ -1919,7 +1842,35 @@ const   S32   max_format  = (S32)num_formats - 1;
     // Disable vertical sync for swap
     toggleVSync(enable_vsync);
 
-    return finish_window_context_setup();
+    SetWindowLongPtr(mWindowHandle, GWLP_USERDATA, (LONG_PTR)this);
+
+    // register this window as handling drag/drop events from the OS
+    DragAcceptFiles( mWindowHandle, TRUE );
+
+    mDragDrop->init( mWindowHandle );
+
+    //register joystick timer callback
+    SetTimer( mWindowHandle, 0, 1000 / 30, NULL ); // 30 fps timer
+
+    // ok to post quit messages now
+    mPostQuit = true;
+
+    // *HACK: Attempt to prevent startup crashes by deferring memory accounting
+    // until after some graphics setup. See SL-20177. -Cosmic,2023-09-18
+    mWindowThread->post([=]()
+    {
+        mWindowThread->glReady();
+    });
+
+    if (auto_show)
+    {
+        show();
+        getRenderBackend().setClearColor(0.0f, 0.0f, 0.0f, 0.f);
+        getRenderBackend().clear(LL_RENDER_CLEAR_COLOR);
+        swapBuffers();
+    }
+
+    return true;
 }
 
 void LLWindowWin32::recreateWindow(RECT window_rect, DWORD dw_ex_style, DWORD dw_style)
