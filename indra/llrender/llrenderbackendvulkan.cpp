@@ -1166,6 +1166,8 @@ constexpr U32 MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES = 262144;
 constexpr U32 MARE_VULKAN_MAX_TEXTURE_BINDINGS = 17;
 constexpr U32 MARE_VULKAN_SKINNING_DESCRIPTOR_BINDING = 17;
 constexpr U32 MARE_VULKAN_WORLD_UNIFORM_DESCRIPTOR_SET = 3;
+constexpr U32 MARE_VULKAN_WORLD_UNIFORM_CAPACITY = 8192;
+constexpr U64 MARE_VULKAN_WORLD_UNIFORM_ALIGNMENT = 256;
 constexpr U32 MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY = 4096;
 constexpr U32 MARE_VULKAN_TEXTURE_DESCRIPTOR_CAPACITY =
     MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY *
@@ -1208,6 +1210,7 @@ constexpr S32 LL_VK_BORDER_COLOR_INT_OPAQUE_BLACK = 3;
 constexpr S32 LL_VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER = 1;
 constexpr S32 LL_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER = 6;
 constexpr S32 LL_VK_DESCRIPTOR_TYPE_STORAGE_BUFFER = 7;
+constexpr S32 LL_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC = 8;
 constexpr U32 LL_VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT = 0x00000001;
 constexpr S32 LL_VK_DYNAMIC_STATE_VIEWPORT = 0;
 constexpr S32 LL_VK_DYNAMIC_STATE_SCISSOR = 1;
@@ -1293,6 +1296,15 @@ constexpr const char* LL_VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME = "VK_KHR_port
 constexpr const char* LL_VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME =
     "VK_KHR_get_physical_device_properties2";
 constexpr const char* LL_VK_EXT_MEMORY_BUDGET_EXTENSION_NAME = "VK_EXT_memory_budget";
+
+U64 align_vulkan_byte_count(U64 value, U64 alignment)
+{
+    if (alignment == 0)
+    {
+        return value;
+    }
+    return ((value + alignment - 1) / alignment) * alignment;
+}
 
 std::string format_vulkan_megabytes(U64 bytes)
 {
@@ -2143,7 +2155,9 @@ struct LLVulkanNativeContext
     LLVkPipelineLayout mWorldPipelineLayout = nullptr;
     LLVkDescriptorSetLayout mUIDescriptorSetLayout = nullptr;
     LLVkDescriptorSetLayout mWorldUniformDescriptorSetLayout = nullptr;
+    LLVkDescriptorSetLayout mWorldConstantsDescriptorSetLayout = nullptr;
     LLVkDescriptorPool mUIDescriptorPool = nullptr;
+    LLVkDescriptorSet mWorldConstantsDescriptorSet = nullptr;
     LLVkPipeline mBootstrapPipeline = nullptr;
     std::array<LLVkPipeline, MARE_VULKAN_PRIMITIVE_PIPELINE_COUNT> mUIPipelines = {};
     std::array<LLVkPipeline, MARE_VULKAN_WORLD_PIPELINE_COUNT> mWorldPipelines = {};
@@ -2189,10 +2203,14 @@ struct LLVulkanNativeContext
     LLVulkanBufferResource mDefaultTangentBuffer;
     LLVulkanBufferResource mDefaultJointBuffer;
     LLVulkanBufferResource mSkinningMatrixPaletteBuffer;
+    LLVulkanBufferResource mWorldConstantsBuffer;
     std::vector<LLVulkanBufferResource> mTransientFrameBuffers;
     std::vector<LLVkDescriptorSet> mTransientWorldUniformDescriptorSets;
     std::vector<LLVulkanBufferAverageReadback> mPendingBufferAverageReadbacks;
     U64 mTransientFrameBufferBytes = 0;
+    U64 mWorldConstantsStride = 0;
+    U32 mWorldConstantsFrameCount = 0;
+    bool mLoggedWorldConstantsOverflow = false;
     U32 mGraphicsQueueFamilyIndex = LL_VK_QUEUE_FAMILY_IGNORED;
     U32 mPresentQueueFamilyIndex = LL_VK_QUEUE_FAMILY_IGNORED;
     LLVkExtent2D mSwapchainExtent = {0, 0};
@@ -4055,6 +4073,7 @@ void destroy_vulkan_transient_frame_buffers(LLVulkanNativeContext& context)
     }
     context.mTransientFrameBuffers.clear();
     context.mTransientFrameBufferBytes = 0;
+    context.mWorldConstantsFrameCount = 0;
 }
 
 void destroy_vulkan_buffer_average_readbacks(LLVulkanNativeContext& context)
@@ -4158,6 +4177,10 @@ void destroy_all_vulkan_buffer_resources(LLVulkanNativeContext& context)
     destroy_vulkan_buffer_resource(context, context.mDefaultTangentBuffer);
     destroy_vulkan_buffer_resource(context, context.mDefaultJointBuffer);
     destroy_vulkan_buffer_resource(context, context.mSkinningMatrixPaletteBuffer);
+    destroy_vulkan_buffer_resource(context, context.mWorldConstantsBuffer);
+    context.mWorldConstantsDescriptorSet = nullptr;
+    context.mWorldConstantsStride = 0;
+    context.mWorldConstantsFrameCount = 0;
 
     for (auto& entry : gVulkanBuffers)
     {
@@ -8887,6 +8910,135 @@ LLVkDescriptorSet create_vulkan_world_uniform_descriptor_set_from_buffer(
     return descriptor_set;
 }
 
+bool create_vulkan_world_constants_resources(LLVulkanNativeContext& context)
+{
+    if (!context.mAllocateDescriptorSets ||
+        !context.mUpdateDescriptorSets ||
+        !context.mUIDescriptorPool ||
+        !context.mWorldConstantsDescriptorSetLayout)
+    {
+        return false;
+    }
+
+    context.mWorldConstantsStride =
+        align_vulkan_byte_count(
+            static_cast<U64>(sizeof(LLVulkanWorldUniforms)),
+            MARE_VULKAN_WORLD_UNIFORM_ALIGNMENT);
+    const U64 buffer_size =
+        context.mWorldConstantsStride *
+        static_cast<U64>(MARE_VULKAN_WORLD_UNIFORM_CAPACITY);
+    if (!create_vulkan_buffer_resource(
+            context,
+            buffer_size,
+            LL_VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            nullptr,
+            context.mWorldConstantsBuffer,
+            0,
+            false))
+    {
+        LL_WARNS("RenderBackend")
+            << "Failed to create Vulkan world constants dynamic uniform buffer."
+            << LL_ENDL;
+        return false;
+    }
+
+    LLVkDescriptorSetAllocateInfo descriptor_allocate_info =
+    {
+        LL_VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        nullptr,
+        context.mUIDescriptorPool,
+        1,
+        &context.mWorldConstantsDescriptorSetLayout
+    };
+
+    S32 result = context.mAllocateDescriptorSets(
+        context.mDevice,
+        &descriptor_allocate_info,
+        &context.mWorldConstantsDescriptorSet);
+    if (result != LL_VK_SUCCESS || !context.mWorldConstantsDescriptorSet)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkAllocateDescriptorSets(world constants) failed with result "
+            << result
+            << LL_ENDL;
+        return false;
+    }
+
+    LLVkDescriptorBufferInfo buffer_info =
+    {
+        context.mWorldConstantsBuffer.mBuffer,
+        0,
+        static_cast<U64>(sizeof(LLVulkanWorldUniforms))
+    };
+    LLVkWriteDescriptorSet write_descriptor =
+    {
+        LL_VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        nullptr,
+        context.mWorldConstantsDescriptorSet,
+        0,
+        0,
+        1,
+        LL_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+        nullptr,
+        &buffer_info,
+        nullptr
+    };
+    context.mUpdateDescriptorSets(
+        context.mDevice,
+        1,
+        &write_descriptor,
+        0,
+        nullptr);
+
+    context.mWorldConstantsFrameCount = 0;
+    context.mLoggedWorldConstantsOverflow = false;
+    return true;
+}
+
+bool write_vulkan_world_constants_dynamic_offset(
+    LLVulkanNativeContext& context,
+    const LLVulkanWorldUniforms& world_uniforms,
+    U32& dynamic_offset)
+{
+    if (!context.mWorldConstantsBuffer.mMappedData ||
+        context.mWorldConstantsStride == 0 ||
+        !context.mWorldConstantsDescriptorSet)
+    {
+        return false;
+    }
+
+    if (context.mWorldConstantsFrameCount >= MARE_VULKAN_WORLD_UNIFORM_CAPACITY)
+    {
+        if (!context.mLoggedWorldConstantsOverflow)
+        {
+            LL_WARNS("RenderBackend")
+                << "Vulkan world constants dynamic uniform buffer exhausted after "
+                << context.mWorldConstantsFrameCount
+                << " draws in one frame."
+                << LL_ENDL;
+            context.mLoggedWorldConstantsOverflow = true;
+        }
+        return false;
+    }
+
+    const U64 byte_offset =
+        static_cast<U64>(context.mWorldConstantsFrameCount) *
+        context.mWorldConstantsStride;
+    if (byte_offset + sizeof(LLVulkanWorldUniforms) >
+        context.mWorldConstantsBuffer.mSize)
+    {
+        return false;
+    }
+
+    std::memcpy(
+        static_cast<U8*>(context.mWorldConstantsBuffer.mMappedData) + byte_offset,
+        &world_uniforms,
+        sizeof(world_uniforms));
+    dynamic_offset = static_cast<U32>(byte_offset);
+    ++context.mWorldConstantsFrameCount;
+    return true;
+}
+
 LLVkDescriptorSet create_vulkan_reflection_probe_uniform_descriptor_set(
     LLVulkanNativeContext& context,
     const LLVulkanPendingDraw& draw)
@@ -13537,6 +13689,11 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     }
 
     destroy_vulkan_texture_descriptor_set_cache(context);
+    destroy_vulkan_buffer_resource(context, context.mWorldConstantsBuffer);
+    context.mWorldConstantsDescriptorSet = nullptr;
+    context.mWorldConstantsStride = 0;
+    context.mWorldConstantsFrameCount = 0;
+    context.mLoggedWorldConstantsOverflow = false;
 
     if (context.mDestroyDescriptorPool && context.mDevice && context.mUIDescriptorPool)
     {
@@ -13551,6 +13708,11 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     if (context.mDestroyDescriptorSetLayout && context.mDevice && context.mWorldUniformDescriptorSetLayout)
     {
         context.mDestroyDescriptorSetLayout(context.mDevice, context.mWorldUniformDescriptorSetLayout, nullptr);
+    }
+
+    if (context.mDestroyDescriptorSetLayout && context.mDevice && context.mWorldConstantsDescriptorSetLayout)
+    {
+        context.mDestroyDescriptorSetLayout(context.mDevice, context.mWorldConstantsDescriptorSetLayout, nullptr);
     }
 
     if (context.mDestroyShaderModule && context.mDevice)
@@ -13834,7 +13996,9 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mWorldPipelineLayout = nullptr;
     context.mUIDescriptorSetLayout = nullptr;
     context.mWorldUniformDescriptorSetLayout = nullptr;
+    context.mWorldConstantsDescriptorSetLayout = nullptr;
     context.mUIDescriptorPool = nullptr;
+    context.mWorldConstantsDescriptorSet = nullptr;
     context.mBootstrapVertexShader = nullptr;
     context.mBootstrapFragmentShader = nullptr;
     context.mUIVertexShader = nullptr;
@@ -16426,7 +16590,38 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         return false;
     }
 
-    std::array<LLVkDescriptorPoolSize, 3> descriptor_pool_sizes =
+    LLVkDescriptorSetLayoutBinding world_constants_binding =
+    {
+        0,
+        LL_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+        1,
+        LL_VK_SHADER_STAGE_VERTEX_BIT | LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+        nullptr
+    };
+    LLVkDescriptorSetLayoutCreateInfo world_constants_descriptor_set_layout_create_info =
+    {
+        LL_VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        nullptr,
+        0,
+        1,
+        &world_constants_binding
+    };
+    result = context.mCreateDescriptorSetLayout(
+        context.mDevice,
+        &world_constants_descriptor_set_layout_create_info,
+        nullptr,
+        &context.mWorldConstantsDescriptorSetLayout);
+    if (result != LL_VK_SUCCESS || !context.mWorldConstantsDescriptorSetLayout)
+    {
+        LL_WARNS("RenderBackend")
+            << "vkCreateDescriptorSetLayout(world constants) failed with result "
+            << result
+            << LL_ENDL;
+        destroy_vulkan_graphics_pipelines(context);
+        return false;
+    }
+
+    std::array<LLVkDescriptorPoolSize, 4> descriptor_pool_sizes =
     {
         LLVkDescriptorPoolSize
         {
@@ -16442,6 +16637,11 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         {
             LL_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY * 3
+        },
+        LLVkDescriptorPoolSize
+        {
+            LL_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+            1
         }
     };
     LLVkDescriptorPoolCreateInfo descriptor_pool_create_info =
@@ -16449,7 +16649,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         LL_VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         nullptr,
         LL_VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-        MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY * 4,
+        MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY * 4 + 1,
         static_cast<U32>(descriptor_pool_sizes.size()),
         descriptor_pool_sizes.data()
     };
@@ -16465,6 +16665,12 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
             << "vkCreateDescriptorPool(UI) failed with result "
             << result
             << LL_ENDL;
+        destroy_vulkan_graphics_pipelines(context);
+        return false;
+    }
+
+    if (!create_vulkan_world_constants_resources(context))
+    {
         destroy_vulkan_graphics_pipelines(context);
         return false;
     }
@@ -16485,7 +16691,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         context.mUIDescriptorSetLayout,
         context.mWorldUniformDescriptorSetLayout,
         context.mWorldUniformDescriptorSetLayout,
-        context.mWorldUniformDescriptorSetLayout
+        context.mWorldConstantsDescriptorSetLayout
     };
     LLVkPipelineLayoutCreateInfo ui_layout_create_info =
     {
@@ -21925,12 +22131,11 @@ bool record_vulkan_frame_command_buffer(
                     draw.mTerrainParameters.mTextureTransforms[18],
                     draw.mTerrainParameters.mTextureTransforms[19]);
             }
-            LLVkDescriptorSet world_constants_descriptor_set =
-                create_vulkan_world_uniform_descriptor_set(
+            U32 world_constants_dynamic_offset = 0;
+            if (!write_vulkan_world_constants_dynamic_offset(
                     context,
-                    &world_uniforms,
-                    sizeof(world_uniforms));
-            if (!world_constants_descriptor_set)
+                    world_uniforms,
+                    world_constants_dynamic_offset))
             {
                 ++missing_buffer_count;
                 continue;
@@ -21941,9 +22146,9 @@ bool record_vulkan_frame_command_buffer(
                 pipeline_layout,
                 MARE_VULKAN_WORLD_UNIFORM_DESCRIPTOR_SET,
                 1,
-                &world_constants_descriptor_set,
-                0,
-                nullptr);
+                &context.mWorldConstantsDescriptorSet,
+                1,
+                &world_constants_dynamic_offset);
         }
         const U32 vertex_buffer_count =
             draw.mUseWorldVertexShader ?
