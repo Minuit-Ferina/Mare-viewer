@@ -10214,6 +10214,35 @@ LLRenderTextureFormat to_vulkan_render_texture_format_from_legacy(
     }
 }
 
+LLRenderTextureFormat get_vulkan_texture_storage_format(
+    LLRenderTextureFormat render_format,
+    U32 pixel_format)
+{
+    return is_vulkan_glyph_texture_format(pixel_format) ?
+        LLRenderTextureFormat::RGBA8 :
+        render_format;
+}
+
+U32 to_legacy_pixel_format(LLRenderPixelFormat format)
+{
+    switch (format)
+    {
+    case LLRenderPixelFormat::Alpha:
+        return LL_LEGACY_GL_ALPHA;
+    case LLRenderPixelFormat::Luminance:
+        return LL_LEGACY_GL_LUMINANCE;
+    case LLRenderPixelFormat::Red:
+        return LL_LEGACY_GL_RED;
+    case LLRenderPixelFormat::RG:
+        return LL_LEGACY_GL_RG;
+    case LLRenderPixelFormat::RGB:
+        return LL_LEGACY_GL_RGB;
+    case LLRenderPixelFormat::RGBA:
+    default:
+        return LL_LEGACY_GL_RGBA;
+    }
+}
+
 void record_vulkan_texture_allocation_desc(
     U32 texture,
     S32 width,
@@ -23680,9 +23709,12 @@ public:
         U32 texture = gBoundVulkanTextures[gActiveVulkanTextureUnit];
         const LLRenderTextureFormat render_format =
             to_vulkan_render_texture_format_from_legacy(internal_format, format, type);
+        const bool is_glyph_texture = is_vulkan_glyph_texture_format(format);
+        const LLRenderTextureFormat storage_format =
+            get_vulkan_texture_storage_format(render_format, format);
         if (!data && level == 0 && texture && width > 0 && height > 0)
         {
-            record_vulkan_texture_allocation_desc(texture, width, height, render_format);
+            record_vulkan_texture_allocation_desc(texture, width, height, storage_format);
         }
 
         if (gCurrentVulkanContext)
@@ -23723,7 +23755,7 @@ public:
                 cube_texture->second.mWidth != width ||
                 cube_texture->second.mHeight != height ||
                 cube_texture->second.mArrayLayers != 6 ||
-                cube_texture->second.mFormat != to_vulkan_image_format(render_format);
+                cube_texture->second.mFormat != to_vulkan_image_format(storage_format);
             if (needs_cube_allocation &&
                 !create_empty_vulkan_cube_texture_resource(
                     *gCurrentVulkanContext,
@@ -23732,7 +23764,7 @@ public:
                     height,
                     6,
                     1,
-                    render_format,
+                    storage_format,
                     LL_VK_IMAGE_VIEW_TYPE_CUBE))
             {
                 return;
@@ -23790,7 +23822,7 @@ public:
             existing_texture != gVulkanTextures.end() &&
             existing_texture->second.mWidth == width &&
             existing_texture->second.mHeight == height &&
-            existing_texture->second.mFormat == to_vulkan_image_format(render_format))
+            existing_texture->second.mFormat == to_vulkan_image_format(storage_format))
         {
             gCurrentVulkanContext->mLastTextureUploadSucceeded = true;
             return;
@@ -23804,14 +23836,13 @@ public:
                     texture,
                     width,
                     height,
-                    render_format);
+                    storage_format);
             return;
         }
 
         erase_vulkan_texture_allocation_desc_if_transient(texture);
 
         const U64 upload_bytes = static_cast<U64>(width) * static_cast<U64>(height) * 4;
-        const bool is_glyph_texture = is_vulkan_glyph_texture_format(format);
         const bool telemetry_enabled = vulkan_texture_upload_telemetry_enabled();
         const auto upload_start = telemetry_enabled ?
             LLVulkanTelemetryClock::now() :
@@ -23921,9 +23952,12 @@ public:
         const void* data) override
     {
         U32 texture = gBoundVulkanTextures[gActiveVulkanTextureUnit];
+        const U32 legacy_format = to_legacy_pixel_format(format);
+        const LLRenderTextureFormat storage_format =
+            get_vulkan_texture_storage_format(internal_format, legacy_format);
         if (!data && level == 0 && texture && width > 0 && height > 0)
         {
-            record_vulkan_texture_allocation_desc(texture, width, height, internal_format);
+            record_vulkan_texture_allocation_desc(texture, width, height, storage_format);
         }
 
         if (!data &&
@@ -23940,7 +23974,7 @@ public:
             }
 
             auto existing_texture = gVulkanTextures.find(texture);
-            const S32 expected_format = to_vulkan_image_format(internal_format);
+            const S32 expected_format = to_vulkan_image_format(storage_format);
             if (existing_texture != gVulkanTextures.end() &&
                 existing_texture->second.mWidth == width &&
                 existing_texture->second.mHeight == height &&
@@ -23957,33 +23991,9 @@ public:
                     texture,
                     width,
                     height,
-                    internal_format);
+                    storage_format);
             gCurrentVulkanContext->mLastTextureUploadDeferred = false;
             return;
-        }
-
-        U32 legacy_format = LL_LEGACY_GL_RGBA;
-        switch (format)
-        {
-        case LLRenderPixelFormat::Alpha:
-            legacy_format = LL_LEGACY_GL_ALPHA;
-            break;
-        case LLRenderPixelFormat::Luminance:
-            legacy_format = LL_LEGACY_GL_LUMINANCE;
-            break;
-        case LLRenderPixelFormat::Red:
-            legacy_format = LL_LEGACY_GL_RED;
-            break;
-        case LLRenderPixelFormat::RG:
-            legacy_format = LL_LEGACY_GL_RG;
-            break;
-        case LLRenderPixelFormat::RGB:
-            legacy_format = LL_LEGACY_GL_RGB;
-            break;
-        case LLRenderPixelFormat::RGBA:
-        default:
-            legacy_format = LL_LEGACY_GL_RGBA;
-            break;
         }
 
         U32 legacy_type = type == LLRenderPixelType::UnsignedByte ?
@@ -24195,6 +24205,28 @@ public:
             return;
         }
 
+        const bool is_glyph_texture = is_vulkan_glyph_texture_format(format);
+        if (is_glyph_texture &&
+            iter->second.mFormat != LL_VK_FORMAT_R8G8B8A8_UNORM)
+        {
+            if (!create_empty_vulkan_texture_resource(
+                    *gCurrentVulkanContext,
+                    texture,
+                    iter->second.mWidth,
+                    iter->second.mHeight,
+                    LLRenderTextureFormat::RGBA8))
+            {
+                return;
+            }
+
+            iter = gVulkanTextures.find(texture);
+            if (iter == gVulkanTextures.end())
+            {
+                ++gCurrentVulkanContext->mSkippedTextureSubImageMissingResourceCount;
+                return;
+            }
+        }
+
         LLVulkanTextureResource& resource = iter->second;
         if (xoffset < 0 ||
             yoffset < 0 ||
@@ -24243,7 +24275,6 @@ public:
         }
 
         const U64 upload_bytes = static_cast<U64>(width) * static_cast<U64>(height) * 4;
-        const bool is_glyph_texture = is_vulkan_glyph_texture_format(format);
         const bool telemetry_enabled = vulkan_texture_upload_telemetry_enabled();
         const auto upload_start = telemetry_enabled ?
             LLVulkanTelemetryClock::now() :
