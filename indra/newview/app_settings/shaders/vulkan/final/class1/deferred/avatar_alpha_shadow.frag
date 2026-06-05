@@ -5,7 +5,7 @@
 
 layout(set = 0, binding = 0) uniform sampler2D diffuseMap;
 
-layout(push_constant) uniform MareWorldPushConstants
+layout(std140, set = 3, binding = 0) uniform MareWorldPushConstants
 {
     layout(offset = 64) vec4 params;
 } pc;

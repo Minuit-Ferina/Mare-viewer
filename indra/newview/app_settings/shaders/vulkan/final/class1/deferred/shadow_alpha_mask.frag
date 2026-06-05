@@ -12,7 +12,7 @@ layout(set = 0, binding = 5) uniform sampler2D tex5;
 layout(set = 0, binding = 6) uniform sampler2D tex6;
 layout(set = 0, binding = 7) uniform sampler2D tex7;
 
-layout(push_constant) uniform MareWorldPushConstants
+layout(std140, set = 3, binding = 0) uniform MareWorldPushConstants
 {
     layout(offset = 64) vec4 params;
 } pc;

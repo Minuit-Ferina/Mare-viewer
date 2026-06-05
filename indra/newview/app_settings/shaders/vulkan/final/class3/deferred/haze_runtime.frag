@@ -27,7 +27,7 @@ layout(std140, set = 1, binding = 0) uniform DeferredSoften
     vec4 ssao_effect_mat2;
 } soften;
 
-layout(push_constant) uniform MareWorldPushConstants
+layout(std140, set = 3, binding = 0) uniform MareWorldPushConstants
 {
     layout(offset = 64) vec4 params;
     layout(offset = 80) vec4 material_params;

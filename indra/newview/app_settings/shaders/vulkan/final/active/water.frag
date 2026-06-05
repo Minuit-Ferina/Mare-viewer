@@ -5,7 +5,7 @@ layout(set = 0, binding = 5) uniform sampler2D waterExclusionMap;
 layout(set = 0, binding = 8) uniform sampler2D depthMap;
 layout(set = 0, binding = 9) uniform sampler2D sceneColorMap;
 
-layout(push_constant) uniform MareWorldPushConstants
+layout(std140, set = 3, binding = 0) uniform MareWorldPushConstants
 {
     layout(offset = 80) vec4 material_params;
     layout(offset = 176) vec4 material_pbr;

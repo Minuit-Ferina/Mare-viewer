@@ -212,7 +212,7 @@ inline LLRenderWorldMaterialParameters make_vulkan_deferred_composite_material_p
 {
     LLRenderWorldMaterialParameters parameters;
 
-    // Keep these assignments aligned with LLVulkanWorldPushConstants and
+    // Keep these assignments aligned with LLVulkanWorldUniforms and
     // vulkan/final/class3/deferred/deferred_composite_runtime.frag.
     parameters.mBaseColorRed = llclamp(settings.mAmbientRed, 0.f, 2.f);
     parameters.mBaseColorGreen = llclamp(settings.mAmbientGreen, 0.f, 2.f);

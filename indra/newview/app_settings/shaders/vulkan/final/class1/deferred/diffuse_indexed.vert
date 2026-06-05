@@ -6,7 +6,7 @@
 // class1 alpha-mask G-buffer fragment can be bound without a separate OpenGL-
 // style uniform interface.
 
-layout(push_constant) uniform MareWorldPushConstants
+layout(std140, set = 3, binding = 0) uniform MareWorldPushConstants
 {
     mat4 modelview_projection_matrix;
     vec4 params;

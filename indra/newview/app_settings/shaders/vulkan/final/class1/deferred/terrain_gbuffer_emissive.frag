@@ -18,7 +18,7 @@ layout(set = 0, binding = 14) uniform sampler2D normal1;
 layout(set = 0, binding = 15) uniform sampler2D normal2;
 layout(set = 0, binding = 16) uniform sampler2D normal3;
 
-layout(push_constant) uniform MareWorldPushConstants
+layout(std140, set = 3, binding = 0) uniform MareWorldPushConstants
 {
     layout(offset = 64) vec4 params;
     layout(offset = 80) vec4 terrain_params;

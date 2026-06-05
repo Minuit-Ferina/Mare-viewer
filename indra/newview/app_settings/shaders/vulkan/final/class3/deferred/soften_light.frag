@@ -60,7 +60,7 @@ layout(location = 1) in vec2 vary_texcoord0;
 
 layout(location = 0) out vec4 frag_color;
 
-layout(push_constant) uniform MareWorldPushConstants
+layout(std140, set = 3, binding = 0) uniform MareWorldPushConstants
 {
     layout(offset = 80) vec4 composite_ambient;
     layout(offset = 96) vec4 composite_clip_plane;

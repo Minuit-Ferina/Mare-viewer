@@ -30,7 +30,7 @@ layout(std140, set = 2, binding = 0) uniform ReflectionProbes
     int heroProbeCount;
 } probes;
 
-layout(push_constant) uniform MareWorldPushConstants
+layout(std140, set = 3, binding = 0) uniform MareWorldPushConstants
 {
     layout(offset = 80) vec4 material_params;
     layout(offset = 128) vec4 clip_plane;

@@ -1,6 +1,6 @@
 #version 450
 
-layout(push_constant) uniform MareWorldPushConstants
+layout(std140, set = 3, binding = 0) uniform MareWorldPushConstants
 {
     layout(offset = 0) mat4 modelview_projection_matrix;
     layout(offset = 96) vec4 texture_transform_s;

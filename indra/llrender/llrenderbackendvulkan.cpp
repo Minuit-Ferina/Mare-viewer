@@ -1067,8 +1067,6 @@ using LLVulkanUpdateDescriptorSets =
     void (*)(LLVkDevice, U32, const LLVkWriteDescriptorSet*, U32, const void*);
 using LLVulkanCmdBindDescriptorSets =
     void (*)(LLVkCommandBuffer, S32, LLVkPipelineLayout, U32, U32, const LLVkDescriptorSet*, U32, const U32*);
-using LLVulkanCmdPushConstants =
-    void (*)(LLVkCommandBuffer, LLVkPipelineLayout, U32, U32, U32, const void*);
 
 constexpr S32 LL_VK_STRUCTURE_TYPE_APPLICATION_INFO = 0;
 constexpr S32 LL_VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO = 1;
@@ -1167,6 +1165,7 @@ constexpr U32 LL_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT = 0x00000080;
 constexpr U32 MARE_VULKAN_DEFAULT_UI_ATTRIBUTE_VERTICES = 262144;
 constexpr U32 MARE_VULKAN_MAX_TEXTURE_BINDINGS = 17;
 constexpr U32 MARE_VULKAN_SKINNING_DESCRIPTOR_BINDING = 17;
+constexpr U32 MARE_VULKAN_WORLD_UNIFORM_DESCRIPTOR_SET = 3;
 constexpr U32 MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY = 4096;
 constexpr U32 MARE_VULKAN_TEXTURE_DESCRIPTOR_CAPACITY =
     MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY *
@@ -1635,7 +1634,7 @@ struct LLVulkanPendingDraw
     F32 mAlphaMaskCutoff = -1.f;
 };
 
-struct LLVulkanWorldPushConstants
+struct LLVulkanWorldUniforms
 {
     glm::mat4 mModelviewProjection = glm::mat4(1.f);
     glm::vec4 mParams = glm::vec4(-1.f, 0.f, 0.f, 0.f);
@@ -2272,7 +2271,6 @@ struct LLVulkanNativeContext
     LLVulkanFreeDescriptorSets mFreeDescriptorSets = nullptr;
     LLVulkanUpdateDescriptorSets mUpdateDescriptorSets = nullptr;
     LLVulkanCmdBindDescriptorSets mCmdBindDescriptorSets = nullptr;
-    LLVulkanCmdPushConstants mCmdPushConstants = nullptr;
     U64 mPresentedFrameCount = 0;
     U64 mQueuedUIDrawCount = 0;
     U64 mQueuedIndexedUIDrawCount = 0;
@@ -13913,7 +13911,6 @@ void destroy_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mCmdSetScissor = nullptr;
     context.mCmdSetDepthBias = nullptr;
     context.mCmdBindDescriptorSets = nullptr;
-    context.mCmdPushConstants = nullptr;
     context.mDestroyDescriptorSetLayout = nullptr;
     context.mDestroyDescriptorPool = nullptr;
     context.mAllocateDescriptorSets = nullptr;
@@ -16108,9 +16105,6 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
     context.mCmdBindDescriptorSets =
         reinterpret_cast<LLVulkanCmdBindDescriptorSets>(
             get_vulkan_device_proc_address(context, "vkCmdBindDescriptorSets"));
-    context.mCmdPushConstants =
-        reinterpret_cast<LLVulkanCmdPushConstants>(
-            get_vulkan_device_proc_address(context, "vkCmdPushConstants"));
 
     if (!create_shader_module ||
         !context.mDestroyShaderModule ||
@@ -16133,8 +16127,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         !context.mAllocateDescriptorSets ||
         !context.mFreeDescriptorSets ||
         !context.mUpdateDescriptorSets ||
-        !context.mCmdBindDescriptorSets ||
-        !context.mCmdPushConstants)
+        !context.mCmdBindDescriptorSets)
     {
         LL_WARNS("RenderBackend")
             << "Vulkan backend is missing required graphics-pipeline entry points."
@@ -16448,7 +16441,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         LLVkDescriptorPoolSize
         {
             LL_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY * 2
+            MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY * 3
         }
     };
     LLVkDescriptorPoolCreateInfo descriptor_pool_create_info =
@@ -16456,7 +16449,7 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         LL_VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         nullptr,
         LL_VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-        MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY * 3,
+        MARE_VULKAN_TEXTURE_DESCRIPTOR_SET_CAPACITY * 4,
         static_cast<U32>(descriptor_pool_sizes.size()),
         descriptor_pool_sizes.data()
     };
@@ -16487,9 +16480,10 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         nullptr
     };
     LLVkDescriptorSetLayout ui_descriptor_set_layout = context.mUIDescriptorSetLayout;
-    std::array<LLVkDescriptorSetLayout, 3> world_descriptor_set_layouts =
+    std::array<LLVkDescriptorSetLayout, 4> world_descriptor_set_layouts =
     {
         context.mUIDescriptorSetLayout,
+        context.mWorldUniformDescriptorSetLayout,
         context.mWorldUniformDescriptorSetLayout,
         context.mWorldUniformDescriptorSetLayout
     };
@@ -16503,28 +16497,6 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         0,
         nullptr
     };
-    const U32 world_push_constant_size =
-        static_cast<U32>(sizeof(LLVulkanWorldPushConstants));
-    const U32 max_push_constant_size =
-        context.mMaxPushConstantsSize ? context.mMaxPushConstantsSize : 128;
-    if (world_push_constant_size > max_push_constant_size)
-    {
-        LL_WARNS("RenderBackend")
-            << "Vulkan world push constants require "
-            << world_push_constant_size
-            << " bytes, but the selected device only supports "
-            << max_push_constant_size
-            << " bytes."
-            << LL_ENDL;
-        destroy_vulkan_graphics_pipelines(context);
-        return false;
-    }
-    LLVkPushConstantRange world_push_constant_range =
-    {
-        LL_VK_SHADER_STAGE_VERTEX_BIT | LL_VK_SHADER_STAGE_FRAGMENT_BIT,
-        0,
-        world_push_constant_size
-    };
     LLVkPipelineLayoutCreateInfo world_layout_create_info =
     {
         LL_VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -16532,8 +16504,8 @@ bool create_vulkan_graphics_pipelines(LLVulkanNativeContext& context)
         0,
         static_cast<U32>(world_descriptor_set_layouts.size()),
         world_descriptor_set_layouts.data(),
-        1,
-        &world_push_constant_range
+        0,
+        nullptr
     };
 
     result = create_pipeline_layout(
@@ -19720,8 +19692,7 @@ bool record_vulkan_frame_command_buffer(
         !context.mCmdSetViewport ||
         !context.mCmdSetScissor ||
         !context.mCmdSetDepthBias ||
-        !context.mCmdBindDescriptorSets ||
-        !context.mCmdPushConstants)
+        !context.mCmdBindDescriptorSets)
     {
         LL_WARNS("RenderBackend")
             << "Vulkan backend is missing required command recording entry points."
@@ -21645,32 +21616,32 @@ bool record_vulkan_frame_command_buffer(
         }
         if (draw.mUseWorldVertexShader)
         {
-            LLVulkanWorldPushConstants push_constants;
-            push_constants.mModelviewProjection = draw.mModelviewProjection;
+            LLVulkanWorldUniforms world_uniforms;
+            world_uniforms.mModelviewProjection = draw.mModelviewProjection;
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredLightMap ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredBlurLight ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredSoften ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::Haze)
             {
-                push_constants.mNormalMatrix =
+                world_uniforms.mNormalMatrix =
                     glm::make_mat4(draw.mMaterialParameters.mCompositeInverseProjection);
             }
             else
             {
-                push_constants.mNormalMatrix =
+                world_uniforms.mNormalMatrix =
                     glm::mat4(glm::transpose(glm::inverse(glm::mat3(draw.mModelview))));
             }
-            push_constants.mParams = glm::vec4(
+            world_uniforms.mParams = glm::vec4(
                 draw.mAlphaMaskCutoff,
                 draw.mAttributes[13].mEnabled ? 1.f : 0.f,
                 use_gpu_skinning ? static_cast<F32>(draw.mSkinningMatrixOffset) : 0.f,
                 use_gpu_skinning ? static_cast<F32>(draw.mSkinningMatrixCount) : 0.f);
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::Terrain)
             {
-                push_constants.mParams.y =
+                world_uniforms.mParams.y =
                     draw.mTerrainParameters.mUsesPBRMaterials > 0.5f ? 1.f : 0.f;
-                push_constants.mTerrainParameters = glm::vec4(
+                world_uniforms.mTerrainParameters = glm::vec4(
                     draw.mTerrainParameters.mRegionScale,
                     draw.mTerrainParameters.mPlanarSampleCount,
                     draw.mTerrainParameters.mTriplanarBlendFactor,
@@ -21685,7 +21656,7 @@ bool record_vulkan_frame_command_buffer(
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite ||
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::FinalComposite ||
                     draw.mWorldShaderClass == LLRenderWorldShaderClass::Haze;
-                push_constants.mTerrainParameters = glm::vec4(
+                world_uniforms.mTerrainParameters = glm::vec4(
                     draw.mMaterialParameters.mBaseColorRed,
                     draw.mMaterialParameters.mBaseColorGreen,
                     draw.mMaterialParameters.mBaseColorBlue,
@@ -21693,67 +21664,67 @@ bool record_vulkan_frame_command_buffer(
                         draw.mMaterialParameters.mBaseColorAlpha :
                         (draw_has_classic_avatar_skinning && use_gpu_skinning ? 1.f : 0.f));
             }
-            push_constants.mTextureTransformS = glm::vec4(
+            world_uniforms.mTextureTransformS = glm::vec4(
                 draw.mTextureTransform.mS[0],
                 draw.mTextureTransform.mS[1],
                 draw.mTextureTransform.mS[2],
                 draw.mTextureTransform.mS[3]);
-            push_constants.mTextureTransformT = glm::vec4(
+            world_uniforms.mTextureTransformT = glm::vec4(
                 draw.mTextureTransform.mT[0],
                 draw.mTextureTransform.mT[1],
                 draw.mTextureTransform.mT[2],
                 draw.mTextureTransform.mT[3]);
-            push_constants.mMaterialExtra = glm::vec4(
+            world_uniforms.mMaterialExtra = glm::vec4(
                 draw.mMaterialParameters.mEmissiveColorRed,
                 draw.mMaterialParameters.mEmissiveColorGreen,
                 draw.mMaterialParameters.mEmissiveColorBlue,
                 draw.mMaterialParameters.mHasEmissiveMap);
-            push_constants.mBaseTextureTransform0 = glm::vec4(
+            world_uniforms.mBaseTextureTransform0 = glm::vec4(
                 draw.mMaterialParameters.mBaseTextureScaleS,
                 draw.mMaterialParameters.mBaseTextureScaleT,
                 draw.mMaterialParameters.mBaseTextureRotation,
                 draw.mMaterialParameters.mBaseTextureOffsetS);
-            push_constants.mBaseTextureTransform1 = glm::vec4(
+            world_uniforms.mBaseTextureTransform1 = glm::vec4(
                 draw.mMaterialParameters.mBaseTextureOffsetT,
                 draw.mMaterialParameters.mNormalTextureScaleS,
                 draw.mMaterialParameters.mNormalTextureScaleT,
                 draw.mMaterialParameters.mNormalTextureRotation);
-            push_constants.mMaterialPBR = glm::vec4(
+            world_uniforms.mMaterialPBR = glm::vec4(
                 draw.mMaterialParameters.mRoughnessFactor,
                 draw.mMaterialParameters.mMetallicFactor,
                 draw.mMaterialParameters.mMaterialFlags,
                 draw.mMaterialParameters.mBaseColorAlpha);
-            push_constants.mMaterialLegacy = glm::vec4(
+            world_uniforms.mMaterialLegacy = glm::vec4(
                 draw.mMaterialParameters.mSpecularColorRed,
                 draw.mMaterialParameters.mSpecularColorGreen,
                 draw.mMaterialParameters.mSpecularColorBlue,
                 draw.mMaterialParameters.mEnvIntensity);
-            push_constants.mMaterialModes = glm::vec4(
+            world_uniforms.mMaterialModes = glm::vec4(
                 draw.mMaterialParameters.mDiffuseAlphaMode,
                 draw.mMaterialParameters.mGLTFAlphaMode,
                 draw.mMaterialParameters.mBump,
                 draw.mMaterialParameters.mShiny);
-            push_constants.mMaterialTextureTransform2 = glm::vec4(
+            world_uniforms.mMaterialTextureTransform2 = glm::vec4(
                 draw.mMaterialParameters.mNormalTextureOffsetS,
                 draw.mMaterialParameters.mNormalTextureOffsetT,
                 draw.mMaterialParameters.mORMTextureScaleS,
                 draw.mMaterialParameters.mORMTextureScaleT);
-            push_constants.mMaterialTextureTransform3 = glm::vec4(
+            world_uniforms.mMaterialTextureTransform3 = glm::vec4(
                 draw.mMaterialParameters.mORMTextureRotation,
                 draw.mMaterialParameters.mORMTextureOffsetS,
                 draw.mMaterialParameters.mORMTextureOffsetT,
                 draw.mMaterialParameters.mEmissiveTextureScaleS);
-            push_constants.mMaterialTextureTransform4 = glm::vec4(
+            world_uniforms.mMaterialTextureTransform4 = glm::vec4(
                 draw.mMaterialParameters.mEmissiveTextureScaleT,
                 draw.mMaterialParameters.mEmissiveTextureRotation,
                 draw.mMaterialParameters.mEmissiveTextureOffsetS,
                 draw.mMaterialParameters.mEmissiveTextureOffsetT);
-            push_constants.mSceneAmbientDirectScale = glm::vec4(
+            world_uniforms.mSceneAmbientDirectScale = glm::vec4(
                 draw.mMaterialParameters.mSceneAmbientRed,
                 draw.mMaterialParameters.mSceneAmbientGreen,
                 draw.mMaterialParameters.mSceneAmbientBlue,
                 draw.mMaterialParameters.mSceneDirectScale);
-            push_constants.mSceneDirectColor = glm::vec4(
+            world_uniforms.mSceneDirectColor = glm::vec4(
                 draw.mMaterialParameters.mSceneDirectRed,
                 draw.mMaterialParameters.mSceneDirectGreen,
                 draw.mMaterialParameters.mSceneDirectBlue,
@@ -21764,45 +21735,45 @@ bool record_vulkan_frame_command_buffer(
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::DeferredComposite ||
                 draw.mWorldShaderClass == LLRenderWorldShaderClass::Haze)
             {
-                push_constants.mSceneLightDirection = glm::vec4(
+                world_uniforms.mSceneLightDirection = glm::vec4(
                     draw.mMaterialParameters.mSceneLightDirectionX,
                     draw.mMaterialParameters.mSceneLightDirectionY,
                     draw.mMaterialParameters.mSceneLightDirectionZ,
                     draw.mMaterialParameters.mSceneLightDirectionValid);
-                push_constants.mTextureTransformS = glm::make_vec4(
+                world_uniforms.mTextureTransformS = glm::make_vec4(
                     draw.mMaterialParameters.mCompositeClipPlane);
-                push_constants.mTextureTransformT = glm::make_vec4(
+                world_uniforms.mTextureTransformT = glm::make_vec4(
                     draw.mMaterialParameters.mCompositeSunDirection);
-                push_constants.mBaseTextureTransform0 = glm::make_vec4(
+                world_uniforms.mBaseTextureTransform0 = glm::make_vec4(
                     draw.mMaterialParameters.mCompositeMoonDirection);
-                push_constants.mBaseTextureTransform1 = glm::make_vec4(
+                world_uniforms.mBaseTextureTransform1 = glm::make_vec4(
                     draw.mMaterialParameters.mCompositeSkySettings);
-                push_constants.mTerrainTextureTransform0 = glm::vec4(
+                world_uniforms.mTerrainTextureTransform0 = glm::vec4(
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[0],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[1],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[2],
                     0.f);
-                push_constants.mTerrainTextureTransform1 = glm::vec4(
+                world_uniforms.mTerrainTextureTransform1 = glm::vec4(
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[3],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[4],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[5],
                     0.f);
-                push_constants.mTerrainTextureTransform2 = glm::vec4(
+                world_uniforms.mTerrainTextureTransform2 = glm::vec4(
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[6],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[7],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[8],
                     0.f);
-                push_constants.mMaterialTextureTransform3 = glm::vec4(
+                world_uniforms.mMaterialTextureTransform3 = glm::vec4(
                     draw.mMaterialParameters.mCompositeSSR0[0],
                     draw.mMaterialParameters.mCompositeSSR0[1],
                     draw.mMaterialParameters.mCompositeSSR0[2],
                     draw.mMaterialParameters.mCompositeSSR0[3]);
-                push_constants.mMaterialTextureTransform4 = glm::vec4(
+                world_uniforms.mMaterialTextureTransform4 = glm::vec4(
                     draw.mMaterialParameters.mCompositeSSR1[0],
                     draw.mMaterialParameters.mCompositeSSR1[1],
                     draw.mMaterialParameters.mCompositeSSR1[2],
                     draw.mMaterialParameters.mCompositeSSR1[3]);
-                push_constants.mCompositeExtra = glm::vec4(
+                world_uniforms.mCompositeExtra = glm::vec4(
                     draw.mMaterialParameters.mCompositeSSAOEffectMatrix[6],
                     draw.mMaterialParameters.mCompositeSSAOEffectMatrix[7],
                     draw.mMaterialParameters.mCompositeSSAOEffectMatrix[8],
@@ -21817,7 +21788,7 @@ bool record_vulkan_frame_command_buffer(
                         draw.mMaterialParameters.mSceneLightDirectionY,
                         draw.mMaterialParameters.mSceneLightDirectionZ,
                         0.f);
-                push_constants.mSceneLightDirection = glm::vec4(
+                world_uniforms.mSceneLightDirection = glm::vec4(
                     scene_light_direction.x,
                     scene_light_direction.y,
                     scene_light_direction.z,
@@ -21825,52 +21796,52 @@ bool record_vulkan_frame_command_buffer(
             }
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::Water)
             {
-                push_constants.mMaterialExtra = glm::make_vec4(
+                world_uniforms.mMaterialExtra = glm::make_vec4(
                     draw.mMaterialParameters.mCompositeClipPlane);
-                push_constants.mMaterialTextureTransform3 = glm::vec4(
+                world_uniforms.mMaterialTextureTransform3 = glm::vec4(
                     draw.mMaterialParameters.mWaterFresnelScale,
                     draw.mMaterialParameters.mWaterFresnelOffset,
                     draw.mMaterialParameters.mWaterBlurMultiplier,
                     draw.mMaterialParameters.mWaterRefScale);
-                push_constants.mMaterialTextureTransform4 = glm::vec4(
+                world_uniforms.mMaterialTextureTransform4 = glm::vec4(
                     draw.mMaterialParameters.mWaterNormalScaleX,
                     draw.mMaterialParameters.mWaterNormalScaleY,
                     draw.mMaterialParameters.mWaterNormalScaleZ,
                     draw.mMaterialParameters.mWaterBlendFactor);
-                push_constants.mMaterialLegacy = glm::vec4(
+                world_uniforms.mMaterialLegacy = glm::vec4(
                     draw.mMaterialParameters.mWaterWaveDir1X,
                     draw.mMaterialParameters.mWaterWaveDir1Y,
                     draw.mMaterialParameters.mWaterWaveDir2X,
                     draw.mMaterialParameters.mWaterWaveDir2Y);
-                push_constants.mMaterialModes = glm::vec4(
+                world_uniforms.mMaterialModes = glm::vec4(
                     draw.mMaterialParameters.mWaterTime,
                     draw.mMaterialParameters.mWaterHeight,
                     draw.mMaterialParameters.mWaterFogColorDensity[3],
                     draw.mMaterialParameters.mWaterFogKS);
-                push_constants.mMaterialTextureTransform2 = glm::vec4(
+                world_uniforms.mMaterialTextureTransform2 = glm::vec4(
                     draw.mMaterialParameters.mWaterEyeVecX,
                     draw.mMaterialParameters.mWaterEyeVecY,
                     draw.mMaterialParameters.mWaterEyeVecZ,
                     0.f);
-                push_constants.mNormalMatrix = draw.mModelview;
-                push_constants.mTerrainTextureTransform0 = glm::vec4(
+                world_uniforms.mNormalMatrix = draw.mModelview;
+                world_uniforms.mTerrainTextureTransform0 = glm::vec4(
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[0],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[1],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[2],
                     0.f);
-                push_constants.mTerrainTextureTransform1 = glm::vec4(
+                world_uniforms.mTerrainTextureTransform1 = glm::vec4(
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[3],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[4],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[5],
                     0.f);
-                push_constants.mTerrainTextureTransform2 = glm::vec4(
+                world_uniforms.mTerrainTextureTransform2 = glm::vec4(
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[6],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[7],
                     draw.mMaterialParameters.mCompositeEnvironmentMatrix[8],
                     0.f);
-                push_constants.mTerrainTextureTransform3 = glm::make_vec4(
+                world_uniforms.mTerrainTextureTransform3 = glm::make_vec4(
                     draw.mMaterialParameters.mWaterPlane);
-                push_constants.mTerrainTextureTransform4 = glm::vec4(
+                world_uniforms.mTerrainTextureTransform4 = glm::vec4(
                     draw.mMaterialParameters.mWaterFogColorDensity[0],
                     draw.mMaterialParameters.mWaterFogColorDensity[1],
                     draw.mMaterialParameters.mWaterFogColorDensity[2],
@@ -21878,89 +21849,101 @@ bool record_vulkan_frame_command_buffer(
             }
             if (draw.mWorldShaderClass == LLRenderWorldShaderClass::Terrain)
             {
-                push_constants.mTextureTransformS = glm::vec4(
+                world_uniforms.mTextureTransformS = glm::vec4(
                     draw.mTerrainParameters.mMetallicFactors[0],
                     draw.mTerrainParameters.mMetallicFactors[1],
                     draw.mTerrainParameters.mMetallicFactors[2],
                     draw.mTerrainParameters.mMetallicFactors[3]);
-                push_constants.mTextureTransformT = glm::vec4(
+                world_uniforms.mTextureTransformT = glm::vec4(
                     draw.mTerrainParameters.mRoughnessFactors[0],
                     draw.mTerrainParameters.mRoughnessFactors[1],
                     draw.mTerrainParameters.mRoughnessFactors[2],
                     draw.mTerrainParameters.mRoughnessFactors[3]);
-                push_constants.mMaterialExtra = glm::vec4(
+                world_uniforms.mMaterialExtra = glm::vec4(
                     draw.mTerrainParameters.mBaseColorFactors[0],
                     draw.mTerrainParameters.mBaseColorFactors[1],
                     draw.mTerrainParameters.mBaseColorFactors[2],
                     draw.mTerrainParameters.mBaseColorFactors[3]);
-                push_constants.mBaseTextureTransform0 = glm::vec4(
+                world_uniforms.mBaseTextureTransform0 = glm::vec4(
                     draw.mTerrainParameters.mBaseColorFactors[4],
                     draw.mTerrainParameters.mBaseColorFactors[5],
                     draw.mTerrainParameters.mBaseColorFactors[6],
                     draw.mTerrainParameters.mBaseColorFactors[7]);
-                push_constants.mBaseTextureTransform1 = glm::vec4(
+                world_uniforms.mBaseTextureTransform1 = glm::vec4(
                     draw.mTerrainParameters.mBaseColorFactors[8],
                     draw.mTerrainParameters.mBaseColorFactors[9],
                     draw.mTerrainParameters.mBaseColorFactors[10],
                     draw.mTerrainParameters.mBaseColorFactors[11]);
-                push_constants.mMaterialPBR = glm::vec4(
+                world_uniforms.mMaterialPBR = glm::vec4(
                     draw.mTerrainParameters.mBaseColorFactors[12],
                     draw.mTerrainParameters.mBaseColorFactors[13],
                     draw.mTerrainParameters.mBaseColorFactors[14],
                     draw.mTerrainParameters.mBaseColorFactors[15]);
-                push_constants.mMaterialLegacy = glm::vec4(
+                world_uniforms.mMaterialLegacy = glm::vec4(
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[0],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[1],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[2],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[3]);
-                push_constants.mMaterialModes = glm::vec4(
+                world_uniforms.mMaterialModes = glm::vec4(
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[4],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[5],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[6],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[7]);
-                push_constants.mMaterialTextureTransform2 = glm::vec4(
+                world_uniforms.mMaterialTextureTransform2 = glm::vec4(
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[8],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[9],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[10],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[11]);
-                push_constants.mMaterialTextureTransform3 = glm::vec4(
+                world_uniforms.mMaterialTextureTransform3 = glm::vec4(
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[12],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[13],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[14],
                     draw.mTerrainParameters.mEmissiveMinimumAlpha[15]);
-                push_constants.mTerrainTextureTransform0 = glm::vec4(
+                world_uniforms.mTerrainTextureTransform0 = glm::vec4(
                     draw.mTerrainParameters.mTextureTransforms[0],
                     draw.mTerrainParameters.mTextureTransforms[1],
                     draw.mTerrainParameters.mTextureTransforms[2],
                     draw.mTerrainParameters.mTextureTransforms[3]);
-                push_constants.mTerrainTextureTransform1 = glm::vec4(
+                world_uniforms.mTerrainTextureTransform1 = glm::vec4(
                     draw.mTerrainParameters.mTextureTransforms[4],
                     draw.mTerrainParameters.mTextureTransforms[5],
                     draw.mTerrainParameters.mTextureTransforms[6],
                     draw.mTerrainParameters.mTextureTransforms[7]);
-                push_constants.mTerrainTextureTransform2 = glm::vec4(
+                world_uniforms.mTerrainTextureTransform2 = glm::vec4(
                     draw.mTerrainParameters.mTextureTransforms[8],
                     draw.mTerrainParameters.mTextureTransforms[9],
                     draw.mTerrainParameters.mTextureTransforms[10],
                     draw.mTerrainParameters.mTextureTransforms[11]);
-                push_constants.mTerrainTextureTransform3 = glm::vec4(
+                world_uniforms.mTerrainTextureTransform3 = glm::vec4(
                     draw.mTerrainParameters.mTextureTransforms[12],
                     draw.mTerrainParameters.mTextureTransforms[13],
                     draw.mTerrainParameters.mTextureTransforms[14],
                     draw.mTerrainParameters.mTextureTransforms[15]);
-                push_constants.mTerrainTextureTransform4 = glm::vec4(
+                world_uniforms.mTerrainTextureTransform4 = glm::vec4(
                     draw.mTerrainParameters.mTextureTransforms[16],
                     draw.mTerrainParameters.mTextureTransforms[17],
                     draw.mTerrainParameters.mTextureTransforms[18],
                     draw.mTerrainParameters.mTextureTransforms[19]);
             }
-            context.mCmdPushConstants(
+            LLVkDescriptorSet world_constants_descriptor_set =
+                create_vulkan_world_uniform_descriptor_set(
+                    context,
+                    &world_uniforms,
+                    sizeof(world_uniforms));
+            if (!world_constants_descriptor_set)
+            {
+                ++missing_buffer_count;
+                continue;
+            }
+            context.mCmdBindDescriptorSets(
                 command_buffer,
+                LL_VK_PIPELINE_BIND_POINT_GRAPHICS,
                 pipeline_layout,
-                LL_VK_SHADER_STAGE_VERTEX_BIT | LL_VK_SHADER_STAGE_FRAGMENT_BIT,
+                MARE_VULKAN_WORLD_UNIFORM_DESCRIPTOR_SET,
+                1,
+                &world_constants_descriptor_set,
                 0,
-                sizeof(push_constants),
-                &push_constants);
+                nullptr);
         }
         const U32 vertex_buffer_count =
             draw.mUseWorldVertexShader ?

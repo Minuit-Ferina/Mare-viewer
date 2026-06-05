@@ -5,7 +5,7 @@
 // This keeps the current Vulkan world push-constant/skinning contract while
 // giving alpha its own class-tier vertex owner.
 
-layout(push_constant) uniform MareWorldPushConstants
+layout(std140, set = 3, binding = 0) uniform MareWorldPushConstants
 {
     mat4 modelview_projection_matrix;
     vec4 params;

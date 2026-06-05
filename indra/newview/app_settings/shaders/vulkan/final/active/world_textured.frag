@@ -11,7 +11,7 @@ layout(set = 0, binding = 7) uniform sampler2D tex7;
 layout(set = 0, binding = 8) uniform sampler2D sceneDepthMap;
 layout(set = 0, binding = 9) uniform sampler2D sceneColorMap;
 
-layout(push_constant) uniform MareWorldPushConstants
+layout(std140, set = 3, binding = 0) uniform MareWorldPushConstants
 {
     layout(offset = 64) vec4 params;
     layout(offset = 80) vec4 material_params;
