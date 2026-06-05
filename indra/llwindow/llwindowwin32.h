@@ -200,7 +200,6 @@ protected:
     LLRenderNativeContext mRenderContext;
     HGLRC       mhRC = 0;           // OpenGL rendering context
     HDC         mhDC = 0;           // Windows Device context handle
-    LLRenderNativeContext mRenderContext;
     HINSTANCE   mhInstance;     // handle to application instance
     RECT        mOldMouseClip;  // Screen rect to which the mouse cursor was globally constrained before we changed it in clipMouse()
     WPARAM      mLastSizeWParam;

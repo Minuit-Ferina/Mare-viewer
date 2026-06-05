@@ -3145,7 +3145,7 @@ bool refresh_vulkan_memory_properties(LLVulkanNativeContext& context)
         context.mHasMemoryProperties = true;
         context.mHasMemoryBudget = true;
 
-        const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, 16);
+        const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, static_cast<U32>(16));
         for (U32 i = 0; i < heap_count; ++i)
         {
             context.mMemoryHeapBudgetBytes[i] = budget_properties.heapBudget[i];
@@ -3159,7 +3159,7 @@ bool refresh_vulkan_memory_properties(LLVulkanNativeContext& context)
     context.mGetPhysicalDeviceMemoryProperties(context.mPhysicalDevice, &context.mMemoryProperties);
     context.mHasMemoryProperties = true;
 
-    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, 16);
+    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, static_cast<U32>(16));
     for (U32 i = 0; i < heap_count; ++i)
     {
         context.mMemoryHeapBudgetBytes[i] = context.mMemoryProperties.memoryHeaps[i].size;
@@ -3178,7 +3178,7 @@ bool vulkan_heap_has_host_visible_memory_type(
         return false;
     }
 
-    const U32 memory_type_count = llmin<U32>(context.mMemoryProperties.memoryTypeCount, 32);
+    const U32 memory_type_count = llmin<U32>(context.mMemoryProperties.memoryTypeCount, static_cast<U32>(32));
     for (U32 i = 0; i < memory_type_count; ++i)
     {
         const LLVkMemoryType& memory_type = context.mMemoryProperties.memoryTypes[i];
@@ -3198,7 +3198,7 @@ void log_vulkan_memory_properties(const LLVulkanNativeContext& context)
         return;
     }
 
-    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, 16);
+    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, static_cast<U32>(16));
     LL_INFOS("RenderBackend")
         << "Vulkan memory budget extension "
         << (context.mHasMemoryBudget ? "enabled" : "unavailable")
@@ -3239,7 +3239,7 @@ U64 get_vulkan_reported_video_memory_bytes(const LLVulkanNativeContext& context)
 
     U64 largest_device_local_budget = 0;
     U64 largest_heap_budget = 0;
-    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, 16);
+    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, static_cast<U32>(16));
     for (U32 i = 0; i < heap_count; ++i)
     {
         const LLVkMemoryHeap& heap = context.mMemoryProperties.memoryHeaps[i];
@@ -3270,7 +3270,7 @@ U64 get_vulkan_reported_free_video_memory_bytes(const LLVulkanNativeContext& con
     U64 selected_usage = 0;
     U64 largest_any_budget = 0;
     U64 largest_any_usage = 0;
-    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, 16);
+    const U32 heap_count = llmin<U32>(context.mMemoryProperties.memoryHeapCount, static_cast<U32>(16));
     for (U32 i = 0; i < heap_count; ++i)
     {
         const LLVkMemoryHeap& heap = context.mMemoryProperties.memoryHeaps[i];
