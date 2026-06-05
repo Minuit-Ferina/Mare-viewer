@@ -88,6 +88,12 @@ private:
 
     void checkEditState();
     void setVolume();
+#if LL_WINDOWS
+    void beginCEFShutdown();
+    void finishCEFShutdown();
+    void shutdownCEF();
+    void clearCEFCallbacks();
+#endif
 
     bool mEnableMediaPluginDebugging;
     std::string mHostLanguage;
@@ -120,6 +126,11 @@ private:
     VolumeCatcher mVolumeCatcher;
     F32 mCurVolume;
     dullahan* mCEFLib;
+#if LL_WINDOWS
+    bool mCefShuttingDown;
+    bool mCefExitReady;
+    bool mCefShutdownComplete;
+#endif
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -159,6 +170,11 @@ MediaPluginBase(host_send_func, host_user_data)
     mCefLogVerbose = false;
     mPickedFiles.clear();
     mCurVolume = 0.0;
+#if LL_WINDOWS
+    mCefShuttingDown = false;
+    mCefExitReady = false;
+    mCefShutdownComplete = false;
+#endif
 
     mCEFLib = new dullahan();
 
@@ -169,8 +185,73 @@ MediaPluginBase(host_send_func, host_user_data)
 //
 MediaPluginCEF::~MediaPluginCEF()
 {
+#if LL_WINDOWS
+    shutdownCEF();
+#else
     mCEFLib->shutdown();
+#endif
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//
+#if LL_WINDOWS
+void MediaPluginCEF::beginCEFShutdown()
+{
+    if (!mCEFLib || mCefShuttingDown)
+    {
+        return;
+    }
+
+    mCefShuttingDown = true;
+    mPixels = NULL;
+    mCEFLib->requestExit();
+}
+
+void MediaPluginCEF::finishCEFShutdown()
+{
+    shutdownCEF();
+
+    LLPluginMessage message("base", "goodbye");
+    sendMessage(message);
+
+    // Will trigger delete on next staticReceiveMessage()
+    mDeleteMe = true;
+}
+
+void MediaPluginCEF::shutdownCEF()
+{
+    if (!mCEFLib || mCefShutdownComplete)
+    {
+        return;
+    }
+
+    mCefShuttingDown = true;
+    clearCEFCallbacks();
+    mCEFLib->shutdown();
+    mCefShutdownComplete = true;
+}
+
+void MediaPluginCEF::clearCEFCallbacks()
+{
+    mCEFLib->setOnPageChangedCallback(std::function<void(const unsigned char*, int, int, int, int)>());
+    mCEFLib->setOnCustomSchemeURLCallback(std::function<void(const std::string, bool, bool)>());
+    mCEFLib->setOnConsoleMessageCallback(std::function<void(const std::string, const std::string, int)>());
+    mCEFLib->setOnStatusMessageCallback(std::function<void(const std::string)>());
+    mCEFLib->setOnTitleChangeCallback(std::function<void(const std::string)>());
+    mCEFLib->setOnTooltipCallback(std::function<void(const std::string)>());
+    mCEFLib->setOnLoadStartCallback(std::function<void()>());
+    mCEFLib->setOnLoadEndCallback(std::function<void(int, const std::string)>());
+    mCEFLib->setOnLoadErrorCallback(std::function<void(int, const std::string, const std::string)>());
+    mCEFLib->setOnAddressChangeCallback(std::function<void(const std::string)>());
+    mCEFLib->setOnOpenPopupCallback(std::function<void(const std::string, const std::string)>());
+    mCEFLib->setOnHTTPAuthCallback(std::function<bool(const std::string, const std::string, std::string&, std::string&)>());
+    mCEFLib->setOnFileDialogCallback(std::function<const std::vector<std::string>(dullahan::EFileDialogType, const std::string, const std::string, const std::string, bool&)>());
+    mCEFLib->setOnCursorChangedCallback(std::function<void(const dullahan::ECursorType)>());
+    mCEFLib->setOnRequestExitCallback(std::function<void()>());
+    mCEFLib->setOnJSDialogCallback(std::function<bool(const std::string, const std::string, const std::string)>());
+    mCEFLib->setOnJSBeforeUnloadCallback(std::function<bool()>());
+}
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -192,6 +273,12 @@ void MediaPluginCEF::postDebugMessage(const std::string& msg)
 //
 void MediaPluginCEF::onPageChangedCallback(const unsigned char* pixels, int x, int y, const int width, const int height)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     if( mPixels && pixels )
     {
         if (mWidth == width && mHeight == height)
@@ -210,6 +297,12 @@ void MediaPluginCEF::onPageChangedCallback(const unsigned char* pixels, int x, i
 //
 void MediaPluginCEF::onConsoleMessageCallback(std::string message, std::string source, int line)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     std::stringstream str;
     str << "Console message: " << message << " in file(" << source << ") at line " << line;
     postDebugMessage(str.str());
@@ -219,6 +312,12 @@ void MediaPluginCEF::onConsoleMessageCallback(std::string message, std::string s
 //
 void MediaPluginCEF::onStatusMessageCallback(std::string value)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA_BROWSER, "status_text");
     message.setValue("status", value);
     sendMessage(message);
@@ -228,6 +327,12 @@ void MediaPluginCEF::onStatusMessageCallback(std::string value)
 //
 void MediaPluginCEF::onTitleChangeCallback(std::string title)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA, "name_text");
     message.setValue("name", title);
     message.setValueBoolean("history_back_available", mCEFLib->canGoBack());
@@ -237,6 +342,12 @@ void MediaPluginCEF::onTitleChangeCallback(std::string title)
 
 void MediaPluginCEF::onTooltipCallback(std::string text)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA, "tooltip_text");
     message.setValue("tooltip", text);
     sendMessage(message);
@@ -245,6 +356,12 @@ void MediaPluginCEF::onTooltipCallback(std::string text)
 //
 void MediaPluginCEF::onLoadStartCallback()
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA_BROWSER, "navigate_begin");
     //message.setValue("uri", event.getEventUri());  // not easily available here in CEF - needed?
     message.setValueBoolean("history_back_available", mCEFLib->canGoBack());
@@ -256,6 +373,12 @@ void MediaPluginCEF::onLoadStartCallback()
 //
 void MediaPluginCEF::onLoadError(int status, const std::string error_text, const std::string error_url)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     std::stringstream msg;
 
     msg << "<b>Loading error</b>";
@@ -273,17 +396,27 @@ void MediaPluginCEF::onLoadError(int status, const std::string error_text, const
 //
 void MediaPluginCEF::onRequestExitCallback()
 {
+#if LL_WINDOWS
+    mCefExitReady = true;
+#else
     LLPluginMessage message("base", "goodbye");
     sendMessage(message);
 
     // Will trigger delete on next staticReceiveMessage()
     mDeleteMe = true;
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 //
 void MediaPluginCEF::onLoadEndCallback(int httpStatusCode, std::string url)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA_BROWSER, "navigate_complete");
     //message.setValue("uri", event.getEventUri());  // not easily available here in CEF - needed?
     message.setValueS32("result_code", httpStatusCode);
@@ -297,6 +430,12 @@ void MediaPluginCEF::onLoadEndCallback(int httpStatusCode, std::string url)
 //
 void MediaPluginCEF::onAddressChangeCallback(std::string url)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA_BROWSER, "location_changed");
     message.setValue("uri", url);
     sendMessage(message);
@@ -306,6 +445,12 @@ void MediaPluginCEF::onAddressChangeCallback(std::string url)
 //
 void MediaPluginCEF::onOpenPopupCallback(std::string url, std::string target)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA_BROWSER, "click_href");
     message.setValue("uri", url);
     message.setValue("target", target);
@@ -316,6 +461,12 @@ void MediaPluginCEF::onOpenPopupCallback(std::string url, std::string target)
 //
 void MediaPluginCEF::onCustomSchemeURLCallback(std::string url, bool user_gesture, bool is_redirect)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA_BROWSER, "click_nofollow");
     message.setValue("uri", url);
 
@@ -333,6 +484,12 @@ void MediaPluginCEF::onCustomSchemeURLCallback(std::string url, bool user_gestur
 //
 bool MediaPluginCEF::onHTTPAuthCallback(const std::string host, const std::string realm, std::string& username, std::string& password)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return false;
+    }
+#endif
     mAuthOK = false;
 
     LLPluginMessage message(LLPLUGIN_MESSAGE_CLASS_MEDIA, "auth_request");
@@ -356,6 +513,13 @@ bool MediaPluginCEF::onHTTPAuthCallback(const std::string host, const std::strin
 //
 const std::vector<std::string> MediaPluginCEF::onFileDialog(dullahan::EFileDialogType dialog_type, const std::string dialog_title, const std::string default_file, std::string dialog_accept_filter, bool& use_default)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        use_default = false;
+        return std::vector<std::string>();
+    }
+#endif
     // do not use the default CEF file picker
     use_default = false;
 
@@ -420,6 +584,12 @@ bool MediaPluginCEF::onJSBeforeUnloadCallback()
 //
 void MediaPluginCEF::onCursorChangedCallback(dullahan::ECursorType type)
 {
+#if LL_WINDOWS
+    if (mCefShuttingDown)
+    {
+        return;
+    }
+#endif
     std::string name = "";
 
     switch (type)
@@ -555,7 +725,27 @@ void MediaPluginCEF::receiveMessage(const char* message_string)
             }
             else if (message_name == "idle")
             {
+#if LL_WINDOWS
+                if (mCefExitReady)
+                {
+                    finishCEFShutdown();
+                    return;
+                }
+#endif
+
                 mCEFLib->update();
+#if LL_WINDOWS
+                if (mCefExitReady)
+                {
+                    finishCEFShutdown();
+                    return;
+                }
+
+                if (mCefShuttingDown || mDeleteMe)
+                {
+                    return;
+                }
+#endif
 
                 mVolumeCatcher.pump();
 
@@ -566,10 +756,17 @@ void MediaPluginCEF::receiveMessage(const char* message_string)
             }
             else if (message_name == "cleanup")
             {
+#if LL_WINDOWS
+                beginCEFShutdown();
+#else
                 mCEFLib->requestExit();
+#endif
             }
             else if (message_name == "force_exit")
             {
+#if LL_WINDOWS
+                mCefShuttingDown = true;
+#endif
                 mDeleteMe = true;
             }
             else if (message_name == "shm_added")
