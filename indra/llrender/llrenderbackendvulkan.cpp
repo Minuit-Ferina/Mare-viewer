@@ -3048,8 +3048,8 @@ bool is_vulkan_local_light_volume_pipeline_variant(
 {
     return primitive == LLRenderPrimitiveType::TriangleFan &&
         blend_pipeline == LLVulkanWorldBlendPipeline::Add &&
-        depth_pipeline == LLVulkanWorldDepthPipeline::ReadOnly &&
-        cull_pipeline == LLVulkanWorldCullPipeline::Back &&
+        depth_pipeline == LLVulkanWorldDepthPipeline::Disabled &&
+        cull_pipeline == LLVulkanWorldCullPipeline::None &&
         color_pipeline == LLVulkanWorldColorPipeline::Enabled;
 }
 
@@ -6819,6 +6819,188 @@ void validate_vulkan_smoke_expected_final_rgb(
         << LL_ENDL;
 }
 
+U32 get_vulkan_format_byte_size(S32 format);
+bool decode_vulkan_color_sample(
+    const U8* bytes,
+    S32 format,
+    F32& red,
+    F32& green,
+    F32& blue,
+    F32& alpha);
+
+void validate_vulkan_smoke_alpha_two_prims(
+    const LLVulkanBufferAverageReadback& readback)
+{
+    if (readback.mLabel != "smoke final swapchain" ||
+        !std::getenv("MARE_VULKAN_SMOKE_ALPHA_TWO_PRIMS"))
+    {
+        return;
+    }
+
+    const U32 bytes_per_pixel = get_vulkan_format_byte_size(readback.mFormat);
+    if (!bytes_per_pixel ||
+        readback.mWidth <= 0 ||
+        readback.mHeight <= 0 ||
+        !readback.mBuffer.mMappedData)
+    {
+        set_vulkan_smoke_validation_failed();
+        LL_WARNS("RenderBackend")
+            << "Vulkan smoke alpha two-prims validation FAIL: unsupported readback."
+            << LL_ENDL;
+        return;
+    }
+
+    const U64 pixel_count =
+        static_cast<U64>(readback.mWidth) *
+        static_cast<U64>(readback.mHeight);
+    if (pixel_count * bytes_per_pixel > readback.mBuffer.mSize)
+    {
+        set_vulkan_smoke_validation_failed();
+        LL_WARNS("RenderBackend")
+            << "Vulkan smoke alpha two-prims validation FAIL: incomplete readback buffer."
+            << LL_ENDL;
+        return;
+    }
+
+    U64 opaque_center_pixels = 0;
+    U64 magenta_pixels = 0;
+    U64 magenta_in_depth_blocked_center = 0;
+    U64 center_region_pixels = 0;
+    S32 magenta_min_x = readback.mWidth;
+    S32 magenta_max_x = 0;
+    const U8* bytes = static_cast<const U8*>(readback.mBuffer.mMappedData);
+    for (S32 y = 0; y < readback.mHeight; ++y)
+    {
+        for (S32 x = 0; x < readback.mWidth; ++x)
+        {
+            const U64 pixel_index =
+                static_cast<U64>(y) *
+                    static_cast<U64>(readback.mWidth) +
+                static_cast<U64>(x);
+            F32 red = 0.f;
+            F32 green = 0.f;
+            F32 blue = 0.f;
+            F32 alpha = 1.f;
+            if (!decode_vulkan_color_sample(
+                    bytes + pixel_index * bytes_per_pixel,
+                    readback.mFormat,
+                    red,
+                    green,
+                    blue,
+                    alpha))
+            {
+                set_vulkan_smoke_validation_failed();
+                LL_WARNS("RenderBackend")
+                    << "Vulkan smoke alpha two-prims validation FAIL: cannot decode readback sample."
+                    << LL_ENDL;
+                return;
+            }
+
+            const bool is_magenta =
+                red > 0.70f &&
+                green < 0.35f &&
+                blue > 0.45f;
+            const bool is_opaque_center =
+                red > 0.80f &&
+                green > 0.80f &&
+                blue > 0.80f;
+            const bool in_depth_blocked_center =
+                x >= readback.mWidth * 45 / 100 &&
+                x <= readback.mWidth * 55 / 100 &&
+                y >= readback.mHeight * 42 / 100 &&
+                y <= readback.mHeight * 58 / 100;
+
+            if (in_depth_blocked_center)
+            {
+                ++center_region_pixels;
+                if (is_magenta)
+                {
+                    ++magenta_in_depth_blocked_center;
+                }
+                if (is_opaque_center)
+                {
+                    ++opaque_center_pixels;
+                }
+            }
+            if (is_magenta)
+            {
+                ++magenta_pixels;
+                magenta_min_x = llmin(magenta_min_x, x);
+                magenta_max_x = llmax(magenta_max_x, x);
+            }
+        }
+    }
+
+    const double magenta_percent =
+        100.0 * static_cast<double>(magenta_pixels) / static_cast<double>(pixel_count);
+    const double center_opaque_percent =
+        center_region_pixels > 0 ?
+        100.0 *
+            static_cast<double>(opaque_center_pixels) /
+            static_cast<double>(center_region_pixels) :
+        0.0;
+    const double center_magenta_percent =
+        center_region_pixels > 0 ?
+        100.0 *
+            static_cast<double>(magenta_in_depth_blocked_center) /
+            static_cast<double>(center_region_pixels) :
+        100.0;
+    const bool pass =
+        magenta_percent >= 5.0 &&
+        center_opaque_percent >= 80.0 &&
+        center_magenta_percent <= 0.01;
+
+    if (!pass)
+    {
+        set_vulkan_smoke_validation_failed();
+        LL_WARNS("RenderBackend")
+            << "Vulkan smoke alpha two-prims validation FAIL: magenta "
+            << magenta_percent
+            << "%, center opaque "
+            << center_opaque_percent
+            << "%, center magenta leak "
+            << center_magenta_percent
+            << "%, magenta x range "
+            << magenta_min_x
+            << "-"
+            << magenta_max_x
+            << "."
+            << LL_ENDL;
+        std::cout
+            << "Vulkan smoke alpha two-prims validation FAIL: magenta "
+            << std::fixed
+            << std::setprecision(4)
+            << magenta_percent
+            << "%, center opaque "
+            << center_opaque_percent
+            << "%, center magenta leak "
+            << center_magenta_percent
+            << "%, magenta x range "
+            << magenta_min_x
+            << "-"
+            << magenta_max_x
+            << "."
+            << std::endl;
+        return;
+    }
+
+    std::cout
+        << "Vulkan smoke alpha two-prims validation PASS: magenta "
+        << std::fixed
+        << std::setprecision(4)
+        << magenta_percent
+        << "%, center opaque "
+        << center_opaque_percent
+        << "%, center magenta leak "
+        << center_magenta_percent
+        << "%, magenta x range "
+        << magenta_min_x
+        << "-"
+        << magenta_max_x
+        << "."
+        << std::endl;
+}
+
 U32 get_vulkan_format_byte_size(S32 format)
 {
     switch (format)
@@ -7790,6 +7972,7 @@ void log_and_destroy_vulkan_buffer_average_readbacks(LLVulkanNativeContext& cont
                 avg_r,
                 avg_g,
                 avg_b);
+            validate_vulkan_smoke_alpha_two_prims(readback);
             const double luminance =
                 avg_r * 0.2126 +
                 avg_g * 0.7152 +
@@ -18720,6 +18903,19 @@ bool vulkan_draw_has_material_flag(
     return (flags & static_cast<U32>(flag)) != 0;
 }
 
+bool vulkan_draw_uses_post_deferred_alpha_scene_depth(
+    const LLVulkanPendingDraw& draw)
+{
+    return draw.mUseWorldVertexShader &&
+        draw.mWorldShaderClass == LLRenderWorldShaderClass::Alpha &&
+        vulkan_draw_has_material_flag(
+            draw,
+            LLRenderWorldMaterialParameters::PostDeferred) &&
+        vulkan_draw_has_material_flag(
+            draw,
+            LLRenderWorldMaterialParameters::SceneDepth);
+}
+
 const char* get_vulkan_world_shader_class_name(LLRenderWorldShaderClass shader_class)
 {
     switch (shader_class)
@@ -24625,6 +24821,22 @@ public:
         draw.mTerrainParameters = gCurrentVulkanTerrainParameters;
         draw.mMaterialParameters = gCurrentVulkanMaterialParameters;
         draw.mTextureTransform = gCurrentVulkanTextureTransform;
+        if (vulkan_draw_uses_post_deferred_alpha_scene_depth(draw))
+        {
+            draw.mWorldDepthPipeline = LLVulkanWorldDepthPipeline::Disabled;
+            draw.mDepthTestEnabled = false;
+            draw.mDepthWriteEnabled = false;
+
+            static bool sLoggedPostDeferredAlphaDepthOverride = false;
+            if (!sLoggedPostDeferredAlphaDepthOverride)
+            {
+                LL_INFOS("RenderBackend")
+                    << "Vulkan post-deferred alpha uses shader scene-depth "
+                    << "clip instead of shared depth attachment testing."
+                    << LL_ENDL;
+                sLoggedPostDeferredAlphaDepthOverride = true;
+            }
+        }
         if (draw.mUseWorldVertexShader &&
             (draw.mAttributes[9].mEnabled || draw.mAttributes[10].mEnabled) &&
             gCurrentVulkanSkinningMatrixCount > 0 &&

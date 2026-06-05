@@ -26,6 +26,7 @@
 #include "lldrawable.h"
 #include "lldrawpool.h"
 #include "lldrawpoolalpha.h"
+#include "lldrawpoolbump.h"
 #include "llface.h"
 #include "llfetchedgltfmaterial.h"
 #include "llframetimer.h"
@@ -69,6 +70,7 @@ constexpr U32 WORLD_RENDER_HERO_PROBES_TEXTURE_UNIT = 12;
 constexpr U32 WORLD_RENDER_LIGHT_MAP_TEXTURE_UNIT = 13;
 
 LLRenderWorldTextureTransform get_world_texture_transform(const LLMatrix4* matrix);
+F32 get_world_material_flags(const LLWorldRenderCommand& command);
 
 void set_world_mirror_clip_plane(LLRenderWorldMaterialParameters& parameters)
 {
@@ -751,6 +753,10 @@ void write_vulkan_world_command_capture(const LLWorldRenderCommandBuffer& comman
         output
             << "cmd"
             << " material " << static_cast<U32>(command.mMaterialClass)
+            << " shader "
+            << static_cast<U32>(
+                get_world_render_pipeline_contract(
+                    command.mMaterialClass).mShaderClass)
             << " pass " << static_cast<U32>(command.mPassClass)
             << " blend " << static_cast<U32>(command.mBlendMode)
             << " depth " << static_cast<U32>(command.mDepthMode)
@@ -785,6 +791,8 @@ void write_vulkan_world_command_capture(const LLWorldRenderCommandBuffer& comman
             << command.mSpecColor.mV[VY] << " "
             << command.mSpecColor.mV[VZ] << " "
             << command.mSpecColor.mV[VW]
+            << " material_flags "
+            << static_cast<U32>(get_world_material_flags(command) + 0.5f)
             << " factors "
             << command.mMetallicFactor << " "
             << command.mRoughnessFactor << " "
@@ -930,10 +938,38 @@ LLRenderWorldTextureTransform get_world_texture_transform(const LLMatrix4* matri
 
 bool has_world_material_texture_bindings(const LLWorldRenderCommand& command)
 {
+    if (command.mMaterialClass == LLWorldRenderMaterialClass::Bump ||
+        command.mMaterialClass == LLWorldRenderMaterialClass::PostBump)
+    {
+        return true;
+    }
+
     return command.mNormalMap.notNull() ||
         command.mORMMap.notNull() ||
         command.mSpecularMap.notNull() ||
         command.mEmissiveMap.notNull();
+}
+
+bool legacy_source_pass_has_normal_map(U32 source_pass)
+{
+    switch (source_pass)
+    {
+        case LLRenderPass::PASS_NORMMAP:
+        case LLRenderPass::PASS_NORMMAP_RIGGED:
+        case LLRenderPass::PASS_NORMMAP_MASK:
+        case LLRenderPass::PASS_NORMMAP_MASK_RIGGED:
+        case LLRenderPass::PASS_NORMMAP_EMISSIVE:
+        case LLRenderPass::PASS_NORMMAP_EMISSIVE_RIGGED:
+        case LLRenderPass::PASS_NORMSPEC:
+        case LLRenderPass::PASS_NORMSPEC_RIGGED:
+        case LLRenderPass::PASS_NORMSPEC_MASK:
+        case LLRenderPass::PASS_NORMSPEC_MASK_RIGGED:
+        case LLRenderPass::PASS_NORMSPEC_EMISSIVE:
+        case LLRenderPass::PASS_NORMSPEC_EMISSIVE_RIGGED:
+            return true;
+        default:
+            return false;
+    }
 }
 
 void bind_world_texture_unit(U32 unit, LLViewerTexture* texture)
@@ -1106,7 +1142,14 @@ bool uses_world_deferred_scene_color(const LLWorldRenderCommand& command)
 F32 get_world_material_flags(const LLWorldRenderCommand& command)
 {
     U32 flags = 0;
-    if (command.mNormalMap.notNull())
+    const bool legacy_bump_pass =
+        command.mMaterialClass == LLWorldRenderMaterialClass::Bump ||
+        command.mMaterialClass == LLWorldRenderMaterialClass::PostBump;
+    if ((command.mNormalMap.notNull() &&
+            (command.mMaterialClass == LLWorldRenderMaterialClass::GLTFPBR ||
+                command.mMaterialClass == LLWorldRenderMaterialClass::GLTFPBRAlphaMask ||
+                legacy_source_pass_has_normal_map(command.mSourcePass))) ||
+        legacy_bump_pass)
     {
         flags |= LLRenderWorldMaterialParameters::HasNormalMap;
     }
@@ -1151,9 +1194,8 @@ F32 get_world_material_flags(const LLWorldRenderCommand& command)
     {
         flags |= LLRenderWorldMaterialParameters::DoubleSided;
     }
-    if (command.mBump != 0 &&
-        (command.mMaterialClass == LLWorldRenderMaterialClass::Bump ||
-            command.mMaterialClass == LLWorldRenderMaterialClass::PostBump))
+    if (command.mMaterialClass == LLWorldRenderMaterialClass::Bump ||
+        command.mMaterialClass == LLWorldRenderMaterialClass::PostBump)
     {
         flags |= LLRenderWorldMaterialParameters::LegacyBump;
     }
@@ -1199,7 +1241,7 @@ F32 get_world_material_flags(const LLWorldRenderCommand& command)
     {
         flags |= LLRenderWorldMaterialParameters::SceneDepth;
         if (command.mMaterialClass == LLWorldRenderMaterialClass::Alpha &&
-            get_vulkan_world_command_boolean_env("MARE_VULKAN_DEBUG_ALPHA_SCENE_DEPTH_FLIP_Y"))
+            command.mPassClass == LLWorldRenderPassClass::PostDeferred)
         {
             flags |= LLRenderWorldMaterialParameters::SceneDepthFlipY;
         }
@@ -1737,6 +1779,12 @@ void LLWorldRenderCommandBuffer::appendDrawInfo(
     command.mShiny = params.mShiny;
     command.mFullbright = params.mFullbright;
     command.mHasGlow = params.mHasGlow;
+    if (command.mMaterialClass == LLWorldRenderMaterialClass::Bump ||
+        command.mMaterialClass == LLWorldRenderMaterialClass::PostBump)
+    {
+        command.mNormalMap =
+            LLDrawPoolBump::getBumpMap(params.mBump, params.mTexture);
+    }
     command.mAvatar = params.mAvatar;
     command.mSkinInfo = params.mSkinInfo;
     command.mRigged = params.mAvatar != nullptr && params.mSkinInfo != nullptr;

@@ -443,7 +443,7 @@ bool LLDrawPoolBump::bindBumpMap(LLFace* face, S32 channel)
 }
 
 //static
-bool LLDrawPoolBump::bindBumpMap(U8 bump_code, LLViewerTexture* texture, S32 channel)
+LLViewerTexture* LLDrawPoolBump::getBumpMap(U8 bump_code, LLViewerTexture* texture)
 {
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DRAWPOOL;
     //Note: texture atlas does not support bump texture now.
@@ -451,7 +451,7 @@ bool LLDrawPoolBump::bindBumpMap(U8 bump_code, LLViewerTexture* texture, S32 cha
     if(!tex)
     {
         //if the texture is not a fetched texture
-        return false;
+        return nullptr;
     }
 
     LLViewerTexture* bump = NULL;
@@ -473,6 +473,14 @@ bool LLDrawPoolBump::bindBumpMap(U8 bump_code, LLViewerTexture* texture, S32 cha
         }
         break;
     }
+
+    return bump;
+}
+
+//static
+bool LLDrawPoolBump::bindBumpMap(U8 bump_code, LLViewerTexture* texture, S32 channel)
+{
+    LLViewerTexture* bump = getBumpMap(bump_code, texture);
 
     if (bump)
     {
@@ -551,6 +559,7 @@ bool LLDrawPoolBump::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, 
         LLVertexBuffer::MAP_VERTEX |
             LLVertexBuffer::MAP_NORMAL |
             LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_TANGENT |
             LLVertexBuffer::MAP_COLOR);
     commands.appendRenderMap(
         LLRenderPass::PASS_BUMP_RIGGED,
@@ -560,6 +569,7 @@ bool LLDrawPoolBump::emitDeferredCommands(LLWorldRenderCommandBuffer& commands, 
         LLVertexBuffer::MAP_VERTEX |
             LLVertexBuffer::MAP_NORMAL |
             LLVertexBuffer::MAP_TEXCOORD0 |
+            LLVertexBuffer::MAP_TANGENT |
             LLVertexBuffer::MAP_COLOR |
             LLVertexBuffer::MAP_WEIGHT4);
     return true;

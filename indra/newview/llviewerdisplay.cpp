@@ -103,6 +103,7 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <vector>
@@ -196,6 +197,37 @@ static bool use_mare_viewer_pipeline_scene_test_emissive_buffer()
         return value == "1" || value == "true" || value == "yes" || value == "on";
     }();
     return enabled;
+}
+
+static bool use_mare_viewer_pipeline_scene_test_pbr_orm_probe()
+{
+    static const bool enabled = []()
+    {
+        std::string value =
+            LLStringUtil::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_ENABLE_PBR_ORM");
+        LLStringUtil::toLower(value);
+        return value == "1" || value == "true" || value == "yes" || value == "on";
+    }();
+    return enabled;
+}
+
+static bool use_mare_viewer_pipeline_scene_test_pbr_emissive_texture_probe()
+{
+    static const bool enabled = []()
+    {
+        std::string value =
+            LLStringUtil::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_ENABLE_PBR_EMISSIVE_TEXTURE");
+        LLStringUtil::toLower(value);
+        return value == "1" || value == "true" || value == "yes" || value == "on";
+    }();
+    return enabled;
+}
+
+static bool use_mare_viewer_pipeline_scene_test_pbr_probe()
+{
+    return use_mare_viewer_pipeline_scene_test_emissive_buffer() ||
+        use_mare_viewer_pipeline_scene_test_pbr_orm_probe() ||
+        use_mare_viewer_pipeline_scene_test_pbr_emissive_texture_probe();
 }
 
 static void setup_mare_viewer_pipeline_scene_camera();
@@ -889,7 +921,10 @@ static bool render_vulkan_world_to_deferred_screen(const LLColor4& clear_color)
         const U32 attachment =
             get_mare_viewer_pipeline_scene_test_gbuffer_attachment();
 
-        const char* capture_label = "viewer pipeline scene gbuffer color";
+        const char* capture_label =
+            use_mare_viewer_pipeline_scene_test_gbuffer_alpha_capture_stage() ?
+                "viewer pipeline scene gbuffer color alpha" :
+                "viewer pipeline scene gbuffer color";
         if (request_depth)
         {
             capture_label = "viewer pipeline scene gbuffer depth";
@@ -3664,10 +3699,28 @@ static void render_vulkan_world_frame()
     // renderFinalize().
 }
 
+class MareViewerPipelineSceneAlphaPartition final : public LLSpatialPartition
+{
+public:
+    MareViewerPipelineSceneAlphaPartition(U32 data_mask,
+                                          bool render_by_group,
+                                          LLViewerRegion* regionp)
+        : LLSpatialPartition(data_mask, render_by_group, regionp)
+    {
+    }
+
+    void getGeometry(LLSpatialGroup*) override {}
+};
+
 struct MareViewerPipelineSceneResources
 {
     LLPointer<LLVertexBuffer> mVertexBuffer;
-    LLPointer<LLFetchedGLTFMaterial> mEmissiveMaterial;
+    LLPointer<LLFetchedGLTFMaterial> mPBRProbeMaterial;
+    LLPointer<LLViewerFetchedTexture> mPBRNormalTexture;
+    LLPointer<LLViewerFetchedTexture> mPBRORMTexture;
+    LLPointer<LLViewerFetchedTexture> mPBREmissiveTexture;
+    std::unique_ptr<LLSpatialPartition> mAlphaPartition;
+    LLPointer<LLSpatialGroup> mAlphaGroup;
     std::vector<U32> mPasses;
     std::vector<LLPointer<LLDrawInfo>> mDrawInfos;
 };
@@ -3676,6 +3729,96 @@ static MareViewerPipelineSceneResources& get_mare_viewer_pipeline_scene_resource
 {
     static MareViewerPipelineSceneResources resources;
     return resources;
+}
+
+static LLPointer<LLViewerFetchedTexture> create_mare_viewer_pipeline_scene_texture_from_raw(
+    const LLImageRaw* raw)
+{
+    LLPointer<LLViewerFetchedTexture> texture =
+        LLViewerTextureManager::getFetchedTexture(
+            raw,
+            FTT_DEFAULT,
+            false);
+    if (texture.notNull())
+    {
+        texture->setFilteringOption(LLTexUnit::TFO_POINT);
+    }
+    return texture;
+}
+
+static LLPointer<LLViewerFetchedTexture> create_mare_viewer_pipeline_scene_orm_texture()
+{
+    constexpr S32 width = 4;
+    constexpr S32 height = 4;
+    constexpr S32 components = 3;
+    LLPointer<LLImageRaw> raw = new LLImageRaw(width, height, components);
+    U8* data = raw->getData();
+    if (!data)
+    {
+        return nullptr;
+    }
+
+    for (S32 y = 0; y < height; ++y)
+    {
+        for (S32 x = 0; x < width; ++x)
+        {
+            *data++ = static_cast<U8>(96 + x * 28 + y * 7);
+            *data++ = static_cast<U8>(132 + y * 24);
+            *data++ = static_cast<U8>(72 + x * 34);
+        }
+    }
+
+    return create_mare_viewer_pipeline_scene_texture_from_raw(raw.get());
+}
+
+static LLPointer<LLViewerFetchedTexture> create_mare_viewer_pipeline_scene_normal_texture()
+{
+    constexpr S32 width = 4;
+    constexpr S32 height = 4;
+    constexpr S32 components = 3;
+    LLPointer<LLImageRaw> raw = new LLImageRaw(width, height, components);
+    U8* data = raw->getData();
+    if (!data)
+    {
+        return nullptr;
+    }
+
+    for (S32 y = 0; y < height; ++y)
+    {
+        for (S32 x = 0; x < width; ++x)
+        {
+            *data++ = static_cast<U8>(118 + x * 6);
+            *data++ = static_cast<U8>(122 + y * 5);
+            *data++ = 248;
+        }
+    }
+
+    return create_mare_viewer_pipeline_scene_texture_from_raw(raw.get());
+}
+
+static LLPointer<LLViewerFetchedTexture> create_mare_viewer_pipeline_scene_emissive_texture()
+{
+    constexpr S32 width = 4;
+    constexpr S32 height = 4;
+    constexpr S32 components = 3;
+    LLPointer<LLImageRaw> raw = new LLImageRaw(width, height, components);
+    U8* data = raw->getData();
+    if (!data)
+    {
+        return nullptr;
+    }
+
+    for (S32 y = 0; y < height; ++y)
+    {
+        for (S32 x = 0; x < width; ++x)
+        {
+            *data++ = static_cast<U8>(48 + x * 38);
+            *data++ = static_cast<U8>(76 + y * 34);
+            *data++ = static_cast<U8>(112 + (x + y) * 14);
+        }
+    }
+
+    return create_mare_viewer_pipeline_scene_texture_from_raw(raw.get());
 }
 
 static bool init_mare_viewer_pipeline_scene_resources()
@@ -3696,7 +3839,7 @@ static bool init_mare_viewer_pipeline_scene_resources()
         LLVertexBuffer::MAP_COLOR |
         LLVertexBuffer::MAP_TANGENT;
 
-    constexpr U32 quad_count = 13;
+    constexpr U32 quad_count = 14;
     constexpr U32 vertices_per_quad = 4;
     constexpr U32 indices_per_quad = 6;
     constexpr U32 vertex_count = quad_count * vertices_per_quad;
@@ -3732,7 +3875,7 @@ static bool init_mare_viewer_pipeline_scene_resources()
             const LLColor4U& lower_right,
             const LLColor4U& upper_right,
             const LLColor4U& upper_left,
-            F32 z = 0.f)
+            F32 z = -2.f)
     {
         const U32 vertex_base = quad_index * vertices_per_quad;
         const U32 index_base = quad_index * indices_per_quad;
@@ -3898,7 +4041,7 @@ static bool init_mare_viewer_pipeline_scene_resources()
         LLColor4U(52, 86, 58, 255),
         LLColor4U(106, 156, 228, 255),
         LLColor4U(80, 132, 218, 255),
-        0.85f);
+        -6.f);
     set_quad(
         12,
         0.74f,
@@ -3909,7 +4052,18 @@ static bool init_mare_viewer_pipeline_scene_resources()
         LLColor4U(255, 255, 255, 255),
         LLColor4U(255, 255, 255, 255),
         LLColor4U(255, 255, 255, 255),
-        -0.10f);
+        -2.25f);
+    set_quad(
+        13,
+        -0.88f,
+        0.34f,
+        -0.52f,
+        0.78f,
+        LLColor4U(255, 0, 255, 128),
+        LLColor4U(255, 64, 255, 128),
+        LLColor4U(255, 128, 255, 128),
+        LLColor4U(255, 32, 255, 128),
+        -1.5f);
 
     resources.mVertexBuffer->setPositionData(positions.data());
     resources.mVertexBuffer->setNormalData(normals.data());
@@ -3967,26 +4121,108 @@ static bool init_mare_viewer_pipeline_scene_resources()
                 texture,
                 resources.mVertexBuffer.get(),
                 fullbright);
-        draw_info->mNormalMap = normal_texture;
-        draw_info->mSpecularMap = specular_texture;
+        const bool uses_legacy_normal_map =
+            pass == LLRenderPass::PASS_NORMMAP ||
+            pass == LLRenderPass::PASS_NORMSPEC;
+        const bool uses_legacy_specular_map =
+            pass == LLRenderPass::PASS_SPECMAP ||
+            pass == LLRenderPass::PASS_NORMSPEC;
+        draw_info->mNormalMap =
+            uses_legacy_normal_map ? normal_texture : nullptr;
+        draw_info->mSpecularMap =
+            uses_legacy_specular_map ? specular_texture : nullptr;
         draw_info->mSpecColor = LLVector4(1.f, 0.88f, 0.68f, 0.55f);
         draw_info->mEnvIntensity = 0.35f;
+        if (pass == LLRenderPass::PASS_BUMP ||
+            pass == LLRenderPass::PASS_POST_BUMP)
+        {
+            draw_info->mEnvIntensity = 1.f;
+        }
         draw_info->mAlphaMaskCutoff = 0.5f;
-        draw_info->mBump = BE_BRIGHTNESS;
+        draw_info->mBump = BE_NO_BUMP;
         draw_info->mShiny = 2;
         draw_info->mGLTFMaterial = gltf_material;
         resources.mPasses.push_back(pass);
         resources.mDrawInfos.push_back(draw_info);
     };
 
-    if (use_mare_viewer_pipeline_scene_test_emissive_buffer())
+    if (use_mare_viewer_pipeline_scene_test_pbr_probe())
     {
-        resources.mEmissiveMaterial = new LLFetchedGLTFMaterial();
-        resources.mEmissiveMaterial->mBaseColor.set(0.30f, 0.12f, 0.04f, 1.f);
-        resources.mEmissiveMaterial->mEmissiveColor.set(1.f, 0.28f, 0.04f);
-        resources.mEmissiveMaterial->mRoughnessFactor = 0.42f;
-        resources.mEmissiveMaterial->mMetallicFactor = 0.f;
-        resources.mEmissiveMaterial->mAlphaMode = LLGLTFMaterial::ALPHA_MODE_OPAQUE;
+        resources.mPBRProbeMaterial = new LLFetchedGLTFMaterial();
+        resources.mPBRProbeMaterial->mBaseColor.set(0.30f, 0.12f, 0.04f, 1.f);
+        resources.mPBRProbeMaterial->mEmissiveColor.set(
+            use_mare_viewer_pipeline_scene_test_emissive_buffer() ? 1.f : 0.f,
+            use_mare_viewer_pipeline_scene_test_emissive_buffer() ? 0.28f : 0.f,
+            use_mare_viewer_pipeline_scene_test_emissive_buffer() ? 0.04f : 0.f);
+        resources.mPBRProbeMaterial->mRoughnessFactor = 0.42f;
+        resources.mPBRProbeMaterial->mMetallicFactor = 0.25f;
+        resources.mPBRProbeMaterial->mAlphaMode = LLGLTFMaterial::ALPHA_MODE_OPAQUE;
+        resources.mPBRNormalTexture =
+            create_mare_viewer_pipeline_scene_normal_texture();
+        if (resources.mPBRNormalTexture.notNull())
+        {
+            resources.mPBRProbeMaterial->setNormalId(
+                resources.mPBRNormalTexture->getID());
+            resources.mPBRProbeMaterial->mNormalTexture =
+                resources.mPBRNormalTexture;
+        }
+        else
+        {
+            LL_WARNS("RenderBackend")
+                << "Unable to create Mare viewer pipeline scene PBR normal texture; "
+                << "PBR normal fixture will use the default flat normal map."
+                << LL_ENDL;
+        }
+        if (use_mare_viewer_pipeline_scene_test_pbr_emissive_texture_probe())
+        {
+            resources.mPBREmissiveTexture =
+                create_mare_viewer_pipeline_scene_emissive_texture();
+            if (resources.mPBREmissiveTexture.notNull())
+            {
+                resources.mPBRProbeMaterial->setEmissiveId(
+                    resources.mPBREmissiveTexture->getID());
+                resources.mPBRProbeMaterial->mEmissiveTexture =
+                    resources.mPBREmissiveTexture;
+                resources.mPBRProbeMaterial->setTextureScale(
+                    LLGLTFMaterial::GLTF_TEXTURE_INFO_EMISSIVE,
+                    LLVector2(0.75f, 0.75f));
+                resources.mPBRProbeMaterial->setTextureOffset(
+                    LLGLTFMaterial::GLTF_TEXTURE_INFO_EMISSIVE,
+                    LLVector2(0.125f, 0.125f));
+            }
+            else
+            {
+                LL_WARNS("RenderBackend")
+                    << "Unable to create Mare viewer pipeline scene emissive texture; "
+                    << "PBR emissive fixture will use the default emissive map."
+                    << LL_ENDL;
+            }
+        }
+        if (use_mare_viewer_pipeline_scene_test_pbr_orm_probe())
+        {
+            resources.mPBRORMTexture =
+                create_mare_viewer_pipeline_scene_orm_texture();
+            if (resources.mPBRORMTexture.notNull())
+            {
+                resources.mPBRProbeMaterial->setOcclusionRoughnessMetallicId(
+                    resources.mPBRORMTexture->getID());
+                resources.mPBRProbeMaterial->mMetallicRoughnessTexture =
+                    resources.mPBRORMTexture;
+                resources.mPBRProbeMaterial->setTextureScale(
+                    LLGLTFMaterial::GLTF_TEXTURE_INFO_METALLIC_ROUGHNESS,
+                    LLVector2(0.75f, 0.75f));
+                resources.mPBRProbeMaterial->setTextureOffset(
+                    LLGLTFMaterial::GLTF_TEXTURE_INFO_METALLIC_ROUGHNESS,
+                    LLVector2(0.125f, 0.125f));
+            }
+            else
+            {
+                LL_WARNS("RenderBackend")
+                    << "Unable to create Mare viewer pipeline scene ORM texture; "
+                    << "PBR ORM fixture will use material factors only."
+                    << LL_ENDL;
+            }
+        }
     }
 
     add_draw_info(LLRenderPass::PASS_SIMPLE, 0, false);
@@ -4001,20 +4237,52 @@ static bool init_mare_viewer_pipeline_scene_resources()
     add_draw_info(LLRenderPass::PASS_NORMMAP, 9, false);
     add_draw_info(LLRenderPass::PASS_NORMSPEC, 10, false);
     add_draw_info(LLRenderPass::PASS_FULLBRIGHT, 11, true);
-    if (resources.mEmissiveMaterial.notNull())
+    if (resources.mPBRProbeMaterial.notNull())
     {
         add_draw_info(
             LLRenderPass::PASS_GLTF_PBR,
             12,
             false,
-            resources.mEmissiveMaterial.get());
+            resources.mPBRProbeMaterial.get());
     }
+    add_draw_info(LLRenderPass::PASS_ALPHA, 13, false);
+    LLDrawInfo* alpha_draw_info = resources.mDrawInfos.back().get();
+    alpha_draw_info->mDiffuseAlphaMode = LLMaterial::DIFFUSE_ALPHA_MODE_BLEND;
+    alpha_draw_info->mAlphaMaskCutoff = 0.f;
+
+    resources.mAlphaPartition =
+        std::make_unique<MareViewerPipelineSceneAlphaPartition>(
+            data_mask,
+            true,
+            nullptr);
+    resources.mAlphaPartition->mPartitionType = LLViewerRegion::PARTITION_VOLUME;
+    resources.mAlphaPartition->mDrawableType =
+        LLPipeline::RENDER_TYPE_PASS_ALPHA;
+    resources.mAlphaGroup =
+        static_cast<LLSpatialGroup*>(
+            resources.mAlphaPartition->mOctree->getListener(0));
+    resources.mAlphaGroup->mDrawMap[LLRenderPass::PASS_ALPHA].push_back(
+        alpha_draw_info);
 
     LL_INFOS("RenderBackend")
         << "Initialized Mare viewer pipeline scene fixture with "
         << resources.mDrawInfos.size()
-        << " synthetic LLDrawInfo entries, emissive buffer probe "
-        << (resources.mEmissiveMaterial.notNull() ? "enabled" : "disabled")
+        << " synthetic LLDrawInfo entries, PBR probe "
+        << (resources.mPBRProbeMaterial.notNull() ? "enabled" : "disabled")
+        << ", emissive buffer probe "
+        << (use_mare_viewer_pipeline_scene_test_emissive_buffer() ? "enabled" : "disabled")
+        << ", PBR ORM probe "
+        << (use_mare_viewer_pipeline_scene_test_pbr_orm_probe() ? "enabled" : "disabled")
+        << ", mapped PBR normal texture "
+        << (resources.mPBRNormalTexture.notNull() ? "enabled" : "disabled")
+        << ", mapped ORM texture "
+        << (resources.mPBRORMTexture.notNull() ? "enabled" : "disabled")
+        << ", mapped emissive texture "
+        << (use_mare_viewer_pipeline_scene_test_pbr_emissive_texture_probe() ?
+            (resources.mPBREmissiveTexture.notNull() ? "enabled" : "requested-missing") :
+            "disabled")
+        << ", post-water alpha fixture "
+        << (resources.mAlphaGroup.notNull() ? "enabled" : "disabled")
         << "."
         << LL_ENDL;
     return true;
@@ -4032,8 +4300,17 @@ static void setup_mare_viewer_pipeline_scene_camera()
             gViewerWindow->getWindowHeightRaw();
     getRenderBackend().setViewport(0, 0, width, height);
 
+    LLViewerCamera::sCurCameraID = LLViewerCamera::CAMERA_WORLD;
+    LLViewerCamera::getInstance()->setOrigin(LLVector3(0.f, 0.f, 0.f));
+    LLViewerCamera::getInstance()->setAxes(
+        LLVector3(0.f, 0.f, -1.f),
+        LLVector3(-1.f, 0.f, 0.f),
+        LLVector3(0.f, 1.f, 0.f));
+    LLViewerCamera::getInstance()->setNear(0.1f);
+    LLViewerCamera::getInstance()->setFar(10.f);
+
     const glm::mat4 projection =
-        glm::ortho(-1.f, 1.f, -1.f, 1.f, -1.f, 1.f);
+        glm::ortho(-1.f, 1.f, -1.f, 1.f, 0.1f, 10.f);
     const glm::mat4 modelview = glm::identity<glm::mat4>();
 
     set_current_projection(projection);
@@ -4165,6 +4442,20 @@ static bool write_mare_viewer_pipeline_scene_capture(
     return true;
 }
 
+static void bind_mare_viewer_pipeline_scene_default_framebuffer()
+{
+    gGL.flush();
+    LLRenderTarget::sBoundTarget = nullptr;
+    LLRenderTarget::sCurFBO = 0;
+    getRenderBackend().bindReadWriteFramebuffer(0);
+    getRenderBackend().restoreDefaultFramebufferBufferRouting();
+    getRenderBackend().setViewport(
+        0,
+        0,
+        gViewerWindow->getWindowWidthRaw(),
+        gViewerWindow->getWindowHeightRaw());
+}
+
 static bool write_mare_viewer_pipeline_scene_depth_capture(
     S32 capture_width,
     S32 capture_height)
@@ -4293,6 +4584,7 @@ static void render_mare_viewer_pipeline_scene_test_frame()
     getRenderBackend().setWorldDeferredShaderLevel(backend_shader_level);
 
     setup_mare_viewer_pipeline_scene_camera();
+    LLEnvironment::instance().update(LLViewerCamera::getInstance());
     gPipeline.disableLights();
     gPipeline.resetFrameStats();
 
@@ -4304,6 +4596,10 @@ static void render_mare_viewer_pipeline_scene_test_frame()
         result.pushDrawInfo(
             resources.mPasses[i],
             resources.mDrawInfos[i].get());
+    }
+    if (resources.mAlphaGroup.notNull())
+    {
+        result.pushAlphaGroup(resources.mAlphaGroup.get());
     }
     gPipeline.grabReferences(result);
 
@@ -4318,6 +4614,10 @@ static void render_mare_viewer_pipeline_scene_test_frame()
         << result.getRenderMapSize(LLRenderPass::PASS_SIMPLE)
         << ", alpha-mask "
         << result.getRenderMapSize(LLRenderPass::PASS_ALPHA_MASK)
+        << ", alpha "
+        << result.getRenderMapSize(LLRenderPass::PASS_ALPHA)
+        << ", alpha-groups "
+        << result.getAlphaGroupsSize()
         << ", fullbright "
         << result.getRenderMapSize(LLRenderPass::PASS_FULLBRIGHT)
         << ", fullbright-alpha-mask "
@@ -4362,6 +4662,9 @@ static void render_mare_viewer_pipeline_scene_test_frame()
     const bool request_screen_after_lighting_capture =
         should_capture &&
         use_mare_viewer_pipeline_scene_test_capture_stage("screen-after-lighting");
+    const bool request_final_capture =
+        should_capture &&
+        use_mare_viewer_pipeline_scene_test_capture_stage("final");
     const bool capture_gbuffer_color =
         !use_vulkan_world_path() &&
         request_gbuffer_capture;
@@ -4516,7 +4819,17 @@ static void render_mare_viewer_pipeline_scene_test_frame()
                     gPipeline.mRT->screen.getHeight());
                 gPipeline.mRT->screen.flush();
             }
-            gPipeline.renderFinalize();
+            else if (request_final_capture)
+            {
+                bind_mare_viewer_pipeline_scene_default_framebuffer();
+                gPipeline.renderFinalize();
+                captured = true;
+                write_mare_viewer_pipeline_scene_capture();
+            }
+            else
+            {
+                gPipeline.renderFinalize();
+            }
         }
     }
 
@@ -4525,13 +4838,16 @@ static void render_mare_viewer_pipeline_scene_test_frame()
     ++rendered_frames;
 
     if (should_capture &&
+        !captured &&
         !capture_gbuffer_color &&
         !capture_gbuffer_depth &&
         !capture_screen_after_lighting &&
         !request_deferred_light_capture &&
+        request_final_capture &&
         !use_vulkan_world_path())
     {
         captured = true;
+        bind_mare_viewer_pipeline_scene_default_framebuffer();
         write_mare_viewer_pipeline_scene_capture();
     }
 

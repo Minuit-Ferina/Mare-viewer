@@ -3212,7 +3212,7 @@ std::array<SmokeShaderParityEntry, 15> make_shader_parity_entries()
             "runtime alpha ABI: MareWorldPushConstants, set0 texture array, vertex color, and optional skinning palette",
             "same as runtime for the current final alpha owner; remaining work is missing OpenGL inputs, not a different ABI",
             "LLDrawPoolAlpha forward state: src-alpha/one-minus-src-alpha blend, owner-selected depth read/write, cull disabled for alpha",
-            "runtime now uses class1/deferred/alpha.vert plus class2/deferred/alpha.frag; OpenGL source reference uses vertex color; strict RGB diff is 5.3333 mean, 15 max",
+            "runtime now uses class1/deferred/alpha.vert plus class2/deferred/alpha.frag; OpenGL source reference uses vertex color plus a fixed synthetic normal; strict RGB diff is zero for the current source-level probe",
             "finish OpenGL local-light, reflection, fog, depth, and post-water lighting inputs"
         },
         {
@@ -4767,7 +4767,7 @@ bool render_world_pipelines_frame(
     backend.setClearColor(0.015f, 0.018f, 0.024f, 1.f);
     backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
     backend.setDepthWriteEnabled(false);
-    backend.setCapability(LLRenderCapability::DepthTest, false);
+    backend.setCapability(LLRenderCapability::DepthTest, true);
     backend.setCapability(LLRenderCapability::CullFace, false);
     backend.setColorMask({ true, true, true, true });
 
@@ -4879,13 +4879,19 @@ bool render_shader_probe_entry_frame(
     backend.setWorldSkinningMatrixPalette(0, nullptr);
     backend.setWorldDrawEnabled(true);
     backend.setWorldShaderClass(entry.mShaderClass);
-    backend.setWorldMaterialParameters(
+    LLRenderWorldMaterialParameters material =
         make_world_pipeline_material(
             entry.mRed,
             entry.mGreen,
             entry.mBlue,
             entry.mAlphaBlend ? 0.72f : 1.f,
-            entry.mFlags));
+            entry.mFlags);
+    if (entry.mShaderClass == LLRenderWorldShaderClass::Alpha)
+    {
+        // The alpha source-reference stub emits sunlit without an extra direct-light scale.
+        material.mSceneDirectScale = 1.f;
+    }
+    backend.setWorldMaterialParameters(material);
     apply_smoke_world_pipeline_entry_state(backend, entry);
     backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
 
@@ -5591,6 +5597,32 @@ std::vector<U8> make_soften_reference_normal_pixels(
     return make_solid_rgba_pixels(width, height, 128, 128, 255, 0);
 }
 
+std::vector<U8> make_vulkan_soften_reference_normal_pixels(
+    U32 width,
+    U32 height,
+    SmokeSoftenSourceReferenceCase reference_case)
+{
+    // Vulkan DeferredSoften decodes the normal from RG. B carries legacy
+    // environment intensity, and A carries the G-buffer family flag.
+    const U8 env_intensity =
+        reference_case == SmokeSoftenSourceReferenceCase::LegacyEnv ? 128 : 0;
+    if (is_soften_pbr_reference_case(reference_case))
+    {
+        return make_solid_rgba_pixels(width, height, 128, 128, 0, 171);
+    }
+    if (is_soften_legacy_reference_case(reference_case))
+    {
+        return make_solid_rgba_pixels(
+            width,
+            height,
+            128,
+            128,
+            env_intensity,
+            87);
+    }
+    return make_solid_rgba_pixels(width, height, 128, 128, 0, 0);
+}
+
 std::vector<U8> make_soften_reference_emissive_pixels(
     U32 width,
     U32 height,
@@ -5669,7 +5701,7 @@ std::vector<U8> make_soften_skip_atmos_specular_pixels(U32 width, U32 height)
 
 std::vector<U8> make_soften_skip_atmos_normal_pixels(U32 width, U32 height)
 {
-    return make_soften_reference_normal_pixels(
+    return make_vulkan_soften_reference_normal_pixels(
         width,
         height,
         SmokeSoftenSourceReferenceCase::SkipAtmos);
@@ -5834,7 +5866,7 @@ bool ensure_smoke_soften_reference_resources(
             resources.mNormal,
             width,
             height,
-            make_soften_reference_normal_pixels(
+            make_vulkan_soften_reference_normal_pixels(
                 width,
                 height,
                 reference_case)) ||
@@ -7740,7 +7772,7 @@ void draw_two_prim_post_alpha_scene(
             LLRenderBlendFactor::Zero,
             LLRenderBlendFactor::OneMinusSourceAlpha,
         });
-    backend.setCapability(LLRenderCapability::DepthTest, true);
+    backend.setCapability(LLRenderCapability::DepthTest, false);
     backend.setDepthFunction(LLRenderDepthFunction::LessEqual);
     backend.setDepthWriteEnabled(false);
     backend.setCapability(LLRenderCapability::CullFace, false);
@@ -7752,7 +7784,9 @@ void draw_two_prim_post_alpha_scene(
         LLRenderWorldMaterialParameters::PostDeferred;
     if (scene_depth_bound)
     {
-        alpha_flags |= LLRenderWorldMaterialParameters::SceneDepth;
+        alpha_flags |=
+            LLRenderWorldMaterialParameters::SceneDepth |
+            LLRenderWorldMaterialParameters::SceneDepthFlipY;
     }
     LLRenderWorldMaterialParameters alpha_parameters =
         make_world_pipeline_material(
@@ -7762,6 +7796,7 @@ void draw_two_prim_post_alpha_scene(
             0.58f,
             alpha_flags);
     alpha_parameters.mDiffuseAlphaMode = 1.f;
+    alpha_parameters.mSceneDirectScale = 1.f;
     backend.setWorldMaterialParameters(alpha_parameters);
     set_two_prim_world_matrix(0.10f, -0.02f, 0.64f, 0.56f, 0.52f);
     backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
@@ -9374,11 +9409,32 @@ bool render_opengl_alpha_reference_ppm(
         }
     };
 
-    if (!compile_opengl_reference_shader(
+    std::string alpha_vertex_source =
+        read_smoke_text_file("indra/newview/app_settings/shaders/class1/deferred/alphaV.glsl");
+    const std::string alpha_vertex_normal =
+        "norm = normalize(normal_matrix * normal);";
+    const size_t alpha_vertex_normal_pos =
+        alpha_vertex_source.find(alpha_vertex_normal);
+    if (alpha_vertex_normal_pos == std::string::npos)
+    {
+        std::cerr << "Unable to patch OpenGL alpha reference vertex normal.\n";
+        cleanup();
+        return false;
+    }
+    alpha_vertex_source.replace(
+        alpha_vertex_normal_pos,
+        alpha_vertex_normal.size(),
+        // The alpha source-reference probe is a fullscreen synthetic quad;
+        // force its normal so the OpenGL reference and Vulkan probe receive
+        // the same scene input instead of depending on unused normal-buffer state.
+        "norm = vec3(0.0, 0.0, 1.0);");
+
+    if (!compile_opengl_reference_shader_source(
             backend,
             "indra/newview/app_settings/shaders/class1/deferred/alphaV.glsl",
             LLRenderShaderStage::Vertex,
             vertex_shader,
+            alpha_vertex_source,
             get_opengl_alpha_fragment_prefix()) ||
         !compile_opengl_reference_shader(
             backend,
@@ -9549,7 +9605,7 @@ bool render_opengl_alpha_reference_ppm(
         LLRenderTextureTarget::Texture2D,
         LLRenderTextureFilter::Linear,
         LLRenderTextureFilter::Linear);
-    bind_world_smoke_quad(backend, quad);
+    bind_smoke_quad(backend, quad);
     backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
 
     std::vector<U8> rgba_pixels;
@@ -9575,8 +9631,731 @@ bool render_opengl_alpha_reference_ppm(
             << height
             << ".\n";
     }
+
     cleanup();
     return result;
+}
+
+bool render_opengl_two_prims_alpha_scene_reference_ppm(
+    LLRenderBackend& backend,
+    const std::string& path,
+    U32 width,
+    U32 height)
+{
+    U32 vertex_shader = 0;
+    U32 fragment_shader = 0;
+    U32 program = 0;
+    U32 alpha_vertex_shader = 0;
+    U32 alpha_fragment_shader = 0;
+    U32 alpha_program = 0;
+    LLRenderTextureHandle diffuse_texture;
+    LLRenderVertexArrayHandle vertex_array;
+    SmokeQuad quad;
+
+    auto cleanup = [&]()
+    {
+        backend.useProgram(0);
+        if (quad.mVertexBuffer)
+        {
+            backend.deleteBufferHandle(quad.mVertexBuffer);
+            quad.mVertexBuffer = {};
+        }
+        if (diffuse_texture)
+        {
+            backend.deleteTextureHandle(diffuse_texture);
+            diffuse_texture = {};
+        }
+        if (vertex_array)
+        {
+            backend.bindVertexArray(0);
+            vertex_array = {};
+        }
+        if (alpha_program)
+        {
+            if (alpha_vertex_shader)
+            {
+                backend.detachShader(alpha_program, alpha_vertex_shader);
+            }
+            if (alpha_fragment_shader)
+            {
+                backend.detachShader(alpha_program, alpha_fragment_shader);
+            }
+            backend.deleteProgram(alpha_program);
+            alpha_program = 0;
+        }
+        if (program)
+        {
+            if (vertex_shader)
+            {
+                backend.detachShader(program, vertex_shader);
+            }
+            if (fragment_shader)
+            {
+                backend.detachShader(program, fragment_shader);
+            }
+            backend.deleteProgram(program);
+            program = 0;
+        }
+        if (vertex_shader)
+        {
+            backend.deleteShader(vertex_shader);
+            vertex_shader = 0;
+        }
+        if (fragment_shader)
+        {
+            backend.deleteShader(fragment_shader);
+            fragment_shader = 0;
+        }
+        if (alpha_vertex_shader)
+        {
+            backend.deleteShader(alpha_vertex_shader);
+            alpha_vertex_shader = 0;
+        }
+        if (alpha_fragment_shader)
+        {
+            backend.deleteShader(alpha_fragment_shader);
+            alpha_fragment_shader = 0;
+        }
+    };
+
+    const std::string vertex_source =
+        "in vec4 position;\n"
+        "uniform mat4 mare_transform;\n"
+        "void main()\n"
+        "{\n"
+        "    gl_Position = mare_transform * position;\n"
+        "}\n";
+    const std::string fragment_source =
+        "uniform vec4 mare_color;\n"
+        "out vec4 frag_color;\n"
+        "void main()\n"
+        "{\n"
+        "    frag_color = mare_color;\n"
+        "}\n";
+
+    if (!compile_opengl_reference_shader_source(
+            backend,
+            "mare OpenGL two-prims alpha scene vertex",
+            LLRenderShaderStage::Vertex,
+            vertex_shader,
+            vertex_source) ||
+        !compile_opengl_reference_shader_source(
+            backend,
+            "mare OpenGL two-prims alpha scene fragment",
+            LLRenderShaderStage::Fragment,
+            fragment_shader,
+            fragment_source))
+    {
+        cleanup();
+        return false;
+    }
+
+    program = backend.createProgram();
+    if (!program)
+    {
+        cleanup();
+        return false;
+    }
+    backend.attachShader(program, vertex_shader);
+    backend.attachShader(program, fragment_shader);
+    backend.bindAttributeLocation(program, 0, "position");
+    backend.linkProgram(program);
+    if (log_program_link_failure(backend, program, "OpenGL two-prims alpha scene reference"))
+    {
+        cleanup();
+        return false;
+    }
+
+    std::string alpha_vertex_source =
+        read_smoke_text_file("indra/newview/app_settings/shaders/class1/deferred/alphaV.glsl");
+    const std::string alpha_vertex_normal =
+        "norm = normalize(normal_matrix * normal);";
+    const size_t alpha_vertex_normal_pos =
+        alpha_vertex_source.find(alpha_vertex_normal);
+    if (alpha_vertex_normal_pos == std::string::npos)
+    {
+        std::cerr << "Unable to patch OpenGL two-prims alpha vertex normal.\n";
+        cleanup();
+        return false;
+    }
+    alpha_vertex_source.replace(
+        alpha_vertex_normal_pos,
+        alpha_vertex_normal.size(),
+        "norm = vec3(0.0, 0.0, 1.0);");
+
+    if (!compile_opengl_reference_shader_source(
+            backend,
+            "indra/newview/app_settings/shaders/class1/deferred/alphaV.glsl",
+            LLRenderShaderStage::Vertex,
+            alpha_vertex_shader,
+            alpha_vertex_source,
+            get_opengl_alpha_fragment_prefix()) ||
+        !compile_opengl_reference_shader(
+            backend,
+            "indra/newview/app_settings/shaders/class2/deferred/alphaF.glsl",
+            LLRenderShaderStage::Fragment,
+            alpha_fragment_shader,
+            get_opengl_alpha_fragment_prefix()))
+    {
+        cleanup();
+        return false;
+    }
+
+    alpha_program = backend.createProgram();
+    if (!alpha_program)
+    {
+        cleanup();
+        return false;
+    }
+    backend.attachShader(alpha_program, alpha_vertex_shader);
+    backend.attachShader(alpha_program, alpha_fragment_shader);
+    backend.bindAttributeLocation(alpha_program, 0, "position");
+    backend.bindAttributeLocation(alpha_program, 1, "normal");
+    backend.bindAttributeLocation(alpha_program, 2, "texcoord0");
+    backend.bindAttributeLocation(alpha_program, 6, "diffuse_color");
+    backend.linkProgram(alpha_program);
+    if (log_program_link_failure(backend, alpha_program, "OpenGL two-prims alpha owner reference"))
+    {
+        cleanup();
+        return false;
+    }
+
+    if (!create_smoke_texture(
+            backend,
+            diffuse_texture,
+            4,
+            4,
+            make_solid_rgba_pixels(4, 4, 255, 255, 255, 255)) ||
+        !create_smoke_quad(
+            backend,
+            quad,
+            {{
+                static_cast<U8>(to_color_byte(0.96f)),
+                static_cast<U8>(to_color_byte(0.18f)),
+                static_cast<U8>(to_color_byte(0.76f)),
+                static_cast<U8>(to_color_byte(0.58f)),
+            }}))
+    {
+        cleanup();
+        return false;
+    }
+
+    vertex_array = backend.createVertexArrayHandle();
+    if (!vertex_array)
+    {
+        cleanup();
+        return false;
+    }
+    backend.bindVertexArray(vertex_array);
+
+    backend.bindReadWriteFramebuffer(LLRenderFramebufferHandle());
+    backend.restoreDefaultFramebufferBufferRouting();
+    backend.setViewport(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setScissor(0, 0, static_cast<S32>(width), static_cast<S32>(height));
+    backend.setClearColor(0.45f, 0.50f, 0.58f, 1.f);
+    backend.clear(LL_RENDER_CLEAR_COLOR | LL_RENDER_CLEAR_DEPTH);
+    backend.setCapability(LLRenderCapability::DepthTest, true);
+    backend.setDepthFunction(LLRenderDepthFunction::LessEqual);
+    backend.setDepthWriteEnabled(true);
+    backend.setCapability(LLRenderCapability::Blend, false);
+    backend.setCapability(LLRenderCapability::CullFace, false);
+    backend.setColorMask({ true, true, true, true });
+
+    backend.useProgram(program);
+    const S32 transform_location =
+        backend.getUniformLocation(program, "mare_transform");
+    const S32 color_location =
+        backend.getUniformLocation(program, "mare_color");
+    const auto make_transform = [](
+        F32 center_x,
+        F32 center_y,
+        F32 depth,
+        F32 half_width,
+        F32 half_height)
+    {
+        glm::mat4 transform(1.f);
+        transform = glm::translate(transform, glm::vec3(center_x, center_y, depth));
+        transform = glm::scale(transform, glm::vec3(half_width, half_height, 1.f));
+        return transform;
+    };
+    const auto set_draw_state = [&](const glm::mat4& transform, const LLColor4& color)
+    {
+        if (transform_location >= 0)
+        {
+            backend.setUniformMatrix4(
+                transform_location,
+                1,
+                false,
+                glm::value_ptr(transform));
+        }
+        if (color_location >= 0)
+        {
+            backend.setUniformFloat4(
+                color_location,
+                color.mV[VRED],
+                color.mV[VGREEN],
+                color.mV[VBLUE],
+                color.mV[VALPHA]);
+        }
+    };
+
+    bind_smoke_quad(backend, quad);
+    set_draw_state(
+        make_transform(-0.10f, 0.02f, 0.42f, 0.48f, 0.46f),
+        LLColor4::white);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    backend.setCapability(LLRenderCapability::Blend, true);
+    backend.setBlendState(
+        {
+            LLRenderBlendFactor::SourceAlpha,
+            LLRenderBlendFactor::OneMinusSourceAlpha,
+            LLRenderBlendFactor::Zero,
+            LLRenderBlendFactor::OneMinusSourceAlpha,
+        });
+    backend.setDepthWriteEnabled(false);
+    backend.useProgram(alpha_program);
+    const auto set_alpha_int_uniform = [&](const char* name, S32 value)
+    {
+        const S32 location = backend.getUniformLocation(alpha_program, name);
+        if (location >= 0)
+        {
+            backend.setUniformInteger(location, value);
+        }
+    };
+    const auto set_alpha_float_uniform = [&](const char* name, F32 value)
+    {
+        const S32 location = backend.getUniformLocation(alpha_program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat(location, value);
+        }
+    };
+    const auto set_alpha_vec2_uniform = [&](const char* name, F32 x, F32 y)
+    {
+        const S32 location = backend.getUniformLocation(alpha_program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat2(location, x, y);
+        }
+    };
+    const auto set_alpha_vec3_uniform = [&](const char* name, F32 x, F32 y, F32 z)
+    {
+        const S32 location = backend.getUniformLocation(alpha_program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat3(location, x, y, z);
+        }
+    };
+    const auto set_alpha_vec4_uniform = [&](const char* name, F32 x, F32 y, F32 z, F32 w)
+    {
+        const S32 location = backend.getUniformLocation(alpha_program, name);
+        if (location >= 0)
+        {
+            backend.setUniformFloat4(location, x, y, z, w);
+        }
+    };
+    const auto set_alpha_mat3_uniform = [&](const char* name, const glm::mat3& matrix)
+    {
+        const S32 location = backend.getUniformLocation(alpha_program, name);
+        if (location >= 0)
+        {
+            backend.setUniformMatrix3(location, 1, false, glm::value_ptr(matrix));
+        }
+    };
+    const auto set_alpha_mat4_uniform = [&](const char* name, const glm::mat4& matrix)
+    {
+        const S32 location = backend.getUniformLocation(alpha_program, name);
+        if (location >= 0)
+        {
+            backend.setUniformMatrix4(location, 1, false, glm::value_ptr(matrix));
+        }
+    };
+
+    const glm::mat4 identity4(1.f);
+    const glm::mat3 identity3(1.f);
+    const glm::mat4 alpha_transform =
+        make_transform(0.10f, -0.02f, 0.64f, 0.56f, 0.52f);
+    set_alpha_mat3_uniform("normal_matrix", identity3);
+    set_alpha_mat3_uniform("env_mat", identity3);
+    set_alpha_mat4_uniform("texture_matrix0", identity4);
+    set_alpha_mat4_uniform("projection_matrix", identity4);
+    set_alpha_mat4_uniform("modelview_matrix", alpha_transform);
+    set_alpha_mat4_uniform("modelview_projection_matrix", alpha_transform);
+    set_alpha_mat4_uniform("proj_mat", identity4);
+    set_alpha_mat4_uniform("inv_proj", identity4);
+    set_alpha_int_uniform("diffuseMap", 0);
+    set_alpha_int_uniform("sun_up_factor", 1);
+    set_alpha_int_uniform("classic_mode", 0);
+    set_alpha_float_uniform("near_clip", 1.f);
+    set_alpha_float_uniform("minimum_alpha", -1.f);
+    set_alpha_vec2_uniform("screen_res", static_cast<F32>(width), static_cast<F32>(height));
+    set_alpha_vec3_uniform("sun_dir", 0.35f, 0.45f, 0.82f);
+    set_alpha_vec3_uniform("moon_dir", -0.25f, -0.15f, 0.95f);
+    for (S32 i = 0; i < 8; ++i)
+    {
+        const std::string index = std::to_string(i);
+        set_alpha_vec4_uniform(("light_position[" + index + "]").c_str(), 0.f, 0.f, 10.f, 1.f);
+        set_alpha_vec3_uniform(("light_direction[" + index + "]").c_str(), 0.f, 0.f, -1.f);
+        set_alpha_vec4_uniform(("light_attenuation[" + index + "]").c_str(), 12.f, 1.f, 1.f, 0.f);
+        set_alpha_vec3_uniform(("light_diffuse[" + index + "]").c_str(), 0.f, 0.f, 0.f);
+    }
+    backend.setActiveTextureUnit(0);
+    backend.bindTexture(LLRenderTextureTarget::Texture2D, diffuse_texture);
+    backend.setTextureFilter(
+        LLRenderTextureTarget::Texture2D,
+        LLRenderTextureFilter::Linear,
+        LLRenderTextureFilter::Linear);
+    bind_smoke_quad(backend, quad);
+    backend.drawArrays(LLRenderPrimitiveType::Triangles, 0, 6);
+
+    std::vector<U8> rgba_pixels;
+    rgba_pixels.resize(static_cast<size_t>(width) * static_cast<size_t>(height) * 4U);
+    backend.readPixels(
+        0,
+        0,
+        static_cast<S32>(width),
+        static_cast<S32>(height),
+        LLRenderPixelFormat::RGBA,
+        LLRenderPixelType::UnsignedByte,
+        rgba_pixels.data());
+
+    bool result = write_rgba_readback_as_rgb_ppm(path, width, height, rgba_pixels);
+    if (result)
+    {
+        std::cout
+            << "Wrote Mare smoke OpenGL two-prims alpha scene reference PPM to "
+            << path
+            << " at "
+            << width
+            << "x"
+            << height
+            << ".\n";
+    }
+    cleanup();
+    return result;
+}
+
+struct SmokePPMImage
+{
+    U32 mWidth = 0;
+    U32 mHeight = 0;
+    std::vector<U8> mRGB;
+};
+
+bool read_smoke_ppm_token(std::istream& input, std::string& token)
+{
+    token.clear();
+    char c = 0;
+    while (input.get(c))
+    {
+        if (std::isspace(static_cast<unsigned char>(c)))
+        {
+            continue;
+        }
+        if (c == '#')
+        {
+            std::string ignored;
+            std::getline(input, ignored);
+            continue;
+        }
+        token.push_back(c);
+        break;
+    }
+
+    if (token.empty())
+    {
+        return false;
+    }
+
+    while (input.get(c))
+    {
+        if (std::isspace(static_cast<unsigned char>(c)))
+        {
+            break;
+        }
+        token.push_back(c);
+    }
+    return true;
+}
+
+bool read_smoke_rgb_ppm_file(const std::string& path, SmokePPMImage& image)
+{
+    std::ifstream input(path, std::ios::binary);
+    if (!input.is_open())
+    {
+        std::cerr << "Unable to open smoke PPM file: " << path << ".\n";
+        return false;
+    }
+
+    std::string token;
+    if (!read_smoke_ppm_token(input, token) || token != "P6")
+    {
+        std::cerr << "Unsupported smoke PPM file: " << path << ".\n";
+        return false;
+    }
+    if (!read_smoke_ppm_token(input, token))
+    {
+        return false;
+    }
+    image.mWidth = static_cast<U32>(std::strtoul(token.c_str(), nullptr, 10));
+    if (!read_smoke_ppm_token(input, token))
+    {
+        return false;
+    }
+    image.mHeight = static_cast<U32>(std::strtoul(token.c_str(), nullptr, 10));
+    if (!read_smoke_ppm_token(input, token) || token != "255")
+    {
+        std::cerr << "Unsupported smoke PPM max value in " << path << ".\n";
+        return false;
+    }
+
+    const size_t byte_count =
+        static_cast<size_t>(image.mWidth) *
+        static_cast<size_t>(image.mHeight) *
+        3U;
+    image.mRGB.resize(byte_count);
+    input.read(reinterpret_cast<char*>(image.mRGB.data()), static_cast<std::streamsize>(byte_count));
+    if (static_cast<size_t>(input.gcount()) != byte_count)
+    {
+        std::cerr << "Incomplete smoke PPM file: " << path << ".\n";
+        return false;
+    }
+    return true;
+}
+
+struct SmokeAlphaTwoPrimsMetrics
+{
+    double mMagentaPercent = 0.0;
+    double mCenterOpaquePercent = 0.0;
+    double mCenterMagentaPercent = 100.0;
+    S32 mMagentaMinX = 0;
+    S32 mMagentaMaxX = 0;
+    S32 mMagentaMinY = 0;
+    S32 mMagentaMaxY = 0;
+    bool mPass = false;
+};
+
+bool is_alpha_two_prims_magenta_pixel(U8 red, U8 green, U8 blue)
+{
+    return red >= 170 &&
+        green <= 95 &&
+        blue >= 115;
+}
+
+bool is_alpha_two_prims_opaque_pixel(U8 red, U8 green, U8 blue)
+{
+    return red >= 220 &&
+        green >= 220 &&
+        blue >= 220;
+}
+
+SmokeAlphaTwoPrimsMetrics compute_alpha_two_prims_metrics(
+    const SmokePPMImage& image)
+{
+    SmokeAlphaTwoPrimsMetrics metrics;
+    if (image.mWidth == 0 || image.mHeight == 0 || image.mRGB.empty())
+    {
+        return metrics;
+    }
+
+    U64 magenta_pixels = 0;
+    U64 center_pixels = 0;
+    U64 center_opaque_pixels = 0;
+    U64 center_magenta_pixels = 0;
+    metrics.mMagentaMinX = static_cast<S32>(image.mWidth);
+    metrics.mMagentaMaxX = 0;
+    metrics.mMagentaMinY = static_cast<S32>(image.mHeight);
+    metrics.mMagentaMaxY = 0;
+    const U64 pixel_count =
+        static_cast<U64>(image.mWidth) *
+        static_cast<U64>(image.mHeight);
+
+    for (U32 y = 0; y < image.mHeight; ++y)
+    {
+        for (U32 x = 0; x < image.mWidth; ++x)
+        {
+            const size_t offset =
+                (static_cast<size_t>(y) * static_cast<size_t>(image.mWidth) +
+                    static_cast<size_t>(x)) * 3U;
+            const U8 red = image.mRGB[offset + 0];
+            const U8 green = image.mRGB[offset + 1];
+            const U8 blue = image.mRGB[offset + 2];
+            const bool is_magenta =
+                is_alpha_two_prims_magenta_pixel(red, green, blue);
+            const bool is_opaque_center =
+                is_alpha_two_prims_opaque_pixel(red, green, blue);
+            const bool in_depth_blocked_center =
+                x >= image.mWidth * 45 / 100 &&
+                x <= image.mWidth * 55 / 100 &&
+                y >= image.mHeight * 42 / 100 &&
+                y <= image.mHeight * 58 / 100;
+
+            if (is_magenta)
+            {
+                ++magenta_pixels;
+                metrics.mMagentaMinX = llmin(metrics.mMagentaMinX, static_cast<S32>(x));
+                metrics.mMagentaMaxX = llmax(metrics.mMagentaMaxX, static_cast<S32>(x));
+                metrics.mMagentaMinY = llmin(metrics.mMagentaMinY, static_cast<S32>(y));
+                metrics.mMagentaMaxY = llmax(metrics.mMagentaMaxY, static_cast<S32>(y));
+            }
+            if (in_depth_blocked_center)
+            {
+                ++center_pixels;
+                if (is_opaque_center)
+                {
+                    ++center_opaque_pixels;
+                }
+                if (is_magenta)
+                {
+                    ++center_magenta_pixels;
+                }
+            }
+        }
+    }
+
+    metrics.mMagentaPercent =
+        100.0 * static_cast<double>(magenta_pixels) / static_cast<double>(pixel_count);
+    metrics.mCenterOpaquePercent =
+        center_pixels > 0 ?
+        100.0 * static_cast<double>(center_opaque_pixels) / static_cast<double>(center_pixels) :
+        0.0;
+    metrics.mCenterMagentaPercent =
+        center_pixels > 0 ?
+        100.0 * static_cast<double>(center_magenta_pixels) / static_cast<double>(center_pixels) :
+        100.0;
+    metrics.mPass =
+        metrics.mMagentaPercent >= 5.0 &&
+        metrics.mCenterOpaquePercent >= 80.0 &&
+        metrics.mCenterMagentaPercent <= 0.01;
+    return metrics;
+}
+
+double compute_alpha_two_prims_mask_jaccard(
+    const SmokePPMImage& reference,
+    const SmokePPMImage& candidate,
+    bool (*predicate)(U8, U8, U8))
+{
+    U64 intersection_pixels = 0;
+    U64 union_pixels = 0;
+    const size_t pixel_count =
+        static_cast<size_t>(reference.mWidth) *
+        static_cast<size_t>(reference.mHeight);
+    for (size_t pixel = 0; pixel < pixel_count; ++pixel)
+    {
+        const size_t offset = pixel * 3U;
+        const bool reference_pixel =
+            predicate(
+                reference.mRGB[offset + 0],
+                reference.mRGB[offset + 1],
+                reference.mRGB[offset + 2]);
+        const bool candidate_pixel =
+            predicate(
+                candidate.mRGB[offset + 0],
+                candidate.mRGB[offset + 1],
+                candidate.mRGB[offset + 2]);
+        if (reference_pixel && candidate_pixel)
+        {
+            ++intersection_pixels;
+        }
+        if (reference_pixel || candidate_pixel)
+        {
+            ++union_pixels;
+        }
+    }
+
+    return union_pixels > 0 ?
+        static_cast<double>(intersection_pixels) /
+            static_cast<double>(union_pixels) :
+        0.0;
+}
+
+S32 abs_s32(S32 value)
+{
+    return value < 0 ? -value : value;
+}
+
+bool compare_alpha_two_prims_scene_ppms(
+    const std::string& reference_path,
+    const std::string& candidate_path)
+{
+    SmokePPMImage reference;
+    SmokePPMImage candidate;
+    if (!read_smoke_rgb_ppm_file(reference_path, reference) ||
+        !read_smoke_rgb_ppm_file(candidate_path, candidate))
+    {
+        return false;
+    }
+    if (reference.mWidth != candidate.mWidth ||
+        reference.mHeight != candidate.mHeight)
+    {
+        std::cerr
+            << "Mare smoke alpha two-prims OpenGL/Vulkan compare FAIL: size mismatch, reference "
+            << reference.mWidth
+            << "x"
+            << reference.mHeight
+            << ", candidate "
+            << candidate.mWidth
+            << "x"
+            << candidate.mHeight
+            << ".\n";
+        return false;
+    }
+
+    const SmokeAlphaTwoPrimsMetrics reference_metrics =
+        compute_alpha_two_prims_metrics(reference);
+    const SmokeAlphaTwoPrimsMetrics candidate_metrics =
+        compute_alpha_two_prims_metrics(candidate);
+    const double magenta_jaccard =
+        compute_alpha_two_prims_mask_jaccard(
+            reference,
+            candidate,
+            is_alpha_two_prims_magenta_pixel);
+    const double opaque_jaccard =
+        compute_alpha_two_prims_mask_jaccard(
+            reference,
+            candidate,
+            is_alpha_two_prims_opaque_pixel);
+    const S32 magenta_min_y_delta =
+        abs_s32(reference_metrics.mMagentaMinY - candidate_metrics.mMagentaMinY);
+    const S32 magenta_max_y_delta =
+        abs_s32(reference_metrics.mMagentaMaxY - candidate_metrics.mMagentaMaxY);
+    const bool pass =
+        reference_metrics.mPass &&
+        candidate_metrics.mPass &&
+        magenta_jaccard >= 0.92 &&
+        opaque_jaccard >= 0.93 &&
+        magenta_min_y_delta <= 4 &&
+        magenta_max_y_delta <= 4;
+    std::ostream& output = pass ? std::cout : std::cerr;
+    output
+        << "Mare smoke alpha two-prims OpenGL/Vulkan structural compare "
+        << (pass ? "PASS" : "FAIL")
+        << ": OpenGL magenta "
+        << std::fixed
+        << std::setprecision(4)
+        << reference_metrics.mMagentaPercent
+        << "%, center opaque "
+        << reference_metrics.mCenterOpaquePercent
+        << "%, center magenta leak "
+        << reference_metrics.mCenterMagentaPercent
+        << "%; Vulkan magenta "
+        << candidate_metrics.mMagentaPercent
+        << "%, center opaque "
+        << candidate_metrics.mCenterOpaquePercent
+        << "%, center magenta leak "
+        << candidate_metrics.mCenterMagentaPercent
+        << "%, magenta IoU "
+        << magenta_jaccard
+        << ", opaque IoU "
+        << opaque_jaccard
+        << ", magenta y delta "
+        << magenta_min_y_delta
+        << "/"
+        << magenta_max_y_delta
+        << " px."
+        << std::endl;
+    return pass;
 }
 
 std::string get_opengl_lightmap_shadow_fragment_prefix()
@@ -14062,15 +14841,22 @@ bool render_viewer_staged_post_targets_frame(
         return false;
     }
 
-    const U32 graph_width = llmax(64U, llmin(width, 960U));
-    const U32 graph_height = llmax(
-        64U,
-        llmin(
-            height,
-            static_cast<U32>(
-                static_cast<double>(graph_width) *
-                static_cast<double>(height) /
-                static_cast<double>(llmax(1U, width)))));
+    const bool full_resolution_parity_scene = scene == SmokeScene::TwoPrims;
+    const U32 graph_width =
+        full_resolution_parity_scene ?
+        llmax(64U, width) :
+        llmax(64U, llmin(width, 960U));
+    const U32 graph_height =
+        full_resolution_parity_scene ?
+        llmax(64U, height) :
+        llmax(
+            64U,
+            llmin(
+                height,
+                static_cast<U32>(
+                    static_cast<double>(graph_width) *
+                    static_cast<double>(height) /
+                    static_cast<double>(llmax(1U, width)))));
 
     if (!ensure_smoke_viewer_render_target_graph(
             backend,
@@ -14811,7 +15597,12 @@ int run_opengl_shader_reference_ppm(const SmokeOptions& options)
 {
     const std::string shader_case =
         normalize_shader_case_name(options.mShaderCase);
-    if (!options.mShaderCaseExplicit ||
+    const bool two_prims_alpha_scene =
+        !options.mShaderCaseExplicit &&
+        options.mMode == SmokeMode::ViewerStagedPostCopy &&
+        options.mScene == SmokeScene::TwoPrims;
+    if (!two_prims_alpha_scene &&
+        (!options.mShaderCaseExplicit ||
         (shader_case != "copy" &&
             shader_case != "haze" &&
             shader_case != "alpha" &&
@@ -14827,7 +15618,7 @@ int run_opengl_shader_reference_ppm(const SmokeOptions& options)
             shader_case != "softenpbrssr" &&
             shader_case != "softenlegacyspecular" &&
             shader_case != "softenlegacylightmap" &&
-            shader_case != "softenlegacyenv"))
+            shader_case != "softenlegacyenv")))
     {
         std::cerr
             << "--opengl-reference-ppm currently supports only "
@@ -14840,7 +15631,8 @@ int run_opengl_shader_reference_ppm(const SmokeOptions& options)
             << "--shader-case soften-pbr-probe, --shader-case "
             << "soften-pbr-ssr, --shader-case soften-legacy-specular, "
             << "--shader-case soften-legacy-lightmap, "
-            << "or --shader-case soften-legacy-env.\n";
+            << "--shader-case soften-legacy-env, or "
+            << "--mode viewer-staged-post-copy --scene two-prims.\n";
         return 1;
     }
 
@@ -14901,7 +15693,16 @@ int run_opengl_shader_reference_ppm(const SmokeOptions& options)
     unsigned int height = 1;
     mare_vulkan_smoke_get_view_size(context.mView, &width, &height);
     bool rendered = false;
-    if (shader_case == "copy")
+    if (two_prims_alpha_scene)
+    {
+        rendered =
+            render_opengl_two_prims_alpha_scene_reference_ppm(
+                backend,
+                options.mOpenGLReferencePPMPath,
+                width,
+                height);
+    }
+    else if (shader_case == "copy")
     {
         rendered =
             render_opengl_copy_reference_ppm(
@@ -15246,6 +16047,7 @@ int main(int argc, char** argv)
     unsetenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE");
     unsetenv("MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB");
     unsetenv("MARE_VULKAN_SMOKE_EXPECT_DEFERRED_COMPOSITE_RGB_TOLERANCE");
+    unsetenv("MARE_VULKAN_SMOKE_ALPHA_TWO_PRIMS");
     auto set_expected_rgb = [](const char* key, SmokeRGB rgb)
     {
         std::ostringstream expected_rgb;
@@ -15440,6 +16242,11 @@ int main(int argc, char** argv)
             "MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB",
             { 0.0157f, 0.0196f, 0.0235f });
         setenv("MARE_VULKAN_SMOKE_EXPECT_FINAL_RGB_TOLERANCE", "0.02", 1);
+    }
+    else if (options.mMode == SmokeMode::ViewerStagedPostCopy &&
+        options.mScene == SmokeScene::TwoPrims)
+    {
+        setenv("MARE_VULKAN_SMOKE_ALPHA_TWO_PRIMS", "1", 1);
     }
     if (!options.mScreenshotPPMPath.empty())
     {
@@ -16434,12 +17241,23 @@ int main(int argc, char** argv)
         }
         else
         {
-            ppm_compare_failed =
-                !compare_rgb_ppm_files(
-                    options.mComparePPMPath,
-                    options.mScreenshotPPMPath,
-                    options.mComparePPMMeanTolerance,
-                    options.mComparePPMMaxTolerance);
+            if (options.mMode == SmokeMode::ViewerStagedPostCopy &&
+                options.mScene == SmokeScene::TwoPrims)
+            {
+                ppm_compare_failed =
+                    !compare_alpha_two_prims_scene_ppms(
+                        options.mComparePPMPath,
+                        options.mScreenshotPPMPath);
+            }
+            else
+            {
+                ppm_compare_failed =
+                    !compare_rgb_ppm_files(
+                        options.mComparePPMPath,
+                        options.mScreenshotPPMPath,
+                        options.mComparePPMMeanTolerance,
+                        options.mComparePPMMaxTolerance);
+            }
         }
     }
 

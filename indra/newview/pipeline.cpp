@@ -602,12 +602,17 @@ void validate_framebuffer_object();
 
 // Add color attachments for deferred rendering
 // target -- RenderTarget to add attachments to
-static bool use_mare_viewer_pipeline_scene_test_emissive_buffer()
+static bool use_mare_viewer_pipeline_scene_test()
 {
     const char* scene_test = std::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST");
+    return scene_test && scene_test[0] != '\0';
+}
+
+static bool use_mare_viewer_pipeline_scene_test_emissive_buffer()
+{
     const char* emissive_buffer =
         std::getenv("MARE_VIEWER_PIPELINE_SCENE_TEST_ENABLE_EMISSIVE_BUFFER");
-    return scene_test && scene_test[0] != '\0' &&
+    return use_mare_viewer_pipeline_scene_test() &&
         emissive_buffer && emissive_buffer[0] != '\0' &&
         emissive_buffer[0] != '0';
 }
@@ -620,7 +625,11 @@ bool addDeferredAttachments(LLRenderTarget& target, bool for_impostor = false)
 
     static LLCachedControl<bool> has_emissive(gSavedSettings, "RenderEnableEmissiveBuffer", false);
     static LLCachedControl<bool> has_hdr(gSavedSettings, "RenderHDREnabled", true);
-    bool hdr = has_hdr() && gGLManager.mGLVersion > 4.05f;
+    const bool is_vulkan_backend =
+        getRenderBackend().getType() == LLRenderBackendType::Vulkan;
+    const bool force_hdr_scene_test = use_mare_viewer_pipeline_scene_test();
+    bool hdr = (has_hdr() || force_hdr_scene_test) &&
+        (is_vulkan_backend || gGLManager.mGLVersion > 4.05f);
 
     if (!hdr)
     {
@@ -1081,7 +1090,11 @@ bool LLPipeline::allocateScreenBufferInternal(U32 resX, U32 resY)
     LL_PROFILE_ZONE_SCOPED_CATEGORY_DISPLAY;
 
     static LLCachedControl<bool> has_hdr(gSavedSettings, "RenderHDREnabled", true);
-    bool hdr = gGLManager.mGLVersion > 4.05f && has_hdr();
+    const bool is_vulkan_backend =
+        getRenderBackend().getType() == LLRenderBackendType::Vulkan;
+    const bool force_hdr_scene_test = use_mare_viewer_pipeline_scene_test();
+    bool hdr = (has_hdr() || force_hdr_scene_test) &&
+        (is_vulkan_backend || gGLManager.mGLVersion > 4.05f);
 
     if (mRT == &mMainRT)
     { // hacky -- allocate auxillary buffer

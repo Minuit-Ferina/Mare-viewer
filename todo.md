@@ -227,8 +227,29 @@ filled in.
       initialized. Remaining work: add true alpha-blend groups, terrain, sky,
       water, PBR/GLTF materials, lights, shadows, reflection probes, and
       automated OpenGL/Vulkan image comparison.
-      Current G-buffer capture coverage includes strict OpenGL/Vulkan parity
-      for depth, normal-alpha, and the default emissive-buffer-absent case:
+      Parity rule: use this viewer-pipeline scene test, not
+      `mare-vulkan-smoke`, when judging final image color, clear/background
+      color, deferred composite, and other real viewer pipeline output. The
+      smoke executable is still useful for isolated shader/pass probes, but its
+      simplified graph can legitimately have different clear/composite colors
+      from the real viewer pipeline.
+      Current G-buffer capture coverage includes OpenGL/Vulkan parity for
+      color, color-alpha, specular/ORM, depth, normal, normal-alpha, and the
+      default emissive-buffer-absent case. `gbuffer-color` differs only by 5
+      channels at max diff 1, mean 0.0000; `gbuffer-color-alpha` is strict zero-diff
+      after the Vulkan capture label was corrected to request alpha-as-gray
+      readback like OpenGL. `gbuffer-normal` and `gbuffer-normal-alpha` are
+      strict zero-diff after `HasNormalMap` was aligned with the OpenGL source
+      pass family and the neutral bump fixture was aligned with `bumpF.glsl`
+      env output. `gbuffer-specular` is strict zero-diff for the
+      legacy material/specmap fixture and the opt-in
+      `MARE_VIEWER_PIPELINE_SCENE_TEST_ENABLE_PBR_ORM=1` PBR ORM fixture. The
+      PBR ORM fixture now attaches a real non-default
+      `LLViewerFetchedTexture` to `mMetallicRoughnessTexture`, so it validates
+      the mapped ORM texture binding/sampling path rather than factors only.
+      This also fixed the Vulkan legacy material G-buffer specular-map
+      contract: sampled specular RGB is multiplied by `specular_color.rgb`,
+      matching `class3/deferred/materialF.glsl`.
       `gbuffer-emissive` writes a black Vulkan reference when the optional
       `RenderEnableEmissiveBuffer` attachment is not allocated, matching the
       current OpenGL fixture. The same fixture can now force a live emissive
@@ -237,8 +258,11 @@ filled in.
       `gbuffer-emissive` captures are strict zero-diff in both modes. This also
       fixed the Vulkan PBR G-buffer emissive color-space contract: material
       emissive factor stays linear and only the emissive texture sample is
-      converted from sRGB. Remaining emissive work is mapped emissive textures
-      and legacy-material emissive probes.
+      converted from sRGB. Remaining G-buffer work is ORM UV/transform
+      variation, mapped emissive textures, legacy-material emissive probes, and
+      carrying the generated bump texture selected by
+      `LLDrawPoolBump::bindBumpMap()` into `LLWorldRenderCommand` so the
+      specialized Vulkan bump owner can replace the current neutral fixture.
 
 ## OpenGL Shader Inventory
 
@@ -442,15 +466,20 @@ Validation status:
       `class2/deferred/alphaF.glsl` shader bodies, and supplies controlled
       smoke-test helper functions for fog, reflection probes, water clipping,
       local lights, and atmospheric inputs. The reference now compiles both the
-      OpenGL vertex and fragment with `USE_VERTEX_COLOR`, so the synthetic
-      vertex color path is exercised. The Vulkan final swapchain readback
-      originally reported alpha `0.0000`; after routing runtime alpha to
+      OpenGL vertex and fragment with `USE_VERTEX_COLOR` plus a fixed synthetic
+      normal, so the synthetic vertex color path is exercised against the same
+      normal input as Vulkan. The Vulkan final swapchain readback originally
+      reported alpha `0.0000`; after routing runtime alpha to
       `vulkan/final/class1/deferred/alpha.vert` plus
       `vulkan/final/class2/deferred/alpha.frag`, the smoke readback reports
       nonzero alpha again. Removing Alpha-owned emissive/glow approximation and
       switching legacy Alpha lighting to the OpenGL-style linear path improves
-      the strict RGB source-reference comparison to mean abs diff `5.3333` and
-      max channel diff `15`. Parity is not complete yet.
+      the strict RGB source-reference comparison to zero-diff for the current
+      source-level probe. The synthetic `viewer-staged-post-copy --scene
+      two-prims` smoke now generates a real OpenGL reference image and compares
+      the Vulkan result structurally: translucent magenta is present, the
+      center opaque region stays opaque, and center magenta leak is `0.0000%`
+      on both backends. Parity is not complete yet.
 - [x] Bind runtime Vulkan Copy to the specialized final shader pair.
       `LLRenderWorldShaderClass::Copy` now uses
       `vulkan/final/class1/interface/copy.vert` plus
@@ -1026,10 +1055,13 @@ Validation status:
       adapter. The vertex and fragment are adapted to the current Vulkan world
       push-constant/skinning contract, preserve alpha by default, and use the
       OpenGL-style linear lighting path for legacy Alpha. Current strict Alpha
-      smoke diff is mean abs `5.3333`, max channel `15`. Remaining alpha work:
-      add the OpenGL local-light/reflection/fog inputs, align
-      blend/depth/post-water ordering, and re-run strict OpenGL/Vulkan RGB
-      plus alpha comparisons.
+      source-level smoke diff is zero after matching the synthetic OpenGL
+      reference normal to the Vulkan probe input. The synthetic two-prims scene
+      now has a real OpenGL reference image and guards post-deferred
+      alpha/depth ordering with `0.0000%` center magenta leak on both backends.
+      Remaining alpha work: add the OpenGL
+      local-light/reflection/fog inputs, align live-scene post-water ordering,
+      and re-run strict OpenGL/Vulkan RGB plus alpha comparisons.
 
 ### Additional Final Vulkan Entry Points
 

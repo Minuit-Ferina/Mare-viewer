@@ -84,6 +84,7 @@ public:
 
     static bool bindBumpMap(LLDrawInfo& params, S32 channel = -2);
     static bool bindBumpMap(LLFace* face, S32 channel = -2);
+    static LLViewerTexture* getBumpMap(U8 bump_code, LLViewerTexture* tex);
 
 private:
     static bool bindBumpMap(U8 bump_code, LLViewerTexture* tex, S32 channel);

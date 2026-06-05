@@ -15,6 +15,7 @@ layout(push_constant) uniform MareWorldPushConstants
     vec4 material_extra;
     vec4 base_texture_transform0;
     vec4 base_texture_transform1;
+    layout(offset = 176) vec4 material_pbr;
     layout(offset = 352) mat4 normal_matrix;
 } pc;
 

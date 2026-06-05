@@ -90,6 +90,10 @@ vec2 emissive_texture_texcoord(vec2 texcoord)
 
 vec2 normal_sample_texcoord(vec2 texcoord)
 {
+    if (has_material_flag(MATERIAL_LEGACY_BUMP))
+    {
+        return texcoord;
+    }
     return vary_material_texcoord1.xy;
 }
 
@@ -154,15 +158,19 @@ vec3 material_normal(vec2 texcoord)
         n = vec3(0.0, 0.0, 1.0);
     }
 
-    if (has_material_flag(MATERIAL_HAS_NORMAL_MAP) ||
-        has_material_flag(MATERIAL_LEGACY_BUMP))
+    if (has_material_flag(MATERIAL_HAS_NORMAL_MAP))
     {
-        vec3 t = normalize(vary_tangent.xyz);
-        if (dot(t, t) <= 0.0001)
+        vec4 tangent = vary_tangent;
+        if (dot(tangent.xyz, tangent.xyz) <= 0.0001)
         {
-            t = vec3(1.0, 0.0, 0.0);
+            tangent = vec4(1.0, 0.0, 0.0, 1.0);
         }
-        vec3 b = normalize(cross(n, t) * vary_tangent.w);
+        else if (abs(tangent.w) <= 0.0001)
+        {
+            tangent.w = 1.0;
+        }
+        vec3 t = normalize(tangent.xyz);
+        vec3 b = normalize(cross(n, t) * tangent.w);
         vec3 map_normal = texture(tex1, normal_sample_texcoord(texcoord)).xyz * 2.0 - 1.0;
         n = normalize(mat3(t, b, n) * map_normal);
     }
@@ -183,6 +191,7 @@ void main()
     if (has_material_flag(MATERIAL_HAS_SPECULAR_MAP))
     {
         specular = texture(tex2, legacy_specular_sample_texcoord());
+        specular.rgb *= pc.material_legacy.rgb;
     }
     float legacy_shiny = clamp(pc.material_modes.w / 6.0, 0.0, 0.49);
 
