@@ -232,6 +232,13 @@ struct LLVkBufferCreateInfo
     const U32* pQueueFamilyIndices;
 };
 
+struct LLVkBufferCopy
+{
+    U64 srcOffset;
+    U64 dstOffset;
+    U64 size;
+};
+
 struct LLVkImageCreateInfo
 {
     S32 sType;
@@ -1045,6 +1052,8 @@ using LLVulkanCmdBindVertexBuffers =
 using LLVulkanCmdSetViewport = void (*)(LLVkCommandBuffer, U32, U32, const LLVkViewport*);
 using LLVulkanCmdSetScissor = void (*)(LLVkCommandBuffer, U32, U32, const LLVkRect2D*);
 using LLVulkanCmdSetDepthBias = void (*)(LLVkCommandBuffer, F32, F32, F32);
+using LLVulkanCmdCopyBuffer =
+    void (*)(LLVkCommandBuffer, LLVkBuffer, LLVkBuffer, U32, const LLVkBufferCopy*);
 using LLVulkanCmdCopyBufferToImage =
     void (*)(LLVkCommandBuffer, LLVkBuffer, LLVkImage, S32, U32, const LLVkBufferImageCopy*);
 using LLVulkanCmdCopyImageToBuffer =
@@ -2290,6 +2299,7 @@ struct LLVulkanNativeContext
     LLVulkanCmdSetViewport mCmdSetViewport = nullptr;
     LLVulkanCmdSetScissor mCmdSetScissor = nullptr;
     LLVulkanCmdSetDepthBias mCmdSetDepthBias = nullptr;
+    LLVulkanCmdCopyBuffer mCmdCopyBuffer = nullptr;
     LLVulkanCmdCopyBufferToImage mCmdCopyBufferToImage = nullptr;
     LLVulkanCmdCopyImageToBuffer mCmdCopyImageToBuffer = nullptr;
     LLVulkanCreateSampler mCreateSampler = nullptr;
@@ -4026,7 +4036,8 @@ bool create_vulkan_buffer_resource(
     LLVulkanBufferResource& resource,
     U64 replaced_memory_size = 0,
     bool allow_reserved_budget = false,
-    U32 eviction_excluded_handle = 0);
+    U32 eviction_excluded_handle = 0,
+    bool prefer_device_local = false);
 
 void destroy_vulkan_buffer_resource(
     LLVulkanNativeContext& context,
@@ -4227,7 +4238,15 @@ bool create_vulkan_buffer_resource(
     LLVulkanBufferResource& resource,
     U64 replaced_memory_size,
     bool allow_reserved_budget,
-    U32 eviction_excluded_handle);
+    U32 eviction_excluded_handle,
+    bool prefer_device_local);
+
+bool upload_vulkan_buffer_data_with_staging(
+    LLVulkanNativeContext& context,
+    LLVulkanBufferResource& destination,
+    U64 destination_offset,
+    const void* data,
+    U64 size);
 
 bool create_vulkan_default_ui_attribute_buffers(LLVulkanNativeContext& context)
 {
@@ -4458,6 +4477,21 @@ bool can_use_vulkan_reserved_buffer_memory(LLRenderBufferUsage usage)
            usage == LLRenderBufferUsage::StreamCopy;
 }
 
+bool should_prefer_vulkan_device_local_buffer(
+    U32 usage_flags,
+    LLRenderBufferUsage usage,
+    const void* data)
+{
+    if (!data ||
+        (usage_flags & (LL_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | LL_VK_BUFFER_USAGE_INDEX_BUFFER_BIT)) == 0)
+    {
+        return false;
+    }
+
+    return usage == LLRenderBufferUsage::StaticDraw ||
+           usage == LLRenderBufferUsage::DynamicDraw;
+}
+
 U64 get_vulkan_stale_buffer_age_frames()
 {
     static const U64 age_frames = []()
@@ -4672,7 +4706,8 @@ bool create_vulkan_buffer_resource(
     LLVulkanBufferResource& resource,
     U64 replaced_memory_size,
     bool allow_reserved_budget,
-    U32 eviction_excluded_handle)
+    U32 eviction_excluded_handle,
+    bool prefer_device_local)
 {
     if (!context.mCreateBuffer ||
         !context.mGetBufferMemoryRequirements ||
@@ -4683,13 +4718,22 @@ bool create_vulkan_buffer_resource(
         return false;
     }
 
+    const bool can_upload_with_staging =
+        prefer_device_local &&
+        data &&
+        size > 0;
+    const U32 effective_usage =
+        can_upload_with_staging ?
+        (usage | LL_VK_BUFFER_USAGE_TRANSFER_DST_BIT) :
+        usage;
+
     LLVkBufferCreateInfo buffer_create_info =
     {
         LL_VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         nullptr,
         0,
         size,
-        usage,
+        effective_usage,
         LL_VK_SHARING_MODE_EXCLUSIVE,
         0,
         nullptr
@@ -4717,11 +4761,34 @@ bool create_vulkan_buffer_resource(
         &memory_requirements);
 
     U32 memory_type_index = 0;
-    if (!find_vulkan_memory_type(
+    bool use_device_local_memory = false;
+    if (can_upload_with_staging &&
+        find_vulkan_memory_type(
             context,
             memory_requirements.memoryTypeBits,
-            LL_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | LL_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            memory_type_index))
+            LL_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            memory_type_index) &&
+        can_commit_vulkan_buffer_memory(
+            context,
+            memory_requirements.size,
+            effective_usage,
+            memory_type_index,
+            replaced_memory_size,
+            allow_reserved_budget,
+            eviction_excluded_handle) &&
+        can_commit_vulkan_heap_memory(
+            context,
+            memory_type_index,
+            memory_requirements.size,
+            "device-local buffer"))
+    {
+        use_device_local_memory = true;
+    }
+    else if (!find_vulkan_memory_type(
+                 context,
+                 memory_requirements.memoryTypeBits,
+                 LL_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | LL_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 memory_type_index))
     {
         LL_WARNS("RenderBackend")
             << "No host-visible coherent Vulkan memory type for buffer."
@@ -4730,10 +4797,11 @@ bool create_vulkan_buffer_resource(
         return false;
     }
 
-    if (!can_commit_vulkan_buffer_memory(
+    if (!use_device_local_memory &&
+        !can_commit_vulkan_buffer_memory(
             context,
             memory_requirements.size,
-            usage,
+            effective_usage,
             memory_type_index,
             replaced_memory_size,
             allow_reserved_budget,
@@ -4742,6 +4810,21 @@ bool create_vulkan_buffer_resource(
         destroy_vulkan_buffer_resource(context, resource);
         return false;
     }
+
+    auto fallback_to_host_visible_buffer = [&]() -> bool
+    {
+        destroy_vulkan_buffer_resource(context, resource);
+        return create_vulkan_buffer_resource(
+            context,
+            size,
+            usage,
+            data,
+            resource,
+            replaced_memory_size,
+            allow_reserved_budget,
+            eviction_excluded_handle,
+            false);
+    };
 
     LLVkMemoryAllocateInfo allocate_info =
     {
@@ -4762,6 +4845,10 @@ bool create_vulkan_buffer_resource(
             << "vkAllocateMemory(buffer) failed with result "
             << result
             << LL_ENDL;
+        if (use_device_local_memory)
+        {
+            return fallback_to_host_visible_buffer();
+        }
         destroy_vulkan_buffer_resource(context, resource);
         return false;
     }
@@ -4777,42 +4864,72 @@ bool create_vulkan_buffer_resource(
             << "vkBindBufferMemory failed with result "
             << result
             << LL_ENDL;
+        if (use_device_local_memory)
+        {
+            return fallback_to_host_visible_buffer();
+        }
         destroy_vulkan_buffer_resource(context, resource);
         return false;
     }
 
-    result = context.mMapMemory(
-        context.mDevice,
-        resource.mMemory,
-        0,
-        memory_requirements.size,
-        0,
-        &resource.mMappedData);
-    if (result != LL_VK_SUCCESS || !resource.mMappedData)
+    const U32 memory_property_flags =
+        memory_type_index < context.mMemoryProperties.memoryTypeCount ?
+        context.mMemoryProperties.memoryTypes[memory_type_index].propertyFlags :
+        0;
+    const bool memory_is_host_visible =
+        (memory_property_flags &
+         (LL_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | LL_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) ==
+            (LL_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | LL_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    if (memory_is_host_visible)
     {
-        LL_WARNS("RenderBackend")
-            << "vkMapMemory(buffer) failed with result "
-            << result
-            << LL_ENDL;
-        destroy_vulkan_buffer_resource(context, resource);
-        return false;
+        result = context.mMapMemory(
+            context.mDevice,
+            resource.mMemory,
+            0,
+            memory_requirements.size,
+            0,
+            &resource.mMappedData);
+        if (result != LL_VK_SUCCESS || !resource.mMappedData)
+        {
+            LL_WARNS("RenderBackend")
+                << "vkMapMemory(buffer) failed with result "
+                << result
+                << LL_ENDL;
+            destroy_vulkan_buffer_resource(context, resource);
+            return false;
+        }
     }
 
     resource.mSize = size;
     resource.mMemorySize = memory_requirements.size;
     resource.mLastUsedFrame = context.mPresentedFrameCount;
-    resource.mUsageFlags = usage;
+    resource.mUsageFlags = effective_usage;
     resource.mMemoryTypeIndex = memory_type_index;
     resource.mMemoryHeapIndex = get_vulkan_memory_type_heap_index(context, memory_type_index);
-    resource.mMemoryPropertyFlags =
-        memory_type_index < context.mMemoryProperties.memoryTypeCount ?
-        context.mMemoryProperties.memoryTypes[memory_type_index].propertyFlags :
-        0;
+    resource.mMemoryPropertyFlags = memory_property_flags;
     resource.mMemoryAccounted = true;
     context.mBufferMemoryAllocatedBytes += resource.mMemorySize;
     if (data && size > 0)
     {
-        std::memcpy(resource.mMappedData, data, static_cast<size_t>(size));
+        if (resource.mMappedData)
+        {
+            std::memcpy(resource.mMappedData, data, static_cast<size_t>(size));
+        }
+        else if (!upload_vulkan_buffer_data_with_staging(
+                     context,
+                     resource,
+                     0,
+                     data,
+                     size))
+        {
+            if (use_device_local_memory)
+            {
+                return fallback_to_host_visible_buffer();
+            }
+            destroy_vulkan_buffer_resource(context, resource);
+            return false;
+        }
     }
     return true;
 }
@@ -5055,7 +5172,11 @@ bool retry_vulkan_pending_buffer_allocation(
             new_resource,
             replaced_memory_size,
             can_use_vulkan_reserved_buffer_memory(pending.mUsage),
-            handle))
+            handle,
+            should_prefer_vulkan_device_local_buffer(
+                pending.mUsageFlags,
+                pending.mUsage,
+                pending.mInitialData.empty() ? nullptr : pending.mInitialData.data())))
     {
         pending_iter->second = pending;
         return false;
@@ -6388,6 +6509,12 @@ bool ensure_vulkan_command_entry_points(LLVulkanNativeContext& context)
             reinterpret_cast<LLVulkanCmdPipelineBarrier>(
                 get_vulkan_device_proc_address(context, "vkCmdPipelineBarrier"));
     }
+    if (!context.mCmdCopyBuffer)
+    {
+        context.mCmdCopyBuffer =
+            reinterpret_cast<LLVulkanCmdCopyBuffer>(
+                get_vulkan_device_proc_address(context, "vkCmdCopyBuffer"));
+    }
     if (!context.mCreateFence)
     {
         context.mCreateFence =
@@ -6412,6 +6539,7 @@ bool ensure_vulkan_command_entry_points(LLVulkanNativeContext& context)
         context.mBeginCommandBuffer &&
         context.mEndCommandBuffer &&
         context.mCmdPipelineBarrier &&
+        context.mCmdCopyBuffer &&
         context.mQueueSubmit &&
         context.mCreateFence &&
         context.mDestroyFence &&
@@ -6547,6 +6675,63 @@ bool end_vulkan_one_time_commands(
     context.mDestroyFence(context.mDevice, upload_fence, nullptr);
     context.mFreeCommandBuffers(context.mDevice, context.mCommandPool, 1, &command_buffer);
     return upload_finished;
+}
+
+bool upload_vulkan_buffer_data_with_staging(
+    LLVulkanNativeContext& context,
+    LLVulkanBufferResource& destination,
+    U64 destination_offset,
+    const void* data,
+    U64 size)
+{
+    if (!data ||
+        size == 0 ||
+        !destination.mBuffer ||
+        destination_offset + size > destination.mSize ||
+        (destination.mUsageFlags & LL_VK_BUFFER_USAGE_TRANSFER_DST_BIT) == 0 ||
+        !ensure_vulkan_command_entry_points(context))
+    {
+        return false;
+    }
+
+    LLVulkanBufferResource staging;
+    if (!create_vulkan_buffer_resource(
+            context,
+            size,
+            LL_VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            data,
+            staging,
+            0,
+            true,
+            0,
+            false))
+    {
+        return false;
+    }
+
+    LLVkCommandBuffer command_buffer = nullptr;
+    if (!begin_vulkan_one_time_commands(context, command_buffer))
+    {
+        destroy_vulkan_buffer_resource(context, staging);
+        return false;
+    }
+
+    LLVkBufferCopy copy_region =
+    {
+        0,
+        destination_offset,
+        size
+    };
+    context.mCmdCopyBuffer(
+        command_buffer,
+        staging.mBuffer,
+        destination.mBuffer,
+        1,
+        &copy_region);
+
+    const bool upload_ok = end_vulkan_one_time_commands(context, command_buffer);
+    destroy_vulkan_buffer_resource(context, staging);
+    return upload_ok;
 }
 
 void transition_vulkan_texture_layout(
@@ -12290,6 +12475,7 @@ void destroy_vulkan_device(LLVulkanNativeContext& context)
     context.mUnmapMemory = nullptr;
     context.mCreateSampler = nullptr;
     context.mDestroySampler = nullptr;
+    context.mCmdCopyBuffer = nullptr;
     context.mCmdCopyBufferToImage = nullptr;
     context.mCmdCopyImageToBuffer = nullptr;
     context.mCreateRenderPass = nullptr;
@@ -22999,6 +23185,7 @@ void destroy_vulkan_command_buffers(LLVulkanNativeContext& context)
     context.mEndCommandBuffer = nullptr;
     context.mResetCommandBuffer = nullptr;
     context.mCmdPipelineBarrier = nullptr;
+    context.mCmdCopyBuffer = nullptr;
     context.mCmdBeginRenderPass = nullptr;
     context.mCmdEndRenderPass = nullptr;
 }
@@ -24803,21 +24990,26 @@ public:
             resource.mMemoryAccounted ?
             resource.mMemorySize :
             0;
+        const U32 buffer_usage_flags = to_vulkan_buffer_usage(target);
         LLVulkanBufferResource new_resource;
         if (!create_vulkan_buffer_resource(
                 *gCurrentVulkanContext,
                 size,
-                to_vulkan_buffer_usage(target),
+                buffer_usage_flags,
                 data,
                 new_resource,
                 replaced_memory_size,
                 can_use_vulkan_reserved_buffer_memory(usage),
-                handle))
+                handle,
+                should_prefer_vulkan_device_local_buffer(
+                    buffer_usage_flags,
+                    usage,
+                    data)))
         {
             track_vulkan_pending_buffer_allocation(
                 handle,
                 size,
-                to_vulkan_buffer_usage(target),
+                buffer_usage_flags,
                 usage,
                 data);
             if (!had_existing_resource)
@@ -24866,6 +25058,28 @@ public:
 
         const U64 update_end = static_cast<U64>(offset) + size;
         auto iter = gVulkanBuffers.find(handle);
+        if (iter != gVulkanBuffers.end() &&
+            !iter->second.mMappedData &&
+            update_end <= iter->second.mSize)
+        {
+            if (upload_vulkan_buffer_data_with_staging(
+                    *gCurrentVulkanContext,
+                    iter->second,
+                    offset,
+                    data,
+                    size))
+            {
+                update_vulkan_resident_buffer_shadow_data(
+                    handle,
+                    iter->second,
+                    offset,
+                    size,
+                    data);
+                iter->second.mLastUsedFrame = gCurrentVulkanContext->mPresentedFrameCount;
+            }
+            return;
+        }
+
         if (iter == gVulkanBuffers.end() ||
             !iter->second.mMappedData ||
             update_end > iter->second.mSize)
