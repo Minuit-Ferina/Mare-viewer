@@ -1883,6 +1883,9 @@ struct LLVulkanBufferResource
     U64 mMemorySize = 0;
     U64 mLastUsedFrame = 0;
     U32 mUsageFlags = 0;
+    U32 mMemoryTypeIndex = 32;
+    U32 mMemoryHeapIndex = 16;
+    U32 mMemoryPropertyFlags = 0;
     LLRenderBufferUsage mUsage = LLRenderBufferUsage::StaticDraw;
     bool mMemoryAccounted = false;
     void* mMappedData = nullptr;
@@ -1937,8 +1940,18 @@ struct LLVulkanTextureAllocationDesc
 
 struct LLVulkanBufferLifetimeTelemetry
 {
+    U32 mResidentBufferCount = 0;
     U32 mStaleBufferCount = 0;
     U32 mReconstructibleStaleBufferCount = 0;
+    U64 mResidentBufferMemoryBytes = 0;
+    U64 mHostVisibleBufferMemoryBytes = 0;
+    U64 mDeviceLocalBufferMemoryBytes = 0;
+    U64 mDeviceLocalOnlyBufferMemoryBytes = 0;
+    U64 mHostVisibleDeviceLocalBufferMemoryBytes = 0;
+    U64 mStaticDrawBufferMemoryBytes = 0;
+    U64 mDynamicDrawBufferMemoryBytes = 0;
+    U64 mStreamDrawBufferMemoryBytes = 0;
+    U64 mStreamCopyBufferMemoryBytes = 0;
     U64 mStaleBufferMemoryBytes = 0;
     U64 mReconstructibleStaleBufferMemoryBytes = 0;
     U64 mOldestStaleBufferAgeFrames = 0;
@@ -4789,6 +4802,12 @@ bool create_vulkan_buffer_resource(
     resource.mMemorySize = memory_requirements.size;
     resource.mLastUsedFrame = context.mPresentedFrameCount;
     resource.mUsageFlags = usage;
+    resource.mMemoryTypeIndex = memory_type_index;
+    resource.mMemoryHeapIndex = get_vulkan_memory_type_heap_index(context, memory_type_index);
+    resource.mMemoryPropertyFlags =
+        memory_type_index < context.mMemoryProperties.memoryTypeCount ?
+        context.mMemoryProperties.memoryTypes[memory_type_index].propertyFlags :
+        0;
     resource.mMemoryAccounted = true;
     context.mBufferMemoryAllocatedBytes += resource.mMemorySize;
     if (data && size > 0)
@@ -5094,6 +5113,48 @@ LLVulkanBufferLifetimeTelemetry collect_vulkan_buffer_lifetime_telemetry(
             continue;
         }
 
+        ++telemetry.mResidentBufferCount;
+        telemetry.mResidentBufferMemoryBytes += resource.mMemorySize;
+        const bool host_visible =
+            (resource.mMemoryPropertyFlags & LL_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
+        const bool device_local =
+            (resource.mMemoryPropertyFlags & LL_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0 ||
+            (resource.mMemoryHeapIndex < context.mMemoryProperties.memoryHeapCount &&
+             (context.mMemoryProperties.memoryHeaps[resource.mMemoryHeapIndex].flags &
+              LL_VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0);
+        if (host_visible)
+        {
+            telemetry.mHostVisibleBufferMemoryBytes += resource.mMemorySize;
+        }
+        if (device_local)
+        {
+            telemetry.mDeviceLocalBufferMemoryBytes += resource.mMemorySize;
+        }
+        if (device_local && !host_visible)
+        {
+            telemetry.mDeviceLocalOnlyBufferMemoryBytes += resource.mMemorySize;
+        }
+        if (device_local && host_visible)
+        {
+            telemetry.mHostVisibleDeviceLocalBufferMemoryBytes += resource.mMemorySize;
+        }
+
+        switch (resource.mUsage)
+        {
+        case LLRenderBufferUsage::StaticDraw:
+            telemetry.mStaticDrawBufferMemoryBytes += resource.mMemorySize;
+            break;
+        case LLRenderBufferUsage::DynamicDraw:
+            telemetry.mDynamicDrawBufferMemoryBytes += resource.mMemorySize;
+            break;
+        case LLRenderBufferUsage::StreamDraw:
+            telemetry.mStreamDrawBufferMemoryBytes += resource.mMemorySize;
+            break;
+        case LLRenderBufferUsage::StreamCopy:
+            telemetry.mStreamCopyBufferMemoryBytes += resource.mMemorySize;
+            break;
+        }
+
         const U64 age_frames =
             context.mPresentedFrameCount >= resource.mLastUsedFrame ?
             context.mPresentedFrameCount - resource.mLastUsedFrame :
@@ -5126,8 +5187,9 @@ void maybe_log_vulkan_buffer_lifetime_telemetry(
     const LLVulkanBufferLifetimeTelemetry& telemetry)
 {
     const U64 stale_age_frames = get_vulkan_stale_buffer_age_frames();
-    if (context.mPresentedFrameCount < stale_age_frames ||
-        (telemetry.mStaleBufferCount == 0 && gPendingVulkanBufferAllocations.empty()))
+    if (telemetry.mResidentBufferCount == 0 &&
+        telemetry.mStaleBufferCount == 0 &&
+        gPendingVulkanBufferAllocations.empty())
     {
         return;
     }
@@ -5135,7 +5197,27 @@ void maybe_log_vulkan_buffer_lifetime_telemetry(
     LL_INFOS("RenderBackend")
         << "Vulkan buffer lifetime telemetry after "
         << context.mPresentedFrameCount
-        << " frame(s): stale buffers "
+        << " frame(s): resident buffers "
+        << telemetry.mResidentBufferCount
+        << " ("
+        << (telemetry.mResidentBufferMemoryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+        << "MB), host-visible "
+        << (telemetry.mHostVisibleBufferMemoryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+        << "MB, device-local "
+        << (telemetry.mDeviceLocalBufferMemoryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+        << "MB, device-local-only "
+        << (telemetry.mDeviceLocalOnlyBufferMemoryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+        << "MB, host-visible device-local "
+        << (telemetry.mHostVisibleDeviceLocalBufferMemoryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+        << "MB, usage static/dynamic/stream/stream-copy "
+        << (telemetry.mStaticDrawBufferMemoryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+        << "/"
+        << (telemetry.mDynamicDrawBufferMemoryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+        << "/"
+        << (telemetry.mStreamDrawBufferMemoryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+        << "/"
+        << (telemetry.mStreamCopyBufferMemoryBytes / MARE_VULKAN_BYTES_PER_MEGABYTE)
+        << "MB, stale buffers "
         << telemetry.mStaleBufferCount
         << " >= "
         << stale_age_frames
