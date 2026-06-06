@@ -23156,7 +23156,7 @@ public:
         context.mPixelFormat = nullptr;
         context.mVRAM = native_context->mReportedVideoMemoryMB;
 
-        LL_WARNS("RenderBackend")
+        LL_INFOS("RenderBackend")
             << "Vulkan backend created a native "
 #if LL_DARWIN
             << "macOS CAMetalLayer"
@@ -23164,8 +23164,8 @@ public:
             << "Win32 HWND"
 #endif
             << " surface, VkInstance, device, swapchain, "
-            << "image views, render pass, bootstrap/UI pipelines, framebuffers, command buffers, and frame sync. "
-            << "A first clear frame was presented. Real scene rendering is still pending."
+            << "image views, render pass, pipelines, framebuffers, command buffers, and frame sync. "
+            << "A first clear frame was presented."
             << LL_ENDL;
         LL_INFOS("RenderBackend")
             << "Vulkan reported texture memory budget for viewer info: "
@@ -24201,8 +24201,36 @@ public:
         auto iter = gVulkanTextures.find(texture);
         if (iter == gVulkanTextures.end())
         {
-            ++gCurrentVulkanContext->mSkippedTextureSubImageMissingResourceCount;
-            return;
+            const bool has_allocation_desc =
+                gVulkanTextureAllocationDescs.find(texture) !=
+                gVulkanTextureAllocationDescs.end();
+            const bool recreated_from_desc =
+                has_allocation_desc &&
+                ensure_vulkan_texture_resource_from_allocation_desc(
+                    *gCurrentVulkanContext,
+                    texture);
+            const bool recreated_from_full_subimage =
+                !recreated_from_desc &&
+                xoffset == 0 &&
+                yoffset == 0 &&
+                create_empty_vulkan_texture_resource(
+                    *gCurrentVulkanContext,
+                    texture,
+                    width,
+                    height,
+                    LLRenderTextureFormat::RGBA8);
+            if (!recreated_from_desc && !recreated_from_full_subimage)
+            {
+                ++gCurrentVulkanContext->mSkippedTextureSubImageMissingResourceCount;
+                return;
+            }
+
+            iter = gVulkanTextures.find(texture);
+            if (iter == gVulkanTextures.end())
+            {
+                ++gCurrentVulkanContext->mSkippedTextureSubImageMissingResourceCount;
+                return;
+            }
         }
 
         const bool is_glyph_texture = is_vulkan_glyph_texture_format(format);

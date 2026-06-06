@@ -1917,7 +1917,11 @@ void LLVertexBuffer::setBuffer()
     {
         for (U32 type = 0; type < TYPE_MAX; ++type)
         {
-            if (!(data_mask & (1U << type)))
+            if (data_mask & (1U << type))
+            {
+                enable_vertex_attribute_array(type);
+            }
+            else
             {
                 disable_vertex_attribute_array(type);
             }
